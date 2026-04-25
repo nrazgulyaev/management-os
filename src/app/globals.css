@@ -1,0 +1,255 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* -----------------------------------------------------------
+   Design Tokens — Arconique Management OS
+   Sourced from docs/DESIGN_SYSTEM.md §3–5.
+   Light defaults live on :root, dark overrides live on .dark.
+   Tailwind @theme maps tokens to utility classes.
+   ----------------------------------------------------------- */
+
+:root {
+  /* Surfaces */
+  --canvas: #f8f5f0;
+  --surface: #ffffff;
+  --muted: #f1ece4;
+  --inset: #eee7dc;
+
+  /* Lines */
+  --line-soft: #e4dcce;
+  --line-strong: #b9ad98;
+
+  /* Text */
+  --ink: #0f1110;
+  --ink-secondary: #4a4a46;
+  --ink-tertiary: #7a7670;
+  --ink-inverse: #f6f3ed;
+
+  /* Brand */
+  --accent: #0e3b2e;
+  --accent-weak: #dce6df;
+  --accent-contrast: #ffffff;
+  --gold: #b08a3e;
+  --gold-weak: #f1e7d1;
+
+  /* Semantic */
+  --success: #2e7d64;
+  --warning: #a06a1a;
+  --danger: #a43e2f;
+  --info: #2e4a5c;
+  --neutral-fg: #7a7670;
+
+  /* Semantic soft fills */
+  --success-weak: #dce9e2;
+  --warning-weak: #f3e4c9;
+  --danger-weak: #f0d9d2;
+  --info-weak: #d8e2e9;
+
+  /* Data viz — Sequence A */
+  --data-emerald: #0e3b2e;
+  --data-gold: #b08a3e;
+  --data-stone: #6b6760;
+  --data-sage: #6e8a7a;
+  --data-terracotta: #9e5a49;
+  --data-ink: #2a2d2b;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-xl: 32px;
+
+  /* Shadows (soft, low) */
+  --shadow-flat: 0 0 0 1px var(--line-soft);
+  --shadow-rest: 0 1px 2px rgba(15, 17, 16, 0.04), 0 0 0 1px var(--line-soft);
+  --shadow-raised: 0 6px 20px -8px rgba(15, 17, 16, 0.1), 0 0 0 1px var(--line-soft);
+  --shadow-floating: 0 20px 60px -20px rgba(15, 17, 16, 0.22), 0 0 0 1px var(--line-soft);
+
+  /* Motion */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-editorial: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dark {
+  --canvas: #0c0e0d;
+  --surface: #141716;
+  --muted: #1a1d1b;
+  --inset: #1e2220;
+
+  --line-soft: #262a28;
+  --line-strong: #3a3f3c;
+
+  --ink: #f4f1eb;
+  --ink-secondary: #c4beb3;
+  --ink-tertiary: #8a857b;
+  --ink-inverse: #0f1110;
+
+  --accent: #4fb592;
+  --accent-weak: #15332a;
+  --accent-contrast: #0c0e0d;
+  --gold: #d6b567;
+  --gold-weak: #2a2313;
+
+  --success: #4fb592;
+  --warning: #d0a14c;
+  --danger: #d46a57;
+  --info: #8fb0c2;
+  --neutral-fg: #a9a49a;
+
+  --success-weak: #15332a;
+  --warning-weak: #2a2313;
+  --danger-weak: #2e1a17;
+  --info-weak: #1a2730;
+
+  --shadow-flat: 0 0 0 1px var(--line-soft);
+  --shadow-rest: 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line-soft);
+  --shadow-raised: 0 6px 20px -8px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line-soft);
+  --shadow-floating: 0 20px 60px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--line-soft);
+}
+
+/* -----------------------------------------------------------
+   Tailwind theme mapping
+   ----------------------------------------------------------- */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-inset: var(--inset);
+
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-ink-inverse: var(--ink-inverse);
+
+  --color-accent: var(--accent);
+  --color-accent-weak: var(--accent-weak);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-gold: var(--gold);
+  --color-gold-weak: var(--gold-weak);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --color-success-weak: var(--success-weak);
+  --color-warning-weak: var(--warning-weak);
+  --color-danger-weak: var(--danger-weak);
+  --color-info-weak: var(--info-weak);
+
+  --color-data-emerald: var(--data-emerald);
+  --color-data-gold: var(--data-gold);
+  --color-data-stone: var(--data-stone);
+  --color-data-sage: var(--data-sage);
+  --color-data-terracotta: var(--data-terracotta);
+  --color-data-ink: var(--data-ink);
+
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+
+  --font-display: var(--font-display), Georgia, "Iowan Old Style", serif;
+  --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --default-font-family: var(--font-sans);
+}
+
+/* -----------------------------------------------------------
+   Base layer
+   ----------------------------------------------------------- */
+@layer base {
+  * {
+    border-color: var(--line-soft);
+  }
+
+  html {
+    background-color: var(--canvas);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--accent-contrast);
+  }
+
+  /* Numeric feel for tabular figures */
+  .tabular,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* -----------------------------------------------------------
+   Utilities — editorial extras
+   ----------------------------------------------------------- */
+@layer utilities {
+  .text-display {
+    font-family: var(--font-display), Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+
+  .text-label {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+  }
+
+  .divider-hair {
+    border-color: var(--line-soft);
+  }
+
+  .focus-ring {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+
+  .glass {
+    background: color-mix(in oklab, var(--surface), transparent 45%);
+    backdrop-filter: blur(18px) saturate(120%);
+    border: 1px solid color-mix(in oklab, var(--line-soft), transparent 40%);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
