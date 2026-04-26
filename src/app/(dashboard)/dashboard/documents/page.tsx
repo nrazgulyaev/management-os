@@ -10,6 +10,7 @@ import { listDocuments } from "@/features/documents/services";
 import { isDbConfigured } from "@/lib/env";
 
 export const metadata = { title: "Documents" };
+export const dynamic = "force-dynamic";
 
 export default async function DocumentsPage() {
   const docs = await listDocuments();

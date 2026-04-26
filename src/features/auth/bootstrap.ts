@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
 import { auditEvents } from "@/lib/db/schema/audit";
@@ -77,26 +77,23 @@ export async function linkSupabaseUserToSuperAdmin(
     if (input.providedSecret !== expected) return { ok: false, reason: "secret_invalid" };
   }
 
-  // 1) Resolve or create the super_admin role (covers fresh databases without seed).
-  let superRoleId: string;
+  // 1) Ensure the super_admin role exists (covers fresh databases without
+  //    seed). assign_user_role() looks roles up by key, so we don't need the
+  //    id here — just guarantee the row.
   const [existingRole] = await db
     .select({ id: roles.id })
     .from(roles)
     .where(eq(roles.key, "super_admin"))
     .limit(1);
-  if (existingRole) {
-    superRoleId = existingRole.id;
-  } else {
-    const [created] = await db
+  if (!existingRole) {
+    await db
       .insert(roles)
       .values({
         key: "super_admin",
         name: "Super Admin",
         description: "System custodian, access, integrations",
         isSystem: true,
-      })
-      .returning({ id: roles.id });
-    superRoleId = created.id;
+      });
   }
 
   // 2) Find or create the app_user row.
@@ -136,21 +133,16 @@ export async function linkSupabaseUserToSuperAdmin(
     }
   }
 
-  // 3) Ensure the role assignment exists (global scope).
-  const existingAssignment = await db
-    .select()
-    .from(userRoles)
-    .where(and(eq(userRoles.userId, appUserId), eq(userRoles.roleId, superRoleId)))
-    .limit(1);
-
-  if (existingAssignment.length === 0) {
-    await db.insert(userRoles).values({
-      userId: appUserId,
-      roleId: superRoleId,
-      scopeType: null,
-      scopeId: null,
-    });
-  }
+  // 3) Ensure the role assignment exists (global scope). We delegate to the
+  //    SECURITY DEFINER helper from migration 0004 so:
+  //      · The insert succeeds even when the request runs without an existing
+  //        internal session (RLS bootstrap chicken-and-egg).
+  //      · The (user_id, role_id, NULL, NULL) tuple is unique under the
+  //        UNIQUE NULLS NOT DISTINCT constraint — no ambiguous nulls.
+  //      · Re-running the bootstrap is a no-op (returns the existing id).
+  await db.execute(
+    sql`SELECT public.assign_user_role(${appUserId}::uuid, ${"super_admin"}::text, NULL::text, NULL::uuid)`,
+  );
 
   // 4) Audit it (cannot use recordAuditEvent — that helper expects a request
   //    context. Insert directly so this works from a server action or script.)

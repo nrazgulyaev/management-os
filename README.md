@@ -12,7 +12,7 @@ This repository implements the blueprint in [`/docs`](./docs/). It contains a Ne
 - **Guest portal** — tokenised boutique-hotel-style stay pages.
 - **Staff field PWA** — mobile-first task runner.
 
-**Current build state:** Version 2.5 — Admin Workflow Hardening. Drizzle schema, Supabase-ready clients, services with graceful fallback, full admin CRUD (create / edit / archive) for projects, villas, owners, ownership shares, bookings, channels, guests, documents. Includes admin-bootstrap flow, audit log viewer, settings + users page, share-total validation, and live-DB dashboard counts. The marketing site, owner portal, and AI hub remain demo-grade — wiring continues across v3–v10.
+**Current build state:** Version 6 — Booking Channels Calendar Sync + Operations Automation + Material-Usage Finance Bridge + Inventory Counts. Builds on v5 with: iCal/ICS-based channel calendar feeds (Airbnb / Booking.com / Vrbo) that import VEVENTs into `channel_calendar_events`; operator-triggered sync detects overlaps and writes `booking_conflicts`; "Create booking" materialises an event into `bookings` with `source_reference = external_uid`; `runBookingAutomationForBooking` mints the standard task chain (turnover cleaning + arrival inspection) idempotently per booking; owner-chargeable `task_material_usage` bridges to `expense_lines` with locked-period guard; full `inventory_counts` workflow (draft → submitted → approved → adjusted) auto-emits `count_correction` movements. New permissions (`integrations.*`, `bookings.sync`, `automation.*`, `inventory.count.*`, `finance.bridge_material_usage`). REST API integrations, payment processing, WhatsApp/Telegram, smart locks, AI runtime, and HEIC photo support remain deferred per ADR-0008.
 
 ---
 
@@ -38,10 +38,14 @@ cp .env.example .env.local
 # Paste your Supabase project values (see ADR-0002 §3 for where to find them)
 
 npm install
-npm run db:migrate    # applies drizzle/0000_initial.sql + 0001_admin_workflow_hardening.sql
-npm run db:seed       # idempotent demo data
+npm run db:migrate    # applies 0000_initial.sql + 0001_admin_workflow_hardening.sql + 0002_finance_engine.sql + 0003_statement_pdfs_owner_linkage_finance_polish.sql
+npm run db:seed       # idempotent demo data (incl. v3 finance demo if 0002 has been applied)
 npm run dev
 ```
+
+After migrations and seed, you can generate the first owner statement at
+[`/dashboard/finance/statements/new`](http://localhost:3000/dashboard/finance/statements/new)
+— pick *Emma Whitmore* + *March 2026*.
 
 Admin CRUD pages now persist; the `SourceBadge` flips from **Demo data** to **Live data**.
 
@@ -120,7 +124,9 @@ Helpers live in `src/lib/env.ts` (`isDbConfigured()`, `isSupabaseAuthConfigured(
 - `/dashboard/channels`.
 - `/dashboard/guests`.
 - `/dashboard/finance` — sample owner statement (mock).
-- `/dashboard/operations`, `/dashboard/inventory` — operational demos (mock).
+- `/dashboard/operations` — live command center (tasks, housekeeping, maintenance, preventive, checklists, service requests, damage reports).
+- `/dashboard/inventory` — live stock command (items, stock by location, movements, locations, categories, suppliers, counts).
+- `/dashboard/procurement` — live purchase requests + purchase orders with per-line receiving.
 - `/dashboard/ai` — AI hub preview (mock).
 
 ### Owner portal
@@ -130,7 +136,31 @@ Helpers live in `src/lib/env.ts` (`isDbConfigured()`, `isSupabaseAuthConfigured(
 `/stay/demo`.
 
 ### Staff field
-`/field`, `/field/tasks/demo`.
+`/field` (live tasks for the signed-in app user with mock fallback), `/field/tasks/[id]` (live task detail + mobile-first checklist runner + attachment uploader + material usage form), `/field/inventory` (active items + live stock), `/field/tasks/demo` (UX walkthrough).
+
+### Supabase Storage setup (for photo uploads)
+
+The `/field/tasks/[id]` and `/dashboard/operations/*` upload buttons use Supabase Storage signed uploads. Once-per-project setup:
+
+1. **Supabase Dashboard → Storage → New bucket** named `task-attachments`. Leave "public bucket" **off**.
+2. In `.env.local` set `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `DATABASE_URL`.
+3. Restart `next dev`. The uploader reports "Supabase Storage is not configured." when any of these are missing — the rest of the app keeps working.
+
+Allowed mime types: `image/jpeg`, `image/png`, `image/webp`, `application/pdf`. Max 10 MB. File names are sanitised server-side; objects live at `tasks/{taskId}/yyyy-mm/{uuid}-{name}` (and equivalents for checklist items / maintenance tickets).
+
+### Testing v4–v6 workflows
+
+1. `npm run db:migrate && npm run db:seed` — applies migrations through `0007_booking_channels_calendar_sync_automation.sql` and seeds suppliers, items, stock, sample tasks, calendar feeds, automation rules, and a partially-received PO.
+2. Sign in via `/setup/admin-bootstrap`.
+3. **Field photo workflow**: open a seeded task with a `photo_required` checklist item, mark it `done`, then click "Submit for review" — completion is rejected until you upload a photo via the gallery uploader.
+4. **Inventory movement**: `/dashboard/inventory/movements/new` → pick `transfer`, two locations, a quantity. Confirm stock totals update at `/dashboard/inventory/stock`.
+5. **Material usage**: open a live task at `/dashboard/operations/tasks/[id]` (or `/field/tasks/[id]`) → "Log material used" → pick item, location, quantity. Records a `consume` movement.
+6. **Purchase order receiving**: open the seeded PO `PO-20260420-0001`. Receive the outstanding hand-towel line into Eternal Main Storage; the PO flips to `received`.
+7. **Add a calendar feed**: `/dashboard/integrations/calendar-feeds/new` → paste an Airbnb iCal URL (any host that returns `text/calendar`). Click "Sync now" on the feed detail page; events appear and overlap conflicts get logged to `/dashboard/integrations/conflicts`.
+8. **Materialise an event into a booking**: from `/dashboard/integrations/calendar-events`, click "Create booking" on any unbooked row. The booking page now shows the automation runs (checkout cleaning + arrival inspection were created automatically).
+9. **Run booking automation manually**: open any booking detail page and click "Run automation". Idempotent — re-running surfaces "already executed" reasons rather than duplicate tasks.
+10. **Bridge material usage to finance**: `/dashboard/finance/material-usage` → "Bridge pending usage". Owner-chargeable consumption rows become `expense_lines` against the booking's villa, respecting locked statement periods.
+11. **Inventory counts**: `/dashboard/inventory/counts/new` → pick a location → fill in counted quantities → submit → approve. Approval auto-emits `count_correction` movements for every non-zero variance.
 
 ---
 

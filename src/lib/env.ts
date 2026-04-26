@@ -12,6 +12,10 @@ const serverSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20).optional(),
   ARCONIQUE_FORCE_MOCK: z.string().optional(),
   ADMIN_BOOTSTRAP_SECRET: z.string().min(16).optional(),
+  // v7 — background jobs / cron
+  CRON_SECRET: z.string().min(16).optional(),
+  APP_BASE_URL: z.string().url().optional(),
+  NODE_ENV: z.string().optional(),
 });
 
 const publicSchema = z.object({
@@ -26,6 +30,9 @@ const parsedServer = serverSchema.safeParse({
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   ARCONIQUE_FORCE_MOCK: process.env.ARCONIQUE_FORCE_MOCK,
   ADMIN_BOOTSTRAP_SECRET: process.env.ADMIN_BOOTSTRAP_SECRET,
+  CRON_SECRET: process.env.CRON_SECRET,
+  APP_BASE_URL: process.env.APP_BASE_URL,
+  NODE_ENV: process.env.NODE_ENV,
 });
 
 const parsedPublic = publicSchema.safeParse({
@@ -61,4 +68,8 @@ export function isSupabaseAdminConfigured(): boolean {
 
 export function isDemoMode(): boolean {
   return env.public.NEXT_PUBLIC_ENABLE_DEMO_MODE === "1";
+}
+
+export function isProduction(): boolean {
+  return env.server.NODE_ENV === "production";
 }

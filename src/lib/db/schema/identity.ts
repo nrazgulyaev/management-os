@@ -6,6 +6,7 @@ import {
   boolean,
   primaryKey,
   index,
+  unique,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -52,6 +53,10 @@ export const permissions = pgTable("permissions", {
 export const userRoles = pgTable(
   "user_roles",
   {
+    // Surrogate id — see drizzle/0004_bootstrap_user_roles_fix.sql for the
+    // rationale (composite PK forced scope_type/scope_id NOT NULL, breaking
+    // global-scope grants like the bootstrap super_admin link).
+    id: uuid("id").primaryKey().defaultRandom(),
     userId: uuid("user_id")
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
@@ -63,7 +68,12 @@ export const userRoles = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    primaryKey({ columns: [t.userId, t.roleId, t.scopeType, t.scopeId] }),
+    unique("user_roles_user_role_scope_uniq").on(
+      t.userId,
+      t.roleId,
+      t.scopeType,
+      t.scopeId,
+    ).nullsNotDistinct(),
     index("user_roles_user_idx").on(t.userId),
     index("user_roles_scope_idx").on(t.scopeType, t.scopeId),
   ],

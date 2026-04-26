@@ -6,6 +6,7 @@ import { DbStatusNotice } from "@/components/admin/db-status";
 import { listBookingChannels } from "@/features/channels/services";
 
 export const metadata = { title: "Booking channels" };
+export const dynamic = "force-dynamic";
 
 const typeTone: Record<string, "accent" | "gold" | "info" | "neutral"> = {
   ota: "accent",

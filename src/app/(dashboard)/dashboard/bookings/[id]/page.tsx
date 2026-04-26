@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { getBookingById } from "@/features/bookings/services";
+import { RunAutomationButton } from "@/components/integrations/automation-actions";
+import { listBookingAutomationRuns } from "@/features/booking-automation/services";
 
 export const metadata = { title: "Booking" };
 
@@ -15,6 +17,7 @@ export default async function BookingDetailPage({
   const { id } = await params;
   const b = await getBookingById(id);
   if (!b) notFound();
+  const automationRuns = await listBookingAutomationRuns({ bookingId: id });
 
   return (
     <div className="flex flex-col gap-10">
@@ -30,9 +33,48 @@ export default async function BookingDetailPage({
           <div className="flex items-center gap-2">
             <SourceBadge source={b.source} />
             <Badge tone="success">{b.status.replace("_", " ")}</Badge>
+            <RunAutomationButton bookingId={b.id} />
           </div>
         }
       />
+
+      {automationRuns.length > 0 && (
+        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
+          <div className="px-5 py-3 border-b border-line-soft">
+            <span className="text-label">Automation runs</span>
+          </div>
+          <ul className="divide-y divide-line-soft text-sm">
+            {automationRuns.map((r) => (
+              <li key={r.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-ink">{r.ruleName ?? "—"}</div>
+                  {r.reason && (
+                    <div className="text-[11px] text-ink-tertiary">{r.reason}</div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    tone={
+                      r.runStatus === "created"
+                        ? "success"
+                        : r.runStatus === "skipped"
+                          ? "neutral"
+                          : "danger"
+                    }
+                  >
+                    {r.runStatus}
+                  </Badge>
+                  {r.taskCode && (
+                    <span className="font-mono text-[11px] text-ink-tertiary">
+                      {r.taskCode}
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="Check-in" value={b.checkIn} mono />

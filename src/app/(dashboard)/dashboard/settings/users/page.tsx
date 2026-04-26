@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +42,14 @@ export default async function UsersPage() {
           ) : (
             users.map((u) => (
               <TR key={u.id}>
-                <TD className="text-ink font-medium">{u.fullName}</TD>
+                <TD>
+                  <Link
+                    href={`/dashboard/settings/users/${u.id}`}
+                    className="text-ink font-medium hover:text-accent"
+                  >
+                    {u.fullName}
+                  </Link>
+                </TD>
                 <TD className="text-ink-secondary text-sm">{u.email}</TD>
                 <TD>
                   <Badge tone={u.status === "active" ? "success" : "neutral"}>

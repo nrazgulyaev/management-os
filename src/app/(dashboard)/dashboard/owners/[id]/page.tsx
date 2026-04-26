@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
+import { Button } from "@/components/ui/button";
+import { ArrowUpRight, KeyRound } from "lucide-react";
 import { getOwnerById, listOwnershipShares } from "@/features/owners/services";
+import { listAccessGrantsForOwner } from "@/features/access-grants/services";
 import { Section } from "@/components/ui/section";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 
@@ -18,6 +22,8 @@ export default async function OwnerDetailPage({
   if (!owner) notFound();
   const allShares = await listOwnershipShares();
   const shares = allShares.filter((s) => s.ownerId === id);
+  const grants = await listAccessGrantsForOwner(id);
+  const activeGrants = grants.filter((g) => g.status === "active");
 
   return (
     <div className="flex flex-col gap-10">
@@ -45,6 +51,41 @@ export default async function OwnerDetailPage({
         <Stat label="Phone" value={<span className="text-sm">{owner.phone ?? "—"}</span>} />
         <Stat label="Tax residency" value={<span className="text-sm">{owner.taxResidency ?? "—"}</span>} />
       </div>
+
+      <Section
+        eyebrow="Owner-portal access"
+        title="Who can read this owner's data"
+        description="Explicit grants replace the v3 email-match heuristic."
+        action={
+          <Button asChild variant="secondary" size="sm">
+            <Link href={`/dashboard/owners/${owner.id}/access`}>
+              <KeyRound className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Manage access
+              <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </Link>
+          </Button>
+        }
+      >
+        <div className="rounded-md border border-line-soft bg-surface p-5">
+          {activeGrants.length === 0 ? (
+            <div className="text-sm text-ink-tertiary">
+              No active grants. Owner cannot see statements through the portal yet.
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {activeGrants.map((g) => (
+                <li key={g.id} className="flex items-center justify-between text-sm">
+                  <span className="text-ink">
+                    {g.appUserName}{" "}
+                    <span className="text-ink-tertiary">· {g.appUserEmail}</span>
+                  </span>
+                  <Badge tone="outline">{g.grantType}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Section>
 
       <Section
         eyebrow="Holdings"

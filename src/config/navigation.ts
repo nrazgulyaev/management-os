@@ -19,6 +19,9 @@ import {
   ShieldCheck,
   BookOpenText,
   Settings,
+  Plug,
+  Activity,
+  BellRing,
 } from "lucide-react";
 
 export interface NavItem {
@@ -68,21 +71,61 @@ export const dashboardNav: NavGroup[] = [
     label: "Bookings",
     items: [
       { href: "/dashboard/bookings", label: "Bookings", icon: CalendarRange },
+      { href: "/dashboard/bookings/calendar", label: "Calendar" },
+      { href: "/dashboard/bookings/sync", label: "Sync" },
       { href: "/dashboard/channels", label: "Channels", icon: MapPin },
       { href: "/dashboard/guests", label: "Guests", icon: MessageSquareHeart },
+    ],
+  },
+  {
+    label: "Integrations",
+    items: [
+      { href: "/dashboard/integrations", label: "Overview", icon: Plug },
+      { href: "/dashboard/integrations/calendar-feeds", label: "Calendar feeds" },
+      { href: "/dashboard/integrations/calendar-events", label: "Calendar events" },
+      { href: "/dashboard/integrations/conflicts", label: "Conflicts" },
+      { href: "/dashboard/integrations/automation", label: "Automation rules" },
     ],
   },
   {
     label: "Finance",
     items: [
       { href: "/dashboard/finance", label: "Finance", icon: Coins },
+      { href: "/dashboard/finance/material-usage", label: "Material-usage bridge" },
     ],
   },
   {
     label: "Operations",
     items: [
-      { href: "/dashboard/operations", label: "Operations", icon: ClipboardList },
-      { href: "/dashboard/inventory", label: "Inventory & procurement", icon: Package },
+      { href: "/dashboard/operations", label: "Command center", icon: ClipboardList },
+      { href: "/dashboard/operations/tasks", label: "Tasks" },
+      { href: "/dashboard/operations/housekeeping", label: "Housekeeping" },
+      { href: "/dashboard/operations/maintenance", label: "Maintenance", icon: Wrench },
+      { href: "/dashboard/operations/preventive", label: "Preventive" },
+      { href: "/dashboard/operations/checklists", label: "Checklists" },
+      { href: "/dashboard/operations/service-requests", label: "Service requests" },
+      { href: "/dashboard/operations/damage-reports", label: "Damage reports" },
+    ],
+  },
+  {
+    label: "Inventory",
+    items: [
+      { href: "/dashboard/inventory", label: "Stock command", icon: Package },
+      { href: "/dashboard/inventory/items", label: "Items" },
+      { href: "/dashboard/inventory/stock", label: "Stock by location" },
+      { href: "/dashboard/inventory/movements", label: "Movements" },
+      { href: "/dashboard/inventory/locations", label: "Locations" },
+      { href: "/dashboard/inventory/categories", label: "Categories" },
+      { href: "/dashboard/inventory/suppliers", label: "Suppliers" },
+      { href: "/dashboard/inventory/counts", label: "Counts" },
+    ],
+  },
+  {
+    label: "Procurement",
+    items: [
+      { href: "/dashboard/procurement", label: "Procurement", icon: Briefcase },
+      { href: "/dashboard/procurement/requests", label: "Purchase requests" },
+      { href: "/dashboard/procurement/orders", label: "Purchase orders" },
     ],
   },
   {
@@ -100,6 +143,10 @@ export const dashboardNav: NavGroup[] = [
   {
     label: "System",
     items: [
+      { href: "/dashboard/jobs", label: "Background jobs", icon: Activity },
+      { href: "/dashboard/jobs/runs", label: "Job runs" },
+      { href: "/dashboard/notifications", label: "Notifications", icon: BellRing },
+      { href: "/dashboard/notifications/preferences", label: "Notification preferences" },
       { href: "/dashboard/audit", label: "Audit log", icon: ShieldCheck },
       { href: "/dashboard/settings", label: "Settings", icon: Settings },
     ],
@@ -114,7 +161,8 @@ export const ownerNav: NavItem[] = [
 
 export const fieldNav: NavItem[] = [
   { href: "/field", label: "Today", icon: ClipboardList },
-  { href: "/field/tasks/demo", label: "Tasks", icon: ShieldCheck },
+  { href: "/field/inventory", label: "Inventory", icon: Package },
+  { href: "/field/tasks/demo", label: "Demo", icon: ShieldCheck },
 ];
 
 export const guestNav: NavItem[] = [

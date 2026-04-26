@@ -6,6 +6,7 @@ import { listGuests } from "@/features/guests/services";
 import { BookingForm } from "./form";
 
 export const metadata = { title: "New manual booking" };
+export const dynamic = "force-dynamic";
 
 export default async function NewBookingPage() {
   const [villas, channels, guests] = await Promise.all([

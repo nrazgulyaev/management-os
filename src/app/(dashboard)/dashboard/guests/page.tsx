@@ -5,6 +5,7 @@ import { DbStatusNotice } from "@/components/admin/db-status";
 import { listGuests } from "@/features/guests/services";
 
 export const metadata = { title: "Guests" };
+export const dynamic = "force-dynamic";
 
 export default async function GuestsPage() {
   const guests = await listGuests();

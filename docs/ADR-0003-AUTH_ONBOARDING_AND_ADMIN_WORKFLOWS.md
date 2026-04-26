@@ -163,7 +163,35 @@ Metadata-only for now. The /dashboard/documents list and /dashboard/documents/ne
 
 ---
 
-## 12. Cross-reference
+## 12. Security note — secret exposure (2026-04-25)
+
+During v2.5 setup, real Supabase credentials were briefly written into
+`.env.example` instead of `.env.local`. The exposed values are not reproduced
+here, but for incident-tracking the affected categories were:
+
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (anon — low impact, but rotate on principle).
+- `SUPABASE_SERVICE_ROLE_KEY` (**high impact** — bypasses all RLS).
+- Postgres connection strings containing the `postgres` role password (high impact).
+- `ADMIN_BOOTSTRAP_SECRET` (medium impact — gates `/setup/admin-bootstrap` once a super-admin exists).
+
+### Required actions
+
+1. **Rotate the Supabase service-role key** — Project Settings → API → "Reset service_role secret".
+2. **Rotate the `postgres` database password** — Project Settings → Database → "Reset database password". Update both `DATABASE_URL` and `DIRECT_URL` afterwards.
+3. **Rotate the anon key** if the exposure window touched a public branch — same panel.
+4. **Generate a fresh `ADMIN_BOOTSTRAP_SECRET`** with `openssl rand -hex 32`; treat the previous value as compromised.
+5. **Update `.env.local` only** with the new values. `.env.example` is restored to placeholders and stays that way; `.env.local` is already covered by `.gitignore` (`.env`, `.env.local`, `.env*.local`).
+6. **Audit git history**: if the populated `.env.example` was committed at any point, scrub the value from history (`git filter-repo` or BFG) on top of rotating. Inspecting history is out of scope for this ADR — operators should run the audit before pushing.
+
+### Hardening for the future
+
+- The bootstrap flow already avoids the service-role key; keep it that way as new admin tooling lands.
+- A pre-commit guard (e.g. `gitleaks`) should be added in v3 to fail on secret-shaped strings before commit. Tracked as a future cleanup item.
+- Until that lands, anyone editing `.env.example` should preserve placeholder values only — concrete secrets belong exclusively in `.env.local`.
+
+---
+
+## 13. Cross-reference
 
 - ADR-0001: stack baseline.
 - ADR-0002: backend foundation (drizzle, RLS strategy, services + mock fallback).
