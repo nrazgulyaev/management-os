@@ -6,12 +6,17 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 import { listWebhookSubscriptions } from "@/lib/development/server/webhooks/webhook-queries";
+import { getCurrentAppUser } from "@/features/auth/current-user";
+import { WebhookModalForm } from "@/components/development/platform/webhook-modal-form";
 
 export const metadata: Metadata = { title: "Webhooks · Settings" };
 export const dynamic = "force-dynamic";
 
 export default async function WebhooksPage() {
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  const [me, org] = await Promise.all([
+    getCurrentAppUser(),
+    getOrganizationByCode("ARCONIQUE_DEFAULT"),
+  ]);
   const subs = org ? await listWebhookSubscriptions(org.id) : [];
 
   return (
@@ -24,6 +29,11 @@ export default async function WebhooksPage() {
           { label: "Webhooks" },
         ]}
         description="Outbound HTTP notifications. Each delivery is HMAC-SHA256 signed (Stripe-style header). Subscriptions auto-disable after 10 consecutive failures."
+        actions={
+          org ? (
+            <WebhookModalForm organizationId={org.id} currentUserId={me?.id} />
+          ) : null
+        }
       />
 
       <Section title={`${subs.length} subscription(s)`}>

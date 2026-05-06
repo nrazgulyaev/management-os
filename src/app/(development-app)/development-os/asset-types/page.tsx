@@ -11,6 +11,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listAssetTypes } from "@/lib/development/server/assets/asset-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { AssetTypeModalForm } from "@/components/development/assets/asset-type-modal-form";
 
 export const metadata: Metadata = { title: "Asset types · Development OS" };
 export const dynamic = "force-dynamic";
@@ -44,12 +45,15 @@ export default async function AssetTypesPage() {
         title="Asset type registry"
         description="Strategy B for the multi-asset refactor: every entry in `villas` (now semantically the assets table) carries an asset_type_id pointing here. Seeded with 12 defaults — operators may add more, never delete in-use rows."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <AssetTypeModalForm />
+            <Button asChild variant="secondary">
+              <Link href="/development-os">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Command center
+              </Link>
+            </Button>
+          </div>
         }
       />
 

@@ -11,6 +11,12 @@ import { formatDate, formatUSD } from "@/lib/utils";
 import { getReservations } from "@/lib/development/server/reservations";
 import { RESERVATION_STATUS_LABEL } from "@/lib/development/constants/payment-constants";
 import type { ReservationStatus } from "@/lib/development/types/reservations";
+import { getDb } from "@/lib/db/client";
+import { contacts } from "@/lib/db/schema/contacts";
+import { villas, projects } from "@/lib/db/schema/projects";
+import { eq } from "drizzle-orm";
+import { safeQuery } from "@/lib/development/safe-query";
+import { ReservationModalForm } from "@/components/development/sales/reservation-modal-form";
 
 export const metadata: Metadata = { title: "Reservations · Development OS" };
 export const dynamic = "force-dynamic";
@@ -29,7 +35,39 @@ function fmtUsd(minor: bigint): string {
 }
 
 export default async function ReservationsPage() {
-  const reservations = await getReservations();
+  const db = getDb();
+  const [reservations, contactRows, villaRows] = await Promise.all([
+    getReservations(),
+    db
+      ? safeQuery(
+          "contacts list",
+          db
+            .select({ id: contacts.id, fullName: contacts.fullName, email: contacts.email })
+            .from(contacts)
+            .orderBy(contacts.fullName),
+          [],
+          4000,
+        )
+      : Promise.resolve([]),
+    db
+      ? safeQuery(
+          "villas-with-project list",
+          db
+            .select({
+              id: villas.id,
+              unitCode: villas.unitCode,
+              name: villas.name,
+              projectId: villas.projectId,
+              projectName: projects.name,
+            })
+            .from(villas)
+            .innerJoin(projects, eq(projects.id, villas.projectId))
+            .orderBy(villas.unitCode),
+          [],
+          4000,
+        )
+      : Promise.resolve([]),
+  ]);
   const active = reservations.filter(
     (r) => r.status === "active" || r.status === "pending_payment",
   );
@@ -54,12 +92,15 @@ export default async function ReservationsPage() {
         title="Reservations"
         description="Deposit-locked unit reservations. Each reservation locks the unit's market price and holds the villa for the configured timeout. Convert to a contract group when the buyer signs."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ReservationModalForm contacts={contactRows} villas={villaRows} />
+            <Button asChild variant="secondary">
+              <Link href="/development-os">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Command center
+              </Link>
+            </Button>
+          </div>
         }
       />
 

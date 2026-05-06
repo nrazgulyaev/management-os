@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listLeadSources } from "@/lib/development/server/lead-sources/lead-source-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { LeadSourceModalForm } from "@/components/development/sales/lead-source-modal-form";
 
 export const metadata: Metadata = { title: "Lead sources · Marketing" };
 export const dynamic = "force-dynamic";
@@ -23,6 +24,7 @@ export default async function LeadSourcesPage() {
           { label: "Lead sources" },
         ]}
         description={`${sources.length} channel(s). Pre-seeded with 14 defaults; add custom channels as needed.`}
+        actions={<LeadSourceModalForm />}
       />
       <Section title="All sources">
         {sources.length === 0 ? (

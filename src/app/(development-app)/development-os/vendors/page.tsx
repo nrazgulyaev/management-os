@@ -19,6 +19,8 @@ import {
   VENDOR_STATUS_LABEL,
 } from "@/lib/development/constants/vendor-constants";
 import { safeQuery } from "@/lib/development/safe-query";
+import { FinanceTabs } from "@/components/development/finance/finance-tabs";
+import { VendorModalForm } from "@/components/development/finance/vendor-modal-form";
 
 export const metadata: Metadata = { title: "Vendors · Development OS" };
 export const dynamic = "force-dynamic";
@@ -62,8 +64,9 @@ export default async function VendorsPage() {
         description="Construction vendors, subcontractors, suppliers, and consultants. Vendor performance (on-time + quality) is tracked across engagements; finance ledger commitments tie back to specific engagements."
         actions={
           <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/development-os/vendors/new">+ New vendor</Link>
+            <VendorModalForm />
+            <Button asChild variant="secondary">
+              <Link href="/development-os/vendors/new">Detailed form</Link>
             </Button>
             <Button asChild variant="secondary">
               <Link href="/development-os">
@@ -74,6 +77,8 @@ export default async function VendorsPage() {
           </div>
         }
       />
+
+      <FinanceTabs />
 
       {!db ? (
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />

@@ -11,11 +11,15 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getTransactions } from "@/lib/development/server/transactions";
 import { getBankAccounts } from "@/lib/development/server/bank-accounts";
+import { getCostCategories } from "@/lib/development/server/cost-categories";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import {
   formatCurrencyMinor,
   formatUsdMinor,
 } from "@/lib/development/constants/investor-constants";
 import { safeQuery } from "@/lib/development/safe-query";
+import { FinanceTabs } from "@/components/development/finance/finance-tabs";
+import { TransactionModalForm } from "@/components/development/finance/transaction-modal-form";
 
 export const metadata: Metadata = { title: "Transactions · Development OS" };
 export const dynamic = "force-dynamic";
@@ -56,7 +60,7 @@ export default async function TransactionsPage({
         ? false
         : undefined;
 
-  const [accounts, txs] = await Promise.all([
+  const [accounts, txs, costCategories, projectsList] = await Promise.all([
     safeQuery("getBankAccounts", getBankAccounts(), [], 4000),
     safeQuery(
       "getTransactions",
@@ -71,7 +75,21 @@ export default async function TransactionsPage({
       [],
       4000,
     ),
+    safeQuery("getCostCategories", getCostCategories(), [], 4000),
+    safeQuery("getDevelopmentProjects", getDevelopmentProjects(), [], 4000),
   ]);
+  const accountOptions = accounts.map((a) => ({
+    id: a.id,
+    accountCode: a.accountCode,
+    accountName: a.accountName,
+    currency: a.currency,
+  }));
+  const categoryOptions = costCategories.map((c) => ({
+    id: c.id,
+    categoryCode: c.categoryCode,
+    displayName: c.displayName,
+  }));
+  const projectOptions = projectsList.map((p) => ({ id: p.id, name: p.name }));
 
   const totalInflow = txs
     .filter((t) => t.direction === "inflow")
@@ -90,16 +108,25 @@ export default async function TransactionsPage({
         ]}
         eyebrow={`${txs.length} transactions · in ${formatUsdMinor(totalInflow)} · out ${formatUsdMinor(totalOutflow)}`}
         title="Transactions ledger"
-        description="Actual money movements — the third pillar of the cost ledger. Use the recordTransaction action to add new entries; this page is a filtered view."
+        description="Actual money movements — the third pillar of the cost ledger."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Finance
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="secondary">
+              <Link href="/development-os/finance">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Finance
+              </Link>
+            </Button>
+            <TransactionModalForm
+              bankAccounts={accountOptions}
+              costCategories={categoryOptions}
+              projects={projectOptions}
+            />
+          </div>
         }
       />
+
+      <FinanceTabs />
 
       <form
         method="GET"

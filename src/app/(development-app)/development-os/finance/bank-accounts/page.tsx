@@ -9,20 +9,29 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getBankAccounts } from "@/lib/development/server/bank-accounts";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import {
   formatCurrencyMinor,
   formatUsdMinor,
 } from "@/lib/development/constants/investor-constants";
 import { safeQuery } from "@/lib/development/safe-query";
+import { FinanceTabs } from "@/components/development/finance/finance-tabs";
+import { BankAccountModalForm } from "@/components/development/finance/bank-account-modal-form";
 
 export const metadata: Metadata = { title: "Bank accounts · Development OS" };
 export const dynamic = "force-dynamic";
 
 export default async function BankAccountsPage() {
   const db = getDb();
-  const accounts = db
-    ? await safeQuery("getBankAccounts", getBankAccounts(), [], 4000)
-    : [];
+  const [accounts, projects] = await Promise.all([
+    db
+      ? safeQuery("getBankAccounts", getBankAccounts(), [], 4000)
+      : Promise.resolve([]),
+    db
+      ? safeQuery("getDevelopmentProjects", getDevelopmentProjects(), [], 4000)
+      : Promise.resolve([]),
+  ]);
+  const projectOptions = projects.map((p) => ({ id: p.id, name: p.name }));
 
   return (
     <DevelopmentShell>
@@ -36,14 +45,19 @@ export default async function BankAccountsPage() {
         title="Bank accounts"
         description="Company bank accounts and crypto wallets that hold capital. Each account has a manual minimum-balance threshold; the balance-alert cron fires when it dips below."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Finance
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="secondary">
+              <Link href="/development-os/finance">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Finance
+              </Link>
+            </Button>
+            <BankAccountModalForm projects={projectOptions} />
+          </div>
         }
       />
+
+      <FinanceTabs />
 
       {!db ? (
         <EmptyState

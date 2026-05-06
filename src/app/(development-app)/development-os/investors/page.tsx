@@ -24,6 +24,7 @@ import {
   safeQuery,
   type SafeQueryTiming,
 } from "@/lib/development/safe-query";
+import { InvestorModalForm } from "@/components/development/investors/investor-modal-form";
 
 export const metadata: Metadata = { title: "Investors · Development OS" };
 export const dynamic = "force-dynamic";
@@ -88,12 +89,15 @@ export default async function InvestorsPage() {
         title="Investors"
         description="Pre-handover capital partners. Each investor can hold one or more commitments across projects with negotiated profit-share and capital-return priority."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <InvestorModalForm />
+            <Button asChild variant="secondary">
+              <Link href="/development-os">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Command center
+              </Link>
+            </Button>
+          </div>
         }
       />
 

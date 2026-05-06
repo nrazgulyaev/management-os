@@ -11,6 +11,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listInvoices } from "@/lib/development/server/invoices/invoice-actions";
 import { safeQuery } from "@/lib/development/safe-query";
+import { FinanceTabs } from "@/components/development/finance/finance-tabs";
 
 export const metadata: Metadata = { title: "Invoices · Development OS" };
 export const dynamic = "force-dynamic";
@@ -116,6 +117,8 @@ export default async function InvoicesPage({
           </div>
         }
       />
+
+      <FinanceTabs />
 
       <form
         method="GET"

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { PageHeader } from "@/components/ui/page-header";
+import { FinanceTabs } from "@/components/development/finance/finance-tabs";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -142,7 +143,7 @@ export default async function FinancePage() {
         ]}
         eyebrow={`${bankAccounts.length} active accounts · ${formatUsdMinor(companyTotal)} on hand`}
         title="Finance"
-        description="Three-state cost ledger (budget vs committed vs actual) + bank balances + self-sustaining status. Use the sub-views to drill into a specific project or account."
+        description="Three-state cost ledger (budget vs committed vs actual) + bank balances + self-sustaining status. Use the tabs below to drill into transactions, invoices, vendors, cost categories, or bank accounts."
         actions={
           <Button asChild variant="secondary">
             <Link href="/development-os">
@@ -152,6 +153,8 @@ export default async function FinancePage() {
           </Button>
         }
       />
+
+      <FinanceTabs />
 
       <Section eyebrow="Snapshot" title="At a glance">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { LeadPipelineBoard } from "@/components/development/sales/lead-pipeline-board";
 import { LeadPipelineMetricsStrip } from "@/components/development/sales/lead-pipeline-metrics";
+import { LeadModalForm } from "@/components/development/sales/lead-modal-form";
 import {
   getActiveLeadSources,
   getLeadPipelineMetrics,
@@ -183,12 +184,21 @@ export default async function SalesPage() {
         title="Sales pipeline"
         description="Live pipeline backed by the contacts foundation. Drag-and-drop is intentionally not enabled in 2.2.A — status changes flow through the lead detail to keep the audit trail clean."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <LeadModalForm
+              projects={projectOptions}
+              leadSources={sourceOptions.map((s) => ({
+                id: s.id,
+                displayName: s.campaignName ?? s.code,
+              }))}
+            />
+            <Button asChild variant="secondary">
+              <Link href="/development-os">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Command center
+              </Link>
+            </Button>
+          </div>
         }
       />
 

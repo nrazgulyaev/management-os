@@ -10,6 +10,8 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getCostCategories } from "@/lib/development/server/cost-categories";
 import { safeQuery } from "@/lib/development/safe-query";
+import { FinanceTabs } from "@/components/development/finance/finance-tabs";
+import { CostCategoryModalForm } from "@/components/development/finance/cost-category-modal-form";
 
 export const metadata: Metadata = { title: "Cost categories · Development OS" };
 export const dynamic = "force-dynamic";
@@ -39,16 +41,27 @@ export default async function CostCategoriesPage() {
         ]}
         eyebrow={`${cats.length} categories (${parents.length} parents, ${cats.length - parents.length} children)`}
         title="Cost categories"
-        description="Hierarchical taxonomy used by the budget, transactions, and vendor commitments. Edit translations + add new categories via the createCostCategory action; UI drawer forthcoming."
+        description="Hierarchical taxonomy used by the budget, transactions, and vendor commitments."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Finance
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="secondary">
+              <Link href="/development-os/finance">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Finance
+              </Link>
+            </Button>
+            <CostCategoryModalForm
+              parents={parents.map((p) => ({
+                id: p.id,
+                categoryCode: p.categoryCode,
+                displayName: p.displayName,
+              }))}
+            />
+          </div>
         }
       />
+
+      <FinanceTabs />
 
       {!db || cats.length === 0 ? (
         <EmptyState

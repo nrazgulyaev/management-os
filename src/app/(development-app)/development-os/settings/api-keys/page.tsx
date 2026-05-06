@@ -7,6 +7,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 import { listApiKeysForOrg } from "@/lib/development/server/api/api-key-queries";
+import { ApiKeyModalForm } from "@/components/development/platform/api-key-modal-form";
 
 export const metadata: Metadata = { title: "API keys · Settings" };
 export const dynamic = "force-dynamic";
@@ -26,6 +27,11 @@ export default async function ApiKeysPage() {
           { label: "API keys" },
         ]}
         description="Per-organization keys for the public REST API. The plaintext key is shown only at creation time — the server stores a SHA-256 hash."
+        actions={
+          me && org ? (
+            <ApiKeyModalForm organizationId={org.id} currentUserId={me.id} />
+          ) : null
+        }
       />
 
       {!me ? (

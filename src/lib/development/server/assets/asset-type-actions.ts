@@ -1,4 +1,4 @@
-import "server-only";
+"use server";
 
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -47,6 +47,41 @@ export async function createAssetType(
       isRevenueGenerating: parsed.isRevenueGenerating,
       iconKey: parsed.iconKey ?? null,
     })
+    .returning();
+  return row;
+}
+
+/**
+ * Stage 6.P0.6 — update editable fields. `typeKey` is intentionally
+ * omitted from the update schema: it's the stable lookup handle used
+ * by foreign keys (villa.asset_type_id), so it never changes once set.
+ */
+const updateTypeSchema = z.object({
+  id: z.string().uuid(),
+  displayName: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  assetCategory: z.enum(CATEGORIES).optional(),
+  isSaleable: z.boolean().optional(),
+  isRentable: z.boolean().optional(),
+  isRevenueGenerating: z.boolean().optional(),
+  iconKey: z.string().nullable().optional(),
+});
+
+export async function updateAssetType(input: z.input<typeof updateTypeSchema>) {
+  await requireInternalUser();
+  const parsed = updateTypeSchema.parse(input);
+  const db = requireDb();
+  const { id, ...rest } = parsed;
+  const updates: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(rest)) {
+    if (v !== undefined) updates[k] = v;
+  }
+  if (Object.keys(updates).length === 0) return null;
+  updates.updatedAt = new Date();
+  const [row] = await db
+    .update(assetTypes)
+    .set(updates as never)
+    .where(eq(assetTypes.id, id))
     .returning();
   return row;
 }

@@ -11,6 +11,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listBuyers } from "@/lib/development/server/buyers/buyer-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { BuyerModalForm } from "@/components/development/sales/buyer-modal-form";
 
 export const metadata: Metadata = { title: "Buyers · Development OS" };
 export const dynamic = "force-dynamic";
@@ -47,12 +48,15 @@ export default async function BuyersListPage() {
         title="Villa buyers"
         description="Buyers purchase specific villas. They have a separate workspace at /buyer-portal — RLS keeps their view scoped to own units + published reports only."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <BuyerModalForm />
+            <Button asChild variant="secondary">
+              <Link href="/development-os">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Command center
+              </Link>
+            </Button>
+          </div>
         }
       />
 

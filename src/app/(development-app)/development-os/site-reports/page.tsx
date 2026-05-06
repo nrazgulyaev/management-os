@@ -10,8 +10,10 @@ import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getSiteReports } from "@/lib/development/server/site-reports";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import { REPORT_STATUS_LABEL, WEATHER_LABEL } from "@/lib/development/constants/site-constants";
 import { safeQuery } from "@/lib/development/safe-query";
+import { SiteReportModalForm } from "@/components/development/operations/site-report-modal-form";
 
 export const metadata: Metadata = { title: "Site reports · Development OS" };
 export const dynamic = "force-dynamic";
@@ -24,23 +26,29 @@ export default async function SiteReportsPage({
   const sp = await searchParams;
   const view = sp.view === "list" ? "list" : "calendar";
   const db = getDb();
-  const reports = db
-    ? await safeQuery(
-        "getSiteReports",
-        getSiteReports({
-          status:
-            sp.status === "draft" ||
-            sp.status === "submitted" ||
-            sp.status === "reviewed" ||
-            sp.status === "flagged"
-              ? sp.status
-              : undefined,
-          hasBlocker: sp.hasBlocker === "true" ? true : undefined,
-        }),
-        [],
-        4000,
-      )
-    : [];
+  const [reports, projects] = await Promise.all([
+    db
+      ? safeQuery(
+          "getSiteReports",
+          getSiteReports({
+            status:
+              sp.status === "draft" ||
+              sp.status === "submitted" ||
+              sp.status === "reviewed" ||
+              sp.status === "flagged"
+                ? sp.status
+                : undefined,
+            hasBlocker: sp.hasBlocker === "true" ? true : undefined,
+          }),
+          [],
+          4000,
+        )
+      : Promise.resolve([]),
+    db
+      ? safeQuery("getDevelopmentProjects", getDevelopmentProjects(), [], 4000)
+      : Promise.resolve([]),
+  ]);
+  const projectOptions = projects.map((p) => ({ id: p.id, name: p.name }));
 
   // Date-grouped grouping for the calendar view: groups reports by
   // date desc. Full month-grid lightbox UI is deferred (more polish
@@ -70,8 +78,9 @@ export default async function SiteReportsPage({
         description="One report per project per day. Captures weather, workforce, zone activities, photos, blockers, and material consumption. Source can be web form, mobile app, or WhatsApp ingestion."
         actions={
           <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/development-os/site-reports/new">+ New report</Link>
+            <SiteReportModalForm projects={projectOptions} />
+            <Button asChild variant="secondary">
+              <Link href="/development-os/site-reports/new">Full form</Link>
             </Button>
             <Button asChild variant="secondary">
               <Link href="/development-os">

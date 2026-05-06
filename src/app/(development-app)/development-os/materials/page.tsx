@@ -10,23 +10,35 @@ import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getMaterialPurchaseOrders } from "@/lib/development/server/materials";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
+import { getVendors } from "@/lib/development/server/vendors";
 import { MATERIAL_PO_STATUS_LABEL } from "@/lib/development/constants/material-constants";
 import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 import { safeQuery } from "@/lib/development/safe-query";
+import { MaterialPOModalForm } from "@/components/development/operations/material-po-modal-form";
 
 export const metadata: Metadata = { title: "Materials · Development OS" };
 export const dynamic = "force-dynamic";
 
 export default async function MaterialsPage() {
   const db = getDb();
-  const list = db
-    ? await safeQuery(
-        "getMaterialPurchaseOrders",
-        getMaterialPurchaseOrders(),
-        [],
-        4000,
-      )
-    : [];
+  const [list, projects, vendors] = await Promise.all([
+    db
+      ? safeQuery("getMaterialPurchaseOrders", getMaterialPurchaseOrders(), [], 4000)
+      : Promise.resolve([]),
+    db
+      ? safeQuery("getDevelopmentProjects", getDevelopmentProjects(), [], 4000)
+      : Promise.resolve([]),
+    db
+      ? safeQuery("getVendors", getVendors(), [], 4000)
+      : Promise.resolve([]),
+  ]);
+  const projectOptions = projects.map((p) => ({ id: p.id, name: p.name }));
+  const vendorOptions = vendors.map((v) => ({
+    id: v.id,
+    vendorCode: v.vendorCode,
+    legalName: v.legalName,
+  }));
 
   const totalUsd = list.reduce(
     (acc, p) => acc + BigInt(p.totalAmountUsdMinor),
@@ -49,8 +61,9 @@ export default async function MaterialsPage() {
         description="Vendor POs, deliveries, and on-site consumption. The reconciliation gate ensures po_lines.quantity_delivered always equals the sum of delivery_lines.quantity_received."
         actions={
           <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/development-os/materials/new">+ New PO</Link>
+            <MaterialPOModalForm projects={projectOptions} vendors={vendorOptions} />
+            <Button asChild variant="secondary">
+              <Link href="/development-os/materials/new">Full form</Link>
             </Button>
             <Button asChild variant="secondary">
               <Link href="/development-os/materials/deliveries">
