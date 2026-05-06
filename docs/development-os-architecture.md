@@ -3910,7 +3910,7 @@ deactivated by the `dev-os-failed-subscriptions-cleanup` cron.
 - Migration runner.
 - Buyer/investor portals — PWA + push are internal-only.
 
-## Stage 5.J — SaaS Foundation (Multi-Tenancy + API + Webhooks + Billing-Ready) `[ACTIVE 5.J]`
+## Stage 5.J — SaaS Foundation (Multi-Tenancy + API + Webhooks + Billing-Ready) `[ACCEPTED 5.J]`
 
 The most invasive refactor in Stage 5. Adds the **multi-tenancy
 foundation**: an `organizations` table, an organisation_id column on
@@ -4081,3 +4081,115 @@ t=<unix>,v1=<hex>`. Tolerance window 5 minutes.
   this stage).
 - Service worker or PWA cache strategy (sensitive routes still
   excluded as per Stage 5.I).
+
+---
+
+## Stage 6 — Full Platform Functionality (Master)
+
+Stage 6 transforms the platform from "shell with infrastructure" to a
+fully functional, integration-ready system. The full master architecture
+document (Parts 1+2) defines:
+
+- 9 sub-stages (P0–P8), 14–22 weeks total
+- ~11 new migrations (0075–0085)
+- 12 provider categories (channel manager, calendar, banking, payment,
+  marketing, analytics, social messaging, spreadsheet, document storage,
+  AI multi-provider, email, plus the existing AI/Storage/WhatsApp/
+  Notification abstractions); ~50 implementations + dry-run for each
+- Test target: 3033 → ~5000
+
+The architectural principles (provider abstraction with dry-run defaults,
+env-based activation, audit trail, retry/backoff, webhook signature
+verify, rate limiting, cost tracking, status dashboard, data mapping UI)
+explicitly extend the patterns established in Stages 3.A / 3.D / 4.A /
+5.E. Three Explore-agent audits confirmed the reuse mapping.
+
+### Sub-stage roadmap
+
+| Sub-stage | Focus | Weeks | Key new migrations | Test target |
+|---|---|---|---|---|
+| P0 | CRUD foundation + bulk import | 1–2 | 0075 (bulk_import_jobs, oauth_connections) | 3233 |
+| P1 | Booking channels (6 OTAs) | 3–4 | 0076–0077 | 3500 |
+| P2 | Communications (5 channels unified) | 2–3 | 0078 | 3700 |
+| P3 | Banking + payments | 2–3 | 0079–0080 | 3950 |
+| P4 | Marketing + analytics | 2–3 | 0081–0082 | 4150 |
+| P5 | Productivity (Google Workspace) | 1–2 | 0083 | 4250 |
+| P6 | AI agents activation-ready | 1–2 | — | 4400 |
+| P7 | Investor portal enhancement | 1–2 | — | 4550 |
+| P8 | Polish + comprehensive testing | 2–3 | — | 5000 |
+
+### Architectural decisions locked at Stage 6 entry
+
+- Provider abstraction for every integration category, modelled on
+  `src/lib/ai/providers/`, `src/lib/whatsapp/providers/`,
+  `src/lib/storage/`, `src/features/notifications/providers/`.
+- Dry-run default everywhere — app boots and runs with zero external
+  credentials. Per-integration env vars activate the live path.
+- Encrypted credential storage (Web Crypto AES-GCM, key derived from
+  `SECURITY_ENCRYPTION_SECRET`) for any per-org credentials introduced
+  from P1 onward.
+- Audit trail per integration (`integration_call_log`, consolidated
+  in P2 from today's fragmented `whatsapp_webhook_events` +
+  `payment_webhook_events`).
+- Webhook signature verification mandatory on every inbound handler.
+- Rate limiting per integration, extending Stage 5.J's
+  `rate_limit_buckets` keyed by `(api_key_id, window_type, window_start)`.
+- Cost tracking per integration, aggregated daily into `usage_metrics`.
+- New top-level UI hub at `/development-os/integrations` (operator-facing
+  platform-wide health). Coexists with existing `/dashboard/integrations`
+  (per-villa calendar feeds + conflicts).
+- No new dependency unless explicitly justified. Forecast: SheetJS
+  (`xlsx`, ~500KB) for Excel parsing in P0; Google APIs (~3MB,
+  lazy-loaded) only when P5's Workspace OAuth ships.
+
+---
+
+## Stage 6.P0 — CRUD Foundation `[ACTIVE 6.P0]`
+
+**Goal**: every entity in the platform create / edit / delete via UI.
+Bulk import + export. Mobile-friendly forms. Audit trail per mutation.
+Foundation for every subsequent Stage 6 sub-stage.
+
+**Estimate**: 1–2 weeks; 7 internal checkpoints (P0.1 forms audit, P0.2
+server-actions verification, P0.3–P0.6 per-tier form rollout, P0.7 bulk
+import/export, P0.8 polish + tests).
+
+**Entry-state inheritance**:
+- 3033 baseline tests (Stage 5.J accepted, build verified, deploy live)
+- 72 cron HTTP routes
+- 7 v1 API endpoints
+- 75 migrations (0000–0074)
+- Provider abstractions in place (AI / WhatsApp / Storage / Notification)
+
+**P0 deliverables**:
+
+1. Forms audit covering every page under `(development-app)/`,
+   `(management-app)/`, `(investor-portal)/`, `(buyer-portal)/`,
+   producing `docs/STAGE-6-P0-AUDIT.md`.
+2. Server-actions verification: every `*-actions.ts` carries
+   `"use server"`; missing actions implemented per audit.
+3. Reusable `EntityForm<T>` template at
+   `src/components/forms/entity-form-template.tsx`.
+4. Per-entity create/edit/delete forms across 5 tiers (~40+ entities,
+   from `Tier 1` finance/foundation through `Tier 5` admin/team).
+5. Bulk import/export: CSV + Excel + Google Sheets (basic, dry-run
+   OAuth) with field-mapping UI, validation report, batched processing,
+   audit log of created entity ids.
+6. Mobile-friendly forms (touch targets ≥44px, correct input types,
+   camera capture where relevant).
+7. Audit trail per mutation, surfaced in detail-page "Activity" tab.
+8. ≥200 new tests; total ≥3233; zero regressions.
+
+**Schema additions (1 migration)**: `0075_development_os_stage_6_p0_bulk_import.sql`
+introduces `bulk_import_jobs` and `oauth_connections` (the latter
+needed for P0's Google Sheets sync, will be reused from P1 onward).
+
+**Acceptance gate**:
+- 1 migration (0075) applies cleanly locally + production
+- All 5 tiers landed; bookkeeper can complete an end-to-end finance
+  workflow (create vendor → record transaction → match invoice → close
+  period) entirely through the UI
+- 3233+ tests passing; zero regressions on the 3033 baseline
+- `npm run build` succeeds; Vercel deploy succeeds
+- Workspace separation tests still passing
+- After acceptance, P1 (Booking Channels) can begin

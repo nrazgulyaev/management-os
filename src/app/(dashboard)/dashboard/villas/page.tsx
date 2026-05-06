@@ -8,12 +8,15 @@ import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Plus, Filter } from "lucide-react";
 import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
+import { VillaRowActions } from "@/components/villas/villa-row-actions";
 
 export const metadata = { title: "Villas" };
 
 export default async function VillasPage() {
-  const villas = await listVillas();
+  const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   const source = villas[0]?.source ?? "mock";
+  const projectOptions = projects.map((p) => ({ id: p.id, name: p.name }));
 
   return (
     <div className="flex flex-col gap-8">
@@ -53,12 +56,13 @@ export default async function VillasPage() {
             <TH className="text-right">Bedrooms</TH>
             <TH className="text-right">Nightly · USD</TH>
             <TH>Owner-visible</TH>
+            <TH className="text-right">Actions</TH>
           </TR>
         </THead>
         <TBody>
           {villas.length === 0 ? (
             <TR>
-              <TD colSpan={7} className="text-ink-tertiary text-center py-8">
+              <TD colSpan={8} className="text-ink-tertiary text-center py-8">
                 No villas yet.
               </TD>
             </TR>
@@ -95,6 +99,9 @@ export default async function VillasPage() {
                   ) : (
                     <Badge tone="neutral">Hidden</Badge>
                   )}
+                </TD>
+                <TD className="text-right">
+                  <VillaRowActions villa={v} projects={projectOptions} />
                 </TD>
               </TR>
             ))

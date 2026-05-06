@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, Pencil, Archive } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -10,6 +10,10 @@ import { cn, formatUSD } from "@/lib/utils";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
 import type { DevelopmentProjectListItem } from "@/lib/development/types/projects";
 import { NewProjectDrawer } from "./new-project-drawer";
+import { EntityModal } from "@/components/forms/entity-modal";
+import { ConfirmDialog } from "@/components/forms/confirm-dialog";
+import { ProjectForm, type ProjectFormDefaults } from "@/features/projects/form";
+import { archiveProjectAction } from "@/features/projects/actions";
 
 const filters = [
   { key: "all", label: "All" },
@@ -45,6 +49,11 @@ export function ProjectsList({
   const [filter, setFilter] = React.useState<FilterKey>("all");
   const [query, setQuery] = React.useState("");
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<DevelopmentProjectListItem | null>(
+    null,
+  );
+  const [archiving, setArchiving] =
+    React.useState<DevelopmentProjectListItem | null>(null);
 
   const visible = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -58,6 +67,15 @@ export function ProjectsList({
       );
     });
   }, [filter, query, projects]);
+
+  const editingDefaults: ProjectFormDefaults | undefined = editing
+    ? {
+        id: editing.id,
+        slug: editing.slug,
+        name: editing.name,
+        location: editing.location,
+      }
+    : undefined;
 
   return (
     <>
@@ -126,29 +144,97 @@ export function ProjectsList({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {visible.map((p) => (
-              <ProjectListCard key={p.id} project={p} />
+              <ProjectListCard
+                key={p.id}
+                project={p}
+                onEdit={() => setEditing(p)}
+                onArchive={() => setArchiving(p)}
+              />
             ))}
           </div>
         )}
       </div>
 
       <NewProjectDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+
+      <EntityModal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing ? `Edit ${editing.name}` : "Edit project"}
+        size="lg"
+      >
+        {editing && (
+          <ProjectForm
+            mode="edit"
+            defaults={editingDefaults}
+            cancelHref={`${DEVELOPMENT_APP_PATH}/projects`}
+          />
+        )}
+      </EntityModal>
+
+      <ConfirmDialog
+        open={archiving !== null}
+        onClose={() => setArchiving(null)}
+        title={archiving ? `Archive ${archiving.name}?` : "Archive project?"}
+        description="The project will be hidden from the active list. You can restore it later from the Archived filter."
+        confirmLabel="Archive"
+        action={archiveProjectAction}
+        hiddenFields={archiving ? { id: archiving.id } : {}}
+        onSuccess={() => setArchiving(null)}
+      />
     </>
   );
 }
 
-function ProjectListCard({ project }: { project: DevelopmentProjectListItem }) {
+function ProjectListCard({
+  project,
+  onEdit,
+  onArchive,
+}: {
+  project: DevelopmentProjectListItem;
+  onEdit: () => void;
+  onArchive: () => void;
+}) {
   const totalBudgetMajor = Number(project.totalBudgetMinor) / 100;
   const usedMajor = Number(project.budgetUsedMinor) / 100;
   const budgetPct =
     totalBudgetMajor > 0 ? Math.round((usedMajor / totalBudgetMajor) * 100) : 0;
 
+  // Stop the parent <Link> from navigating when an action button is clicked.
+  function rowAction(handler: () => void) {
+    return (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handler();
+    };
+  }
+
   return (
     <Link
       href={`${DEVELOPMENT_APP_PATH}/projects/${project.slug}`}
-      className="group block rounded-md border border-line-soft bg-surface overflow-hidden hover:border-line-strong hover:shadow-[var(--shadow-raised)] transition-all"
+      className="group block rounded-md border border-line-soft bg-surface overflow-hidden hover:border-line-strong hover:shadow-[var(--shadow-raised)] transition-all relative"
     >
       <div className="h-20 w-full" style={{ background: project.heroToken }} aria-hidden />
+      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        <button
+          type="button"
+          onClick={rowAction(onEdit)}
+          className="bg-surface/95 backdrop-blur-sm border border-line-soft rounded-sm w-8 h-8 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 md:w-8 md:h-8 inline-flex items-center justify-center text-ink-secondary hover:text-ink hover:border-line-strong"
+          aria-label={`Edit ${project.name}`}
+          data-testid="project-card-edit"
+        >
+          <Pencil className="w-3.5 h-3.5" strokeWidth={1.75} />
+        </button>
+        <button
+          type="button"
+          onClick={rowAction(onArchive)}
+          className="bg-surface/95 backdrop-blur-sm border border-line-soft rounded-sm w-8 h-8 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 md:w-8 md:h-8 inline-flex items-center justify-center text-ink-secondary hover:text-danger hover:border-danger/50"
+          aria-label={`Archive ${project.name}`}
+          data-testid="project-card-archive"
+        >
+          <Archive className="w-3.5 h-3.5" strokeWidth={1.75} />
+        </button>
+      </div>
       <div className="p-5 flex flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-0.5 min-w-0">
