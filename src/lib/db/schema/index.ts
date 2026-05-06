@@ -74,3 +74,4 @@ export * from "./pwa";
 export * from "./saas";
 export * from "./bulk-import";
 export * from "./channel-manager";
+export * from "./messaging";

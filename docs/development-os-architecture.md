@@ -4333,20 +4333,116 @@ workflow, P1.G cron + webhooks + polish).
 
 ## Stage 6.P2 — Communications `[ACTIVE 6.P2]`
 
-**Goal**: unified inbox for WhatsApp + Telegram + Instagram + Facebook
-Messenger + Email. Same provider-abstraction pattern as P1; webhook-first
-ingestion; consolidate `whatsapp_webhook_events` + new channel webhooks
-into `integration_webhooks_log` (Part 1 migration 0084). Per the master
-plan: 2–3 weeks, ~5 messaging channels, migration 0078 introduces
-`conversation_threads` + `conversation_messages`, target 3700+ tests.
+**Goal**: unified inbox covering WhatsApp (Meta Cloud + Twilio dual
+provider), Telegram, Instagram Business, Facebook Messenger, Email
+(Gmail OAuth + Resend transactional). Every provider has a DryRun
+fallback so the platform works end-to-end without credentials. When
+credentials arrive, the integration immediately goes live.
+
+**Estimate**: 2–3 weeks; 6 internal sub-checkpoints (P2.A schema +
+provider abstraction, P2.B WhatsApp expansion, P2.C Telegram, P2.D
+Instagram + Messenger, P2.E Email/Gmail OAuth, P2.F unified inbox UI +
+templates + auto-response polish).
 
 **Entry-state inheritance** (post-P1.G):
-- 78 cron routes
-- 77 known job keys
+- 3802 baseline tests (Stage 6.P1 accepted)
+- 78 cron routes, 77 known job keys
+- 4 channel-manager tables + RLS (migrations 0076 + 0077)
 - Channel manager infrastructure proven (selector pattern, encrypted
   credentials, webhook-handler-helper, sync_log audit trail)
-- Reusable patterns: `requestWithRetry` (P1.A), `verifyHmacSha256Signature`
-  (P1.D), `EntityModal` UI shell (P0.3), `selectChannelProvider` selector
-  pattern (P1.A)
+- Reusable patterns: `requestWithRetry` (P1.A http-retry), shared
+  `verifyHmacSha256Signature` (P1.D provider-helpers),
+  `credentials-crypto.ts` (P1.B), `EntityModal` UI shell (P0.3),
+  `selectChannelProvider` selector pattern (P1.A)
+- Existing WhatsApp infrastructure (Stage 3.D) at `src/lib/whatsapp/`
+  with Twilio + Meta Cloud + DryRun providers — P2.B re-wires these
+  behind the new unified `MessagingProvider` interface
 
-P2 awaits user prompt to begin in detail.
+**Architectural decisions locked at P2 entry**:
+
+- **One unified inbox, every channel.** Single `conversation_threads`
+  + `conversation_messages` schema; UI filters by channel. Internal
+  bookings/contacts predate this — channel-specific external IDs land
+  in `external_identifiers` JSONB and the `conversation_messages.channel`
+  enum tags each message's source.
+- **Provider abstraction follows the same Stage 3.A pattern** as AI
+  providers, WhatsApp providers (Stage 3.D), storage providers, and
+  the channel-manager providers (P1.A). One `MessagingProvider`
+  interface, one `selectMessagingProvider` selector, per-channel
+  implementations, DryRun fallback.
+- **WhatsApp is dual-provider.** Both Meta Cloud API and Twilio
+  WhatsApp run behind the same `MessagingProvider` interface. The
+  credential blob carries a `provider: "meta_cloud" | "twilio"`
+  discriminator so operators can pick per-villa or per-org. Existing
+  Stage 3.D Twilio infrastructure stays in place — P2.B wraps it in
+  the new interface.
+- **Webhook-first, polling fallback.** Each channel exposes a
+  webhook endpoint at `/api/webhooks/messaging/{channel}/`. A
+  `messaging_inbound_poll` cron (every 5 min) pulls from any channel
+  that supports polling, as a backstop for dropped or unsupported
+  webhooks.
+- **Templates managed centrally.** `message_templates` table holds
+  per-channel content keyed by template `code`; variable substitution
+  happens at send time. WhatsApp Business templates need pre-approval
+  from Meta — `whatsapp_template_status` tracks the approval state per
+  template.
+- **Auto-responses are rules-based, not AI (yet).** `auto_response_rules`
+  fires on keyword / first_message / after_hours / no_response_timeout
+  triggers. AI-driven response (intent classification, smart drafting)
+  is P6 (AI Agents Activation) territory.
+- **Email split**: transactional → existing Resend infrastructure
+  (Stage 3.D); personal sync → Gmail OAuth (P2.E). Two separate
+  providers behind the same `email` channel value; the `provider`
+  credential discriminator routes correctly.
+- **0075 PL/pgSQL FOREACH lesson preserved.** Migration 0078 uses
+  `FOREACH t IN ARRAY ARRAY[...]` for the RLS loop, NOT
+  `FOR t IN SELECT unnest(...)` — Postgres versions vary on the latter.
+  Test asserts the FOREACH pattern explicitly so future contributors
+  can't regress it.
+
+**P2 deliverables**:
+
+1. Migration 0078 — `conversation_threads`, `conversation_messages`,
+   `message_templates`, `auto_response_rules`. Per-org RLS via
+   `is_in_user_organization()` (Stage 5.J helper).
+2. Provider abstraction layer at `src/lib/messaging/`: `types.ts`,
+   `select-provider.ts`, `providers/dry-run.ts`, plus per-channel
+   directories under `providers/`.
+3. Five messaging providers with DryRun fallback (WhatsApp dual,
+   Telegram, Instagram, Messenger, Gmail).
+4. `MessagingService` orchestrates thread upsert, message persistence,
+   inbound ingestion, outbound send, template substitution, auto-rule
+   evaluation.
+5. Inbox UI: threads list, thread detail with composer, templates
+   management, auto-response rule editor.
+6. 4 new cron jobs: inbound poll (5 min), status sync (15 min),
+   auto-response evaluator (1 min), cleanup (daily). Total cron routes:
+   78 → 82.
+7. 5 webhook routes per messaging channel.
+8. Documentation: `MESSAGING-ARCHITECTURE.md`,
+   `MESSAGING-CREDENTIALS-SETUP.md`, `STAGE-6-P2-COMPLETE.md`.
+9. Demo seed extension: 5–10 sample threads, 50–100 messages, 3–5
+   templates, 2–3 auto-response rules.
+10. ≥200 new tests; total ≥4002; zero regressions on the 3802
+    baseline.
+
+**Schema additions (1 migration)**:
+- `0078_development_os_stage_6_p2_unified_messaging.sql` — 4 tables
+  with per-org RLS via `FOREACH t IN ARRAY ARRAY[...]` loop.
+
+**Acceptance gate**:
+- 1 migration (0078) applies cleanly with the FOREACH pattern
+- All 5 messaging providers implemented + DryRun fallback per channel
+- `selectMessagingProvider` returns DryRun when credentials are null —
+  platform works end-to-end without any real messaging keys
+- 4 new cron jobs in `KNOWN_JOBS` + dispatcher + Vercel cron checklist
+- 5 webhook routes per channel verify HMAC where applicable
+- Inbox UI surfaces threads, messages, composer, templates, rules
+- Reservation-style ingestion: webhook → thread upsert → message
+  persistence → optional auto-rule fire
+- 4002+ tests passing; zero regressions on the 3802 baseline
+- `npm run build` succeeds; `npm run check:cron` clean
+- 0075 FOREACH lesson preserved (asserted in tests)
+- After acceptance, P3 (Banking + Payments) can begin
+
+P2 sub-checkpoints land in order: P2.A → P2.B → P2.C → P2.D → P2.E → P2.F.
