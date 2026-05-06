@@ -52,6 +52,8 @@ export interface AgodaCredentials {
   channel: "agoda";
   hotelId: string;
   apiKey: string;
+  /** Used for the X-Agoda-Signature HMAC. Distinct from apiKey. */
+  apiSecret: string;
   environment: "sandbox" | "production";
 }
 
@@ -60,12 +62,16 @@ export interface ExpediaCredentials {
   hotelId: string;
   eqcUsername: string;
   eqcPassword: string;
+  environment: "sandbox" | "production";
 }
 
 export interface VRBOCredentials {
   channel: "vrbo";
-  accountId: string;
-  apiKey: string;
+  /** VRBO runs on Expedia infrastructure — same EQC creds. */
+  hotelId: string;
+  eqcUsername: string;
+  eqcPassword: string;
+  environment: "sandbox" | "production";
 }
 
 export interface HotelsComCredentials {
@@ -74,6 +80,7 @@ export interface HotelsComCredentials {
   hotelId: string;
   eqcUsername: string;
   eqcPassword: string;
+  environment: "sandbox" | "production";
 }
 
 export type ChannelCredentials =
