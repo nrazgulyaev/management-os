@@ -39,6 +39,7 @@ export interface NavGroup {
 
 export const marketingNav: NavItem[] = [
   { href: "/villa-management", label: "Villa management" },
+  { href: "/development", label: "Development OS" },
   { href: "/owner-portal", label: "Owner portal" },
   { href: "/investor-reporting", label: "Investor reporting" },
   { href: "/guest-experience", label: "Guest experience" },
@@ -73,8 +74,93 @@ export const dashboardNav: NavGroup[] = [
       { href: "/dashboard/bookings", label: "Bookings", icon: CalendarRange },
       { href: "/dashboard/bookings/calendar", label: "Calendar" },
       { href: "/dashboard/bookings/sync", label: "Sync" },
+      { href: "/dashboard/bookings/rates", label: "Rate plans" },
       { href: "/dashboard/channels", label: "Channels", icon: MapPin },
       { href: "/dashboard/guests", label: "Guests", icon: MessageSquareHeart },
+    ],
+  },
+  {
+    label: "Guest stays",
+    items: [
+      { href: "/dashboard/guest-stays", label: "Overview", icon: KeyRound },
+      { href: "/dashboard/guest-stays/tokens", label: "Tokens" },
+      { href: "/dashboard/villa-guides", label: "Villa guides" },
+      { href: "/dashboard/villa-guides/sections", label: "Sections" },
+      { href: "/dashboard/villa-guides/wifi", label: "Wi-Fi" },
+      { href: "/dashboard/villa-guides/emergency-contacts", label: "Emergency contacts" },
+      { href: "/dashboard/villa-guides/neighborhood", label: "Neighborhood" },
+      { href: "/dashboard/guest-services", label: "Services" },
+      { href: "/dashboard/guest-services/catalog", label: "Catalog" },
+      { href: "/dashboard/guest-services/orders", label: "Orders" },
+      { href: "/dashboard/guest-services/finance-bridge", label: "Finance bridge" },
+      { href: "/dashboard/guest-stays/security", label: "Security" },
+      { href: "/dashboard/guest-stays/security/events", label: "Security events" },
+      { href: "/dashboard/guest-stays/security/verifications", label: "Verifications" },
+      { href: "/dashboard/villa-guides/wifi/migrate", label: "Wi-Fi migration" },
+      { href: "/dashboard/guest-ai", label: "Concierge AI" },
+      { href: "/dashboard/guest-ai/sessions", label: "AI sessions" },
+      { href: "/dashboard/guest-ai/handoffs", label: "AI handoffs" },
+      { href: "/dashboard/guest-ai/handoffs/metrics", label: "Handoff SLA" },
+      { href: "/dashboard/guest-ai/storage", label: "Attachment storage" },
+    ],
+  },
+  {
+    label: "Owner stays",
+    items: [
+      { href: "/dashboard/owner-stays", label: "Overview", icon: Home },
+      { href: "/dashboard/owner-stays/requests", label: "Requests" },
+      { href: "/dashboard/owner-stays/policies", label: "Policies" },
+      { href: "/dashboard/owner-stays/equivalence-groups", label: "Equivalence groups" },
+      { href: "/dashboard/owner-stays/finance-bridge", label: "Finance bridge" },
+    ],
+  },
+  {
+    label: "Maintenance intelligence",
+    items: [
+      { href: "/dashboard/maintenance-intelligence", label: "Overview", icon: Wrench },
+      { href: "/dashboard/maintenance-intelligence/templates", label: "Templates" },
+      { href: "/dashboard/maintenance-intelligence/plans", label: "Plans" },
+      { href: "/dashboard/maintenance-intelligence/windows", label: "Windows" },
+      { href: "/dashboard/maintenance-intelligence/risks", label: "Risk feed" },
+    ],
+  },
+  {
+    label: "Utilities",
+    items: [
+      { href: "/dashboard/utilities", label: "Overview", icon: Plug },
+      { href: "/dashboard/utilities/accounts", label: "Accounts" },
+      { href: "/dashboard/utilities/readings", label: "Readings" },
+      { href: "/dashboard/utilities/payments", label: "Payments" },
+      { href: "/dashboard/utilities/risks", label: "Risks" },
+    ],
+  },
+  {
+    label: "Front office",
+    items: [
+      { href: "/dashboard/front-office", label: "Today", icon: ClipboardList },
+      { href: "/dashboard/front-office/arrivals", label: "Arrivals" },
+      { href: "/dashboard/front-office/departures", label: "Departures" },
+      { href: "/dashboard/front-office/in-house", label: "In-house" },
+      { href: "/dashboard/front-office/requests", label: "Check-in/out requests" },
+    ],
+  },
+  {
+    label: "Availability",
+    items: [
+      { href: "/dashboard/availability", label: "Availability board", icon: CalendarRange },
+      { href: "/dashboard/availability/blocks", label: "Calendar blocks" },
+      { href: "/dashboard/readiness", label: "Readiness" },
+    ],
+  },
+  {
+    label: "Security",
+    items: [
+      { href: "/dashboard/security", label: "Overview", icon: ShieldCheck },
+      { href: "/dashboard/security/cameras", label: "Cameras" },
+      { href: "/dashboard/security/auth", label: "Authentication" },
+      { href: "/dashboard/security/login-attempts", label: "Login attempts" },
+      { href: "/dashboard/security/events", label: "Events" },
+      { href: "/dashboard/security/mfa", label: "MFA factors" },
     ],
   },
   {
@@ -92,6 +178,72 @@ export const dashboardNav: NavGroup[] = [
     items: [
       { href: "/dashboard/finance", label: "Finance", icon: Coins },
       { href: "/dashboard/finance/material-usage", label: "Material-usage bridge" },
+      { href: "/dashboard/finance/transparency", label: "Statement transparency" },
+    ],
+  },
+  {
+    label: "Owner intelligence",
+    items: [
+      { href: "/dashboard/owner-intelligence", label: "Overview", icon: Activity },
+      { href: "/dashboard/owner-intelligence/calendar", label: "Calendar" },
+      { href: "/dashboard/owner-intelligence/health", label: "Health reports" },
+      { href: "/dashboard/owner-intelligence/reviews", label: "Reviews" },
+      { href: "/dashboard/owner-intelligence/preferences", label: "Preferences" },
+      { href: "/dashboard/owner-intelligence/rebuild", label: "Rebuild events" },
+      { href: "/dashboard/owner-intelligence/bookings", label: "Booking projection" },
+      { href: "/dashboard/owner-intelligence/revenue", label: "Revenue source mix" },
+    ],
+  },
+  {
+    label: "Guest journey",
+    items: [
+      { href: "/dashboard/guest-journey", label: "Overview", icon: Sparkles },
+      { href: "/dashboard/guest-journey/rules", label: "Rules" },
+      { href: "/dashboard/guest-journey/runs", label: "Runs" },
+      { href: "/dashboard/guest-journey/suggestions", label: "Suggestions" },
+      { href: "/dashboard/guest-journey/reviews", label: "Review requests" },
+    ],
+  },
+  {
+    label: "Service fulfilment",
+    items: [
+      { href: "/dashboard/service-fulfilment", label: "Overview", icon: KeyRound },
+      { href: "/dashboard/service-fulfilment/fulfilments", label: "Fulfilments" },
+      { href: "/dashboard/service-fulfilment/vendors", label: "Vendors" },
+      { href: "/dashboard/service-fulfilment/invoices", label: "Invoices" },
+      { href: "/dashboard/service-fulfilment/ratings", label: "Ratings" },
+      { href: "/dashboard/service-fulfilment/finance-bridge", label: "Finance bridge" },
+    ],
+  },
+  {
+    label: "Dynamic pricing",
+    items: [
+      { href: "/dashboard/pricing", label: "Overview", icon: Coins },
+      { href: "/dashboard/pricing/rule-sets", label: "Rule sets" },
+      { href: "/dashboard/pricing/calendar", label: "Calendar" },
+      { href: "/dashboard/pricing/quote", label: "Quote tester" },
+      { href: "/dashboard/pricing/logs", label: "Logs" },
+      { href: "/dashboard/pricing/channel-push", label: "Channel push" },
+    ],
+  },
+  {
+    label: "Direct bookings",
+    items: [
+      { href: "/dashboard/direct-bookings", label: "Overview", icon: CalendarRange },
+      { href: "/dashboard/direct-bookings/holds", label: "Holds" },
+      { href: "/dashboard/direct-bookings/requests", label: "Requests" },
+      { href: "/dashboard/direct-bookings/deposits", label: "Deposits" },
+      { href: "/dashboard/direct-bookings/reconciliation", label: "Reconciliation" },
+      { href: "/dashboard/direct-bookings/guest-status", label: "Guest status" },
+      { href: "/dashboard/direct-bookings/messages", label: "Guest messages" },
+    ],
+  },
+  {
+    label: "Payments",
+    items: [
+      { href: "/dashboard/payments", label: "Overview", icon: Coins },
+      { href: "/dashboard/payments/providers", label: "Providers" },
+      { href: "/dashboard/payments/webhooks", label: "Webhooks" },
     ],
   },
   {
@@ -145,10 +297,18 @@ export const dashboardNav: NavGroup[] = [
     items: [
       { href: "/dashboard/jobs", label: "Background jobs", icon: Activity },
       { href: "/dashboard/jobs/runs", label: "Job runs" },
+      { href: "/dashboard/jobs/locks", label: "Job locks" },
+      { href: "/dashboard/system/health", label: "System health" },
+      { href: "/dashboard/system/deployment", label: "Deployment readiness" },
+      { href: "/dashboard/demo", label: "Demo walkthrough" },
       { href: "/dashboard/notifications", label: "Notifications", icon: BellRing },
+      { href: "/dashboard/notifications/inbox", label: "Inbox" },
+      { href: "/dashboard/notifications/deliveries", label: "Delivery log" },
       { href: "/dashboard/notifications/preferences", label: "Notification preferences" },
       { href: "/dashboard/audit", label: "Audit log", icon: ShieldCheck },
       { href: "/dashboard/settings", label: "Settings", icon: Settings },
+      { href: "/dashboard/settings/responsibility-scopes", label: "Responsibility scopes" },
+      { href: "/dashboard/settings/security", label: "My account security" },
     ],
   },
 ];
@@ -156,7 +316,13 @@ export const dashboardNav: NavGroup[] = [
 export const ownerNav: NavItem[] = [
   { href: "/owner", label: "Portfolio", icon: LayoutDashboard },
   { href: "/owner/villas", label: "My villas", icon: Home },
+  { href: "/owner/calendar", label: "Calendar", icon: CalendarRange },
+  { href: "/owner/bookings", label: "Bookings", icon: Bed },
+  { href: "/owner/revenue", label: "Revenue", icon: FileText },
   { href: "/owner/statements", label: "Statements", icon: FileText },
+  { href: "/owner/stays", label: "Stays", icon: Bed },
+  { href: "/owner/inbox", label: "Inbox", icon: BellRing },
+  { href: "/owner/preferences/calendar", label: "Preferences", icon: Settings },
 ];
 
 export const fieldNav: NavItem[] = [

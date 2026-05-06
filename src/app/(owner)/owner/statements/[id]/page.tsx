@@ -9,6 +9,18 @@ import {
 } from "@/features/finance/services";
 import { StatementDetail } from "@/components/finance/statement-detail";
 import { AIPayoutExplainer } from "@/components/owner/ai-payout-explainer";
+import {
+  getStatementExplanationSnapshot,
+  listLinkedActivityForStatement,
+  listStatementReconciliationWarnings,
+  listStatementSourceGroupLines,
+  listStatementSourceGroups,
+} from "@/features/statement-transparency/services";
+import { StatementSourceBreakdown } from "@/components/finance/statement-source-breakdown";
+import { StatementWarningList } from "@/components/finance/statement-warning-list";
+import { StatementExplanationCard } from "@/components/finance/statement-explanation-card";
+import { StatementLinkedActivity } from "@/components/finance/statement-linked-activity";
+import { generateStatementExplanation } from "@/features/finance/explanation";
 
 export const metadata = { title: "Statement" };
 export const dynamic = "force-dynamic";
@@ -25,6 +37,20 @@ export default async function OwnerStatementDetail({
   // Owner audience can only see lines flagged owner_visible. RLS restricts
   // access at the DB level; the audience flag is a UI safeguard.
   const lines = await listStatementLines(id, { ownerVisibleOnly: true });
+  const [groups, groupLines, warnings, snapshot, linkedActivity] =
+    await Promise.all([
+      listStatementSourceGroups(id),
+      listStatementSourceGroupLines(id),
+      listStatementReconciliationWarnings(id, {
+        ownerVisibleOnly: true,
+        status: "open",
+      }),
+      getStatementExplanationSnapshot(id),
+      listLinkedActivityForStatement(id),
+    ]);
+
+  // Fallback explanation when the snapshot is missing.
+  const fallbackExplanation = generateStatementExplanation(statement, lines);
 
   return (
     <div className="flex flex-col gap-12">
@@ -46,7 +72,33 @@ export default async function OwnerStatementDetail({
         }
       />
 
+      <div className="rounded-md border border-line-soft bg-canvas px-5 py-3 text-[11px] text-ink-secondary leading-relaxed">
+        Once issued and approved, this statement is the canonical accounting
+        record for this period. Use the Why-this-number section below if a
+        line looks unexpected.
+      </div>
       <StatementDetail statement={statement} lines={lines} audience="owner" />
+
+      <StatementExplanationCard
+        snapshot={snapshot}
+        fallbackHeadline={fallbackExplanation.headline}
+        fallbackBullets={fallbackExplanation.bullets}
+      />
+
+      <StatementSourceBreakdown
+        groups={groups.filter((g) => g.ownerVisible)}
+        groupLines={groupLines}
+        audience="owner"
+      />
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-display text-[22px] md:text-[26px] font-medium text-ink">
+          Items needing your attention
+        </h2>
+        <StatementWarningList warnings={warnings} audience="owner" />
+      </section>
+
+      <StatementLinkedActivity rows={linkedActivity} />
 
       <section id="ai-explain" className="scroll-mt-24 flex flex-col gap-4">
         <div>

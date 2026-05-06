@@ -10,3 +10,5 @@ next-env.d.ts
 .vercel
 .tsbuildinfo
 coverage/
+tmp/
+.env.production.local

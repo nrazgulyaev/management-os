@@ -37,23 +37,28 @@ test("migration 0008 declares all v7 tables + RLS", () => {
 // -----------------------------------------------------------------------------
 // Job definitions catalog
 // -----------------------------------------------------------------------------
-test("default job catalog ships the five v7 jobs with cron expressions", async () => {
+test("default job catalog ships the v7+v8A jobs with cron expressions", async () => {
   const { DEFAULT_JOB_DEFINITIONS, findJobDefinition } = await import(
     "../src/features/jobs/definitions"
   );
   const keys = DEFAULT_JOB_DEFINITIONS.map((d) => d.key);
-  assert.deepEqual(keys, [
+  // v7 catalog plus the v8A delivery worker.
+  for (const required of [
     "calendar_sync_active_feeds",
     "generate_preventive_tasks",
     "bridge_pending_material_usage",
     "scan_low_stock",
+    "deliver_pending_notifications",
     "notification_digest_internal",
-  ]);
+  ]) {
+    assert.ok(keys.includes(required), `missing ${required}`);
+  }
   // calendar sync runs every 30 min, low-stock daily 7am
   assert.equal(findJobDefinition("calendar_sync_active_feeds")?.scheduleCron, "*/30 * * * *");
   assert.equal(findJobDefinition("scan_low_stock")?.scheduleCron, "0 7 * * *");
-  // notification_digest is intentionally disabled
-  assert.equal(findJobDefinition("notification_digest_internal")?.enabled, false);
+  // v8A enables the digest job; delivery worker also enabled.
+  assert.equal(findJobDefinition("notification_digest_internal")?.enabled, true);
+  assert.equal(findJobDefinition("deliver_pending_notifications")?.enabled, true);
 });
 
 // -----------------------------------------------------------------------------
@@ -98,7 +103,7 @@ test("cron auth rejects bad bearer even on localhost when secret is set", async 
 // Low-stock dedupe
 // -----------------------------------------------------------------------------
 test("lowStockDedupeKey is YYYY-MM-DD scoped per role", async () => {
-  const { lowStockDedupeKey } = await import("../src/features/jobs/low-stock-job");
+  const { lowStockDedupeKey } = await import("../src/features/jobs/dedupe");
   const fixed = new Date(Date.UTC(2026, 4, 1));
   assert.equal(
     lowStockDedupeKey("operations_manager", fixed),

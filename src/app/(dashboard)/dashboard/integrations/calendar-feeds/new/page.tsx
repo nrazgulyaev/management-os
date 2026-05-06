@@ -4,6 +4,7 @@ import { CalendarFeedForm } from "@/components/integrations/feed-form";
 import { listVillas } from "@/features/villas/services";
 import { getDb } from "@/lib/db/client";
 import { bookingChannels } from "@/lib/db/schema/bookings";
+import { safeList } from "@/features/system/db-health";
 import { asc } from "drizzle-orm";
 
 export const metadata = { title: "New calendar feed" };
@@ -12,8 +13,10 @@ export const dynamic = "force-dynamic";
 async function listChannels() {
   const db = getDb();
   if (!db) return [];
-  const rows = await db.select().from(bookingChannels).orderBy(asc(bookingChannels.name));
-  return rows.map((c) => ({ id: c.id, name: c.name }));
+  const result = await safeList("listBookingChannels", () =>
+    db.select().from(bookingChannels).orderBy(asc(bookingChannels.name)),
+  );
+  return result.value.map((c) => ({ id: c.id, name: c.name }));
 }
 
 export default async function NewCalendarFeedPage() {

@@ -58,6 +58,11 @@ export default async function StatementDetailPage({
                 Download PDF
               </a>
             </Button>
+            <Button asChild variant="secondary" size="sm">
+              <a href={`/dashboard/finance/transparency/statements/${id}`}>
+                Open transparency
+              </a>
+            </Button>
             {transitions.map((t) => (
               <form
                 key={t.next}

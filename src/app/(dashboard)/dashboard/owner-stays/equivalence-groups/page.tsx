@@ -1,0 +1,88 @@
+import Link from "next/link";
+import { PageHeader } from "@/components/ui/page-header";
+import { Section } from "@/components/ui/section";
+import { Badge } from "@/components/ui/badge";
+import {
+  listEquivalenceGroups,
+  listEquivalenceMembers,
+} from "@/features/owner-stays/services";
+import { listVillas } from "@/features/villas/services";
+import { AddEquivalenceMemberForm } from "@/components/owner-stays/add-member-form";
+
+export const metadata = { title: "Equivalence groups" };
+export const dynamic = "force-dynamic";
+
+export default async function EquivalenceGroupsPage() {
+  const groups = await listEquivalenceGroups();
+  const allVillas = await listVillas();
+  const groupsWithMembers = await Promise.all(
+    groups.map(async (g) => ({
+      ...g,
+      members: await listEquivalenceMembers(g.id),
+    })),
+  );
+
+  return (
+    <div className="flex flex-col gap-10">
+      <PageHeader
+        breadcrumbs={[
+          { label: "Owner stays", href: "/dashboard/owner-stays" },
+          { label: "Equivalence groups" },
+        ]}
+        title="Villa equivalence groups"
+        description="Groups of swap-comparable villas. Used by the relocation engine: a booking can only be relocated to a villa in the same group with same-or-better quality_rank."
+        actions={
+          <Link
+            href="/dashboard/owner-stays/equivalence-groups/new"
+            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
+          >
+            + New group
+          </Link>
+        }
+      />
+
+      {groupsWithMembers.length === 0 ? (
+        <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
+          No groups yet.
+        </p>
+      ) : (
+        groupsWithMembers.map((g) => (
+          <Section key={g.id} eyebrow={g.projectName ?? "global"} title={g.name}>
+            <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+                  <tr>
+                    <th className="text-left px-3 py-2">Villa</th>
+                    <th className="text-right px-3 py-2">Quality rank</th>
+                    <th className="text-left px-3 py-2">Status</th>
+                    <th className="text-left px-3 py-2">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line-soft">
+                  {g.members.map((m) => (
+                    <tr key={m.id}>
+                      <td className="px-3 py-2 text-ink font-medium">{m.villaCode ?? "—"}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{m.qualityRank}</td>
+                      <td className="px-3 py-2">
+                        <Badge tone={m.villaStatus === "active" ? "success" : "neutral"}>
+                          {m.villaStatus ?? "—"}
+                        </Badge>
+                      </td>
+                      <td className="px-3 py-2 text-ink-tertiary text-xs">{m.notes ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <AddEquivalenceMemberForm
+              groupId={g.id}
+              villas={allVillas
+                .filter((v) => !g.members.some((m) => m.villaId === v.id))
+                .map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }))}
+            />
+          </Section>
+        ))
+      )}
+    </div>
+  );
+}

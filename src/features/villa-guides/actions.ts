@@ -1,0 +1,396 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import {
+  villaGuideSections,
+  villaWifiCredentials,
+  villaEmergencyContacts,
+  villaNeighborhoodPlaces,
+} from "@/lib/db/schema/villa-guides";
+import { recordAuditEvent } from "@/features/audit/services";
+import { getCurrentAppUser } from "@/features/auth/current-user";
+import { requirePermission } from "@/features/auth/permissions";
+import {
+  idSchema,
+  upsertEmergencyContactSchema,
+  upsertGuideSectionSchema,
+  upsertNeighborhoodPlaceSchema,
+  upsertWifiSchema,
+} from "./schema";
+import type { ActionResult } from "@/features/projects/actions";
+
+// -----------------------------------------------------------------------------
+// Sections
+// -----------------------------------------------------------------------------
+
+function parseSectionForm(form: FormData) {
+  const raw = Object.fromEntries(form.entries());
+  return {
+    id: raw.id || undefined,
+    villaId: raw.villaId || null,
+    projectId: raw.projectId || null,
+    sectionKey: raw.sectionKey,
+    title: raw.title,
+    bodyMd: raw.bodyMd || null,
+    sortOrder: raw.sortOrder ? Number(raw.sortOrder) : 0,
+    guestVisible: raw.guestVisible === "on" || raw.guestVisible === "true",
+  };
+}
+
+export async function upsertGuideSectionAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult & { sectionId?: string }> {
+  await requirePermission("villa_guide.write");
+  const parsed = upsertGuideSectionSchema.safeParse(parseSectionForm(formData));
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+
+  let sectionId: string | undefined;
+  if (parsed.data.id) {
+    await db
+      .update(villaGuideSections)
+      .set({
+        title: parsed.data.title,
+        bodyMd: parsed.data.bodyMd ?? null,
+        sortOrder: parsed.data.sortOrder,
+        guestVisible: parsed.data.guestVisible ?? true,
+        updatedBy: me?.id ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(villaGuideSections.id, parsed.data.id));
+    sectionId = parsed.data.id;
+  } else {
+    const [row] = await db
+      .insert(villaGuideSections)
+      .values({
+        villaId: parsed.data.villaId ?? null,
+        projectId: parsed.data.projectId ?? null,
+        sectionKey: parsed.data.sectionKey,
+        title: parsed.data.title,
+        bodyMd: parsed.data.bodyMd ?? null,
+        sortOrder: parsed.data.sortOrder,
+        guestVisible: parsed.data.guestVisible ?? true,
+        updatedBy: me?.id ?? null,
+      })
+      .returning({ id: villaGuideSections.id });
+    sectionId = row?.id;
+  }
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: parsed.data.id
+      ? "villa_guide.section.update"
+      : "villa_guide.section.create",
+    entityType: "villa_guide_section",
+    entityId: sectionId ?? null,
+    after: {
+      sectionKey: parsed.data.sectionKey,
+      villaId: parsed.data.villaId ?? null,
+      projectId: parsed.data.projectId ?? null,
+    },
+  });
+
+  revalidatePath("/dashboard/villa-guides");
+  revalidatePath("/dashboard/villa-guides/sections");
+  return { ok: true, sectionId };
+}
+
+export async function archiveGuideSectionAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("villa_guide.write");
+  const parsed = idSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return { ok: false, error: "Missing id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  await db
+    .update(villaGuideSections)
+    .set({ status: "archived", updatedAt: new Date(), updatedBy: me?.id ?? null })
+    .where(eq(villaGuideSections.id, parsed.data.id));
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "villa_guide.section.archive",
+    entityType: "villa_guide_section",
+    entityId: parsed.data.id,
+  });
+  revalidatePath("/dashboard/villa-guides/sections");
+  return { ok: true };
+}
+
+// -----------------------------------------------------------------------------
+// Wi-Fi
+// -----------------------------------------------------------------------------
+
+function parseWifiForm(form: FormData) {
+  const raw = Object.fromEntries(form.entries());
+  return {
+    id: raw.id || undefined,
+    villaId: raw.villaId || null,
+    projectId: raw.projectId || null,
+    networkName: raw.networkName,
+    displayPassword: raw.displayPassword || null,
+    instructionsMd: raw.instructionsMd || null,
+  };
+}
+
+export async function upsertWifiAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult & { wifiId?: string }> {
+  await requirePermission("villa_guide.write");
+  const parsed = upsertWifiSchema.safeParse(parseWifiForm(formData));
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+
+  // v9G: the `displayPassword` form field is encrypted at write-time.
+  // Plaintext is never stored in `display_password` for new rows.
+  let ciphertext: string | null = null;
+  let keyVersion: number | null = null;
+  if (parsed.data.displayPassword) {
+    const { encryptForStorage } = await import("./wifi-crypto");
+    const enc = await encryptForStorage(parsed.data.displayPassword);
+    ciphertext = enc.ciphertext;
+    keyVersion = enc.keyVersion;
+  }
+
+  let wifiId: string | undefined;
+  if (parsed.data.id) {
+    const updates: Record<string, unknown> = {
+      networkName: parsed.data.networkName,
+      instructionsMd: parsed.data.instructionsMd ?? null,
+      updatedBy: me?.id ?? null,
+      updatedAt: new Date(),
+    };
+    if (parsed.data.displayPassword) {
+      updates.passwordCiphertext = ciphertext;
+      updates.passwordKeyVersion = keyVersion;
+      updates.passwordMigratedAt = new Date();
+      updates.displayPassword = null; // never persist plaintext post-v9G
+    }
+    await db
+      .update(villaWifiCredentials)
+      .set(updates)
+      .where(eq(villaWifiCredentials.id, parsed.data.id));
+    wifiId = parsed.data.id;
+  } else {
+    const [row] = await db
+      .insert(villaWifiCredentials)
+      .values({
+        villaId: parsed.data.villaId ?? null,
+        projectId: parsed.data.projectId ?? null,
+        networkName: parsed.data.networkName,
+        passwordCiphertext: ciphertext,
+        passwordKeyVersion: keyVersion,
+        passwordMigratedAt: ciphertext ? new Date() : null,
+        instructionsMd: parsed.data.instructionsMd ?? null,
+        updatedBy: me?.id ?? null,
+      })
+      .returning({ id: villaWifiCredentials.id });
+    wifiId = row?.id;
+  }
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: parsed.data.id ? "villa_guide.wifi.update" : "villa_guide.wifi.create",
+    entityType: "villa_wifi_credential",
+    entityId: wifiId ?? null,
+    after: {
+      villaId: parsed.data.villaId ?? null,
+      projectId: parsed.data.projectId ?? null,
+      networkName: parsed.data.networkName,
+    },
+  });
+
+  revalidatePath("/dashboard/villa-guides/wifi");
+  return { ok: true, wifiId };
+}
+
+// -----------------------------------------------------------------------------
+// Emergency contacts
+// -----------------------------------------------------------------------------
+
+function parseContactForm(form: FormData) {
+  const raw = Object.fromEntries(form.entries());
+  return {
+    id: raw.id || undefined,
+    villaId: raw.villaId || null,
+    projectId: raw.projectId || null,
+    label: raw.label,
+    contactType: raw.contactType,
+    phone: raw.phone || null,
+    whatsapp: raw.whatsapp || null,
+    email: raw.email || null,
+    address: raw.address || null,
+    notesMd: raw.notesMd || null,
+    sortOrder: raw.sortOrder ? Number(raw.sortOrder) : 0,
+    guestVisible: raw.guestVisible === "on" || raw.guestVisible === "true",
+  };
+}
+
+export async function upsertEmergencyContactAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult & { contactId?: string }> {
+  await requirePermission("villa_guide.write");
+  const parsed = upsertEmergencyContactSchema.safeParse(parseContactForm(formData));
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+
+  let contactId: string | undefined;
+  if (parsed.data.id) {
+    await db
+      .update(villaEmergencyContacts)
+      .set({
+        label: parsed.data.label,
+        contactType: parsed.data.contactType,
+        phone: parsed.data.phone ?? null,
+        whatsapp: parsed.data.whatsapp ?? null,
+        email: parsed.data.email ?? null,
+        address: parsed.data.address ?? null,
+        notesMd: parsed.data.notesMd ?? null,
+        sortOrder: parsed.data.sortOrder,
+        guestVisible: parsed.data.guestVisible ?? true,
+        updatedAt: new Date(),
+      })
+      .where(eq(villaEmergencyContacts.id, parsed.data.id));
+    contactId = parsed.data.id;
+  } else {
+    const [row] = await db
+      .insert(villaEmergencyContacts)
+      .values({
+        villaId: parsed.data.villaId ?? null,
+        projectId: parsed.data.projectId ?? null,
+        label: parsed.data.label,
+        contactType: parsed.data.contactType,
+        phone: parsed.data.phone ?? null,
+        whatsapp: parsed.data.whatsapp ?? null,
+        email: parsed.data.email ?? null,
+        address: parsed.data.address ?? null,
+        notesMd: parsed.data.notesMd ?? null,
+        sortOrder: parsed.data.sortOrder,
+        guestVisible: parsed.data.guestVisible ?? true,
+      })
+      .returning({ id: villaEmergencyContacts.id });
+    contactId = row?.id;
+  }
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: parsed.data.id
+      ? "villa_guide.contact.update"
+      : "villa_guide.contact.create",
+    entityType: "villa_emergency_contact",
+    entityId: contactId ?? null,
+    after: { label: parsed.data.label, contactType: parsed.data.contactType },
+  });
+
+  revalidatePath("/dashboard/villa-guides/emergency-contacts");
+  return { ok: true, contactId };
+}
+
+// -----------------------------------------------------------------------------
+// Neighborhood
+// -----------------------------------------------------------------------------
+
+function parsePlaceForm(form: FormData) {
+  const raw = Object.fromEntries(form.entries());
+  return {
+    id: raw.id || undefined,
+    villaId: raw.villaId || null,
+    projectId: raw.projectId || null,
+    name: raw.name,
+    category: raw.category,
+    descriptionMd: raw.descriptionMd || null,
+    address: raw.address || null,
+    googleMapsUrl: raw.googleMapsUrl || null,
+    distanceLabel: raw.distanceLabel || null,
+    travelTimeLabel: raw.travelTimeLabel || null,
+    imageUrl: raw.imageUrl || null,
+    sortOrder: raw.sortOrder ? Number(raw.sortOrder) : 0,
+    guestVisible: raw.guestVisible === "on" || raw.guestVisible === "true",
+  };
+}
+
+export async function upsertNeighborhoodPlaceAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult & { placeId?: string }> {
+  await requirePermission("villa_guide.write");
+  const parsed = upsertNeighborhoodPlaceSchema.safeParse(parsePlaceForm(formData));
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+
+  const cleanUrl = (s?: string | null) => (s && s !== "" ? s : null);
+
+  let placeId: string | undefined;
+  if (parsed.data.id) {
+    await db
+      .update(villaNeighborhoodPlaces)
+      .set({
+        name: parsed.data.name,
+        category: parsed.data.category,
+        descriptionMd: parsed.data.descriptionMd ?? null,
+        address: parsed.data.address ?? null,
+        googleMapsUrl: cleanUrl(parsed.data.googleMapsUrl),
+        distanceLabel: parsed.data.distanceLabel ?? null,
+        travelTimeLabel: parsed.data.travelTimeLabel ?? null,
+        imageUrl: cleanUrl(parsed.data.imageUrl),
+        sortOrder: parsed.data.sortOrder,
+        guestVisible: parsed.data.guestVisible ?? true,
+        updatedAt: new Date(),
+      })
+      .where(eq(villaNeighborhoodPlaces.id, parsed.data.id));
+    placeId = parsed.data.id;
+  } else {
+    const [row] = await db
+      .insert(villaNeighborhoodPlaces)
+      .values({
+        villaId: parsed.data.villaId ?? null,
+        projectId: parsed.data.projectId ?? null,
+        name: parsed.data.name,
+        category: parsed.data.category,
+        descriptionMd: parsed.data.descriptionMd ?? null,
+        address: parsed.data.address ?? null,
+        googleMapsUrl: cleanUrl(parsed.data.googleMapsUrl),
+        distanceLabel: parsed.data.distanceLabel ?? null,
+        travelTimeLabel: parsed.data.travelTimeLabel ?? null,
+        imageUrl: cleanUrl(parsed.data.imageUrl),
+        sortOrder: parsed.data.sortOrder,
+        guestVisible: parsed.data.guestVisible ?? true,
+      })
+      .returning({ id: villaNeighborhoodPlaces.id });
+    placeId = row?.id;
+  }
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: parsed.data.id ? "villa_guide.place.update" : "villa_guide.place.create",
+    entityType: "villa_neighborhood_place",
+    entityId: placeId ?? null,
+    after: { name: parsed.data.name, category: parsed.data.category },
+  });
+
+  revalidatePath("/dashboard/villa-guides/neighborhood");
+  return { ok: true, placeId };
+}

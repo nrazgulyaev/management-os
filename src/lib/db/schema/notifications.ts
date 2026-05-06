@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   boolean,
+  integer,
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
@@ -11,10 +12,16 @@ import { appUsers } from "./identity";
 import { owners } from "./ownership";
 
 /**
- * Durable notification queue. v7 scope: schema + admin UI only — no
- * external delivery providers (WhatsApp / SMS / email). The intent is so
- * downstream code can `queueNotification(...)` today and providers
- * deliver in v8+.
+ * Notifications domain.
+ *   v7 — `notification_queue` + `notification_preferences` (foundation).
+ *   v8A — `notification_deliveries` (provider attempts) +
+ *          `in_app_notifications` (durable per-user inbox) +
+ *          retry/attempt columns on the queue.
+ *
+ * The queue stays the source of truth: every `queueNotification` call
+ * inserts one queue row. The delivery worker creates one
+ * `notification_deliveries` row per channel attempt and (for in_app)
+ * also materialises `in_app_notifications` per recipient.
  */
 
 export const notificationQueue = pgTable(
@@ -38,6 +45,12 @@ export const notificationQueue = pgTable(
     /** dedupe_key collapses repeated alerts. The DB has a partial unique index
      *  active only while status IN ('queued','sent') — see migration 0008. */
     dedupeKey: text("dedupe_key"),
+    /** v8A — retry / attempt tracking */
+    deliveryAttempts: integer("delivery_attempts").notNull().default(0),
+    lastAttemptedAt: timestamp("last_attempted_at", { withTimezone: true }),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+    /** v8B — cap retries before giving up. */
+    maxAttempts: integer("max_attempts").notNull().default(3),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -46,6 +59,64 @@ export const notificationQueue = pgTable(
     index("nq_template_idx").on(t.templateKey),
     index("nq_channel_idx").on(t.channel),
     index("nq_recipient_idx").on(t.recipientType, t.recipientId),
+    index("nq_next_attempt_idx").on(t.status, t.nextAttemptAt),
+  ],
+);
+
+export const notificationDeliveries = pgTable(
+  "notification_deliveries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    notificationId: uuid("notification_id")
+      .notNull()
+      .references(() => notificationQueue.id, { onDelete: "cascade" }),
+    channel: text("channel").notNull(),
+    provider: text("provider").notNull().default("in_app"),
+    recipientAddress: text("recipient_address"),
+    status: text("status").notNull().default("pending"),
+    providerMessageId: text("provider_message_id"),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    failedAt: timestamp("failed_at", { withTimezone: true }),
+    errorMessage: text("error_message"),
+    responseJson: jsonb("response_json"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("nd_notification_idx").on(t.notificationId),
+    index("nd_channel_idx").on(t.channel),
+    index("nd_status_idx").on(t.status),
+    index("nd_attempted_idx").on(t.attemptedAt),
+  ],
+);
+
+export const inAppNotifications = pgTable(
+  "in_app_notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    notificationId: uuid("notification_id").references(() => notificationQueue.id, {
+      onDelete: "set null",
+    }),
+    appUserId: uuid("app_user_id").references(() => appUsers.id, { onDelete: "cascade" }),
+    ownerId: uuid("owner_id").references(() => owners.id, { onDelete: "cascade" }),
+    roleKey: text("role_key"),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    payload: jsonb("payload"),
+    priority: text("priority").notNull().default("normal"),
+    status: text("status").notNull().default("unread"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("ian_app_user_idx").on(t.appUserId),
+    index("ian_owner_idx").on(t.ownerId),
+    index("ian_role_idx").on(t.roleKey),
+    index("ian_status_idx").on(t.status),
+    index("ian_created_idx").on(t.createdAt),
   ],
 );
 
@@ -73,6 +144,31 @@ export const notificationPreferences = pgTable(
   ],
 );
 
+export const notificationTemplates = pgTable(
+  "notification_templates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    templateKey: text("template_key").notNull(),
+    channel: text("channel").notNull(),
+    subjectTemplate: text("subject_template"),
+    bodyTemplate: text("body_template").notNull(),
+    htmlTemplate: text("html_template"),
+    status: text("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("notification_templates_key_idx").on(t.templateKey),
+    index("notification_templates_channel_idx").on(t.channel),
+  ],
+);
+
 export type NotificationQueueRow = typeof notificationQueue.$inferSelect;
 export type NewNotificationQueueRow = typeof notificationQueue.$inferInsert;
 export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type NotificationDelivery = typeof notificationDeliveries.$inferSelect;
+export type NewNotificationDelivery = typeof notificationDeliveries.$inferInsert;
+export type InAppNotification = typeof inAppNotifications.$inferSelect;
+export type NewInAppNotification = typeof inAppNotifications.$inferInsert;
+export type NotificationTemplate = typeof notificationTemplates.$inferSelect;
+export type NewNotificationTemplate = typeof notificationTemplates.$inferInsert;

@@ -9,6 +9,7 @@ import { DbStatusNotice } from "@/components/admin/db-status";
 import { GrantForm } from "@/components/admin/grant-form";
 import { getDb } from "@/lib/db/client";
 import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
+import { safeList } from "@/features/system/db-health";
 import { listAccessGrantsForAppUser } from "@/features/access-grants/services";
 import { listOwners } from "@/features/owners/services";
 import {
@@ -43,14 +44,20 @@ export default async function UserProfilePage({
     );
   }
 
-  const [user] = await db.select().from(appUsers).where(eq(appUsers.id, id)).limit(1);
+  const userResult = await safeList("getUserById", () =>
+    db.select().from(appUsers).where(eq(appUsers.id, id)).limit(1),
+  );
+  const user = userResult.value[0];
   if (!user) notFound();
 
-  const userRoleRows = await db
-    .select({ key: roles.key })
-    .from(userRoles)
-    .innerJoin(roles, eq(roles.id, userRoles.roleId))
-    .where(eq(userRoles.userId, id));
+  const userRoleResult = await safeList("getUserRoles", () =>
+    db
+      .select({ key: roles.key })
+      .from(userRoles)
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .where(eq(userRoles.userId, id)),
+  );
+  const userRoleRows = userRoleResult.value;
 
   const grants = await listAccessGrantsForAppUser(id);
   const owners = await listOwners();

@@ -3,22 +3,15 @@ import "server-only";
 import { listLowStockItems } from "@/features/inventory/services";
 import { queueNotification } from "@/features/notifications/services";
 import { recordAuditEvent } from "@/features/audit/services";
+import { LOW_STOCK_TEMPLATE_KEY, lowStockDedupeKey } from "./dedupe";
 import type { JobOutcome, JobRunHandle } from "./runner";
 
-const LOW_STOCK_TEMPLATE = "low_stock_alert";
+const LOW_STOCK_TEMPLATE = LOW_STOCK_TEMPLATE_KEY;
 const ALERT_ROLE_RECIPIENTS = ["operations_manager", "procurement_manager"];
 
-/**
- * Pure helper — exported for tests so the dedupe contract stays explicit.
- * Format: low_stock_alert:YYYY-MM-DD. One notification per role per day.
- */
-export function lowStockDedupeKey(
-  roleKey: string,
-  now: Date = new Date(),
-): string {
-  const ymd = now.toISOString().slice(0, 10);
-  return `${LOW_STOCK_TEMPLATE}:${roleKey}:${ymd}`;
-}
+// Re-export the pure helper so callers that already import from this module
+// keep working.
+export { lowStockDedupeKey };
 
 export async function runLowStockScanJob(handle: JobRunHandle): Promise<JobOutcome> {
   const items = await listLowStockItems();

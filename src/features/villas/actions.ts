@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { villas } from "@/lib/db/schema/projects";
+import { assetTypes } from "@/lib/db/schema/asset-types";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
@@ -45,6 +46,19 @@ export async function createVillaAction(
 
   let id: string;
   try {
+    // Stage 5.B.1 — every villa row needs asset_type_id (NOT NULL).
+    // Look up the 'villa' asset type once per insert.
+    const [villaType] = await db
+      .select({ id: assetTypes.id })
+      .from(assetTypes)
+      .where(eq(assetTypes.typeKey, "villa"))
+      .limit(1);
+    if (!villaType) {
+      return {
+        ok: false,
+        error: "Asset type 'villa' missing from registry. Re-run migrations.",
+      };
+    }
     const [row] = await db
       .insert(villas)
       .values({
@@ -52,6 +66,7 @@ export async function createVillaAction(
         unitCode: d.unitCode,
         slug: d.slug,
         name: d.name && d.name !== "" ? d.name : null,
+        assetTypeId: villaType.id,
         status: d.status,
         bedrooms: d.bedrooms,
         bathrooms: d.bathrooms !== undefined ? String(d.bathrooms) : null,

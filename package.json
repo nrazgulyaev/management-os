@@ -4,7 +4,7 @@
   "private": true,
   "description": "Arconique Management OS — premium villa management, investor reporting, and operations platform.",
   "scripts": {
-    "dev": "next dev",
+    "dev": "pkill -f next-server 2>/dev/null; pkill -f 'next dev' 2>/dev/null; sleep 1; next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -12,7 +12,20 @@
     "test": "tsx --test tests/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file=.env.local --import tsx scripts/migrate.ts",
-    "db:seed": "node --env-file=.env.local --import tsx scripts/seed.ts"
+    "db:seed": "node --env-file=.env.local --import tsx scripts/seed.ts",
+    "db:seed:dev-os": "node --env-file=.env.local scripts/seed-dev-os.mjs",
+    "demo:rebuild": "node --env-file=.env.local --import tsx scripts/demo-rebuild.ts",
+    "demo:validate": "node --env-file=.env.local --import tsx scripts/validate-demo-data.ts",
+    "check:env": "node --import tsx scripts/check-env.ts",
+    "check:storage": "node --import tsx scripts/check-storage-config.ts",
+    "check:cron": "node --import tsx scripts/check-cron-config.ts",
+    "check:cron-auth": "node --import tsx scripts/check-cron-auth.ts",
+    "check:migrations": "node --import tsx scripts/check-migrations.ts",
+    "smoke:routes": "node --import tsx scripts/smoke-routes.ts",
+    "staging:report": "node --import tsx scripts/staging-readiness-report.ts",
+    "docs:route-map": "node --import tsx scripts/generate-route-map-doc.ts",
+    "preflight:deploy": "node --import tsx scripts/preflight-deploy.ts",
+    "seed:production:minimal": "node --env-file=.env.local --import tsx scripts/seed-production-minimal.ts"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.2",
@@ -37,6 +50,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "tailwind-merge": "^2.6.0",
+    "web-push": "^3.6.7",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -44,6 +58,7 @@
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.4",
     "@types/react-dom": "^19.0.2",
+    "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.5.15",

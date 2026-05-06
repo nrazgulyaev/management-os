@@ -3,6 +3,7 @@ import { Section } from "@/components/ui/section";
 import { StatementStatusPill } from "@/components/finance/period-pill";
 import { formatMoneyMinor } from "@/lib/money";
 import { generateStatementExplanation } from "@/features/finance/explanation";
+import { groupStatementLinesBySource } from "@/features/owner-bookings/statement-source-groups";
 import type {
   OwnerStatementRow,
   StatementLineRow,
@@ -132,6 +133,30 @@ export function StatementDetail({
           </span>
         </div>
 
+        <Section
+          eyebrow="By source"
+          title="Revenue source explanation"
+          description="Each booking on your statement is attributed to a source — direct booking, OTA platform, guest service, or owner stay. Source IDs are intentionally hidden."
+        >
+          {(() => {
+            const buckets = groupStatementLinesBySource(visibleLines);
+            if (buckets.length === 0) {
+              return (
+                <p className="text-sm text-ink-tertiary">
+                  No source-bucketed lines on this statement.
+                </p>
+              );
+            }
+            return (
+              <div className="rounded-md border border-line-soft bg-surface p-5 flex flex-col gap-4">
+                {buckets.map((b) => (
+                  <SourceBucket key={b.key} bucket={b} />
+                ))}
+              </div>
+            );
+          })()}
+        </Section>
+
         <Section eyebrow="Why this number" title="Plain-language explanation">
           {(() => {
             const expl = generateStatementExplanation(statement, lines);
@@ -181,6 +206,30 @@ function Stat({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="font-mono tabular-nums text-base text-ink mt-1">{value}</div>
+    </div>
+  );
+}
+
+function SourceBucket({
+  bucket,
+}: {
+  bucket: ReturnType<typeof groupStatementLinesBySource>[number];
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between">
+        <div>
+          <div className="text-sm text-ink font-medium">{bucket.label}</div>
+          <div className="text-[11px] text-ink-tertiary">
+            {bucket.description}
+          </div>
+        </div>
+        {bucket.currency && (
+          <div className="font-mono tabular-nums text-sm text-ink">
+            {formatMoneyMinor(bucket.totalMinor, bucket.currency)}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

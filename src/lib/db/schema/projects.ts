@@ -8,7 +8,9 @@ import {
   boolean,
   date,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { appUsers } from "./identity";
 
 export const projects = pgTable(
@@ -61,12 +63,27 @@ export const villas = pgTable(
       scale: 2,
     }),
     ownerVisible: boolean("owner_visible").notNull().default(true),
+    /**
+     * Stage 5.B.1 — multi-asset abstraction. References asset_types
+     * registry. Defaults to 'villa' for backward compatibility (every
+     * existing row was backfilled by migration 0057 inside one tx).
+     */
+    assetTypeId: uuid("asset_type_id").notNull(),
+    /**
+     * Type-specific attributes (JSONB). Schema varies by asset_type.
+     * Examples: villa: {bedrooms, pool, sqm}, hotel_room: {category,
+     * view, max_guests}, restaurant_table: {seats, location_type}.
+     */
+    assetAttributes: jsonb("asset_attributes")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("villas_project_idx").on(t.projectId),
     index("villas_status_idx").on(t.status),
+    index("villas_asset_type_idx").on(t.assetTypeId),
   ],
 );
 

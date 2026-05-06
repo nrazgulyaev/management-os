@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { AIAssistantGrid } from "@/components/dashboard/ai-assistant-grid";
 import { PermissionBanner } from "@/components/dashboard/permission-banner";
 import { AIAuditLog } from "@/components/dashboard/ai-audit-log";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, FileSignature, BellRing, ScrollText } from "lucide-react";
+import { ShieldCheck, FileSignature, BellRing, ScrollText, Sparkles, Activity } from "lucide-react";
 
 export const metadata = { title: "AI assistants" };
 
@@ -42,6 +43,45 @@ export default function AIHubPage() {
       />
 
       <PermissionBanner />
+
+      <Section
+        eyebrow="Live"
+        title="Operations Co-pilot v0"
+        description="The first assistant wired to live data. Read-only allowlist, deterministic fallback when AI is disabled."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Link
+            href="/dashboard/ai/operations"
+            className="rounded-md border border-line-soft bg-surface p-5 hover:border-line-strong transition-colors flex gap-4"
+          >
+            <div className="w-9 h-9 rounded-md bg-accent-weak text-accent inline-flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4" strokeWidth={1.75} />
+            </div>
+            <div>
+              <h3 className="text-ink font-medium text-base">Operations briefing</h3>
+              <p className="text-sm text-ink-secondary mt-1.5">
+                Latest summary, history, refresh. Backed by Claude when configured;
+                deterministic fallback otherwise.
+              </p>
+            </div>
+          </Link>
+          <Link
+            href="/dashboard/ai/runs"
+            className="rounded-md border border-line-soft bg-surface p-5 hover:border-line-strong transition-colors flex gap-4"
+          >
+            <div className="w-9 h-9 rounded-md bg-accent-weak text-accent inline-flex items-center justify-center shrink-0">
+              <Activity className="w-4 h-4" strokeWidth={1.75} />
+            </div>
+            <div>
+              <h3 className="text-ink font-medium text-base">Run inspector</h3>
+              <p className="text-sm text-ink-secondary mt-1.5">
+                Every run is logged with model, latency, tokens, and the tool
+                calls it made. Blocked allowlist attempts surface here too.
+              </p>
+            </div>
+          </Link>
+        </div>
+      </Section>
 
       <Section
         eyebrow="Principles"

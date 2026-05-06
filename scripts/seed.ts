@@ -1,9 +1,14 @@
 /**
  * Apply demo seed data against `DIRECT_URL`.
+ *
+ * Order of application:
+ *   1. drizzle/seed.sql                         — base demo seed
+ *   2. drizzle/seed/<*.sql in lexical order>    — per-stage incremental seeds
+ *
  * Usage: npx tsx scripts/seed.ts
  * Idempotent — safe to re-run.
  */
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import postgres from "postgres";
 
@@ -15,16 +20,37 @@ if (!url) {
   process.exit(1);
 }
 
-const file = resolve(process.cwd(), "drizzle/seed.sql");
+const baseFile = resolve(process.cwd(), "drizzle/seed.sql");
+const extensionsDir = resolve(process.cwd(), "drizzle/seed");
+
+async function listExtensions(): Promise<string[]> {
+  try {
+    const entries = await readdir(extensionsDir);
+    return entries
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .map((f) => resolve(extensionsDir, f));
+  } catch {
+    return [];
+  }
+}
 
 async function main() {
-  console.log("→ Reading seed file:", file);
-  const sql = await readFile(file, "utf8");
   const client = postgres(url!, { max: 1, prepare: false });
   try {
-    console.log("→ Applying seed…");
-    await client.unsafe(sql);
-    console.log("✓ Seed applied.");
+    console.log("→ Reading base seed:", baseFile);
+    await client.unsafe(await readFile(baseFile, "utf8"));
+    console.log("✓ Base seed applied.");
+
+    const extensions = await listExtensions();
+    for (const file of extensions) {
+      console.log(`→ Applying extension seed: ${file}`);
+      await client.unsafe(await readFile(file, "utf8"));
+      console.log(`✓ ${file}`);
+    }
+    if (extensions.length === 0) {
+      console.log("(no per-stage extension seeds found in drizzle/seed/)");
+    }
   } finally {
     await client.end({ timeout: 5 });
   }

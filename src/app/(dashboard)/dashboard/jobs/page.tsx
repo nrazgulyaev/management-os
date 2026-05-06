@@ -13,16 +13,24 @@ import {
   listJobRuns,
 } from "@/features/jobs/services";
 import { listNotifications } from "@/features/notifications/services";
+import { safeList } from "@/features/system/db-health";
+import { QueryWarningCard } from "@/components/system/query-warning-card";
 
 export const metadata = { title: "Jobs" };
 export const dynamic = "force-dynamic";
 
 export default async function JobsHomePage() {
-  const [defs, recentRuns, queuedNotifications] = await Promise.all([
-    listJobDefinitions(),
-    listJobRuns({ limit: 12 }),
-    listNotifications({ status: "queued", limit: 50 }),
-  ]);
+  const [defsResult, recentRunsResult, queuedNotificationsResult] =
+    await Promise.all([
+      safeList("job_definitions", () => listJobDefinitions()),
+      safeList("job_runs", () => listJobRuns({ limit: 12 })),
+      safeList("notification_queue", () =>
+        listNotifications({ status: "queued", limit: 50 }),
+      ),
+    ]);
+  const defs = defsResult.value;
+  const recentRuns = recentRunsResult.value;
+  const queuedNotifications = queuedNotificationsResult.value;
 
   const failedRecent = recentRuns.filter((r) => r.status === "failed").length;
 
@@ -40,6 +48,12 @@ export default async function JobsHomePage() {
         actions={<SeedDefaultJobDefinitionsButton />}
       />
       <DbStatusNotice />
+      <QueryWarningCard result={defsResult} tableName="job_definitions" />
+      <QueryWarningCard result={recentRunsResult} tableName="job_runs" />
+      <QueryWarningCard
+        result={queuedNotificationsResult}
+        tableName="notification_queue"
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard label="Definitions" value={String(defs.length)} />

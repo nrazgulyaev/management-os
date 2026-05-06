@@ -9,6 +9,8 @@ import { Download, MessageCircleQuestion } from "lucide-react";
 import { listOwnerStatements } from "@/features/finance/services";
 import { formatMoneyMinor } from "@/lib/money";
 import { isDbConfigured } from "@/lib/env";
+import { getStatementReconciliationStatus } from "@/features/statement-transparency/services";
+import { TransparencyStatusBadge } from "@/components/finance/transparency-status-badge";
 
 export const metadata = { title: "Statements" };
 export const dynamic = "force-dynamic";
@@ -21,6 +23,16 @@ export default async function StatementsPage() {
   const live = dbReady
     ? (await listOwnerStatements({ status: ["issued", "approved", "paid"] })).slice(0, 24)
     : [];
+  const reconciliationByStatement = new Map<
+    string,
+    Awaited<ReturnType<typeof getStatementReconciliationStatus>>
+  >();
+  for (const s of live) {
+    reconciliationByStatement.set(
+      s.id,
+      await getStatementReconciliationStatus(s.id),
+    );
+  }
 
   return (
     <div className="flex flex-col gap-12">
@@ -52,10 +64,15 @@ export default async function StatementsPage() {
                     {s.villaCode ?? s.projectName ?? s.ownerName} · {s.managementModel}
                   </div>
                 </div>
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
                   <span className="font-mono tabular-nums text-sm text-ink">
                     {formatMoneyMinor(s.netPayoutMinor, s.currency)}
                   </span>
+                  <TransparencyStatusBadge
+                    status={
+                      reconciliationByStatement.get(s.id)?.status ?? "healthy"
+                    }
+                  />
                   <Badge tone={s.status === "paid" ? "success" : "info"}>{s.status}</Badge>
                 </div>
               </Link>

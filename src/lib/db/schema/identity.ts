@@ -23,13 +23,27 @@ export const appUsers = pgTable(
     email: text("email").notNull().unique(),
     fullName: text("full_name").notNull(),
     phone: text("phone"),
+    /** Stage 3.D — WhatsApp routing. */
+    whatsappPhone: text("whatsapp_phone"),
+    prefersWhatsapp: boolean("prefers_whatsapp").notNull().default(false),
     avatarUrl: text("avatar_url"),
     status: text("status").notNull().default("active"), // active | invited | suspended | archived
+    /** v8B — IANA timezone for quiet-hours evaluation. Defaults to the
+     *  Arconique HQ timezone; operators / staff can override per user. */
+    timezone: text("timezone").notNull().default("Asia/Makassar"),
+    /**
+     * Stage 2.3.C — links an auth user to an investor record. Set ONLY for
+     * users with the `investor_viewer` role; null for internal staff. The
+     * `protect_app_users_investor_id_trg` trigger blocks non-internal
+     * UPDATEs to this column.
+     */
+    investorId: uuid("investor_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("app_users_email_lower_idx").on(sql`lower(${t.email})`),
+    index("app_users_investor_idx").on(t.investorId),
   ],
 );
 

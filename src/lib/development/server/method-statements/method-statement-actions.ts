@@ -1,0 +1,140 @@
+import "server-only";
+
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { requireDb } from "@/lib/db/client";
+import { methodStatements } from "@/lib/db/schema/method-quality";
+import { requireInternalUser } from "@/features/auth/permissions";
+
+const CATEGORIES = [
+  "structural",
+  "mep_electrical",
+  "mep_plumbing",
+  "mep_hvac",
+  "finishing",
+  "safety",
+  "demolition",
+  "site_preparation",
+  "inspection",
+  "handover",
+  "general",
+] as const;
+
+const STATUSES = [
+  "draft",
+  "under_review",
+  "approved",
+  "active",
+  "superseded",
+  "archived",
+] as const;
+
+const VALID_NEXT: Record<string, string[]> = {
+  draft: ["under_review", "archived"],
+  under_review: ["approved", "draft", "archived"],
+  approved: ["active", "draft"],
+  active: ["superseded", "archived"],
+  superseded: [],
+  archived: [],
+};
+
+const procedureStepSchema = z.object({
+  step: z.number().int().positive(),
+  instruction: z.string().min(1),
+  duration: z.string().optional(),
+});
+
+const createSchema = z.object({
+  methodCode: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().nullable().optional(),
+  category: z.enum(CATEGORIES),
+  applicableWorkTypes: z.array(z.string()).optional(),
+  applicableSpecifications: z.array(z.string().uuid()).default([]),
+  procedureSteps: z.array(procedureStepSchema).min(1),
+  requiredTools: z.array(z.string()).optional(),
+  requiredMaterials: z.array(z.string()).optional(),
+  requiredPpe: z.array(z.string()).optional(),
+  qualityCheckpoints: z
+    .array(
+      z.object({
+        checkpoint: z.string(),
+        tolerance: z.string().optional(),
+      }),
+    )
+    .optional(),
+  safetyHazards: z.array(z.string()).optional(),
+  hazardMitigations: z.array(z.string()).optional(),
+  referenceVideoUrls: z.array(z.string()).optional(),
+  effectiveFrom: z.string().nullable().optional(),
+  effectiveUntil: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+export async function createMethodStatement(
+  input: z.input<typeof createSchema>,
+) {
+  const ctx = await requireInternalUser();
+  const parsed = createSchema.parse(input);
+  const db = requireDb();
+  const [row] = await db
+    .insert(methodStatements)
+    .values({
+      methodCode: parsed.methodCode,
+      title: parsed.title,
+      description: parsed.description ?? null,
+      category: parsed.category,
+      applicableWorkTypes: parsed.applicableWorkTypes ?? null,
+      applicableSpecifications: parsed.applicableSpecifications,
+      procedureSteps: parsed.procedureSteps,
+      requiredTools: parsed.requiredTools ?? null,
+      requiredMaterials: parsed.requiredMaterials ?? null,
+      requiredPpe: parsed.requiredPpe ?? null,
+      qualityCheckpoints: parsed.qualityCheckpoints ?? null,
+      safetyHazards: parsed.safetyHazards ?? null,
+      hazardMitigations: parsed.hazardMitigations ?? null,
+      referenceVideoUrls: parsed.referenceVideoUrls ?? null,
+      effectiveFrom: parsed.effectiveFrom ?? null,
+      effectiveUntil: parsed.effectiveUntil ?? null,
+      notes: parsed.notes ?? null,
+      status: "draft",
+      createdBy: ctx.appUser?.id ?? null,
+    })
+    .returning();
+  return row;
+}
+
+const transitionSchema = z.object({
+  methodId: z.string().uuid(),
+  to: z.enum(STATUSES),
+});
+
+export async function transitionMethodStatement(
+  input: z.input<typeof transitionSchema>,
+) {
+  const ctx = await requireInternalUser();
+  const parsed = transitionSchema.parse(input);
+  const db = requireDb();
+  const [current] = await db
+    .select()
+    .from(methodStatements)
+    .where(eq(methodStatements.id, parsed.methodId))
+    .limit(1);
+  if (!current) throw new Error("method_statement not found");
+  if (!VALID_NEXT[current.status].includes(parsed.to)) {
+    throw new Error(
+      `cannot transition method_statement from '${current.status}' to '${parsed.to}'`,
+    );
+  }
+  const updates: Record<string, unknown> = { status: parsed.to };
+  if (parsed.to === "approved") {
+    updates.approvedBy = ctx.appUser?.id ?? null;
+    updates.approvedAt = new Date();
+  }
+  const [row] = await db
+    .update(methodStatements)
+    .set(updates)
+    .where(eq(methodStatements.id, parsed.methodId))
+    .returning();
+  return row;
+}

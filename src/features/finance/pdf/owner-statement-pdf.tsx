@@ -243,6 +243,19 @@ export interface OwnerStatementPdfProps {
   lines: StatementLineRow[];
   audience: "internal" | "owner";
   generatedAt: string;
+  /**
+   * Prompt 110 — optional pre-computed explanation snapshot.  When
+   * present the renderer prefers its headline / summary / bullets /
+   * payout-explanation over the deterministic fallback.  Owner-safe
+   * by construction; the snapshot generator is the redaction seam.
+   */
+  explanationSnapshot?: {
+    headline: string;
+    summary: string;
+    bulletPoints: string[];
+    payoutExplanation: string | null;
+    warningExplanation: string | null;
+  } | null;
 }
 
 export function OwnerStatementPdf({
@@ -250,8 +263,15 @@ export function OwnerStatementPdf({
   lines,
   audience,
   generatedAt,
+  explanationSnapshot,
 }: OwnerStatementPdfProps) {
-  const { headline, bullets, footer } = generateStatementExplanation(statement, lines);
+  const fallback = generateStatementExplanation(statement, lines);
+  const headline = explanationSnapshot?.headline ?? fallback.headline;
+  const bullets = explanationSnapshot?.bulletPoints ?? fallback.bullets;
+  const summary = explanationSnapshot?.summary ?? null;
+  const payoutNote = explanationSnapshot?.payoutExplanation ?? null;
+  const warningNote = explanationSnapshot?.warningExplanation ?? null;
+  const footer = fallback.footer;
   const grouped = sectionOrder
     .map((s) => ({
       section: s,
@@ -341,11 +361,22 @@ export function OwnerStatementPdf({
             Why this number
           </Text>
           <Text style={[styles.bullet, { fontFamily: "Helvetica-Bold" }]}>{headline}</Text>
+          {summary && (
+            <Text style={styles.bullet}>{summary}</Text>
+          )}
           {bullets.map((b, i) => (
             <Text key={i} style={styles.bullet}>
               · {b}
             </Text>
           ))}
+          {payoutNote && (
+            <Text style={[styles.bullet, { marginTop: 4 }]}>{payoutNote}</Text>
+          )}
+          {warningNote && (
+            <Text style={[styles.bullet, { color: colors.accent }]}>
+              {warningNote}
+            </Text>
+          )}
         </View>
 
         {grouped.map((group) => (

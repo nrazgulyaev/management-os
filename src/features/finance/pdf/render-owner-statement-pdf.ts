@@ -8,6 +8,7 @@ import {
   listStatementLines,
 } from "@/features/finance/services";
 import { statementPdfFilename } from "@/features/finance/explanation";
+import { getStatementExplanationSnapshot } from "@/features/statement-transparency/services";
 
 export interface RenderOptions {
   audience: "internal" | "owner";
@@ -26,12 +27,30 @@ export async function renderOwnerStatementPdf(
 
   const generatedAt = new Date().toISOString().slice(0, 19).replace("T", " ") + " UTC";
 
+  // Prompt 110 — best-effort transparency snapshot.  When the snapshot
+  // exists the PDF uses its owner-safe headline + summary + bullets;
+  // otherwise the renderer falls back to the deterministic explanation
+  // generator (existing pre-110 behaviour).
+  const snapshot = await getStatementExplanationSnapshot(statementId);
+  const explanationSnapshot = snapshot
+    ? {
+        headline: snapshot.headline,
+        summary: snapshot.summary,
+        bulletPoints: Array.isArray(snapshot.bulletPoints)
+          ? (snapshot.bulletPoints as string[])
+          : [],
+        payoutExplanation: snapshot.payoutExplanation,
+        warningExplanation: snapshot.warningExplanation,
+      }
+    : null;
+
   // Cast to the DocumentProps element type that `renderToBuffer` expects.
   const element = React.createElement(OwnerStatementPdf, {
     statement,
     lines,
     audience: opts.audience,
     generatedAt,
+    explanationSnapshot,
   }) as React.ReactElement<DocumentProps>;
 
   const buffer = await renderToBuffer(element);

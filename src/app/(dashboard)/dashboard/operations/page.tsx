@@ -20,6 +20,8 @@ import { todayYmd } from "@/features/operations/scheduling";
 import { isDbConfigured } from "@/lib/env";
 import { getLastRunByJobKey } from "@/features/jobs/services";
 import { LastRunBadge } from "@/components/jobs/last-run-badge";
+import { OperationsCopilotCard } from "@/components/ai/operations-copilot-card";
+import { RiskSummaryCard } from "@/components/maintenance-intelligence/risk-summary-card";
 
 export const metadata = { title: "Operations" };
 export const dynamic = "force-dynamic";
@@ -74,6 +76,10 @@ export default async function OperationsBoardPage() {
       <LastRunBadge label="Last preventive task generation" run={lastPreventiveRun} />
 
       {live && <OperationsMetricsGrid metrics={metrics} />}
+
+      <OperationsCopilotCard />
+
+      <RiskSummaryCard />
 
       <OperationsBoard />
 

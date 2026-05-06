@@ -13,7 +13,13 @@ export type JobType =
   | "finance_bridge"
   | "low_stock_scan"
   | "cleanup"
-  | "notification_digest";
+  | "notification_digest"
+  | "notification_delivery"
+  | "ai_summary"
+  | "attachment_cleanup"
+  | "guest_journey"
+  | "owner_intelligence"
+  | "booking_lifecycle";
 
 export interface JobDefinitionSeed {
   key: string;
@@ -77,14 +83,159 @@ export const DEFAULT_JOB_DEFINITIONS: JobDefinitionSeed[] = [
     config: null,
   },
   {
+    key: "deliver_pending_notifications",
+    name: "Deliver pending notifications",
+    description:
+      "Worker job: walks queued notifications and dispatches via in-app / email / SMS / WhatsApp providers. Honours preferences + quiet hours. Defaults to dry-run when external provider env is absent.",
+    jobType: "notification_delivery",
+    scheduleCron: "*/10 * * * *",
+    enabled: true,
+    timeoutSeconds: 240,
+    maxRetries: 1,
+    config: null,
+  },
+  {
     key: "notification_digest_internal",
     name: "Internal notification digest",
     description:
-      "Aggregates queued notifications into a daily internal-staff summary. Disabled until v8 ships providers.",
+      "Builds a daily snapshot (conflicts, failed jobs, urgent tasks, low stock, pending bridge) and queues one in-app digest per internal role.",
     jobType: "notification_digest",
     scheduleCron: "0 8 * * *",
+    enabled: true,
+    timeoutSeconds: 60,
+    maxRetries: 0,
+    config: null,
+  },
+  {
+    // v8B — AI Operations Co-pilot daily refresh. DISABLED by default
+    // because (a) it depends on ANTHROPIC_API_KEY and (b) operators
+    // typically want to opt-in to spending tokens on a cadence. The
+    // dashboard exposes a manual refresh button; this job is for
+    // organisations that want a fresh briefing waiting at 06:00 local.
+    key: "ai_operations_summary_refresh",
+    name: "AI Operations Co-pilot — daily refresh",
+    description:
+      "Generates the daily Operations Co-pilot briefing. Disabled by default; falls back to deterministic summary if AI is dry-run or the model errors. Excluded from /api/cron/run-all unless enabled.",
+    jobType: "ai_summary",
+    scheduleCron: "0 6 * * *",
     enabled: false,
     timeoutSeconds: 60,
+    maxRetries: 0,
+    config: null,
+  },
+  {
+    // v9L — sweeps stale `pending` rows in
+    // `guest_ai_handoff_reply_attachments` after a 24h grace window.
+    // Storage objects are deleted (best-effort) and the row flips to
+    // `upload_status='deleted'` with `deleted_reason='stale_pending'`.
+    key: "guest_request_attachment_cleanup",
+    name: "Guest request attachments — cleanup stale pending",
+    description:
+      "Sweeps guest concierge attachments stuck in `pending` status for >24h. Deletes the storage object (best-effort) and marks the row deleted with reason `stale_pending`.",
+    jobType: "attachment_cleanup",
+    scheduleCron: "0 4 * * *",
+    enabled: true,
+    timeoutSeconds: 120,
+    maxRetries: 0,
+    config: null,
+  },
+  {
+    // Prompt 102 — walks pending journey runs that are due now and
+    // dispatches them. Idempotent via the (booking, rule) unique
+    // index; safe to run frequently.
+    key: "guest_journey_due_rules",
+    name: "Guest journey — run due rules",
+    description:
+      "Walks pending guest_journey_runs whose scheduled_for <= now and dispatches them (suggestion + notification + journey event). Idempotent.",
+    jobType: "guest_journey",
+    scheduleCron: "*/15 * * * *",
+    enabled: true,
+    timeoutSeconds: 120,
+    maxRetries: 1,
+    config: null,
+  },
+  {
+    // Prompt 102 — daily sweep over recent checkouts to create the
+    // post-stay review request for each (one row per booking +
+    // channel combination, deduped by the unique index).
+    key: "guest_review_requests",
+    name: "Guest journey — post-stay review requests",
+    description:
+      "Sweeps recent checkouts (last 14d) without a review request and creates one. Channel routed by booking distribution channel.",
+    jobType: "guest_journey",
+    scheduleCron: "0 10 * * *",
+    enabled: true,
+    timeoutSeconds: 120,
+    maxRetries: 0,
+    config: null,
+  },
+  {
+    // Prompt 102 — nightly rebuild of owner_visible_events. Replaces
+    // the Prompt 101 stub.
+    key: "owner_visible_events_rebuild",
+    name: "Owner intelligence — rebuild owner-visible events",
+    description:
+      "Rebuilds the owner_visible_events projection (-90d .. +120d) from canonical sources. Owner-safe by construction.",
+    jobType: "owner_intelligence",
+    scheduleCron: "0 3 * * *",
+    enabled: true,
+    timeoutSeconds: 240,
+    maxRetries: 0,
+    config: null,
+  },
+  {
+    // Prompt 105 — sweep expired direct-booking holds + linked
+    // submitted requests; release internal_hold blocks.
+    key: "direct_booking_hold_expiry",
+    name: "Direct booking — hold expiry sweep",
+    description:
+      "Walks active direct_booking_holds whose expires_at < now and expires them. Releases linked internal_hold calendar blocks and expires linked submitted/under_review requests.",
+    jobType: "booking_lifecycle",
+    scheduleCron: "*/5 * * * *",
+    enabled: true,
+    timeoutSeconds: 60,
+    maxRetries: 1,
+    config: null,
+  },
+  {
+    // Prompt 107 — expire pending deposits; cascade to linked
+    // requests + holds; release internal_hold blocks.
+    key: "direct_booking_deposit_expiry",
+    name: "Direct booking — deposit expiry sweep",
+    description:
+      "Walks pending / requires_action direct_booking_deposits whose expires_at < now and expires them. Cascades to linked submitted/under_review/approved requests and active holds.",
+    jobType: "booking_lifecycle",
+    scheduleCron: "*/5 * * * *",
+    enabled: true,
+    timeoutSeconds: 60,
+    maxRetries: 1,
+    config: null,
+  },
+  {
+    // Prompt 110 — statement transparency layer rebuild.
+    key: "statement_transparency_rebuild",
+    name: "Finance — statement transparency rebuild",
+    description:
+      "Rebuilds statement_source_groups, statement_source_group_lines, statement_reconciliation_warnings, and statement_explanation_snapshots for recent statements (period_end within last 120 days, status draft/issued/approved).",
+    jobType: "owner_intelligence",
+    scheduleCron: "0 5 * * *",
+    enabled: true,
+    timeoutSeconds: 300,
+    maxRetries: 0,
+    config: null,
+  },
+  {
+    // Prompt 108 — owner-safe booking projection.  Rebuilds
+    // owner_booking_summaries / breakdowns / monthly source mix
+    // every night across the rolling window.
+    key: "owner_booking_projection_rebuild",
+    name: "Owner intelligence — owner booking projection rebuild",
+    description:
+      "Rebuilds owner_booking_summaries, owner_booking_revenue_breakdowns, and owner_revenue_source_monthly across the rolling window (-90d .. +365d). Owner-safe by construction.",
+    jobType: "owner_intelligence",
+    scheduleCron: "0 4 * * *",
+    enabled: true,
+    timeoutSeconds: 300,
     maxRetries: 0,
     config: null,
   },

@@ -4,13 +4,21 @@ import * as React from "react";
 import Link from "next/link";
 import { Bell, Search, Sparkles } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { WorkspaceSwitcher } from "@/components/shared/workspace-switcher";
 
-export function DashboardTopbar({ title }: { title?: string }) {
+export function DashboardTopbar({
+  title,
+  unreadCount = 0,
+}: {
+  title?: string;
+  unreadCount?: number;
+}) {
   return (
-    <header className="sticky top-0 z-30 h-16 border-b border-line-soft bg-canvas/80 backdrop-blur flex items-center px-4 md:px-8 gap-4">
+    <header className="sticky top-0 z-30 h-16 border-b border-line-soft bg-canvas/80 backdrop-blur flex items-center px-4 md:px-8 gap-3">
       <div className="lg:hidden">
         <Logo variant="mark" />
       </div>
+      <WorkspaceSwitcher />
       {title && (
         <h1 className="hidden md:block text-sm font-medium text-ink-secondary">
           {title}
@@ -33,13 +41,18 @@ export function DashboardTopbar({ title }: { title?: string }) {
           <Sparkles className="w-4 h-4 text-gold" strokeWidth={1.75} />
           <span>Assistants</span>
         </Link>
-        <button
-          className="h-9 w-9 rounded-sm border border-line-soft bg-surface hover:bg-muted inline-flex items-center justify-center transition-colors relative"
-          aria-label="Notifications"
+        <Link
+          href="/dashboard/notifications/inbox"
+          className="h-9 rounded-sm border border-line-soft bg-surface hover:bg-muted inline-flex items-center justify-center transition-colors relative px-2.5 gap-1.5"
+          aria-label={`Inbox · ${unreadCount} unread`}
         >
           <Bell className="w-4 h-4 text-ink-secondary" strokeWidth={1.75} />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-gold" />
-        </button>
+          {unreadCount > 0 && (
+            <span className="text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded-full bg-gold-weak text-gold">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </Link>
         <button className="h-9 w-9 rounded-full bg-ink text-ink-inverse text-sm font-medium inline-flex items-center justify-center">
           NR
         </button>
