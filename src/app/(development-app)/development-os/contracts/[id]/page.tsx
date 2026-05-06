@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getContractGroupById } from "@/lib/development/server/contracts";
+import { getCurrentUserContext } from "@/features/auth/permissions";
+import { DiscountProposalModalForm } from "@/components/development/sales/discount-proposal-modal-form";
 import { formatDate, formatUSD } from "@/lib/utils";
 import {
   CONTRACT_GROUP_STATUS_LABEL,
@@ -64,7 +66,10 @@ export default async function ContractDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const detail = await getContractGroupById(id);
+  const [detail, ctx] = await Promise.all([
+    getContractGroupById(id),
+    getCurrentUserContext(),
+  ]);
   if (!detail) notFound();
 
   const signedCount = detail.contracts.filter((c) => c.status === "signed").length;
@@ -88,6 +93,14 @@ export default async function ContractDetailPage({
             <Badge tone={groupTone[detail.status] ?? "neutral"}>
               {CONTRACT_GROUP_STATUS_LABEL[detail.status] ?? detail.status}
             </Badge>
+            {ctx.appUser && (
+              <DiscountProposalModalForm
+                villaId={detail.villaId}
+                contactId={detail.contactId}
+                proposedByUserId={ctx.appUser.id}
+                originalPriceUsdMinor={detail.totalContractValueUsdMinor}
+              />
+            )}
             <Button asChild variant="secondary">
               <Link href="/development-os/contracts">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

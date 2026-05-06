@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = { title: "Schedule · Development OS" };
 export const dynamic = "force-dynamic";
@@ -96,12 +97,15 @@ export default async function GlobalSchedulePage() {
         title="Master schedule"
         description="Per-project schedule overview. Critical path is recomputed nightly via dev_os_critical_path_recompute. Click a project to open its full Gantt + tasks."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ExportButton entity="tasks" />
+            <Button asChild variant="secondary">
+              <Link href="/development-os">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Command center
+              </Link>
+            </Button>
+          </div>
         }
       />
 

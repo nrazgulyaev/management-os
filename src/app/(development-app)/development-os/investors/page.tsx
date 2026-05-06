@@ -25,6 +25,7 @@ import {
   type SafeQueryTiming,
 } from "@/lib/development/safe-query";
 import { InvestorModalForm } from "@/components/development/investors/investor-modal-form";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = { title: "Investors · Development OS" };
 export const dynamic = "force-dynamic";
@@ -91,6 +92,7 @@ export default async function InvestorsPage() {
         actions={
           <div className="flex items-center gap-2">
             <InvestorModalForm />
+            <ExportButton entity="investors" />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

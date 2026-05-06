@@ -164,16 +164,40 @@ async function fetchRowsForEntity(
       const list = (await getReservations()) as unknown as Array<Record<string, unknown>>;
       return projectAll(list);
     }
-    case "leads":
-    case "investors":
-    case "tasks":
-    case "qa_qc_issues":
+    case "leads": {
+      const { getLeadsPipeline } = await import(
+        "@/lib/development/server/leads"
+      );
+      const list = (await getLeadsPipeline()) as unknown as Array<Record<string, unknown>>;
+      return projectAll(list);
+    }
+    case "investors": {
+      const { getInvestors } = await import(
+        "@/lib/development/server/investors"
+      );
+      const list = (await getInvestors()) as unknown as Array<Record<string, unknown>>;
+      return projectAll(list);
+    }
+    case "tasks": {
+      const { listProjectTasks } = await import(
+        "@/lib/development/server/schedule/schedule-queries"
+      );
+      const list = (await listProjectTasks()) as unknown as Array<Record<string, unknown>>;
+      return projectAll(list);
+    }
+    case "qa_qc_issues": {
+      const { listQaQcIssues } = await import(
+        "@/lib/development/server/qa-qc/qa-qc-queries"
+      );
+      const list = (await listQaQcIssues()) as unknown as Array<Record<string, unknown>>;
+      return projectAll(list);
+    }
     case "inventory_items": {
-      // These entities have their own query modules; adding a row-shape
-      // mapping here is the same pattern as the cases above. Returning
-      // empty for now keeps the export action functional and well-typed
-      // until each query module's row-type is mapped explicitly.
-      return { headers: [], rows: [] };
+      const { listInventoryItems } = await import(
+        "@/lib/development/server/inventory/inventory-queries"
+      );
+      const list = (await listInventoryItems()) as unknown as Array<Record<string, unknown>>;
+      return projectAll(list);
     }
   }
 }

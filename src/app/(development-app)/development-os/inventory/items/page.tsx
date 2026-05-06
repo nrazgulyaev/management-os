@@ -11,6 +11,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listInventoryItems } from "@/lib/development/server/inventory/inventory-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = {
   title: "Inventory items · Development OS",
@@ -54,6 +55,7 @@ export default async function InventoryItemsPage() {
                 New SKU
               </Link>
             </Button>
+            <ExportButton entity="inventory_items" />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

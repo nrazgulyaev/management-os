@@ -9,7 +9,9 @@ import { getOrganizationByCode } from "@/lib/development/server/organizations/or
 import { parseCsv } from "./csv-parser-helpers";
 import { parseXlsx } from "./xlsx-parser-helpers";
 import { applyMapping, type FieldMapping } from "./field-mapper-helpers";
-import { validateRow, validateBatch } from "./validator-helpers";
+import { validateRow } from "./validator-helpers";
+import { dispatchEntityInserts } from "./entity-dispatcher";
+import { recordAuditEvent } from "@/features/audit/services";
 
 /**
  * Stage 6.P0.7-B — Bulk import server orchestration.
@@ -333,12 +335,13 @@ const PROCESS_BATCH_SIZE = 1000;
  * Process one batch of rows from a `ready` job. Idempotent: re-running
  * picks up where `processed_rows` left off.
  *
- * P0.7-B scope: validates + counts rows but does NOT yet insert into
- * the target entity tables (that requires a per-entity insert
- * dispatcher mapping `entityType` → action). The dispatcher lands in
- * P0.7-D once we've confirmed the rest of the pipeline works
- * end-to-end. For now the job transitions through the FSM correctly
- * and records the validation outcome row-by-row.
+ * Pipeline per row:
+ *   raw → applyMapping → validateRow → (if valid) dispatchEntityInserts → DB write
+ *
+ * Validation failures and dispatcher failures both land in `errorLog`
+ * with absolute row indices. Created entity IDs accumulate in
+ * `created_entity_ids`. Status transitions to `completed` only if zero
+ * rows failed; otherwise `failed` once all batches are processed.
  */
 export async function processBulkImportJob(input: {
   jobId: string;
@@ -375,22 +378,81 @@ export async function processBulkImportJob(input: {
   const batchEnd = Math.min(startIdx + PROCESS_BATCH_SIZE, parsedSource.rows.length);
   const batch = parsedSource.rows.slice(startIdx, batchEnd);
   const mappedBatch = batch.map((r) => applyMapping(r, mapping));
-  const { errors } = validateBatch(job.entityType, mappedBatch);
 
-  const newProcessed = batchEnd;
-  const batchValid = batch.length - errors.length;
-  const newSuccessful = (job.successfulRows ?? 0) + batchValid;
-  const newFailed = (job.failedRows ?? 0) + errors.length;
-  const isDone = newProcessed >= parsedSource.rows.length;
+  // Step 1: validation gate. Walk row-by-row so we keep a stable map
+  // from each valid (parsed) row back to its source row index — both
+  // for absolute error reporting and so the dispatcher's relative
+  // indices can be remapped back to the source file.
+  const validRows: Array<Record<string, unknown>> = [];
+  const validRowMap: number[] = []; // batch-relative index for each valid row
+  const validationErrors: Array<{ rowIndex: number; field: string; message: string }> = [];
+  for (let i = 0; i < mappedBatch.length; i++) {
+    const r = validateRow(job.entityType, mappedBatch[i]);
+    if (r.ok && r.value) {
+      validRows.push(r.value);
+      validRowMap.push(i);
+    } else if (r.errors) {
+      for (const e of r.errors) {
+        validationErrors.push({ rowIndex: i, field: e.field, message: e.message });
+      }
+    }
+  }
+  const validationFailedRowCount = mappedBatch.length - validRows.length;
 
-  // Append batch errors with absolute row indices.
-  const existingErrors = (job.errorLog as Array<{ rowIndex: number; field: string; message: string }>) ?? [];
-  const batchErrorsAbsolute = errors.map((e) => ({
+  // Step 2: dispatch valid rows to entity insert handlers. Pass 0 as
+  // rowIndexOffset — we remap below using validRowMap so insert errors
+  // reference the source file's row index, not the batch position.
+  let insertResult = {
+    successCount: 0,
+    failCount: 0,
+    createdIds: [] as string[],
+    errors: [] as Array<{ rowIndex: number; field?: string; message: string }>,
+  };
+  if (validRows.length > 0) {
+    const r = await dispatchEntityInserts(job.entityType as BulkImportEntityType, {
+      rows: validRows,
+      rowIndexOffset: 0,
+      options: { skipInvalid: true },
+    });
+    insertResult = {
+      successCount: r.successCount,
+      failCount: r.failCount,
+      createdIds: r.createdIds,
+      errors: r.errors.map((e) => ({
+        ...e,
+        rowIndex: startIdx + validRowMap[e.rowIndex],
+      })),
+    };
+  }
+
+  const validationErrorsAbsolute = validationErrors.map((e) => ({
     rowIndex: startIdx + e.rowIndex,
     field: e.field,
     message: e.message,
   }));
-  const combinedErrors = [...existingErrors, ...batchErrorsAbsolute];
+  const existingErrors =
+    (job.errorLog as Array<{ rowIndex: number; field?: string; message: string }>) ?? [];
+  const combinedErrors = [
+    ...existingErrors,
+    ...validationErrorsAbsolute,
+    ...insertResult.errors,
+  ];
+
+  const newProcessed = batchEnd;
+  const newSuccessful = (job.successfulRows ?? 0) + insertResult.successCount;
+  const newFailed =
+    (job.failedRows ?? 0) + validationFailedRowCount + insertResult.failCount;
+  const isDone = newProcessed >= parsedSource.rows.length;
+
+  const existingCreatedIds =
+    (job.createdEntityIds as string[] | null) ?? [];
+  const combinedCreatedIds = [...existingCreatedIds, ...insertResult.createdIds];
+
+  const finalStatus: BulkImportJobStatus = isDone
+    ? newFailed === 0
+      ? "completed"
+      : "failed"
+    : "ready";
 
   await db
     .update(bulkImportJobs)
@@ -399,16 +461,44 @@ export async function processBulkImportJob(input: {
       successfulRows: newSuccessful,
       failedRows: newFailed,
       errorLog: combinedErrors as never,
-      status: isDone ? (newFailed === 0 ? "completed" : "failed") : "ready",
+      createdEntityIds: combinedCreatedIds,
+      status: finalStatus,
       completedAt: isDone ? new Date() : null,
       updatedAt: new Date(),
     })
     .where(eq(bulkImportJobs.id, job.id));
 
+  // Audit-log emit on terminal transition. Cron path has no request
+  // context — pass explicit ip/userAgent nulls so recordAuditEvent
+  // skips its headers() lookup.
+  if (isDone) {
+    await recordAuditEvent({
+      actorUserId: job.initiatedBy,
+      action:
+        finalStatus === "completed"
+          ? "bulk_import.completed"
+          : "bulk_import.failed",
+      entityType: "bulk_import_job",
+      entityId: job.id,
+      metadata: {
+        jobCode: job.jobCode,
+        importedEntityType: job.entityType,
+        sourceType: job.sourceType,
+        sourceFilename: job.sourceFilename,
+        totalRows: parsedSource.rows.length,
+        successfulRows: newSuccessful,
+        failedRows: newFailed,
+        createdEntityIdCount: combinedCreatedIds.length,
+      },
+      ipAddress: null,
+      userAgent: null,
+    });
+  }
+
   return {
     ok: true,
     jobId: job.id,
-    status: isDone ? (newFailed === 0 ? "completed" : "failed") : "processing",
+    status: isDone ? finalStatus : "processing",
     processed: newProcessed,
     successful: newSuccessful,
     failed: newFailed,

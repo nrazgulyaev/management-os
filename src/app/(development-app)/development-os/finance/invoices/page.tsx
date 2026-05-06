@@ -91,6 +91,13 @@ export default async function InvoicesPage({
     0n,
   );
 
+  // Per-status counts for the filter chips. Invoiced from the same
+  // page-load query so chip totals reflect any other active filters.
+  const statusCounts = invoices.reduce<Record<string, number>>((acc, i) => {
+    acc[i.status] = (acc[i.status] ?? 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <DevelopmentShell>
       <PageHeader
@@ -121,6 +128,37 @@ export default async function InvoicesPage({
       />
 
       <FinanceTabs />
+
+      {invoices.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          {(["draft", "issued", "partial_paid", "paid", "overdue", "disputed", "cancelled", "voided"] as const).map(
+            (s) => {
+              const n = statusCounts[s] ?? 0;
+              if (n === 0 && sp.status !== s) return null;
+              const isActive = sp.status === s;
+              const params = new URLSearchParams();
+              if (sp.type) params.set("type", sp.type);
+              if (sp.project) params.set("project", sp.project);
+              if (!isActive) params.set("status", s);
+              const href = `/development-os/finance/invoices${params.toString() ? "?" + params.toString() : ""}`;
+              return (
+                <Link
+                  key={s}
+                  href={href}
+                  className={`rounded-md px-2 py-1 border ${
+                    isActive
+                      ? "bg-stone-900 text-white border-stone-900"
+                      : "border-line-soft hover:bg-muted/40"
+                  }`}
+                  data-testid={`invoice-status-chip-${s}`}
+                >
+                  {s} <span className="opacity-70">({n})</span>
+                </Link>
+              );
+            },
+          )}
+        </div>
+      )}
 
       <form
         method="GET"

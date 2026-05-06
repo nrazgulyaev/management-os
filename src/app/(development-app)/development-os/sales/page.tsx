@@ -11,6 +11,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { LeadPipelineBoard } from "@/components/development/sales/lead-pipeline-board";
 import { LeadPipelineMetricsStrip } from "@/components/development/sales/lead-pipeline-metrics";
 import { LeadModalForm } from "@/components/development/sales/lead-modal-form";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 import {
   getActiveLeadSources,
   getLeadPipelineMetrics,
@@ -192,6 +193,7 @@ export default async function SalesPage() {
                 displayName: s.campaignName ?? s.code,
               }))}
             />
+            <ExportButton entity="leads" />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

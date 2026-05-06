@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +50,14 @@ export default async function OrganizationsPage() {
                   : [];
                 return (
                   <tr key={o.id} className="border-b border-line-soft">
-                    <td className="py-2 font-mono text-xs">{o.organizationCode}</td>
+                    <td className="py-2 font-mono text-xs">
+                      <Link
+                        href={`/development-os/platform/organizations/${o.organizationCode}`}
+                        className="hover:underline"
+                      >
+                        {o.organizationCode}
+                      </Link>
+                    </td>
                     <td>{o.name}</td>
                     <td className="text-xs">{o.organizationType}</td>
                     <td className="text-xs">{o.subscriptionTier}</td>

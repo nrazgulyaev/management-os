@@ -11,6 +11,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listQaQcIssues } from "@/lib/development/server/qa-qc/qa-qc-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = { title: "QA/QC · Development OS" };
 export const dynamic = "force-dynamic";
@@ -76,6 +77,7 @@ export default async function QaQcListPage({
                 New issue
               </Link>
             </Button>
+            <ExportButton entity="qa_qc_issues" />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

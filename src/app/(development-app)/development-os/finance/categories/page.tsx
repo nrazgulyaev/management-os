@@ -8,19 +8,29 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
-import { getCostCategories } from "@/lib/development/server/cost-categories";
+import {
+  getCostCategories,
+  getCostCategoryUsage,
+} from "@/lib/development/server/cost-categories";
 import { safeQuery } from "@/lib/development/safe-query";
 import { FinanceTabs } from "@/components/development/finance/finance-tabs";
 import { CostCategoryModalForm } from "@/components/development/finance/cost-category-modal-form";
+import { CostCategoryArchiveButton } from "@/components/development/finance/cost-category-archive-button";
 
 export const metadata: Metadata = { title: "Cost categories · Development OS" };
 export const dynamic = "force-dynamic";
 
 export default async function CostCategoriesPage() {
   const db = getDb();
-  const cats = db
-    ? await safeQuery("getCostCategories", getCostCategories(), [], 4000)
-    : [];
+  const [cats, usage] = db
+    ? await Promise.all([
+        safeQuery("getCostCategories", getCostCategories(), [], 4000),
+        safeQuery("getCostCategoryUsage", getCostCategoryUsage(), [], 4000),
+      ])
+    : [[], []];
+  const usageById = new Map(usage.map((u) => [u.categoryId, u]));
+  const fmtUsd = (b: bigint) =>
+    `$${(Number(b) / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
   const parents = cats.filter((c) => !c.parentCategoryId);
   const childrenByParent = new Map<string, typeof cats>();
   for (const c of cats) {
@@ -88,27 +98,47 @@ export default async function CostCategoriesPage() {
                     <div className="flex items-center gap-2 text-xs text-ink-tertiary">
                       <Badge tone="neutral">{p.categoryType}</Badge>
                       {!p.isActive && <Badge tone="warning">Inactive</Badge>}
+                      {(() => {
+                        const u = usageById.get(p.id);
+                        return u ? (
+                          <Badge tone="info" data-testid="cost-category-usage">
+                            {u.transactionCount} tx ·{" "}
+                            {fmtUsd(BigInt(u.totalUsdMinor))}
+                          </Badge>
+                        ) : (
+                          <Badge tone="neutral">unused</Badge>
+                        );
+                      })()}
                       {ch.length > 0 && (
                         <span>{ch.length} children</span>
                       )}
+                      <CostCategoryArchiveButton id={p.id} isActive={p.isActive} />
                     </div>
                   </div>
                   {ch.length > 0 && (
                     <div className="border-t border-line-soft px-4 py-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {ch.map((c) => (
-                        <div
-                          key={c.id}
-                          className="text-sm flex items-center gap-2"
-                        >
-                          <span className="font-mono text-xs text-ink-tertiary">
-                            {c.categoryCode}
-                          </span>
-                          <span>{c.displayName}</span>
-                          {!c.isActive && (
-                            <Badge tone="warning">Inactive</Badge>
-                          )}
-                        </div>
-                      ))}
+                      {ch.map((c) => {
+                        const u = usageById.get(c.id);
+                        return (
+                          <div
+                            key={c.id}
+                            className="text-sm flex items-center gap-2"
+                          >
+                            <span className="font-mono text-xs text-ink-tertiary">
+                              {c.categoryCode}
+                            </span>
+                            <span>{c.displayName}</span>
+                            {!c.isActive && (
+                              <Badge tone="warning">Inactive</Badge>
+                            )}
+                            {u ? (
+                              <span className="text-[11px] text-ink-tertiary">
+                                {u.transactionCount} tx
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
