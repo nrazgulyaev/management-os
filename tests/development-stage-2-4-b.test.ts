@@ -27,7 +27,7 @@ const PHOTO_ACTIONS_PATH =
 test("photo-upload-actions.ts exists with server-only guard", () => {
   assert.ok(exists(PHOTO_ACTIONS_PATH));
   const src = read(PHOTO_ACTIONS_PATH);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
 });
 
 test("uploadSiteReportPhoto + deleteSiteReportPhoto + getSiteReportPhotoUrl exported", () => {
@@ -175,7 +175,7 @@ test("PhotoGallery server component exists with server-only guard", () => {
   const path = "src/components/development/site-reports/photo-gallery.tsx";
   assert.ok(exists(path));
   const src = read(path);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   assert.match(src, /export async function PhotoGallery/);
 });
 

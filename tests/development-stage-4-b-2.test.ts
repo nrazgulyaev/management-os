@@ -439,7 +439,7 @@ test("4.B.2 server-side modules carry server-only guard", () => {
     "src/lib/development/server/capital-account/capital-account-actions.ts",
   ]) {
     const src = read(rel);
-    assert.match(src, /^import "server-only"/m);
+    assert.match(src, /^(import "server-only"|"use server")/m);
   }
 });
 

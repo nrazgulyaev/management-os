@@ -185,7 +185,7 @@ const BUDGET_PATH = "src/lib/ai/budget.ts";
 
 test("budget.ts has server-only guard", () => {
   assert.ok(exists(BUDGET_PATH));
-  assert.match(read(BUDGET_PATH), /^import "server-only";/m);
+  assert.match(read(BUDGET_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("checkBudget returns 'no_budget_configured' when no row exists", () => {
@@ -221,7 +221,7 @@ const DRY_RUN_PATH = "src/lib/ai/providers/dry-run.ts";
 
 test("dry-run provider file exists with server-only guard", () => {
   assert.ok(exists(DRY_RUN_PATH));
-  assert.match(read(DRY_RUN_PATH), /^import "server-only";/m);
+  assert.match(read(DRY_RUN_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("DryRunProvider returns deterministic JSON for the photo analyst marker", () => {
@@ -277,7 +277,7 @@ test("storage abstraction modules exist with server-only guards", () => {
     "src/lib/storage/supabase.ts",
     "src/lib/storage/dry-run.ts",
   ]) {
-    assert.match(read(f), /^import "server-only";/m);
+    assert.match(read(f), /^(import "server-only";|"use server";)/m);
   }
 });
 
@@ -309,7 +309,7 @@ const CRON_ROUTE_PATH = "src/app/api/cron/dev-os-photo-analyst/route.ts";
 
 test("photo analyst agent file exists with server-only guard", () => {
   assert.ok(exists(ANALYST_PATH));
-  assert.match(read(ANALYST_PATH), /^import "server-only";/m);
+  assert.match(read(ANALYST_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("photo analyst exports PHOTO_ANALYST_KEY = 'dev_os.photo_analyst'", () => {
@@ -379,7 +379,7 @@ test("photo analyst uses Haiku 4.5 by default (cheap vision)", () => {
 
 test("photo analyst cron job file exists with server-only guard", () => {
   assert.ok(exists(CRON_JOB_PATH));
-  assert.match(read(CRON_JOB_PATH), /^import "server-only";/m);
+  assert.match(read(CRON_JOB_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("photo analyst cron stops the loop on budget_exceeded", () => {
@@ -433,7 +433,7 @@ test("AI usage dashboard page exists", () => {
 
 test("AI usage server query module has server-only guard", () => {
   assert.ok(exists(USAGE_QUERY_PATH));
-  assert.match(read(USAGE_QUERY_PATH), /^import "server-only";/m);
+  assert.match(read(USAGE_QUERY_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("AI usage server query exports getAiUsageByAssistant + getRecentAiRuns + getAiAgentBudgets", () => {

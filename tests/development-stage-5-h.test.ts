@@ -1034,29 +1034,29 @@ test("VERCEL-CRON-CHECKLIST documents 3 new routes", () => {
 
 test("calendar-helpers is pure (no server-only)", () => {
   const src = read("src/lib/development/server/calendar/calendar-helpers.ts");
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
 });
 
 test("variance-helpers is pure (no server-only)", () => {
   const src = read("src/lib/development/server/schedule/variance-helpers.ts");
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
 });
 
 test("resource-leveling-helpers is pure (no server-only)", () => {
   const src = read("src/lib/development/server/schedule/resource-leveling-helpers.ts");
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
 });
 
 test("productivity-helpers is pure (no server-only)", () => {
   const src = read("src/lib/development/server/productivity/productivity-helpers.ts");
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
 });
 
 test("calendar-aware CPM variant is pure (delegates to original)", () => {
   const src = read(
     "src/lib/development/server/schedule/critical-path-calendar-helpers.ts",
   );
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
   assert.match(src, /import \{[\s\S]*computeCriticalPath[\s\S]*\}/);
 });
 

@@ -1005,7 +1005,7 @@ test("attribution-helpers file exists + pure (no server-only import)", () => {
   const src = read(
     "src/lib/development/server/marketing/attribution-helpers.ts",
   );
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
   assert.match(src, /export function applyAttributionModel/);
   assert.match(src, /export function computeChannelROI/);
 });
@@ -1014,7 +1014,7 @@ test("conversation-analysis-helpers file exists + pure", () => {
   const src = read(
     "src/lib/development/server/marketing/conversation-analysis-helpers.ts",
   );
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
   assert.match(src, /export function analyzeResponseTimes/);
   assert.match(src, /export function detectMissedFollowups/);
   assert.match(src, /export function detectLostLeadPattern/);
@@ -1024,7 +1024,7 @@ test("manager-performance-helpers file exists + pure", () => {
   const src = read(
     "src/lib/development/server/marketing/manager-performance-helpers.ts",
   );
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
   assert.match(src, /export function computeManagerMetrics/);
 });
 

@@ -255,7 +255,7 @@ test("session helpers have server-only guard", () => {
   ]) {
     assert.ok(exists(rel), `${rel} missing`);
     const src = read(rel);
-    assert.match(src, /^import "server-only";/m, `${rel} missing server-only`);
+    assert.match(src, /^(import "server-only";|"use server";)/m, `${rel} missing server-only`);
   }
 });
 

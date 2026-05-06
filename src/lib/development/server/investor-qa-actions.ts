@@ -1,4 +1,4 @@
-import "server-only";
+"use server";
 
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";

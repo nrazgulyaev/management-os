@@ -200,7 +200,7 @@ test("normalisePhone is case-insensitive on prefix", () => {
 test("DryRun provider file exists with server-only guard", () => {
   const path = "src/lib/whatsapp/providers/dry-run.ts";
   assert.ok(exists(path));
-  assert.match(read(path), /^import "server-only";/m);
+  assert.match(read(path), /^(import "server-only";|"use server";)/m);
 });
 
 test("DryRun provider is always available + always sandbox", () => {
@@ -231,7 +231,7 @@ test("DryRun parseInboundMessage accepts both Twilio form + test JSON shapes", (
 test("Twilio provider file exists with server-only guard", () => {
   const path = "src/lib/whatsapp/providers/twilio.ts";
   assert.ok(exists(path));
-  assert.match(read(path), /^import "server-only";/m);
+  assert.match(read(path), /^(import "server-only";|"use server";)/m);
 });
 
 test("Twilio provider auto-detects sandbox via TWILIO_WHATSAPP_FROM_NUMBER", () => {
@@ -353,7 +353,7 @@ test("Twilio signature verification refuses without auth token", async () => {
 
 test("MetaCloud provider exists and is NOT available (stub only)", () => {
   const src = read("src/lib/whatsapp/providers/meta-cloud.ts");
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   assert.match(src, /isAvailable\(\): boolean \{\s*return false;/);
 });
 
@@ -412,7 +412,7 @@ const RESOLVER_PATH = "src/lib/development/whatsapp/phone-resolver.ts";
 
 test("phone resolver file exists with server-only guard", () => {
   assert.ok(exists(RESOLVER_PATH));
-  assert.match(read(RESOLVER_PATH), /^import "server-only";/m);
+  assert.match(read(RESOLVER_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("phone resolver tries app_users → investors → vendors → contacts in order", () => {
@@ -448,7 +448,7 @@ const CLASSIFIER_PATH =
 
 test("intent classifier file exists with server-only guard", () => {
   assert.ok(exists(CLASSIFIER_PATH));
-  assert.match(read(CLASSIFIER_PATH), /^import "server-only";/m);
+  assert.match(read(CLASSIFIER_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("classifier exports WHATSAPP_INTENT_KEY = 'dev_os.whatsapp_intent_classifier'", () => {
@@ -536,7 +536,7 @@ test("webhook returns 200 OK quickly — no AI calls inline", () => {
 
 test("inbound processor file exists with server-only guard", () => {
   assert.ok(exists(PROCESSOR_PATH));
-  assert.match(read(PROCESSOR_PATH), /^import "server-only";/m);
+  assert.match(read(PROCESSOR_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("inbound processor calls phone resolver + intent classifier in order", () => {
@@ -581,7 +581,7 @@ const ACTIONS_PATH = "src/lib/development/server/whatsapp-actions.ts";
 test("whatsapp-actions has server-only guard + 5 server actions", () => {
   assert.ok(exists(ACTIONS_PATH));
   const src = read(ACTIONS_PATH);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   for (const fn of [
     "sendWhatsAppMessage",
     "sendWhatsAppTemplateMessage",
@@ -635,7 +635,7 @@ test("WhatsApp inbound processor cron file exists", () => {
   const path =
     "src/lib/development/server/cron/whatsapp-inbound-processor-job.ts";
   assert.ok(exists(path));
-  assert.match(read(path), /^import "server-only";/m);
+  assert.match(read(path), /^(import "server-only";|"use server";)/m);
 });
 
 test("WhatsApp inbound cron route exists at /api/cron/dev-os-whatsapp-inbound-processor", () => {

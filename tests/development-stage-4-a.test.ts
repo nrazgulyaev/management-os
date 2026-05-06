@@ -550,7 +550,7 @@ test("land-actions exports the 4 core write actions + read queries", () => {
   const path = "src/lib/development/server/land/land-actions.ts";
   assert.ok(exists(path));
   const src = read(path);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   for (const fn of [
     "upsertLandProfile",
     "createLandPaymentSchedule",
@@ -577,7 +577,7 @@ test("permit-actions covers create + transition + attach-doc + queries", () => {
   const path = "src/lib/development/server/permits/permit-actions.ts";
   assert.ok(exists(path));
   const src = read(path);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   for (const fn of [
     "createPermit",
     "transitionPermitStatus",
@@ -598,7 +598,7 @@ test("tax-actions covers upsert + classify + period-report + queries", () => {
   const path = "src/lib/development/server/tax/tax-actions.ts";
   assert.ok(exists(path));
   const src = read(path);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   for (const fn of [
     "upsertTaxType",
     "classifyTransactionTax",
@@ -626,7 +626,7 @@ test("tax: period report uses ON CONFLICT DO UPDATE (idempotent)", () => {
 
 test("invoice-actions: createInvoice computes subtotal+total from lines (no header trust)", () => {
   const src = read("src/lib/development/server/invoices/invoice-actions.ts");
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   assert.match(src, /export async function createInvoice/);
   // Total is computed in code from lines, not accepted from the caller.
   assert.match(src, /let subtotal = 0n;[\s\S]+?let taxTotal = 0n;/);
@@ -651,7 +651,7 @@ test("shared-cost-actions: proposeSharedCostAllocation calls computeAllocationAm
   const src = read(
     "src/lib/development/server/shared-costs/shared-cost-actions.ts",
   );
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   assert.match(src, /computeAllocationAmounts/);
   assert.match(src, /db\.transaction\(async \(tx\) =>/);
 });
@@ -674,7 +674,7 @@ test("procurement-actions exports create + transition + add quotation + select w
     "src/lib/development/server/procurement/procurement-actions.ts";
   assert.ok(exists(path));
   const src = read(path);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   for (const fn of [
     "createPurchaseRequest",
     "transitionPurchaseRequest",
@@ -725,7 +725,7 @@ test("all 5 Stage 4.A cron job files exist with server-only guard", () => {
     "src/lib/development/server/cron/purchase-request-expiry-job.ts",
   ]) {
     assert.ok(exists(path), `${path} missing`);
-    assert.match(read(path), /^import "server-only";/m);
+    assert.match(read(path), /^(import "server-only";|"use server";)/m);
   }
 });
 

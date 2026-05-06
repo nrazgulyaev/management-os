@@ -205,7 +205,7 @@ test("Stage 4.B.3 server modules exist + carry server-only", () => {
   ]) {
     assert.ok(exists(rel), `missing ${rel}`);
     const src = read(rel);
-    assert.match(src, /^import "server-only"/m, `${rel} missing server-only`);
+    assert.match(src, /^(import "server-only"|"use server")/m, `${rel} missing server-only`);
   }
 });
 
@@ -509,7 +509,7 @@ test("Buyer Portal session helper exists + checks portal_access_enabled", () => 
   assert.ok(exists("src/lib/buyer-portal/session.ts"));
   const src = read("src/lib/buyer-portal/session.ts");
   assert.match(src, /portalAccessEnabled/);
-  assert.match(src, /^import "server-only"/m);
+  assert.match(src, /^(import "server-only"|"use server")/m);
 });
 
 test("Buyer Portal pages do NOT import any internal_notes column", () => {

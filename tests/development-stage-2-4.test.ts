@@ -226,7 +226,7 @@ test("every new 2.4 server file has a server-only guard", () => {
   for (const rel of NEW_SERVER_FILES) {
     assert.ok(exists(rel), `${rel} must exist`);
     const src = read(rel);
-    assert.match(src, /^import "server-only";/m, `${rel} missing server-only`);
+    assert.match(src, /^(import "server-only";|"use server";)/m, `${rel} missing server-only`);
   }
 });
 

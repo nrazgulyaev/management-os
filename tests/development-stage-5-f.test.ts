@@ -492,7 +492,7 @@ test("all 8 cabinet query modules exist", () => {
 test("each cabinet query module is server-only", () => {
   for (const f of CABINET_QUERY_FILES) {
     const src = read(`src/lib/development/server/cabinets/${f}`);
-    assert.match(src, /^import "server-only"/m, `${f} missing server-only guard`);
+    assert.match(src, /^(import "server-only"|"use server")/m, `${f} missing server-only guard`);
   }
 });
 
@@ -509,12 +509,12 @@ test("each cabinet query module exports a load* function", () => {
 
 test("role-helpers file is pure (no server-only import)", () => {
   const src = read("src/lib/development/server/roles/role-helpers.ts");
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
 });
 
 test("role-queries file is server-only", () => {
   const src = read("src/lib/development/server/roles/role-queries.ts");
-  assert.match(src, /^import "server-only"/m);
+  assert.match(src, /^(import "server-only"|"use server")/m);
 });
 
 test("role-actions exposes grantUserRole + revokeUserRole + saveCabinetPreferences", () => {

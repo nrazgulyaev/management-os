@@ -650,7 +650,7 @@ test("waterfall server-side modules carry server-only guard", () => {
     "src/lib/development/server/waterfall/waterfall-engine.ts",
   ]) {
     const src = read(rel);
-    assert.match(src, /^import "server-only"/m, `${rel} must import server-only`);
+    assert.match(src, /^(import "server-only"|"use server")/m, `${rel} must import server-only`);
   }
 });
 

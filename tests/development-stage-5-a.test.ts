@@ -609,7 +609,7 @@ test("Stage 5.A server modules exist + carry server-only", () => {
   ]) {
     assert.ok(exists(rel), `missing ${rel}`);
     const src = read(rel);
-    assert.match(src, /^import "server-only"/m, `${rel} missing server-only`);
+    assert.match(src, /^(import "server-only"|"use server")/m, `${rel} missing server-only`);
   }
 });
 

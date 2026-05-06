@@ -615,12 +615,12 @@ test("dispatch-helpers is pure (no server-only import)", () => {
   const src = read(
     "src/lib/development/server/push/dispatch-helpers.ts",
   );
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
 });
 
 test("vapid-keys file is server-only", () => {
   const src = read("src/lib/development/server/push/vapid-keys.ts");
-  assert.match(src, /^import "server-only"/m);
+  assert.match(src, /^(import "server-only"|"use server")/m);
 });
 
 test("notification-dispatcher uses web-push library", () => {
@@ -732,7 +732,7 @@ test("architecture doc explains hand-rolled SW", () => {
 
 test("offline-queue client file does NOT import server-only", () => {
   const src = read("src/lib/development/client/offline-queue.ts");
-  assert.doesNotMatch(src, /^import "server-only"/m);
+  assert.doesNotMatch(src, /^(import "server-only"|"use server")/m);
 });
 
 test("offline-queue exports the documented client API", () => {

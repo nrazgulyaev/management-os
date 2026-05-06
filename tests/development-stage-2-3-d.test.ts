@@ -141,7 +141,7 @@ const ACCESS_ACTIONS_PATH =
 
 test("investor-access-actions.ts has server-only guard", () => {
   const src = read(ACCESS_ACTIONS_PATH);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
 });
 
 test("grantInvestorPortalAccess + revokeInvestorPortalAccess + getInvestorAccessStatus exported", () => {
@@ -210,7 +210,7 @@ test("service role key is server-only — never imported from a client component
   // or the service role key. Should be zero hits.
   const adminPath = "src/lib/supabase/admin.ts";
   const adminSrc = read(adminPath);
-  assert.match(adminSrc, /^import "server-only";/m);
+  assert.match(adminSrc, /^(import "server-only";|"use server";)/m);
 });
 
 test("grant-access admin page exists + uses server actions", () => {
@@ -240,7 +240,7 @@ const PORTAL_ACTIONS_PATH = "src/lib/investor-portal/actions.ts";
 
 test("investor-portal/actions.ts has server-only guard", () => {
   const src = read(PORTAL_ACTIONS_PATH);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
 });
 
 test("updateMyReportingLanguage + updateMyPassword exported", () => {

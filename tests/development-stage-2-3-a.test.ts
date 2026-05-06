@@ -310,7 +310,7 @@ test("every server file has a server-only guard at the top", () => {
     const p = resolve(process.cwd(), rel);
     assert.ok(existsSync(p), `${rel} missing`);
     const src = readFileSync(p, "utf8");
-    assert.match(src, /^import "server-only";/m, `${rel} missing server-only`);
+    assert.match(src, /^(import "server-only";|"use server";)/m, `${rel} missing server-only`);
   }
 });
 

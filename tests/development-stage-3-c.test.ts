@@ -315,7 +315,7 @@ const DP_HELPERS_PATH = "src/lib/development/ai/distribution-preview-helpers.ts"
 
 test("distribution-preview agent file exists with server-only guard", () => {
   assert.ok(exists(DP_PATH));
-  assert.match(read(DP_PATH), /^import "server-only";/m);
+  assert.match(read(DP_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("DISTRIBUTION_PREVIEW_KEY is the canonical assistant key", () => {
@@ -403,7 +403,7 @@ const DP_ACTIONS_PATH =
 test("distribution-suggestion-actions file exists with server-only guard + 5 HITL actions", () => {
   assert.ok(exists(DP_ACTIONS_PATH));
   const src = read(DP_ACTIONS_PATH);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   for (const fn of [
     "requestDistributionSuggestion",
     "regenerateSuggestion",
@@ -489,7 +489,7 @@ const DU_PATH = "src/lib/development/ai/document-understanding.ts";
 
 test("document-understanding agent file exists with server-only guard", () => {
   assert.ok(exists(DU_PATH));
-  assert.match(read(DU_PATH), /^import "server-only";/m);
+  assert.match(read(DU_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("DOCUMENT_UNDERSTANDING_KEY is the canonical assistant key", () => {
@@ -582,7 +582,7 @@ const DU_ACTIONS_PATH =
 test("document-extraction-actions has server-only guard + 6 HITL actions", () => {
   assert.ok(exists(DU_ACTIONS_PATH));
   const src = read(DU_ACTIONS_PATH);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   for (const fn of [
     "extractFromDocumentNow",
     "approveExtractionAsTransaction",

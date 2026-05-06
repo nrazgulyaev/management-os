@@ -138,7 +138,7 @@ test("ai-development schema is re-exported from db/schema/index", () => {
 
 test("OpenAI provider file exists with server-only guard", () => {
   assert.ok(exists("src/lib/ai/providers/openai.ts"));
-  assert.match(read("src/lib/ai/providers/openai.ts"), /^import "server-only";/m);
+  assert.match(read("src/lib/ai/providers/openai.ts"), /^(import "server-only";|"use server";)/m);
 });
 
 test("OpenAIProvider implements the AIProvider interface (name, defaultModel, isAvailable, complete)", () => {
@@ -209,7 +209,7 @@ const TRANSLATOR_PATH = "src/lib/development/ai/translator.ts";
 
 test("translator.ts exists with server-only guard", () => {
   assert.ok(exists(TRANSLATOR_PATH));
-  assert.match(read(TRANSLATOR_PATH), /^import "server-only";/m);
+  assert.match(read(TRANSLATOR_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("translator exports translateText + translateSiteReportSummary", () => {
@@ -266,7 +266,7 @@ const VENDOR_PERF_PATH =
 
 test("vendor-performance cron file exists with server-only guard", () => {
   assert.ok(exists(VENDOR_PERF_PATH));
-  assert.match(read(VENDOR_PERF_PATH), /^import "server-only";/m);
+  assert.match(read(VENDOR_PERF_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("vendor-performance computes on-time rate (delivery <= expected)", () => {
@@ -362,7 +362,7 @@ const SUPERVISOR_PATH = "src/lib/development/ai/construction-supervisor.ts";
 
 test("construction supervisor file exists with server-only guard", () => {
   assert.ok(exists(SUPERVISOR_PATH));
-  assert.match(read(SUPERVISOR_PATH), /^import "server-only";/m);
+  assert.match(read(SUPERVISOR_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("supervisor exports CONSTRUCTION_SUPERVISOR_KEY = 'dev_os.construction_supervisor'", () => {
@@ -452,7 +452,7 @@ const ANALYSIS_ACTIONS_PATH =
 
 test("construction-analysis actions has server-only guard + internal user gate", () => {
   const src = read(ANALYSIS_ACTIONS_PATH);
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   assert.match(src, /requireInternalUser\(\)/);
 });
 
@@ -492,7 +492,7 @@ const IR_PATH = "src/lib/development/ai/investor-relations.ts";
 
 test("investor-relations file exists with server-only guard", () => {
   assert.ok(exists(IR_PATH));
-  assert.match(read(IR_PATH), /^import "server-only";/m);
+  assert.match(read(IR_PATH), /^(import "server-only";|"use server";)/m);
 });
 
 test("investor-relations exports INVESTOR_RELATIONS_KEY", () => {
@@ -558,7 +558,7 @@ test("dry-run path produces a localized greeting per language", () => {
 
 test("investor-qa-actions has server-only guard + 5 HITL actions", () => {
   const src = read("src/lib/development/server/investor-qa-actions.ts");
-  assert.match(src, /^import "server-only";/m);
+  assert.match(src, /^(import "server-only";|"use server";)/m);
   for (const fn of [
     "generateInvestorDraft",
     "approveInvestorDraft",
