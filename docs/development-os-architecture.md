@@ -4144,7 +4144,7 @@ explicitly extend the patterns established in Stages 3.A / 3.D / 4.A /
 
 ---
 
-## Stage 6.P0 — CRUD Foundation `[ACTIVE 6.P0]`
+## Stage 6.P0 — CRUD Foundation `[ACCEPTED 6.P0]`
 
 **Goal**: every entity in the platform create / edit / delete via UI.
 Bulk import + export. Mobile-friendly forms. Audit trail per mutation.
@@ -4193,3 +4193,122 @@ needed for P0's Google Sheets sync, will be reused from P1 onward).
 - `npm run build` succeeds; Vercel deploy succeeds
 - Workspace separation tests still passing
 - After acceptance, P1 (Booking Channels) can begin
+
+**Acceptance state (recorded)**:
+- 3453 tests passing (well above 3233 stretch target)
+- Build clean, type-check clean
+- Migration 0075 applied locally (production push pending — non-blocking per
+  user; documented in `docs/STAGE-6-P0-COMPLETE.md`)
+- Carry-forward register documented in `docs/STAGE-6-P0-COMPLETE.md`:
+  - Live Google Sheets OAuth → P5
+  - ContractModalForm wiring → needs reservation detail page (likely P1)
+  - Per-row archive on vendors/buyers/investors → needs `deactivate*` actions
+  - Cross-org user invite flow → P6 or earlier
+  - Real E2E test infra (Playwright/JSDOM) → housekeeping sprint
+
+---
+
+## Stage 6.P1 — Booking Channels `[ACTIVE 6.P1]`
+
+**Goal**: production-ready channel manager infrastructure for Booking.com,
+Airbnb, Trip.com, Agoda, Expedia, VRBO, and Hotels.com. Every provider
+implements a unified `ChannelManagerProvider` interface and ships with a
+dry-run fallback so the platform works end-to-end without partner
+credentials. When credentials arrive, the integration immediately goes
+live — no shell-then-backend split.
+
+**Estimate**: 3–4 weeks; 7 internal sub-checkpoints (P1.A schema +
+provider abstraction, P1.B Booking.com, P1.C Airbnb, P1.D Trip/Agoda/
+Expedia/VRBO, P1.E unified inbox + rates UI, P1.F calendar block +
+workflow, P1.G cron + webhooks + polish).
+
+**Entry-state inheritance**:
+- 3453 baseline tests (Stage 6.P0 accepted)
+- 73 cron HTTP routes
+- 76 migrations (0000–0075) — `bulk_import_jobs` + `oauth_connections`
+  in place; the latter is reused (not yet activated) starting in P1
+- Provider abstraction precedent set by AI / WhatsApp / Storage /
+  Notification providers (Stage 3.A / 3.D / 4.A / 5.E patterns)
+
+**Architectural decisions locked at P1 entry**:
+
+- **Unified inbox, multiple sources.** All channel reservations land in a
+  single `channel_reservations` table and are projected into the existing
+  internal `bookings` table via an `internal_booking_id` link. The unified
+  inbox is one query across `channel_reservations` filtered by channel,
+  not multiple per-channel tables.
+- **Provider abstraction follows Stage 3.A AI provider pattern.** One
+  `ChannelManagerProvider` interface, one selector
+  (`selectChannelProvider`), per-channel implementations behind it, and a
+  `DryRunChannelProvider` that returns plausible no-op results when the
+  selector is called without credentials.
+- **Inventory push: rapid availability + delayed rates.** Availability
+  changes (someone booked, owner blocked dates) push immediately to all
+  connected channels (every 15 min cron + webhook-triggered). Rate changes
+  are batched (every 30 min) since channels generally rate-limit rate
+  pushes harder than availability pushes.
+- **Reservation pull: webhook-first, polling fallback.** Webhook handlers
+  per channel are the primary path — instant ingestion. A 5-minute polling
+  cron fills the gap for channels that drop webhooks or don't offer them.
+- **Calendar conflict resolution: last-write-wins per channel + manual
+  review queue.** When two channels confirm overlapping dates (race
+  between webhook + sync), the first-received reservation is primary; the
+  second is flagged `conflict_pending` for operator action. No silent
+  cancellations.
+- **Channel commission tracking: per-reservation calculation, separate
+  reconciliation table.** `channel_commission_records` tracks expected vs
+  invoiced vs paid per reservation so the bookkeeper can reconcile against
+  monthly commission invoices from each channel.
+
+**P1 deliverables**:
+
+1. Migrations 0076 + 0077 — `channel_connections`, `channel_sync_log`,
+   `channel_reservations`, `channel_commission_records`. Per-org RLS via
+   `is_in_user_organization()` (Stage 5.J helper).
+2. Provider abstraction layer at `src/lib/channel-manager/`:
+   `types.ts`, `select-provider.ts`, `providers/dry-run.ts`, plus six
+   real-channel directories under `providers/`.
+3. Six channel providers (Booking.com Demand API + OTA XML, Airbnb
+   Hosting API + OAuth refresh, Trip.com Partner Connect, Agoda YCS,
+   Expedia EQC + EPC, VRBO via Expedia infrastructure). Hotels.com routes
+   through Expedia. Each implements push availability/rates/amenities,
+   pull reservations, webhook verify + parse, test connection.
+4. `ChannelManagerService` orchestrates connection lifecycle, sync, and
+   the channel→internal booking flow.
+5. Channel UI: connections grid, per-connection detail, rate calendar,
+   unified inbox, cross-channel calendar block, integrations health hub
+   at `/development-os/integrations`.
+6. Reservation workflow: ingest → contact dedup → internal booking →
+   guest journey trigger → commission record. Cancellation, modification,
+   conflict-detection paths all handled.
+7. Five new cron jobs: inventory sync (15 min), rates sync (30 min),
+   reservations pull (5 min), conflict detection (hourly), commission
+   reconciliation (daily). Total cron routes: 73 → 78.
+8. Webhook handler routes per channel under `/api/webhooks/channels/`.
+9. Documentation: `CHANNEL-MANAGER-ARCHITECTURE.md`,
+   `PARTNER-PROGRAM-SETUP.md`, `CHANNEL-CREDENTIALS-FORMAT.md`,
+   `STAGE-6-P1-COMPLETE.md`.
+10. ≥300 new tests; total ≥3753; zero regressions on the 3453 baseline.
+
+**Schema additions (2 migrations)**:
+- `0076_development_os_stage_6_p1_channel_connections.sql` —
+  `channel_connections` (per villa × channel, encrypted credentials,
+  rate-plan/amenity mapping JSONB, sync state, commercial fields) +
+  `channel_sync_log` (per-attempt audit with timing + records counts).
+- `0077_development_os_stage_6_p1_channel_reservations.sql` —
+  `channel_reservations` (raw payload + projected fields + lifecycle
+  state) + `channel_commission_records` (commission liability tracking).
+
+**Acceptance gate**:
+- 2 migrations (0076 + 0077) apply cleanly locally + production
+- All 6 channel providers implemented (real client + DryRun fallback)
+- `selectChannelProvider` returns DryRun when credentials are null —
+  platform works end-to-end without any real channel keys
+- All 5 new cron jobs in `KNOWN_JOBS` + dispatcher + Vercel cron checklist
+- Webhook routes per channel verify HMAC signatures
+- Channel UI surfaces connections, rates, inbox, calendar, health hub
+- Reservation workflow ingests channel reservation → internal booking
+  with contact dedup
+- 3753+ tests passing; zero regressions on the 3453 baseline
+- `npm run build` succeeds; `npm run check:cron` clean
+- After acceptance, P2 (Communications) can begin
