@@ -97,6 +97,11 @@ fails fatal if it is missing.  Do **not** set
 | `/api/cron/dev-os-data-export-processor` | `dev_os_data_export_processor` | `*/10 * * * *` | `CRON_SECRET`, `DATABASE_URL` | Processes pending `data_export_requests` rows + clears download URLs whose 7-day TTL has passed (Stage 5.J) | ✓ | ✓ |
 | `/api/cron/dev-os-rate-limit-cleanup` | `dev_os_rate_limit_cleanup` | `0 5 * * *` | `CRON_SECRET`, `DATABASE_URL` | Drops `rate_limit_buckets` rows whose `window_start` is more than 24h old (Stage 5.J) | ✓ | ✓ |
 | `/api/cron/dev-os-bulk-import-processor` | `dev_os_bulk_import_processor` | `*/2 * * * *` | `CRON_SECRET`, `DATABASE_URL` | Picks `bulk_import_jobs` in `ready` state (or stuck `processing` >10min) and runs ONE 1000-row batch each per cron firing. Idempotent on `processed_rows` resume. (Stage 6.P0.7) | ✓ | ✓ |
+| `/api/cron/channel-inventory-sync` | `channel_inventory_sync` | `*/15 * * * *` | `CRON_SECRET`, `DATABASE_URL`, `STAY_LINK_KMS_SECRET` | Pushes current availability to every active channel connection. One bad connection doesn't abort the batch. DryRun providers no-op with `apiCallsCount=0`. (Stage 6.P1.G) | ✓ | ✓ |
+| `/api/cron/channel-rates-sync` | `channel_rates_sync` | `*/30 * * * *` | `CRON_SECRET`, `DATABASE_URL`, `STAY_LINK_KMS_SECRET` | Pushes per-day rates to active channel connections. Skips connections with no rates configured. (Stage 6.P1.G) | ✓ | ✓ |
+| `/api/cron/channel-reservations-pull` | `channel_reservations_pull` | `*/5 * * * *` | `CRON_SECRET`, `DATABASE_URL`, `STAY_LINK_KMS_SECRET` | Pulls modified-since reservations from each active connection and feeds through `handleIncomingReservation`. Webhook fallback. (Stage 6.P1.G) | ✓ | ✓ |
+| `/api/cron/channel-conflict-detector` | `channel_conflict_detector` | `0 * * * *` | `CRON_SECRET`, `DATABASE_URL` | Hourly sweep over recent channel reservations to flag overlaps the per-reservation pipeline missed. Surfaces on `/development-os/channels/conflicts`. (Stage 6.P1.G) | ✓ | ✓ |
+| `/api/cron/channel-commission-reconciliation` | `channel_commission_reconciliation` | `0 2 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily auto-reconcile (invoice + payment both true) + flag stale (>30d) commission records for bookkeeper attention. (Stage 6.P1.G) | ✓ | ✓ |
 | `/api/cron/run-all` | `(dispatcher)` | manual / on-demand | `CRON_SECRET`, `DATABASE_URL` | Iterates the dispatch table; per-job locks apply | ✓ | not scheduled by default |
 
 ## Vercel setup
@@ -178,7 +183,12 @@ Create one if you haven't:
     { "path": "/api/cron/dev-os-usage-metrics-aggregation", "schedule": "0 4 * * *" },
     { "path": "/api/cron/dev-os-data-export-processor", "schedule": "*/10 * * * *" },
     { "path": "/api/cron/dev-os-rate-limit-cleanup", "schedule": "0 5 * * *" },
-    { "path": "/api/cron/dev-os-bulk-import-processor", "schedule": "*/2 * * * *" }
+    { "path": "/api/cron/dev-os-bulk-import-processor", "schedule": "*/2 * * * *" },
+    { "path": "/api/cron/channel-inventory-sync", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/channel-rates-sync", "schedule": "*/30 * * * *" },
+    { "path": "/api/cron/channel-reservations-pull", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/channel-conflict-detector", "schedule": "0 * * * *" },
+    { "path": "/api/cron/channel-commission-reconciliation", "schedule": "0 2 * * *" }
   ]
 }
 ```

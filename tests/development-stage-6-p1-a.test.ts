@@ -62,9 +62,10 @@ test("architecture: Stage 6.P0 marker is ACCEPTED", () => {
   assert.match(src, /Stage 6\.P0 — CRUD Foundation `\[ACCEPTED 6\.P0\]`/);
 });
 
-test("architecture: Stage 6.P1 marker is ACTIVE", () => {
+test("architecture: Stage 6.P1 marker is ACCEPTED (post-P1.G)", () => {
+  // P1.G flipped the marker once the full sub-stage closed.
   const src = read(F_ARCH_DOC);
-  assert.match(src, /Stage 6\.P1 — Booking Channels `\[ACTIVE 6\.P1\]`/);
+  assert.match(src, /Stage 6\.P1 — Booking Channels `\[ACCEPTED 6\.P1\]`/);
 });
 
 test("architecture: P1 section names key architectural decisions", () => {

@@ -78,6 +78,11 @@ import {
   runDevOsDataExportProcessor,
   runDevOsRateLimitCleanup,
   runDevOsBulkImportProcessor,
+  runChannelInventorySync,
+  runChannelRatesSync,
+  runChannelReservationsPull,
+  runChannelConflictDetector,
+  runChannelCommissionReconciliation,
 } from "@/lib/development/server/cron";
 import { ensureDefaultJobDefinitions } from "./services";
 import { acquireJobLock, releaseJobLock } from "./locks";
@@ -180,6 +185,12 @@ const KNOWN_JOBS = new Set([
   "dev_os_rate_limit_cleanup",
   // Development OS · Stage 6.P0.7
   "dev_os_bulk_import_processor",
+  // Development OS · Stage 6.P1.G — channel manager
+  "channel_inventory_sync",
+  "channel_rates_sync",
+  "channel_reservations_pull",
+  "channel_conflict_detector",
+  "channel_commission_reconciliation",
 ]);
 
 export type JobKey =
@@ -254,7 +265,12 @@ export type JobKey =
   | "dev_os_usage_metrics_aggregation"
   | "dev_os_data_export_processor"
   | "dev_os_rate_limit_cleanup"
-  | "dev_os_bulk_import_processor";
+  | "dev_os_bulk_import_processor"
+  | "channel_inventory_sync"
+  | "channel_rates_sync"
+  | "channel_reservations_pull"
+  | "channel_conflict_detector"
+  | "channel_commission_reconciliation";
 
 /**
  * Dispatch table — maps job key to runner. Cron routes call into this
@@ -464,6 +480,16 @@ export async function executeJob(
         return runDevOsRateLimitCleanup(handle);
       case "dev_os_bulk_import_processor":
         return runDevOsBulkImportProcessor(handle);
+      case "channel_inventory_sync":
+        return runChannelInventorySync(handle);
+      case "channel_rates_sync":
+        return runChannelRatesSync(handle);
+      case "channel_reservations_pull":
+        return runChannelReservationsPull(handle);
+      case "channel_conflict_detector":
+        return runChannelConflictDetector(handle);
+      case "channel_commission_reconciliation":
+        return runChannelCommissionReconciliation(handle);
       default:
         // unreachable — KNOWN_JOBS keeps us honest
         throw new Error(`Unhandled job key: ${jobKey}`);

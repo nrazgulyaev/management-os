@@ -35,12 +35,13 @@ const AUDIT_DOC = "docs/STAGE-6-P0-AUDIT.md";
 // 1) Architecture + audit docs are in place
 // ===========================================================================
 
-test("architecture doc marks Stage 5.J ACCEPTED + Stage 6.P0 ACCEPTED + Stage 6.P1 ACTIVE", () => {
-  // Updated for Stage 6.P1 entry (P0 accepted, P1 now active).
+test("architecture doc marks Stage 5.J + 6.P0 + 6.P1 ACCEPTED, Stage 6.P2 ACTIVE", () => {
+  // Updated for Stage 6.P2 entry (P1 accepted, P2 now active).
   const md = read(ARCH_DOC);
   assert.match(md, /\[ACCEPTED 5\.J\]/);
   assert.match(md, /\[ACCEPTED 6\.P0\]/);
-  assert.match(md, /\[ACTIVE 6\.P1\]/);
+  assert.match(md, /\[ACCEPTED 6\.P1\]/);
+  assert.match(md, /\[ACTIVE 6\.P2\]/);
 });
 
 test("architecture doc has Stage 6 master section with sub-stage roadmap", () => {

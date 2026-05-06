@@ -67,6 +67,12 @@ export { runDevOsUsageMetricsAggregation } from "./usage-metrics-aggregation-job
 export { runDevOsDataExportProcessor } from "./data-export-processor-job";
 export { runDevOsRateLimitCleanup } from "./rate-limit-cleanup-job";
 export { runDevOsBulkImportProcessor } from "./bulk-import-processor-job";
+// Stage 6.P1.G — channel manager cron handlers
+export { runChannelInventorySync } from "./channel-inventory-sync-job";
+export { runChannelRatesSync } from "./channel-rates-sync-job";
+export { runChannelReservationsPull } from "./channel-reservations-pull-job";
+export { runChannelConflictDetector } from "./channel-conflict-detector-job";
+export { runChannelCommissionReconciliation } from "./channel-commission-reconciliation-job";
 
 export type DevOsJobKey =
   | "dev_os_pricing_apply"
@@ -125,7 +131,13 @@ export type DevOsJobKey =
   | "dev_os_usage_metrics_aggregation"
   | "dev_os_data_export_processor"
   | "dev_os_rate_limit_cleanup"
-  | "dev_os_bulk_import_processor";
+  | "dev_os_bulk_import_processor"
+  // Stage 6.P1.G — channel manager
+  | "channel_inventory_sync"
+  | "channel_rates_sync"
+  | "channel_reservations_pull"
+  | "channel_conflict_detector"
+  | "channel_commission_reconciliation";
 
 export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "dev_os_pricing_apply",
@@ -185,4 +197,9 @@ export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "dev_os_data_export_processor",
   "dev_os_rate_limit_cleanup",
   "dev_os_bulk_import_processor",
+  "channel_inventory_sync",
+  "channel_rates_sync",
+  "channel_reservations_pull",
+  "channel_conflict_detector",
+  "channel_commission_reconciliation",
 ];

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Inbox, Calendar } from "lucide-react";
+import { ArrowLeft, Inbox, Calendar, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,12 @@ export default async function ChannelsPage() {
               <Link href="/development-os/channels/calendar">
                 <Calendar className="w-4 h-4" strokeWidth={1.75} />
                 Calendar
+              </Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/development-os/channels/conflicts">
+                <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
+                Conflicts
               </Link>
             </Button>
             <Button asChild variant="secondary">

@@ -4208,7 +4208,7 @@ needed for P0's Google Sheets sync, will be reused from P1 onward).
 
 ---
 
-## Stage 6.P1 — Booking Channels `[ACTIVE 6.P1]`
+## Stage 6.P1 — Booking Channels `[ACCEPTED 6.P1]`
 
 **Goal**: production-ready channel manager infrastructure for Booking.com,
 Airbnb, Trip.com, Agoda, Expedia, VRBO, and Hotels.com. Every provider
@@ -4312,3 +4312,41 @@ workflow, P1.G cron + webhooks + polish).
 - 3753+ tests passing; zero regressions on the 3453 baseline
 - `npm run build` succeeds; `npm run check:cron` clean
 - After acceptance, P2 (Communications) can begin
+
+**Acceptance state (recorded)**:
+- Tests grew from 3453 → 3766 across 6 sub-checkpoints (P1.A through P1.F);
+  P1.G adds the cron + webhook + dashboard layer + tests.
+- 78 cron routes (73 baseline + 5 channel-manager: inventory sync 15min,
+  rates sync 30min, reservations pull 5min, conflict detector hourly,
+  commission reconciliation daily).
+- 7 channel webhook routes (`/api/webhooks/channels/{channel}`) with
+  shared HMAC verify + connection lookup helper.
+- 4 migrations applied (0076 + 0077 — bulk import migrations 0075 already
+  in place from P0).
+- 7 channel providers shipped (Booking.com, Airbnb, Trip.com, Agoda,
+  Expedia, VRBO, Hotels.com). Each has DryRun fallback so the platform
+  works end-to-end without credentials.
+- Build clean, type-check clean, cron checklist clean.
+- Carry-forward register documented in `docs/STAGE-6-P1-COMPLETE.md`.
+
+---
+
+## Stage 6.P2 — Communications `[ACTIVE 6.P2]`
+
+**Goal**: unified inbox for WhatsApp + Telegram + Instagram + Facebook
+Messenger + Email. Same provider-abstraction pattern as P1; webhook-first
+ingestion; consolidate `whatsapp_webhook_events` + new channel webhooks
+into `integration_webhooks_log` (Part 1 migration 0084). Per the master
+plan: 2–3 weeks, ~5 messaging channels, migration 0078 introduces
+`conversation_threads` + `conversation_messages`, target 3700+ tests.
+
+**Entry-state inheritance** (post-P1.G):
+- 78 cron routes
+- 77 known job keys
+- Channel manager infrastructure proven (selector pattern, encrypted
+  credentials, webhook-handler-helper, sync_log audit trail)
+- Reusable patterns: `requestWithRetry` (P1.A), `verifyHmacSha256Signature`
+  (P1.D), `EntityModal` UI shell (P0.3), `selectChannelProvider` selector
+  pattern (P1.A)
+
+P2 awaits user prompt to begin in detail.
