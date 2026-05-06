@@ -20,6 +20,7 @@ import {
 import { safeQuery } from "@/lib/development/safe-query";
 import { FinanceTabs } from "@/components/development/finance/finance-tabs";
 import { TransactionModalForm } from "@/components/development/finance/transaction-modal-form";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = { title: "Transactions · Development OS" };
 export const dynamic = "force-dynamic";
@@ -122,6 +123,7 @@ export default async function TransactionsPage({
               costCategories={categoryOptions}
               projects={projectOptions}
             />
+            <ExportButton entity="transactions" />
           </div>
         }
       />

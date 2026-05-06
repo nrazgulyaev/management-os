@@ -72,3 +72,4 @@ export * from "./role-cabinets";
 export * from "./schedule-sophistication";
 export * from "./pwa";
 export * from "./saas";
+export * from "./bulk-import";

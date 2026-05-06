@@ -12,6 +12,7 @@ import { getDb } from "@/lib/db/client";
 import { listBuyers } from "@/lib/development/server/buyers/buyer-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { BuyerModalForm } from "@/components/development/sales/buyer-modal-form";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = { title: "Buyers · Development OS" };
 export const dynamic = "force-dynamic";
@@ -50,6 +51,7 @@ export default async function BuyersListPage() {
         actions={
           <div className="flex items-center gap-2">
             <BuyerModalForm />
+            <ExportButton entity="buyers" />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

@@ -12,6 +12,7 @@ import { getDb } from "@/lib/db/client";
 import { listInvoices } from "@/lib/development/server/invoices/invoice-actions";
 import { safeQuery } from "@/lib/development/safe-query";
 import { FinanceTabs } from "@/components/development/finance/finance-tabs";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = { title: "Invoices · Development OS" };
 export const dynamic = "force-dynamic";
@@ -108,6 +109,7 @@ export default async function InvoicesPage({
                 + New invoice
               </Link>
             </Button>
+            <ExportButton entity="invoices" />
             <Button asChild variant="secondary">
               <Link href="/development-os/finance">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

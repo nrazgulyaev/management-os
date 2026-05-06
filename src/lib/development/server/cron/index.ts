@@ -66,6 +66,7 @@ export { runDevOsApiLogCleanup } from "./api-log-cleanup-job";
 export { runDevOsUsageMetricsAggregation } from "./usage-metrics-aggregation-job";
 export { runDevOsDataExportProcessor } from "./data-export-processor-job";
 export { runDevOsRateLimitCleanup } from "./rate-limit-cleanup-job";
+export { runDevOsBulkImportProcessor } from "./bulk-import-processor-job";
 
 export type DevOsJobKey =
   | "dev_os_pricing_apply"
@@ -123,7 +124,8 @@ export type DevOsJobKey =
   | "dev_os_api_log_cleanup"
   | "dev_os_usage_metrics_aggregation"
   | "dev_os_data_export_processor"
-  | "dev_os_rate_limit_cleanup";
+  | "dev_os_rate_limit_cleanup"
+  | "dev_os_bulk_import_processor";
 
 export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "dev_os_pricing_apply",
@@ -182,4 +184,5 @@ export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "dev_os_usage_metrics_aggregation",
   "dev_os_data_export_processor",
   "dev_os_rate_limit_cleanup",
+  "dev_os_bulk_import_processor",
 ];

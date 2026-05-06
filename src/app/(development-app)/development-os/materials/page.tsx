@@ -16,6 +16,7 @@ import { MATERIAL_PO_STATUS_LABEL } from "@/lib/development/constants/material-c
 import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 import { safeQuery } from "@/lib/development/safe-query";
 import { MaterialPOModalForm } from "@/components/development/operations/material-po-modal-form";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = { title: "Materials · Development OS" };
 export const dynamic = "force-dynamic";
@@ -65,6 +66,7 @@ export default async function MaterialsPage() {
             <Button asChild variant="secondary">
               <Link href="/development-os/materials/new">Full form</Link>
             </Button>
+            <ExportButton entity="materials" />
             <Button asChild variant="secondary">
               <Link href="/development-os/materials/deliveries">
                 Deliveries

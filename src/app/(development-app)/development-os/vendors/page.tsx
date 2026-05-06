@@ -21,6 +21,7 @@ import {
 import { safeQuery } from "@/lib/development/safe-query";
 import { FinanceTabs } from "@/components/development/finance/finance-tabs";
 import { VendorModalForm } from "@/components/development/finance/vendor-modal-form";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = { title: "Vendors · Development OS" };
 export const dynamic = "force-dynamic";
@@ -68,6 +69,7 @@ export default async function VendorsPage() {
             <Button asChild variant="secondary">
               <Link href="/development-os/vendors/new">Detailed form</Link>
             </Button>
+            <ExportButton entity="vendors" />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

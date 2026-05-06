@@ -77,6 +77,7 @@ import {
   runDevOsUsageMetricsAggregation,
   runDevOsDataExportProcessor,
   runDevOsRateLimitCleanup,
+  runDevOsBulkImportProcessor,
 } from "@/lib/development/server/cron";
 import { ensureDefaultJobDefinitions } from "./services";
 import { acquireJobLock, releaseJobLock } from "./locks";
@@ -177,6 +178,8 @@ const KNOWN_JOBS = new Set([
   "dev_os_usage_metrics_aggregation",
   "dev_os_data_export_processor",
   "dev_os_rate_limit_cleanup",
+  // Development OS · Stage 6.P0.7
+  "dev_os_bulk_import_processor",
 ]);
 
 export type JobKey =
@@ -250,7 +253,8 @@ export type JobKey =
   | "dev_os_api_log_cleanup"
   | "dev_os_usage_metrics_aggregation"
   | "dev_os_data_export_processor"
-  | "dev_os_rate_limit_cleanup";
+  | "dev_os_rate_limit_cleanup"
+  | "dev_os_bulk_import_processor";
 
 /**
  * Dispatch table — maps job key to runner. Cron routes call into this
@@ -458,6 +462,8 @@ export async function executeJob(
         return runDevOsDataExportProcessor(handle);
       case "dev_os_rate_limit_cleanup":
         return runDevOsRateLimitCleanup(handle);
+      case "dev_os_bulk_import_processor":
+        return runDevOsBulkImportProcessor(handle);
       default:
         // unreachable — KNOWN_JOBS keeps us honest
         throw new Error(`Unhandled job key: ${jobKey}`);

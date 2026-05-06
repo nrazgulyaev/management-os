@@ -17,6 +17,7 @@ import { villas, projects } from "@/lib/db/schema/projects";
 import { eq } from "drizzle-orm";
 import { safeQuery } from "@/lib/development/safe-query";
 import { ReservationModalForm } from "@/components/development/sales/reservation-modal-form";
+import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = { title: "Reservations · Development OS" };
 export const dynamic = "force-dynamic";
@@ -94,6 +95,7 @@ export default async function ReservationsPage() {
         actions={
           <div className="flex items-center gap-2">
             <ReservationModalForm contacts={contactRows} villas={villaRows} />
+            <ExportButton entity="reservations" />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
