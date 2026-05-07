@@ -263,20 +263,12 @@ test("selectMarketingProvider: credential discriminator mismatch falls back to D
   assert.ok(provider instanceof DryRunMarketingProvider);
 });
 
-test("selectMarketingProvider: P4.A scope returns DryRun for every provider even with matching creds", () => {
-  // Real implementations land in P4.B/C/D/E. Until then every
-  // selector path returns DryRun — the contract is stable, the
-  // implementation grows.
+test("selectMarketingProvider: providers still pending real implementation return DryRun even with matching creds (post-P4.B)", () => {
+  // Each promotion to a real provider removes that provider's case
+  // from this list. P4.B landed GA4 + Meta Pixel; remaining providers
+  // (Google Ads, Meta Ads, TikTok, Mailchimp, ConvertKit, SendGrid)
+  // are still DryRun until P4.C/D/E.
   const cases: Array<[MarketingProviderName, MarketingCredentials]> = [
-    [
-      "google_analytics",
-      {
-        provider: "google_analytics",
-        measurementId: "G-X",
-        apiSecret: "s",
-        propertyId: "1",
-      },
-    ],
     [
       "google_ads",
       {
@@ -287,10 +279,6 @@ test("selectMarketingProvider: P4.A scope returns DryRun for every provider even
         refreshToken: "r",
         customerId: "1",
       },
-    ],
-    [
-      "meta_pixel",
-      { provider: "meta_pixel", pixelId: "1", accessToken: "t" },
     ],
     [
       "meta_ads",

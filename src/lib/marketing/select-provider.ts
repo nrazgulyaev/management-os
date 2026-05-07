@@ -1,5 +1,7 @@
 import type { MarketingProviderName } from "@/lib/db/schema/p4-marketing";
 import { DryRunMarketingProvider } from "./providers/dry-run";
+import { GoogleAnalyticsProvider } from "./providers/google-analytics/provider";
+import { MetaPixelProvider } from "./providers/meta-pixel/provider";
 import type {
   MarketingCredentials,
   MarketingProviderInterface,
@@ -43,9 +45,20 @@ export function selectMarketingProvider(
   }
 
   switch (provider) {
-    // P4.B lands GA4 + Meta Pixel.
     case "google_analytics":
+      // P4.B landed GA4 — see providers/google-analytics/.
+      if (credentials.provider !== "google_analytics") {
+        return new DryRunMarketingProvider(provider);
+      }
+      return new GoogleAnalyticsProvider(credentials);
+
     case "meta_pixel":
+      // P4.B landed Meta Pixel — see providers/meta-pixel/.
+      if (credentials.provider !== "meta_pixel") {
+        return new DryRunMarketingProvider(provider);
+      }
+      return new MetaPixelProvider(credentials);
+
     // P4.C lands Google Ads.
     case "google_ads":
     // P4.D lands Meta Ads.

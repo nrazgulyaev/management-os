@@ -40,9 +40,20 @@ export interface GoogleAnalyticsCredentials {
   apiSecret: string;
   /** Numeric Property ID for the Reporting Data API. */
   propertyId: string;
-  /** Service-account or OAuth client for Reporting API. JSON shape
-   *  mirrors Google's service-account JSON file or an OAuth refresh
-   *  token bundle. Optional until the operator wires reporting. */
+  /** OAuth access token for the Reporting Data API. Refreshed via
+   *  Google's token endpoint when expired. */
+  oauthAccessToken?: string;
+  /** OAuth refresh token. Persisted encrypted via STAY_LINK_KMS_SECRET. */
+  oauthRefreshToken?: string;
+  /** Unix epoch ms — when oauthAccessToken expires. */
+  oauthExpiresAt?: number;
+  /** OAuth client_id — required for refresh. Same client used by the
+   *  Workspace OAuth flow (lands in P5). */
+  clientId?: string;
+  /** OAuth client_secret. */
+  clientSecret?: string;
+  /** Optional service-account JSON as an alternative to user-OAuth.
+   *  Reserved for the operator UI in P5. */
   serviceAccountCredentials?: object;
 }
 
@@ -67,6 +78,11 @@ export interface MetaPixelCredentials {
   /** When set, conversion events fire as test events (don't burn
    *  optimization budget). */
   testEventCode?: string;
+  /** When configured, the client adds an `appsecret_proof` query
+   *  param (HMAC-SHA256(access_token, app_secret) hex) to every
+   *  request. Meta lets you require this server-side as
+   *  defense-in-depth against leaked tokens. */
+  appSecret?: string;
 }
 
 export interface MetaAdsCredentials {
