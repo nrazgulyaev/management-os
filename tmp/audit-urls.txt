@@ -1,0 +1,315 @@
+# Public
+/
+/pricing
+/sign-up
+/development
+
+# Mgmt OS Overview
+/dashboard
+
+# Portfolio
+/dashboard/projects
+/dashboard/villas
+
+# Owners & investors
+/dashboard/owners
+/dashboard/shares
+
+# Bookings
+/dashboard/bookings
+/dashboard/bookings/calendar
+/dashboard/bookings/sync
+/dashboard/bookings/rates
+/dashboard/channels
+/dashboard/guests
+
+# Guest stays
+/dashboard/guest-stays
+/dashboard/guest-stays/tokens
+/dashboard/villa-guides
+/dashboard/villa-guides/sections
+/dashboard/villa-guides/wifi
+/dashboard/villa-guides/emergency-contacts
+/dashboard/villa-guides/neighborhood
+/dashboard/guest-services
+/dashboard/guest-services/catalog
+/dashboard/guest-services/orders
+/dashboard/guest-services/finance-bridge
+/dashboard/guest-stays/security
+/dashboard/guest-stays/security/events
+/dashboard/guest-stays/security/verifications
+/dashboard/villa-guides/wifi/migrate
+/dashboard/guest-ai
+/dashboard/guest-ai/sessions
+/dashboard/guest-ai/handoffs
+/dashboard/guest-ai/handoffs/metrics
+/dashboard/guest-ai/storage
+
+# Owner stays
+/dashboard/owner-stays
+/dashboard/owner-stays/requests
+/dashboard/owner-stays/policies
+/dashboard/owner-stays/equivalence-groups
+/dashboard/owner-stays/finance-bridge
+
+# Maintenance intelligence
+/dashboard/maintenance-intelligence
+/dashboard/maintenance-intelligence/templates
+/dashboard/maintenance-intelligence/plans
+/dashboard/maintenance-intelligence/windows
+/dashboard/maintenance-intelligence/risks
+
+# Utilities
+/dashboard/utilities
+/dashboard/utilities/accounts
+/dashboard/utilities/readings
+/dashboard/utilities/payments
+/dashboard/utilities/risks
+
+# Front office
+/dashboard/front-office
+/dashboard/front-office/arrivals
+/dashboard/front-office/departures
+/dashboard/front-office/in-house
+/dashboard/front-office/requests
+
+# Availability
+/dashboard/availability
+/dashboard/availability/blocks
+/dashboard/readiness
+
+# Security
+/dashboard/security
+/dashboard/security/cameras
+/dashboard/security/auth
+/dashboard/security/login-attempts
+/dashboard/security/events
+/dashboard/security/mfa
+
+# Integrations
+/dashboard/integrations
+/dashboard/integrations/calendar-feeds
+/dashboard/integrations/calendar-events
+/dashboard/integrations/conflicts
+/dashboard/integrations/automation
+
+# Finance
+/dashboard/finance
+/dashboard/finance/material-usage
+/dashboard/finance/transparency
+
+# Owner intelligence
+/dashboard/owner-intelligence
+/dashboard/owner-intelligence/calendar
+/dashboard/owner-intelligence/health
+/dashboard/owner-intelligence/reviews
+/dashboard/owner-intelligence/preferences
+/dashboard/owner-intelligence/rebuild
+/dashboard/owner-intelligence/bookings
+/dashboard/owner-intelligence/revenue
+
+# Guest journey
+/dashboard/guest-journey
+/dashboard/guest-journey/rules
+/dashboard/guest-journey/runs
+/dashboard/guest-journey/suggestions
+/dashboard/guest-journey/reviews
+
+# Service fulfilment
+/dashboard/service-fulfilment
+/dashboard/service-fulfilment/fulfilments
+/dashboard/service-fulfilment/vendors
+/dashboard/service-fulfilment/invoices
+/dashboard/service-fulfilment/ratings
+/dashboard/service-fulfilment/finance-bridge
+
+# Dynamic pricing
+/dashboard/pricing
+/dashboard/pricing/rule-sets
+/dashboard/pricing/calendar
+/dashboard/pricing/quote
+/dashboard/pricing/logs
+/dashboard/pricing/channel-push
+
+# Direct bookings
+/dashboard/direct-bookings
+/dashboard/direct-bookings/holds
+/dashboard/direct-bookings/requests
+/dashboard/direct-bookings/deposits
+/dashboard/direct-bookings/reconciliation
+/dashboard/direct-bookings/guest-status
+/dashboard/direct-bookings/messages
+
+# Payments
+/dashboard/payments
+/dashboard/payments/providers
+/dashboard/payments/providers/new
+/dashboard/payments/webhooks
+
+# Operations
+/dashboard/operations
+/dashboard/operations/tasks
+/dashboard/operations/housekeeping
+/dashboard/operations/maintenance
+/dashboard/operations/preventive
+/dashboard/operations/checklists
+/dashboard/operations/service-requests
+/dashboard/operations/damage-reports
+
+# Inventory
+/dashboard/inventory
+/dashboard/inventory/items
+/dashboard/inventory/stock
+/dashboard/inventory/movements
+/dashboard/inventory/locations
+/dashboard/inventory/categories
+/dashboard/inventory/suppliers
+/dashboard/inventory/counts
+
+# Procurement
+/dashboard/procurement
+/dashboard/procurement/requests
+/dashboard/procurement/orders
+
+# Documents
+/dashboard/documents
+
+# Intelligence
+/dashboard/ai
+
+# System
+/dashboard/jobs
+/dashboard/jobs/runs
+/dashboard/jobs/locks
+/dashboard/system/health
+/dashboard/system/deployment
+/dashboard/demo
+/dashboard/notifications
+/dashboard/notifications/inbox
+/dashboard/notifications/deliveries
+/dashboard/notifications/preferences
+/dashboard/audit
+/dashboard/settings
+/dashboard/settings/responsibility-scopes
+/dashboard/settings/security
+
+# Dev OS Top
+/development-os
+
+# Cabinets
+/development-os/cabinets/my-cabinet
+/development-os/cabinets/site-supervisor
+/development-os/cabinets/project-manager
+/development-os/cabinets/cfo-accountant
+/development-os/cabinets/qs
+/development-os/cabinets/procurement-manager
+/development-os/cabinets/warehouse-manager
+/development-os/cabinets/marketing-staff
+/development-os/cabinets/sales-manager
+
+# Marketing (Dev OS)
+/development-os/marketing/dashboard
+/development-os/marketing/lead-sources
+/development-os/marketing/campaigns
+/development-os/marketing/content
+/development-os/marketing/conversations
+/development-os/marketing/manager-performance
+/development-os/marketing/connections
+/development-os/marketing/connections/new
+
+# AI Agents
+/development-os/ai-agents
+/development-os/ai-agents/inbox
+/development-os/ai-agents/qs-cost-analyst
+/development-os/ai-agents/procurement-analyst
+/development-os/ai-agents/tax-assistant
+/development-os/ai-agents/marketing-assistant
+/development-os/ai-agents/executive-business
+/development-os/ai-agents/daily-digest
+/development-os/ai-agents/weekly-plan
+/development-os/ai-agents/memory
+
+# Executive (Dev OS)
+/development-os/dashboard
+/development-os/reports
+/development-os/risk-radar
+/development-os/digests
+
+# Build & sell
+/development-os/projects
+/development-os/assets
+/development-os/asset-types
+/development-os/site-reports
+/development-os/sales
+/development-os/reservations
+/development-os/contracts
+/development-os/invoices
+/development-os/discounts
+
+# Capital
+/development-os/finance
+/development-os/finance/invoices
+/development-os/finance/tax-types
+/development-os/finance/tax-reports
+/development-os/finance/shared-costs
+/development-os/finance/document-extractions
+/development-os/investors
+/development-os/commitments
+/development-os/distributions
+/development-os/revenue-streams
+
+# Strategic
+/development-os/project-cycle
+/development-os/profitability
+/development-os/cashflow-forecast
+
+# Operations (Dev OS)
+/development-os/vendors
+/development-os/materials
+/development-os/materials/deliveries
+/development-os/safety
+/development-os/procurement
+/development-os/procurement/purchase-requests
+/development-os/procurement/quotations
+
+# Communications
+/development-os/whatsapp
+/development-os/whatsapp/templates
+/development-os/whatsapp/phone-numbers
+/development-os/settings/notifications
+
+# Roadmap
+/development-os/quantity-surveying
+/development-os/inventory/items
+/development-os/qa-qc
+/development-os/schedule
+/development-os/schedule/calendars
+/development-os/schedule/resources
+/development-os/productivity
+
+# Knowledge base
+/development-os/drawings
+/development-os/boq
+/development-os/specifications
+/development-os/method-statements
+/development-os/quality-standards
+
+# Settings (Dev OS)
+/development-os/settings
+/development-os/settings/ai-usage
+/development-os/settings/approval-thresholds
+/development-os/settings/whatsapp
+/development-os/settings/api-keys
+/development-os/settings/webhooks
+/development-os/settings/data-export
+/development-os/settings/google-workspace
+
+# Banking (NEW from 7.F)
+/development-os/banking
+/development-os/banking/new
+
+# Platform
+/development-os/platform/organizations
+/development-os/platform/usage
+/development-os/platform/api-docs
+/development-os/platform/branding
