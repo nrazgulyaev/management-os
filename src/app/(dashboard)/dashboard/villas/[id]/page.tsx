@@ -11,6 +11,7 @@ import { getVillaById } from "@/features/villas/services";
 import { archiveVillaAction, unarchiveVillaAction } from "@/features/villas/actions";
 
 export const metadata = { title: "Villa" };
+export const dynamic = "force-dynamic";
 
 export default async function VillaDetailPage({
   params,

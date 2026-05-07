@@ -10,6 +10,7 @@ import { listOwnershipShares } from "@/features/owners/services";
 import { computeShareTotals } from "@/features/shares/totals";
 
 export const metadata = { title: "Ownership shares" };
+export const dynamic = "force-dynamic";
 
 export default async function SharesPage() {
   const shares = await listOwnershipShares();

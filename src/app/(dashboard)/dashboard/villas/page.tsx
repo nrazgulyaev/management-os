@@ -12,6 +12,7 @@ import { listProjects } from "@/features/projects/services";
 import { VillaRowActions } from "@/components/villas/villa-row-actions";
 
 export const metadata = { title: "Villas" };
+export const dynamic = "force-dynamic";
 
 export default async function VillasPage() {
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);

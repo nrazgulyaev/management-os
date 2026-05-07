@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 import { listOwners } from "@/features/owners/services";
 
 export const metadata = { title: "Owners & investors" };
+export const dynamic = "force-dynamic";
 
 const statusTone: Record<string, "success" | "gold" | "neutral"> = {
   active: "success",

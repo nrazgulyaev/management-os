@@ -11,6 +11,7 @@ import { Section } from "@/components/ui/section";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 
 export const metadata = { title: "Owner" };
+export const dynamic = "force-dynamic";
 
 export default async function OwnerDetailPage({
   params,

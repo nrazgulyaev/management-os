@@ -6,6 +6,7 @@ import { getVillaById } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 
 export const metadata = { title: "Edit villa" };
+export const dynamic = "force-dynamic";
 
 export default async function EditVillaPage({
   params,

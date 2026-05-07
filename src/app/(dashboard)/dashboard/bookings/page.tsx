@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 import { listBookings } from "@/features/bookings/services";
 
 export const metadata = { title: "Bookings" };
+export const dynamic = "force-dynamic";
 
 const channelTone: Record<string, "accent" | "gold" | "info" | "neutral"> = {
   airbnb: "accent",

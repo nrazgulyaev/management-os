@@ -16,6 +16,7 @@ import {
 import { ArrowUpRight, Wallet, ShieldCheck, Sparkles } from "lucide-react";
 
 export const metadata = { title: "Portfolio overview" };
+export const dynamic = "force-dynamic";
 
 export default async function DashboardHome() {
   const liveCounts = await getLiveDashboardCounts();

@@ -6,6 +6,7 @@ import { listVillas } from "@/features/villas/services";
 import { ShareForm } from "./form";
 
 export const metadata = { title: "New ownership share" };
+export const dynamic = "force-dynamic";
 
 export default async function NewSharePage() {
   const [owners, projects, villas] = await Promise.all([

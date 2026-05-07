@@ -14,6 +14,7 @@ import { listVillas } from "@/features/villas/services";
 import { archiveProjectAction, unarchiveProjectAction } from "@/features/projects/actions";
 
 export const metadata = { title: "Project" };
+export const dynamic = "force-dynamic";
 
 export default async function ProjectDetailPage({
   params,

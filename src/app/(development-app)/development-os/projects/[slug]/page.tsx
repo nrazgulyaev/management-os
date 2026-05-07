@@ -60,6 +60,7 @@ import {
   SAFETY_STATUS_LABEL,
 } from "@/lib/development/constants/safety-constants";
 import type { DevelopmentMetric } from "@/lib/development/types";
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

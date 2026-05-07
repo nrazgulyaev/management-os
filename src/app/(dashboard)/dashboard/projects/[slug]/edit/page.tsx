@@ -5,6 +5,7 @@ import { ProjectForm } from "@/features/projects/form";
 import { getProjectBySlug } from "@/features/projects/services";
 
 export const metadata = { title: "Edit project" };
+export const dynamic = "force-dynamic";
 
 export default async function EditProjectPage({
   params,

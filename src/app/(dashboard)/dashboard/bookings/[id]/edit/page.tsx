@@ -8,6 +8,7 @@ import { listBookingChannels } from "@/features/channels/services";
 import { listGuests } from "@/features/guests/services";
 
 export const metadata = { title: "Edit booking" };
+export const dynamic = "force-dynamic";
 
 export default async function EditBookingPage({
   params,

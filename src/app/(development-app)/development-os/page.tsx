@@ -26,6 +26,7 @@ export const metadata: Metadata = {
   description:
     "Internal command center for Arconique Development OS — live KPIs, project health, AI executive insight, and module navigation.",
 };
+export const dynamic = "force-dynamic";
 
 export default async function DevelopmentCommandCenterPage() {
   const nextModules = getModulesByStatus("next");

@@ -8,6 +8,7 @@ import { RunAutomationButton } from "@/components/integrations/automation-action
 import { listBookingAutomationRuns } from "@/features/booking-automation/services";
 
 export const metadata = { title: "Booking" };
+export const dynamic = "force-dynamic";
 
 export default async function BookingDetailPage({
   params,

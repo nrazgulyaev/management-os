@@ -5512,6 +5512,32 @@ fallback by default).
   0075 `FOREACH ... IN ARRAY` PL/pgSQL pattern (preserved across all
   6 Stage 6 RLS-loop migrations).
 
+## Static vs Dynamic Pages — runtime invariant
+
+**Rule**: Every async page in `src/app/(dashboard)/`, `src/app/(development-app)/`, and `src/app/(investor-portal)/` that imports server-side helpers (`@/lib/db`, `@/features/*/services`, `@/features/auth/*`, etc.) MUST declare:
+
+```ts
+export const dynamic = "force-dynamic";
+```
+
+**Reason**: these pages query org-scoped DB data per request and cannot be statically prerendered. Without `force-dynamic`, Next.js attempts static generation at build time, runs the query against whatever DB the build env points to, and may crash on driver edge cases — including [Drizzle's `PgDateString.mapFromDriverValue` undefined-crash](../tmp/shares-date-fix.md) that broke the 2026-05-07 production deploy.
+
+**Page categories**:
+
+- `(dashboard)/` — operator dashboard. Always dynamic when async + DB-querying.
+- `(development-app)/` — development OS. Always dynamic when async + DB-querying.
+- `(investor-portal)/` — investor surfaces. Always dynamic when async + DB-querying. (Read session/cookies even when not querying DB.)
+- `(auth)/` — typically dynamic when reading session/cookies; static is fine for pure form shells (e.g. `/login` reads `isSupabaseAuthConfigured()` only).
+- `(public)/` — marketing pages. Static is fine; only mark dynamic if the page queries org-scoped data.
+
+**Pure shells exempt**: `*/new/page.tsx` files that delegate to a `<ClientForm>` component without async/server-side calls don't need `force-dynamic`. Pure `redirect()` pages also don't need it.
+
+**Enforcement**: `tests/build-force-dynamic-coverage.test.ts` walks the three always-dynamic trees and fails if any async + server-helper-importing page lacks the export. The same test asserts the upstream Drizzle crash signature is still present so the rationale doc stays valid against version bumps.
+
+See also: [`tmp/force-dynamic-sweep.md`](../tmp/force-dynamic-sweep.md) for the 2026-05-07 sweep that closed the systemic gap (17 pages added).
+
+---
+
 **Stage 6 closes here.** The platform now supports:
 - Multi-tenant SaaS foundation (Stage 5.J).
 - Project + construction lifecycle.

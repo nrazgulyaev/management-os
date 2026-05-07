@@ -8,6 +8,7 @@ import { Plus, ArrowUpRight } from "lucide-react";
 import { listProjects } from "@/features/projects/services";
 
 export const metadata = { title: "Projects" };
+export const dynamic = "force-dynamic";
 
 const statusTone: Record<string, "success" | "gold" | "neutral" | "warning" | "info"> = {
   managed: "success",

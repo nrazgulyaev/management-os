@@ -5,6 +5,7 @@ import { OwnerForm } from "@/features/owners/form";
 import { getOwnerById } from "@/features/owners/services";
 
 export const metadata = { title: "Edit owner" };
+export const dynamic = "force-dynamic";
 
 export default async function EditOwnerPage({
   params,
