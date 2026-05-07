@@ -112,19 +112,19 @@ test("arch doc: P5 carries CATCHUP marker (active or accepted)", () => {
   assert.match(src, /Stage 6\.P5 — Productivity Tools .*\[(ACTIVE|ACCEPTED) 6\.P5-CATCHUP\]/);
 });
 
-test("arch doc: P6 marked ACTIVE-CATCHUP", () => {
+test("arch doc: P6 carries CATCHUP marker (active or accepted)", () => {
   const src = readFile("docs/development-os-architecture.md");
-  assert.match(src, /Stage 6\.P6 — AI Agents Activation Ready .*\[ACTIVE 6\.P6-CATCHUP\]/);
+  assert.match(src, /Stage 6\.P6 — AI Agents Activation Ready .*\[(ACTIVE|ACCEPTED) 6\.P6-CATCHUP\]/);
 });
 
-test("arch doc: P7 marked ACTIVE-CATCHUP", () => {
+test("arch doc: P7 carries CATCHUP marker (active or accepted)", () => {
   const src = readFile("docs/development-os-architecture.md");
-  assert.match(src, /Stage 6\.P7 — Investor Portal Enhancement .*\[ACTIVE 6\.P7-CATCHUP\]/);
+  assert.match(src, /Stage 6\.P7 — Investor Portal Enhancement .*\[(ACTIVE|ACCEPTED) 6\.P7-CATCHUP\]/);
 });
 
-test("arch doc: P8 marked ACTIVE-CATCHUP", () => {
+test("arch doc: P8 carries CATCHUP marker (active or accepted)", () => {
   const src = readFile("docs/development-os-architecture.md");
-  assert.match(src, /Stage 6\.P8 — Polish \+ Comprehensive Testing .*\[ACTIVE 6\.P8-CATCHUP\]/);
+  assert.match(src, /Stage 6\.P8 — Polish \+ Comprehensive Testing .*\[(ACTIVE|ACCEPTED) 6\.P8-CATCHUP\]/);
 });
 
 // ===========================================================================

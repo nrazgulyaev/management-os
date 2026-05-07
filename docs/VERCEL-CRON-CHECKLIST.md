@@ -120,6 +120,11 @@ fails fatal if it is missing.  Do **not** set
 | `/api/cron/ai-period-rollover` | `ai_period_rollover` | `0 0 1 * *` | `CRON_SECRET`, `DATABASE_URL` | Month-1 seed of `ai_org_usage_monthly` per active org. (Stage 6.P6-CATCHUP) | ✓ | ✓ |
 | `/api/cron/ai-warn-thresholds` | `ai_warn_thresholds` | `0 9 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily 80%/95% threshold check — stamps `last_warn_sent_at` / `last_high_warn_sent_at`. (Stage 6.P6-CATCHUP) | ✓ | ✓ |
 | `/api/cron/ai-stripe-sync` | `ai_stripe_sync` | `0 2 * * *` | `CRON_SECRET`, `DATABASE_URL` | STUB until Stage 7.D — stamps stripe_synced_at on linked rows. (Stage 6.P6-CATCHUP) | ✓ | ✓ |
+| `/api/cron/subscription-warn-expiry` | `subscription_warn_expiry` | `0 8 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily D-5/D-2 expiry warnings — stamps trial_warned events. (Stage 7.C) | ✓ | ✓ |
+| `/api/cron/subscription-attempt-renewal` | `subscription_attempt_renewal` | `15 8 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily renewal sweep — STUB until Stage 7.D. (Stage 7.C) | ✓ | ✓ |
+| `/api/cron/subscription-advance-lifecycle` | `subscription_advance_lifecycle` | `30 8 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily FSM advance — grace→suspended, cancelling→cancelled. (Stage 7.C) | ✓ | ✓ |
+| `/api/cron/subscription-archive-expired` | `subscription_archive_expired` | `45 8 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily archive of suspended/cancelled rows past their archive window. (Stage 7.C) | ✓ | ✓ |
+| `/api/cron/subscription-purge-archived` | `subscription_purge_archived` | `0 9 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily purge of archived rows past purge window — 5% safety lock. (Stage 7.C) | ✓ | ✓ |
 | `/api/cron/run-all` | `(dispatcher)` | manual / on-demand | `CRON_SECRET`, `DATABASE_URL` | Iterates the dispatch table; per-job locks apply | ✓ | not scheduled by default |
 
 ## Vercel setup
@@ -224,7 +229,12 @@ Create one if you haven't:
     { "path": "/api/cron/ai-aggregate-daily", "schedule": "30 1 * * *" },
     { "path": "/api/cron/ai-period-rollover", "schedule": "0 0 1 * *" },
     { "path": "/api/cron/ai-warn-thresholds", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/ai-stripe-sync", "schedule": "0 2 * * *" }
+    { "path": "/api/cron/ai-stripe-sync", "schedule": "0 2 * * *" },
+    { "path": "/api/cron/subscription-warn-expiry", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/subscription-attempt-renewal", "schedule": "15 8 * * *" },
+    { "path": "/api/cron/subscription-advance-lifecycle", "schedule": "30 8 * * *" },
+    { "path": "/api/cron/subscription-archive-expired", "schedule": "45 8 * * *" },
+    { "path": "/api/cron/subscription-purge-archived", "schedule": "0 9 * * *" }
   ]
 }
 ```

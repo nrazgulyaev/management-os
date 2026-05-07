@@ -96,6 +96,12 @@ export { runAiAggregateDaily } from "./ai-aggregate-daily-job";
 export { runAiPeriodRollover } from "./ai-period-rollover-job";
 export { runAiWarnThresholds } from "./ai-warn-thresholds-job";
 export { runAiStripeSync } from "./ai-stripe-sync-job";
+// Stage 7.C — subscription lifecycle crons
+export { runSubscriptionWarnExpiry } from "./subscription-warn-expiry-job";
+export { runSubscriptionAttemptRenewal } from "./subscription-attempt-renewal-job";
+export { runSubscriptionAdvanceLifecycle } from "./subscription-advance-lifecycle-job";
+export { runSubscriptionArchiveExpired } from "./subscription-archive-expired-job";
+export { runSubscriptionPurgeArchived } from "./subscription-purge-archived-job";
 
 export type DevOsJobKey =
   | "dev_os_pricing_apply"
@@ -183,7 +189,13 @@ export type DevOsJobKey =
   | "ai_aggregate_daily"
   | "ai_period_rollover"
   | "ai_warn_thresholds"
-  | "ai_stripe_sync";
+  | "ai_stripe_sync"
+  // Stage 7.C — subscription lifecycle
+  | "subscription_warn_expiry"
+  | "subscription_attempt_renewal"
+  | "subscription_advance_lifecycle"
+  | "subscription_archive_expired"
+  | "subscription_purge_archived";
 
 export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "dev_os_pricing_apply",
@@ -266,4 +278,9 @@ export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "ai_period_rollover",
   "ai_warn_thresholds",
   "ai_stripe_sync",
+  "subscription_warn_expiry",
+  "subscription_attempt_renewal",
+  "subscription_advance_lifecycle",
+  "subscription_archive_expired",
+  "subscription_purge_archived",
 ];

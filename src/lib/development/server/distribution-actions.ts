@@ -354,3 +354,58 @@ export async function cancelDistribution(
       .where(eq(distributions.id, distributionId));
   });
 }
+
+// ---------------------------------------------------------------------------
+// Stage 6.P7-CATCHUP — Edit a declared (not-yet-executed) distribution.
+//
+// Once executed, distributions are immutable (allocations have moved real
+// wallet balances). Editing is therefore restricted to the `declared` state
+// where allocations have only been computed, not credited.
+// ---------------------------------------------------------------------------
+
+const editDistributionSchema = z.object({
+  id: z.string().uuid(),
+  effectiveDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  triggerReason: z.enum(DISTRIBUTION_TRIGGER_REASONS).optional(),
+});
+
+/**
+ * Edit a declared distribution's metadata. Refuses edits to executed,
+ * cancelled, or completed distributions.
+ *
+ * Note: changing `totalAmountUsdMinor` would require recomputing every
+ * allocation row — that's a bigger redeclare flow, intentionally out of
+ * scope. Operators wanting to change the amount should `cancelDistribution`
+ * + `declareDistribution` again.
+ */
+export async function editDistribution(
+  input: z.input<typeof editDistributionSchema>,
+): Promise<void> {
+  const parsed = editDistributionSchema.parse(input);
+  const db = requireDb();
+
+  const [existing] = await db
+    .select({ status: distributions.status })
+    .from(distributions)
+    .where(eq(distributions.id, parsed.id))
+    .limit(1);
+  if (!existing) throw new Error("Distribution not found");
+  if (existing.status !== "declared") {
+    throw new Error(
+      `Cannot edit distribution with status='${existing.status}' — only 'declared' distributions accept metadata edits`,
+    );
+  }
+
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (parsed.effectiveDate !== undefined)
+    patch.effectiveDate = parsed.effectiveDate;
+  if (parsed.notes !== undefined) patch.notes = parsed.notes;
+  if (parsed.triggerReason !== undefined)
+    patch.triggerReason = parsed.triggerReason;
+
+  await db.update(distributions).set(patch).where(eq(distributions.id, parsed.id));
+}

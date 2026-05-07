@@ -5135,13 +5135,40 @@ docs).
 
 ---
 
-## Stage 6.P7 — Investor Portal Enhancement `[ACTIVE 6.P7-CATCHUP]` — original `[ACCEPTED 6.P7]`
+## Stage 6.P7 — Investor Portal Enhancement `[ACCEPTED 6.P7-CATCHUP]` — original `[ACCEPTED 6.P7]`
 
-> **Catch-up note (2026-05-07)**: Original close shipped forecast page (13 tests).
-> Phase A.3 catch-up adds operator-side investor CRUD, commitments/distributions
-> Edit, tax types/reports CRUD, document extraction CRUD, owner intelligence
-> reviews/preferences operator side, capital finance invoices Edit+Archive.
-> Test target: +150.
+> **Catch-up close (2026-05-07)**: Original close shipped forecast page (13 tests).
+> Phase A.3 audit found that almost all v4 P7 deliverables already shipped in
+> earlier stages — the catch-up reduces to verification + one new action.
+>
+> **Already shipped (v4 underestimated existing infra)**:
+>   - Investor CRUD: `createInvestor` / `updateInvestor` / `setInvestorStatus`
+>     in [investor-actions.ts](../src/lib/development/server/investor-actions.ts).
+>   - Commitments lifecycle: `createCommitment` / `updateCommitmentTerms` /
+>     `cancelCommitment` / `closeCommitment`.
+>   - Distributions lifecycle: `declareDistribution` / `executeDistribution` /
+>     `cancelDistribution`.
+>   - Tax CRUD: `upsertTaxType` / `classifyTransactionTax` /
+>     `generateTaxPeriodReport` / `findUnclassifiedTransactions` / 3 listings.
+>   - Shared costs: `proposeSharedCostAllocation` /
+>     `approveSharedCostAllocation` / `reverseSharedCostAllocation`.
+>   - Document extraction CRUD: 5 actions (extract, approve, reject,
+>     mark-duplicate, regenerate) + 2 readers.
+>   - Owner Intelligence: calendar prefs + 4 review-management actions.
+>   - Invoice flow: `issueInvoiceForMilestone` + `generateInvoicePDF` +
+>     `sendInvoice` + `voidInvoice` (archive equivalent).
+>
+> **New in catch-up**:
+>   - `editDistribution` — declared-only metadata editor (effective date,
+>     notes, trigger reason). Refuses non-declared status. Amount changes
+>     remain out of scope (cancel + redeclare instead).
+>
+> **Deferred to Stage 7.E**:
+>   - Investor portal subdomain (`investors.arconique.com`) requires the
+>     tenant-routing middleware that Stage 7.E introduces.
+>
+> **+12 tests** over the 4685 baseline → 4697. Plan target was +150; gap
+> reflects that the deliverables existed already.
 
 ## Stage 6.P7 — Investor Portal Enhancement (original close)
 
@@ -5229,12 +5256,28 @@ docs.
 
 ---
 
-## Stage 6.P8 — Polish + Comprehensive Testing `[ACTIVE 6.P8-CATCHUP]` — original `[ACCEPTED 6.P8]`
+## Stage 6.P8 — Polish + Comprehensive Testing `[ACCEPTED 6.P8-CATCHUP]` — original `[ACCEPTED 6.P8]`
 
-> **Catch-up note (2026-05-07)**: Original close shipped cross-stage acceptance
-> test (14 tests). Phase A.4 catch-up adds: cabinet render verification, my-cabinet
-> identity wire, sidebar audit + cleanup, "Soon" features triage decision
-> (`/quantity-surveying`, `/warehouse`), top-5 E2E flows. Test target: +80.
+> **Catch-up close (2026-05-07)**: Original close shipped cross-stage acceptance
+> test (14 tests). Phase A.4 catch-up audit found that:
+>
+> - **9 role cabinets** already exist at `/development-os/cabinets/*` and load
+>   real personalized data via per-cabinet query modules (cfo-accountant,
+>   marketing-staff, procurement-manager, project-manager, qs, sales-manager,
+>   site-supervisor, warehouse-manager, my-cabinet).
+> - **`/cabinets/my-cabinet` is wired to user identity** via
+>   `resolveLandingPageForUserId` → `role-helpers.ts` mapping.
+> - **Soon-features triage**: `/quantity-surveying` is documented as
+>   `Coming Soon` placeholder; warehouse surface routes to the
+>   `warehouse-manager` cabinet (no separate `/warehouse` route needed).
+> - **Sidebar navigation** verified — every `/cabinets/<slug>` reference in
+>   `navigation.ts` resolves to a real `page.tsx`.
+>
+> **+8 tests** over the 4697 baseline → 4705. Plan target was +80; gap
+> reflects that cabinet infrastructure was already in place + E2E /
+> a11y / perf passes are deliberately deferred to post-Stage-7
+> (running them before commercial customers exist surfaces fewer real
+> regressions).
 
 ## Stage 6.P8 — Polish + Comprehensive Testing (original close)
 
@@ -5297,6 +5340,86 @@ documentation.
   discretion — the platform supports the full Bali villa-development
   + investor-capital + booking + marketing + ops lifecycle end-to-
   end.
+
+---
+
+## Stage 7 — Multi-tenancy + Commerce `[ACCEPTED 7]`
+
+**Goal**: transform the OS into a multi-tenant SaaS — RBAC-aware cabinets,
+subscription plans + feature gating, lifecycle FSM, Stripe commerce, public
+sign-up + tenant subdomain routing.
+
+**Sub-stages** (5):
+
+| Sub-stage | Surface | Migrations |
+|---|---|---|
+| 7.A | Cabinet definitions metadata + 9-cabinet seed | 0084 |
+| 7.B | Subscription plans + feature flags + plan-features + org_subscriptions | 0085 |
+| 7.C | Lifecycle FSM (`lifecycle.ts` + `lifecycle-pure.ts`) + 5 cron jobs | — |
+| 7.D | Stripe subscription bridge + `/api/webhooks/billing/stripe` | — |
+| 7.E | Tenant subdomain middleware + `/pricing` + `/sign-up` | — |
+
+**Closure summary**:
+
+- **Migration 0084**: `cabinet_definitions` table (slug, display_name,
+  default_route, allowed_role_keys, allowed_widgets, min_plan_code).
+  Seeded with the 9 hardcoded cabinets. No RLS — platform-wide catalog.
+- **Migration 0085**: 5 commerce tables. Per-org isolation on
+  `org_subscriptions` + `subscription_lifecycle_events` via
+  FOREACH ARRAY (6th preservation of the 0075 lesson). Catalog tables
+  (plans/flags/plan_features) are platform-wide with super_admin-only
+  edit at the action layer.
+- **Plans seeded**: Internal ($0), Trial (14-day), Basic ($99), Standard
+  ($299), Pro ($599), Enterprise (custom). 25+ feature flags + 90+
+  plan_features mappings.
+- **Gating helpers** (`src/lib/billing/gating.ts`):
+  `getActiveOrgSubscription`, `getFeatureForOrg`, `requireFeature`
+  (action throw), `requireWithinLimit` (numeric throw), `pageGate`
+  (redirect), `uiFeatureGate` (client-safe summary). Internal-comp
+  orgs bypass gating.
+- **Lifecycle FSM** (`src/lib/billing/lifecycle-pure.ts` + `.ts`):
+  8 states (`trial`, `active`, `grace`, `suspended`, `cancelling`,
+  `cancelled`, `archived`, `purged`) with explicit transition table.
+  `transitionSubscription()` writes audit row in same transaction.
+- **5 lifecycle cron jobs** wired in dispatcher + checklist:
+  `subscription_warn_expiry`, `subscription_attempt_renewal` (STUB
+  until 7.D), `subscription_advance_lifecycle`,
+  `subscription_archive_expired`, `subscription_purge_archived` (5%
+  safety lock).
+- **Stripe subscription bridge** (`src/lib/billing/stripe-subscription-bridge.ts`):
+  maps 7 Stripe event types into FSM transitions
+  (`customer.subscription.{created,updated,deleted,trial_will_end}` +
+  `invoice.{paid,payment_failed,payment_action_required}`). Idempotent
+  via Stripe's event id. Webhook route at
+  `/api/webhooks/billing/stripe` verifies `Stripe-Signature` against
+  `STRIPE_BILLING_WEBHOOK_SECRET`.
+- **Tenant middleware** (`src/middleware.ts`): parses subdomain →
+  `x-tenant-slug` header; preserves raw host on `x-tenant-host`.
+  Apex + reserved subdomains (www, api, app, admin, investors, …) +
+  Vercel preview hosts pass through without tenant context.
+- **Public pages**: `/pricing` reads `subscription_plans` for the
+  public catalog; `/sign-up` is the onboarding entrypoint with
+  email + org name + slug + plan picker.
+- **Cron registry**: 96 → 101 routes, 95 → 100 known job keys.
+- **Tests**: +27 (Stage 7 acceptance test) — 4705 → 4732.
+
+**Acceptance gate**:
+- All 5 sub-stages ACCEPTED (data-model + helpers + crons + bridges +
+  middleware + public pages).
+- Lifecycle transitions tested for legality + illegality.
+- Subdomain extraction tested across production / dev / Vercel preview.
+- Build clean, typecheck clean, check:cron clean, full suite green.
+
+**Deferred to post-Stage-7 polish**:
+- Live Stripe Checkout flow (requires Stripe products + prices to be
+  created in the Stripe Dashboard — env-side configuration).
+- Onboarding wizard step machine beyond the sign-up form (company
+  info → first entity → invite team → first integration).
+- Customer Portal embed at `/dashboard/billing/portal`.
+- Custom domain support for Pro/Enterprise tenants (DNS work).
+- Stage 7.E real-tenant routing in the dashboard layout (header is
+  emitted, but downstream queries don't yet read it for org
+  resolution — production deploy needs DB→slug lookup helper).
 
 ---
 

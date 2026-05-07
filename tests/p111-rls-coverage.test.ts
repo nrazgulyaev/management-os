@@ -42,6 +42,16 @@ const ALLOWLIST = new Set<string>([
   "_drizzle_migrations",
   "drizzle_migrations",
   // Public marketing-style demo lookup tables (none currently).
+  // Stage 7.A — platform-wide cabinet metadata (no org_id; super_admin
+  // only edits via the catalog management UI).
+  "cabinet_definitions",
+  // Stage 7.B — platform-wide commerce catalog (no org_id; super_admin
+  // owns plan + flag + plan_features rows). Per-org isolation lives on
+  // org_subscriptions + subscription_lifecycle_events, both of which DO
+  // have RLS.
+  "subscription_plans",
+  "feature_flags",
+  "plan_features",
 ]);
 
 interface MigrationCorpus {

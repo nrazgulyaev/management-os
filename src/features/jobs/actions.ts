@@ -101,6 +101,11 @@ import {
   runAiPeriodRollover,
   runAiWarnThresholds,
   runAiStripeSync,
+  runSubscriptionWarnExpiry,
+  runSubscriptionAttemptRenewal,
+  runSubscriptionAdvanceLifecycle,
+  runSubscriptionArchiveExpired,
+  runSubscriptionPurgeArchived,
 } from "@/lib/development/server/cron";
 import { ensureDefaultJobDefinitions } from "./services";
 import { acquireJobLock, releaseJobLock } from "./locks";
@@ -232,6 +237,12 @@ const KNOWN_JOBS = new Set([
   "ai_period_rollover",
   "ai_warn_thresholds",
   "ai_stripe_sync",
+  // Stage 7.C — subscription lifecycle
+  "subscription_warn_expiry",
+  "subscription_attempt_renewal",
+  "subscription_advance_lifecycle",
+  "subscription_archive_expired",
+  "subscription_purge_archived",
 ]);
 
 export type JobKey =
@@ -329,7 +340,12 @@ export type JobKey =
   | "ai_aggregate_daily"
   | "ai_period_rollover"
   | "ai_warn_thresholds"
-  | "ai_stripe_sync";
+  | "ai_stripe_sync"
+  | "subscription_warn_expiry"
+  | "subscription_attempt_renewal"
+  | "subscription_advance_lifecycle"
+  | "subscription_archive_expired"
+  | "subscription_purge_archived";
 
 /**
  * Dispatch table — maps job key to runner. Cron routes call into this
@@ -585,6 +601,16 @@ export async function executeJob(
         return runAiWarnThresholds(handle);
       case "ai_stripe_sync":
         return runAiStripeSync(handle);
+      case "subscription_warn_expiry":
+        return runSubscriptionWarnExpiry(handle);
+      case "subscription_attempt_renewal":
+        return runSubscriptionAttemptRenewal(handle);
+      case "subscription_advance_lifecycle":
+        return runSubscriptionAdvanceLifecycle(handle);
+      case "subscription_archive_expired":
+        return runSubscriptionArchiveExpired(handle);
+      case "subscription_purge_archived":
+        return runSubscriptionPurgeArchived(handle);
       default:
         // unreachable — KNOWN_JOBS keeps us honest
         throw new Error(`Unhandled job key: ${jobKey}`);
