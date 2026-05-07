@@ -269,18 +269,13 @@ test("selectBankProvider: credential discriminator mismatch falls back to DryRun
   assert.ok(provider instanceof DryRunBankProvider);
 });
 
-test("selectBankProvider: P3.A scope returns DryRun for every provider even with matching creds", () => {
-  // Real implementations land in P3.C/D/E/F. Until then every selector
-  // path returns DryRun — the contract is stable, the implementation
-  // grows.
+test("selectBankProvider: providers still pending real implementation return DryRun even with matching creds", () => {
+  // Each promotion to a real provider removes that provider's case
+  // from this list. P3.C landed Revolut; P3.D landed Wise; P3.E
+  // landed Mandiri + BCA. Plaid + manual stay DryRun for the entire
+  // P3 — Plaid integration is deferred and "manual" is by design a
+  // no-op slot for hand-entered accounts.
   const cases: Array<[string, BankCredentials]> = [
-    ["revolut", { provider: "revolut", apiKey: "k", environment: "sandbox" }],
-    [
-      "wise",
-      { provider: "wise", apiToken: "x", profileId: "1", environment: "sandbox" },
-    ],
-    ["mandiri", { provider: "mandiri", accountNumber: "123" }],
-    ["bca", { provider: "bca", accountNumber: "456" }],
     [
       "plaid",
       {
@@ -301,7 +296,7 @@ test("selectBankProvider: P3.A scope returns DryRun for every provider even with
     );
     assert.ok(
       provider instanceof DryRunBankProvider,
-      `${name} should still be DryRun at P3.A`,
+      `${name} should still be DryRun pre-real-impl`,
     );
     assert.equal(provider.provider, name);
   }
@@ -383,18 +378,10 @@ test("selectPaymentProvider: credential discriminator mismatch falls back to Dry
   assert.ok(provider instanceof DryRunPaymentProvider);
 });
 
-test("selectPaymentProvider: P3.A scope returns DryRun for every provider even with matching creds", () => {
+test("selectPaymentProvider: payment providers still pending real implementation return DryRun even with matching creds", () => {
+  // P3.F landed Stripe. wise_payments / paypal stay reserved for
+  // later iterations; "manual" is DryRun by design.
   const cases: Array<[string, PaymentCredentials]> = [
-    [
-      "stripe",
-      {
-        provider: "stripe",
-        secretKey: "sk_test_x",
-        publishableKey: "pk_test_x",
-        webhookSecret: "whsec_x",
-        mode: "test",
-      },
-    ],
     [
       "wise_payments",
       {
@@ -422,7 +409,7 @@ test("selectPaymentProvider: P3.A scope returns DryRun for every provider even w
     );
     assert.ok(
       provider instanceof DryRunPaymentProvider,
-      `${name} should still be DryRun at P3.A`,
+      `${name} should still be DryRun pre-real-impl`,
     );
     assert.equal(provider.provider, name);
   }
@@ -512,12 +499,14 @@ test("public surface: payment-processors module is named to avoid colliding with
 // 8) Architecture doc bookkeeping
 // ===========================================================================
 
-test("architecture doc: Stage 6.P3 marked ACTIVE, P0/P1/P2 ACCEPTED", () => {
+test("architecture doc: Stage 6.P0–P3 all ACCEPTED post-closure", () => {
+  // Stage 6.P3 closed at the end of P3.G — all four sub-stages ACCEPTED.
+  // The ACTIVE marker moves forward to whichever sub-stage is in flight.
   const src = readFile("docs/development-os-architecture.md");
   assert.match(src, /Stage 6\.P0 — CRUD Foundation `\[ACCEPTED 6\.P0\]`/);
   assert.match(src, /Stage 6\.P1 — Booking Channels `\[ACCEPTED 6\.P1\]`/);
   assert.match(src, /Stage 6\.P2 — Communications `\[ACCEPTED 6\.P2\]`/);
-  assert.match(src, /Stage 6\.P3 — Banking \+ Payments `\[ACTIVE 6\.P3\]`/);
+  assert.match(src, /Stage 6\.P3 — Banking \+ Payments `\[ACCEPTED 6\.P3\]`/);
 });
 
 test("architecture doc: Stage 6.P3 entry-state inheritance documents the 4075 baseline + 82 cron routes", () => {

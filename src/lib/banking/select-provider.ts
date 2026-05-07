@@ -1,5 +1,9 @@
 import type { BankProviderName } from "@/lib/db/schema/banking";
 import { DryRunBankProvider } from "./providers/dry-run";
+import { RevolutProvider } from "./providers/revolut/provider";
+import { WiseProvider } from "./providers/wise/provider";
+import { MandiriProvider } from "./providers/mandiri/provider";
+import { BCAProvider } from "./providers/bca/provider";
 import type { BankCredentials, BankProviderInterface } from "./types";
 
 /**
@@ -40,15 +44,37 @@ export function selectBankProvider(
   }
 
   switch (provider) {
-    // P3.C lands Revolut.
     case "revolut":
-    // P3.D lands Wise.
+      // P3.C landed Revolut Business — see providers/revolut/.
+      if (credentials.provider !== "revolut") {
+        return new DryRunBankProvider(provider);
+      }
+      return new RevolutProvider(credentials);
+
     case "wise":
-    // P3.E lands Mandiri + BCA.
+      // P3.D landed Wise — see providers/wise/.
+      if (credentials.provider !== "wise") {
+        return new DryRunBankProvider(provider);
+      }
+      return new WiseProvider(credentials);
+
     case "mandiri":
+      // P3.E landed Mandiri (manual import primary, partner API
+      // deferred). See providers/mandiri/.
+      if (credentials.provider !== "mandiri") {
+        return new DryRunBankProvider(provider);
+      }
+      return new MandiriProvider(credentials);
+
     case "bca":
-    // P3 doesn't ship Plaid in this iteration, but the selector keeps
-    // the slot reserved.
+      // P3.E landed BCA (manual import primary, partner API
+      // deferred). See providers/bca/.
+      if (credentials.provider !== "bca") {
+        return new DryRunBankProvider(provider);
+      }
+      return new BCAProvider(credentials);
+
+    // P3 doesn't ship Plaid in this iteration; the slot stays reserved.
     case "plaid":
     case "manual":
       return new DryRunBankProvider(provider);

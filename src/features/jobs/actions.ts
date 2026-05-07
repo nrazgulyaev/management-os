@@ -87,6 +87,11 @@ import {
   runMessagingStatusSync,
   runMessagingAutoResponseEvaluator,
   runMessagingCleanup,
+  runBankAccountSync,
+  runReconciliationEngine,
+  runStripeEventPoller,
+  runPaymentStatusSync,
+  runPeriodCloseReminder,
 } from "@/lib/development/server/cron";
 import { ensureDefaultJobDefinitions } from "./services";
 import { acquireJobLock, releaseJobLock } from "./locks";
@@ -200,6 +205,12 @@ const KNOWN_JOBS = new Set([
   "messaging_status_sync",
   "messaging_auto_response_evaluator",
   "messaging_cleanup",
+  // Development OS · Stage 6.P3.G — banking + payments
+  "bank_account_sync",
+  "reconciliation_engine",
+  "stripe_event_poller",
+  "payment_status_sync",
+  "period_close_reminder",
 ]);
 
 export type JobKey =
@@ -283,7 +294,12 @@ export type JobKey =
   | "messaging_inbound_poll"
   | "messaging_status_sync"
   | "messaging_auto_response_evaluator"
-  | "messaging_cleanup";
+  | "messaging_cleanup"
+  | "bank_account_sync"
+  | "reconciliation_engine"
+  | "stripe_event_poller"
+  | "payment_status_sync"
+  | "period_close_reminder";
 
 /**
  * Dispatch table — maps job key to runner. Cron routes call into this
@@ -511,6 +527,16 @@ export async function executeJob(
         return runMessagingAutoResponseEvaluator(handle);
       case "messaging_cleanup":
         return runMessagingCleanup(handle);
+      case "bank_account_sync":
+        return runBankAccountSync(handle);
+      case "reconciliation_engine":
+        return runReconciliationEngine(handle);
+      case "stripe_event_poller":
+        return runStripeEventPoller(handle);
+      case "payment_status_sync":
+        return runPaymentStatusSync(handle);
+      case "period_close_reminder":
+        return runPeriodCloseReminder(handle);
       default:
         // unreachable — KNOWN_JOBS keeps us honest
         throw new Error(`Unhandled job key: ${jobKey}`);

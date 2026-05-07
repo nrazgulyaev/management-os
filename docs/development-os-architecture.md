@@ -4474,7 +4474,7 @@ P2 sub-checkpoints land in order: P2.A → P2.B → P2.C → P2.D → P2.E → P
 
 ---
 
-## Stage 6.P3 — Banking + Payments `[ACTIVE 6.P3]`
+## Stage 6.P3 — Banking + Payments `[ACCEPTED 6.P3]`
 
 **Goal**: bank statement parsing (CSV/OFX/PDF/MT940), API integrations
 for Revolut Business + Wise, Indonesian banks (Mandiri/BCA — manual +
@@ -4611,3 +4611,41 @@ P3.E Indonesian banks, P3.F Stripe, P3.G reconciliation engine + UI).
 
 P3 sub-checkpoints land in order: P3.A → P3.B → P3.C → P3.D → P3.E →
 P3.F → P3.G.
+
+**P3 closure summary (2026-05-07)**:
+- 7 new banking + payment tables across 3 migrations (0079 banking,
+  0080 payments, 0081 closed_periods). All RLS via FOREACH ARRAY.
+- 6 bank providers (Revolut, Wise, Mandiri, BCA, Plaid, manual) +
+  DryRun behind `BankProviderInterface`. Revolut + Wise are real
+  HTTP implementations; Mandiri + BCA are manual-import primary
+  (partner API access deferred); Plaid is a reserved DryRun slot.
+- 1 payment provider (Stripe) + 3 reserved DryRun slots
+  (Wise Payments, PayPal, manual) behind `PaymentProviderInterface`.
+- 4 statement parsers (CSV / OFX / PDF / MT940) with idempotent
+  ID synthesis + bundled Mandiri + BCA + generic CSV templates.
+- Reconciliation engine — pure auto-matcher (multi-factor confidence
+  scoring), description fuzzy matcher (Jaccard + Levenshtein
+  backstop), rules engine (every match_type, priority ordering).
+- Service layer (`BankingService`) wires provider + matcher + rules
+  into the cron sweep + UI server actions.
+- Bookkeeper UI: 5 pages under `/development-os/finance/`
+  (`bank-review`, `reconciliation`, `statement-import`, `rules`,
+  `period-close`). Server actions in
+  `src/lib/banking/bookkeeper-actions.ts` with `"use server"`
+  (Stage 5.J build-fix invariant preserved).
+- Period close — `closed_periods` ledger + `closePeriod` /
+  `reopenPeriod` / `isPeriodClosed` service helpers. Reopening
+  requires a written reason; the row is preserved, never deleted.
+- 5 cron jobs (`bank_account_sync`, `reconciliation_engine`,
+  `stripe_event_poller`, `payment_status_sync`,
+  `period_close_reminder`). Cron registry: 82 → 87 routes.
+- 4 webhook routes (`/api/webhooks/banking/{revolut,wise}/`,
+  `/api/webhooks/payments/{stripe,wise}/`). Banking + payments
+  webhook envelope handlers verify signatures (Revolut HMAC-SHA256
+  with replay window, Stripe HMAC-SHA256 with replay window, Wise
+  RSA-SHA256 fail-closed pending key plumbing).
+- Stripe form-encoder hand-rolled (no SDK dependency); supports
+  nested objects, arrays, dates, bigints; null/undefined skipped
+  per Stripe's "destructive update" semantic.
+- 4325+ tests pass; zero regressions on the 4206 baseline.
+- Stage 6.P4 (Marketing + Analytics) is unblocked.

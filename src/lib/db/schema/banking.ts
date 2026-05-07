@@ -305,6 +305,57 @@ export const reconciliationRules = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// closed_periods (migration 0081)
+// ---------------------------------------------------------------------------
+export const closedPeriods = pgTable(
+  "closed_periods",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    periodStart: date("period_start").notNull(),
+    periodEnd: date("period_end").notNull(),
+    /** PeriodScope FSM */
+    scope: text("scope").notNull().default("month"),
+    transactionsCount: integer("transactions_count").notNull().default(0),
+    reconciledCount: integer("reconciled_count").notNull().default(0),
+    unmatchedCount: integer("unmatched_count").notNull().default(0),
+    notes: text("notes"),
+    closedBy: uuid("closed_by")
+      .notNull()
+      .references(() => appUsers.id),
+    closedAt: timestamp("closed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    reopenedBy: uuid("reopened_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    reopenedAt: timestamp("reopened_at", { withTimezone: true }),
+    reopenReason: text("reopen_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    unique("closed_periods_unique").on(
+      t.organizationId,
+      t.periodStart,
+      t.periodEnd,
+    ),
+    index("closed_periods_org_idx").on(t.organizationId),
+  ],
+);
+
+export type ClosedPeriod = typeof closedPeriods.$inferSelect;
+export type NewClosedPeriod = typeof closedPeriods.$inferInsert;
+
+export type PeriodScope = "month" | "quarter" | "year" | "custom";
+
+// ---------------------------------------------------------------------------
 // Type exports
 // ---------------------------------------------------------------------------
 export type BankConnection = typeof bankConnections.$inferSelect;

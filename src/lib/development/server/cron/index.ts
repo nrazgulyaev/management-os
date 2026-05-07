@@ -78,6 +78,12 @@ export { runMessagingInboundPoll } from "./messaging-inbound-poll-job";
 export { runMessagingStatusSync } from "./messaging-status-sync-job";
 export { runMessagingAutoResponseEvaluator } from "./messaging-auto-response-evaluator-job";
 export { runMessagingCleanup } from "./messaging-cleanup-job";
+// Stage 6.P3.G — banking + payments cron handlers
+export { runBankAccountSync } from "./bank-account-sync-job";
+export { runReconciliationEngine } from "./reconciliation-engine-job";
+export { runStripeEventPoller } from "./stripe-event-poller-job";
+export { runPaymentStatusSync } from "./payment-status-sync-job";
+export { runPeriodCloseReminder } from "./period-close-reminder-job";
 
 export type DevOsJobKey =
   | "dev_os_pricing_apply"
@@ -147,7 +153,13 @@ export type DevOsJobKey =
   | "messaging_inbound_poll"
   | "messaging_status_sync"
   | "messaging_auto_response_evaluator"
-  | "messaging_cleanup";
+  | "messaging_cleanup"
+  // Stage 6.P3.G — banking + payments
+  | "bank_account_sync"
+  | "reconciliation_engine"
+  | "stripe_event_poller"
+  | "payment_status_sync"
+  | "period_close_reminder";
 
 export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "dev_os_pricing_apply",
@@ -216,4 +228,9 @@ export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "messaging_status_sync",
   "messaging_auto_response_evaluator",
   "messaging_cleanup",
+  "bank_account_sync",
+  "reconciliation_engine",
+  "stripe_event_poller",
+  "payment_status_sync",
+  "period_close_reminder",
 ];

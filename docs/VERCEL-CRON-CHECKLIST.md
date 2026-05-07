@@ -106,6 +106,11 @@ fails fatal if it is missing.  Do **not** set
 | `/api/cron/messaging-status-sync` | `messaging_status_sync` | `*/15 * * * *` | `CRON_SECRET`, `DATABASE_URL` | Reconciles outbound `conversation_messages` rows stuck in `queued/sending/sent` for >24h to `failed` so the inbox UI never shows an indefinite "sending" pill. (Stage 6.P2.F) | ✓ | ✓ |
 | `/api/cron/messaging-auto-response-evaluator` | `messaging_auto_response_evaluator` | `* * * * *` | `CRON_SECRET`, `DATABASE_URL` | Evaluates time-based auto-response rules (`after_hours`, `no_response_timeout`). Inbound-driven rules already fire from the service layer. (Stage 6.P2.F) | ✓ | ✓ |
 | `/api/cron/messaging-cleanup` | `messaging_cleanup` | `0 3 * * *` | `CRON_SECRET`, `DATABASE_URL` | Auto-archives `conversation_threads` inactive >90 days. Reversible via inbox UI. (Stage 6.P2.F) | ✓ | ✓ |
+| `/api/cron/bank-account-sync` | `bank_account_sync` | `0 * * * *` | `CRON_SECRET`, `DATABASE_URL`, `STAY_LINK_KMS_SECRET` | Pulls transactions from every active bank connection with `auto_sync_enabled=true`. Idempotent dedupe via UNIQUE on `(bank_connection_id, external_transaction_id)`. (Stage 6.P3.G) | ✓ | ✓ |
+| `/api/cron/reconciliation-engine` | `reconciliation_engine` | `*/30 * * * *` | `CRON_SECRET`, `DATABASE_URL` | Re-runs the auto-matcher over still-unmatched transactions per org. Catches the case where a bank tx landed before the corresponding invoice. (Stage 6.P3.G) | ✓ | ✓ |
+| `/api/cron/stripe-event-poller` | `stripe_event_poller` | `*/15 * * * *` | `CRON_SECRET`, `DATABASE_URL`, `STAY_LINK_KMS_SECRET` | Webhook fallback — polls Stripe `/v1/events` for any events the webhook missed. P3.G bootstrap shell; full per-connection cursor wiring lands in P3.G+. (Stage 6.P3.G) | ✓ | ✓ |
+| `/api/cron/payment-status-sync` | `payment_status_sync` | `*/30 * * * *` | `CRON_SECRET`, `DATABASE_URL` | Reconciles `payment_intents` rows stuck in `created/processing/requires_action` for >24h to `failed`. Webhooks drive the happy path; this is the safety net. (Stage 6.P3.G) | ✓ | ✓ |
+| `/api/cron/period-close-reminder` | `period_close_reminder` | `0 9 1 * *` | `CRON_SECRET`, `DATABASE_URL` | Monthly check on the 1st: any org with active bank connections that hasn't closed last calendar month? Read-only. (Stage 6.P3.G) | ✓ | ✓ |
 | `/api/cron/run-all` | `(dispatcher)` | manual / on-demand | `CRON_SECRET`, `DATABASE_URL` | Iterates the dispatch table; per-job locks apply | ✓ | not scheduled by default |
 
 ## Vercel setup
@@ -196,7 +201,12 @@ Create one if you haven't:
     { "path": "/api/cron/messaging-inbound-poll", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/messaging-status-sync", "schedule": "*/15 * * * *" },
     { "path": "/api/cron/messaging-auto-response-evaluator", "schedule": "* * * * *" },
-    { "path": "/api/cron/messaging-cleanup", "schedule": "0 3 * * *" }
+    { "path": "/api/cron/messaging-cleanup", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/bank-account-sync", "schedule": "0 * * * *" },
+    { "path": "/api/cron/reconciliation-engine", "schedule": "*/30 * * * *" },
+    { "path": "/api/cron/stripe-event-poller", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/payment-status-sync", "schedule": "*/30 * * * *" },
+    { "path": "/api/cron/period-close-reminder", "schedule": "0 9 1 * *" }
   ]
 }
 ```

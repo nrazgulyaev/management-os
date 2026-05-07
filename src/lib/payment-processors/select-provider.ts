@@ -1,5 +1,6 @@
 import type { PaymentProviderName } from "@/lib/db/schema/payment-processors";
 import { DryRunPaymentProvider } from "./providers/dry-run";
+import { StripeProvider } from "./providers/stripe/provider";
 import type {
   PaymentCredentials,
   PaymentProviderInterface,
@@ -33,8 +34,13 @@ export function selectPaymentProvider(
   }
 
   switch (provider) {
-    // P3.F lands Stripe.
     case "stripe":
+      // P3.F landed Stripe — see providers/stripe/.
+      if (credentials.provider !== "stripe") {
+        return new DryRunPaymentProvider(provider);
+      }
+      return new StripeProvider(credentials);
+
     // P3 doesn't ship Wise Payments / PayPal in this iteration.
     case "wise_payments":
     case "paypal":
