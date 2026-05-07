@@ -7,7 +7,7 @@
  * through these and a single bad message must not crash the batch.
  */
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { verifyHmacSha256Signature } from "@/lib/channel-manager/provider-helpers";
 import type {
   ConnectionTestResult,
   IncomingMessage,
@@ -117,25 +117,11 @@ export class WhatsAppMetaProvider implements MessagingProvider {
    * HMAC-SHA256 keyed with the app secret over the raw request body.
    */
   verifyWebhook(payload: string, signature: string, secret: string): boolean {
-    if (!signature || !payload) return false;
     // Meta always uses the appSecret stored on the credentials.
     // The `secret` parameter is honored for symmetry with the
     // interface but defaults to the appSecret bound at construction.
     const key = secret || this.appSecret;
-    if (!key) return false;
-    const provided = signature.startsWith("sha256=")
-      ? signature.slice("sha256=".length)
-      : signature;
-    try {
-      const computed = createHmac("sha256", key).update(payload).digest("hex");
-      if (provided.length !== computed.length) return false;
-      return timingSafeEqual(
-        Buffer.from(provided, "utf8"),
-        Buffer.from(computed, "utf8"),
-      );
-    } catch {
-      return false;
-    }
+    return verifyHmacSha256Signature(payload, signature, key);
   }
 
   parseWebhook(

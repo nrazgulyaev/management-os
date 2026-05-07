@@ -3,6 +3,11 @@ import { DryRunMessagingProvider } from "./providers/dry-run";
 import { WhatsAppMetaProvider } from "./providers/whatsapp-meta/provider";
 import { WhatsAppTwilioProvider } from "./providers/whatsapp-twilio/provider";
 import { TelegramProvider } from "./providers/telegram/provider";
+import { InstagramProvider } from "./providers/instagram/provider";
+import { MessengerProvider } from "./providers/messenger/provider";
+import { GmailProvider } from "./providers/gmail/provider";
+import { ResendProvider } from "./providers/resend/provider";
+import { TwilioSmsProvider } from "./providers/twilio-sms/provider";
 import type {
   MessagingCredentials,
   MessagingProvider,
@@ -76,15 +81,47 @@ export function selectMessagingProvider(
       }
       return new TelegramProvider(credentials);
 
-    // P2.D–E land the rest. Until then, the safe default is DryRun
-    // even when credentials are present — operators can configure
-    // the connection now and it goes live when the provider class
-    // is wired up.
     case "instagram":
+      // P2.D landed Instagram — see providers/instagram/.
+      if (credentials.channel !== "instagram") {
+        return new DryRunMessagingProvider(channel);
+      }
+      return new InstagramProvider(credentials);
+
     case "facebook_messenger":
-    case "email":
+      // P2.D landed Messenger — see providers/messenger/.
+      if (credentials.channel !== "facebook_messenger") {
+        return new DryRunMessagingProvider(channel);
+      }
+      return new MessengerProvider(credentials);
+
+    case "email": {
+      // P2.E landed Gmail. The credential blob's `provider`
+      // discriminator picks Gmail OAuth vs Resend transactional.
+      // Resend's MessagingProvider adapter lands in P2.F alongside
+      // the operator UI.
+      if (credentials.channel !== "email") {
+        return new DryRunMessagingProvider(channel);
+      }
+      const em = credentials;
+      switch (em.provider) {
+        case "gmail":
+          return new GmailProvider(em);
+        case "resend":
+          // P2.F landed the Resend transactional adapter.
+          return new ResendProvider(em);
+        default:
+          return new DryRunMessagingProvider(channel);
+      }
+    }
+
     case "sms":
-      return new DryRunMessagingProvider(channel);
+      // P2.F landed the Twilio SMS adapter under the unified interface.
+      // Stage 3.D's env-var-driven path coexists for in-app callers.
+      if (credentials.channel !== "sms") {
+        return new DryRunMessagingProvider(channel);
+      }
+      return new TwilioSmsProvider(credentials);
 
     default: {
       // Exhaustiveness guard — TS flags missing cases when a new

@@ -53,10 +53,10 @@ const F_ARCH_DOC = "docs/development-os-architecture.md";
 // 1) Architecture doc markers
 // ===========================================================================
 
-test("architecture: Stage 6.P1 ACCEPTED + Stage 6.P2 ACTIVE markers stable", () => {
+test("architecture: Stage 6.P1 + Stage 6.P2 ACCEPTED markers stable (post-P2.F)", () => {
   const src = read(F_ARCH_DOC);
   assert.match(src, /Stage 6\.P1 — Booking Channels `\[ACCEPTED 6\.P1\]`/);
-  assert.match(src, /Stage 6\.P2 — Communications `\[ACTIVE 6\.P2\]`/);
+  assert.match(src, /Stage 6\.P2 — Communications `\[ACCEPTED 6\.P2\]`/);
 });
 
 test("architecture: P2 section names locked architectural decisions", () => {
@@ -305,31 +305,16 @@ test("selector: falls back to DryRun on credentials.channel mismatch", () => {
   assert.ok(provider instanceof DryRunMessagingProvider);
 });
 
-test("selector: returns DryRun for channels still pending real implementation (P2.D–E)", () => {
-  // Each promotion to a real provider must remove that channel's
-  // case from this list. WhatsApp promoted in P2.B; Telegram in P2.C.
+test("selector: every channel except internal_note now selects a real provider when credentials are present (post-P2.F)", () => {
+  // Stage 6.P2 ships real adapters for every external messaging
+  // channel. `internal_note` deliberately stays DryRun because notes
+  // never leave the platform.
+  //
+  // If a future channel is added (e.g. LINE), this list keeps the
+  // contract honest: when its real provider lands the case is added
+  // here; while it's still pending the case is moved to the
+  // "still-DryRun" list below.
   const cases: Array<[string, MessagingCredentials]> = [
-    [
-      "instagram",
-      {
-        channel: "instagram",
-        pageAccessToken: "p",
-        instagramBusinessAccountId: "i",
-        facebookPageId: "f",
-        appSecret: "a",
-        webhookVerifyToken: "v",
-      },
-    ],
-    [
-      "facebook_messenger",
-      {
-        channel: "facebook_messenger",
-        pageAccessToken: "p",
-        facebookPageId: "f",
-        appSecret: "a",
-        webhookVerifyToken: "v",
-      },
-    ],
     [
       "email",
       {
@@ -355,8 +340,8 @@ test("selector: returns DryRun for channels still pending real implementation (P
       creds,
     );
     assert.ok(
-      provider instanceof DryRunMessagingProvider,
-      `${name} should still be DryRun pre-P2.D/E`,
+      !(provider instanceof DryRunMessagingProvider),
+      `${name} should select a real provider post-P2.F`,
     );
     assert.equal(provider.channel, name);
   }
@@ -449,14 +434,15 @@ test("dry-run file: doesn't import server-only or DB modules (pure)", () => {
   assert.doesNotMatch(src, /from "@\/lib\/db/);
 });
 
-test("selector file: P2.B + P2.C promoted whatsapp + telegram; gmail still pending", () => {
-  // Post-P2.C: whatsapp + telegram have real providers wired up.
-  // P2.D/E still pending — instagram/messenger/gmail must NOT yet
-  // appear as imports here.
+test("selector file: P2.B–E promoted all 5 channels; only Resend + SMS adapter pending for P2.F", () => {
+  // Post-P2.E: whatsapp + telegram + instagram + messenger + gmail
+  // all have real providers wired up. Resend + SMS adapters land
+  // in P2.F.
   const src = read(F_SELECTOR);
   assert.match(src, /from "\.\/providers\/whatsapp-meta\/provider"/);
   assert.match(src, /from "\.\/providers\/whatsapp-twilio\/provider"/);
   assert.match(src, /from "\.\/providers\/telegram\/provider"/);
-  assert.doesNotMatch(src, /from "\.\/providers\/instagram/);
-  assert.doesNotMatch(src, /from "\.\/providers\/gmail/);
+  assert.match(src, /from "\.\/providers\/instagram\/provider"/);
+  assert.match(src, /from "\.\/providers\/messenger\/provider"/);
+  assert.match(src, /from "\.\/providers\/gmail\/provider"/);
 });

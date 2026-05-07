@@ -102,6 +102,10 @@ fails fatal if it is missing.  Do **not** set
 | `/api/cron/channel-reservations-pull` | `channel_reservations_pull` | `*/5 * * * *` | `CRON_SECRET`, `DATABASE_URL`, `STAY_LINK_KMS_SECRET` | Pulls modified-since reservations from each active connection and feeds through `handleIncomingReservation`. Webhook fallback. (Stage 6.P1.G) | ✓ | ✓ |
 | `/api/cron/channel-conflict-detector` | `channel_conflict_detector` | `0 * * * *` | `CRON_SECRET`, `DATABASE_URL` | Hourly sweep over recent channel reservations to flag overlaps the per-reservation pipeline missed. Surfaces on `/development-os/channels/conflicts`. (Stage 6.P1.G) | ✓ | ✓ |
 | `/api/cron/channel-commission-reconciliation` | `channel_commission_reconciliation` | `0 2 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily auto-reconcile (invoice + payment both true) + flag stale (>30d) commission records for bookkeeper attention. (Stage 6.P1.G) | ✓ | ✓ |
+| `/api/cron/messaging-inbound-poll` | `messaging_inbound_poll` | `*/5 * * * *` | `CRON_SECRET`, `DATABASE_URL`, `STAY_LINK_KMS_SECRET` | Bootstrap no-op shell. Webhook channels (WhatsApp, Telegram, IG, Messenger) push in real time. Reserved for Gmail pull-mode + future IMAP. (Stage 6.P2.F) | ✓ | ✓ |
+| `/api/cron/messaging-status-sync` | `messaging_status_sync` | `*/15 * * * *` | `CRON_SECRET`, `DATABASE_URL` | Reconciles outbound `conversation_messages` rows stuck in `queued/sending/sent` for >24h to `failed` so the inbox UI never shows an indefinite "sending" pill. (Stage 6.P2.F) | ✓ | ✓ |
+| `/api/cron/messaging-auto-response-evaluator` | `messaging_auto_response_evaluator` | `* * * * *` | `CRON_SECRET`, `DATABASE_URL` | Evaluates time-based auto-response rules (`after_hours`, `no_response_timeout`). Inbound-driven rules already fire from the service layer. (Stage 6.P2.F) | ✓ | ✓ |
+| `/api/cron/messaging-cleanup` | `messaging_cleanup` | `0 3 * * *` | `CRON_SECRET`, `DATABASE_URL` | Auto-archives `conversation_threads` inactive >90 days. Reversible via inbox UI. (Stage 6.P2.F) | ✓ | ✓ |
 | `/api/cron/run-all` | `(dispatcher)` | manual / on-demand | `CRON_SECRET`, `DATABASE_URL` | Iterates the dispatch table; per-job locks apply | ✓ | not scheduled by default |
 
 ## Vercel setup
@@ -188,7 +192,11 @@ Create one if you haven't:
     { "path": "/api/cron/channel-rates-sync", "schedule": "*/30 * * * *" },
     { "path": "/api/cron/channel-reservations-pull", "schedule": "*/5 * * * *" },
     { "path": "/api/cron/channel-conflict-detector", "schedule": "0 * * * *" },
-    { "path": "/api/cron/channel-commission-reconciliation", "schedule": "0 2 * * *" }
+    { "path": "/api/cron/channel-commission-reconciliation", "schedule": "0 2 * * *" },
+    { "path": "/api/cron/messaging-inbound-poll", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/messaging-status-sync", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/messaging-auto-response-evaluator", "schedule": "* * * * *" },
+    { "path": "/api/cron/messaging-cleanup", "schedule": "0 3 * * *" }
   ]
 }
 ```

@@ -73,6 +73,11 @@ export { runChannelRatesSync } from "./channel-rates-sync-job";
 export { runChannelReservationsPull } from "./channel-reservations-pull-job";
 export { runChannelConflictDetector } from "./channel-conflict-detector-job";
 export { runChannelCommissionReconciliation } from "./channel-commission-reconciliation-job";
+// Stage 6.P2.F — unified messaging cron handlers
+export { runMessagingInboundPoll } from "./messaging-inbound-poll-job";
+export { runMessagingStatusSync } from "./messaging-status-sync-job";
+export { runMessagingAutoResponseEvaluator } from "./messaging-auto-response-evaluator-job";
+export { runMessagingCleanup } from "./messaging-cleanup-job";
 
 export type DevOsJobKey =
   | "dev_os_pricing_apply"
@@ -137,7 +142,12 @@ export type DevOsJobKey =
   | "channel_rates_sync"
   | "channel_reservations_pull"
   | "channel_conflict_detector"
-  | "channel_commission_reconciliation";
+  | "channel_commission_reconciliation"
+  // Stage 6.P2.F — unified messaging
+  | "messaging_inbound_poll"
+  | "messaging_status_sync"
+  | "messaging_auto_response_evaluator"
+  | "messaging_cleanup";
 
 export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "dev_os_pricing_apply",
@@ -202,4 +212,8 @@ export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "channel_reservations_pull",
   "channel_conflict_detector",
   "channel_commission_reconciliation",
+  "messaging_inbound_poll",
+  "messaging_status_sync",
+  "messaging_auto_response_evaluator",
+  "messaging_cleanup",
 ];

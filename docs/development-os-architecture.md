@@ -4331,7 +4331,7 @@ workflow, P1.G cron + webhooks + polish).
 
 ---
 
-## Stage 6.P2 — Communications `[ACTIVE 6.P2]`
+## Stage 6.P2 — Communications `[ACCEPTED 6.P2]`
 
 **Goal**: unified inbox covering WhatsApp (Meta Cloud + Twilio dual
 provider), Telegram, Instagram Business, Facebook Messenger, Email
@@ -4446,3 +4446,168 @@ templates + auto-response polish).
 - After acceptance, P3 (Banking + Payments) can begin
 
 P2 sub-checkpoints land in order: P2.A → P2.B → P2.C → P2.D → P2.E → P2.F.
+
+**P2 closure summary (2026-05-06)**:
+- 7 messaging channels supported behind one `MessagingProvider` interface
+  (WhatsApp Meta Cloud + Twilio dual, Telegram, Instagram Business,
+  Facebook Messenger, Gmail OAuth, Resend transactional, Twilio SMS).
+- 5 webhook routes under `/api/webhooks/messaging/<channel>/` —
+  unified handler delegates to per-channel `verifyWebhook` +
+  `parseWebhook`. Meta routes carry the verify-token GET handshake;
+  Telegram uses `x-telegram-bot-api-secret-token`; Twilio uses
+  HMAC-SHA1 over URL+sorted-form-params.
+- 4 new cron jobs (`messaging_inbound_poll` every 5 min,
+  `messaging_status_sync` every 15 min,
+  `messaging_auto_response_evaluator` every 1 min,
+  `messaging_cleanup` daily). Cron registry: 78 → 82 routes.
+- Inbox UI at `/development-os/inbox` (list + thread detail + reply
+  composer + templates + auto-response rules). Server actions live
+  in `src/lib/messaging/inbox-actions.ts` with `"use server"` so
+  client-imported builds succeed under the Stage 5.J build-fix
+  invariant.
+- Pure rule predicates split into `src/lib/messaging/rule-predicates.ts`
+  (no `server-only` import) so tests exercise them without mocking DB.
+- 4075 tests pass (Stage 6.P2.A → P2.F); 1042 Stage 6 tests; zero
+  regressions on baseline.
+- Migration 0078 applies; FOREACH pattern preserved.
+- After acceptance, Stage 6.P3 (Banking + Payments) is unblocked.
+
+---
+
+## Stage 6.P3 — Banking + Payments `[ACTIVE 6.P3]`
+
+**Goal**: bank statement parsing (CSV/OFX/PDF/MT940), API integrations
+for Revolut Business + Wise, Indonesian banks (Mandiri/BCA — manual +
+email parsing primary), Stripe payments + webhooks, reconciliation
+engine, bookkeeper-focused workflow (daily review, period close,
+statement import wizard).
+
+**Estimate**: 2–3 weeks; 7 internal sub-checkpoints (P3.A schema +
+provider abstraction, P3.B statement parsers, P3.C Revolut, P3.D Wise,
+P3.E Indonesian banks, P3.F Stripe, P3.G reconciliation engine + UI).
+
+**Entry-state inheritance** (post-P2.F):
+- 4075 baseline tests passing.
+- 82 cron routes, 81 known job keys.
+- 4 messaging tables + RLS (migration 0078).
+- Provider abstractions proven across 3 surfaces (AI Stage 3.A,
+  channel-manager Stage 6.P1, messaging Stage 6.P2): one interface,
+  one selector, DryRun fallback by default.
+- Reusable patterns: `requestWithRetry` (P1.A), shared
+  `verifyHmacSha256Signature` (P1.D `provider-helpers.ts`),
+  `credentials-crypto.ts` (P1.B encrypted credential blobs),
+  `EntityModal` UI shell (P0.3).
+- Existing finance infrastructure (Stage 4.A bookkeeping, P0.4 finance
+  forms, P0.7 bulk import) stays in place — P3 adds alongside, doesn't
+  consolidate.
+
+**Architectural decisions locked at P3 entry**:
+
+- **Coexist, don't consolidate.** Existing tables (`dev_bank_accounts`,
+  `dev_transactions`, `dev_cost_categories`, `payment_provider_accounts`,
+  `direct_booking_deposits`, `payment_webhook_events`) all stay. P3
+  adds `bank_connections` + `bank_transactions` + `statement_imports` +
+  `reconciliation_rules` for the new ingestion + reconciliation surface,
+  and `payment_processor_connections` + `payment_intents` +
+  `payment_attempts` for the unified processor surface. Bridges between
+  old and new live in P3.G's reconciliation engine.
+- **FK parity with the codebase, not the spec.** Migration 0079
+  references the actual physical tables (`dev_bank_accounts`,
+  `dev_cost_categories`, `dev_transactions`) instead of the spec's
+  shorthand (`bank_accounts`, `cost_categories`, `transactions`).
+- **Per-org RLS.** Both migrations enable RLS via
+  `is_in_user_organization(organization_id)` (Stage 5.J helper) and
+  use the FOREACH IN ARRAY ARRAY[...] pattern (per the migration 0075
+  lesson — Postgres versions vary on FOR ... IN SELECT unnest()).
+- **Provider abstraction follows the same pattern as every prior stage.**
+  One `BankProviderInterface` + one `selectBankProvider` selector +
+  per-provider implementations + DryRun fallback for banking. Same
+  shape for `PaymentProviderInterface` + `selectPaymentProvider`.
+  Lives in `src/lib/banking/` and `src/lib/payment-processors/` (the
+  latter named to avoid colliding with the existing `src/lib/payments/`
+  direct-booking module).
+- **Discriminated credential unions.** Each provider has a typed
+  credential interface keyed by a literal `provider` discriminator.
+  Selector verifies the discriminator matches the requested provider
+  and falls back to DryRun on mismatch — a misconfigured connection
+  cannot construct a real provider with the wrong credential shape.
+- **Encrypted credential storage.** `bank_connections.credentials` and
+  `payment_processor_connections.credentials` are JSONB columns
+  encrypted at rest via the existing `STAY_LINK_KMS_SECRET` (Stage 5.I
+  + P1.B helper). Decryption happens at construction time inside the
+  service layer.
+- **Idempotent ingestion** for bank transactions:
+  `UNIQUE (bank_connection_id, external_transaction_id)` — same
+  transaction can't be imported twice no matter how many sync passes
+  run.
+- **Webhooks fail-closed by default.** Every payment provider MUST
+  verify webhook signatures; the DryRun provider returns false, so a
+  misconfigured environment cannot silently accept signed payloads.
+- **Bookkeeper-first UI.** Daily review, statement import wizard,
+  reconciliation dashboard, period close. P3.G is the bulk of the
+  user-facing work; the underlying providers (P3.C/D/E/F) feed it.
+- **Period close locks data**. Once a period is closed, transactions
+  in that period cannot be modified without an admin override
+  (recorded in the audit log).
+
+**P3 deliverables**:
+
+1. Migrations 0079 (4 banking tables) + 0080 (3 payment-processor
+   tables). FOREACH IN ARRAY RLS preserved. Idempotent.
+2. Drizzle schema modules: `src/lib/db/schema/banking.ts`,
+   `src/lib/db/schema/payment-processors.ts`. Re-exported from the
+   schema index.
+3. Banking provider abstraction at `src/lib/banking/`:
+   `types.ts`, `select-provider.ts`, `providers/dry-run.ts`,
+   public surface `index.ts`. Real providers (Revolut, Wise, Mandiri,
+   BCA, Plaid, manual) land in P3.C → P3.E.
+4. Payment processor abstraction at `src/lib/payment-processors/`:
+   `types.ts`, `select-provider.ts`, `providers/dry-run.ts`, public
+   surface `index.ts`. Real providers (Stripe, Wise Payments, PayPal,
+   manual) land in P3.F.
+5. Statement parsers for CSV / OFX / PDF / MT940 (P3.B).
+6. Reconciliation engine + bookkeeper UI (P3.G): daily review,
+   reconciliation dashboard, statement import wizard, rules editor,
+   period close.
+7. 5 new cron jobs: bank-account-sync (1h), reconciliation-engine
+   (30min), stripe-event-poller (15min), payment-status-sync (30min),
+   period-close-reminder (daily). Total cron routes: 82 → 87.
+8. 4 new webhook routes:
+   `/api/webhooks/banking/{revolut,wise}/`,
+   `/api/webhooks/payments/{stripe,wise}/`.
+9. Documentation: `BANKING-ARCHITECTURE.md`,
+   `BANK-STATEMENT-FORMATS.md`, `RECONCILIATION-GUIDE.md`,
+   `PAYMENT-PROCESSORS-SETUP.md`, `STAGE-6-P3-COMPLETE.md`.
+10. ≥250 new tests; total ≥4325; zero regressions on the 4075
+    baseline.
+
+**Schema additions (2 migrations)**:
+- `0079_development_os_stage_6_p3_banking.sql` — 4 banking tables,
+  per-org RLS via FOREACH ARRAY pattern.
+- `0080_development_os_stage_6_p3_payments.sql` — 3 payment-processor
+  tables, reuses `banking_set_updated_at()` trigger function from 0079.
+
+**Acceptance gate**:
+- Both migrations apply cleanly with the FOREACH IN ARRAY pattern.
+- 7 new tables created with per-org RLS.
+- 6 bank providers (Revolut, Wise, Mandiri, BCA, Plaid, manual) +
+  DryRun behind a single selector.
+- 3 payment providers (Stripe, Wise Payments, PayPal) + manual +
+  DryRun behind a single selector.
+- 4 statement parsers functional (CSV, OFX, PDF text-extraction,
+  MT940). Auto-detect dialect for CSV.
+- Reconciliation engine auto-matches with confidence ≥ 0.95;
+  uncertain matches flagged for manual review.
+- Bookkeeper UI complete (daily review, reconciliation dashboard,
+  statement import, rules, period close).
+- 5 new cron jobs in `KNOWN_JOBS` + dispatcher + Vercel checklist.
+- 4 webhook routes verify signatures (Revolut HMAC-SHA256, Wise RSA,
+  Stripe `Stripe-Signature` with replay protection).
+- ≥4325 tests passing; zero regressions on the 4075 baseline.
+- `npm run check:cron` clean.
+- 0075 FOREACH lesson preserved (asserted in tests).
+- Stage 5.J build-fix invariant maintained.
+- After acceptance, Stage 6.P4 (Marketing + Analytics) is unblocked.
+
+P3 sub-checkpoints land in order: P3.A → P3.B → P3.C → P3.D → P3.E →
+P3.F → P3.G.

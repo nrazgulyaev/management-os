@@ -75,3 +75,5 @@ export * from "./saas";
 export * from "./bulk-import";
 export * from "./channel-manager";
 export * from "./messaging";
+export * from "./banking";
+export * from "./payment-processors";

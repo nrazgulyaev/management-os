@@ -83,6 +83,10 @@ import {
   runChannelReservationsPull,
   runChannelConflictDetector,
   runChannelCommissionReconciliation,
+  runMessagingInboundPoll,
+  runMessagingStatusSync,
+  runMessagingAutoResponseEvaluator,
+  runMessagingCleanup,
 } from "@/lib/development/server/cron";
 import { ensureDefaultJobDefinitions } from "./services";
 import { acquireJobLock, releaseJobLock } from "./locks";
@@ -191,6 +195,11 @@ const KNOWN_JOBS = new Set([
   "channel_reservations_pull",
   "channel_conflict_detector",
   "channel_commission_reconciliation",
+  // Development OS · Stage 6.P2.F — unified messaging
+  "messaging_inbound_poll",
+  "messaging_status_sync",
+  "messaging_auto_response_evaluator",
+  "messaging_cleanup",
 ]);
 
 export type JobKey =
@@ -270,7 +279,11 @@ export type JobKey =
   | "channel_rates_sync"
   | "channel_reservations_pull"
   | "channel_conflict_detector"
-  | "channel_commission_reconciliation";
+  | "channel_commission_reconciliation"
+  | "messaging_inbound_poll"
+  | "messaging_status_sync"
+  | "messaging_auto_response_evaluator"
+  | "messaging_cleanup";
 
 /**
  * Dispatch table — maps job key to runner. Cron routes call into this
@@ -490,6 +503,14 @@ export async function executeJob(
         return runChannelConflictDetector(handle);
       case "channel_commission_reconciliation":
         return runChannelCommissionReconciliation(handle);
+      case "messaging_inbound_poll":
+        return runMessagingInboundPoll(handle);
+      case "messaging_status_sync":
+        return runMessagingStatusSync(handle);
+      case "messaging_auto_response_evaluator":
+        return runMessagingAutoResponseEvaluator(handle);
+      case "messaging_cleanup":
+        return runMessagingCleanup(handle);
       default:
         // unreachable — KNOWN_JOBS keeps us honest
         throw new Error(`Unhandled job key: ${jobKey}`);

@@ -440,10 +440,12 @@ test("docs: STAGE-6-P1-COMPLETE rollup doc exists", () => {
   assert.ok(exists(F_DOC_COMPLETE));
 });
 
-test("architecture doc: Stage 6.P1 marked ACCEPTED + Stage 6.P2 marked ACTIVE", () => {
+test("architecture doc: Stage 6.P1 + Stage 6.P2 both marked ACCEPTED", () => {
+  // Stage 6.P2 closed at the end of P2.F; the ACTIVE marker has moved
+  // forward (currently to P3 once that sub-stage is opened).
   const src = read(F_ARCH_DOC);
   assert.match(src, /Stage 6\.P1 — Booking Channels `\[ACCEPTED 6\.P1\]`/);
-  assert.match(src, /Stage 6\.P2 — Communications `\[ACTIVE 6\.P2\]`/);
+  assert.match(src, /Stage 6\.P2 — Communications `\[ACCEPTED 6\.P2\]`/);
 });
 
 test("architecture doc: P1 acceptance state captures cron + webhook + provider counts", () => {
