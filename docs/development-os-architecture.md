@@ -5343,6 +5343,61 @@ documentation.
 
 ---
 
+## Stage 7.0 — AI commerce retrofit `[ACCEPTED 7.0]`
+
+> **Path C reconciliation (2026-05-07)**: an audit surfaced that the
+> originally-proposed Stage 7.0 plan ("AI Commerce Foundation") would have
+> created an AI-isolated parallel schema (`ai_subscription_plans`,
+> `ai_org_subscriptions`) that duplicates the generic commerce backbone
+> shipped in Stage 7.B. **Path C** kept the generic
+> `subscription_plans` / `org_subscriptions` as canonical, and added only
+> the AI-specific routing metadata. No parallel system, no duplication.
+>
+> **Closure summary**:
+>
+> - **Migration 0086** (additive only):
+>   - `subscription_plans.markup_percent` (INT 0..1000) — % markup over
+>     actual API cost for AI billing.
+>   - `subscription_plans.max_tier` (INT 1..3) — agent tier ceiling.
+>   - `subscription_plans.enabled_agent_codes` (TEXT[]) — allowlist
+>     (empty = all enabled).
+>   - `ai_org_usage_monthly.by_agent` / `.by_provider` / `.by_tier`
+>     (JSONB) — per-dimension breakdowns populated by the daily
+>     aggregate cron.
+>   - 7th preservation of the 0075 FOREACH IN ARRAY pattern.
+>   - Sanity CHECKs: `markup_percent ∈ [0, 1000]`, `max_tier ∈ [1, 3]`.
+> - **Per-plan seed defaults**: internal/enterprise = pass-through
+>   (markup 0, tier 3); trial = tier 1; basic/standard = tier 2 with
+>   30/40% markup; pro = tier 3 with 50% markup.
+> - **Tier router** at `src/lib/ai/router/`:
+>   - `tier-rules.ts` (PURE) — `AGENT_TIER_MAP` with 18 canonical agent
+>     codes; `agentCodeToTier`, `tierToModel`, `modelToTier`.
+>   - `route.ts` — `routeRequest({agentCode, plan, defaultProvider, providerOverride})`
+>     returns `{ok: true, provider, model, tier}` or
+>     `{ok: false, reason: 'tier_exceeded' | 'agent_disabled'}`.
+> - **Markup helper** at `src/lib/ai/markup.ts` (PURE):
+>   `applyMarkup(actualCostUsd, markupPercent)` returns
+>   `{actualCostUsd, billedAmountUsd, markupAppliedUsd, markupPercent}`.
+> - **`aiExecute()` updated** to:
+>   1. Snapshot the org's plan via `snapshotPlanForOrg(orgId)`.
+>   2. Call `routeRequest()` BEFORE provider resolution.
+>   3. Block with `tier_exceeded` / `agent_disabled` when the plan
+>      doesn't allow.
+>   4. Use the router-resolved model (caller-supplied `input.model`
+>      still wins).
+>   5. Return `tier` + `billedAmountUsd` on the success path.
+> - **`ai_aggregate_daily` cron** updated to GROUP BY
+>   (assistantKey, model) over month-to-date `ai_assistant_runs` and
+>   write `by_agent` / `by_provider` / `by_tier` JSONB. Each bucket
+>   holds `{runs, costUsd, promptTokens, completionTokens}`.
+> - **Dashboard** at `/development-os/settings/ai-usage` extended with
+>   a Stage 7.0 section: plan + daily/monthly cap metrics, quota state,
+>   and 3 per-dimension breakdown cards.
+> - **+33 tests** (4732 → 4765). Cron registry **unchanged at 101**
+>   (additive retrofit, no new jobs).
+
+---
+
 ## Stage 7 — Multi-tenancy + Commerce `[ACCEPTED 7]`
 
 **Goal**: transform the OS into a multi-tenant SaaS — RBAC-aware cabinets,

@@ -25,6 +25,16 @@ import {
   getRecentAiRuns,
 } from "@/lib/development/server/ai-usage";
 import { safeQuery } from "@/lib/development/safe-query";
+import { eq, and } from "drizzle-orm";
+import {
+  aiOrgQuotaLimits,
+  aiOrgUsageMonthly,
+} from "@/lib/db/schema/ai";
+import {
+  orgSubscriptions,
+  subscriptionPlans,
+} from "@/lib/db/schema/subscriptions";
+import { organizations } from "@/lib/db/schema/saas";
 
 export const metadata: Metadata = { title: "AI usage · Development OS" };
 export const dynamic = "force-dynamic";
@@ -47,6 +57,60 @@ const STATUS_TONE: Record<
 
 function fmtUsd(n: number): string {
   return n < 0.01 ? `$${n.toFixed(4)}` : `$${n.toFixed(2)}`;
+}
+
+interface BreakdownEntry {
+  runs?: number;
+  costUsd?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+}
+
+function BreakdownCard({
+  title,
+  data,
+  keyLabel,
+}: {
+  title: string;
+  data: Record<string, BreakdownEntry>;
+  keyLabel: string;
+}) {
+  const rows = Object.entries(data ?? {})
+    .map(([k, v]) => ({
+      key: k,
+      runs: v.runs ?? 0,
+      costUsd: v.costUsd ?? 0,
+    }))
+    .sort((a, b) => b.costUsd - a.costUsd);
+  return (
+    <div className="rounded-md border border-line-soft p-4">
+      <div className="text-label mb-3">{title}</div>
+      {rows.length === 0 ? (
+        <div className="text-xs text-ink-tertiary">No runs aggregated yet.</div>
+      ) : (
+        <table className="w-full text-sm">
+          <thead className="text-xs text-ink-tertiary">
+            <tr>
+              <th className="text-left font-normal pb-2">{keyLabel}</th>
+              <th className="text-right font-normal pb-2">Runs</th>
+              <th className="text-right font-normal pb-2">Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.key} className="border-t border-line-soft">
+                <td className="py-2 font-mono text-xs">{r.key}</td>
+                <td className="py-2 text-right tabular-nums">{r.runs}</td>
+                <td className="py-2 text-right tabular-nums">
+                  {fmtUsd(r.costUsd)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
 }
 
 export default async function AiUsagePage() {
@@ -76,6 +140,62 @@ export default async function AiUsagePage() {
     safeQuery("getRecentAiRuns", getRecentAiRuns({ limit: 100 }), [], 4000),
     safeQuery("getAiAgentBudgets", getAiAgentBudgets(), [], 4000),
   ]);
+
+  // Stage 7.0 retrofit — org-quota + plan + JSONB breakdowns for the
+  // first active org. (Multi-org switcher lands with Stage 7.E tenant
+  // routing.) Falls back gracefully if any of these queries return null.
+  const [defaultOrg] = await db
+    .select({ id: organizations.id, name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.isActive, true))
+    .limit(1);
+
+  const orgQuotaRow = defaultOrg
+    ? (
+        await db
+          .select()
+          .from(aiOrgQuotaLimits)
+          .where(eq(aiOrgQuotaLimits.organizationId, defaultOrg.id))
+          .limit(1)
+      )[0] ?? null
+    : null;
+
+  const now = new Date();
+  const orgUsageRow = defaultOrg
+    ? (
+        await db
+          .select()
+          .from(aiOrgUsageMonthly)
+          .where(
+            and(
+              eq(aiOrgUsageMonthly.organizationId, defaultOrg.id),
+              eq(aiOrgUsageMonthly.year, now.getUTCFullYear()),
+              eq(aiOrgUsageMonthly.month, now.getUTCMonth() + 1),
+            ),
+          )
+          .limit(1)
+      )[0] ?? null
+    : null;
+
+  const orgPlanRow = defaultOrg
+    ? (
+        await db
+          .select({
+            planCode: subscriptionPlans.planCode,
+            displayName: subscriptionPlans.displayName,
+            maxTier: subscriptionPlans.maxTier,
+            markupPercent: subscriptionPlans.markupPercent,
+            enabledAgentCodes: subscriptionPlans.enabledAgentCodes,
+          })
+          .from(orgSubscriptions)
+          .innerJoin(
+            subscriptionPlans,
+            eq(subscriptionPlans.planCode, orgSubscriptions.planCode),
+          )
+          .where(eq(orgSubscriptions.organizationId, defaultOrg.id))
+          .limit(1)
+      )[0] ?? null
+    : null;
 
   // Spend windows for each configured budget — runs in parallel.
   const budgetWindows = await Promise.all(
@@ -265,6 +385,71 @@ export default async function AiUsagePage() {
               })}
             </TBody>
           </Table>
+        </Section>
+      )}
+
+      {orgQuotaRow && (
+        <Section
+          eyebrow={`Org quota · ${defaultOrg?.name ?? "default"}`}
+          title="Plan limits + month-to-date breakdown"
+          description="Stage 7.0 — per-org quota enforcement. Daily resets at 00:00 UTC; monthly resets on the 1st."
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <MetricCard
+              label="Plan"
+              value={orgPlanRow?.displayName ?? "—"}
+              hint={
+                orgPlanRow
+                  ? `Tier max ${orgPlanRow.maxTier} · ${orgPlanRow.markupPercent}% markup`
+                  : "no subscription"
+              }
+            />
+            <MetricCard
+              label="Daily cap"
+              value={fmtUsd(Number(orgQuotaRow.dailyLimitUsd))}
+              hint={`today: ${fmtUsd(Number(orgUsageRow?.todayCostUsd ?? 0))}`}
+            />
+            <MetricCard
+              label="Monthly cap"
+              value={fmtUsd(Number(orgQuotaRow.monthlyLimitUsd))}
+              hint={`month: ${fmtUsd(Number(orgUsageRow?.totalCostUsd ?? 0))}`}
+            />
+            <MetricCard
+              label="Quota state"
+              value={
+                orgQuotaRow.lastBlockedAt
+                  ? "blocked"
+                  : !orgQuotaRow.isEnabled
+                    ? "disabled"
+                    : "ok"
+              }
+              hint={
+                orgQuotaRow.lastBlockedAt
+                  ? `last blocked: ${orgQuotaRow.lastBlockedAt.toISOString().slice(0, 10)}`
+                  : `warn≥${orgQuotaRow.warnThresholdPct}% high≥${orgQuotaRow.highThresholdPct}%`
+              }
+            />
+          </div>
+
+          {orgUsageRow && (
+            <div className="grid md:grid-cols-3 gap-4">
+              <BreakdownCard
+                title="By tier"
+                data={(orgUsageRow.byTier ?? {}) as Record<string, BreakdownEntry>}
+                keyLabel="Tier"
+              />
+              <BreakdownCard
+                title="By provider"
+                data={(orgUsageRow.byProvider ?? {}) as Record<string, BreakdownEntry>}
+                keyLabel="Provider"
+              />
+              <BreakdownCard
+                title="By agent"
+                data={(orgUsageRow.byAgent ?? {}) as Record<string, BreakdownEntry>}
+                keyLabel="Agent"
+              />
+            </div>
+          )}
         </Section>
       )}
 

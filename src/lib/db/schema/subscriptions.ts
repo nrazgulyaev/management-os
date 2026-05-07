@@ -55,6 +55,16 @@ export const subscriptionPlans = pgTable(
     isPublic: boolean("is_public").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(100),
     metadata: jsonb("metadata"),
+    // Stage 7.0 retrofit (migration 0086): AI-routing metadata.
+    /** Markup % over actual API cost for billing. 0 = pass-through. */
+    markupPercent: integer("markup_percent").notNull().default(0),
+    /** Tier ceiling for AI agents on this plan (1, 2, or 3). */
+    maxTier: integer("max_tier").notNull().default(1),
+    /** Allowlist of agent codes available on this plan. Empty = all enabled. */
+    enabledAgentCodes: text("enabled_agent_codes")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::TEXT[]`),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

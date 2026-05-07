@@ -259,6 +259,11 @@ export const aiOrgUsageMonthly = pgTable(
     /** Stage 7.D Stripe metered-billing sync stub. */
     stripeSyncedAt: timestamp("stripe_synced_at", { withTimezone: true }),
     stripeSubscriptionItemId: text("stripe_subscription_item_id"),
+    // Stage 7.0 retrofit (migration 0086): per-dimension breakdowns
+    // populated by the daily aggregate cron. Shape: { [code]: { runs, costUsd, tokens } }.
+    byAgent: jsonb("by_agent").notNull().default(sql`'{}'::jsonb`),
+    byProvider: jsonb("by_provider").notNull().default(sql`'{}'::jsonb`),
+    byTier: jsonb("by_tier").notNull().default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

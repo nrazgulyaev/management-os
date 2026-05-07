@@ -43,6 +43,17 @@ import {
   type AICompletionResponse,
   type AIProvider,
 } from "./providers";
+// Stage 7.0 retrofit — tier router + plan-aware gating.
+import {
+  subscriptionPlans,
+  orgSubscriptions,
+} from "@/lib/db/schema/subscriptions";
+import { applyMarkup } from "./markup";
+import {
+  routeRequest,
+  type PlanSnapshot,
+  type RouteDecision,
+} from "./router/route";
 
 export interface AiExecuteInput extends AICompletionRequest {
   organizationId: string;
@@ -63,6 +74,10 @@ export type AiExecuteResult =
       providerName: string;
       orgQuota: OrgQuotaSnapshot | null;
       legacyBudget: BudgetDecision;
+      /** Stage 7.0 — tier resolved by the router for this run. */
+      tier: 1 | 2 | 3;
+      /** Stage 7.0 — billed amount (actual + markup). USD. */
+      billedAmountUsd: number;
     }
   | {
       ok: false;
@@ -73,7 +88,9 @@ export type AiExecuteResult =
         | "legacy_budget_exceeded"
         | "provider_unavailable"
         | "provider_error"
-        | "db_unavailable";
+        | "db_unavailable"
+        | "tier_exceeded"
+        | "agent_disabled";
       message: string;
       orgQuota?: OrgQuotaSnapshot | null;
       legacyBudget?: BudgetDecision;
@@ -215,6 +232,51 @@ function resolveProvider(
 }
 
 /**
+ * Stage 7.0 retrofit — snapshot the plan-level routing metadata for an
+ * org. Returns null when the org has no active subscription (legacy
+ * single-tenant fall-through — the router treats null as "no gating").
+ *
+ * Reads from the joined (org_subscriptions, subscription_plans) tables
+ * shipped in Stage 7.B + extended by migration 0086.
+ */
+export async function snapshotPlanForOrg(
+  organizationId: string,
+): Promise<PlanSnapshot | null> {
+  const db = getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select({
+      planCode: subscriptionPlans.planCode,
+      maxTier: subscriptionPlans.maxTier,
+      enabledAgentCodes: subscriptionPlans.enabledAgentCodes,
+    })
+    .from(orgSubscriptions)
+    .innerJoin(
+      subscriptionPlans,
+      eq(subscriptionPlans.planCode, orgSubscriptions.planCode),
+    )
+    .where(eq(orgSubscriptions.organizationId, organizationId))
+    .limit(1);
+  if (!row) return null;
+  return {
+    planCode: row.planCode,
+    maxTier: (row.maxTier as 1 | 2 | 3) ?? 1,
+    enabledAgentCodes: row.enabledAgentCodes ?? [],
+  };
+}
+
+function defaultProviderName(): "anthropic" | "openai" | "gemini" | "dry_run" {
+  const explicit = process.env.AI_PROVIDER;
+  if (explicit === "openai") return "openai";
+  if (explicit === "gemini") return "gemini";
+  // anthropic is the default whenever a key exists; otherwise dry_run.
+  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
+  if (process.env.OPENAI_API_KEY) return "openai";
+  if (process.env.GEMINI_API_KEY) return "gemini";
+  return "dry_run";
+}
+
+/**
  * Unified entrypoint.
  */
 export async function aiExecute(
@@ -274,8 +336,39 @@ export async function aiExecute(
     };
   }
 
-  // Step 3: provider resolution + call.
-  const provider = resolveProvider(input.providerOverride);
+  // Step 3 (Stage 7.0): plan-aware router — checks max_tier +
+  // enabled_agent_codes BEFORE provider resolution. Returns the
+  // provider + tier-mapped model so we don't call a Tier-3 model on a
+  // Tier-1 plan.
+  const plan = await snapshotPlanForOrg(input.organizationId);
+  const route: RouteDecision = routeRequest({
+    agentCode: input.assistantKey,
+    plan,
+    defaultProvider: defaultProviderName(),
+    providerOverride: input.providerOverride,
+  });
+  if (!route.ok) {
+    if (route.reason === "tier_exceeded") {
+      return {
+        ok: false,
+        reason: "tier_exceeded",
+        message: `Agent '${input.assistantKey}' is Tier ${route.blockedTier}; plan max_tier is ${plan?.maxTier ?? "?"}.`,
+        orgQuota,
+        legacyBudget: legacy,
+      };
+    }
+    return {
+      ok: false,
+      reason: "agent_disabled",
+      message: `Agent '${input.assistantKey}' is not enabled on plan '${plan?.planCode ?? "?"}'.`,
+      orgQuota,
+      legacyBudget: legacy,
+    };
+  }
+
+  // Step 4: provider resolution + call. Router's choice wins over the
+  // legacy `getAIProvider()` fall-back.
+  const provider = resolveProvider(route.provider);
   if (!provider) {
     return {
       ok: false,
@@ -287,6 +380,9 @@ export async function aiExecute(
       legacyBudget: legacy,
     };
   }
+  // Apply the router-resolved model unless the caller explicitly
+  // overrode it via input.model.
+  const resolvedModel = input.model ?? route.model;
 
   const startedAt = Date.now();
   let response: AICompletionResponse;
@@ -296,7 +392,7 @@ export async function aiExecute(
       maxTokens: input.maxTokens,
       temperature: input.temperature,
       responseFormat: input.responseFormat,
-      model: input.model,
+      model: resolvedModel,
       timeoutMs: input.timeoutMs,
     });
   } catch (err) {
@@ -369,6 +465,20 @@ export async function aiExecute(
   // Re-snapshot the quota so the caller sees post-charge state.
   const postQuota = await snapshotOrgQuota(input.organizationId);
 
+  // Stage 7.0 — billed amount = actual cost × (1 + plan.markup_percent/100).
+  // Look up the markup off the joined subscription_plans row; falls back
+  // to 0 (pass-through) when the org has no subscription.
+  let markupPercent = 0;
+  if (plan) {
+    const [planRow] = await db
+      .select({ markupPercent: subscriptionPlans.markupPercent })
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.planCode, plan.planCode))
+      .limit(1);
+    markupPercent = planRow?.markupPercent ?? 0;
+  }
+  const markup = applyMarkup(costSplit.totalCostUsd, markupPercent);
+
   return {
     ok: true,
     response,
@@ -376,5 +486,7 @@ export async function aiExecute(
     providerName: provider.name,
     orgQuota: postQuota,
     legacyBudget: legacy,
+    tier: route.tier,
+    billedAmountUsd: markup.billedAmountUsd,
   };
 }
