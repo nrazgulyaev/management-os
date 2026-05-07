@@ -8,12 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
+import { and, eq } from "drizzle-orm";
 import {
   getWhatsappPhoneNumbers,
   getWhatsappTemplates,
 } from "@/lib/development/server/whatsapp-actions";
 import { safeQuery } from "@/lib/development/safe-query";
 import { getWhatsAppProvider } from "@/lib/whatsapp/providers";
+import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { oauthConnections } from "@/lib/db/schema/bulk-import";
+import { WhatsappCredentialForm } from "@/components/settings/whatsapp-credential-form";
 
 export const metadata: Metadata = {
   title: "WhatsApp setup · Development OS",
@@ -34,6 +38,8 @@ export default async function WhatsappSetupPage() {
 
   let arconiquePhones: Array<{ id: string; phoneNumber: string }> = [];
   let templates: Array<{ id: string; approvalStatus: string }> = [];
+  let org: { id: string } | null = null;
+  let hasSavedCreds = false;
   if (db) {
     const [phones, t] = await Promise.all([
       safeQuery(
@@ -46,6 +52,21 @@ export default async function WhatsappSetupPage() {
     ]);
     arconiquePhones = phones;
     templates = t;
+    org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+    if (org) {
+      const [existingCreds] = await db
+        .select({ id: oauthConnections.id })
+        .from(oauthConnections)
+        .where(
+          and(
+            eq(oauthConnections.organizationId, org.id),
+            eq(oauthConnections.provider, "twilio_whatsapp"),
+            eq(oauthConnections.isActive, true),
+          ),
+        )
+        .limit(1);
+      hasSavedCreds = !!existingCreds;
+    }
   }
   const approvedTemplateCount = templates.filter(
     (t) => t.approvalStatus === "approved",
@@ -138,6 +159,26 @@ export default async function WhatsappSetupPage() {
           </p>
         </div>
       </Section>
+
+      {org && (
+        <Section
+          eyebrow="Section 1b · Stage 7.F.C.2"
+          title="Per-org credentials (in-app form)"
+          description="Saves Twilio credentials encrypted to oauth_connections. The runtime today still reads env vars; per-org routing is the future swap. The test-message button uses the env-based runtime for verification."
+        >
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 mb-4">
+            <strong>Heads-up:</strong> credentials saved here are encrypted
+            but not yet picked up by the runtime — env vars take precedence
+            until the per-org runtime swap lands. Save them to keep your
+            secrets out of git + audit trail; verify operations via env
+            for now.
+          </div>
+          <WhatsappCredentialForm
+            organizationId={org.id}
+            hasExistingConnection={hasSavedCreds}
+          />
+        </Section>
+      )}
 
       <Section eyebrow="Section 2" title="Webhook configuration">
         <div className="rounded-md border border-line-soft bg-surface p-4 space-y-2 text-sm">

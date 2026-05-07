@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listDepartures } from "@/features/front-office/services";
+import { CheckOutButton } from "@/components/front-office/check-in-out-buttons";
 
 export const metadata = { title: "Departures" };
 export const dynamic = "force-dynamic";
@@ -44,6 +45,7 @@ export default async function DeparturesPage({
                   <th className="text-left px-3 py-2">Cleaning</th>
                   <th className="text-left px-3 py-2">Late checkout</th>
                   <th className="text-left px-3 py-2">Same-day arrival</th>
+                  <th className="text-left px-3 py-2">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
@@ -71,6 +73,12 @@ export default async function DeparturesPage({
                     </td>
                     <td className="px-3 py-2 text-ink-tertiary text-xs">
                       {r.nextArrivalBookingId ? "yes" : "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      <CheckOutButton
+                        bookingId={r.bookingId}
+                        bookingStatus={r.bookingStatus}
+                      />
                     </td>
                   </tr>
                 ))}

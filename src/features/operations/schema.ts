@@ -331,6 +331,19 @@ export const archiveDamageReportSchema = z.object({
   reason: z.string().max(500).optional().or(z.literal("")),
 });
 
+// Stage 7.F.A.2 — Maintenance ticket staff assignment.
+// Bridges via the linked operation_task (creates one if absent) since
+// maintenance_tickets has no assigned_to column.
+export const assignMaintenanceTicketSchema = z.object({
+  ticketId: z.string().uuid(),
+  assigneeId: z.string().uuid(),
+  scheduledFor: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional()
+    .or(z.literal("")),
+});
+
 export type EditOperationTaskInput = z.infer<typeof editOperationTaskSchema>;
 export type EditMaintenanceTicketInput = z.infer<typeof editMaintenanceTicketSchema>;
 export type EditDamageReportInput = z.infer<typeof editDamageReportSchema>;

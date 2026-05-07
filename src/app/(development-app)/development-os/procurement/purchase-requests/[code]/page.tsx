@@ -10,9 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { DevOsPurchaseRequestActions } from "@/components/development/procurement/request-actions";
 import { getDb } from "@/lib/db/client";
 import { devOsPurchaseRequests } from "@/lib/db/schema/procurement";
 import { getPurchaseRequest } from "@/lib/development/server/procurement/procurement-actions";
+import { getCurrentUserContext } from "@/features/auth/permissions";
 
 export const metadata: Metadata = {
   title: "Purchase request · Development OS",
@@ -62,6 +64,17 @@ export default async function PurchaseRequestDetailPage({
   const data = await getPurchaseRequest(pr.id);
   if (!data) notFound();
   const { request, quotations } = data;
+  const ctx = await getCurrentUserContext();
+  // Threshold-based check happens server-side; UI gates by role membership.
+  const canApprove = ctx.roles.some((r) =>
+    [
+      "super_admin",
+      "director",
+      "finance_manager",
+      "operations_manager",
+      "procurement_manager",
+    ].includes(r),
+  );
 
   return (
     <DevelopmentShell>
@@ -88,7 +101,7 @@ export default async function PurchaseRequestDetailPage({
       />
 
       <Section eyebrow="State" title="Status + urgency">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-4">
           <Badge tone={STATUS_TONE[request.status] ?? "neutral"}>
             {request.status}
           </Badge>
@@ -99,6 +112,11 @@ export default async function PurchaseRequestDetailPage({
             Required by {request.requiredByDate}
           </span>
         </div>
+        <DevOsPurchaseRequestActions
+          requestId={request.id}
+          status={request.status}
+          canApprove={canApprove}
+        />
       </Section>
 
       <Section eyebrow="What's needed" title="Material">

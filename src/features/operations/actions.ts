@@ -23,6 +23,7 @@ import {
   archiveDamageReportSchema,
   archiveMaintenanceTicketSchema,
   archiveOperationTaskSchema,
+  assignMaintenanceTicketSchema,
   assignTaskSchema,
   completeChecklistSchema,
   createChecklistFromTemplateSchema,
@@ -1269,4 +1270,128 @@ export async function archiveDamageReportAction(
 
   revalidatePath("/dashboard/operations/damage-reports");
   return { ok: true, redirectTo: `/dashboard/operations/damage-reports` };
+}
+
+// -----------------------------------------------------------------------------
+// Stage 7.F.A.2 — Maintenance ticket staff assignment.
+//
+// `maintenance_tickets` has no `assigned_to` column. The schema instead
+// stores `task_id` — a nullable reference to `operation_tasks`, which DOES
+// carry `assigned_to`. Assignment therefore bridges:
+//   - If the ticket has no linked task → create one with the assignee.
+//   - If the ticket has a linked task → update its `assigned_to`.
+// In both cases the ticket's `task_id` ends up populated + the operation
+// task carries the canonical assignment.
+// -----------------------------------------------------------------------------
+
+export async function assignMaintenanceTicketAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("operations.assign");
+  const parsed = assignMaintenanceTicketSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid request.",
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+
+  const [ticket] = await db
+    .select()
+    .from(maintenanceTickets)
+    .where(eq(maintenanceTickets.id, parsed.data.ticketId))
+    .limit(1);
+  if (!ticket) return { ok: false, error: "Ticket not found." };
+  if (ticket.status === "archived") {
+    return { ok: false, error: "Cannot assign an archived ticket." };
+  }
+
+  const scheduledFor =
+    parsed.data.scheduledFor && parsed.data.scheduledFor !== ""
+      ? parsed.data.scheduledFor
+      : null;
+
+  if (ticket.taskId) {
+    const [task] = await db
+      .select()
+      .from(operationTasks)
+      .where(eq(operationTasks.id, ticket.taskId))
+      .limit(1);
+    if (!task) return { ok: false, error: "Linked task not found." };
+    await db
+      .update(operationTasks)
+      .set({
+        assignedTo: parsed.data.assigneeId,
+        scheduledFor: scheduledFor ?? task.scheduledFor,
+        status: task.status === "open" ? "scheduled" : task.status,
+        updatedAt: new Date(),
+      })
+      .where(eq(operationTasks.id, ticket.taskId));
+    await recordAuditEvent({
+      actorUserId: me?.id ?? null,
+      action: "operations.maintenance.assign",
+      entityType: "maintenance_ticket",
+      entityId: ticket.id,
+      before: { taskId: ticket.taskId, assignedTo: task.assignedTo },
+      after: {
+        taskId: ticket.taskId,
+        assignedTo: parsed.data.assigneeId,
+        scheduledFor,
+      },
+    });
+  } else {
+    const counter = await nextDailyCounter("OPS");
+    const taskCode = buildTaskCode(counter);
+    const [newTask] = await db
+      .insert(operationTasks)
+      .values({
+        taskCode,
+        title: ticket.title,
+        description: ticket.description ?? null,
+        category: "maintenance",
+        priority:
+          ticket.severity === "urgent"
+            ? "urgent"
+            : ticket.severity === "high"
+              ? "high"
+              : ticket.severity === "low"
+                ? "low"
+                : "normal",
+        source: "system",
+        villaId: ticket.villaId ?? null,
+        projectId: ticket.projectId ?? null,
+        bookingId: ticket.bookingId ?? null,
+        assignedTo: parsed.data.assigneeId,
+        scheduledFor,
+        createdBy: me?.id ?? null,
+        status: "scheduled",
+      })
+      .returning({ id: operationTasks.id });
+    await db
+      .update(maintenanceTickets)
+      .set({ taskId: newTask.id, updatedAt: new Date() })
+      .where(eq(maintenanceTickets.id, ticket.id));
+    await recordAuditEvent({
+      actorUserId: me?.id ?? null,
+      action: "operations.maintenance.assign",
+      entityType: "maintenance_ticket",
+      entityId: ticket.id,
+      before: { taskId: null, assignedTo: null },
+      after: {
+        taskId: newTask.id,
+        assignedTo: parsed.data.assigneeId,
+        scheduledFor,
+      },
+    });
+  }
+
+  revalidatePath("/dashboard/operations/maintenance");
+  revalidatePath(`/dashboard/operations/maintenance/${ticket.id}`);
+  return { ok: true };
 }

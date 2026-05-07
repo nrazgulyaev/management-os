@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { Section } from "@/components/ui/section";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { NotificationRulesTabs } from "@/components/development/notifications/notification-rules-tabs";
@@ -10,6 +12,11 @@ import {
   getNotificationRules,
   getNotificationTemplates,
 } from "@/lib/development/server/notifications";
+import {
+  isNotificationsDryRun,
+  isResendConfigured,
+  isTwilioConfigured,
+} from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Notification rules · Development OS",
@@ -43,11 +50,72 @@ export default async function NotificationsAdminPage() {
           </Button>
         }
       />
+      <Section
+        eyebrow="Stage 7.F.D.4 · Provider configuration"
+        title="Outbound delivery providers"
+        description="Resend (transactional email) + Twilio (SMS / WhatsApp) are configured via env vars. Set NOTIFICATIONS_DRY_RUN=0 in production to enable live delivery."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <ProviderStatus
+            name="Resend"
+            envVars={["RESEND_API_KEY", "RESEND_FROM_EMAIL"]}
+            configured={isResendConfigured()}
+          />
+          <ProviderStatus
+            name="Twilio"
+            envVars={["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_SMS"]}
+            configured={isTwilioConfigured()}
+          />
+          <div className="rounded-md border border-line-soft bg-surface p-4">
+            <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
+              Mode
+            </div>
+            <div className="mt-1">
+              <Badge tone={isNotificationsDryRun() ? "warning" : "success"}>
+                {isNotificationsDryRun() ? "DRY RUN" : "LIVE"}
+              </Badge>
+            </div>
+            <p className="text-xs text-ink-tertiary mt-2">
+              Set <code>NOTIFICATIONS_DRY_RUN=0</code> to send real
+              messages. Defaults to dry-run when unset.
+            </p>
+          </div>
+        </div>
+      </Section>
       <NotificationRulesTabs
         rules={rules}
         templates={templates}
         deliveryLog={deliveryLog}
       />
     </DevelopmentShell>
+  );
+}
+
+function ProviderStatus({
+  name,
+  envVars,
+  configured,
+}: {
+  name: string;
+  envVars: string[];
+  configured: boolean;
+}) {
+  return (
+    <div className="rounded-md border border-line-soft bg-surface p-4">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="font-medium text-sm">{name}</span>
+        <Badge tone={configured ? "success" : "neutral"}>
+          {configured ? "Configured" : "Not configured"}
+        </Badge>
+      </div>
+      <div className="text-xs text-ink-tertiary space-y-1">
+        <div>Required env:</div>
+        <ul className="font-mono text-[11px]">
+          {envVars.map((v) => (
+            <li key={v}>{v}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }

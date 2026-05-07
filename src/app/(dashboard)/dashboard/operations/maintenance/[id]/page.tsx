@@ -4,10 +4,12 @@ import { Section } from "@/components/ui/section";
 import { MaintenanceStatusPill } from "@/components/operations/task-status-pill";
 import { PriorityPill } from "@/components/operations/priority-pill";
 import { MaintenanceStatusActions } from "@/components/operations/maintenance-status-actions";
+import { MaintenanceAssignDropdown } from "@/components/operations/maintenance-assign";
 import { AttachmentUploader } from "@/components/attachments/attachment-uploader";
 import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
 import { getMaintenanceTicketById } from "@/features/operations/services";
 import { listMaintenanceTicketAttachments } from "@/features/attachments/services";
+import { listAppUsers } from "@/features/auth/users-service";
 import { getCurrentUserContext, hasPermission } from "@/features/auth/permissions";
 import { formatMoneyMinor } from "@/lib/money";
 
@@ -24,7 +26,11 @@ export default async function MaintenanceTicketDetail({
   if (!ticket) notFound();
   const ctx = await getCurrentUserContext();
   const canUpload = hasPermission(ctx, "attachments.write");
+  const canAssign = hasPermission(ctx, "operations.assign");
   const attachments = await listMaintenanceTicketAttachments(id);
+  const users = canAssign
+    ? (await listAppUsers()).filter((u) => u.status === "active")
+    : [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -81,6 +87,27 @@ export default async function MaintenanceTicketDetail({
           value={ticket.resolvedAt ? ticket.resolvedAt.slice(0, 16).replace("T", " ") : <span className="text-ink-tertiary">—</span>}
         />
       </div>
+
+      {canAssign && (
+        <Section
+          eyebrow="Assignment"
+          title="Staff dispatch"
+          description="Bridges through the linked operation task; first assignment auto-creates the task."
+        >
+          <MaintenanceAssignDropdown
+            ticketId={ticket.id}
+            ticketStatus={ticket.status}
+            currentAssigneeId={ticket.assignedTo}
+            currentAssigneeName={ticket.assigneeName}
+            users={users.map((u) => ({
+              id: u.id,
+              fullName: u.fullName,
+              email: u.email,
+              roles: u.roles,
+            }))}
+          />
+        </Section>
+      )}
 
       {ticket.description && (
         <Section eyebrow="Description" title="Detail">

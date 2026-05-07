@@ -57,6 +57,8 @@ export interface DepartureRow {
   villaCode: string | null;
   guestDisplay: string;
   checkOutDate: string;
+  /** Stage 7.F.A.1 — gate the check-out button on this. */
+  bookingStatus: string;
   expectedCheckoutAt: string | null;
   cleaningTaskStatus: string | null;
   nextArrivalBookingId: string | null;
@@ -288,6 +290,7 @@ export async function listDepartures(date: Date): Promise<DepartureRow[]> {
     villaCode: r.villaCode ?? null,
     guestDisplay: safeGuestDisplayName(r.guestName, r.guestEmail),
     checkOutDate: r.b.checkOut as unknown as string,
+    bookingStatus: r.b.status,
     expectedCheckoutAt: expectedByBooking[r.b.id] ?? null,
     cleaningTaskStatus: cleaningByBooking[r.b.id] ?? null,
     nextArrivalBookingId:

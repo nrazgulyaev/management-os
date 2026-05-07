@@ -73,6 +73,10 @@ export interface MaintenanceTicketRow {
   reportedAt: string;
   resolvedAt: string | null;
   closedAt: string | null;
+  /** Stage 7.F.A.2 — bridged via linked operation_task. */
+  taskId: string | null;
+  assignedTo: string | null;
+  assigneeName: string | null;
 }
 
 export interface PreventiveScheduleRow {
@@ -278,6 +282,9 @@ export async function listMaintenanceTickets(opts?: {
     reportedAt: r.m.reportedAt.toISOString(),
     resolvedAt: r.m.resolvedAt?.toISOString() ?? null,
     closedAt: r.m.closedAt?.toISOString() ?? null,
+    taskId: r.m.taskId,
+    assignedTo: null,
+    assigneeName: null,
   }));
 }
 
@@ -287,12 +294,30 @@ export async function getMaintenanceTicketById(
   const db = getDb();
   if (!db) return null;
   const [r] = await db
-    .select({ m: maintenanceTickets, villaCode: villas.unitCode })
+    .select({
+      m: maintenanceTickets,
+      villaCode: villas.unitCode,
+      taskAssignedTo: operationTasks.assignedTo,
+    })
     .from(maintenanceTickets)
     .leftJoin(villas, eq(villas.id, maintenanceTickets.villaId))
+    .leftJoin(operationTasks, eq(operationTasks.id, maintenanceTickets.taskId))
     .where(eq(maintenanceTickets.id, id))
     .limit(1);
   if (!r) return null;
+
+  // Resolve assignee name if assigned (small follow-up query keeps the
+  // base query simple).
+  let assigneeName: string | null = null;
+  if (r.taskAssignedTo) {
+    const [user] = await db
+      .select({ fullName: appUsers.fullName })
+      .from(appUsers)
+      .where(eq(appUsers.id, r.taskAssignedTo))
+      .limit(1);
+    assigneeName = user?.fullName ?? null;
+  }
+
   return {
     source: "db" as const,
     id: r.m.id,
@@ -312,6 +337,9 @@ export async function getMaintenanceTicketById(
     reportedAt: r.m.reportedAt.toISOString(),
     resolvedAt: r.m.resolvedAt?.toISOString() ?? null,
     closedAt: r.m.closedAt?.toISOString() ?? null,
+    taskId: r.m.taskId,
+    assignedTo: r.taskAssignedTo ?? null,
+    assigneeName,
   };
 }
 

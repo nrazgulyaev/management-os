@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { GenerateRfqFromBoqButton } from "@/components/development/boq/generate-rfq-button";
 import { getDb } from "@/lib/db/client";
 import { getBoqDocumentByCode } from "@/lib/development/server/boq/boq-queries";
 
@@ -51,6 +52,7 @@ export default async function BoqDetailPage({
     arr.push(it);
     itemsBySection.set(it.sectionId, arr);
   }
+  const allItemIds = items.map((it) => it.id);
 
   return (
     <DevelopmentShell>
@@ -87,6 +89,7 @@ export default async function BoqDetailPage({
                 All BOQ
               </Link>
             </Button>
+            <GenerateRfqFromBoqButton boqItemIds={allItemIds} />
           </div>
         }
       />

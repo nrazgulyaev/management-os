@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listArrivals } from "@/features/front-office/services";
+import { CheckInButton } from "@/components/front-office/check-in-out-buttons";
 
 export const metadata = { title: "Arrivals" };
 export const dynamic = "force-dynamic";
@@ -55,6 +56,7 @@ export default async function ArrivalsPage({
                   <th className="text-left px-3 py-2">Status</th>
                   <th className="text-left px-3 py-2">Readiness</th>
                   <th className="text-left px-3 py-2">Service</th>
+                  <th className="text-left px-3 py-2">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
@@ -82,6 +84,12 @@ export default async function ArrivalsPage({
                       ) : (
                         <span className="text-ink-tertiary text-xs">—</span>
                       )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <CheckInButton
+                        bookingId={r.bookingId}
+                        bookingStatus={r.bookingStatus}
+                      />
                     </td>
                   </tr>
                 ))}
