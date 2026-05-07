@@ -217,7 +217,7 @@ export async function runAgent<TOutput>(
         scopeEntityId: args.scopeEntityId ?? null,
         memoryItemsLoaded: memoryIdsUsed.length,
         memoryIdsUsed,
-        providerUsed: dryRun ? "dry_run" : "anthropic",
+        providerUsed: dryRun ? "dry_run" : (config.preferredProvider ?? "anthropic"),
         status: "failed",
         errorMessage: e instanceof Error ? e.message : "unknown",
         completedAt: new Date(),

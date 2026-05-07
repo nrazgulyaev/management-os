@@ -10,6 +10,7 @@ import { requirePermission } from "@/features/auth/permissions";
 import {
   archiveResponsibilityScopeSchema,
   createResponsibilityScopeSchema,
+  editResponsibilityScopeSchema,
 } from "@/features/availability/schema";
 import type { ActionResult } from "@/features/projects/actions";
 
@@ -55,6 +56,57 @@ export async function createResponsibilityScopeAction(
 
   revalidatePath("/dashboard/settings/responsibility-scopes");
   return { ok: true, scopeId: row!.id };
+}
+
+// Stage 6.P5-CATCHUP — Edit an existing scope row.
+export async function editResponsibilityScopeAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("responsibility_scopes.manage");
+  const raw = Object.fromEntries(formData.entries());
+  const parsed = editResponsibilityScopeSchema.safeParse({
+    ...raw,
+    roleKey: raw.roleKey || null,
+    projectId: raw.projectId || null,
+    villaId: raw.villaId || null,
+    taskCategory: raw.taskCategory || null,
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (parsed.data.roleKey !== undefined) patch.roleKey = parsed.data.roleKey;
+  if (parsed.data.projectId !== undefined)
+    patch.projectId = parsed.data.projectId;
+  if (parsed.data.villaId !== undefined) patch.villaId = parsed.data.villaId;
+  if (parsed.data.taskCategory !== undefined)
+    patch.taskCategory = parsed.data.taskCategory;
+  if (parsed.data.scopeType !== undefined)
+    patch.scopeType = parsed.data.scopeType;
+
+  await db
+    .update(userResponsibilityScopes)
+    .set(patch)
+    .where(eq(userResponsibilityScopes.id, parsed.data.id));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "responsibility_scope.edit",
+    entityType: "user_responsibility_scope",
+    entityId: parsed.data.id,
+    after: parsed.data,
+  });
+
+  revalidatePath("/dashboard/settings/responsibility-scopes");
+  return { ok: true };
 }
 
 export async function archiveResponsibilityScopeAction(

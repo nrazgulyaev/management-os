@@ -263,46 +263,13 @@ test("selectMarketingProvider: credential discriminator mismatch falls back to D
   assert.ok(provider instanceof DryRunMarketingProvider);
 });
 
-test("selectMarketingProvider: providers still pending real implementation return DryRun even with matching creds (post-P4.B)", () => {
+test("selectMarketingProvider: providers still pending real implementation return DryRun even with matching creds (post-P4.E)", () => {
   // Each promotion to a real provider removes that provider's case
-  // from this list. P4.B landed GA4 + Meta Pixel; remaining providers
-  // (Google Ads, Meta Ads, TikTok, Mailchimp, ConvertKit, SendGrid)
-  // are still DryRun until P4.C/D/E.
+  // from this list. P4.B landed GA4 + Meta Pixel; P4.C landed Google
+  // Ads; P4.D landed Meta Ads; P4.E landed TikTok + Mailchimp +
+  // ConvertKit. Only SendGrid (P5 territory) and `manual` (DryRun
+  // by design) remain.
   const cases: Array<[MarketingProviderName, MarketingCredentials]> = [
-    [
-      "google_ads",
-      {
-        provider: "google_ads",
-        developerToken: "t",
-        clientId: "c",
-        clientSecret: "s",
-        refreshToken: "r",
-        customerId: "1",
-      },
-    ],
-    [
-      "meta_ads",
-      {
-        provider: "meta_ads",
-        accessToken: "t",
-        adAccountId: "act_1",
-      },
-    ],
-    [
-      "tiktok_ads",
-      {
-        provider: "tiktok_ads",
-        accessToken: "t",
-        advertiserId: "1",
-        appId: "a",
-        secret: "s",
-      },
-    ],
-    ["mailchimp", { provider: "mailchimp", apiKey: "k-us1" }],
-    [
-      "convertkit",
-      { provider: "convertkit", apiKey: "k", apiSecret: "s" },
-    ],
     [
       "sendgrid_marketing",
       { provider: "sendgrid_marketing", apiKey: "k" },
@@ -391,13 +358,13 @@ test("public surface: src/lib/marketing exports selector + DryRun + types", () =
 // 6) Architecture doc bookkeeping
 // ===========================================================================
 
-test("architecture doc: Stage 6.P4 marked ACTIVE, P0–P3 ACCEPTED", () => {
+test("architecture doc: Stage 6.P0–P4 ACCEPTED", () => {
   const src = readFile("docs/development-os-architecture.md");
   assert.match(src, /Stage 6\.P0 — CRUD Foundation `\[ACCEPTED 6\.P0\]`/);
   assert.match(src, /Stage 6\.P1 — Booking Channels `\[ACCEPTED 6\.P1\]`/);
   assert.match(src, /Stage 6\.P2 — Communications `\[ACCEPTED 6\.P2\]`/);
   assert.match(src, /Stage 6\.P3 — Banking \+ Payments `\[ACCEPTED 6\.P3\]`/);
-  assert.match(src, /Stage 6\.P4 — Marketing \+ Analytics `\[ACTIVE 6\.P4\]`/);
+  assert.match(src, /Stage 6\.P4 — Marketing \+ Analytics `\[ACCEPTED 6\.P4\]`/);
 });
 
 test("architecture doc: Stage 6.P4 entry-state inheritance documents 4312 baseline + 87 cron routes", () => {

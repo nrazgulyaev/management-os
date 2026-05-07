@@ -68,6 +68,10 @@ export interface GoogleAdsCredentials {
   customerId: string;
   /** Manager (MCC) account ID when the customer is managed. */
   loginCustomerId?: string;
+  /** Cached OAuth access token. The client refreshes when expired. */
+  accessToken?: string;
+  /** Unix epoch ms — when accessToken expires. */
+  expiresAt?: number;
 }
 
 export interface MetaPixelCredentials {

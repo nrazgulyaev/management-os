@@ -267,7 +267,11 @@ test("GA4 client: proactive refresh fires when token within margin of expiry", a
   assert.equal(refreshHits, 1, "proactive refresh fired exactly once");
   assert.equal(reportHits, 1, "report fired after refresh");
   assert.ok(persistedNext, "onCredentialsRefreshed callback invoked");
-  assert.equal(persistedNext!.oauthAccessToken, "ya29.NEW-TOKEN");
+  const captured = persistedNext as {
+    oauthAccessToken: string;
+    oauthExpiresAt: number;
+  };
+  assert.equal(captured.oauthAccessToken, "ya29.NEW-TOKEN");
 });
 
 test("GA4 client: reactive 401 mid-flight triggers refresh + single retry", async () => {
@@ -505,9 +509,9 @@ test("GoogleAnalyticsProvider: pullAnalyticsTouchpoints projects traffic-sources
   assert.equal(out[0].channel, "organic_search");
 });
 
-test("GoogleAnalyticsProvider: webhooks fail-closed (Pixel doesn't push to GA4)", () => {
+test("GoogleAnalyticsProvider: webhooks fail-closed (GA4 is pull-only via Reporting API)", () => {
   const provider = new GoogleAnalyticsProvider(ga4Creds());
-  assert.equal(provider.verifyWebhook("p", "s", "x"), false);
+  assert.equal(provider.verifyWebhook("payload", "sig", "secret"), false);
   assert.equal(provider.parseWebhook({}), null);
 });
 
@@ -809,8 +813,8 @@ test("MetaPixelProvider: webhooks fail-closed", () => {
     pixelId: "1",
     accessToken: "t",
   });
-  assert.equal(provider.verifyWebhook(), false);
-  assert.equal(provider.parseWebhook(), null);
+  assert.equal(provider.verifyWebhook("payload", "sig", "secret"), false);
+  assert.equal(provider.parseWebhook({}), null);
 });
 
 // ===========================================================================

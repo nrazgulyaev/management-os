@@ -106,12 +106,19 @@ export class MetaPixelProvider implements MarketingProviderInterface {
     };
   }
 
-  /** Meta doesn't send Pixel-traffic webhooks. Fail-closed. */
-  verifyWebhook(): boolean {
+  /** Meta doesn't send Pixel-traffic webhooks. Fail-closed. Signature
+   *  matches `MarketingProviderInterface.verifyWebhook`. */
+  verifyWebhook(
+    _payload: string,
+    _signature: string,
+    _secret: string,
+  ): boolean {
     return false;
   }
 
-  parseWebhook(): MarketingWebhookEvent | null {
+  parseWebhook(
+    _payload: Record<string, unknown>,
+  ): MarketingWebhookEvent | null {
     return null;
   }
 

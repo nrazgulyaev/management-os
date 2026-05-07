@@ -119,12 +119,20 @@ export class GoogleAnalyticsProvider implements MarketingProviderInterface {
   }
 
   /** GA4 does not push webhooks — the analytics flow is pull-only via
-   *  the Reporting API. Fail-closed for completeness. */
-  verifyWebhook(): boolean {
+   *  the Reporting API. Fail-closed for completeness. Signature
+   *  matches `MarketingProviderInterface.verifyWebhook` so the
+   *  interface contract holds. */
+  verifyWebhook(
+    _payload: string,
+    _signature: string,
+    _secret: string,
+  ): boolean {
     return false;
   }
 
-  parseWebhook(): MarketingWebhookEvent | null {
+  parseWebhook(
+    _payload: Record<string, unknown>,
+  ): MarketingWebhookEvent | null {
     return null;
   }
 

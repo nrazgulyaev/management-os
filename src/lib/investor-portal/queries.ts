@@ -644,3 +644,72 @@ export async function getMyProfile(): Promise<InvestorProfile> {
     onboardedAt: new Date(r.onboardedAt).toISOString(),
   };
 }
+
+// ----------------------------------------------------------------------------
+// Stage 6.P7 — distribution forecasts
+// ----------------------------------------------------------------------------
+
+import {
+  computeDistributionForecast,
+  type ForecastResult,
+  type CompletedDistribution,
+} from "./forecasts";
+
+export interface MyForecastResult {
+  forecast: ForecastResult;
+  asOf: string;
+  /** Number of completed distributions across all of the investor's commitments. */
+  completedCount: number;
+}
+
+/**
+ * Compute a 4-quarter forecast based on rolling-average over the
+ * investor's completed distributions across all their commitments.
+ * Mirrors `getMyDistributions` shape but aggregates across
+ * commitments — the investor cares about total cash they'll see.
+ */
+export async function getMyForecast(input?: {
+  horizonQuarters?: number;
+}): Promise<MyForecastResult> {
+  const session = await requireInvestorSession();
+  const db = getDb();
+  const asOf = new Date();
+  if (!db) {
+    return {
+      forecast: { quarters: [], totalProjectedMinor: 0n, basisCount: 0 },
+      asOf: asOf.toISOString(),
+      completedCount: 0,
+    };
+  }
+
+  const rows = await db.execute(sql`
+    SELECT
+      d.effective_date,
+      a.total_amount_usd_minor AS investor_share_minor
+    FROM distribution_allocations a
+    JOIN distributions d ON d.id = a.distribution_id
+    JOIN capital_commitments cc ON cc.id = a.commitment_id
+    WHERE cc.investor_id = ${session.investorId}
+      AND d.status = 'completed'
+    ORDER BY d.effective_date ASC
+  `);
+
+  const completed: CompletedDistribution[] = (
+    rows as Record<string, unknown>[]
+  ).map((r) => ({
+    effectiveDate: new Date(String(r.effective_date)),
+    investorShareMinor: BigInt(String(r.investor_share_minor)),
+  }));
+
+  const forecast = computeDistributionForecast({
+    completedDistributions: completed,
+    horizonQuarters: input?.horizonQuarters ?? 4,
+    asOf,
+  });
+
+  return {
+    forecast,
+    asOf: asOf.toISOString(),
+    completedCount: completed.length,
+  };
+}

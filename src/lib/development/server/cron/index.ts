@@ -84,6 +84,13 @@ export { runReconciliationEngine } from "./reconciliation-engine-job";
 export { runStripeEventPoller } from "./stripe-event-poller-job";
 export { runPaymentStatusSync } from "./payment-status-sync-job";
 export { runPeriodCloseReminder } from "./period-close-reminder-job";
+// Stage 6.P4.F — marketing cron handlers
+export { runMarketingCampaignsSync } from "./marketing-campaigns-sync-job";
+export { runMarketingMetricsSync } from "./marketing-metrics-sync-job";
+export { runAttributionEngine } from "./attribution-engine-job";
+export { runUtmTouchpointCleanup } from "./utm-touchpoint-cleanup-job";
+// Stage 6.P5 — Google Workspace
+export { runGoogleWorkspaceHealthCheck } from "./google-workspace-health-check-job";
 
 export type DevOsJobKey =
   | "dev_os_pricing_apply"
@@ -159,7 +166,14 @@ export type DevOsJobKey =
   | "reconciliation_engine"
   | "stripe_event_poller"
   | "payment_status_sync"
-  | "period_close_reminder";
+  | "period_close_reminder"
+  // Stage 6.P4.F — marketing
+  | "marketing_campaigns_sync"
+  | "marketing_metrics_sync"
+  | "attribution_engine"
+  | "utm_touchpoint_cleanup"
+  // Stage 6.P5 — Google Workspace
+  | "google_workspace_health_check";
 
 export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "dev_os_pricing_apply",
@@ -233,4 +247,9 @@ export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "stripe_event_poller",
   "payment_status_sync",
   "period_close_reminder",
+  "marketing_campaigns_sync",
+  "marketing_metrics_sync",
+  "attribution_engine",
+  "utm_touchpoint_cleanup",
+  "google_workspace_health_check",
 ];

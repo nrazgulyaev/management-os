@@ -106,6 +106,26 @@ export const archiveResponsibilityScopeSchema = z.object({
   id: z.string().uuid(),
 });
 
+// Stage 6.P5-CATCHUP — edit shape for an existing scope row.
+export const editResponsibilityScopeSchema = z.object({
+  id: z.string().uuid(),
+  roleKey: z.string().min(2).max(40).optional().nullable(),
+  projectId: z.string().uuid().optional().nullable(),
+  villaId: z.string().uuid().optional().nullable(),
+  taskCategory: z.string().min(2).max(40).optional().nullable(),
+  scopeType: z
+    .enum([
+      "operations",
+      "housekeeping",
+      "maintenance",
+      "front_office",
+      "security",
+      "procurement",
+      "finance",
+    ])
+    .optional(),
+});
+
 export const createCameraDeviceSchema = z.object({
   projectId: z.string().uuid().optional().nullable(),
   villaId: z.string().uuid().optional().nullable(),

@@ -30,6 +30,13 @@ const serverSchema = z.object({
   ANTHROPIC_MODEL: z.string().optional(),
   /** "1" = never call Anthropic (default for tests + dev). */
   AI_DRY_RUN: z.string().optional(),
+  // Stage 6.P6 — additional AI providers
+  OPENAI_API_KEY: z.string().min(8).optional(),
+  OPENAI_MODEL: z.string().optional(),
+  GEMINI_API_KEY: z.string().min(8).optional(),
+  GEMINI_MODEL: z.string().optional(),
+  /** "anthropic" | "openai" | "gemini" — picks default at process boot. */
+  AI_PROVIDER: z.string().optional(),
   // v9G — Wi-Fi password + verification-link encryption.
   // 32+ random bytes, base64 or hex encoded. Used to wrap per-version
   // data keys in `wifi_encryption_keys`. Production must set this; dev
@@ -54,6 +61,14 @@ const serverSchema = z.object({
   CRON_MAX_CONCURRENT_PER_JOB: z.coerce.number().int().min(1).optional(),
   /** Public link to the backup / restore runbook. */
   BACKUP_RUNBOOK_URL: z.string().optional(),
+  // Stage 6.P5 — Google Workspace OAuth (Calendar / Gmail / Sheets / Drive).
+  // Single OAuth client for all four services; per-service scopes requested
+  // at consent time and persisted on the oauth_connections row.
+  GOOGLE_WORKSPACE_OAUTH_CLIENT_ID: z.string().min(8).optional(),
+  GOOGLE_WORKSPACE_OAUTH_CLIENT_SECRET: z.string().min(8).optional(),
+  GOOGLE_WORKSPACE_OAUTH_REDIRECT_URI: z.string().url().optional(),
+  /** "1" = never call Google — selector returns DryRun. Default: "1" in tests/dev. */
+  GOOGLE_WORKSPACE_DRY_RUN: z.string().optional(),
 });
 
 const publicSchema = z.object({
@@ -81,6 +96,11 @@ const parsedServer = serverSchema.safeParse({
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
   AI_DRY_RUN: process.env.AI_DRY_RUN,
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  OPENAI_MODEL: process.env.OPENAI_MODEL,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+  GEMINI_MODEL: process.env.GEMINI_MODEL,
+  AI_PROVIDER: process.env.AI_PROVIDER,
   STAY_LINK_KMS_SECRET: process.env.STAY_LINK_KMS_SECRET,
   SECURITY_ENCRYPTION_SECRET: process.env.SECURITY_ENCRYPTION_SECRET,
   MFA_ISSUER: process.env.MFA_ISSUER,
@@ -90,6 +110,10 @@ const parsedServer = serverSchema.safeParse({
   LOGIN_LOCK_MINUTES: process.env.LOGIN_LOCK_MINUTES,
   CRON_MAX_CONCURRENT_PER_JOB: process.env.CRON_MAX_CONCURRENT_PER_JOB,
   BACKUP_RUNBOOK_URL: process.env.BACKUP_RUNBOOK_URL,
+  GOOGLE_WORKSPACE_OAUTH_CLIENT_ID: process.env.GOOGLE_WORKSPACE_OAUTH_CLIENT_ID,
+  GOOGLE_WORKSPACE_OAUTH_CLIENT_SECRET: process.env.GOOGLE_WORKSPACE_OAUTH_CLIENT_SECRET,
+  GOOGLE_WORKSPACE_OAUTH_REDIRECT_URI: process.env.GOOGLE_WORKSPACE_OAUTH_REDIRECT_URI,
+  GOOGLE_WORKSPACE_DRY_RUN: process.env.GOOGLE_WORKSPACE_DRY_RUN,
 });
 
 const parsedPublic = publicSchema.safeParse({
@@ -167,6 +191,34 @@ export function aiModel(): string {
   return env.server.ANTHROPIC_MODEL || "claude-3-5-haiku-latest";
 }
 
+// Stage 6.P6 — additional AI providers.
+
+export function isOpenAiConfigured(): boolean {
+  return Boolean(env.server.OPENAI_API_KEY);
+}
+
+export function isGeminiConfigured(): boolean {
+  return Boolean(env.server.GEMINI_API_KEY);
+}
+
+/**
+ * "anthropic" | "openai" | "gemini" | "dry_run".
+ * Returns the active default provider for `getAIProvider()`.
+ */
+export function aiProviderDefault(): string {
+  if (isAiDryRun()) return "dry_run";
+  if (env.server.AI_PROVIDER === "openai" && isOpenAiConfigured()) {
+    return "openai";
+  }
+  if (env.server.AI_PROVIDER === "gemini" && isGeminiConfigured()) {
+    return "gemini";
+  }
+  if (isAiConfigured()) return "anthropic";
+  if (isOpenAiConfigured()) return "openai";
+  if (isGeminiConfigured()) return "gemini";
+  return "dry_run";
+}
+
 // -----------------------------------------------------------------------------
 // Prompt 111 — Security baseline & operational hardening helpers.
 // -----------------------------------------------------------------------------
@@ -223,4 +275,33 @@ export function stayLinkKmsSecret(): string | null {
 
 export function isStayLinkKmsConfigured(): boolean {
   return Boolean(env.server.STAY_LINK_KMS_SECRET);
+}
+
+// Stage 6.P5 — Google Workspace OAuth helpers.
+
+export function googleWorkspaceOAuthClientId(): string | null {
+  return env.server.GOOGLE_WORKSPACE_OAUTH_CLIENT_ID ?? null;
+}
+
+export function googleWorkspaceOAuthClientSecret(): string | null {
+  return env.server.GOOGLE_WORKSPACE_OAUTH_CLIENT_SECRET ?? null;
+}
+
+export function googleWorkspaceOAuthRedirectUri(): string | null {
+  return env.server.GOOGLE_WORKSPACE_OAUTH_REDIRECT_URI ?? null;
+}
+
+export function isGoogleWorkspaceConfigured(): boolean {
+  return Boolean(
+    env.server.GOOGLE_WORKSPACE_OAUTH_CLIENT_ID &&
+      env.server.GOOGLE_WORKSPACE_OAUTH_CLIENT_SECRET &&
+      env.server.GOOGLE_WORKSPACE_OAUTH_REDIRECT_URI,
+  );
+}
+
+export function isGoogleWorkspaceDryRun(): boolean {
+  // Default to dry-run when env is missing or unconfigured.
+  const flag = env.server.GOOGLE_WORKSPACE_DRY_RUN;
+  if (flag === undefined) return !isGoogleWorkspaceConfigured();
+  return flag === "1" || flag.toLowerCase() === "true";
 }

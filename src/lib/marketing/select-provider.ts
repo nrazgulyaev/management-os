@@ -2,6 +2,11 @@ import type { MarketingProviderName } from "@/lib/db/schema/p4-marketing";
 import { DryRunMarketingProvider } from "./providers/dry-run";
 import { GoogleAnalyticsProvider } from "./providers/google-analytics/provider";
 import { MetaPixelProvider } from "./providers/meta-pixel/provider";
+import { GoogleAdsProvider } from "./providers/google-ads/provider";
+import { MetaAdsProvider } from "./providers/meta-ads/provider";
+import { TikTokAdsProvider } from "./providers/tiktok-ads/provider";
+import { MailchimpProvider } from "./providers/mailchimp/provider";
+import { ConvertKitProvider } from "./providers/convertkit/provider";
 import type {
   MarketingCredentials,
   MarketingProviderInterface,
@@ -59,16 +64,43 @@ export function selectMarketingProvider(
       }
       return new MetaPixelProvider(credentials);
 
-    // P4.C lands Google Ads.
     case "google_ads":
-    // P4.D lands Meta Ads.
+      // P4.C landed Google Ads — see providers/google-ads/.
+      if (credentials.provider !== "google_ads") {
+        return new DryRunMarketingProvider(provider);
+      }
+      return new GoogleAdsProvider(credentials);
+
     case "meta_ads":
-    // P4.E lands TikTok + Mailchimp + ConvertKit + SendGrid.
+      // P4.D landed Meta Ads — see providers/meta-ads/.
+      if (credentials.provider !== "meta_ads") {
+        return new DryRunMarketingProvider(provider);
+      }
+      return new MetaAdsProvider(credentials);
+
     case "tiktok_ads":
+      // P4.E landed TikTok Ads — see providers/tiktok-ads/.
+      if (credentials.provider !== "tiktok_ads") {
+        return new DryRunMarketingProvider(provider);
+      }
+      return new TikTokAdsProvider(credentials);
+
     case "mailchimp":
+      // P4.E landed Mailchimp — see providers/mailchimp/.
+      if (credentials.provider !== "mailchimp") {
+        return new DryRunMarketingProvider(provider);
+      }
+      return new MailchimpProvider(credentials);
+
     case "convertkit":
+      // P4.E landed ConvertKit — see providers/convertkit/.
+      if (credentials.provider !== "convertkit") {
+        return new DryRunMarketingProvider(provider);
+      }
+      return new ConvertKitProvider(credentials);
+
+    // P5 may land SendGrid. Manual stays DryRun by design.
     case "sendgrid_marketing":
-    // Manual stays DryRun by design.
     case "manual":
       return new DryRunMarketingProvider(provider);
 

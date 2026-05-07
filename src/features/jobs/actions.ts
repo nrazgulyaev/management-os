@@ -92,6 +92,11 @@ import {
   runStripeEventPoller,
   runPaymentStatusSync,
   runPeriodCloseReminder,
+  runMarketingCampaignsSync,
+  runMarketingMetricsSync,
+  runAttributionEngine,
+  runUtmTouchpointCleanup,
+  runGoogleWorkspaceHealthCheck,
 } from "@/lib/development/server/cron";
 import { ensureDefaultJobDefinitions } from "./services";
 import { acquireJobLock, releaseJobLock } from "./locks";
@@ -211,6 +216,13 @@ const KNOWN_JOBS = new Set([
   "stripe_event_poller",
   "payment_status_sync",
   "period_close_reminder",
+  // Development OS · Stage 6.P4.F — marketing
+  "marketing_campaigns_sync",
+  "marketing_metrics_sync",
+  "attribution_engine",
+  "utm_touchpoint_cleanup",
+  // Development OS · Stage 6.P5 — Google Workspace
+  "google_workspace_health_check",
 ]);
 
 export type JobKey =
@@ -299,7 +311,12 @@ export type JobKey =
   | "reconciliation_engine"
   | "stripe_event_poller"
   | "payment_status_sync"
-  | "period_close_reminder";
+  | "period_close_reminder"
+  | "marketing_campaigns_sync"
+  | "marketing_metrics_sync"
+  | "attribution_engine"
+  | "utm_touchpoint_cleanup"
+  | "google_workspace_health_check";
 
 /**
  * Dispatch table — maps job key to runner. Cron routes call into this
@@ -537,6 +554,16 @@ export async function executeJob(
         return runPaymentStatusSync(handle);
       case "period_close_reminder":
         return runPeriodCloseReminder(handle);
+      case "marketing_campaigns_sync":
+        return runMarketingCampaignsSync(handle);
+      case "marketing_metrics_sync":
+        return runMarketingMetricsSync(handle);
+      case "attribution_engine":
+        return runAttributionEngine(handle);
+      case "utm_touchpoint_cleanup":
+        return runUtmTouchpointCleanup(handle);
+      case "google_workspace_health_check":
+        return runGoogleWorkspaceHealthCheck(handle);
       default:
         // unreachable — KNOWN_JOBS keeps us honest
         throw new Error(`Unhandled job key: ${jobKey}`);

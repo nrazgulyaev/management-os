@@ -24,6 +24,7 @@ export const taskStatusEnum = z.enum([
   "cancelled",
   "needs_review",
   "approved",
+  "archived",
 ]);
 
 export const taskSourceEnum = z.enum([
@@ -76,6 +77,7 @@ export const maintenanceStatusEnum = z.enum([
   "resolved",
   "closed",
   "cancelled",
+  "archived",
 ]);
 
 export const damageStatusEnum = z.enum([
@@ -86,6 +88,7 @@ export const damageStatusEnum = z.enum([
   "waived",
   "repaired",
   "closed",
+  "archived",
 ]);
 
 export const serviceRequestTypeEnum = z.enum([
@@ -294,3 +297,40 @@ export type CreateMaintenanceTicketInput = z.infer<typeof createMaintenanceTicke
 export type CreatePreventiveScheduleInput = z.infer<typeof createPreventiveScheduleSchema>;
 export type CreateServiceRequestInput = z.infer<typeof createServiceRequestSchema>;
 export type CreateDamageReportInput = z.infer<typeof createDamageReportSchema>;
+
+// ---------------------------------------------------------------------------
+// Stage 6.P5-CATCHUP — Operations Edit + Archive schemas.
+// ---------------------------------------------------------------------------
+
+export const editOperationTaskSchema = createOperationTaskSchema
+  .omit({ source: true, templateId: true })
+  .extend({
+    id: z.string().uuid(),
+  });
+
+export const archiveOperationTaskSchema = z.object({
+  id: z.string().uuid(),
+  reason: z.string().max(500).optional().or(z.literal("")),
+});
+
+export const editMaintenanceTicketSchema = createMaintenanceTicketSchema.extend({
+  id: z.string().uuid(),
+});
+
+export const archiveMaintenanceTicketSchema = z.object({
+  id: z.string().uuid(),
+  reason: z.string().max(500).optional().or(z.literal("")),
+});
+
+export const editDamageReportSchema = createDamageReportSchema.extend({
+  id: z.string().uuid(),
+});
+
+export const archiveDamageReportSchema = z.object({
+  id: z.string().uuid(),
+  reason: z.string().max(500).optional().or(z.literal("")),
+});
+
+export type EditOperationTaskInput = z.infer<typeof editOperationTaskSchema>;
+export type EditMaintenanceTicketInput = z.infer<typeof editMaintenanceTicketSchema>;
+export type EditDamageReportInput = z.infer<typeof editDamageReportSchema>;

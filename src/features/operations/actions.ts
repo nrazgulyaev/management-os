@@ -20,6 +20,9 @@ import { requirePermission } from "@/features/auth/permissions";
 import {
   approveChecklistSchema,
   approveTaskSchema,
+  archiveDamageReportSchema,
+  archiveMaintenanceTicketSchema,
+  archiveOperationTaskSchema,
   assignTaskSchema,
   completeChecklistSchema,
   createChecklistFromTemplateSchema,
@@ -28,6 +31,9 @@ import {
   createOperationTaskSchema,
   createPreventiveScheduleSchema,
   createServiceRequestSchema,
+  editDamageReportSchema,
+  editMaintenanceTicketSchema,
+  editOperationTaskSchema,
   serviceRequestIdSchema,
   updateChecklistItemSchema,
   updateMaintenanceTicketStatusSchema,
@@ -902,6 +908,363 @@ export async function createDamageReportAction(
     entityType: "damage_report",
     entityId: row.id,
     after: { severity: d.severity, ownerChargeable: d.ownerChargeable },
+  });
+
+  revalidatePath("/dashboard/operations/damage-reports");
+  return { ok: true, redirectTo: `/dashboard/operations/damage-reports` };
+}
+
+// -----------------------------------------------------------------------------
+// Stage 6.P5-CATCHUP — Edit + Archive actions for Tasks / Maintenance / Damage.
+// "Archive" is a soft delete that flips status to "archived" + stamps the
+// timestamp; queries that hide archived rows simply add `status != 'archived'`.
+// -----------------------------------------------------------------------------
+
+export async function editOperationTaskAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = editOperationTaskSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+
+  const [before] = await db
+    .select()
+    .from(operationTasks)
+    .where(eq(operationTasks.id, d.id))
+    .limit(1);
+  if (!before) return { ok: false, error: "Task not found." };
+  if (before.status === "archived") {
+    return { ok: false, error: "Cannot edit an archived task. Restore it first." };
+  }
+
+  await db
+    .update(operationTasks)
+    .set({
+      title: d.title,
+      description: d.description && d.description !== "" ? d.description : null,
+      category: d.category,
+      priority: d.priority,
+      taskTypeId: d.taskTypeId ?? null,
+      villaId: d.villaId ?? null,
+      projectId: d.projectId ?? null,
+      bookingId: d.bookingId ?? null,
+      guestId: d.guestId ?? null,
+      assignedTo: d.assignedTo ?? null,
+      scheduledFor:
+        d.scheduledFor && d.scheduledFor !== "" ? d.scheduledFor : null,
+      dueAt: d.dueAt && d.dueAt !== "" ? new Date(d.dueAt) : null,
+      estimatedMinutes: d.estimatedMinutes ?? null,
+      ownerVisible: d.ownerVisible,
+      guestVisible: d.guestVisible,
+      internalNotes:
+        d.internalNotes && d.internalNotes !== "" ? d.internalNotes : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(operationTasks.id, d.id));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.task.edit",
+    entityType: "operation_task",
+    entityId: d.id,
+    before: {
+      title: before.title,
+      category: before.category,
+      priority: before.priority,
+      status: before.status,
+    },
+    after: { title: d.title, category: d.category, priority: d.priority },
+  });
+
+  revalidatePath("/dashboard/operations");
+  revalidatePath("/dashboard/operations/tasks");
+  revalidatePath(`/dashboard/operations/tasks/${d.id}`);
+  return { ok: true, redirectTo: `/dashboard/operations/tasks/${d.id}` };
+}
+
+export async function archiveOperationTaskAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = archiveOperationTaskSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+
+  const [before] = await db
+    .select()
+    .from(operationTasks)
+    .where(eq(operationTasks.id, d.id))
+    .limit(1);
+  if (!before) return { ok: false, error: "Task not found." };
+  if (before.status === "archived") {
+    return { ok: false, error: "Already archived." };
+  }
+
+  const now = new Date();
+  await db
+    .update(operationTasks)
+    .set({
+      status: "archived",
+      cancelledAt: now,
+      internalNotes: d.reason && d.reason !== ""
+        ? `[archived] ${d.reason}\n\n${before.internalNotes ?? ""}`.trim()
+        : before.internalNotes,
+      updatedAt: now,
+    })
+    .where(eq(operationTasks.id, d.id));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.task.archive",
+    entityType: "operation_task",
+    entityId: d.id,
+    before: { status: before.status },
+    after: { status: "archived", reason: d.reason ?? null },
+  });
+
+  revalidatePath("/dashboard/operations");
+  revalidatePath("/dashboard/operations/tasks");
+  return { ok: true, redirectTo: `/dashboard/operations/tasks` };
+}
+
+export async function editMaintenanceTicketAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = editMaintenanceTicketSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+
+  const [before] = await db
+    .select()
+    .from(maintenanceTickets)
+    .where(eq(maintenanceTickets.id, d.id))
+    .limit(1);
+  if (!before) return { ok: false, error: "Ticket not found." };
+  if (before.status === "archived") {
+    return {
+      ok: false,
+      error: "Cannot edit an archived ticket. Restore it first.",
+    };
+  }
+
+  await db
+    .update(maintenanceTickets)
+    .set({
+      title: d.title,
+      description: d.description && d.description !== "" ? d.description : null,
+      issueCategory: d.issueCategory,
+      severity: d.severity,
+      villaId: d.villaId ?? null,
+      projectId: d.projectId ?? null,
+      bookingId: d.bookingId ?? null,
+      ownerChargeable: d.ownerChargeable,
+      estimatedCostMinor: d.estimatedCostMinor ?? null,
+      currency: d.currency && d.currency !== "" ? d.currency : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(maintenanceTickets.id, d.id));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.maintenance.edit",
+    entityType: "maintenance_ticket",
+    entityId: d.id,
+    before: {
+      title: before.title,
+      severity: before.severity,
+      issueCategory: before.issueCategory,
+    },
+    after: {
+      title: d.title,
+      severity: d.severity,
+      issueCategory: d.issueCategory,
+    },
+  });
+
+  revalidatePath("/dashboard/operations/maintenance");
+  revalidatePath(`/dashboard/operations/maintenance/${d.id}`);
+  return { ok: true, redirectTo: `/dashboard/operations/maintenance/${d.id}` };
+}
+
+export async function archiveMaintenanceTicketAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = archiveMaintenanceTicketSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+
+  const [before] = await db
+    .select()
+    .from(maintenanceTickets)
+    .where(eq(maintenanceTickets.id, d.id))
+    .limit(1);
+  if (!before) return { ok: false, error: "Ticket not found." };
+  if (before.status === "archived") {
+    return { ok: false, error: "Already archived." };
+  }
+
+  const now = new Date();
+  await db
+    .update(maintenanceTickets)
+    .set({
+      status: "archived",
+      closedAt: before.closedAt ?? now,
+      updatedAt: now,
+    })
+    .where(eq(maintenanceTickets.id, d.id));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.maintenance.archive",
+    entityType: "maintenance_ticket",
+    entityId: d.id,
+    before: { status: before.status },
+    after: { status: "archived", reason: d.reason ?? null },
+  });
+
+  revalidatePath("/dashboard/operations/maintenance");
+  return { ok: true, redirectTo: `/dashboard/operations/maintenance` };
+}
+
+export async function editDamageReportAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = editDamageReportSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+
+  const [before] = await db
+    .select()
+    .from(damageReports)
+    .where(eq(damageReports.id, d.id))
+    .limit(1);
+  if (!before) return { ok: false, error: "Report not found." };
+  if (before.status === "archived") {
+    return {
+      ok: false,
+      error: "Cannot edit an archived report. Restore it first.",
+    };
+  }
+
+  await db
+    .update(damageReports)
+    .set({
+      title: d.title,
+      description: d.description && d.description !== "" ? d.description : null,
+      villaId: d.villaId ?? null,
+      bookingId: d.bookingId ?? null,
+      guestId: d.guestId ?? null,
+      taskId: d.taskId ?? null,
+      severity: d.severity,
+      estimatedCostMinor: d.estimatedCostMinor ?? null,
+      currency: d.currency && d.currency !== "" ? d.currency : null,
+      ownerChargeable: d.ownerChargeable,
+      guestChargeable: d.guestChargeable,
+      updatedAt: new Date(),
+    })
+    .where(eq(damageReports.id, d.id));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.damage.edit",
+    entityType: "damage_report",
+    entityId: d.id,
+    before: { title: before.title, severity: before.severity },
+    after: { title: d.title, severity: d.severity },
+  });
+
+  revalidatePath("/dashboard/operations/damage-reports");
+  return { ok: true, redirectTo: `/dashboard/operations/damage-reports` };
+}
+
+export async function archiveDamageReportAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = archiveDamageReportSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+
+  const [before] = await db
+    .select()
+    .from(damageReports)
+    .where(eq(damageReports.id, d.id))
+    .limit(1);
+  if (!before) return { ok: false, error: "Report not found." };
+  if (before.status === "archived") {
+    return { ok: false, error: "Already archived." };
+  }
+
+  await db
+    .update(damageReports)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(eq(damageReports.id, d.id));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.damage.archive",
+    entityType: "damage_report",
+    entityId: d.id,
+    before: { status: before.status },
+    after: { status: "archived", reason: d.reason ?? null },
   });
 
   revalidatePath("/dashboard/operations/damage-reports");

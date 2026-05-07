@@ -391,3 +391,91 @@ function toBig(v: bigint | string | number): bigint {
   if (typeof v === "bigint") return v;
   return BigInt(typeof v === "number" ? Math.trunc(v) : v);
 }
+
+// ---------------------------------------------------------------------------
+// Stage 6.P5.F — approval-thresholds CRUD (Tier 3 P3.6 closure).
+//
+// The matrix is operator-configurable from the settings UI. Backed by the
+// `approval_thresholds` table seeded by migration 0047. Every mutation
+// requires a director (or higher) — guarded by `requireInternalUser` +
+// `isRoleSufficient`.
+// ---------------------------------------------------------------------------
+
+const upsertThresholdSchema = z.object({
+  thresholdType: z.string().min(1),
+  amountMinorMin: z.coerce.bigint().nonnegative(),
+  amountMinorMax: z
+    .union([z.coerce.bigint(), z.null()])
+    .optional()
+    .transform((v) => (v == null ? null : v)),
+  currency: z.string().length(3),
+  requiredRole: z.string().min(1),
+  requiredApproverCount: z.coerce.number().int().min(1).max(10),
+  notes: z.string().max(500).nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export async function createApprovalThreshold(
+  input: z.input<typeof upsertThresholdSchema>,
+): Promise<{ id: string }> {
+  const user = await requireInternalUser();
+  if (!user.roles.some((r) => isRoleSufficient(r, "director"))) {
+    throw new Error("createApprovalThreshold: director role required");
+  }
+  const parsed = upsertThresholdSchema.parse(input);
+  const db = requireDb();
+  const [row] = await db
+    .insert(approvalThresholds)
+    .values({
+      thresholdType: parsed.thresholdType,
+      amountMinorMin: parsed.amountMinorMin,
+      amountMinorMax: parsed.amountMinorMax ?? null,
+      currency: parsed.currency,
+      requiredRole: parsed.requiredRole,
+      requiredApproverCount: parsed.requiredApproverCount,
+      notes: parsed.notes ?? null,
+      isActive: parsed.isActive ?? true,
+    })
+    .returning({ id: approvalThresholds.id });
+  return { id: row.id };
+}
+
+export async function updateApprovalThreshold(
+  id: string,
+  input: Partial<z.input<typeof upsertThresholdSchema>>,
+): Promise<void> {
+  const user = await requireInternalUser();
+  if (!user.roles.some((r) => isRoleSufficient(r, "director"))) {
+    throw new Error("updateApprovalThreshold: director role required");
+  }
+  const parsed = upsertThresholdSchema.partial().parse(input);
+  const db = requireDb();
+  const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (parsed.thresholdType !== undefined) patch.thresholdType = parsed.thresholdType;
+  if (parsed.amountMinorMin !== undefined)
+    patch.amountMinorMin = parsed.amountMinorMin;
+  if (parsed.amountMinorMax !== undefined)
+    patch.amountMinorMax = parsed.amountMinorMax;
+  if (parsed.currency !== undefined) patch.currency = parsed.currency;
+  if (parsed.requiredRole !== undefined) patch.requiredRole = parsed.requiredRole;
+  if (parsed.requiredApproverCount !== undefined)
+    patch.requiredApproverCount = parsed.requiredApproverCount;
+  if (parsed.notes !== undefined) patch.notes = parsed.notes;
+  if (parsed.isActive !== undefined) patch.isActive = parsed.isActive;
+  await db
+    .update(approvalThresholds)
+    .set(patch)
+    .where(eq(approvalThresholds.id, id));
+}
+
+export async function deactivateApprovalThreshold(id: string): Promise<void> {
+  const user = await requireInternalUser();
+  if (!user.roles.some((r) => isRoleSufficient(r, "director"))) {
+    throw new Error("deactivateApprovalThreshold: director role required");
+  }
+  const db = requireDb();
+  await db
+    .update(approvalThresholds)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(approvalThresholds.id, id));
+}

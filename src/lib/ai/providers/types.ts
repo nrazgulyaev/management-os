@@ -52,12 +52,40 @@ export interface AICompletionResponse {
   finishReason: string;
 }
 
+/**
+ * Stage 6.P6 — embedding request shape. Vector dimensionality is
+ * model-dependent (768 for text-embedding-3-small, 3072 for
+ * text-embedding-3-large, 768 for Gemini text-embedding-004). The
+ * provider returns its native dimensionality — caller normalizes if
+ * needed.
+ */
+export interface AIEmbeddingRequest {
+  /** Plain-text input. Up to a model-specific token cap. */
+  input: string;
+  /** Optional model override. Caller must check provider capabilities. */
+  model?: string;
+}
+
+export interface AIEmbeddingResponse {
+  /** Float32 embedding vector. Length equals model dimensionality. */
+  vector: number[];
+  /** Reported by the provider (used for cost accounting). */
+  tokensUsed: number;
+  model: string;
+}
+
 export interface AIProvider {
   readonly name: string;
   readonly defaultModel: string;
   /** True when env (API key) is present and AI is not in dry-run. */
   isAvailable(): boolean;
   complete(req: AICompletionRequest): Promise<AICompletionResponse>;
+  /**
+   * Optional. Implemented by providers with an embeddings endpoint
+   * (Anthropic via Voyage, OpenAI, Gemini). Callers must guard with
+   * `'embed' in provider` before invoking.
+   */
+  embed?(req: AIEmbeddingRequest): Promise<AIEmbeddingResponse>;
 }
 
 /**
