@@ -77,3 +77,5 @@ export * from "./channel-manager";
 export * from "./messaging";
 export * from "./banking";
 export * from "./payment-processors";
+export * from "./p4-marketing";
+export * from "./attribution";

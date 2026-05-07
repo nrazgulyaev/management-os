@@ -4649,3 +4649,214 @@ P3.F → P3.G.
   per Stripe's "destructive update" semantic.
 - 4325+ tests pass; zero regressions on the 4206 baseline.
 - Stage 6.P4 (Marketing + Analytics) is unblocked.
+
+---
+
+## Stage 6.P3.6 — Targeted CRUD Coverage Closure `[ACCEPTED 6.P3.6]`
+
+**Goal**: spot-check every section flagged 🔴 / 🟡 / ⚫ in the P3.5
+coverage audit; record per-section disposition; pin the wiring with
+real-functionality tests so future refactors can't silently regress
+the affordances. **No new entity tables, no new providers, no new
+migrations.** This sub-stage is a verification + test-pinning pass.
+
+**Estimate**: 1 day actual (against a 5-day budget) — most sections
+turned out to be heuristic misses rather than real gaps, dramatically
+shrinking the work.
+
+**Findings**:
+
+The P3.5 audit's heuristic flagged 81 sections as 🔴 (read-only). After
+spot-checking the high-priority subset (Tier 1 critical workflow +
+Tier 2 bulk patterns + Tier 3 settings, per the P3.6 prompt):
+
+- **~30 sections** were heuristic misses — the wiring exists in detail
+  pages, modal client components, or `<Link href=".../new">` patterns
+  the regex didn't catch.
+- **~14 sections** are correctly read-only by design (list views,
+  reference catalogs, status dashboards). Workflow legitimately lives
+  on the detail page or via separate sub-routes.
+- **2 sections** are genuine gaps that need new wiring:
+  `/development-os/settings/approval-thresholds` (admin edit) and
+  `/development-os/settings/whatsapp` (credential CRUD). Both
+  deferred to P5 (Productivity Tools), which is already scoped to
+  touch settings pages.
+- **~25 sections** explicitly deferred to later stages (P5 settings,
+  P6 AI agents, P7 investor portal, P8 polish) with rationale
+  recorded in `tmp/coverage-audit-decisions.md`.
+- **1 section** flagged for sidebar removal (`/development-os/sales`
+  is legacy, superseded by `/buyers`).
+
+**Architectural decisions locked at P3.6**:
+
+- **Audit heuristic is provisional; decisions doc is canonical.** The
+  P3.5 script's classifications are noisy by construction (the script
+  can't see inside client components or detail pages). When a section
+  is verified as RO-by-design or heuristic-miss, the verification is
+  recorded in the decisions doc and pinned with a test. Future audits
+  read both inputs.
+- **List + detail = section.** Many list pages were flagged 🔴
+  because they don't carry the workflow themselves — but the workflow
+  is one click away on the detail page. We treat the **section** as
+  the unit, not the index page in isolation. A list page that
+  delegates Approve/Reject to its `/[id]` detail counts as functional.
+- **Deferrals are scoped to the right stage.** Settings gaps go to
+  P5 (which already touches settings). AI-agent admin UIs go to P6
+  (the activation stage). Owner-portal polish goes to P7. None of
+  these are emergencies blocking P4.
+
+**Deliverables (landed in P3.6)**:
+
+1. `tmp/coverage-audit-decisions.md` — per-section disposition table
+   covering Tier 1 (15 sections) + Tier 2 (~17) + Tier 3 (8) plus
+   summary of explicit deferrals.
+2. `tests/development-stage-6-p3-6.test.ts` — real-functionality
+   test suite (~50 assertions) pinning the workflow + modal +
+   sub-route wiring for every verified section.
+3. `docs/STAGE-6-P3-6-COMPLETE.md` — closure report.
+
+**Acceptance gate**:
+- ~30 sections verified + tested as 🟢 (heuristic miss or RO-by-design)
+- 2 sections explicitly routed to P5 with rationale
+- ~25 sections explicitly routed to P6/P7/P8
+- ~50 new tests (real-functionality, not file-presence stubs)
+- Zero regressions on the 4342 baseline; build clean; cron unchanged
+- Stage 5.J build-fix invariant + 0075 FOREACH lesson preserved
+  (no new migrations introduced)
+- After acceptance, **P4.B (GA4 + Meta Pixel ingestion) is unblocked**
+  with the P4.A foundation intact.
+
+---
+
+## Stage 6.P4 — Marketing + Analytics `[ACTIVE 6.P4]`
+
+**Goal**: marketing infrastructure — analytics ingestion (GA4, Meta
+Pixel), ad-platform integrations (Google Ads, Meta Ads, TikTok Ads),
+email marketing (Mailchimp, ConvertKit), an attribution engine
+(first-touch / last-touch / linear / time-decay / position-based),
+and a marketing dashboard with funnels + CAC + LTV + ROI.
+
+**Estimate**: 2–3 weeks; 6 internal sub-checkpoints (P4.A schema +
+provider abstraction, P4.B GA4 + Meta Pixel analytics ingestion,
+P4.C Google Ads, P4.D Meta Ads, P4.E TikTok Ads + email marketing,
+P4.F attribution engine + dashboards UI).
+
+**Entry-state inheritance** (post-P3.G):
+- 4312 baseline tests passing.
+- 87 cron routes, 86 known job keys.
+- Provider abstractions proven across 4 surfaces (AI Stage 3.A,
+  channel-manager Stage 6.P1, messaging Stage 6.P2, banking +
+  payments Stage 6.P3): one interface, one selector, DryRun fallback
+  by default.
+- Reusable patterns: `requestWithRetry` (P1.A), shared
+  `verifyHmacSha256Signature` (P1.D `provider-helpers.ts`),
+  `credentials-crypto.ts` (P1.B encrypted credential blobs),
+  Google OAuth refresh helper (P2.E `google.ts`), period-close
+  audit pattern (P3.G).
+
+**Architectural decisions locked at P4 entry**:
+
+- **Two-track analytics ingestion.** Server-side (Measurement Protocol
+  for GA4, Conversions API for Meta Pixel) handles conversion events;
+  client-side JS Tag handles general session telemetry (out of P4
+  scope — bookkeeped separately when the marketing site lands). The
+  conversion path is the load-bearing one because it drives the
+  attribution engine.
+- **Three ad platforms, two email providers.** Google Ads + Meta Ads
+  + TikTok Ads cover the majors; Mailchimp + ConvertKit cover the
+  email-marketing majors. Each lands behind the unified
+  `MarketingProviderInterface`. Resend (transactional) already
+  shipped in P2.F — that surface is bridged via the email-marketing
+  classification, not duplicated.
+- **Provider abstraction follows the same pattern.** Single
+  `MarketingProviderInterface` + one `selectMarketingProvider` +
+  per-provider implementations + DryRun fallback. Lives in
+  `src/lib/marketing/`.
+- **Discriminated credential unions.** Per-provider credential
+  interfaces keyed by a literal `provider` discriminator. Selector
+  verifies the discriminator matches the requested provider; falls
+  back to DryRun on mismatch.
+- **Encrypted credential storage.** `marketing_connections.credentials`
+  uses the `STAY_LINK_KMS_SECRET` helper (Stage 5.I + P1.B) — same
+  envelope as banking + messaging.
+- **Cost-unit normalization at the boundary.** Google Ads returns
+  micros (1 USD = 1,000,000), Meta Ads returns major-unit decimal
+  strings, TikTok returns micros. Provider mappers normalize every
+  inbound spend to minor units (cents) before persisting to
+  `marketing_metrics`. The DB never sees the native unit.
+- **PII never crosses the wire raw.** Conversion events sent to ad
+  platforms hash email + phone via SHA-256 normalize-then-hash
+  (lowercase, strip whitespace) — Meta + Google both require this.
+- **Idempotent conversion firing.** Every server-side conversion
+  carries an `event_id` (Meta) / `transaction_id` (GA4) so duplicate
+  fires from cron retries don't double-count.
+- **Attribution decoupled from ingestion.** The attribution engine
+  reads `attribution_touchpoints` + `attribution_conversions` and
+  computes per-conversion attribution into `linear_attribution_data`
+  (JSONB). It does NOT touch the source data — operators can re-run
+  with a different model + lookback window without re-importing.
+- **0075 PL/pgSQL FOREACH lesson preserved.** Migration 0082 uses
+  `FOREACH t IN ARRAY ARRAY[...]` for the RLS loop (4th preservation
+  across migrations).
+
+**P4 deliverables**:
+
+1. Migration 0082 — 5 tables (`marketing_connections`,
+   `marketing_campaigns`, `marketing_metrics`,
+   `attribution_touchpoints`, `attribution_conversions`). Per-org
+   RLS via the FOREACH ARRAY pattern.
+2. Drizzle schema modules — `src/lib/db/schema/marketing.ts`,
+   `src/lib/db/schema/attribution.ts`. Re-exported from the schema
+   index.
+3. Marketing provider abstraction at `src/lib/marketing/`:
+   `types.ts`, `select-provider.ts`, `providers/dry-run.ts`, public
+   surface `index.ts`. Real providers (GA4, Google Ads, Meta Pixel,
+   Meta Ads, TikTok, Mailchimp, ConvertKit) land in P4.B → P4.E.
+4. Pure UTM tracker (`src/lib/marketing/utm-tracker.ts`): URL parsing,
+   channel classification from UTM + referrer, touchpoint
+   serialization.
+5. Attribution engine (P4.F): pure model functions (first-touch,
+   last-touch, linear, time-decay, position-based), engine class
+   wiring conversions ↔ touchpoints, channel ROI calculation.
+6. Marketing UI (P4.F): 5 pages — overview, campaign detail,
+   attribution dashboard, conversions, connections.
+7. Server-side event wiring: reservation/lead conversion fires
+   GA4 Measurement Protocol + Meta Conversions API + Google Ads
+   Enhanced Conversions in parallel.
+8. 4 new cron jobs: campaigns sync (6h), metrics sync (3h),
+   attribution engine (1h), touchpoint cleanup (daily). Cron
+   registry: 87 → 91.
+9. 2 new webhook routes:
+   `/api/webhooks/marketing/{meta-pixel,ga4}/`.
+10. Documentation: `MARKETING-ARCHITECTURE.md`,
+    `ATTRIBUTION-MODELS-GUIDE.md`,
+    `MARKETING-CREDENTIALS-SETUP.md`,
+    `STAGE-6-P4-COMPLETE.md`.
+11. ≥200 new tests; total ≥4512; zero regressions on the 4312
+    baseline.
+
+**Schema additions (1 migration)**:
+- `0082_development_os_stage_6_p4_marketing.sql` — 5 tables,
+  per-org RLS via FOREACH ARRAY pattern, dedicated
+  `marketing_set_updated_at()` trigger function (kept distinct from
+  banking's so cross-stage drops don't cascade).
+
+**Acceptance gate**:
+- Migration 0082 applies cleanly with the FOREACH ARRAY pattern.
+- 5 new tables created with per-org RLS.
+- 7 marketing providers + DryRun behind a single selector.
+- Attribution engine functional with 5 models.
+- Marketing UI complete (5 pages).
+- 4 new cron jobs in `KNOWN_JOBS` + dispatcher + Vercel checklist.
+- 2 webhook routes with signature verification (Meta HMAC-SHA256,
+  GA4 fail-closed pending OIDC plumbing).
+- Server-side event wiring fires conversion events to all active
+  ad-platform connections in parallel.
+- ≥4512 tests passing; zero regressions on the 4312 baseline.
+- `npm run check:cron` clean.
+- 0075 FOREACH lesson preserved (asserted in tests).
+- Stage 5.J build-fix invariant maintained.
+- After acceptance, Stage 6.P5 (Productivity Tools) is unblocked.
+
+P4 sub-checkpoints land in order: P4.A → P4.B → P4.C → P4.D → P4.E →
+P4.F.
