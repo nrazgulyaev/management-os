@@ -91,6 +91,11 @@ export { runAttributionEngine } from "./attribution-engine-job";
 export { runUtmTouchpointCleanup } from "./utm-touchpoint-cleanup-job";
 // Stage 6.P5 — Google Workspace
 export { runGoogleWorkspaceHealthCheck } from "./google-workspace-health-check-job";
+// Stage 6.P6-CATCHUP — AI org-quota crons
+export { runAiAggregateDaily } from "./ai-aggregate-daily-job";
+export { runAiPeriodRollover } from "./ai-period-rollover-job";
+export { runAiWarnThresholds } from "./ai-warn-thresholds-job";
+export { runAiStripeSync } from "./ai-stripe-sync-job";
 
 export type DevOsJobKey =
   | "dev_os_pricing_apply"
@@ -173,7 +178,12 @@ export type DevOsJobKey =
   | "attribution_engine"
   | "utm_touchpoint_cleanup"
   // Stage 6.P5 — Google Workspace
-  | "google_workspace_health_check";
+  | "google_workspace_health_check"
+  // Stage 6.P6-CATCHUP — AI quotas
+  | "ai_aggregate_daily"
+  | "ai_period_rollover"
+  | "ai_warn_thresholds"
+  | "ai_stripe_sync";
 
 export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "dev_os_pricing_apply",
@@ -252,4 +262,8 @@ export const DEV_OS_JOB_KEYS: DevOsJobKey[] = [
   "attribution_engine",
   "utm_touchpoint_cleanup",
   "google_workspace_health_check",
+  "ai_aggregate_daily",
+  "ai_period_rollover",
+  "ai_warn_thresholds",
+  "ai_stripe_sync",
 ];

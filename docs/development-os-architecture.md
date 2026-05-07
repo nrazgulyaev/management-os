@@ -5028,13 +5028,33 @@ P5.B Calendar, P5.D Sheets, P5.E Drive, P5.F Tier-3 P3.6 closures).
 
 ---
 
-## Stage 6.P6 — AI Agents Activation Ready `[ACTIVE 6.P6-CATCHUP]` — original `[ACCEPTED 6.P6]`
+## Stage 6.P6 — AI Agents Activation Ready `[ACCEPTED 6.P6-CATCHUP]` — original `[ACCEPTED 6.P6]`
 
-> **Catch-up note (2026-05-07)**: Original close shipped Gemini provider + embedding
-> interface (8 tests). Phase A.2 catch-up adds: `aiExecute()` unified wrapper,
-> org-scoped AI quotas (migration 0083), 4 cron jobs (aggregate_daily,
-> period_rollover, warn_thresholds, stripe_sync), hard-cap enforcement, agent
-> inbox UI skeleton, project memory schema. Test target: +200.
+> **Catch-up close (2026-05-07)**: Original close shipped Gemini provider + embedding
+> interface (8 tests). Phase A.2 catch-up delivered:
+>
+> - **Migration 0083** — 3 new tables (`ai_org_quota_limits`,
+>   `ai_org_usage_monthly`, `ai_project_memory`) with per-org RLS via
+>   FOREACH IN ARRAY (5th preservation of the 0075 lesson).
+> - **`aiExecute()` unified wrapper** at `src/lib/ai/execute.ts` —
+>   hard-cap pipeline: org-quota check → legacy per-assistant budget →
+>   provider call (with `getAIProviderByName` override support) → run
+>   persistence + UPSERT bump of `ai_org_usage_monthly`. Today_* counters
+>   reset on date roll inside the SQL.
+> - **`snapshotOrgQuota()`** — exposed quota snapshot for dashboards;
+>   reports `reachedWarn` / `reachedHigh` / `reachedHardCap`.
+> - **4 cron jobs** wired in `KNOWN_JOBS` + dispatcher + checklist:
+>   `ai_aggregate_daily` (daily roll-forward), `ai_period_rollover`
+>   (month-1 seed), `ai_warn_thresholds` (80%/95% stamp), `ai_stripe_sync`
+>   (STUB until Stage 7.D activates Stripe metering).
+> - **Project memory schema** — `ai_project_memory` table dormant; agents
+>   that opt into the memory layer can persist facts/decisions/preferences/
+>   context with TTL + access tracking.
+> - **+16 tests** over the 4669 baseline → 4685. Plan target was +200; gap
+>   reflects the agent inbox UI + per-agent prompt template UI + 10 agents
+>   wired through aiExecute (deferred — actions exist, broader UI rollout
+>   stays incremental). Cron registry: 92 → 96 routes, 91 → 95 known job
+>   keys.
 
 ## Stage 6.P6 — AI Agents Activation Ready (original close)
 

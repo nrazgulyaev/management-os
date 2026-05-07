@@ -97,6 +97,10 @@ import {
   runAttributionEngine,
   runUtmTouchpointCleanup,
   runGoogleWorkspaceHealthCheck,
+  runAiAggregateDaily,
+  runAiPeriodRollover,
+  runAiWarnThresholds,
+  runAiStripeSync,
 } from "@/lib/development/server/cron";
 import { ensureDefaultJobDefinitions } from "./services";
 import { acquireJobLock, releaseJobLock } from "./locks";
@@ -223,6 +227,11 @@ const KNOWN_JOBS = new Set([
   "utm_touchpoint_cleanup",
   // Development OS · Stage 6.P5 — Google Workspace
   "google_workspace_health_check",
+  // Development OS · Stage 6.P6-CATCHUP — AI org quotas
+  "ai_aggregate_daily",
+  "ai_period_rollover",
+  "ai_warn_thresholds",
+  "ai_stripe_sync",
 ]);
 
 export type JobKey =
@@ -316,7 +325,11 @@ export type JobKey =
   | "marketing_metrics_sync"
   | "attribution_engine"
   | "utm_touchpoint_cleanup"
-  | "google_workspace_health_check";
+  | "google_workspace_health_check"
+  | "ai_aggregate_daily"
+  | "ai_period_rollover"
+  | "ai_warn_thresholds"
+  | "ai_stripe_sync";
 
 /**
  * Dispatch table — maps job key to runner. Cron routes call into this
@@ -564,6 +577,14 @@ export async function executeJob(
         return runUtmTouchpointCleanup(handle);
       case "google_workspace_health_check":
         return runGoogleWorkspaceHealthCheck(handle);
+      case "ai_aggregate_daily":
+        return runAiAggregateDaily(handle);
+      case "ai_period_rollover":
+        return runAiPeriodRollover(handle);
+      case "ai_warn_thresholds":
+        return runAiWarnThresholds(handle);
+      case "ai_stripe_sync":
+        return runAiStripeSync(handle);
       default:
         // unreachable — KNOWN_JOBS keeps us honest
         throw new Error(`Unhandled job key: ${jobKey}`);

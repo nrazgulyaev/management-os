@@ -116,6 +116,10 @@ fails fatal if it is missing.  Do **not** set
 | `/api/cron/attribution-engine` | `attribution_engine` | `0 * * * *` | `CRON_SECRET`, `DATABASE_URL` | Hourly attribution sweep. last_touch model by default. (Stage 6.P4.F) | ✓ | ✓ |
 | `/api/cron/utm-touchpoint-cleanup` | `utm_touchpoint_cleanup` | `0 4 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily delete of anonymous touchpoints older than 90 days. (Stage 6.P4.F) | ✓ | ✓ |
 | `/api/cron/google-workspace-health-check` | `google_workspace_health_check` | `0 * * * *` | `CRON_SECRET`, `DATABASE_URL`, `STAY_LINK_KMS_SECRET` | Hourly probe of every active Google OAuth connection — bad rows flipped to is_active=false. (Stage 6.P5) | ✓ | ✓ |
+| `/api/cron/ai-aggregate-daily` | `ai_aggregate_daily` | `30 1 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily AI usage rollup — rolls today_* counters forward, touches every active org row. (Stage 6.P6-CATCHUP) | ✓ | ✓ |
+| `/api/cron/ai-period-rollover` | `ai_period_rollover` | `0 0 1 * *` | `CRON_SECRET`, `DATABASE_URL` | Month-1 seed of `ai_org_usage_monthly` per active org. (Stage 6.P6-CATCHUP) | ✓ | ✓ |
+| `/api/cron/ai-warn-thresholds` | `ai_warn_thresholds` | `0 9 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily 80%/95% threshold check — stamps `last_warn_sent_at` / `last_high_warn_sent_at`. (Stage 6.P6-CATCHUP) | ✓ | ✓ |
+| `/api/cron/ai-stripe-sync` | `ai_stripe_sync` | `0 2 * * *` | `CRON_SECRET`, `DATABASE_URL` | STUB until Stage 7.D — stamps stripe_synced_at on linked rows. (Stage 6.P6-CATCHUP) | ✓ | ✓ |
 | `/api/cron/run-all` | `(dispatcher)` | manual / on-demand | `CRON_SECRET`, `DATABASE_URL` | Iterates the dispatch table; per-job locks apply | ✓ | not scheduled by default |
 
 ## Vercel setup
@@ -216,7 +220,11 @@ Create one if you haven't:
     { "path": "/api/cron/marketing-metrics-sync", "schedule": "0 */3 * * *" },
     { "path": "/api/cron/attribution-engine", "schedule": "0 * * * *" },
     { "path": "/api/cron/utm-touchpoint-cleanup", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/google-workspace-health-check", "schedule": "0 * * * *" }
+    { "path": "/api/cron/google-workspace-health-check", "schedule": "0 * * * *" },
+    { "path": "/api/cron/ai-aggregate-daily", "schedule": "30 1 * * *" },
+    { "path": "/api/cron/ai-period-rollover", "schedule": "0 0 1 * *" },
+    { "path": "/api/cron/ai-warn-thresholds", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/ai-stripe-sync", "schedule": "0 2 * * *" }
   ]
 }
 ```

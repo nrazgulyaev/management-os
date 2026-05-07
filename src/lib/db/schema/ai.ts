@@ -1,4 +1,5 @@
 import {
+  bigint,
   pgTable,
   uuid,
   text,
@@ -9,9 +10,11 @@ import {
   numeric,
   boolean,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 /**
  * AI Operations Co-pilot v0 — see ADR-0011.
@@ -187,6 +190,134 @@ export const aiTranslationCache = pgTable(
     ),
   ],
 );
+
+// ---------------------------------------------------------------------------
+// Stage 6.P6-CATCHUP — Org-scoped AI quotas (migration 0083).
+// ---------------------------------------------------------------------------
+
+export const aiOrgQuotaLimits = pgTable(
+  "ai_org_quota_limits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    dailyLimitUsd: numeric("daily_limit_usd", { precision: 10, scale: 2 })
+      .notNull()
+      .default("25.00"),
+    monthlyLimitUsd: numeric("monthly_limit_usd", { precision: 10, scale: 2 })
+      .notNull()
+      .default("500.00"),
+    warnThresholdPct: integer("warn_threshold_pct").notNull().default(80),
+    highThresholdPct: integer("high_threshold_pct").notNull().default(95),
+    /** Plan-tier alignment for Stage 7.B feature gating. Optional today. */
+    planCode: text("plan_code"),
+    isEnabled: boolean("is_enabled").notNull().default(true),
+    lastWarnSentAt: timestamp("last_warn_sent_at", { withTimezone: true }),
+    lastHighWarnSentAt: timestamp("last_high_warn_sent_at", {
+      withTimezone: true,
+    }),
+    lastBlockedAt: timestamp("last_blocked_at", { withTimezone: true }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("ai_org_quota_limits_org_unique").on(t.organizationId),
+    index("ai_org_quota_limits_enabled_idx").on(t.isEnabled),
+  ],
+);
+
+export const aiOrgUsageMonthly = pgTable(
+  "ai_org_usage_monthly",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    year: integer("year").notNull(),
+    month: integer("month").notNull(),
+    totalRuns: integer("total_runs").notNull().default(0),
+    totalPromptTokens: bigint("total_prompt_tokens", { mode: "bigint" })
+      .notNull()
+      .default(0n),
+    totalCompletionTokens: bigint("total_completion_tokens", { mode: "bigint" })
+      .notNull()
+      .default(0n),
+    totalCostUsd: numeric("total_cost_usd", { precision: 12, scale: 4 })
+      .notNull()
+      .default("0"),
+    todayRuns: integer("today_runs").notNull().default(0),
+    todayCostUsd: numeric("today_cost_usd", { precision: 12, scale: 4 })
+      .notNull()
+      .default("0"),
+    todayDate: date("today_date"),
+    /** Stage 7.D Stripe metered-billing sync stub. */
+    stripeSyncedAt: timestamp("stripe_synced_at", { withTimezone: true }),
+    stripeSubscriptionItemId: text("stripe_subscription_item_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("ai_org_usage_monthly_period_unique").on(
+      t.organizationId,
+      t.year,
+      t.month,
+    ),
+    index("ai_org_usage_monthly_org_idx").on(t.organizationId),
+    index("ai_org_usage_monthly_period_idx").on(t.year, t.month),
+  ],
+);
+
+export const aiProjectMemory = pgTable(
+  "ai_project_memory",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id"),
+    scopeType: text("scope_type").notNull().default("project"),
+    scopeId: uuid("scope_id"),
+    memoryType: text("memory_type").notNull(),
+    content: text("content").notNull(),
+    embeddingModel: text("embedding_model"),
+    embeddingVector: text("embedding_vector"),
+    isActive: boolean("is_active").notNull().default(true),
+    ttlAt: timestamp("ttl_at", { withTimezone: true }),
+    lastAccessedAt: timestamp("last_accessed_at", { withTimezone: true }),
+    accessCount: integer("access_count").notNull().default(0),
+    createdBy: uuid("created_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("ai_project_memory_org_idx").on(t.organizationId),
+    index("ai_project_memory_project_idx").on(t.projectId),
+    index("ai_project_memory_scope_idx").on(t.scopeType, t.scopeId),
+  ],
+);
+
+export type AiOrgQuotaLimit = typeof aiOrgQuotaLimits.$inferSelect;
+export type NewAiOrgQuotaLimit = typeof aiOrgQuotaLimits.$inferInsert;
+export type AiOrgUsageMonthlyRow = typeof aiOrgUsageMonthly.$inferSelect;
+export type NewAiOrgUsageMonthlyRow = typeof aiOrgUsageMonthly.$inferInsert;
+export type AiProjectMemoryRow = typeof aiProjectMemory.$inferSelect;
+export type NewAiProjectMemoryRow = typeof aiProjectMemory.$inferInsert;
 
 export type AiTranslationCacheRow = typeof aiTranslationCache.$inferSelect;
 export type NewAiTranslationCacheRow = typeof aiTranslationCache.$inferInsert;
