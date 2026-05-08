@@ -67,6 +67,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.5.15",
+    "pg-query-emscripten": "^5.1.0",
     "playwright": "^1.59.1",
     "postcss": "^8.5.1",
     "tailwindcss": "^4.0.0",

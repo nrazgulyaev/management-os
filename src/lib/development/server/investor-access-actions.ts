@@ -4,6 +4,7 @@ import { eq, and, sql, gte } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb, getDb } from "@/lib/db/client";
 import { appUsers, roles } from "@/lib/db/schema/identity";
+import { organizations } from "@/lib/db/schema/saas";
 import { investors } from "@/lib/db/schema/investor-capital";
 import { devNotificationDeliveryLog } from "@/lib/db/schema/sales";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -170,12 +171,28 @@ export async function grantInvestorPortalAccess(
   }
 
   // 6. Upsert the app_users row — atomic with the user_roles link.
+  // Stage 9.0 third attempt — app_users.organization_id is NOT NULL.
+  // Investors are tied to ARCONIQUE_DEFAULT (Stage 5.J seed). For
+  // multi-tenant investor portals later, this would resolve from the
+  // investor's parent org instead.
+  const [arconiqueDefault] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.organizationCode, "ARCONIQUE_DEFAULT"))
+    .limit(1);
+  if (!arconiqueDefault) {
+    throw new Error(
+      "ARCONIQUE_DEFAULT organization is missing — apply migration 0071 before granting investor access.",
+    );
+  }
+  const arconiqueOrgId = arconiqueDefault.id;
   const result = await db.transaction(async (tx) => {
     const [up] = await tx
       .insert(appUsers)
       .values({
         email: parsed.email,
         fullName: investor.legalName,
+        organizationId: arconiqueOrgId,
         status: authUserId ? "active" : "invited",
         investorId: parsed.investorId,
         authUserId: authUserId ?? null,

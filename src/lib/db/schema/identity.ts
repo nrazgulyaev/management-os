@@ -32,6 +32,23 @@ export const appUsers = pgTable(
      *  Arconique HQ timezone; operators / staff can override per user. */
     timezone: text("timezone").notNull().default("Asia/Makassar"),
     /**
+     * Stage 5.J — multi-tenant boundary. Every app_user belongs to
+     * exactly one org. NOT NULL with FK to organizations(id) added by
+     * migration 0071; pre-Stage-5.J rows backfilled to
+     * `ARCONIQUE_DEFAULT`.
+     *
+     * Earlier sessions had a Drizzle schema that omitted this column
+     * while the deployed DB had it NOT NULL — that drift caused
+     * migration 0087 (provisioning backfill) to fail repeatedly with a
+     * NOT NULL violation. The TS column is added here so application
+     * INSERTs match the deployed constraint.
+     *
+     * The FK target is enforced by the migration; we don't repeat the
+     * `.references(() => organizations.id)` here to avoid a circular
+     * import (organizations → app_users via owner FKs in saas.ts).
+     */
+    organizationId: uuid("organization_id").notNull(),
+    /**
      * Stage 2.3.C — links an auth user to an investor record. Set ONLY for
      * users with the `investor_viewer` role; null for internal staff. The
      * `protect_app_users_investor_id_trg` trigger blocks non-internal
@@ -43,6 +60,7 @@ export const appUsers = pgTable(
   },
   (t) => [
     index("app_users_email_lower_idx").on(sql`lower(${t.email})`),
+    index("app_users_organization_idx").on(t.organizationId),
     index("app_users_investor_idx").on(t.investorId),
   ],
 );

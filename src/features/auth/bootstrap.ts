@@ -3,6 +3,7 @@ import "server-only";
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
+import { organizations } from "@/lib/db/schema/saas";
 import { auditEvents } from "@/lib/db/schema/audit";
 import { env } from "@/lib/env";
 
@@ -55,7 +56,16 @@ export interface BootstrapInput {
 
 export type BootstrapOutcome =
   | { ok: true; appUserId: string; firstAdmin: boolean }
-  | { ok: false; reason: "db_missing" | "secret_required" | "secret_invalid" | "not_configured" | "internal" };
+  | {
+      ok: false;
+      reason:
+        | "db_missing"
+        | "secret_required"
+        | "secret_invalid"
+        | "not_configured"
+        | "internal"
+        | "arconique_default_org_missing";
+    };
 
 /**
  * Idempotent: linking the same auth user twice returns ok=true with the
@@ -120,12 +130,25 @@ export async function linkSupabaseUserToSuperAdmin(
         .where(eq(appUsers.id, byEmail.id));
       appUserId = byEmail.id;
     } else {
+      // Stage 9.0 third attempt — app_users.organization_id is NOT NULL.
+      // Resolve ARCONIQUE_DEFAULT (seeded by 0071) and tie the new
+      // bootstrap admin to it. If the org is missing, refuse — bootstrap
+      // depends on it as a hard prerequisite (same as the 0087 backfill).
+      const [arconiqueDefault] = await db
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.organizationCode, "ARCONIQUE_DEFAULT"))
+        .limit(1);
+      if (!arconiqueDefault) {
+        return { ok: false, reason: "arconique_default_org_missing" };
+      }
       const [inserted] = await db
         .insert(appUsers)
         .values({
           authUserId: input.authUserId,
           email: input.email.toLowerCase(),
           fullName: input.fullName,
+          organizationId: arconiqueDefault.id,
           status: "active",
         })
         .returning({ id: appUsers.id });

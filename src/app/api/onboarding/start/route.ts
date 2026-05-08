@@ -249,11 +249,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const organizationId = org.id;
 
     // -------- 4. Provision the app_users row + role grants atomically.
+    // Signature: (auth_user_id, email, full_name, organization_id,
+    // role_key_internal, role_key_cabinet). The new tenant's org_id
+    // was returned from step 3.
     const provisionResult = await db.execute<{ provision_app_user: string }>(
       sql`SELECT public.provision_app_user(
         ${authUserId}::uuid,
         ${input.email}::text,
         ${input.full_name ?? input.email}::text,
+        ${organizationId}::uuid,
         'super_admin'::text,
         'admin'::text
       ) AS provision_app_user`,

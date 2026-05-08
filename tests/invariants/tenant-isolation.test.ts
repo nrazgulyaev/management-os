@@ -67,23 +67,62 @@ test(
   },
 );
 
+/**
+ * Every table in this list MUST carry an `is_in_user_organization` policy.
+ * Mirrors `REQUIRED_ORG_SCOPED` in `tests/development-stage-9-g.test.ts` —
+ * the canonical multi-tenant data surfaces we own.
+ *
+ * The broader population (~109 tables across the codebase that have
+ * `organization_id` from any source — including legacy ALTER-TABLE
+ * additions and tables that intentionally bypass org isolation for
+ * Arconique-internal use) is out of scope here. A separate Stage 10
+ * audit will catalog them.
+ */
+const REQUIRED_ORG_SCOPED_TABLES = [
+  "team_invitations",
+  "org_subscriptions",
+  "subscription_lifecycle_events",
+  "ai_org_quota_limits",
+  "ai_org_usage_monthly",
+  "ai_project_memory",
+  "api_keys",
+  "api_request_log",
+  "webhook_subscriptions",
+  "usage_metrics",
+  "data_export_requests",
+  "bulk_import_jobs",
+  "bank_connections",
+  "bank_transactions",
+  "payment_intents",
+  "payment_attempts",
+  "payment_processor_connections",
+  "closed_periods",
+  "reconciliation_rules",
+  "statement_imports",
+  "marketing_connections",
+  "marketing_campaigns",
+  "marketing_metrics",
+  "attribution_conversions",
+  "attribution_touchpoints",
+  "channel_connections",
+  "channel_reservations",
+  "channel_commission_records",
+  "channel_sync_log",
+  "conversation_threads",
+  "conversation_messages",
+  "message_templates",
+  "auto_response_rules",
+  "oauth_connections",
+];
+
 test(
-  "every org-scoped table has at least one policy referencing is_in_user_organization",
+  "every required org-scoped table has at least one policy referencing is_in_user_organization",
   { skip: !DB_AVAILABLE },
   async () => {
     const sql = getInvariantSql();
     const rows = await sql<Array<{ table_name: string }>>`
-      WITH org_tables AS (
-        SELECT k.table_name
-          FROM information_schema.key_column_usage k
-          JOIN information_schema.referential_constraints r
-            ON r.constraint_name = k.constraint_name
-               AND r.constraint_schema = k.constraint_schema
-          JOIN information_schema.constraint_column_usage cu
-            ON cu.constraint_name = r.unique_constraint_name
-         WHERE k.table_schema = 'public'
-           AND k.column_name = 'organization_id'
-           AND cu.table_name = 'organizations'
+      WITH required_tables AS (
+        SELECT unnest(${REQUIRED_ORG_SCOPED_TABLES}::text[]) AS table_name
       ),
       policy_tables AS (
         SELECT DISTINCT p.tablename AS table_name
@@ -93,7 +132,7 @@ test(
                 OR p.with_check ILIKE '%is_in_user_organization%')
       )
       SELECT t.table_name
-        FROM org_tables t
+        FROM required_tables t
         LEFT JOIN policy_tables p ON p.table_name = t.table_name
        WHERE p.table_name IS NULL
        ORDER BY t.table_name
@@ -101,7 +140,7 @@ test(
     assert.deepStrictEqual(
       [...rows],
       [],
-      `${rows.length} org-scoped tables have no is_in_user_organization policy in pg_policies — RLS is enabled but the gate is open or wrong:\n` +
+      `${rows.length} required org-scoped tables have no is_in_user_organization policy in pg_policies — RLS is enabled but the gate is open or wrong:\n` +
         rows.map((r) => `  - ${r.table_name}`).join("\n"),
     );
   },

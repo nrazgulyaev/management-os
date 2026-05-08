@@ -309,15 +309,16 @@ export async function acceptInvitationAction(
   // Atomically provision app_users row + grant the invitation's role.
   // We always grant the ROLE_KEY recorded on the invitation, NOT super_admin.
   // Internal-user bypass (via user_roles) is reserved for founders.
-  // provision_app_user takes (auth_user_id, email, full_name,
-  // role_key_internal, role_key_cabinet). For invitees we DON'T grant
-  // user_roles.super_admin — pass NULL for the internal slot. The
-  // function tolerates NULL there (skips assign_user_role).
+  // Signature: (auth_user_id, email, full_name, organization_id,
+  // role_key_internal, role_key_cabinet). For invitees we pass NULL for
+  // the internal slot — provision_app_user skips assign_user_role when
+  // null. The org_id comes from the invitation row (NOT NULL FK).
   const provisionResult = await db.execute<{ provision_app_user: string }>(
     sql`SELECT public.provision_app_user(
       ${authUserId}::uuid,
       ${invitation.email}::text,
       ${parsed.data.fullName ?? invitation.email}::text,
+      ${invitation.organizationId}::uuid,
       NULL::text,
       ${invitation.roleKey}::text
     ) AS provision_app_user`,

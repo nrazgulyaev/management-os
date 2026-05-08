@@ -106,10 +106,14 @@ test("9.D: invite blocks a second active invitation for the same (org, email)", 
   );
 });
 
-test("9.D: accept calls provision_app_user with NULL internal role + invitation's cabinet role", () => {
+test("9.D: accept calls provision_app_user with org_id + NULL internal + invitation's cabinet role", () => {
   const src = read("src/features/team/actions.ts");
   // Invitees must NOT get user_roles.super_admin.
   assert.match(src, /provision_app_user\(/);
+  // The 6-arg signature (Stage 9.0 third attempt, after schema-drift fix):
+  // (auth_user_id, email, full_name, organization_id, role_key_internal, role_key_cabinet).
+  // For invitees: org_id from invitation row, NULL for internal, role_key from invitation.
+  assert.match(src, /\$\{invitation\.organizationId\}::uuid/);
   assert.match(src, /NULL::text,\s*\$\{invitation\.roleKey\}::text/);
 });
 
