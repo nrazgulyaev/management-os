@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar } from "lucide-react";
+import { Plus } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { ScheduleCard } from "@/components/operations/schedule-card";
 import { GeneratePreventiveButton } from "@/components/operations/generate-preventive-button";
 import { listPreventiveSchedules } from "@/features/operations/services";
+import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Operations · Preventive" };
 export const dynamic = "force-dynamic";
@@ -36,12 +38,39 @@ export default async function PreventiveSchedulesPage() {
       <DbStatusNotice />
       <div className="flex flex-col gap-2">
         {schedules.length === 0 ? (
-          <div className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary flex items-center gap-2">
-            <Calendar className="w-4 h-4" strokeWidth={1.75} />
-            No preventive schedules yet.
-          </div>
+          <NoItemsYet
+            entityLabel="preventive schedules"
+            description="Set up recurring inspections and services to stop tracking them in spreadsheets."
+            addHref="/dashboard/operations/preventive/new"
+            addLabel="New schedule"
+          />
         ) : (
-          schedules.map((s) => <ScheduleCard key={s.id} schedule={s} />)
+          schedules.map((s) => (
+            <div key={s.id} className="relative">
+              <ScheduleCard schedule={s} />
+              <div className="absolute top-3 right-3 z-10">
+                <OperationsRowActions
+                  kind="preventive"
+                  row={{
+                    id: s.id,
+                    displayName: s.name,
+                    values: {
+                      name: s.name,
+                      category: s.category,
+                      villaId: s.villaId ?? "",
+                      projectId: s.projectId ?? "",
+                      checklistTemplateId: s.checklistTemplateId ?? "",
+                      frequency: s.frequency,
+                      intervalDays: s.intervalDays ?? "",
+                      nextDueOn: s.nextDueOn,
+                      priority: s.priority,
+                      assignedTo: s.assignedTo ?? "",
+                    },
+                  }}
+                />
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>

@@ -1395,3 +1395,163 @@ export async function assignMaintenanceTicketAction(
   revalidatePath(`/dashboard/operations/maintenance/${ticket.id}`);
   return { ok: true };
 }
+
+// =============================================================================
+// Stage 10.E.2 — Edit + archive for preventive schedules + service requests.
+//
+// Audit found these 2 list pages with Add but no Edit/Delete. Schedule
+// edits are full re-validation (frequency / next-due may change);
+// archive flips status to "archived" (already supported by the existing
+// status text column). Service-request edit is restricted to title /
+// message / priority — operator-led adjustments before acceptance.
+// =============================================================================
+
+interface OpsIdInput {
+  id: string;
+}
+
+export async function editPreventiveScheduleAction(
+  input: OpsIdInput,
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = createPreventiveScheduleSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+  const [row] = await db
+    .update(preventiveSchedules)
+    .set({
+      name: d.name,
+      category: d.category,
+      villaId: d.villaId ?? null,
+      projectId: d.projectId ?? null,
+      taskTypeId: d.taskTypeId ?? null,
+      checklistTemplateId: d.checklistTemplateId ?? null,
+      frequency: d.frequency,
+      intervalDays: d.intervalDays ?? null,
+      nextDueOn: d.nextDueOn,
+      priority: d.priority,
+      assignedTo: d.assignedTo ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(preventiveSchedules.id, input.id))
+    .returning({ id: preventiveSchedules.id });
+  if (!row) return { ok: false, error: "Schedule not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.preventive.update",
+    entityType: "preventive_schedule",
+    entityId: input.id,
+    after: { name: d.name, frequency: d.frequency, nextDueOn: d.nextDueOn },
+  });
+  revalidatePath("/dashboard/operations/preventive");
+  return { ok: true };
+}
+
+export async function archivePreventiveScheduleAction(
+  input: OpsIdInput,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(preventiveSchedules)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(eq(preventiveSchedules.id, input.id))
+    .returning({ id: preventiveSchedules.id });
+  if (!row) return { ok: false, error: "Schedule not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.preventive.archive",
+    entityType: "preventive_schedule",
+    entityId: input.id,
+    after: { status: "archived" },
+  });
+  revalidatePath("/dashboard/operations/preventive");
+  return { ok: true };
+}
+
+export async function editServiceRequestAction(
+  input: OpsIdInput,
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = createServiceRequestSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+  // Service request edit is restricted to operator-controllable fields —
+  // title / message / priority / requestType. Status transitions go
+  // through accept/complete actions, never plain edit.
+  const [row] = await db
+    .update(serviceRequests)
+    .set({
+      title: d.title,
+      message: d.message && d.message !== "" ? d.message : null,
+      requestType: d.requestType,
+      priority: d.priority,
+      preferredTime:
+        d.preferredTime && d.preferredTime !== "" ? new Date(d.preferredTime) : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(serviceRequests.id, input.id))
+    .returning({ id: serviceRequests.id });
+  if (!row) return { ok: false, error: "Service request not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.service_request.update",
+    entityType: "service_request",
+    entityId: input.id,
+    after: { title: d.title, requestType: d.requestType, priority: d.priority },
+  });
+  revalidatePath("/dashboard/operations/service-requests");
+  return { ok: true };
+}
+
+export async function archiveServiceRequestAction(
+  input: OpsIdInput,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(serviceRequests)
+    .set({ status: "cancelled", updatedAt: new Date() })
+    .where(eq(serviceRequests.id, input.id))
+    .returning({ id: serviceRequests.id });
+  if (!row) return { ok: false, error: "Service request not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.service_request.archive",
+    entityType: "service_request",
+    entityId: input.id,
+    after: { status: "cancelled" },
+  });
+  revalidatePath("/dashboard/operations/service-requests");
+  return { ok: true };
+}

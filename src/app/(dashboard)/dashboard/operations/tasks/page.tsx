@@ -6,6 +6,8 @@ import { TaskCard } from "@/components/operations/task-card";
 import { Plus } from "lucide-react";
 import { listOperationTasks } from "@/features/operations/services";
 import type { ListOperationTaskFilters } from "@/features/operations/services";
+import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Operations · Tasks" };
 export const dynamic = "force-dynamic";
@@ -78,12 +80,38 @@ export default async function OperationsTasksList({
 
       <div className="flex flex-col gap-2">
         {tasks.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No tasks match these filters yet.
-          </p>
+          <NoItemsYet
+            entityLabel="tasks"
+            description={
+              sp.status || sp.category || sp.priority
+                ? "No tasks match these filters."
+                : "Create your first operations task."
+            }
+            addHref="/dashboard/operations/tasks/new"
+            addLabel="New task"
+          />
         ) : (
           tasks.map((t) => (
-            <TaskCard key={t.id} task={t} href={`/dashboard/operations/tasks/${t.id}`} />
+            <div key={t.id} className="relative">
+              <TaskCard task={t} href={`/dashboard/operations/tasks/${t.id}`} />
+              <div className="absolute top-3 right-3 z-10">
+                <OperationsRowActions
+                  kind="task"
+                  row={{
+                    id: t.id,
+                    displayName: t.title,
+                    detailHref: `/dashboard/operations/tasks/${t.id}`,
+                    values: {
+                      title: t.title,
+                      description: t.description ?? "",
+                      category: t.category,
+                      priority: t.priority,
+                      scheduledFor: t.scheduledFor ?? "",
+                    },
+                  }}
+                />
+              </div>
+            </div>
           ))
         )}
       </div>

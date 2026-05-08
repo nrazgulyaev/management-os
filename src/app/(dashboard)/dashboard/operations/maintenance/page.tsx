@@ -5,6 +5,8 @@ import { Plus } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { MaintenanceTicketCard } from "@/components/operations/maintenance-ticket-card";
 import { listMaintenanceTickets } from "@/features/operations/services";
+import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Operations · Maintenance" };
 export const dynamic = "force-dynamic";
@@ -32,16 +34,44 @@ export default async function MaintenancePage() {
       <DbStatusNotice />
       <div className="flex flex-col gap-2">
         {tickets.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No maintenance tickets yet.
-          </p>
+          <NoItemsYet
+            entityLabel="maintenance tickets"
+            description="Log your first maintenance ticket to start tracking repairs."
+            addHref="/dashboard/operations/maintenance/new"
+            addLabel="New ticket"
+          />
         ) : (
           tickets.map((t) => (
-            <MaintenanceTicketCard
-              key={t.id}
-              ticket={t}
-              href={`/dashboard/operations/maintenance/${t.id}`}
-            />
+            <div key={t.id} className="relative">
+              <MaintenanceTicketCard
+                ticket={t}
+                href={`/dashboard/operations/maintenance/${t.id}`}
+              />
+              <div className="absolute top-3 right-3 z-10">
+                <OperationsRowActions
+                  kind="maintenance"
+                  row={{
+                    id: t.id,
+                    displayName: t.title,
+                    detailHref: `/dashboard/operations/maintenance/${t.id}`,
+                    values: {
+                      title: t.title,
+                      description: t.description ?? "",
+                      issueCategory: t.issueCategory,
+                      severity: t.severity,
+                      villaId: t.villaId ?? "",
+                      projectId: t.projectId ?? "",
+                      ownerChargeable: t.ownerChargeable,
+                      estimatedCostMinor:
+                        t.estimatedCostMinor != null
+                          ? String(t.estimatedCostMinor)
+                          : "",
+                      currency: t.currency ?? "",
+                    },
+                  }}
+                />
+              </div>
+            </div>
           ))
         )}
       </div>

@@ -6,6 +6,8 @@ import { DbStatusNotice } from "@/components/admin/db-status";
 import { Badge } from "@/components/ui/badge";
 import { listDamageReports } from "@/features/operations/services";
 import { formatMoneyMinor } from "@/lib/money";
+import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Operations · Damage reports" };
 export const dynamic = "force-dynamic";
@@ -33,7 +35,12 @@ export default async function DamageReportsPage() {
       <DbStatusNotice />
       <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
         {reports.length === 0 ? (
-          <p className="p-6 text-sm text-ink-tertiary">No damage reports yet.</p>
+          <NoItemsYet
+            entityLabel="damage reports"
+            description="Damage spotted during turnovers or stays will appear here for owner / guest charge-back."
+            addHref="/dashboard/operations/damage-reports/new"
+            addLabel="Log damage"
+          />
         ) : (
           <ul className="divide-y divide-line-soft">
             {reports.map((r) => (
@@ -50,15 +57,35 @@ export default async function DamageReportsPage() {
                     {r.villaCode ?? "—"} · {r.createdAt.slice(0, 10)}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
-                    Estimated
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right">
+                    <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
+                      Estimated
+                    </div>
+                    <div className="font-mono tabular-nums text-sm text-ink">
+                      {r.estimatedCostMinor !== null && r.currency
+                        ? formatMoneyMinor(r.estimatedCostMinor, r.currency)
+                        : "—"}
+                    </div>
                   </div>
-                  <div className="font-mono tabular-nums text-sm text-ink">
-                    {r.estimatedCostMinor !== null && r.currency
-                      ? formatMoneyMinor(r.estimatedCostMinor, r.currency)
-                      : "—"}
-                  </div>
+                  <OperationsRowActions
+                    kind="damage"
+                    row={{
+                      id: r.id,
+                      displayName: r.title,
+                      values: {
+                        title: r.title,
+                        description: r.description ?? "",
+                        villaId: r.villaId ?? "",
+                        severity: r.severity,
+                        estimatedCostMinor:
+                          r.estimatedCostMinor != null ? String(r.estimatedCostMinor) : "",
+                        currency: r.currency ?? "",
+                        ownerChargeable: r.ownerChargeable,
+                        guestChargeable: r.guestChargeable,
+                      },
+                    }}
+                  />
                 </div>
               </li>
             ))}
