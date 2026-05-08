@@ -18,7 +18,7 @@ import "server-only";
  * incrementally.
  */
 
-import { pageGate } from "./gating";
+import { getFeatureForOrg } from "./gating";
 import { CABINET_TO_FLAG } from "./cabinet-flags";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 
@@ -41,7 +41,15 @@ export async function gateCabinet(
     // Cabinets without a flag mapping (e.g. my-cabinet) bypass gating.
     return null;
   }
-  return pageGate(organizationId, flag);
+  const result = await getFeatureForOrg(organizationId, flag);
+  if (result.enabled) return null;
+  // Only block on real plan-tier denial. "no_subscription" means the
+  // org is in a pre-billing state (trial expired, not yet onboarded,
+  // platform-internal) — hard-blocking would dead-end the operator at
+  // a billing surface that may not exist yet, so we bypass instead.
+  // Server-action RBAC remains authoritative for any mutation.
+  if (result.reason === "no_subscription") return null;
+  return `/dashboard/billing/upgrade?locked=${encodeURIComponent(flag)}`;
 }
 
 /**
