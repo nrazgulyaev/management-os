@@ -353,35 +353,28 @@ export async function getDepositMetrics(): Promise<DepositMetrics> {
       currency: null,
     };
   }
-  const counts = await db
+  // Stage 9.I — was 2 queries with the second one fetching every "paid"
+  // / "manually_marked_paid" row to sum amounts in JS. The aggregate
+  // belongs in SQL: SUM is a single scalar, no rows over the wire.
+  // Both queries collapse into one with FILTER clauses.
+  const [agg] = await db
     .select({
-      status: directBookingDeposits.status,
-      count: sql<number>`count(*)::int`,
+      pending: sql<number>`COUNT(*) FILTER (WHERE ${directBookingDeposits.status} IN ('pending','draft','requires_action'))::int`,
+      paid: sql<number>`COUNT(*) FILTER (WHERE ${directBookingDeposits.status} = 'paid')::int`,
+      manuallyMarkedPaid: sql<number>`COUNT(*) FILTER (WHERE ${directBookingDeposits.status} = 'manually_marked_paid')::int`,
+      failed: sql<number>`COUNT(*) FILTER (WHERE ${directBookingDeposits.status} IN ('failed','expired'))::int`,
+      totalMinor: sql<string | null>`SUM(${directBookingDeposits.amountMinor}) FILTER (WHERE ${directBookingDeposits.status} IN ('paid','manually_marked_paid'))::text`,
+      currency: sql<string | null>`MIN(${directBookingDeposits.currency}) FILTER (WHERE ${directBookingDeposits.status} IN ('paid','manually_marked_paid'))`,
     })
-    .from(directBookingDeposits)
-    .groupBy(directBookingDeposits.status);
-  const totals = await db
-    .select({
-      amountMinor: directBookingDeposits.amountMinor,
-      currency: directBookingDeposits.currency,
-    })
-    .from(directBookingDeposits)
-    .where(
-      sql`${directBookingDeposits.status} IN ('paid','manually_marked_paid')`,
-    );
-  let total = 0n;
-  let currency: string | null = null;
-  for (const r of totals) {
-    total += r.amountMinor;
-    currency ??= r.currency;
-  }
-  const by = (s: string) => counts.find((c) => c.status === s)?.count ?? 0;
+    .from(directBookingDeposits);
+
+  const total = agg?.totalMinor ? BigInt(agg.totalMinor) : 0n;
   return {
-    pending: by("pending") + by("draft") + by("requires_action"),
-    paid: by("paid"),
-    manuallyMarkedPaid: by("manually_marked_paid"),
-    failed: by("failed") + by("expired"),
+    pending: agg?.pending ?? 0,
+    paid: agg?.paid ?? 0,
+    manuallyMarkedPaid: agg?.manuallyMarkedPaid ?? 0,
+    failed: agg?.failed ?? 0,
     totalCollectedMinor: total,
-    currency,
+    currency: agg?.currency ?? null,
   };
 }

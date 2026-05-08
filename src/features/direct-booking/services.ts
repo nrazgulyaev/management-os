@@ -244,70 +244,43 @@ export async function getDirectBookingMetrics(
       conversionRate: 0,
     };
   }
+  // Stage 9.I — was 7 separate aggregate queries fired in parallel,
+  // saturating the postgres pool on Vercel cold-start (>60s hangs in
+  // 8.C audit). Collapsed to 2 single-row aggregates via FILTER:
+  //   one over direct_booking_holds, one over direct_booking_requests.
+  // Each query reads its table once, no fan-out.
   const startOfDay = new Date(now);
   startOfDay.setUTCHours(0, 0, 0, 0);
   const inFiveMin = new Date(now.getTime() + 5 * 60_000);
+  const startOfDayIso = startOfDay.toISOString();
+  const inFiveMinIso = inFiveMin.toISOString();
 
-  const [holdCounts, reqCounts, expiringCount, approvedTodayCount, rejectedTodayCount, totalRequests, convertedRequests] =
-    await Promise.all([
-      db
-        .select({
-          status: directBookingHolds.status,
-          count: sql<number>`count(*)::int`,
-        })
-        .from(directBookingHolds)
-        .groupBy(directBookingHolds.status),
-      db
-        .select({
-          status: directBookingRequests.status,
-          count: sql<number>`count(*)::int`,
-        })
-        .from(directBookingRequests)
-        .groupBy(directBookingRequests.status),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(directBookingHolds)
-        .where(
-          and(
-            eq(directBookingHolds.status, "active"),
-            lte(directBookingHolds.expiresAt, inFiveMin),
-          ),
-        ),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(directBookingRequests)
-        .where(
-          and(
-            eq(directBookingRequests.status, "approved"),
-            sql`${directBookingRequests.reviewedAt} >= ${startOfDay.toISOString()}`,
-          ),
-        ),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(directBookingRequests)
-        .where(
-          and(
-            eq(directBookingRequests.status, "rejected"),
-            sql`${directBookingRequests.reviewedAt} >= ${startOfDay.toISOString()}`,
-          ),
-        ),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(directBookingRequests),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(directBookingRequests)
-        .where(eq(directBookingRequests.status, "converted")),
-    ]);
+  const [[holdAgg], [reqAgg]] = await Promise.all([
+    db
+      .select({
+        active: sql<number>`COUNT(*) FILTER (WHERE ${directBookingHolds.status} = 'active')::int`,
+        expiringSoon: sql<number>`COUNT(*) FILTER (WHERE ${directBookingHolds.status} = 'active' AND ${directBookingHolds.expiresAt} <= ${inFiveMinIso}::timestamptz)::int`,
+      })
+      .from(directBookingHolds),
+    db
+      .select({
+        submitted: sql<number>`COUNT(*) FILTER (WHERE ${directBookingRequests.status} = 'submitted')::int`,
+        approvedToday: sql<number>`COUNT(*) FILTER (WHERE ${directBookingRequests.status} = 'approved' AND ${directBookingRequests.reviewedAt} >= ${startOfDayIso}::timestamptz)::int`,
+        rejectedToday: sql<number>`COUNT(*) FILTER (WHERE ${directBookingRequests.status} = 'rejected' AND ${directBookingRequests.reviewedAt} >= ${startOfDayIso}::timestamptz)::int`,
+        total: sql<number>`COUNT(*)::int`,
+        converted: sql<number>`COUNT(*) FILTER (WHERE ${directBookingRequests.status} = 'converted')::int`,
+      })
+      .from(directBookingRequests),
+  ]);
 
-  const total = totalRequests[0]?.count ?? 0;
-  const converted = convertedRequests[0]?.count ?? 0;
+  const total = reqAgg?.total ?? 0;
+  const converted = reqAgg?.converted ?? 0;
   return {
-    activeHolds: holdCounts.find((c) => c.status === "active")?.count ?? 0,
-    submittedRequests: reqCounts.find((c) => c.status === "submitted")?.count ?? 0,
-    expiringSoon: expiringCount[0]?.count ?? 0,
-    approvedToday: approvedTodayCount[0]?.count ?? 0,
-    rejectedToday: rejectedTodayCount[0]?.count ?? 0,
+    activeHolds: holdAgg?.active ?? 0,
+    submittedRequests: reqAgg?.submitted ?? 0,
+    expiringSoon: holdAgg?.expiringSoon ?? 0,
+    approvedToday: reqAgg?.approvedToday ?? 0,
+    rejectedToday: reqAgg?.rejectedToday ?? 0,
     conversionRate: total > 0 ? converted / total : 0,
   };
 }
