@@ -11,26 +11,46 @@
 --   1. Adds provision_app_user() — idempotent, atomic, reusable from the new
 --      /api/onboarding/start endpoint.
 --   2. Backfills missing app_users for every auth.users row that lacks one,
---      granting super_admin via user_roles + 'admin' via app_user_roles.
+--      tying them to the existing `ARCONIQUE_DEFAULT` organization (seeded
+--      by 0071) and granting super_admin via user_roles + 'admin' via
+--      app_user_roles.
 --   3. Logs every backfill action to audit_events.
 --
--- IMPORTANT: this migration depends on the public.assign_user_role() function
--- already shipped in 0004. The grant goes through that function so the
--- behavior matches scripts/bootstrap-admin.ts.
+-- Schema reality:
+--   - `app_users.organization_id` is NOT NULL with FK to organizations
+--     (added in 0071 — earlier audit notes that claimed otherwise were wrong).
+--   - The function takes the org id as a required parameter; the backfill
+--     loop resolves ARCONIQUE_DEFAULT once and reuses it for every row.
+--
+-- Function signature (NEW — note the added p_organization_id):
+--   provision_app_user(
+--     p_auth_user_id          uuid,
+--     p_email                 text,
+--     p_full_name             text,
+--     p_organization_id       uuid,
+--     p_role_key_internal     text DEFAULT 'super_admin',
+--     p_role_key_cabinet      text DEFAULT 'admin'
+--   ) RETURNS uuid
+--
+-- IMPORTANT: depends on `public.assign_user_role()` from 0004 + the
+-- ARCONIQUE_DEFAULT organization seeded by 0071.
 --
 -- IDEMPOTENT: re-running is a no-op.
 -- ============================================================================
 
 BEGIN;
 
--- ---------------------------------------------------------------------------
--- 1. provision_app_user(...) — reusable provisioning helper.
--- ---------------------------------------------------------------------------
+-- Drop any prior provision_app_user() overloads so the function is the
+-- one with the canonical (auth_user_id, email, full_name, organization_id,
+-- role_key_internal, role_key_cabinet) signature only.
+DROP FUNCTION IF EXISTS public.provision_app_user(uuid, text, text, text, text);
+DROP FUNCTION IF EXISTS public.provision_app_user(uuid, text, text, uuid, text, text);
 
 CREATE OR REPLACE FUNCTION public.provision_app_user(
   p_auth_user_id uuid,
   p_email text,
   p_full_name text,
+  p_organization_id uuid,
   p_role_key_internal text DEFAULT 'super_admin',
   p_role_key_cabinet  text DEFAULT 'admin'
 )
@@ -48,6 +68,9 @@ BEGIN
   IF p_email IS NULL OR length(trim(p_email)) = 0 THEN
     RAISE EXCEPTION 'provision_app_user: p_email is required';
   END IF;
+  IF p_organization_id IS NULL THEN
+    RAISE EXCEPTION 'provision_app_user: p_organization_id is required';
+  END IF;
 
   -- Idempotent app_users insert.
   SELECT id INTO v_app_user_id
@@ -64,17 +87,19 @@ BEGIN
      LIMIT 1;
     IF v_app_user_id IS NOT NULL THEN
       UPDATE public.app_users
-         SET auth_user_id = p_auth_user_id,
-             full_name    = COALESCE(NULLIF(trim(p_full_name), ''), full_name),
-             updated_at   = now()
+         SET auth_user_id  = p_auth_user_id,
+             organization_id = COALESCE(organization_id, p_organization_id),
+             full_name     = COALESCE(NULLIF(trim(p_full_name), ''), full_name),
+             updated_at    = now()
        WHERE id = v_app_user_id;
     ELSE
       INSERT INTO public.app_users (
-        auth_user_id, email, full_name, status, timezone
+        auth_user_id, email, full_name, organization_id, status, timezone
       ) VALUES (
         p_auth_user_id,
         p_email,
         COALESCE(NULLIF(trim(p_full_name), ''), p_email),
+        p_organization_id,
         'active',
         'Asia/Makassar'
       ) RETURNING id INTO v_app_user_id;
@@ -107,14 +132,19 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.provision_app_user IS 'Stage 8.F.1 — atomic, idempotent app_users + role grant. Used by /api/onboarding/start, scripts/bootstrap-admin.ts, and the 0087 backfill loop.';
+COMMENT ON FUNCTION public.provision_app_user IS 'Stage 8.F.1 — atomic, idempotent app_users + role grant. Used by /api/onboarding/start, scripts/bootstrap-admin.ts, and the 0087 backfill loop. Requires p_organization_id (NOT NULL FK on app_users.organization_id added in 0071).';
 
 -- ---------------------------------------------------------------------------
 -- 2. Backfill loop — every auth.users row without a matching app_users
---    becomes a super_admin (founder/audit-bot defaults). Production state
---    when this migration was authored had exactly 2 such rows. The loop
---    is open-ended so any auth user created in dev/staging since gets
---    picked up too.
+--    becomes a super_admin tied to the ARCONIQUE_DEFAULT organization.
+--    Production state at authoring time: 2 rows expected to backfill
+--    (founder + audit-bot). The loop is open-ended so additional auth
+--    users created in dev/staging since are picked up too.
+--
+--    If ARCONIQUE_DEFAULT doesn't exist (pre-Stage-5.J state), the
+--    loop fails fast with a clear error rather than backfilling against
+--    a NULL — that's the right safety call since 0071 is a hard
+--    prerequisite.
 -- ---------------------------------------------------------------------------
 
 DO $$
@@ -122,7 +152,17 @@ DECLARE
   v_record RECORD;
   v_app_user_id uuid;
   v_full_name text;
+  v_org_id uuid;
 BEGIN
+  SELECT id INTO v_org_id
+    FROM public.organizations
+   WHERE organization_code = 'ARCONIQUE_DEFAULT'
+   LIMIT 1;
+
+  IF v_org_id IS NULL THEN
+    RAISE EXCEPTION 'provision_app_user backfill: ARCONIQUE_DEFAULT organization is missing — apply 0071 first.';
+  END IF;
+
   FOR v_record IN
     SELECT au.id AS auth_user_id, au.email
       FROM auth.users au
@@ -137,6 +177,7 @@ BEGIN
       v_record.auth_user_id,
       v_record.email,
       v_full_name,
+      v_org_id,
       'super_admin',
       'admin'
     );
@@ -151,6 +192,7 @@ BEGIN
       jsonb_build_object(
         'email', v_record.email,
         'full_name', v_full_name,
+        'organization_id', v_org_id,
         'role_internal', 'super_admin',
         'role_cabinet', 'admin'
       ),
@@ -160,8 +202,8 @@ BEGIN
       )
     );
 
-    RAISE NOTICE '[0087] backfilled app_user % for auth user % (%)',
-      v_app_user_id, v_record.auth_user_id, v_record.email;
+    RAISE NOTICE '[0087] backfilled app_user % for auth user % (% in org %)',
+      v_app_user_id, v_record.auth_user_id, v_record.email, v_org_id;
   END LOOP;
 END $$;
 
