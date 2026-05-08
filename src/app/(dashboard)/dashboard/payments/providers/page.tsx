@@ -9,6 +9,8 @@ import { listPaymentProviderAccounts } from "@/features/direct-booking/deposits"
 import { getDb } from "@/lib/db/client";
 import { paymentProcessorConnections } from "@/lib/db/schema/payment-processors";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Payment providers" };
 export const dynamic = "force-dynamic";
@@ -57,11 +59,12 @@ export default async function ProvidersPage() {
         title={`${connections.length} connections`}
       >
         {connections.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No payment processor connections yet. Click{" "}
-            <strong>Add connection</strong> to wire Stripe / Wise / PayPal /
-            Manual.
-          </p>
+          <NoItemsYet
+            entityLabel="payment connections"
+            description="Wire Stripe, Wise, PayPal, or Manual to start collecting payments."
+            addHref="/dashboard/payments/providers/new"
+            addLabel="Add connection"
+          />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
             <table className="w-full text-sm">
@@ -72,6 +75,7 @@ export default async function ProvidersPage() {
                   <th className="px-4 py-3">Mode</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Connected</th>
+                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
@@ -107,6 +111,18 @@ export default async function ProvidersPage() {
                       {c.connectedAt
                         ? c.connectedAt.toISOString().slice(0, 10)
                         : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <SettingsRowActions
+                        kind="payment_connection"
+                        row={{
+                          id: c.id,
+                          displayName:
+                            c.accountName ?? c.externalAccountId ?? c.provider,
+                          detailHref: `/dashboard/payments/providers/${c.id}`,
+                          values: {},
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}

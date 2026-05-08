@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listSecurityCameraDevices } from "@/features/security/services";
+import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Cameras" };
 export const dynamic = "force-dynamic";
@@ -38,9 +40,12 @@ export default async function CamerasPage() {
 
       <Section eyebrow="Devices" title={`${cameras.length} cameras`}>
         {cameras.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No cameras yet.
-          </p>
+          <NoItemsYet
+            entityLabel="cameras"
+            description="Register a camera to surface its vendor app deep-link to operators on patrol."
+            addHref="/dashboard/security/cameras/new"
+            addLabel="+ New camera"
+          />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
             <table className="w-full text-sm">
@@ -53,6 +58,7 @@ export default async function CamerasPage() {
                   <th className="text-left px-3 py-2">Status</th>
                   <th className="text-left px-3 py-2">Access role</th>
                   <th className="text-right px-3 py-2">Vendor</th>
+                  <th />
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
@@ -89,6 +95,25 @@ export default async function CamerasPage() {
                       ) : (
                         <span className="text-ink-tertiary text-xs">—</span>
                       )}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <SettingsRowActions
+                        kind="camera"
+                        row={{
+                          id: c.id,
+                          displayName: c.name,
+                          values: {
+                            name: c.name,
+                            locationLabel: c.locationLabel,
+                            provider: c.provider ?? "",
+                            externalAppUrl: c.externalAppUrl ?? "",
+                            accessRole: c.accessRole ?? "",
+                            notes: c.notes ?? "",
+                            projectId: c.projectId ?? "",
+                            villaId: c.villaId ?? "",
+                          },
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}

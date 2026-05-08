@@ -6,7 +6,8 @@ import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { listAppUsers } from "@/features/auth/users-service";
 import { ResponsibilityScopeForm } from "@/components/responsibility-scopes/scope-form";
-import { ScopeArchiveButton } from "@/components/responsibility-scopes/archive-button";
+import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Responsibility scopes" };
 export const dynamic = "force-dynamic";
@@ -32,9 +33,10 @@ export default async function ResponsibilityScopesPage() {
 
       <Section eyebrow="Active scopes" title={`${scopes.length} rows`}>
         {scopes.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No scopes yet.
-          </p>
+          <NoItemsYet
+            entityLabel="responsibility scopes"
+            description="Narrow a user's role-level permissions to a specific project, villa, or task category. Add the first scope below."
+          />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
             <table className="w-full text-sm">
@@ -71,7 +73,20 @@ export default async function ResponsibilityScopesPage() {
                       {s.roleKey ?? "—"}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <ScopeArchiveButton id={s.id} />
+                      <SettingsRowActions
+                        kind="scope"
+                        row={{
+                          id: s.id,
+                          displayName: s.userFullName ?? s.userId,
+                          values: {
+                            scopeType: s.scopeType,
+                            roleKey: s.roleKey ?? "",
+                            projectId: s.projectId ?? "",
+                            villaId: s.villaId ?? "",
+                            taskCategory: s.taskCategory ?? "",
+                          },
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}

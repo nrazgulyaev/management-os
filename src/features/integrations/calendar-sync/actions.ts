@@ -73,6 +73,58 @@ export async function createCalendarFeedAction(
   return { ok: true, redirectTo: `/dashboard/integrations/calendar-feeds/${row.id}` };
 }
 
+// Stage 10.E.5 — edit a feed's metadata. Re-validates against
+// createCalendarFeedSchema; mutates feedName / feedUrl / feedType /
+// syncIntervalMinutes / bookingChannelId. Villa / project remain
+// editable (rare but legitimate — a feed may be re-pointed at a new
+// villa during reorgs). Status transitions stay on pause/resume/
+// archive actions.
+export async function editCalendarFeedAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("integrations.write");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Missing feed id." };
+  const parsed = createCalendarFeedSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+  const [row] = await db
+    .update(channelCalendarFeeds)
+    .set({
+      villaId: d.villaId,
+      projectId: d.projectId ?? null,
+      bookingChannelId: d.bookingChannelId ?? null,
+      feedName: d.feedName,
+      feedUrl: d.feedUrl,
+      feedType: d.feedType,
+      syncIntervalMinutes: d.syncIntervalMinutes ?? 180,
+    })
+    .where(eq(channelCalendarFeeds.id, id))
+    .returning({ id: channelCalendarFeeds.id });
+  if (!row) return { ok: false, error: "Feed not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "integrations.calendar_feed.update",
+    entityType: "channel_calendar_feed",
+    entityId: id,
+    after: { feedName: d.feedName, feedType: d.feedType, feedUrl: d.feedUrl },
+  });
+  revalidatePath("/dashboard/integrations/calendar-feeds");
+  return { ok: true };
+}
+
 async function setFeedStatus(
   formData: FormData,
   next: "active" | "paused" | "archived",

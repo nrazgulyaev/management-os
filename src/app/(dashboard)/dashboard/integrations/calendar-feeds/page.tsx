@@ -6,6 +6,8 @@ import { DbStatusNotice } from "@/components/admin/db-status";
 import { FeedStatusPill } from "@/components/integrations/feed-status-pill";
 import { SyncAllButton } from "@/components/integrations/sync-all-button";
 import { listCalendarFeeds } from "@/features/integrations/calendar-sync/services";
+import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Calendar feeds" };
 export const dynamic = "force-dynamic";
@@ -35,9 +37,12 @@ export default async function CalendarFeedsPage() {
       />
       <DbStatusNotice />
       {feeds.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-          No feeds yet — add one to start syncing channel bookings.
-        </p>
+        <NoItemsYet
+          entityLabel="calendar feeds"
+          description="Add an iCal/ICS feed from Airbnb, Booking.com, Vrbo, or any external calendar to sync bookings into the platform."
+          addHref="/dashboard/integrations/calendar-feeds/new"
+          addLabel="Add feed"
+        />
       ) : (
         <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
           <ul className="divide-y divide-line-soft">
@@ -61,6 +66,23 @@ export default async function CalendarFeedsPage() {
                     <div className="text-[11px] text-danger mt-1">last error: {f.lastError}</div>
                   )}
                 </Link>
+                <SettingsRowActions
+                  kind="calendar_feed"
+                  row={{
+                    id: f.id,
+                    displayName: f.feedName,
+                    detailHref: `/dashboard/integrations/calendar-feeds/${f.id}`,
+                    values: {
+                      villaId: f.villaId,
+                      projectId: f.projectId ?? "",
+                      bookingChannelId: f.bookingChannelId ?? "",
+                      feedName: f.feedName,
+                      feedUrl: f.feedUrl,
+                      feedType: f.feedType,
+                      syncIntervalMinutes: f.syncIntervalMinutes,
+                    },
+                  }}
+                />
               </li>
             ))}
           </ul>

@@ -129,3 +129,34 @@ export async function updateSecurityCameraDeviceAction(
   revalidatePath("/dashboard/security/cameras");
   return { ok: true };
 }
+
+// Stage 10.E.5 — archive a camera device. Schema has status text NOT
+// NULL DEFAULT 'active'; flip to "archived". Hardware-revoked devices
+// stay in DB for audit trail (camera footage retention).
+export async function archiveSecurityCameraDeviceAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("security.manage");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Missing camera id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(securityCameraDevices)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(eq(securityCameraDevices.id, id))
+    .returning({ id: securityCameraDevices.id });
+  if (!row) return { ok: false, error: "Camera not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "security.camera.archive",
+    entityType: "security_camera_device",
+    entityId: id,
+    after: { status: "archived" },
+  });
+  revalidatePath("/dashboard/security");
+  revalidatePath("/dashboard/security/cameras");
+  return { ok: true };
+}
