@@ -5,13 +5,19 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { getPricingHubMetrics } from "@/features/dynamic-pricing/services";
 import { safeList } from "@/features/system/db-health";
 import { QueryWarningCard } from "@/components/system/query-warning-card";
+import { trace } from "@/lib/observability/perf";
 
 export const metadata = { title: "Dynamic pricing" };
 export const dynamic = "force-dynamic";
 
+const PAGE = "/dashboard/pricing";
+
 export default async function PricingHub() {
+  // 8.E.2 — trace the metrics call. 8.C audit observed >60s hangs and
+  // safeList masks the failure mode; the perf log surfaces the actual
+  // wall time in Vercel runtime logs so the slow path is identifiable.
   const metricsResult = await safeList("pricing.hub_metrics", async () => [
-    await getPricingHubMetrics(),
+    await trace(PAGE, "getPricingHubMetrics", () => getPricingHubMetrics()),
   ]);
   const m =
     metricsResult.value[0] ??

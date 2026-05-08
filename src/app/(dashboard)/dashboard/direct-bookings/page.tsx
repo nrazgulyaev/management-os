@@ -5,19 +5,23 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { getDirectBookingMetrics } from "@/features/direct-booking/services";
 import { getDepositMetrics } from "@/features/direct-booking/deposits";
 import { getReconciliationMetrics } from "@/features/direct-booking/finance-reconciliation";
+import { trace } from "@/lib/observability/perf";
 
 export const metadata = { title: "Direct bookings" };
 export const dynamic = "force-dynamic";
 
+const PAGE = "/dashboard/direct-bookings";
+
 export default async function DirectBookingsHub() {
-  // 8.C.8 — parallelize. Sequential awaits compounded the cold-start
-  // latency on Vercel and the page hung > 60s in audit. Each metrics
-  // function already returns sensible zeros when getDb() yields null,
-  // so we don't need an extra error wrapper.
+  // 8.C.8 — parallelize. Sequential awaits compounded cold-start
+  // latency and the page hung > 60s in audit. 8.E.2 — wrap each query
+  // with `trace()` so the Vercel function logs surface which query is
+  // the slow one (parallelization didn't fully resolve the hang;
+  // identifying the offender lives in the runtime perf log).
   const [m, dep, recon] = await Promise.all([
-    getDirectBookingMetrics(),
-    getDepositMetrics(),
-    getReconciliationMetrics(),
+    trace(PAGE, "getDirectBookingMetrics", () => getDirectBookingMetrics()),
+    trace(PAGE, "getDepositMetrics", () => getDepositMetrics()),
+    trace(PAGE, "getReconciliationMetrics", () => getReconciliationMetrics()),
   ]);
   return (
     <div className="flex flex-col gap-10">

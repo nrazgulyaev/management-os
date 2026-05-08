@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const display = Fraunces({
@@ -65,7 +66,10 @@ export default function RootLayout({
       className={`${display.variable} ${sans.variable} ${mono.variable}`}
       suppressHydrationWarning
     >
-      <body className="min-h-screen bg-canvas text-ink antialiased">{children}</body>
+      <body className="min-h-screen bg-canvas text-ink antialiased">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

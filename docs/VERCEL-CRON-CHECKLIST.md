@@ -125,6 +125,7 @@ fails fatal if it is missing.  Do **not** set
 | `/api/cron/subscription-advance-lifecycle` | `subscription_advance_lifecycle` | `30 8 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily FSM advance — grace→suspended, cancelling→cancelled. (Stage 7.C) | ✓ | ✓ |
 | `/api/cron/subscription-archive-expired` | `subscription_archive_expired` | `45 8 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily archive of suspended/cancelled rows past their archive window. (Stage 7.C) | ✓ | ✓ |
 | `/api/cron/subscription-purge-archived` | `subscription_purge_archived` | `0 9 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily purge of archived rows past purge window — 5% safety lock. (Stage 7.C) | ✓ | ✓ |
+| `/api/cron/warm-routes` | `warm_routes` | `*/10 * * * *` | `CRON_SECRET`, `APP_BASE_URL` | HEAD-pings a fixed list of high-traffic routes every 10 min so cold-start latency stays bounded. Returns `partial_success` if any individual route times out (8s ceiling). Pure read traffic — no DB writes; no schema dependency. (Stage 8.E.1) | ✓ | ✓ |
 | `/api/cron/run-all` | `(dispatcher)` | manual / on-demand | `CRON_SECRET`, `DATABASE_URL` | Iterates the dispatch table; per-job locks apply | ✓ | not scheduled by default |
 
 ## Vercel setup
