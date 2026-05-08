@@ -1,89 +1,71 @@
 /**
  * Stage 8.F.5 — provisioning invariants.
  *
- * These tests connect to the live database and assert that the
- * provisioning chain (auth.users → app_users → user_roles +
- * app_user_roles → organizations) stays in sync. They are SKIPPED
- * automatically when no `DATABASE_URL` is configured (e.g., the
- * default static-only CI lane).
+ * Connects to the live database via `tests/invariants/_db.ts` and asserts
+ * that the provisioning chain (auth.users → app_users → user_roles +
+ * app_user_roles) stays in sync. Skipped when no `DATABASE_URL` /
+ * `DIRECT_URL` is configured.
  *
- * Run them against staging or production manually:
+ * Run against staging or production manually:
  *
  *   node --env-file=.env.production.local --import tsx \
  *     --test tests/invariants/provisioning.test.ts
- *
- * If any assertion fails, a future run of the 0087 backfill (or
- * /api/onboarding/start) silently regressed the chain.
  */
 
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { sql } from "drizzle-orm";
+import { closeInvariantDb, dbAvailable, getInvariantSql } from "./_db";
 
-const DB_AVAILABLE = Boolean(process.env.DATABASE_URL);
+const DB_AVAILABLE = dbAvailable();
 
-interface RowList<T> {
-  rows?: T[];
-}
-
-// Defer the db client import to inside async helpers so the test file
-// can be imported (and its tests' skip flags evaluated) without the
-// `server-only` chain throwing on a no-DB lane.
-async function rawSelect<T = Record<string, unknown>>(
-  query: ReturnType<typeof sql>,
-): Promise<T[]> {
-  const { getDb } = (await import("@/lib/db/client")) as {
-    getDb: () => { execute: (q: ReturnType<typeof sql>) => Promise<unknown> } | null;
-  };
-  const db = getDb();
-  if (!db) return [];
-  const r = await db.execute(query);
-  if (Array.isArray(r)) return r as T[];
-  return ((r as RowList<T>).rows ?? []) as T[];
-}
+after(async () => {
+  await closeInvariantDb().catch(() => {});
+});
 
 test(
   "every auth.users entry has a matching app_users row",
   { skip: !DB_AVAILABLE },
   async () => {
-    const orphaned = await rawSelect<{ id: string; email: string }>(
-      sql`SELECT au.id, au.email
-            FROM auth.users au
-            LEFT JOIN public.app_users u ON u.auth_user_id = au.id
-           WHERE u.id IS NULL`,
-    );
+    const sql = getInvariantSql();
+    const rows = await sql<Array<{ id: string; email: string }>>`
+      SELECT au.id, au.email
+        FROM auth.users au
+        LEFT JOIN public.app_users u ON u.auth_user_id = au.id
+       WHERE u.id IS NULL
+    `;
     assert.deepStrictEqual(
-      orphaned,
+      [...rows],
       [],
-      `${orphaned.length} auth.users rows have no matching app_users:\n` +
-        orphaned.map((r) => `  - ${r.email} (${r.id})`).join("\n"),
+      `${rows.length} auth.users rows have no matching app_users:\n` +
+        rows.map((r) => `  - ${r.email} (${r.id})`).join("\n"),
     );
   },
 );
 
 test(
-  "every app_users row has at least one active grant in user_roles or app_user_roles",
+  "every active app_users row has at least one grant in user_roles or app_user_roles",
   { skip: !DB_AVAILABLE },
   async () => {
-    const ungranted = await rawSelect<{ id: string; email: string }>(
-      sql`SELECT u.id, u.email
-            FROM public.app_users u
-           WHERE u.status = 'active'
-             AND NOT EXISTS (
-               SELECT 1 FROM public.user_roles ur
-                WHERE ur.user_id = u.id
-             )
-             AND NOT EXISTS (
-               SELECT 1 FROM public.app_user_roles aur
-                WHERE aur.user_id = u.id
-                  AND aur.is_active = true
-             )`,
-    );
+    const sql = getInvariantSql();
+    const rows = await sql<Array<{ id: string; email: string }>>`
+      SELECT u.id, u.email
+        FROM public.app_users u
+       WHERE u.status = 'active'
+         AND NOT EXISTS (
+           SELECT 1 FROM public.user_roles ur
+            WHERE ur.user_id = u.id
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM public.app_user_roles aur
+            WHERE aur.user_id = u.id
+              AND aur.is_active = true
+         )
+    `;
     assert.deepStrictEqual(
-      ungranted,
+      [...rows],
       [],
-      `${ungranted.length} active app_users have no role grant in either RBAC table:\n` +
-        ungranted.map((r) => `  - ${r.email} (${r.id})`).join("\n"),
+      `${rows.length} active app_users have no role grant in either RBAC table:\n` +
+        rows.map((r) => `  - ${r.email} (${r.id})`).join("\n"),
     );
   },
 );
@@ -92,23 +74,21 @@ test(
   "every active app_user_roles row uses a role_key permitted by the CHECK constraint",
   { skip: !DB_AVAILABLE },
   async () => {
-    // The CHECK is enforced at INSERT time, so this is a defensive guard
-    // against drift if someone disables the constraint manually. The
-    // canonical list is in migration 0066.
-    const invalid = await rawSelect<{ id: string; role_key: string }>(
-      sql`SELECT id, role_key
-            FROM public.app_user_roles
-           WHERE is_active = true
-             AND role_key NOT IN (
-               'marketing_staff', 'qs_analyst', 'procurement_manager',
-               'warehouse_manager', 'site_supervisor', 'sales_manager',
-               'project_manager', 'cfo_accountant', 'executive_ceo', 'admin'
-             )`,
-    );
+    const sql = getInvariantSql();
+    const rows = await sql<Array<{ id: string; role_key: string }>>`
+      SELECT id, role_key
+        FROM public.app_user_roles
+       WHERE is_active = true
+         AND role_key NOT IN (
+           'marketing_staff', 'qs_analyst', 'procurement_manager',
+           'warehouse_manager', 'site_supervisor', 'sales_manager',
+           'project_manager', 'cfo_accountant', 'executive_ceo', 'admin'
+         )
+    `;
     assert.deepStrictEqual(
-      invalid,
+      [...rows],
       [],
-      `${invalid.length} active app_user_roles rows have invalid role_key values`,
+      `${rows.length} active app_user_roles rows have invalid role_key values`,
     );
   },
 );
@@ -117,17 +97,18 @@ test(
   "every active app_user_roles row references an existing app_users row",
   { skip: !DB_AVAILABLE },
   async () => {
-    const orphans = await rawSelect<{ id: string }>(
-      sql`SELECT aur.id
-            FROM public.app_user_roles aur
-            LEFT JOIN public.app_users u ON u.id = aur.user_id
-           WHERE aur.is_active = true
-             AND u.id IS NULL`,
-    );
+    const sql = getInvariantSql();
+    const rows = await sql<Array<{ id: string }>>`
+      SELECT aur.id
+        FROM public.app_user_roles aur
+        LEFT JOIN public.app_users u ON u.id = aur.user_id
+       WHERE aur.is_active = true
+         AND u.id IS NULL
+    `;
     assert.deepStrictEqual(
-      orphans,
+      [...rows],
       [],
-      `${orphans.length} active grants reference a non-existent app_users id`,
+      `${rows.length} active grants reference a non-existent app_users id`,
     );
   },
 );
@@ -136,16 +117,17 @@ test(
   "user_roles rows resolve to canonical role keys in the roles table",
   { skip: !DB_AVAILABLE },
   async () => {
-    const orphans = await rawSelect<{ id: string }>(
-      sql`SELECT ur.id
-            FROM public.user_roles ur
-            LEFT JOIN public.roles r ON r.id = ur.role_id
-           WHERE r.id IS NULL`,
-    );
+    const sql = getInvariantSql();
+    const rows = await sql<Array<{ id: string }>>`
+      SELECT ur.id
+        FROM public.user_roles ur
+        LEFT JOIN public.roles r ON r.id = ur.role_id
+       WHERE r.id IS NULL
+    `;
     assert.deepStrictEqual(
-      orphans,
+      [...rows],
       [],
-      `${orphans.length} user_roles rows reference a non-existent role`,
+      `${rows.length} user_roles rows reference a non-existent role`,
     );
   },
 );
@@ -154,8 +136,9 @@ test(
   "every founder / audit-bot has both a super_admin grant and an admin cabinet grant",
   { skip: !DB_AVAILABLE },
   async () => {
-    const founders = await rawSelect<{ email: string; missing: string }>(
-      sql`WITH t AS (
+    const sql = getInvariantSql();
+    const rows = await sql<Array<{ email: string; missing: string | null }>>`
+      WITH t AS (
         SELECT u.id, u.email
           FROM public.app_users u
           JOIN auth.users au ON au.id = u.auth_user_id
@@ -177,9 +160,8 @@ test(
                ELSE NULL
              END AS missing
         FROM t
-       WHERE 1 = 1`,
-    );
-    const broken = founders.filter((f) => f.missing !== null);
+    `;
+    const broken = [...rows].filter((f) => f.missing !== null);
     assert.deepStrictEqual(
       broken,
       [],

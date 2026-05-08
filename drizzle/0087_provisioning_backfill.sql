@@ -107,9 +107,7 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.provision_app_user IS
-'Stage 8.F.1 — atomic, idempotent app_users + role grant. Used by ' ||
-'/api/onboarding/start, scripts/bootstrap-admin.ts, and the 0087 backfill loop.';
+COMMENT ON FUNCTION public.provision_app_user IS 'Stage 8.F.1 — atomic, idempotent app_users + role grant. Used by /api/onboarding/start, scripts/bootstrap-admin.ts, and the 0087 backfill loop.';
 
 -- ---------------------------------------------------------------------------
 -- 2. Backfill loop — every auth.users row without a matching app_users

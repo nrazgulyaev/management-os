@@ -1,45 +1,36 @@
 /**
  * Stage 9.D — DB-bound invariants for team_invitations.
  *
- * Skipped when no `DATABASE_URL` is configured (static-only CI lane).
+ * Connects via `tests/invariants/_db.ts` (raw `postgres` adapter — no
+ * `server-only` import chain). Skipped without `DATABASE_URL` /
+ * `DIRECT_URL`.
+ *
  * Run against staging or production manually:
  *
  *   node --env-file=.env.production.local --import tsx \
  *     --test tests/invariants/team-invitations.test.ts
  */
 
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { sql } from "drizzle-orm";
+import { closeInvariantDb, dbAvailable, getInvariantSql } from "./_db";
 
-const DB_AVAILABLE = Boolean(process.env.DATABASE_URL);
+const DB_AVAILABLE = dbAvailable();
 
-interface RowList<T> {
-  rows?: T[];
-}
-
-async function rawSelect<T = Record<string, unknown>>(
-  query: ReturnType<typeof sql>,
-): Promise<T[]> {
-  const { getDb } = (await import("@/lib/db/client")) as {
-    getDb: () => { execute: (q: ReturnType<typeof sql>) => Promise<unknown> } | null;
-  };
-  const db = getDb();
-  if (!db) return [];
-  const r = await db.execute(query);
-  if (Array.isArray(r)) return r as T[];
-  return ((r as RowList<T>).rows ?? []) as T[];
-}
+after(async () => {
+  await closeInvariantDb().catch(() => {});
+});
 
 test(
   "team_invitations table exists with the migration's expected shape",
   { skip: !DB_AVAILABLE },
   async () => {
-    const cols = await rawSelect<{ column_name: string }>(
-      sql`SELECT column_name FROM information_schema.columns
-           WHERE table_schema = 'public' AND table_name = 'team_invitations'`,
-    );
-    const set = new Set(cols.map((c) => c.column_name));
+    const sql = getInvariantSql();
+    const cols = await sql<Array<{ column_name: string }>>`
+      SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'team_invitations'
+    `;
+    const set = new Set([...cols].map((c) => c.column_name));
     for (const required of [
       "id",
       "organization_id",
@@ -60,14 +51,15 @@ test(
   "every pending invitation has expires_at in the future",
   { skip: !DB_AVAILABLE },
   async () => {
-    const stale = await rawSelect<{ id: string; email: string }>(
-      sql`SELECT id, email FROM public.team_invitations
-           WHERE status = 'pending' AND expires_at <= now()`,
-    );
+    const sql = getInvariantSql();
+    const rows = await sql<Array<{ id: string; email: string }>>`
+      SELECT id, email FROM public.team_invitations
+       WHERE status = 'pending' AND expires_at <= now()
+    `;
     assert.deepStrictEqual(
-      stale,
+      [...rows],
       [],
-      `${stale.length} pending invitations have already expired — the cron / accept flow should have flipped them to 'expired'`,
+      `${rows.length} pending invitations have already expired — the cron / accept flow should have flipped them to 'expired'`,
     );
   },
 );
@@ -76,23 +68,18 @@ test(
   "no two pending invitations exist for the same (org, email)",
   { skip: !DB_AVAILABLE },
   async () => {
-    // The partial unique index enforces this at insert time. The check
-    // here proves the index is intact.
-    const dupes = await rawSelect<{
-      organization_id: string;
-      email: string;
-      n: number | string;
-    }>(
-      sql`SELECT organization_id, lower(email) AS email, count(*) AS n
-            FROM public.team_invitations
-           WHERE status = 'pending'
-           GROUP BY organization_id, lower(email)
-          HAVING count(*) > 1`,
-    );
+    const sql = getInvariantSql();
+    const rows = await sql<Array<{ organization_id: string; email: string; n: number }>>`
+      SELECT organization_id, lower(email) AS email, count(*)::int AS n
+        FROM public.team_invitations
+       WHERE status = 'pending'
+       GROUP BY organization_id, lower(email)
+      HAVING count(*) > 1
+    `;
     assert.deepStrictEqual(
-      dupes,
+      [...rows],
       [],
-      `${dupes.length} (org, email) pairs have multiple pending invitations`,
+      `${rows.length} (org, email) pairs have multiple pending invitations`,
     );
   },
 );
@@ -101,18 +88,19 @@ test(
   "every accepted invitation references an existing app_users row",
   { skip: !DB_AVAILABLE },
   async () => {
-    const orphans = await rawSelect<{ id: string; accepted_by_user_id: string }>(
-      sql`SELECT inv.id, inv.accepted_by_user_id
-            FROM public.team_invitations inv
-            LEFT JOIN public.app_users u ON u.id = inv.accepted_by_user_id
-           WHERE inv.status = 'accepted'
-             AND inv.accepted_by_user_id IS NOT NULL
-             AND u.id IS NULL`,
-    );
+    const sql = getInvariantSql();
+    const rows = await sql<Array<{ id: string; accepted_by_user_id: string }>>`
+      SELECT inv.id, inv.accepted_by_user_id
+        FROM public.team_invitations inv
+        LEFT JOIN public.app_users u ON u.id = inv.accepted_by_user_id
+       WHERE inv.status = 'accepted'
+         AND inv.accepted_by_user_id IS NOT NULL
+         AND u.id IS NULL
+    `;
     assert.deepStrictEqual(
-      orphans,
+      [...rows],
       [],
-      `${orphans.length} accepted invitations reference a missing app_users row`,
+      `${rows.length} accepted invitations reference a missing app_users row`,
     );
   },
 );
@@ -121,18 +109,20 @@ test(
   "team_invitations has RLS enabled + the two policies from migration 0088",
   { skip: !DB_AVAILABLE },
   async () => {
-    const rls = await rawSelect<{ relrowsecurity: boolean }>(
-      sql`SELECT relrowsecurity FROM pg_class
-           WHERE relname = 'team_invitations'
-             AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')`,
-    );
+    const sql = getInvariantSql();
+    const rls = await sql<Array<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>>`
+      SELECT relrowsecurity, relforcerowsecurity FROM pg_class
+       WHERE relname = 'team_invitations'
+         AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+    `;
     assert.ok(rls[0]?.relrowsecurity, "RLS must be enabled on team_invitations");
+    assert.ok(rls[0]?.relforcerowsecurity, "RLS must be FORCEd on team_invitations");
 
-    const policies = await rawSelect<{ policyname: string }>(
-      sql`SELECT policyname FROM pg_policies
-           WHERE schemaname = 'public' AND tablename = 'team_invitations'`,
-    );
-    const names = new Set(policies.map((p) => p.policyname));
+    const policies = await sql<Array<{ policyname: string }>>`
+      SELECT policyname FROM pg_policies
+       WHERE schemaname = 'public' AND tablename = 'team_invitations'
+    `;
+    const names = new Set([...policies].map((p) => p.policyname));
     assert.ok(
       names.has("team_invitations_org_isolation"),
       "missing team_invitations_org_isolation policy",
