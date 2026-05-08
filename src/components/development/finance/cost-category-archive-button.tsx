@@ -4,22 +4,29 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ArchiveConfirmDialog } from "@/components/ui/primitives";
 import { deactivateCostCategory } from "@/lib/development/server/cost-category-actions";
 
 /**
- * Per-row archive button. Two-click confirm to avoid accidental
- * deactivation. Refuses if active children exist (server enforces).
+ * Per-row cost-category archive button.
+ *
+ * Stage 10.E.7 — replaced the bespoke two-click confirm with the
+ * standard <ArchiveConfirmDialog> primitive for consistency with
+ * the rest of the codebase. Refuses if active children exist
+ * (server enforces).
  */
 export function CostCategoryArchiveButton({
   id,
   isActive,
+  entityName,
 }: {
   id: string;
   isActive: boolean;
+  entityName?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [confirming, setConfirming] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!isActive) return null;
@@ -34,19 +41,7 @@ export function CostCategoryArchiveButton({
         data-testid="cost-category-archive-trigger"
         onClick={() => {
           setError(null);
-          if (!confirming) {
-            setConfirming(true);
-            return;
-          }
-          startTransition(async () => {
-            try {
-              await deactivateCostCategory(id);
-              setConfirming(false);
-              router.refresh();
-            } catch (e) {
-              setError(e instanceof Error ? e.message : "Archive failed");
-            }
-          });
+          setConfirmOpen(true);
         }}
       >
         {pending ? (
@@ -54,21 +49,29 @@ export function CostCategoryArchiveButton({
         ) : (
           <Archive className="w-3 h-3" />
         )}
-        <span className="ml-1 text-[11px]">
-          {confirming ? "Confirm" : "Archive"}
-        </span>
+        <span className="ml-1 text-[11px]">Archive</span>
       </Button>
-      {confirming && !pending && (
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={() => setConfirming(false)}
-        >
-          <span className="text-[11px]">Cancel</span>
-        </Button>
-      )}
       {error && <span className="text-[11px] text-danger">{error}</span>}
+      <ArchiveConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={async () => {
+          await new Promise<void>((resolve, reject) => {
+            startTransition(async () => {
+              try {
+                await deactivateCostCategory(id);
+                router.refresh();
+                resolve();
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : "Archive failed";
+                setError(msg);
+                reject(new Error(msg));
+              }
+            });
+          });
+        }}
+        entityName={entityName}
+      />
     </span>
   );
 }

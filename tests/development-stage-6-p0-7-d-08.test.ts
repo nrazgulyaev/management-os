@@ -356,10 +356,14 @@ test("cost category archive: client component exists", () => {
   assert.match(src, /export function CostCategoryArchiveButton/);
 });
 
-test("cost category archive: two-click confirm pattern (Confirm before action)", () => {
+test("cost category archive: confirm dialog pattern (Stage 10.E.7 upgrade from 2-click)", () => {
+  // Stage 10.E.7 replaced the bespoke `setConfirming(true)` two-click
+  // confirm with the standard <ArchiveConfirmDialog> primitive for
+  // consistency with the rest of the codebase. This guard now asserts
+  // the dialog wrapper instead of the old state-based pattern.
   const src = read(F_COST_CATEGORY_ARCHIVE);
-  assert.match(src, /confirming/);
-  assert.match(src, /setConfirming\(true\)/);
+  assert.match(src, /<ArchiveConfirmDialog/);
+  assert.match(src, /setConfirmOpen\(true\)/);
 });
 
 test("cost category archive: invokes deactivateCostCategory and refreshes", () => {

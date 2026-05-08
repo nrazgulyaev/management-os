@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog, RevokeConfirmDialog } from "@/components/ui/primitives";
 import {
   disableMfaAction,
   revokeMfaFactorAction,
@@ -67,33 +69,102 @@ export function StartEnrolmentButton() {
   );
 }
 
+/**
+ * Stage 10.E.7 — wrapped MFA disable + revoke actions in confirm
+ * dialogs from the 10.D primitives. Both are destructive (account
+ * security implications); the dialog ensures intentional action.
+ */
 export function DisableMfaButton({ factorId }: { factorId: string }) {
-  const [state, action] = useFormState(disableMfaAction, null);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   return (
-    <form action={action} className="inline-block">
-      <input type="hidden" name="factorId" value={factorId} />
-      <PendingButton
-        label="Disable MFA"
-        busyLabel="…"
-        small
+    <>
+      <Button
+        type="button"
+        size="sm"
         variant="destructive"
-      />
-      {state && !state.ok && (
-        <span className="text-[11px] text-danger ml-2">{state.error}</span>
+        disabled={pending}
+        onClick={() => setConfirmOpen(true)}
+      >
+        {pending ? "…" : "Disable MFA"}
+      </Button>
+      {error && (
+        <span className="text-[11px] text-danger ml-2">{error}</span>
       )}
-    </form>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={async () => {
+          await new Promise<void>((resolve, reject) => {
+            startTransition(async () => {
+              setError(null);
+              const fd = new FormData();
+              fd.set("factorId", factorId);
+              const res = await disableMfaAction(null, fd);
+              if (!res || !res.ok) {
+                const msg = res?.error ?? "Disable failed";
+                setError(msg);
+                reject(new Error(msg));
+                return;
+              }
+              resolve();
+            });
+          });
+        }}
+        title="Disable MFA?"
+        description="Disabling MFA reduces account security. The next sign-in will only require the password."
+        confirmLabel="Disable"
+        tone="destructive"
+        warning="Re-enable MFA from the same panel; an administrator may also force re-enrolment."
+      />
+    </>
   );
 }
 
 export function RevokeMfaFactorButton({ factorId }: { factorId: string }) {
-  const [state, action] = useFormState(revokeMfaFactorAction, null);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   return (
-    <form action={action} className="inline-block">
-      <input type="hidden" name="factorId" value={factorId} />
-      <PendingButton label="Revoke" busyLabel="…" small variant="destructive" />
-      {state && !state.ok && (
-        <span className="text-[11px] text-danger ml-2">{state.error}</span>
+    <>
+      <Button
+        type="button"
+        size="sm"
+        variant="destructive"
+        disabled={pending}
+        onClick={() => setConfirmOpen(true)}
+      >
+        {pending ? "…" : "Revoke"}
+      </Button>
+      {error && (
+        <span className="text-[11px] text-danger ml-2">{error}</span>
       )}
-    </form>
+      <RevokeConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={async () => {
+          await new Promise<void>((resolve, reject) => {
+            startTransition(async () => {
+              setError(null);
+              const fd = new FormData();
+              fd.set("factorId", factorId);
+              const res = await revokeMfaFactorAction(null, fd);
+              if (!res || !res.ok) {
+                const msg = res?.error ?? "Revoke failed";
+                setError(msg);
+                reject(new Error(msg));
+                return;
+              }
+              resolve();
+            });
+          });
+        }}
+        entityName="this MFA factor"
+        description="The factor will be removed and cannot be used again. The user must re-enrol from scratch."
+      />
+    </>
   );
 }
