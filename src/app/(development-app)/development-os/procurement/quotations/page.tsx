@@ -102,6 +102,10 @@ export default async function GlobalQuotationsListPage() {
         <EmptyState
           title="No quotations yet"
           description="Vendor quotations are created against purchase requests via the procurement workflow."
+        
+          action={
+            <Link href="/development-os/procurement/purchase-requests" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View purchase requests</Link>
+          }
         />
       ) : (
         <Section eyebrow="Catalog" title="All quotations (most recent first)">

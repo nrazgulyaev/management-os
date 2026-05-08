@@ -75,7 +75,11 @@ export default async function InboxPage({
       <Section eyebrow="Inbox" title="Notifications">
         {rows.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            Your inbox is empty.
+            Your inbox is empty. Notifications arrive when actions you triggered complete or when system events fire — check the{" "}
+            <Link href="/dashboard/notifications/deliveries" className="underline">
+              Deliveries
+            </Link>{" "}
+            tab for failed sends.
           </p>
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">

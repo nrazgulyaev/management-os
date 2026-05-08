@@ -65,6 +65,10 @@ export default async function SharedCostsPage() {
         <EmptyState
           title="No allocations yet"
           description="Use the proposeSharedCostAllocation server action to create one. The allocation math (sum-to-100, rounding remainder folding) is in lib/development/server/shared-costs/allocation-helpers.ts."
+        
+          action={
+            <Link href="/development-os/finance" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View finance hub</Link>
+          }
         />
       ) : (
         <Section eyebrow="Catalog" title="All allocations">

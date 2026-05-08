@@ -39,7 +39,11 @@ export default async function CampaignsPage() {
           <EmptyState
             title="No campaigns yet"
             description="Create your first marketing campaign."
-          />
+          
+          action={
+            <Link href="/development-os/marketing/connections" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">Configure connections</Link>
+          }
+        />
         ) : (
           <table className="w-full text-sm border-collapse">
             <thead>

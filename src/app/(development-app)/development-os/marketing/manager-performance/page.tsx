@@ -30,7 +30,11 @@ export default async function ManagerPerformancePage() {
           <EmptyState
             title="No snapshots yet"
             description="The Mon 04:00 cron will populate this. Run it manually from Jobs to seed."
-          />
+          
+          action={
+            <Link href="/dashboard/jobs" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View jobs</Link>
+          }
+        />
         ) : (
           <table className="w-full text-sm border-collapse">
             <thead>

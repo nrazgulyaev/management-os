@@ -292,7 +292,11 @@ export default async function FinancePage() {
           <EmptyState
             title="No transactions yet"
             description="Use the recordTransaction action to add the first one, or run the seed."
-          />
+          
+          action={
+            <Link href="/dashboard/jobs" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View jobs</Link>
+          }
+        />
         ) : (
           <Table>
             <THead>

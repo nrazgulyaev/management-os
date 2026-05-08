@@ -83,7 +83,7 @@ export default async function VerificationsPage({
                     colSpan={8}
                     className="px-4 py-6 text-center text-ink-tertiary"
                   >
-                    No verifications yet.
+                    No verifications yet. Issued automatically when a guest first scans their stay link; expires after 10 minutes.
                   </td>
                 </tr>
               )}

@@ -148,7 +148,11 @@ export default async function DocumentExtractionsPage({
           <EmptyState
             title="No extractions yet"
             description="Upload a receipt or invoice and the AI will queue an extraction. You can also trigger one manually from a document detail page."
-          />
+          
+          action={
+            <Link href="/dashboard/jobs" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View jobs</Link>
+          }
+        />
         ) : (
           <Table>
             <THead>

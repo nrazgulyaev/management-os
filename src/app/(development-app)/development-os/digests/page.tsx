@@ -51,7 +51,11 @@ export default async function DigestsListPage() {
           <EmptyState
             title="No digests yet"
             description="Run the monthly digest job from Jobs to generate the first draft."
-          />
+          
+          action={
+            <Link href="/dashboard/jobs" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View jobs</Link>
+          }
+        />
         ) : (
           <table className="w-full text-sm border-collapse">
             <thead>

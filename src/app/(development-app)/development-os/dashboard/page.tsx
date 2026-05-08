@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -59,6 +60,10 @@ export default async function ExecutiveDashboardPage() {
         <EmptyState
           title="No snapshots yet"
           description="The daily metrics cron will populate this dashboard. Run it manually from the Jobs page or wait for the next 04:00 run."
+        
+          action={
+            <Link href="/dashboard/jobs" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View jobs</Link>
+          }
         />
       </DevelopmentShell>
     );

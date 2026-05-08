@@ -63,7 +63,11 @@ export default async function RiskRadarPage() {
           <EmptyState
             title="No alerts yet"
             description="The weekly risk-radar cron will populate this inbox. Run it manually from Jobs to seed data."
-          />
+          
+          action={
+            <Link href="/dashboard/jobs" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View jobs</Link>
+          }
+        />
         ) : (
           <table className="w-full text-sm border-collapse">
             <thead>

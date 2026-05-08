@@ -79,7 +79,11 @@ export default async function CommitmentsPage() {
             <EmptyState
               title="No commitments yet"
               description="Run npm run db:seed:dev-os to populate the demo commitments, or use the API to add new ones."
-            />
+            
+          action={
+            <Link href="/development-os/commitments" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View commitments</Link>
+          }
+        />
           ) : (
             <Table>
               <THead>

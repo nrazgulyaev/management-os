@@ -186,7 +186,7 @@ function BucketSection({
     <Section eyebrow="Breakdown" title={title}>
       {buckets.length === 0 ? (
         <p className="rounded-md border border-line-soft bg-surface p-4 text-xs text-ink-tertiary">
-          No data yet.
+          No data yet. Guest AI handoff metrics roll up from concierge sessions; first signals appear after a guest interacts with the AI.
         </p>
       ) : (
         <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
