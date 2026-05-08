@@ -20,7 +20,7 @@
 
 BEGIN;
 
-CREATE TABLE IF NOT EXISTS public.team_invitations (
+CREATE TABLE IF NOT EXISTS "team_invitations" (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   email text NOT NULL,
@@ -51,18 +51,19 @@ CREATE TABLE IF NOT EXISTS public.team_invitations (
 );
 
 CREATE INDEX IF NOT EXISTS team_invitations_org_idx
-  ON public.team_invitations(organization_id);
+  ON "team_invitations"(organization_id);
 CREATE INDEX IF NOT EXISTS team_invitations_email_idx
-  ON public.team_invitations(lower(email));
+  ON "team_invitations"(lower(email));
 CREATE INDEX IF NOT EXISTS team_invitations_status_idx
-  ON public.team_invitations(status);
+  ON "team_invitations"(status);
 -- Only one ACTIVE invitation per (org, email) at a time.
 CREATE UNIQUE INDEX IF NOT EXISTS team_invitations_active_uniq
-  ON public.team_invitations(organization_id, lower(email))
+  ON "team_invitations"(organization_id, lower(email))
   WHERE status = 'pending';
 
 -- RLS — same pattern Stage 7.B's subscription tables use.
-ALTER TABLE public.team_invitations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "team_invitations" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "team_invitations" FORCE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN
@@ -72,7 +73,7 @@ BEGIN
        AND tablename = 'team_invitations'
        AND policyname = 'team_invitations_org_isolation'
   ) THEN
-    EXECUTE 'CREATE POLICY team_invitations_org_isolation ON public.team_invitations ' ||
+    EXECUTE 'CREATE POLICY team_invitations_org_isolation ON "team_invitations" ' ||
             'FOR ALL ' ||
             'USING (public.is_in_user_organization(organization_id)) ' ||
             'WITH CHECK (public.is_in_user_organization(organization_id))';
@@ -89,7 +90,7 @@ BEGIN
        AND tablename = 'team_invitations'
        AND policyname = 'team_invitations_internal_bypass'
   ) THEN
-    EXECUTE 'CREATE POLICY team_invitations_internal_bypass ON public.team_invitations ' ||
+    EXECUTE 'CREATE POLICY team_invitations_internal_bypass ON "team_invitations" ' ||
             'FOR ALL ' ||
             'USING (public.is_internal_user()) ' ||
             'WITH CHECK (public.is_internal_user())';
