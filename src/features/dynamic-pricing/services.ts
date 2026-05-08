@@ -522,69 +522,88 @@ export async function getPricingHubMetrics(): Promise<PricingHubMetrics> {
       villasMissingRuleSet: 0,
     };
   }
+  // Stage 9.I — was 6 parallel queries, three of which fetched ROW
+  // SETS only to reduce them in JS:
+  //   - pricingStopSellRules → JS sum of (endsOn - startsOn + 1) days
+  //   - villas → JS Array.filter to find ones with no active rule-set
+  //   - pricingRuleSets active → JS Array.some scoped lookup
+  // All three reductions belong in SQL. Plus the four COUNT queries
+  // collapse via FILTER. Net result: 3 round-trips instead of 6, and
+  // every reduction runs against the storage engine instead of pulling
+  // rows over the wire.
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [setStatuses, [{ count: publicCount = 0 } = { count: 0 }], stopSell, [{ count: pushCount = 0 } = { count: 0 }], allVillas, ruleSetVillas] =
-    await Promise.all([
-      db
-        .select({
-          status: pricingRuleSets.status,
-          count: sql<number>`count(*)::int`,
-        })
-        .from(pricingRuleSets)
-        .groupBy(pricingRuleSets.status),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(pricingQuoteLogs)
-        .where(
-          and(
-            eq(pricingQuoteLogs.publicQuote, true),
-            gte(pricingQuoteLogs.createdAt, since),
-          ),
-        ),
-      db.select().from(pricingStopSellRules).where(eq(pricingStopSellRules.status, "active")),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(channelPushEvents)
-        .where(eq(channelPushEvents.status, "simulated")),
-      db.select({ id: villas.id }).from(villas),
-      db
-        .select({
-          villaId: pricingRuleSets.villaId,
-          projectId: pricingRuleSets.projectId,
-          scopeType: pricingRuleSets.scopeType,
-        })
-        .from(pricingRuleSets)
-        .where(eq(pricingRuleSets.status, "active")),
-    ]);
-  const has = (vId: string) =>
-    ruleSetVillas.some(
-      (rs) =>
-        rs.scopeType === "global" ||
-        (rs.scopeType === "villa" && rs.villaId === vId),
-    );
-  const villasMissingRuleSet = allVillas.filter((v) => !has(v.id)).length;
-  const stopSellNights = stopSell.reduce((acc, r) => {
-    const start = parseIsoDate(r.startsOn);
-    const end = parseIsoDate(r.endsOn);
-    if (!start || !end) return acc;
-    return (
-      acc +
-      Math.max(
-        0,
-        Math.round(
-          (end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
-        ) + 1,
-      )
-    );
-  }, 0);
+  const sinceIso = since.toISOString();
+
+  const [[ruleSetCounts], [pricingActivity], [villaCounts]] = await Promise.all([
+    // 1. pricing_rule_sets aggregate.
+    db
+      .select({
+        active: sql<number>`COUNT(*) FILTER (WHERE ${pricingRuleSets.status} = 'active')::int`,
+        paused: sql<number>`COUNT(*) FILTER (WHERE ${pricingRuleSets.status} = 'paused')::int`,
+      })
+      .from(pricingRuleSets),
+
+    // 2. pricing_quote_logs + channel_push_events + stop-sell sum in
+    // a single round-trip via three FILTER aggregates over a CROSS
+    // JOIN of three independent counts. Each subquery hits exactly
+    // one table. No JS reduce.
+    db.execute(sql`
+      SELECT
+        (SELECT COUNT(*)::int FROM ${pricingQuoteLogs}
+         WHERE ${pricingQuoteLogs.publicQuote} = true
+           AND ${pricingQuoteLogs.createdAt} >= ${sinceIso}::timestamptz
+        ) AS public_quotes_24h,
+        (SELECT COUNT(*)::int FROM ${channelPushEvents}
+         WHERE ${channelPushEvents.status} = 'simulated'
+        ) AS simulated_pushes,
+        COALESCE((
+          SELECT SUM(
+            GREATEST(
+              0,
+              (${pricingStopSellRules.endsOn} - ${pricingStopSellRules.startsOn})::int + 1
+            )
+          )::int
+          FROM ${pricingStopSellRules}
+          WHERE ${pricingStopSellRules.status} = 'active'
+        ), 0) AS stop_sell_nights
+    `),
+
+    // 3. villas-missing-rule-set: NOT EXISTS for an active rule-set
+    // covering each villa (global scope OR matching villa scope).
+    db.execute(sql`
+      SELECT COUNT(*)::int AS missing
+        FROM ${villas} v
+       WHERE NOT EXISTS (
+         SELECT 1 FROM ${pricingRuleSets} rs
+          WHERE rs.status = 'active'
+            AND (rs.scope_type = 'global' OR (rs.scope_type = 'villa' AND rs.villa_id = v.id))
+       )
+    `),
+  ]);
+
+  const pricingRow = (
+    Array.isArray(pricingActivity)
+      ? pricingActivity
+      : ((pricingActivity as { rows?: unknown[] }).rows ?? [])
+  )[0] as
+    | {
+        public_quotes_24h?: number;
+        simulated_pushes?: number;
+        stop_sell_nights?: number;
+      }
+    | undefined;
+  const villaRow = (
+    Array.isArray(villaCounts)
+      ? villaCounts
+      : ((villaCounts as { rows?: unknown[] }).rows ?? [])
+  )[0] as { missing?: number } | undefined;
+
   return {
-    activeRuleSets:
-      setStatuses.find((s) => s.status === "active")?.count ?? 0,
-    pausedRuleSets:
-      setStatuses.find((s) => s.status === "paused")?.count ?? 0,
-    publicQuotes24h: publicCount,
-    stopSellNights,
-    simulatedPushes: pushCount,
-    villasMissingRuleSet,
+    activeRuleSets: ruleSetCounts?.active ?? 0,
+    pausedRuleSets: ruleSetCounts?.paused ?? 0,
+    publicQuotes24h: Number(pricingRow?.public_quotes_24h ?? 0),
+    stopSellNights: Number(pricingRow?.stop_sell_nights ?? 0),
+    simulatedPushes: Number(pricingRow?.simulated_pushes ?? 0),
+    villasMissingRuleSet: Number(villaRow?.missing ?? 0),
   };
 }

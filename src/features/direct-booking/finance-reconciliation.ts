@@ -734,48 +734,47 @@ export async function getReconciliationMetrics(): Promise<ReconciliationMetrics>
       currency: null,
     };
   }
-  const counts = await db
-    .select({
-      status: directBookingFinanceLinks.status,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(directBookingFinanceLinks)
-    .groupBy(directBookingFinanceLinks.status);
-  const [{ count: unpostedCount = 0 } = { count: 0 }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(directBookingRequests)
-    .leftJoin(
-      directBookingFinanceLinks,
-      eq(directBookingFinanceLinks.requestId, directBookingRequests.id),
-    )
-    .where(
-      and(
-        eq(directBookingRequests.status, "converted"),
-        isNull(directBookingFinanceLinks.id),
+  // Stage 9.I — was 3 sequential queries: status group-by, unposted
+  // JOIN count, and "fetch every posted row to sum balances in JS".
+  // The third was the smoking gun (every posted row crossed the wire).
+  // Collapsed into 2 parallel queries: one aggregate over finance_links
+  // with FILTER + SUM, plus the JOIN-NOT-EXISTS unposted count.
+  const [[agg], [unpostedRow]] = await Promise.all([
+    db
+      .select({
+        pending: sql<number>`COUNT(*) FILTER (WHERE ${directBookingFinanceLinks.status} = 'pending')::int`,
+        posted: sql<number>`COUNT(*) FILTER (WHERE ${directBookingFinanceLinks.status} = 'posted')::int`,
+        skippedLocked: sql<number>`COUNT(*) FILTER (WHERE ${directBookingFinanceLinks.status} = 'skipped_locked_period')::int`,
+        failed: sql<number>`COUNT(*) FILTER (WHERE ${directBookingFinanceLinks.status} = 'failed')::int`,
+        totalBalanceDueMinor: sql<string | null>`SUM(${directBookingFinanceLinks.balanceDueMinor}) FILTER (WHERE ${directBookingFinanceLinks.status} = 'posted')::text`,
+        currency: sql<string | null>`MIN(${directBookingFinanceLinks.currency}) FILTER (WHERE ${directBookingFinanceLinks.status} = 'posted')`,
+      })
+      .from(directBookingFinanceLinks),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(directBookingRequests)
+      .leftJoin(
+        directBookingFinanceLinks,
+        eq(directBookingFinanceLinks.requestId, directBookingRequests.id),
+      )
+      .where(
+        and(
+          eq(directBookingRequests.status, "converted"),
+          isNull(directBookingFinanceLinks.id),
+        ),
       ),
-    );
-  const balances = await db
-    .select({
-      balance: directBookingFinanceLinks.balanceDueMinor,
-      currency: directBookingFinanceLinks.currency,
-    })
-    .from(directBookingFinanceLinks)
-    .where(eq(directBookingFinanceLinks.status, "posted"));
-  let total = 0n;
-  let currency: string | null = null;
-  for (const r of balances) {
-    total += r.balance;
-    currency ??= r.currency;
-  }
-  const by = (s: string) =>
-    counts.find((c) => c.status === s)?.count ?? 0;
+  ]);
+
+  const total = agg?.totalBalanceDueMinor
+    ? BigInt(agg.totalBalanceDueMinor)
+    : 0n;
   return {
-    pending: by("pending"),
-    posted: by("posted"),
-    skippedLocked: by("skipped_locked_period"),
-    failed: by("failed"),
-    unposted: unpostedCount,
+    pending: agg?.pending ?? 0,
+    posted: agg?.posted ?? 0,
+    skippedLocked: agg?.skippedLocked ?? 0,
+    failed: agg?.failed ?? 0,
+    unposted: unpostedRow?.count ?? 0,
     totalBalanceDueMinor: total,
-    currency,
+    currency: agg?.currency ?? null,
   };
 }
