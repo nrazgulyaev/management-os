@@ -8,6 +8,8 @@ import {
 } from "@/features/owner-stays/services";
 import { listVillas } from "@/features/villas/services";
 import { AddEquivalenceMemberForm } from "@/components/owner-stays/add-member-form";
+import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Equivalence groups" };
 export const dynamic = "force-dynamic";
@@ -42,12 +44,33 @@ export default async function EquivalenceGroupsPage() {
       />
 
       {groupsWithMembers.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-          No groups yet.
-        </p>
+        <NoItemsYet
+          entityLabel="equivalence groups"
+          description="Group swap-comparable villas so the relocation engine can move bookings between them with a same-or-better quality rank."
+          addHref="/dashboard/owner-stays/equivalence-groups/new"
+          addLabel="+ New group"
+        />
       ) : (
         groupsWithMembers.map((g) => (
-          <Section key={g.id} eyebrow={g.projectName ?? "global"} title={g.name}>
+          <Section
+            key={g.id}
+            eyebrow={g.projectName ?? "global"}
+            title={g.name}
+            action={
+              <OwnersRowActions
+                kind="equivalence_group"
+                row={{
+                  id: g.id,
+                  displayName: g.name,
+                  values: {
+                    name: g.name,
+                    projectId: g.projectId ?? "",
+                    description: g.description ?? "",
+                  },
+                }}
+              />
+            }
+          >
             <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">

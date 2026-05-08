@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, AlertTriangle, ShieldCheck } from "lucide-react";
 import { listOwnershipShares } from "@/features/owners/services";
 import { computeShareTotals } from "@/features/shares/totals";
+import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Ownership shares" };
 export const dynamic = "force-dynamic";
@@ -84,26 +86,28 @@ export default async function SharesPage() {
         </div>
       </section>
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Owner</TH>
-            <TH>Subject</TH>
-            <TH>Model</TH>
-            <TH>Effective from</TH>
-            <TH>Status</TH>
-            <TH className="text-right">Share %</TH>
-          </TR>
-        </THead>
-        <TBody>
-          {shares.length === 0 ? (
+      {shares.length === 0 ? (
+        <NoItemsYet
+          entityLabel="ownership shares"
+          description="Allocate ownership across villas and pools. Active shares per villa or per project must total 100%."
+          addHref="/dashboard/shares/new"
+          addLabel="New share"
+        />
+      ) : (
+        <Table>
+          <THead>
             <TR>
-              <TD colSpan={6} className="text-ink-tertiary text-center py-8">
-                No shares recorded.
-              </TD>
+              <TH>Owner</TH>
+              <TH>Subject</TH>
+              <TH>Model</TH>
+              <TH>Effective from</TH>
+              <TH>Status</TH>
+              <TH className="text-right">Share %</TH>
+              <TH />
             </TR>
-          ) : (
-            shares.map((s) => (
+          </THead>
+          <TBody>
+            {shares.map((s) => (
               <TR key={s.id}>
                 <TD>
                   <Link
@@ -126,11 +130,30 @@ export default async function SharesPage() {
                   </Badge>
                 </TD>
                 <TDNum>{s.sharePercent.toFixed(2)}%</TDNum>
+                <TD className="text-right">
+                  <OwnersRowActions
+                    kind="share"
+                    row={{
+                      id: s.id,
+                      displayName: `${s.ownerName} · ${s.villaCode ?? s.projectName ?? "—"}`,
+                      values: {
+                        ownerId: s.ownerId,
+                        villaId: s.villaId ?? "",
+                        projectId: s.projectId ?? "",
+                        sharePercent: s.sharePercent,
+                        model: s.model,
+                        startsOn: s.startsOn,
+                        endsOn: s.endsOn ?? "",
+                        status: s.status,
+                      },
+                    }}
+                  />
+                </TD>
               </TR>
-            ))
-          )}
-        </TBody>
-      </Table>
+            ))}
+          </TBody>
+        </Table>
+      )}
     </div>
   );
 }

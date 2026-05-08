@@ -7,6 +7,8 @@ import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Plus } from "lucide-react";
 import { listOwners } from "@/features/owners/services";
+import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Owners & investors" };
 export const dynamic = "force-dynamic";
@@ -45,25 +47,27 @@ export default async function OwnersPage() {
 
       <DbStatusNotice />
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Owner</TH>
-            <TH>Type</TH>
-            <TH>Nationality</TH>
-            <TH>Email</TH>
-            <TH>Status</TH>
-          </TR>
-        </THead>
-        <TBody>
-          {owners.length === 0 ? (
+      {owners.length === 0 ? (
+        <NoItemsYet
+          entityLabel="owners"
+          description="Add the individuals, companies, and family offices participating in your portfolio."
+          addHref="/dashboard/owners/new"
+          addLabel="New owner"
+        />
+      ) : (
+        <Table>
+          <THead>
             <TR>
-              <TD colSpan={5} className="text-ink-tertiary text-center py-8">
-                No owners yet.
-              </TD>
+              <TH>Owner</TH>
+              <TH>Type</TH>
+              <TH>Nationality</TH>
+              <TH>Email</TH>
+              <TH>Status</TH>
+              <TH />
             </TR>
-          ) : (
-            owners.map((o) => (
+          </THead>
+          <TBody>
+            {owners.map((o) => (
               <TR key={o.id}>
                 <TD>
                   <Link
@@ -88,11 +92,31 @@ export default async function OwnersPage() {
                     {o.status}
                   </Badge>
                 </TD>
+                <TD className="text-right">
+                  <OwnersRowActions
+                    kind="owner"
+                    row={{
+                      id: o.id,
+                      displayName: o.displayName,
+                      detailHref: `/dashboard/owners/${o.id}`,
+                      values: {
+                        type: o.type,
+                        displayName: o.displayName,
+                        legalName: o.legalName ?? "",
+                        email: o.email ?? "",
+                        phone: o.phone ?? "",
+                        nationality: o.nationality ?? "",
+                        taxResidency: o.taxResidency ?? "",
+                        status: o.status,
+                      },
+                    }}
+                  />
+                </TD>
               </TR>
-            ))
-          )}
-        </TBody>
-      </Table>
+            ))}
+          </TBody>
+        </Table>
+      )}
     </div>
   );
 }

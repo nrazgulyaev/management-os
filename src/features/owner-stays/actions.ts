@@ -146,6 +146,62 @@ export async function archiveOwnerStayPolicyAction(
   return { ok: true };
 }
 
+// Stage 10.E.3 — full-policy edit (audit found Add but no Edit).
+// Same parse path as createOwnerStayPolicyAction, then a complete
+// re-set of the policy row by id.
+export async function updateOwnerStayPolicyAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("owner_stay.approve");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Missing policy id." };
+  const parsed = createOwnerStayPolicySchema.safeParse(parsePolicyForm(formData));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form and correct the highlighted fields.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+  const [row] = await db
+    .update(ownerStayPolicies)
+    .set({
+      policyName: d.policyName,
+      projectId: d.projectId ?? null,
+      villaId: d.villaId ?? null,
+      freeNightsPerYear: d.freeNightsPerYear,
+      freeNightsApplyToPeak: d.freeNightsApplyToPeak ?? false,
+      requiresApproval: d.requiresApproval ?? true,
+      allowDisplacingGuestBookings: d.allowDisplacingGuestBookings ?? false,
+      relocationAllowed: d.relocationAllowed ?? true,
+      operationalCostModel: d.operationalCostModel,
+      fixedOperationalCostMinor: d.fixedOperationalCostMinor ?? null,
+      currency: d.currency ?? null,
+      compensationModel: d.compensationModel,
+      compensationPercent:
+        d.compensationPercent != null ? String(d.compensationPercent) : null,
+      fixedCompensationMinor: d.fixedCompensationMinor ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(ownerStayPolicies.id, id))
+    .returning({ id: ownerStayPolicies.id });
+  if (!row) return { ok: false, error: "Policy not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "owner_stay.policy.update",
+    entityType: "owner_stay_policy",
+    entityId: id,
+    after: { policyName: d.policyName, freeNightsPerYear: d.freeNightsPerYear },
+  });
+  revalidatePath("/dashboard/owner-stays/policies");
+  return { ok: true };
+}
+
 // -----------------------------------------------------------------------------
 // Owner stay requests
 // -----------------------------------------------------------------------------
@@ -616,6 +672,79 @@ export async function addEquivalenceMemberAction(
       villaId: parsed.data.villaId,
       qualityRank: parsed.data.qualityRank,
     },
+  });
+  revalidatePath("/dashboard/owner-stays/equivalence-groups");
+  return { ok: true };
+}
+
+// Stage 10.E.3 — equivalence group edit + archive (audit found Add but
+// no Edit/Delete). Update accepts the same shape as create (name +
+// description + projectId); archive flips status to "archived".
+export async function updateEquivalenceGroupAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("relocation.manage");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Missing group id." };
+  const parsed = createEquivalenceGroupSchema.safeParse({
+    ...Object.fromEntries(formData.entries()),
+    projectId: formData.get("projectId") || null,
+    description: formData.get("description") || null,
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(villaEquivalenceGroups)
+    .set({
+      name: parsed.data.name,
+      projectId: parsed.data.projectId ?? null,
+      description: parsed.data.description ?? null,
+    })
+    .where(eq(villaEquivalenceGroups.id, id))
+    .returning({ id: villaEquivalenceGroups.id });
+  if (!row) return { ok: false, error: "Group not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "relocation.group.update",
+    entityType: "villa_equivalence_group",
+    entityId: id,
+    after: { name: parsed.data.name },
+  });
+  revalidatePath("/dashboard/owner-stays/equivalence-groups");
+  return { ok: true };
+}
+
+export async function archiveEquivalenceGroupAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("relocation.manage");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Missing group id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(villaEquivalenceGroups)
+    .set({ status: "archived" })
+    .where(eq(villaEquivalenceGroups.id, id))
+    .returning({ id: villaEquivalenceGroups.id });
+  if (!row) return { ok: false, error: "Group not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "relocation.group.archive",
+    entityType: "villa_equivalence_group",
+    entityId: id,
+    after: { status: "archived" },
   });
   revalidatePath("/dashboard/owner-stays/equivalence-groups");
   return { ok: true };

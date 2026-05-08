@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listOwnerStayPolicies } from "@/features/owner-stays/services";
+import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Owner stay policies" };
 export const dynamic = "force-dynamic";
@@ -30,9 +32,12 @@ export default async function PoliciesPage() {
 
       <Section eyebrow="Catalog" title={`${policies.length} policies`}>
         {policies.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No policies yet — create one so owner stays have a default.
-          </p>
+          <NoItemsYet
+            entityLabel="policies"
+            description="Create a policy so owner stays have a default — free nights, approval routing, compensation model."
+            addHref="/dashboard/owner-stays/policies/new"
+            addLabel="+ New policy"
+          />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
             <table className="w-full text-sm">
@@ -44,6 +49,7 @@ export default async function PoliciesPage() {
                   <th className="text-left px-3 py-2">Compensation</th>
                   <th className="text-left px-3 py-2">Op cost</th>
                   <th className="text-left px-3 py-2">Status</th>
+                  <th />
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
@@ -70,6 +76,32 @@ export default async function PoliciesPage() {
                       <Badge tone={p.status === "active" ? "success" : "neutral"}>
                         {p.status}
                       </Badge>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <OwnersRowActions
+                        kind="policy"
+                        row={{
+                          id: p.id,
+                          displayName: p.policyName,
+                          values: {
+                            policyName: p.policyName,
+                            projectId: p.projectId ?? "",
+                            villaId: p.villaId ?? "",
+                            freeNightsPerYear: p.freeNightsPerYear,
+                            freeNightsApplyToPeak: p.freeNightsApplyToPeak,
+                            requiresApproval: p.requiresApproval,
+                            allowDisplacingGuestBookings: p.allowDisplacingGuestBookings,
+                            relocationAllowed: p.relocationAllowed,
+                            operationalCostModel: p.operationalCostModel,
+                            fixedOperationalCostMinor:
+                              p.fixedOperationalCostMinor ?? "",
+                            currency: p.currency ?? "",
+                            compensationModel: p.compensationModel,
+                            compensationPercent: p.compensationPercent ?? "",
+                            fixedCompensationMinor: p.fixedCompensationMinor ?? "",
+                          },
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}
