@@ -39,13 +39,21 @@ interface Args {
   concurrency: number;
   timeoutMs: number;
   cookieEnv?: string;
+  auth: boolean;
+  authEmail?: string;
+  authPassword?: string;
 }
 
 function parseArgs(): Args {
+  const flags = new Set<string>();
   const args = new Map<string, string>();
   for (const a of process.argv.slice(2)) {
-    const m = a.match(/^--([^=]+)=(.*)$/);
-    if (m) args.set(m[1], m[2]);
+    const kv = a.match(/^--([^=]+)=(.*)$/);
+    if (kv) {
+      args.set(kv[1], kv[2]);
+    } else if (a.startsWith("--")) {
+      flags.add(a.slice(2));
+    }
   }
   return {
     base: args.get("base") ?? "https://management-os-fawn.vercel.app",
@@ -55,6 +63,9 @@ function parseArgs(): Args {
     concurrency: Number(args.get("concurrency") ?? "4"),
     timeoutMs: Number(args.get("timeout") ?? "15000"),
     cookieEnv: process.env.AUDIT_COOKIE,
+    auth: flags.has("auth"),
+    authEmail: process.env.AUDIT_BOT_EMAIL,
+    authPassword: process.env.AUDIT_BOT_PASSWORD,
   };
 }
 
@@ -102,6 +113,43 @@ const DEFERRED_MARKERS = [
   /deferred to Stage/i,
   /Not yet available/i,
 ];
+
+/**
+ * Log in as audit-bot via the production /login form. Persists session
+ * cookies into the browser context for subsequent requests.
+ */
+async function loginAuditBot(
+  ctx: BrowserContext,
+  base: string,
+  email: string,
+  password: string,
+  timeoutMs: number,
+): Promise<void> {
+  const page = await ctx.newPage();
+  try {
+    await page.goto(`${base.replace(/\/$/, "")}/login`, {
+      waitUntil: "domcontentloaded",
+      timeout: timeoutMs,
+    });
+    await page.waitForSelector('input[name="email"]', { timeout: timeoutMs });
+    await page.fill('input[name="email"]', email);
+    await page.fill('input[name="password"]', password);
+    // Submit + wait for navigation away from /login.
+    await Promise.all([
+      page.waitForURL((url) => !/\/login\b/.test(new URL(url).pathname), {
+        timeout: timeoutMs,
+      }),
+      page.click('button[type="submit"]'),
+    ]);
+    const finalPath = new URL(page.url()).pathname;
+    if (/\/login\b/.test(finalPath)) {
+      throw new Error(`login submission did not redirect; still on ${finalPath}`);
+    }
+    console.log(`[audit] login OK as ${email} → ${finalPath}`);
+  } finally {
+    await page.close();
+  }
+}
 
 function loadUrls(file: string): string[] {
   const txt = readFileSync(file, "utf8");
@@ -346,6 +394,15 @@ async function main(): Promise<void> {
   if (args.cookieEnv) {
     console.log("[audit] applying AUDIT_COOKIE");
     await applyCookies(ctx, args.base, args.cookieEnv);
+  }
+  if (args.auth) {
+    if (!args.authEmail || !args.authPassword) {
+      console.error(
+        "[audit] --auth requires AUDIT_BOT_EMAIL + AUDIT_BOT_PASSWORD env (load .env.audit.local)",
+      );
+      process.exit(1);
+    }
+    await loginAuditBot(ctx, args.base, args.authEmail, args.authPassword, args.timeoutMs);
   }
 
   const results: PageResult[] = [];
