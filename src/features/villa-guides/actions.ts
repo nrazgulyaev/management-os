@@ -394,3 +394,93 @@ export async function upsertNeighborhoodPlaceAction(
   revalidatePath("/dashboard/villa-guides/neighborhood");
   return { ok: true, placeId };
 }
+
+// =============================================================================
+// Stage 10.E.4 — Archive actions for emergency-contacts / neighborhood / wifi.
+//
+// Sections already had archiveGuideSectionAction. This sub-phase adds the
+// missing 3 to close the audit's partial-CRUD finding for villa-guides.
+// All 3 tables already have a `status text NOT NULL DEFAULT 'active'`
+// column — soft-delete by flipping to "archived". No migration.
+// =============================================================================
+
+export async function archiveEmergencyContactAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("villa_guide.write");
+  const parsed = idSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return { ok: false, error: "Missing id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(villaEmergencyContacts)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(eq(villaEmergencyContacts.id, parsed.data.id))
+    .returning({ id: villaEmergencyContacts.id });
+  if (!row) return { ok: false, error: "Contact not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "villa_guide.contact.archive",
+    entityType: "villa_emergency_contact",
+    entityId: parsed.data.id,
+    after: { status: "archived" },
+  });
+  revalidatePath("/dashboard/villa-guides/emergency-contacts");
+  return { ok: true };
+}
+
+export async function archiveNeighborhoodPlaceAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("villa_guide.write");
+  const parsed = idSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return { ok: false, error: "Missing id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(villaNeighborhoodPlaces)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(eq(villaNeighborhoodPlaces.id, parsed.data.id))
+    .returning({ id: villaNeighborhoodPlaces.id });
+  if (!row) return { ok: false, error: "Place not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "villa_guide.place.archive",
+    entityType: "villa_neighborhood_place",
+    entityId: parsed.data.id,
+    after: { status: "archived" },
+  });
+  revalidatePath("/dashboard/villa-guides/neighborhood");
+  return { ok: true };
+}
+
+export async function archiveWifiCredentialAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("villa_guide.write");
+  const parsed = idSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return { ok: false, error: "Missing id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(villaWifiCredentials)
+    .set({ status: "archived", updatedAt: new Date(), updatedBy: me?.id ?? null })
+    .where(eq(villaWifiCredentials.id, parsed.data.id))
+    .returning({ id: villaWifiCredentials.id });
+  if (!row) return { ok: false, error: "WiFi credential not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "villa_guide.wifi.archive",
+    entityType: "villa_wifi_credential",
+    entityId: parsed.data.id,
+    after: { status: "archived" },
+  });
+  revalidatePath("/dashboard/villa-guides/wifi");
+  return { ok: true };
+}

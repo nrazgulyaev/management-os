@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listEmergencyContactsAdmin } from "@/features/villa-guides/services";
+import { VillaGuidesRowActions } from "@/components/dashboard/villa-guides/villa-guides-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Emergency contacts" };
 export const dynamic = "force-dynamic";
@@ -29,9 +31,12 @@ export default async function EmergencyContactsList() {
       />
       <Section eyebrow="Catalog" title={`${rows.length} contacts`}>
         {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            None.
-          </p>
+          <NoItemsYet
+            entityLabel="emergency contacts"
+            description="Add police, ambulance, fire, hospital, and concierge contacts so the guest stay app surfaces them."
+            addHref="/dashboard/villa-guides/emergency-contacts/new"
+            addLabel="+ New contact"
+          />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
             <table className="w-full text-sm">
@@ -42,6 +47,7 @@ export default async function EmergencyContactsList() {
                   <th className="text-left px-3 py-2">Label</th>
                   <th className="text-left px-3 py-2">Phone</th>
                   <th className="text-left px-3 py-2">Visible</th>
+                  <th />
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
@@ -57,6 +63,27 @@ export default async function EmergencyContactsList() {
                       <Badge tone={r.guestVisible ? "success" : "neutral"}>
                         {r.guestVisible ? "guest" : "internal"}
                       </Badge>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <VillaGuidesRowActions
+                        kind="contact"
+                        row={{
+                          id: r.id,
+                          displayName: r.label,
+                          values: {
+                            villaId: r.villaId ?? "",
+                            projectId: r.projectId ?? "",
+                            label: r.label,
+                            contactType: r.contactType,
+                            phone: r.phone ?? "",
+                            whatsapp: r.whatsapp ?? "",
+                            email: r.email ?? "",
+                            address: r.address ?? "",
+                            sortOrder: r.sortOrder,
+                            guestVisible: r.guestVisible,
+                          },
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}

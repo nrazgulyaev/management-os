@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listGuideSectionsAdmin } from "@/features/villa-guides/services";
+import { VillaGuidesRowActions } from "@/components/dashboard/villa-guides/villa-guides-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Guide sections" };
 export const dynamic = "force-dynamic";
@@ -29,9 +31,12 @@ export default async function SectionsList() {
       />
       <Section eyebrow="Catalog" title={`${rows.length} sections`}>
         {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No sections yet.
-          </p>
+          <NoItemsYet
+            entityLabel="sections"
+            description="Sections show up on the guest stay app at /stay/[token] — add your first one."
+            addHref="/dashboard/villa-guides/sections/new"
+            addLabel="+ New section"
+          />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
             <table className="w-full text-sm">
@@ -43,6 +48,7 @@ export default async function SectionsList() {
                   <th className="text-right px-3 py-2">Sort</th>
                   <th className="text-left px-3 py-2">Visible</th>
                   <th className="text-left px-3 py-2">Status</th>
+                  <th />
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
@@ -67,6 +73,24 @@ export default async function SectionsList() {
                       <Badge tone={r.status === "active" ? "success" : "neutral"}>
                         {r.status}
                       </Badge>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <VillaGuidesRowActions
+                        kind="section"
+                        row={{
+                          id: r.id,
+                          displayName: r.title,
+                          values: {
+                            villaId: r.villaId ?? "",
+                            projectId: r.projectId ?? "",
+                            sectionKey: r.sectionKey,
+                            title: r.title,
+                            bodyMd: r.bodyMd ?? "",
+                            sortOrder: r.sortOrder,
+                            guestVisible: r.guestVisible,
+                          },
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}
