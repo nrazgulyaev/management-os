@@ -131,6 +131,35 @@ export default async function SettingsPage() {
         </div>
       </Section>
 
+      <Section eyebrow="Billing" title="Subscription">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="rounded-md border border-line-soft bg-surface p-5 flex flex-col gap-3">
+            <div>
+              <h3 className="font-medium">Manage subscription</h3>
+              <p className="text-sm text-ink-secondary mt-1 leading-relaxed">
+                Update your payment method, view invoices, change billing
+                cycle, or cancel — all via Stripe's hosted portal.
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/api/billing/portal">Open Customer Portal →</Link>
+            </Button>
+          </div>
+          <div className="rounded-md border border-line-soft bg-surface p-5 flex flex-col gap-3">
+            <div>
+              <h3 className="font-medium">Change plan</h3>
+              <p className="text-sm text-ink-secondary mt-1 leading-relaxed">
+                Upgrade or switch plans. Changes take effect at the next
+                billing cycle; pricing is prorated by Stripe.
+              </p>
+            </div>
+            <Button asChild variant="secondary">
+              <Link href="/dashboard/billing/upgrade">View plans →</Link>
+            </Button>
+          </div>
+        </div>
+      </Section>
+
       <Section eyebrow="Audit" title="Visibility">
         <div className="rounded-md border border-line-soft bg-surface p-5 flex items-center justify-between gap-4">
           <p className="text-sm text-ink-secondary leading-relaxed max-w-xl">

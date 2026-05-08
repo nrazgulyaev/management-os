@@ -110,6 +110,21 @@ export class StripeClient {
     return this.post(`${this.apiBase}/v1/checkout/sessions`, input);
   }
 
+  /**
+   * Stage 9.C — Stripe Customer Portal session. Hosted billing UI for
+   * the customer (update payment method, view invoices, cancel, etc.).
+   * Body: { customer: 'cus_...', return_url: 'https://...' }.
+   */
+  async createBillingPortalSession(input: {
+    customer: string;
+    return_url: string;
+  }) {
+    return this.post(
+      `${this.apiBase}/v1/billing_portal/sessions`,
+      input as unknown as Record<string, unknown>,
+    );
+  }
+
   async getAccount() {
     return this.get(`${this.apiBase}/v1/account`);
   }
