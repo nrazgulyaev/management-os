@@ -539,3 +539,176 @@ export async function revokeAccessAction(
   revalidatePath("/dashboard/settings/team");
   return { ok: true, kind: "user" };
 }
+
+// ============================================================================
+// updateUserRoleAction (Stage 9.E)
+// ============================================================================
+
+const updateRoleSchema = z.object({
+  userId: z.string().uuid(),
+  newRoleKey: z.enum(VALID_ROLES),
+  scope: z.enum(["company_wide", "project_specific"]).default("company_wide"),
+  scopedProjectId: z.string().uuid().nullable().optional(),
+  reason: z.string().max(500).optional(),
+});
+
+export type UpdateRoleResult =
+  | { ok: true; previousRoleKey: string | null; newRoleKey: string }
+  | { ok: false; error: string };
+
+/**
+ * Replace the user's active cabinet grant(s) in `app_user_roles` with a
+ * single new active grant. The previous grant(s) are soft-deleted
+ * (`is_active=false`, `revoked_at`, `revoked_by`, `revocation_reason`)
+ * so the historical trail is preserved.
+ *
+ * Scope: this action ONLY touches `app_user_roles` (the cabinet-routing
+ * table). It deliberately does NOT mutate `user_roles` — that table
+ * controls `is_internal_user()` (RLS bypass) and is reserved for
+ * founder / audit-bot accounts. A future "promote to internal" action
+ * would be a separate, more privileged operation.
+ *
+ * Invariants enforced:
+ *   - Permission: `roles.assign` (super_admin only).
+ *   - Self-change refused — owner needs another admin to change their own role.
+ *   - Cannot demote the last active admin (would lock the org out).
+ */
+export async function updateUserRoleAction(
+  input: z.input<typeof updateRoleSchema>,
+): Promise<UpdateRoleResult> {
+  await requirePermission("roles.assign");
+  const me = await getCurrentAppUser();
+  if (!me) return { ok: false, error: "Not signed in." };
+
+  const parsed = updateRoleSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const data = parsed.data;
+  if (data.scope === "project_specific" && !data.scopedProjectId) {
+    return { ok: false, error: "scope=project_specific requires scopedProjectId" };
+  }
+  if (data.userId === me.id) {
+    return { ok: false, error: "You cannot change your own role. Ask another admin." };
+  }
+
+  const db = requireDb();
+
+  // Confirm target user exists.
+  const target = await db
+    .select({ id: appUsers.id, status: appUsers.status, email: appUsers.email })
+    .from(appUsers)
+    .where(eq(appUsers.id, data.userId))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (!target) return { ok: false, error: "User not found." };
+
+  // Last-active-admin invariant: if the target currently has admin AND
+  // the new role is NOT admin, refuse if no other active admin remains.
+  const currentGrants = await db
+    .select({
+      id: appUserRoles.id,
+      roleKey: appUserRoles.roleKey,
+    })
+    .from(appUserRoles)
+    .where(
+      and(eq(appUserRoles.userId, data.userId), eq(appUserRoles.isActive, true)),
+    );
+  const targetCurrentlyAdmin = currentGrants.some((g) => g.roleKey === "admin");
+  if (targetCurrentlyAdmin && data.newRoleKey !== "admin") {
+    const otherActiveAdmins = await db
+      .select({ userId: appUserRoles.userId })
+      .from(appUserRoles)
+      .where(
+        and(
+          eq(appUserRoles.roleKey, "admin"),
+          eq(appUserRoles.isActive, true),
+        ),
+      )
+      .then((rows) => rows.filter((r) => r.userId !== data.userId));
+    if (otherActiveAdmins.length === 0) {
+      return {
+        ok: false,
+        error: "Cannot demote the last active admin. Promote another user to admin first.",
+      };
+    }
+  }
+
+  const previousRoleKey =
+    currentGrants.find((g) => g.roleKey === "admin")?.roleKey ??
+    currentGrants[0]?.roleKey ??
+    null;
+  const now = new Date();
+
+  // Idempotent: if the user already has exactly the requested grant active,
+  // skip the rewrite + audit.
+  const alreadyHasNew = currentGrants.some(
+    (g) => g.roleKey === data.newRoleKey,
+  );
+  if (alreadyHasNew && currentGrants.length === 1) {
+    return { ok: true, previousRoleKey: data.newRoleKey, newRoleKey: data.newRoleKey };
+  }
+
+  // Revoke all existing active grants.
+  if (currentGrants.length > 0) {
+    await db
+      .update(appUserRoles)
+      .set({
+        isActive: false,
+        revokedAt: now,
+        revokedBy: me.id,
+        revocationReason: data.reason ?? "role change",
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(appUserRoles.userId, data.userId),
+          eq(appUserRoles.isActive, true),
+        ),
+      );
+  }
+
+  // Insert the new grant.
+  await db.insert(appUserRoles).values({
+    userId: data.userId,
+    roleKey: data.newRoleKey,
+    scope: data.scope,
+    scopedProjectId: data.scopedProjectId ?? null,
+    isPrimary: true,
+    isActive: true,
+    grantedBy: me.id,
+    notes: data.reason ?? null,
+  });
+
+  // If the user was suspended (e.g. via revokeAccessAction), bring them
+  // back to active so the new grant takes effect.
+  if (target.status === "suspended") {
+    await db
+      .update(appUsers)
+      .set({ status: "active", updatedAt: now })
+      .where(eq(appUsers.id, data.userId));
+  }
+
+  await db.insert(auditEvents).values({
+    actorUserId: me.id,
+    action: "team.user.role_changed",
+    entityType: "app_user",
+    entityId: data.userId,
+    before: {
+      role_keys: currentGrants.map((g) => g.roleKey),
+    },
+    after: {
+      role_key: data.newRoleKey,
+      scope: data.scope,
+      scoped_project_id: data.scopedProjectId ?? null,
+    },
+    metadata: {
+      reason: data.reason ?? null,
+      target_email: target.email,
+    },
+  });
+
+  revalidatePath("/dashboard/settings/team");
+  revalidatePath(`/dashboard/settings/team/${data.userId}`);
+  return { ok: true, previousRoleKey, newRoleKey: data.newRoleKey };
+}
