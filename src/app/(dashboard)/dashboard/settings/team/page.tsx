@@ -16,6 +16,7 @@ import { getDb } from "@/lib/db/client";
 import { appUsers } from "@/lib/db/schema/identity";
 import { appUserRoles } from "@/lib/db/schema/role-cabinets";
 import { teamInvitations } from "@/lib/db/schema/team-invitations";
+import Link from "next/link";
 import { InviteForm } from "./invite-form";
 import { TeamRowActions } from "./row-actions";
 
@@ -202,11 +203,19 @@ export default async function TeamSettingsPage() {
                       {new Date(u.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <TeamRowActions
-                        kind="user"
-                        userId={u.id}
-                        currentStatus={u.status}
-                      />
+                      <div className="inline-flex items-center gap-2">
+                        <Link
+                          href={`/dashboard/settings/team/${u.id}`}
+                          className="rounded-full border border-line-soft bg-surface px-3 py-1 text-xs hover:bg-muted/40"
+                        >
+                          Manage
+                        </Link>
+                        <TeamRowActions
+                          kind="user"
+                          userId={u.id}
+                          currentStatus={u.status}
+                        />
+                      </div>
                     </td>
                   </tr>
                 );
