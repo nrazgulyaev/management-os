@@ -53,11 +53,17 @@ Write paths for all 6 workflows are deferred to Stage 9 with sandbox-tenant E2E 
 
 **File**: `src/app/(dashboard)/dashboard/inventory/page.tsx`.
 
-### 🔴 `/dashboard/direct-bookings` — hangs >60s → FIXED (parallelized)
+### 🔴 `/dashboard/direct-bookings` — hangs >60s → DEFERRED to 8.E (parallelization shipped, insufficient)
 
-**Symptom**: 3 sequential `await`s on metric functions. Each is fast individually but cumulative latency under cold-start auth was hitting >60s. Direct curl confirmed.
+**Symptom**: 3 sequential `await`s on metric functions. Page hung > 60s under cold-start auth.
 
-**Fix**: parallelized with `Promise.all`. Each metric function already returns zeros when `getDb()` is null so no error wrapper needed beyond that.
+**Attempted fix**: parallelized with `Promise.all`. Build clean, deploy live.
+
+**Verification result**: page still hangs > 60s on direct curl after the deploy. `Promise.all` parallelization alone wasn't sufficient — at least one of the three metric functions is individually >60s. Not a serial-await problem; one of the metric queries itself is slow.
+
+**Re-classified as**: 8.E observability + cold-start mitigation. The fix requires profile-and-optimize on the slowest query (likely `getReconciliationMetrics` based on its scope). Without Server-Timing instrumentation we'd be guessing.
+
+**Mitigation in interim**: parallelization is still an improvement (reduces blast radius if any single query becomes fast); the page will return as soon as the slowest query does, instead of waiting for sequential 3×slowest.
 
 **File**: `src/app/(dashboard)/dashboard/direct-bookings/page.tsx`.
 
@@ -90,8 +96,8 @@ The 18 Phase 8.C tests in `tests/development-stage-8-c.test.ts` cover:
 |---|---|---|
 | Authenticated sweep run | full 234 URLs | ✅ |
 | Workflow trace harness | 6 workflows | ✅ |
-| QUICK / MEDIUM bugs fixed | "fix immediately" | ✅ 3 of 4 (integrations, inventory, direct-bookings) |
-| LARGE bugs documented | "defer with documentation" | ✅ pricing hang → 8.E; sign-up endpoint → Stage 9 |
+| QUICK / MEDIUM bugs fixed | "fix immediately" | ✅ 2 of 4 (integrations 500 + inventory 500); direct-bookings parallelization landed but didn't resolve the underlying single-query hang. |
+| LARGE bugs documented | "defer with documentation" | ✅ pricing hang + direct-bookings hang → 8.E; sign-up endpoint → Stage 9 |
 | Tests delivered | ~25 | 18 |
 | Test count | 4864 → ~4890 | 4882 (+18) |
 | Build | clean | ✅ |
