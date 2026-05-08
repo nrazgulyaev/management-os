@@ -13,13 +13,16 @@
  * "give me something now" path.
  */
 
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireDb } from "@/lib/db/client";
 import { agentOutputs } from "@/lib/db/schema/ai-agents";
+import { orgAiAgentConfig } from "@/lib/db/schema/org-ai-agent-config";
 import { aiExecute } from "@/lib/ai/execute";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { getAgentEligibility } from "./agent-config-actions";
 import { RUN_NOW_AGENTS, type RunNowAgentKey } from "./run-agent-config";
 
 export { RUN_NOW_AGENTS, type RunNowAgentKey };
@@ -66,15 +69,56 @@ export async function runAgentAction(
     return { ok: false, error: "No organization context available." };
   }
 
+  // Stage 9.F follow-up — gate on per-tenant eligibility BEFORE billing
+  // hits aiExecute. Distinguishes plan-tier denial, no-subscription,
+  // and per-org disable so the operator gets an actionable error
+  // instead of a generic "AI access disabled".
+  const eligibility = await getAgentEligibility(org.id, agentKey);
+  if (!eligibility.eligible) {
+    const message =
+      eligibility.reason === "no_subscription"
+        ? `${config.label} is not available — your workspace has no active subscription.`
+        : eligibility.reason === "plan_excludes_agent"
+          ? `${config.label} is not included in your current plan. Upgrade to enable it.`
+          : eligibility.reason === "disabled_by_org"
+            ? `${config.label} is disabled for your workspace. Re-enable it from /dashboard/settings/ai-agents.`
+            : `${config.label} is not available right now.`;
+    return { ok: false, error: message };
+  }
+
+  // Stage 9.F follow-up — load the per-org custom prompt override (if
+  // set) and use it instead of the canonical kickoff prompt. Empty
+  // override == fall back to canonical (the action's normalize step
+  // already coerces empty/whitespace to NULL on insert).
+  const db0 = requireDb();
+  const promptOverride = await db0
+    .select({ customPrompt: orgAiAgentConfig.customPrompt })
+    .from(orgAiAgentConfig)
+    .where(
+      and(
+        eq(orgAiAgentConfig.organizationId, org.id),
+        eq(orgAiAgentConfig.agentKey, agentKey),
+      ),
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
+  const effectivePrompt =
+    promptOverride?.customPrompt && promptOverride.customPrompt.trim().length > 0
+      ? promptOverride.customPrompt
+      : config.kickoffPrompt;
+  const usingOverride = effectivePrompt !== config.kickoffPrompt;
+
   const exec = await aiExecute({
     organizationId: org.id,
     assistantKey: agentKey,
     triggeredByUserId: me.id,
-    inputSummary: `Run-now: ${config.label}`,
+    inputSummary: usingOverride
+      ? `Run-now: ${config.label} (custom prompt)`
+      : `Run-now: ${config.label}`,
     messages: [
       {
         role: "user",
-        content: config.kickoffPrompt,
+        content: effectivePrompt,
       },
     ],
     maxTokens: 600,
@@ -102,7 +146,9 @@ export async function runAgentAction(
       title: `${config.label} — manual snapshot`,
       summary,
       detailedOutput: {
-        prompt: config.kickoffPrompt,
+        prompt: effectivePrompt,
+        promptIsCustomOverride: usingOverride,
+        canonicalPrompt: usingOverride ? config.kickoffPrompt : null,
         response: exec.response.content,
         usage: exec.response.usage,
         model: exec.response.model,
@@ -112,7 +158,7 @@ export async function runAgentAction(
       },
       recommendedActions: [],
       confidenceLevel: "medium",
-      reasoningSummary: `Manually triggered via Run-now button on ${new Date().toISOString()}.`,
+      reasoningSummary: `Manually triggered via Run-now button on ${new Date().toISOString()}.${usingOverride ? " Used per-org custom prompt override." : ""}`,
       status: "awaiting_review",
     })
     .returning({ id: agentOutputs.id, outputCode: agentOutputs.outputCode });
