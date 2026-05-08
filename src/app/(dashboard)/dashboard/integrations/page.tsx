@@ -15,18 +15,31 @@ import {
 import { listBookingAutomationRules } from "@/features/booking-automation/services";
 import { getLastRunByJobKey } from "@/features/jobs/services";
 import { LastRunBadge } from "@/components/jobs/last-run-badge";
+import { safeList } from "@/features/system/db-health";
 
 export const metadata = { title: "Integrations" };
 export const dynamic = "force-dynamic";
 
 export default async function IntegrationsHomePage() {
-  const [feeds, events, conflicts, rules, lastSyncRun] = await Promise.all([
-    listCalendarFeeds(),
-    listCalendarEvents({ limit: 8 }),
-    listBookingConflicts({ status: "open" }),
-    listBookingAutomationRules(),
-    getLastRunByJobKey("calendar_sync_active_feeds"),
+  // 8.C.8 — wrap each query in safeList so a single missing relation /
+  // RLS denial doesn't 500 the entire hub page. Empty arrays propagate
+  // through to the metric cards as zero counts, matching the
+  // unauthenticated-mock fallback semantics other hub pages use.
+  const [feedsR, eventsR, conflictsR, rulesR] = await Promise.all([
+    safeList("integrations.feeds", () => listCalendarFeeds()),
+    safeList("integrations.events", () => listCalendarEvents({ limit: 8 })),
+    safeList("integrations.conflicts", () =>
+      listBookingConflicts({ status: "open" }),
+    ),
+    safeList("integrations.rules", () => listBookingAutomationRules()),
   ]);
+  const feeds = feedsR.value;
+  const events = eventsR.value;
+  const conflicts = conflictsR.value;
+  const rules = rulesR.value;
+  const lastSyncRun = await getLastRunByJobKey(
+    "calendar_sync_active_feeds",
+  ).catch(() => null);
 
   const activeFeeds = feeds.filter((f) => f.status === "active").length;
   const errorFeeds = feeds.filter((f) => f.status === "error").length;

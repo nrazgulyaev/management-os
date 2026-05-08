@@ -1,0 +1,227 @@
+[
+  {
+    "id": "A",
+    "name": "Booking lifecycle",
+    "steps": [
+      {
+        "step": "A1: /direct-bookings/holds renders + has create CTA",
+        "result": {
+          "kind": "fail",
+          "error": "missing affordances: create-hold link or button",
+          "screenshot": "/Users/nikitarazgulaev/Projects/arconique-management/screenshots/workflows/_dashboard_direct-bookings_holds.png"
+        }
+      },
+      {
+        "step": "A2: /direct-bookings/requests renders",
+        "result": {
+          "kind": "ok",
+          "notes": "/dashboard/direct-bookings/requests 200; affordances present (h1)"
+        }
+      },
+      {
+        "step": "A3: /bookings list renders",
+        "result": {
+          "kind": "ok",
+          "notes": "/dashboard/bookings 200; affordances present (h1)"
+        }
+      },
+      {
+        "step": "A4: /front-office/arrivals renders + check-in column present",
+        "result": {
+          "kind": "ok",
+          "notes": "arrivals renders; check-in affordance present"
+        }
+      },
+      {
+        "step": "A5: /front-office/departures renders",
+        "result": {
+          "kind": "ok",
+          "notes": "/dashboard/front-office/departures 200; affordances present (h1)"
+        }
+      },
+      {
+        "step": "A6: /front-office/in-house renders",
+        "result": {
+          "kind": "ok",
+          "notes": "/dashboard/front-office/in-house 200; affordances present (h1)"
+        }
+      },
+      {
+        "step": "A7: write path (create hold → approve → check-in chain)",
+        "result": {
+          "kind": "skip",
+          "reason": "skipped-by-policy: writing real bookings to production. Stage 9 E2E with a sandbox tenant."
+        }
+      }
+    ],
+    "verdict": "partial"
+  },
+  {
+    "id": "B",
+    "name": "BOQ → Procurement",
+    "steps": [
+      {
+        "step": "B1: /development-os/boq list renders",
+        "result": {
+          "kind": "ok",
+          "notes": "/development-os/boq 200; affordances present (h1)"
+        }
+      },
+      {
+        "step": "B2: /boq/new form renders OR empty-projects guard fires",
+        "result": {
+          "kind": "ok",
+          "notes": "form rendered (projects exist)"
+        }
+      },
+      {
+        "step": "B3: BOQ detail page exists (verify generate-RFQ button when there's a BOQ)",
+        "result": {
+          "kind": "ok",
+          "notes": "GenerateRfqFromBoqButton component shipped (Stage 7.F.D.1); affordance verified at code level"
+        }
+      },
+      {
+        "step": "B4: /procurement/purchase-requests renders",
+        "result": {
+          "kind": "ok",
+          "notes": "/development-os/procurement/purchase-requests 200; affordances present (h1)"
+        }
+      },
+      {
+        "step": "B5: dev-os RFQ detail action component shipped",
+        "result": {
+          "kind": "ok",
+          "notes": "DevOsPurchaseRequestActions component shipped (Stage 7.F.A.3)"
+        }
+      },
+      {
+        "step": "B6: write path (create BOQ → generate RFQ → approve)",
+        "result": {
+          "kind": "skip",
+          "reason": "skipped-by-policy: writing real BOQs to production. Stage 9 E2E."
+        }
+      }
+    ],
+    "verdict": "complete"
+  },
+  {
+    "id": "C",
+    "name": "Maintenance ticket assign",
+    "steps": [
+      {
+        "step": "C1: /operations/maintenance list renders",
+        "result": {
+          "kind": "ok",
+          "notes": "/dashboard/operations/maintenance 200; affordances present (h1)"
+        }
+      },
+      {
+        "step": "C2: maintenance assign component shipped",
+        "result": {
+          "kind": "ok",
+          "notes": "MaintenanceAssignDropdown shipped (Stage 7.F.A.2)"
+        }
+      },
+      {
+        "step": "C3: write path (create ticket → assign staff → transition)",
+        "result": {
+          "kind": "skip",
+          "reason": "skipped-by-policy: creating real maintenance tickets on prod. Stage 9 E2E."
+        }
+      }
+    ],
+    "verdict": "complete"
+  },
+  {
+    "id": "D",
+    "name": "Marketing connection",
+    "steps": [
+      {
+        "step": "D1: /marketing/connections list renders + Add CTA present",
+        "result": {
+          "kind": "ok",
+          "notes": "/development-os/marketing/connections 200; affordances present (h1, Add connection link)"
+        }
+      },
+      {
+        "step": "D2: /marketing/connections/new form renders + 7 provider options selectable",
+        "result": {
+          "kind": "ok",
+          "notes": "form rendered; 7 provider option element(s) detected (Stage 7.F.B.1 ships 7 provider field-sets)"
+        }
+      },
+      {
+        "step": "D3: write path (save Mailchimp creds → test → sync → disconnect)",
+        "result": {
+          "kind": "skip",
+          "reason": "skipped-by-policy: writing real provider creds. Phase 8.C verifies the form renders; mutating tests run against a dev provider in Stage 9."
+        }
+      }
+    ],
+    "verdict": "complete"
+  },
+  {
+    "id": "E",
+    "name": "Banking connection",
+    "steps": [
+      {
+        "step": "E1: /banking list renders + Add connection CTA present",
+        "result": {
+          "kind": "ok",
+          "notes": "/development-os/banking 200; affordances present (h1, Add connection link)"
+        }
+      },
+      {
+        "step": "E2: /banking/new form renders",
+        "result": {
+          "kind": "ok",
+          "notes": "/development-os/banking/new 200; affordances present (form)"
+        }
+      },
+      {
+        "step": "E3: write path (Mandiri CSV upload → reconcile)",
+        "result": {
+          "kind": "skip",
+          "reason": "skipped-by-policy: writing CSVs against the prod banking pipeline. Stage 9 E2E with a fixture CSV."
+        }
+      }
+    ],
+    "verdict": "complete"
+  },
+  {
+    "id": "F",
+    "name": "Sign-up flow",
+    "steps": [
+      {
+        "step": "F1: /pricing renders SaaS plan list with Sign-up CTA",
+        "result": {
+          "kind": "ok",
+          "notes": "/pricing 200; affordances present (h1, sign-up CTA)"
+        }
+      },
+      {
+        "step": "F2: /sign-up form renders + console clean (8.A.2 verified live)",
+        "result": {
+          "kind": "ok",
+          "notes": "/sign-up 200; affordances present (form, email input)"
+        }
+      },
+      {
+        "step": "F3: /legal/terms + /legal/privacy reachable",
+        "result": {
+          "kind": "ok",
+          "notes": "8.A.2 legal pages reachable"
+        }
+      },
+      {
+        "step": "F4: write path (submit sign-up → org provisioned → dashboard)",
+        "result": {
+          "kind": "skip",
+          "reason": "skipped-by-policy: real sign-up creates a new tenant in prod. Stage 9 E2E should run against a sandbox / preview deploy."
+        }
+      }
+    ],
+    "verdict": "complete"
+  }
+]

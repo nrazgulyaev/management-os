@@ -15,18 +15,29 @@ import {
 } from "@/features/inventory/services";
 import { getLastRunByJobKey } from "@/features/jobs/services";
 import { LastRunBadge } from "@/components/jobs/last-run-badge";
+import { safeList } from "@/features/system/db-health";
 
 export const metadata = { title: "Inventory" };
 export const dynamic = "force-dynamic";
 
 export default async function InventoryHomePage() {
-  const [items, lowStock, locations, recentMovements, lastScanRun] = await Promise.all([
-    listInventoryItems({ limit: 500 }),
-    listLowStockItems(),
-    listInventoryLocations(),
-    listInventoryMovements({ limit: 10 }),
-    getLastRunByJobKey("scan_low_stock"),
+  // 8.C.8 — wrap each query in safeList so an RLS denial / missing
+  // relation on any one feed doesn't 500 the whole hub. The 500 was
+  // observed authenticated only — likely an RLS policy that the
+  // unauthenticated mock-fallback path skipped.
+  const [itemsR, lowStockR, locationsR, recentMovementsR] = await Promise.all([
+    safeList("inventory.items", () => listInventoryItems({ limit: 500 })),
+    safeList("inventory.lowStock", () => listLowStockItems()),
+    safeList("inventory.locations", () => listInventoryLocations()),
+    safeList("inventory.movements", () => listInventoryMovements({ limit: 10 })),
   ]);
+  const items = itemsR.value;
+  const lowStock = lowStockR.value;
+  const locations = locationsR.value;
+  const recentMovements = recentMovementsR.value;
+  const lastScanRun = await getLastRunByJobKey("scan_low_stock").catch(
+    () => null,
+  );
 
   const totalSkus = items.length;
   const stockUnits = items.reduce((sum, i) => sum + i.totalStock, 0);

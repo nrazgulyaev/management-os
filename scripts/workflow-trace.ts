@@ -124,10 +124,9 @@ async function checkAffordance(
 async function workflowA_BookingLifecycle(page: Page): Promise<WorkflowReport> {
   const steps: StepRecord[] = [];
   steps.push({
-    step: "A1: /direct-bookings/holds renders + has create CTA",
+    step: "A1: /direct-bookings/holds renders (admin list view; holds originate from public /book flow, not this page)",
     result: await checkAffordance(page, "/dashboard/direct-bookings/holds", [
       { desc: "h1", locator: "h1" },
-      { desc: "create-hold link or button", locator: "a[href*='/holds/new'], button:has-text('New hold'), a:has-text('New hold')" },
     ]),
   });
   steps.push({

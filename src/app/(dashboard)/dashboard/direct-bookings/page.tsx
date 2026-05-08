@@ -10,9 +10,15 @@ export const metadata = { title: "Direct bookings" };
 export const dynamic = "force-dynamic";
 
 export default async function DirectBookingsHub() {
-  const m = await getDirectBookingMetrics();
-  const dep = await getDepositMetrics();
-  const recon = await getReconciliationMetrics();
+  // 8.C.8 — parallelize. Sequential awaits compounded the cold-start
+  // latency on Vercel and the page hung > 60s in audit. Each metrics
+  // function already returns sensible zeros when getDb() yields null,
+  // so we don't need an extra error wrapper.
+  const [m, dep, recon] = await Promise.all([
+    getDirectBookingMetrics(),
+    getDepositMetrics(),
+    getReconciliationMetrics(),
+  ]);
   return (
     <div className="flex flex-col gap-10">
       <PageHeader
