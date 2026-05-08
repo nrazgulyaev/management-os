@@ -66,6 +66,31 @@ export default async function SignUpPage({
               </div>
               <div>
                 <label className="text-sm text-ink-secondary block mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  minLength={8}
+                  className="w-full rounded border border-stone-300 px-3 py-2"
+                  placeholder="At least 8 characters"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-ink-secondary block mb-1">
+                  Your name
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  required
+                  className="w-full rounded border border-stone-300 px-3 py-2"
+                  placeholder="Jane Operator"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-ink-secondary block mb-1">
                   Organization name
                 </label>
                 <input
