@@ -1,8 +1,8 @@
-# Stage 5.J cross-org RLS gap (deferred — needs tighten-policies migration)
+# Stage 5.J cross-org RLS gap — CLOSED
 
 **Surfaced by**: Stage 9.G static tenant-isolation invariants
-**Status**: documented, allowlisted in `tests/development-stage-9-g.test.ts`, NOT fixed (out of 9.G scope per "no new migrations" plan rule)
-**Severity**: HIGH for pre-launch — class-A privacy/security regression once a real second tenant exists in production
+**Status**: ✅ **FIXED** in `drizzle/0089_tighten_stage_5j_rls.sql`. Allowlist in `tests/development-stage-9-g.test.ts` is now empty; the static test passes against the new policies.
+**Severity**: HIGH for pre-launch (now resolved before any real second tenant lands)
 
 ---
 
@@ -95,3 +95,20 @@ The exposure window is "an admin grants a teammate a `procurement_manager` or `s
 ## Recommendation
 
 **Land the tighten-policies migration before Stage 9.A** (Stripe live products). The window between "first customer signs up" and "first internal role granted across a tenant boundary" is tight, and the leak is hard to detect post-hoc.
+
+---
+
+## Resolution log
+
+- **2026-05-08** — Migration `0089_tighten_stage_5j_rls.sql` written. Drops `internal_read` + `internal_write` on the 5 tables and re-creates them with `org_isolation` (USING `is_in_user_organization`) + `internal_bypass` (USING `is_internal_user`). Idempotent. Allowlist in the static 9.G test cleared; suite passes.
+- **2026-05-08** — Migration NOT YET applied to production from this session (privileged action). Operator runs:
+  ```bash
+  set -a && source .env.production.local && set +a
+  psql "$DIRECT_URL" -f drizzle/0089_tighten_stage_5j_rls.sql
+  ```
+  Then re-runs the DB-bound invariants:
+  ```bash
+  node --env-file=.env.production.local --import tsx \
+    --test tests/invariants/tenant-isolation.test.ts
+  ```
+  Expected: all 6 invariants pass, including invariant #2 (org-scoped tables have an `is_in_user_organization` policy in `pg_policies`).

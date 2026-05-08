@@ -166,25 +166,16 @@ test("9.G: every required org-scoped table is declared with organization_id FK",
 });
 
 /**
- * Stage 5.J shipped 5 platform-admin tables (Multi-Tenant API foundation)
- * with `internal_read` + `internal_write` policies that gate on
- * `is_internal_user()` only — they pre-date `is_in_user_organization`.
- * That's a real cross-org gap: a procurement_manager in tenant A who is
- * `is_internal_user()=true` could read tenant B's API keys, webhooks,
- * usage metrics, etc.
- *
- * Closing the gap requires a tighten-policies migration (Stage 10 work).
- * Until then we allowlist them here so the rest of the suite proves the
- * stronger invariant on every NEW org-scoped table. Each entry includes
- * the migration that introduced the table for traceability.
+ * Stage 5.J originally shipped 5 platform-admin tables (Multi-Tenant API
+ * foundation) with `internal_read` + `internal_write` policies that gate
+ * on `is_internal_user()` only — pre-dating `is_in_user_organization`.
+ * Stage 9.G surfaced this as a cross-org leak; migration
+ * `0089_tighten_stage_5j_rls.sql` replaces those policies with the
+ * canonical `org_isolation` + `internal_bypass` pair, so this allowlist
+ * is now empty. If a future migration regresses any of those 5 tables,
+ * the main 9.G assertion will fail again — that's the regression-guard.
  */
-const STAGE_5J_INTERNAL_ONLY_ALLOWLIST = new Set<string>([
-  "api_keys", // 0073
-  "api_request_log", // 0073
-  "webhook_subscriptions", // 0074
-  "usage_metrics", // 0074
-  "data_export_requests", // 0074
-]);
+const STAGE_5J_INTERNAL_ONLY_ALLOWLIST = new Set<string>([]);
 
 test("9.G: every org-scoped table appears in at least one CREATE POLICY .. is_in_user_organization", () => {
   const c = corpus();
