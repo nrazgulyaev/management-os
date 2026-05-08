@@ -11,6 +11,8 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listAllTaxTypes } from "@/lib/development/server/tax/tax-actions";
 import { safeQuery } from "@/lib/development/safe-query";
+import { DevOsRowActions } from "@/components/development/dev-os-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Tax types · Development OS" };
 export const dynamic = "force-dynamic";
@@ -54,8 +56,8 @@ export default async function TaxTypesPage() {
       />
 
       {types.length === 0 ? (
-        <EmptyState
-          title="No tax types configured"
+        <NoItemsYet
+          entityLabel="tax types"
           description="Add your first tax type — typical Indonesian setup includes PPN, PPh23, lease tax, and corporate income."
         />
       ) : (
@@ -72,6 +74,7 @@ export default async function TaxTypesPage() {
                 <TH>Authority</TH>
                 <TH>Country</TH>
                 <TH>Active</TH>
+                <TH />
               </TR>
             </THead>
             <TBody>
@@ -91,6 +94,27 @@ export default async function TaxTypesPage() {
                     <Badge tone={t.isActive ? "success" : "neutral"}>
                       {t.isActive ? "active" : "inactive"}
                     </Badge>
+                  </TD>
+                  <TD className="text-right">
+                    <DevOsRowActions
+                      kind="tax_type"
+                      row={{
+                        id: t.id,
+                        displayName: t.displayName,
+                        values: {
+                          typeKey: t.typeKey,
+                          displayName: t.displayName,
+                          ratePercentage: Number(t.ratePercentage),
+                          isIncludedInAmount: t.isIncludedInAmount,
+                          payableBy: t.payableBy,
+                          reportingPeriod: t.reportingPeriod,
+                          reportingAuthority: t.reportingAuthority ?? "",
+                          countryCode: t.countryCode ?? "ID",
+                          regionCode: t.regionCode ?? "",
+                          notes: t.notes ?? "",
+                        },
+                      }}
+                    />
                   </TD>
                 </TR>
               ))}

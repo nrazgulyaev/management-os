@@ -8,6 +8,8 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { listLeadSources } from "@/lib/development/server/lead-sources/lead-source-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { LeadSourceModalForm } from "@/components/development/sales/lead-source-modal-form";
+import { DevOsRowActions } from "@/components/development/dev-os-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Lead sources · Marketing" };
 export const dynamic = "force-dynamic";
@@ -28,7 +30,10 @@ export default async function LeadSourcesPage() {
       />
       <Section title="All sources">
         {sources.length === 0 ? (
-          <EmptyState title="No sources" description="Run the migrations to seed defaults." />
+          <NoItemsYet
+            entityLabel="lead sources"
+            description="Lead sources tag every inbound enquiry by channel. Pre-seeded with 14 defaults; add custom channels as needed."
+          />
         ) : (
           <table className="w-full text-sm border-collapse">
             <thead>
@@ -39,6 +44,7 @@ export default async function LeadSourcesPage() {
                 <th>Platform</th>
                 <th>Paid</th>
                 <th>Active</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -64,6 +70,25 @@ export default async function LeadSourcesPage() {
                     <Badge tone={s.isActive ? "success" : "neutral"}>
                       {s.isActive ? "active" : "inactive"}
                     </Badge>
+                  </td>
+                  <td className="text-right">
+                    <DevOsRowActions
+                      kind="lead_source"
+                      row={{
+                        id: s.id,
+                        altId: s.sourceKey,
+                        displayName: s.displayName,
+                        detailHref: `/development-os/marketing/lead-sources/${s.sourceKey}`,
+                        values: {
+                          displayName: s.displayName,
+                          channelType: s.channelType,
+                          platform: s.platform ?? "",
+                          isPaid: s.isPaid,
+                          defaultAttributionModel:
+                            s.defaultAttributionModel ?? "",
+                        },
+                      }}
+                    />
                   </td>
                 </tr>
               ))}

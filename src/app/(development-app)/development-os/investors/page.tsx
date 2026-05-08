@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { MetricCard } from "@/components/ui/metric-card";
+import { DevOsRowActions } from "@/components/development/dev-os-row-actions";
 import { getDb } from "@/lib/db/client";
 import {
   getInvestors,
@@ -176,6 +177,7 @@ export default async function InvestorsPage() {
                     <TH>Drawn (USD)</TH>
                     <TH>In wallet (USD)</TH>
                     <TH>Status</TH>
+                    <TH />
                   </TR>
                 </THead>
                 <TBody>
@@ -218,6 +220,25 @@ export default async function InvestorsPage() {
                         >
                           {INVESTOR_STATUS_LABEL[i.status]}
                         </Badge>
+                      </TD>
+                      <TD className="text-right">
+                        <DevOsRowActions
+                          kind="investor"
+                          row={{
+                            id: i.id,
+                            displayName: i.legalName,
+                            detailHref: `/development-os/investors/${i.investorCode}`,
+                            values: {
+                              investorCode: i.investorCode,
+                              legalName: i.legalName,
+                              investorType: i.investorType,
+                              primaryCurrency: i.primaryCurrency,
+                              contactEmail: i.contactEmail ?? "",
+                              contactPhone: i.contactPhone ?? "",
+                              taxResidency: i.taxResidency ?? "",
+                            },
+                          }}
+                        />
                       </TD>
                     </TR>
                   ))}

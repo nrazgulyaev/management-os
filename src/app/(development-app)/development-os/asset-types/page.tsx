@@ -12,6 +12,8 @@ import { getDb } from "@/lib/db/client";
 import { listAssetTypes } from "@/lib/development/server/assets/asset-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { AssetTypeModalForm } from "@/components/development/assets/asset-type-modal-form";
+import { DevOsRowActions } from "@/components/development/dev-os-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Asset types · Development OS" };
 export const dynamic = "force-dynamic";
@@ -58,9 +60,9 @@ export default async function AssetTypesPage() {
       />
 
       {types.length === 0 ? (
-        <EmptyState
-          title="No asset types loaded"
-          description="The migration seeds 12 defaults — re-run drizzle migrations."
+        <NoItemsYet
+          entityLabel="asset types"
+          description="Asset types are seeded with 12 defaults — contact support if your workspace has none."
         />
       ) : (
         <Section eyebrow="Registry" title="Asset types">
@@ -74,6 +76,7 @@ export default async function AssetTypesPage() {
                 <TH>Rentable</TH>
                 <TH>Revenue</TH>
                 <TH>Status</TH>
+                <TH />
               </TR>
             </THead>
             <TBody>
@@ -93,6 +96,20 @@ export default async function AssetTypesPage() {
                     <Badge tone={t.isActive ? "success" : "neutral"}>
                       {t.isActive ? "active" : "inactive"}
                     </Badge>
+                  </TD>
+                  <TD className="text-right">
+                    <DevOsRowActions
+                      kind="asset_type"
+                      row={{
+                        id: t.id,
+                        displayName: t.displayName,
+                        values: {
+                          key: t.typeKey,
+                          name: t.displayName,
+                          description: t.description ?? "",
+                        },
+                      }}
+                    />
                   </TD>
                 </TR>
               ))}

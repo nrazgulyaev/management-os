@@ -69,6 +69,20 @@ export async function upsertTaxType(
   return { id: row.id };
 }
 
+/**
+ * Stage 10.E.6 — soft-delete a tax type by flipping isActive to false.
+ * Tax types are referenced by historical tax_classifications + reports;
+ * never hard-delete.
+ */
+export async function archiveTaxType(input: { id: string }): Promise<void> {
+  await requireInternalUser();
+  const db = requireDb();
+  await db
+    .update(taxTypes)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(taxTypes.id, input.id));
+}
+
 const classifyTxnSchema = z.object({
   transactionId: z.string().uuid(),
   taxTypeId: z.string().uuid().nullable(),

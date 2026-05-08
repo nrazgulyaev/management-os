@@ -22,6 +22,8 @@ import { safeQuery } from "@/lib/development/safe-query";
 import { FinanceTabs } from "@/components/development/finance/finance-tabs";
 import { VendorModalForm } from "@/components/development/finance/vendor-modal-form";
 import { ExportButton } from "@/components/development/bulk-import/export-button";
+import { DevOsRowActions } from "@/components/development/dev-os-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Vendors · Development OS" };
 export const dynamic = "force-dynamic";
@@ -122,8 +124,8 @@ export default async function VendorsPage() {
 
           <Section eyebrow="All vendors" title="Active and inactive">
             {list.length === 0 ? (
-              <EmptyState
-                title="No vendors yet"
+              <NoItemsYet
+                entityLabel="vendors"
                 description="Add your first vendor to start tracking POs and deliveries."
               />
             ) : (
@@ -138,6 +140,7 @@ export default async function VendorsPage() {
                     <TH>On-time</TH>
                     <TH>Quality</TH>
                     <TH>Status</TH>
+                    <TH />
                   </TR>
                 </THead>
                 <TBody>
@@ -179,6 +182,24 @@ export default async function VendorsPage() {
                         >
                           {VENDOR_STATUS_LABEL[v.status]}
                         </Badge>
+                      </TD>
+                      <TD className="text-right">
+                        <DevOsRowActions
+                          kind="vendor"
+                          row={{
+                            id: v.id,
+                            displayName: v.legalName,
+                            detailHref: `/development-os/vendors/${v.vendorCode}`,
+                            values: {
+                              vendorCode: v.vendorCode,
+                              legalName: v.legalName,
+                              vendorType: v.vendorType,
+                              primaryEmail: v.primaryEmail ?? "",
+                              primaryPhone: v.primaryPhone ?? "",
+                              whatsappPhone: v.whatsappPhone ?? "",
+                            },
+                          }}
+                        />
                       </TD>
                     </TR>
                   ))}

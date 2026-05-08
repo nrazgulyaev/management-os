@@ -48,3 +48,34 @@ export async function deactivateLeadSource(sourceKey: string) {
     .where(eq(marketingLeadSources.sourceKey, sourceKey));
   return { ok: true as const };
 }
+
+/**
+ * Stage 10.E.6 — edit a lead source's display fields. The
+ * `sourceKey` is immutable post-create (it's referenced by historical
+ * lead rows). Other fields (displayName, channelType, platform,
+ * isPaid, defaultAttributionModel) are operationally correctable.
+ */
+const updateSchema = createSchema.omit({ sourceKey: true });
+
+export async function updateLeadSource(
+  sourceKey: string,
+  input: z.input<typeof updateSchema>,
+) {
+  const parsed = updateSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: parsed.error.issues[0]?.message };
+  }
+  const db = getDb();
+  if (!db) return { ok: false as const, error: "DB not configured" };
+  await db
+    .update(marketingLeadSources)
+    .set({
+      displayName: parsed.data.displayName,
+      channelType: parsed.data.channelType,
+      platform: parsed.data.platform ?? null,
+      isPaid: parsed.data.isPaid,
+      defaultAttributionModel: parsed.data.defaultAttributionModel ?? null,
+    })
+    .where(eq(marketingLeadSources.sourceKey, sourceKey));
+  return { ok: true as const };
+}
