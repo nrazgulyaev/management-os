@@ -24,8 +24,8 @@ export default async function ChecklistsPage() {
         <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
           {templates.length === 0 ? (
             <p className="p-6 text-sm text-ink-tertiary">
-              No checklist templates yet. Run <code>npm run db:seed</code> to populate the
-              starter library.
+              No checklist templates yet. Add your first checklist
+              template to standardize cleaning and maintenance work.
             </p>
           ) : (
             <ul className="divide-y divide-line-soft">

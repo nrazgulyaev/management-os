@@ -50,7 +50,7 @@ export default async function RevenueStreamsPage({
           { label: "Development OS", href: "/development-os" },
           { label: "Revenue streams" },
         ]}
-        eyebrow={`${streams.length} entries · Stage 5.B.1`}
+        eyebrow={`${streams.length} entries`}
         title="Revenue streams"
         description="Per-period gross + net revenue by asset. `net_revenue_minor` is computed in Postgres as `gross - direct_costs` (GENERATED STORED) so it's always consistent."
         actions={

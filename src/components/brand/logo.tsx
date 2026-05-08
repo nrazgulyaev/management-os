@@ -29,10 +29,16 @@ export function Logo({
   href = "/",
   variant = "full",
   className,
+  subtitle = "Management OS",
+  title = "Arconique Management OS",
 }: {
   href?: string;
   variant?: "full" | "mark";
   className?: string;
+  /** Wordmark sub-line (e.g. "Management OS", "Development OS", "Arconique OS"). */
+  subtitle?: string;
+  /** Aria-label for the link wrapping the mark. */
+  title?: string;
 }) {
   return (
     <Link
@@ -41,7 +47,7 @@ export function Logo({
         "inline-flex items-center gap-2.5 text-ink hover:opacity-80 transition-opacity",
         className
       )}
-      aria-label="Arconique Management OS"
+      aria-label={title}
     >
       <ArconiqueMark />
       {variant === "full" && (
@@ -50,7 +56,7 @@ export function Logo({
             Arconique
           </span>
           <span className="text-[9px] tracking-[0.22em] uppercase text-ink-tertiary mt-0.5">
-            Management OS
+            {subtitle}
           </span>
         </span>
       )}

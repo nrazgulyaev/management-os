@@ -162,7 +162,7 @@ export default async function WhatsappSetupPage() {
 
       {org && (
         <Section
-          eyebrow="Section 1b · Stage 7.F.C.2"
+          eyebrow="Per-org credentials"
           title="Per-org credentials (in-app form)"
           description="Saves Twilio credentials encrypted to oauth_connections. The runtime today still reads env vars; per-org routing is the future swap. The test-message button uses the env-based runtime for verification."
         >

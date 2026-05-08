@@ -106,7 +106,7 @@ export default async function InvestorsPage() {
       {!db && (
         <EmptyState
           title="Investors module needs the database"
-          description="Set DATABASE_URL and run npm run db:migrate + npm run db:seed:dev-os to populate the investor demo data."
+          description="Database connection not configured. Contact support."
           action={<Badge tone="warning">DATABASE_URL not set</Badge>}
         />
       )}
@@ -153,7 +153,7 @@ export default async function InvestorsPage() {
             {investors.length === 0 ? (
               <EmptyState
                 title="No investors yet"
-                description="Run npm run db:seed:dev-os to populate the demo data, or use the API to create an investor row."
+                description="Add your first investor to start tracking commitments and distributions."
                 action={
                   <Badge tone="neutral" className="gap-1">
                     <Briefcase className="w-3 h-3" />

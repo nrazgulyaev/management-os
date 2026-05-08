@@ -80,7 +80,7 @@ export default async function DistributionsPage() {
       {!db && (
         <EmptyState
           title="Distributions need the database"
-          description="Set DATABASE_URL and run npm run db:seed:dev-os."
+          description="Database connection not configured. Contact support."
           action={<Badge tone="warning">DATABASE_URL not set</Badge>}
         />
       )}

@@ -138,7 +138,7 @@ export default async function SafetyPage() {
             {list.length === 0 ? (
               <EmptyState
                 title="No incidents on record"
-                description="Run npm run db:seed:dev-os to populate or use the recordSafetyIncident action."
+                description="Record your first safety incident from the cabinets / site-supervisor surface."
               />
             ) : (
               <Table>

@@ -74,7 +74,7 @@ export default async function WhatsappTemplatesPage() {
         {templates.length === 0 ? (
           <EmptyState
             title="No templates registered"
-            description="Run npm run db:seed:dev-os to populate sample templates."
+            description="Add your first WhatsApp template to enable outbound messaging."
           />
         ) : (
           <Table>

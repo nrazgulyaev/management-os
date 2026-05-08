@@ -16,10 +16,8 @@ export function DbStatusNotice() {
     <div className="rounded-md border border-warning/30 bg-warning-weak/40 px-4 py-2.5 flex items-center gap-3 text-sm text-ink">
       <AlertTriangle className="w-4 h-4 text-warning" strokeWidth={1.75} />
       <span>
-        Read-only demo. Set <code className="font-mono text-xs">DATABASE_URL</code> in{" "}
-        <code className="font-mono text-xs">.env.local</code> and run{" "}
-        <code className="font-mono text-xs">npm run db:migrate &amp;&amp; npm run db:seed</code>{" "}
-        to enable persistence.
+        Read-only demo mode. Database persistence is disabled — contact
+        support to provision live storage for this workspace.
       </span>
     </div>
   );

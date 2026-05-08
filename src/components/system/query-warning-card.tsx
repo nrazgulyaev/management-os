@@ -29,11 +29,11 @@ export function QueryWarningCard<T>({
         <div className="flex items-center gap-2">
           <Badge tone="neutral">database unavailable</Badge>
           <span className="text-ink">
-            DATABASE_URL is not configured. Demo data is hidden.
+            Database connection is not active. Live data is hidden.
           </span>
         </div>
         <p className="text-ink-tertiary">
-          Set DATABASE_URL in .env.local and re-run `npm run db:migrate && npm run db:seed`.
+          Contact support to restore database connectivity for this workspace.
         </p>
       </div>
     );

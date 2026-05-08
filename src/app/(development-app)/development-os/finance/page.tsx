@@ -45,7 +45,7 @@ export default async function FinancePage() {
         />
         <EmptyState
           title="Finance dashboard runs against the database"
-          description="Set DATABASE_URL and run npm run db:seed:dev-os."
+          description="Database connection not configured. Contact support."
           action={<Badge tone="warning">DATABASE_URL not set</Badge>}
         />
       </DevelopmentShell>
@@ -188,8 +188,8 @@ export default async function FinancePage() {
       >
         {projectSummaries.length === 0 ? (
           <EmptyState
-            title="No projects with development_project_meta yet"
-            description="Run npm run db:seed:dev-os to populate."
+            title="No development projects yet"
+            description="Add your first development project to start tracking budget vs. actuals."
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -234,8 +234,8 @@ export default async function FinancePage() {
       <Section eyebrow="Bank accounts" title="Active accounts">
         {bankAccounts.length === 0 ? (
           <EmptyState
-            title="No bank accounts seeded yet"
-            description="Run npm run db:seed:dev-os to populate."
+            title="No bank accounts yet"
+            description="Add your first bank account to start reconciling statements."
           />
         ) : (
           <Table>

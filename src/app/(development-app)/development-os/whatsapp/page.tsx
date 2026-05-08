@@ -151,7 +151,7 @@ export default async function WhatsappDashboardPage() {
         {recent.length === 0 ? (
           <EmptyState
             title="No WhatsApp messages yet"
-            description="Configure Twilio + the webhook URL or run npm run db:seed:dev-os for sample data."
+            description="Configure your Twilio credentials in Settings → WhatsApp to start receiving inbound messages."
           />
         ) : (
           <Table>

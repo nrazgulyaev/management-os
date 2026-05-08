@@ -947,14 +947,25 @@ test("sidebar nav imports all icons used by cabinets entries", () => {
   }
 });
 
-test("sidebar has '5.F' badge on all cabinet entries", () => {
+test("sidebar has all 9 cabinet entries (Stage 10.B-CLEANUP removed stage-label badges)", () => {
+  // Stage 10.B-CLEANUP intentionally stripped per-link `badge: "5.F"`
+  // props from navigation.ts. The cabinet group still exists; verify
+  // every cabinet is wired into the nav by route reference.
   const src = read("src/lib/development/navigation.ts");
-  // Count 5.F occurrences in navigation; should be at least 9 (My + 8 cabinets).
-  const matches = src.match(/badge: "5\.F"/g) ?? [];
-  assert.ok(
-    matches.length >= 9,
-    `expected ≥9 5.F badges, got ${matches.length}`,
-  );
+  const cabinetRoutes = [
+    "cabinets/my-cabinet",
+    "cabinets/site-supervisor",
+    "cabinets/project-manager",
+    "cabinets/cfo-accountant",
+    "cabinets/qs",
+    "cabinets/procurement-manager",
+    "cabinets/warehouse-manager",
+    "cabinets/marketing-staff",
+    "cabinets/sales-manager",
+  ];
+  for (const r of cabinetRoutes) {
+    assert.ok(src.includes(r), `cabinet route ${r} missing from navigation`);
+  }
 });
 
 // ===========================================================================

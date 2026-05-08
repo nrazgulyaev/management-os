@@ -69,7 +69,7 @@ export default async function ChangeOrdersPage({
         ]}
         eyebrow={`${cos.length} change order${cos.length === 1 ? "" : "s"} · net cost impact $${(totalCost / 100).toLocaleString()} · schedule ${totalSchedule >= 0 ? "+" : ""}${totalSchedule}d`}
         title="Change orders / variations"
-        description="Scope changes with cost + schedule impact. Cost and schedule impacts can be NEGATIVE (downgrades save money/time). Approval flow uses Stage 4.A approval_thresholds matrix."
+        description="Scope changes with cost + schedule impact. Cost and schedule impacts can be NEGATIVE (downgrades save money/time). Approval routing follows the configured approval-thresholds matrix."
         actions={
           <div className="flex gap-2">
             <Button asChild>

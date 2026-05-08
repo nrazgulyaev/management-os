@@ -76,7 +76,7 @@ export default async function CostCategoriesPage() {
       {!db || cats.length === 0 ? (
         <EmptyState
           title="No categories"
-          description={!db ? "Set DATABASE_URL." : "Run npm run db:seed:dev-os."}
+          description={!db ? "Database connection not configured. Contact support." : "Add your first finance category to organize the chart of accounts."}
         />
       ) : (
         <Section eyebrow="Hierarchy" title="Tree view">

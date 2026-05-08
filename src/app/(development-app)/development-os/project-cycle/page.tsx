@@ -79,7 +79,7 @@ export default async function ProjectCyclePage() {
           { label: "Development OS", href: "/development-os" },
           { label: "Project cycle intelligence" },
         ]}
-        eyebrow={`${unreviewedCount} unreviewed · Stage 5.B.2`}
+        eyebrow={`${unreviewedCount} unreviewed`}
         title="Project cycle intelligence"
         description="When should we start the next project? AI advisory only — recommendations need operator review before any action. The cycle-helpers.ts orchestrator is pure and runtime-tested."
         actions={

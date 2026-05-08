@@ -41,7 +41,7 @@ export default async function AssetTypesPage() {
           { label: "Development OS", href: "/development-os" },
           { label: "Asset types" },
         ]}
-        eyebrow={`${activeCount} active / ${types.length} total · Stage 5.B.1`}
+        eyebrow={`${activeCount} active / ${types.length} total`}
         title="Asset type registry"
         description="Strategy B for the multi-asset refactor: every entry in `villas` (now semantically the assets table) carries an asset_type_id pointing here. Seeded with 12 defaults — operators may add more, never delete in-use rows."
         actions={

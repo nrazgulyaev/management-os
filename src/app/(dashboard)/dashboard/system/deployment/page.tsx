@@ -180,7 +180,7 @@ export default async function DeploymentReadinessPage() {
       <Section
         eyebrow="Supabase"
         title="Migrations"
-        description="Run `npm run db:migrate` to apply.  See provisioning checklist for first-time setup."
+        description="Pending migrations are applied automatically on each deploy. Contact support if a migration is missing in production."
       >
         <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
           <Stat label="Migration count" value={String(migrationCount)} />

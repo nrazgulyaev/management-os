@@ -67,7 +67,7 @@ export default async function CashflowForecastPage({
           { label: "Development OS", href: "/development-os" },
           { label: "Cashflow forecast" },
         ]}
-        eyebrow={`${activeCount} active / ${forecasts.length} total · Stage 5.B.4`}
+        eyebrow={`${activeCount} active / ${forecasts.length} total`}
         title="Monthly cashflow forecasts"
         description="JSONB snapshots of month-by-month inflow / outflow / cumulative cash. Forecasts are immutable after save; the auto-generate cron creates a fresh draft on the 1st of each month — operator must promote to `active`."
         actions={

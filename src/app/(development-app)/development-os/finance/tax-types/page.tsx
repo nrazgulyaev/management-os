@@ -56,7 +56,7 @@ export default async function TaxTypesPage() {
       {types.length === 0 ? (
         <EmptyState
           title="No tax types configured"
-          description="Run npm run db:seed:dev-os for 4 Indonesia-realistic types (PPN 11%, PPh23 2%, lease tax 10%, corporate income 22%), or use the upsertTaxType server action."
+          description="Add your first tax type — typical Indonesian setup includes PPN, PPh23, lease tax, and corporate income."
         />
       ) : (
         <Section eyebrow="Catalog" title="All tax types">

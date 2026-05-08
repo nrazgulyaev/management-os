@@ -99,7 +99,7 @@ export default async function SiteReportsPage({
       ) : reports.length === 0 ? (
         <EmptyState
           title="No site reports yet"
-          description="Run npm run db:seed:dev-os for 30 days of demo data, or use the createSiteReport action."
+          description="Capture your first daily site report from the cabinets / site-supervisor surface."
         />
       ) : (
         <>

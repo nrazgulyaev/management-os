@@ -44,7 +44,7 @@ export default async function AssetsPage({
           { label: "Development OS", href: "/development-os" },
           { label: "Assets" },
         ]}
-        eyebrow={`${assets.length} units · Stage 5.B.1`}
+        eyebrow={`${assets.length} units`}
         title="Assets"
         description="Every saleable / rentable / revenue-generating unit in the portfolio. Backed by the `villas` table — the name is preserved for FK compatibility (60+ FKs) but the table is now multi-asset."
         actions={

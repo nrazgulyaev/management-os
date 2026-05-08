@@ -53,7 +53,7 @@ export default async function ProvidersPage() {
       />
 
       <Section
-        eyebrow="Stage 6.P3 — payment_processor_connections"
+        eyebrow="Provider connections"
         title={`${connections.length} connections`}
       >
         {connections.length === 0 ? (

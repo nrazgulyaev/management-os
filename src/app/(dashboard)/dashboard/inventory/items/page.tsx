@@ -33,7 +33,8 @@ export default async function InventoryItemsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {items.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary md:col-span-2">
-            No items yet. Run <code>npm run db:seed</code> to populate the starter catalog.
+            No items yet. Add your first inventory item to start tracking
+            stock movements across locations.
           </p>
         ) : (
           items.map((i) => (

@@ -141,28 +141,28 @@ export default async function IntegrationsHubPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <PlaceholderCard
             title="Communications"
-            stage="P2"
+            stage="Soon"
             description="WhatsApp, Telegram, Instagram, Facebook Messenger, Email — unified inbox."
           />
           <PlaceholderCard
             title="Banking + Payments"
-            stage="P3"
+            stage="Soon"
             description="Revolut, Wise, Stripe, Indonesian bank CSV imports + reconciliation."
           />
           <PlaceholderCard
             title="Marketing + Analytics"
-            stage="P4"
+            stage="Soon"
             description="Meta Ads, Google Ads, GA4, attribution, transactional + campaign email."
           />
           <PlaceholderCard
             title="Productivity"
-            stage="P5"
+            stage="Soon"
             description="Google Calendar, Gmail, Sheets, Drive — Workspace OAuth lands here."
           />
           <PlaceholderCard
             title="AI Agents"
-            stage="P6"
-            description="Extends Stage 3.A AI providers: Gemini, vision, embeddings, per-agent routing."
+            stage="Soon"
+            description="Extends the AI provider catalog: Gemini, vision, embeddings, per-agent routing."
           />
         </div>
       </Section>

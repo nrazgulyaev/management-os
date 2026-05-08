@@ -51,7 +51,7 @@ export default async function NotificationsAdminPage() {
         }
       />
       <Section
-        eyebrow="Stage 7.F.D.4 · Provider configuration"
+        eyebrow="Provider configuration"
         title="Outbound delivery providers"
         description="Resend (transactional email) + Twilio (SMS / WhatsApp) are configured via env vars. Set NOTIFICATIONS_DRY_RUN=0 in production to enable live delivery."
       >

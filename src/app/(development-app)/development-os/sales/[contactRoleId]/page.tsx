@@ -141,7 +141,7 @@ export default async function LeadDetailPage({
       label: "Documents",
       content: (
         <ComingInPlaceholder
-          stage="2.2.B"
+          stage="Soon"
           summary="ID, KYC pack, signed reservation form, contract — indexed against this lead."
         />
       ),

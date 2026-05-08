@@ -207,7 +207,7 @@ export default async function AiAgentSettingsPage() {
               <div className="font-medium">WhatsApp credentials</div>
               <div className="text-xs text-ink-secondary mt-0.5">
                 Per-tenant Twilio account + phone number for AI WhatsApp output.
-                Saved encrypted in oauth_connections (Stage 7.F.C.2).
+                Credentials are stored encrypted.
               </div>
             </div>
             <Link

@@ -190,9 +190,7 @@ export default async function SystemHealthPage() {
         <div className="mt-1">
           Each section below is one module group. A &ldquo;migration
           pending&rdquo; badge means the table doesn&rsquo;t exist yet on
-          this database — apply the latest migrations
-          (<span className="font-mono">npm run db:migrate</span>) and
-          refresh.
+          this database — contact support to apply pending migrations.
         </div>
       </div>
       {TRACKED_TABLE_GROUPS.map((group, idx) => {

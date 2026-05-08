@@ -82,8 +82,9 @@ test("7.F.C.1: list page surfaces both legacy + new connection sections", () => 
   const src = readFile(
     "src/app/(dashboard)/dashboard/payments/providers/page.tsx",
   );
+  // Stage 10.B-CLEANUP rewrote the eyebrow string — the Drizzle import
+  // and the `Add connection` CTA + legacy section heading remain.
   assert.match(src, /paymentProcessorConnections/);
-  assert.match(src, /payment_processor_connections/);
   assert.match(src, /Add connection/);
   assert.match(src, /Legacy direct-booking catalog/);
 });

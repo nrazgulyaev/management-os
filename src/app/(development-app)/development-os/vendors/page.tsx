@@ -124,7 +124,7 @@ export default async function VendorsPage() {
             {list.length === 0 ? (
               <EmptyState
                 title="No vendors yet"
-                description="Run npm run db:seed:dev-os to populate, or use the createVendor action."
+                description="Add your first vendor to start tracking POs and deliveries."
               />
             ) : (
               <Table>

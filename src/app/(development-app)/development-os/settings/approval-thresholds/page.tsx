@@ -82,7 +82,7 @@ export default async function ApprovalThresholdsPage() {
       {thresholds.length === 0 ? (
         <EmptyState
           title="No thresholds configured"
-          description="Migration 0047 seeds 9 default rows. If you see this, run npm run db:migrate."
+          description="Approval thresholds are missing. Contact support to restore the default configuration."
         />
       ) : (
         Array.from(byType.entries()).map(([type, rows]) => (

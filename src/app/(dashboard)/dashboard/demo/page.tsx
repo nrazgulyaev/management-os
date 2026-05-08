@@ -89,16 +89,12 @@ export default function DemoWalkthroughPage() {
       </div>
 
       <div className="rounded-md border border-line-soft bg-canvas px-5 py-3 text-xs text-ink-secondary leading-relaxed">
-        Demo data: <strong className="text-ink">{dbReady ? "ready" : "needs seed"}</strong>{" "}
-        · Hint: run{" "}
-        <code className="font-mono text-[11px] bg-muted/40 px-1.5 py-0.5 rounded">
-          npm run demo:validate
-        </code>{" "}
-        to refresh the readiness score against the live database, and{" "}
-        <code className="font-mono text-[11px] bg-muted/40 px-1.5 py-0.5 rounded">
-          npm run db:seed
-        </code>{" "}
-        to (re)apply the demo seed.
+        Demo data:{" "}
+        <strong className="text-ink">
+          {dbReady ? "ready" : "not yet seeded"}
+        </strong>
+        . Each module below is rated against the live database; click any
+        row to open the surface.
       </div>
 
       <Section

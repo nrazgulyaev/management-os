@@ -394,11 +394,25 @@ test("integrations page: links to channels grid + inbox + conflicts", () => {
   assert.match(src, /\/development-os\/channels\/conflicts/);
 });
 
-test("integrations page: placeholder cards for P2-P6 categories", () => {
+test("integrations page: roadmap placeholder cards present (Stage 10.B-CLEANUP changed P-stage badges to 'Soon')", () => {
   const src = read(F_INTEGRATIONS_PAGE);
-  for (const stage of ["P2", "P3", "P4", "P5", "P6"]) {
-    assert.match(src, new RegExp(`stage="${stage}"`));
+  // Stage 10.B-CLEANUP renamed the per-card stage prop from internal
+  // phase refs (P2..P6) to user-meaningful "Soon" badges. The 5 roadmap
+  // categories themselves remain.
+  for (const title of [
+    'title="Communications"',
+    'title="Banking + Payments"',
+    'title="Marketing + Analytics"',
+    'title="Productivity"',
+    'title="AI Agents"',
+  ]) {
+    assert.ok(src.includes(title), `expected placeholder ${title}`);
   }
+  const soonCount = src.match(/stage="Soon"/g) ?? [];
+  assert.ok(
+    soonCount.length >= 5,
+    `expected ≥5 'Soon' placeholder badges, got ${soonCount.length}`,
+  );
 });
 
 // ===========================================================================

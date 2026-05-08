@@ -13,7 +13,11 @@ export function DashboardSidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-[260px] shrink-0 border-r border-line-soft bg-canvas">
       <div className="px-5 h-16 flex items-center border-b border-line-soft">
-        <Logo />
+        <Logo
+          href="/dashboard"
+          subtitle="Management OS"
+          title="Arconique Management OS"
+        />
       </div>
       <nav className="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-6">
         {dashboardNav.map((group, gi) => (

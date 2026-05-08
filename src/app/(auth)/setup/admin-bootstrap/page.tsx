@@ -62,10 +62,9 @@ export default async function AdminBootstrapPage({
 
           {state.stage === "db_missing" && (
             <Notice tone="warning" icon={<AlertTriangle className="w-4 h-4" />} title="Database not configured">
-              Add <code className="font-mono text-xs">DATABASE_URL</code> /{" "}
-              <code className="font-mono text-xs">DIRECT_URL</code> to{" "}
-              <code className="font-mono text-xs">.env.local</code>, then run{" "}
-              <code className="font-mono text-xs">npm run db:migrate &amp;&amp; npm run db:seed</code> before bootstrapping.
+              The platform database is not reachable. Verify your deploy
+              configuration and rerun the bootstrap step once the database
+              is online.
             </Notice>
           )}
 

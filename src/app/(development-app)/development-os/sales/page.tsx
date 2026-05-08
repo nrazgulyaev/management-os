@@ -183,7 +183,7 @@ export default async function SalesPage() {
             : "Database not configured"
         }
         title="Sales pipeline"
-        description="Live pipeline backed by the contacts foundation. Drag-and-drop is intentionally not enabled in 2.2.A — status changes flow through the lead detail to keep the audit trail clean."
+        description="Live pipeline backed by the contacts foundation. Drag-and-drop is intentionally disabled — status changes flow through the lead detail to keep the audit trail clean."
         actions={
           <div className="flex items-center gap-2">
             <LeadModalForm
@@ -207,7 +207,7 @@ export default async function SalesPage() {
       {!db && (
         <EmptyState
           title="Sales pipeline runs against the database"
-          description="Set DATABASE_URL and run npm run db:migrate + npm run db:seed to populate the demo pipeline."
+          description="Database connection not configured. Contact support."
           action={<Badge tone="warning">DATABASE_URL not set</Badge>}
         />
       )}

@@ -59,7 +59,7 @@ export default async function ProfitabilityPage() {
           { label: "Development OS", href: "/development-os" },
           { label: "Unit profitability" },
         ]}
-        eyebrow={`${rows.length} current allocations · Stage 5.B.3`}
+        eyebrow={`${rows.length} current allocations`}
         title="Unit profitability"
         description="Per-asset cost basis + expected margin. `total_cost_basis_minor` and `expected_margin_minor` are GENERATED STORED in Postgres, so the math is enforced at the storage layer. Recomputes are atomic — only one `is_current=true` row per asset, guarded by a partial unique index."
         actions={

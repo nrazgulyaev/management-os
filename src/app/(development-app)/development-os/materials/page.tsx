@@ -87,7 +87,7 @@ export default async function MaterialsPage() {
       ) : list.length === 0 ? (
         <EmptyState
           title="No POs yet"
-          description="Run npm run db:seed:dev-os to populate or use the createMaterialPO action."
+          description="Add your first purchase order to start tracking materials and deliveries."
         />
       ) : (
         <Section eyebrow="All POs" title="Chronological">

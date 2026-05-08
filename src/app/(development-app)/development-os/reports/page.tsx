@@ -77,7 +77,7 @@ export default async function VisualReportsIndexPage() {
           { label: "Development OS", href: "/development-os" },
           { label: "Visual reports" },
         ]}
-        eyebrow="Stage 5.C"
+        eyebrow="Visual analytics"
         title="Visual reports"
         description="Server-rendered SVG charts. Open any report to view the chart and the underlying data table."
       />
@@ -101,7 +101,7 @@ export default async function VisualReportsIndexPage() {
                       {r.name}
                     </Link>
                   </h4>
-                  <Badge tone="neutral">5.C</Badge>
+                  <Badge tone="neutral">Report</Badge>
                 </div>
                 <p className="text-xs text-ink-secondary mt-1 leading-relaxed">
                   {r.description}

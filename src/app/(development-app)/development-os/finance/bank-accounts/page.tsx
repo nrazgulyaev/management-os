@@ -67,7 +67,7 @@ export default async function BankAccountsPage() {
       ) : accounts.length === 0 ? (
         <EmptyState
           title="No accounts yet"
-          description="Run npm run db:seed:dev-os to populate, or use the createBankAccount action to add one."
+          description="Add your first bank account to start reconciling statements."
         />
       ) : (
         <Section eyebrow="Accounts" title="All active">

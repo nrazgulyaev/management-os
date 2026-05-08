@@ -32,8 +32,8 @@ export default function NewContentPage() {
       <Section title="Create content">
         <p className="text-sm text-ink-secondary leading-relaxed">
           New content pieces start in <code>draft</code>. Use the AI Marketing
-          Assistant agent (Stage 5.D) to generate captions and hashtags, then
-          flow the piece through the pipeline:
+          Assistant agent to generate captions and hashtags, then flow the
+          piece through the pipeline:
           <code> draft → in_production → pending_review → approved → scheduled → published</code>.
         </p>
       </Section>

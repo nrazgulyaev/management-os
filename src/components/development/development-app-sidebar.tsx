@@ -16,7 +16,11 @@ export function DevelopmentAppSidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-[260px] shrink-0 border-r border-line-soft bg-canvas">
       <div className="px-5 h-16 flex items-center justify-between border-b border-line-soft gap-2">
-        <Logo />
+        <Logo
+          href="/development-os"
+          subtitle="Development OS"
+          title="Arconique Development OS"
+        />
         <Badge tone="gold">Dev OS</Badge>
       </div>
 

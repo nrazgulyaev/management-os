@@ -1076,10 +1076,18 @@ test("sidebar nav has Calendars + Resources + Productivity entries", () => {
   assert.match(src, /\/productivity/);
 });
 
-test("sidebar adds 5.H badge on new entries", () => {
+test("sidebar surfaces Stage 5.H schedule routes (badges removed in Stage 10.B-CLEANUP)", () => {
+  // Stage 10.B-CLEANUP intentionally stripped per-link `badge: "5.H"`
+  // props from navigation.ts. Verify the new schedule-stack routes are
+  // still present in the nav tree by URL match.
   const src = read("src/lib/development/navigation.ts");
-  const m = src.match(/badge: "5\.H"/g) ?? [];
-  assert.ok(m.length >= 3, `expected ≥3 5.H badges, got ${m.length}`);
+  for (const route of [
+    "schedule/calendars",
+    "schedule/resources",
+    "productivity",
+  ]) {
+    assert.ok(src.includes(route), `expected nav entry for ${route}`);
+  }
 });
 
 test("calendars list + detail + new pages exist", () => {

@@ -406,7 +406,7 @@ export default async function ProjectDetailPage({
       label: "Documents",
       content: (
         <ComingInPlaceholder
-          stage="2.4"
+          stage="Soon"
           summary="Drawings, permits, contracts indexed against this project. Reuses the existing `documents` table."
         />
       ),
@@ -421,7 +421,7 @@ export default async function ProjectDetailPage({
       content:
         detail.source !== "db" ? (
           <ComingInPlaceholder
-            stage="2.3"
+            stage="Soon"
             summary="Capital tab lights up once the database is configured."
           />
         ) : projectCommitments.length === 0 ? (
@@ -606,7 +606,7 @@ export default async function ProjectDetailPage({
       content:
         detail.source !== "db" || !financialSummary ? (
           <ComingInPlaceholder
-            stage="2.3"
+            stage="Soon"
             summary="Finance tab lights up once the database is configured."
           />
         ) : (
@@ -735,7 +735,7 @@ export default async function ProjectDetailPage({
       content:
         detail.source !== "db" || !salesUnified ? (
           <ComingInPlaceholder
-            stage="2.2.A"
+            stage="Soon"
             summary="Sales lights up here once the database is configured (runs against the contacts + sales schema)."
           />
         ) : (
@@ -768,7 +768,7 @@ export default async function ProjectDetailPage({
       content:
         detail.source !== "db" ? (
           <ComingInPlaceholder
-            stage="2.4"
+            stage="Soon"
             summary="Site reports light up once the database is configured."
           />
         ) : projectSiteReports.length === 0 ? (
@@ -891,7 +891,7 @@ export default async function ProjectDetailPage({
       content:
         detail.source !== "db" ? (
           <ComingInPlaceholder
-            stage="2.4"
+            stage="Soon"
             summary="Vendor engagements light up once the database is configured."
           />
         ) : projectVendorEngagements.length === 0 ? (
@@ -957,7 +957,7 @@ export default async function ProjectDetailPage({
       content:
         detail.source !== "db" ? (
           <ComingInPlaceholder
-            stage="2.4"
+            stage="Soon"
             summary="Material POs light up once the database is configured."
           />
         ) : projectMaterialPos.length === 0 ? (
@@ -1025,7 +1025,7 @@ export default async function ProjectDetailPage({
       content:
         detail.source !== "db" ? (
           <ComingInPlaceholder
-            stage="2.4"
+            stage="Soon"
             summary="Safety incidents light up once the database is configured."
           />
         ) : projectSafetyIncidents.length === 0 ? (

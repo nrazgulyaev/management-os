@@ -26,7 +26,7 @@ export function MigrationPendingCard({
       </div>
       <p className="text-xs leading-relaxed">
         {hint ??
-          `Apply the latest migrations (\`npm run db:migrate\`) and refresh this page.`}
+          "This module is being deployed. Refresh in a moment, or contact support if the issue persists."}
       </p>
     </div>
   );

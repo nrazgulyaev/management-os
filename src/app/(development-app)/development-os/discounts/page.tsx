@@ -75,7 +75,7 @@ export default async function DiscountsPage() {
           {limits.length === 0 ? (
             <EmptyState
               title="No authorization tiers seeded"
-              description="Run the 2.2.B seed file to populate default tiers."
+              description="Configure your discount authorization tiers in Settings to start approving discounts."
               className="col-span-full"
             />
           ) : (
