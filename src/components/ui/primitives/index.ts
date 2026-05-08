@@ -64,3 +64,34 @@ export type {
   ScaleCalibration,
   StrokeKind,
 } from "./drawing-viewer";
+
+// Stage 10.D — universal CRUD + cleanup primitives
+// (added after the audit-driven master plan; co-located with the
+// research-driven primitives above so the design system is one folder).
+
+export {
+  ConfirmDialog,
+  DeleteConfirmDialog,
+  ArchiveConfirmDialog,
+  RevokeConfirmDialog,
+} from "./confirm-dialog";
+export type { ConfirmDialogProps, ConfirmTone } from "./confirm-dialog";
+
+export { EntityFormModal } from "./entity-form-modal";
+export type {
+  EntityFormModalProps,
+  EntityFormField,
+  FieldType,
+} from "./entity-form-modal";
+
+export {
+  NoItemsYet,
+  NoMatchingResults,
+  ConfigurationRequired,
+} from "./empty-state-variants";
+
+export { RowActionsMenu } from "./row-actions-menu";
+export type { RowActionsMenuProps, RowAction, RowActionTone } from "./row-actions-menu";
+
+export { PageHeaderHero } from "./page-header-hero";
+export type { PageHeaderHeroProps } from "./page-header-hero";
