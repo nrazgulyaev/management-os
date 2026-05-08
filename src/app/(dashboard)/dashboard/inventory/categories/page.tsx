@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listInventoryCategories } from "@/features/inventory/services";
+import { InventoryRowActions } from "@/components/dashboard/inventory/inventory-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Inventory · Categories" };
 export const dynamic = "force-dynamic";
@@ -21,13 +23,14 @@ export default async function CategoriesPage() {
       />
       <DbStatusNotice />
       {rows.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-          No categories yet.
-        </p>
+        <NoItemsYet
+          entityLabel="categories"
+          description="Tree of item categories — linens, towels, chemicals, spare parts, FF&E."
+        />
       ) : (
         <Table>
           <THead>
-            <TR><TH>Name</TH><TH>Key</TH><TH>Default unit</TH><TH>Consumable</TH><TH>Status</TH></TR>
+            <TR><TH>Name</TH><TH>Key</TH><TH>Default unit</TH><TH>Consumable</TH><TH>Status</TH><TH /></TR>
           </THead>
           <TBody>
             {rows.map((c) => (
@@ -37,6 +40,18 @@ export default async function CategoriesPage() {
                 <TD>{c.defaultUnit}</TD>
                 <TD>{c.isConsumable ? "Yes" : "No"}</TD>
                 <TD><Badge tone={c.status === "active" ? "success" : "neutral"}>{c.status}</Badge></TD>
+                <TD className="text-right">
+                  <InventoryRowActions
+                    kind="category"
+                    row={{
+                      id: c.id,
+                      name: c.name,
+                      key: c.key,
+                      defaultUnit: c.defaultUnit,
+                      isConsumable: c.isConsumable,
+                    }}
+                  />
+                </TD>
               </TR>
             ))}
           </TBody>

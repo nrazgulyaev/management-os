@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { listInventoryLocations } from "@/features/inventory/services";
+import { InventoryRowActions } from "@/components/dashboard/inventory/inventory-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Inventory · Locations" };
 export const dynamic = "force-dynamic";
@@ -32,13 +34,16 @@ export default async function LocationsPage() {
       />
       <DbStatusNotice />
       {rows.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-          No locations yet.
-        </p>
+        <NoItemsYet
+          entityLabel="locations"
+          description="Warehouses, villa storage rooms, housekeeping carts, maintenance rooms."
+          addHref="/dashboard/inventory/locations/new"
+          addLabel="New location"
+        />
       ) : (
         <Table>
           <THead>
-            <TR><TH>Name</TH><TH>Type</TH><TH>Linked to</TH><TH>Status</TH></TR>
+            <TR><TH>Name</TH><TH>Type</TH><TH>Linked to</TH><TH>Status</TH><TH /></TR>
           </THead>
           <TBody>
             {rows.map((l) => (
@@ -49,6 +54,17 @@ export default async function LocationsPage() {
                   {l.villaCode ? `Villa ${l.villaCode}` : l.projectName ? `Project ${l.projectName}` : "—"}
                 </TD>
                 <TD><Badge tone={l.status === "active" ? "success" : "neutral"}>{l.status}</Badge></TD>
+                <TD className="text-right">
+                  <InventoryRowActions
+                    kind="location"
+                    row={{
+                      id: l.id,
+                      name: l.name,
+                      locationType: l.locationType,
+                      description: l.description ?? null,
+                    }}
+                  />
+                </TD>
               </TR>
             ))}
           </TBody>

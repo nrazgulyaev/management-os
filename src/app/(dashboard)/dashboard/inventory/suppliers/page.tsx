@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listSuppliers } from "@/features/inventory/services";
+import { InventoryRowActions } from "@/components/dashboard/inventory/inventory-row-actions";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Suppliers" };
 export const dynamic = "force-dynamic";
@@ -32,13 +34,16 @@ export default async function SuppliersPage() {
       />
       <DbStatusNotice />
       {rows.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-          No suppliers yet.
-        </p>
+        <NoItemsYet
+          entityLabel="suppliers"
+          description="Vendors that supply linens, chemicals, electrical, and maintenance services."
+          addHref="/dashboard/inventory/suppliers/new"
+          addLabel="New supplier"
+        />
       ) : (
         <Table>
           <THead>
-            <TR><TH>Name</TH><TH>Type</TH><TH>Email</TH><TH>Phone</TH><TH>Country</TH><TH>Status</TH></TR>
+            <TR><TH>Name</TH><TH>Type</TH><TH>Email</TH><TH>Phone</TH><TH>Country</TH><TH>Status</TH><TH /></TR>
           </THead>
           <TBody>
             {rows.map((s) => (
@@ -49,6 +54,9 @@ export default async function SuppliersPage() {
                 <TD className="text-xs text-ink-secondary">{s.phone ?? "—"}</TD>
                 <TD className="text-xs">{s.country ?? "—"}</TD>
                 <TD><Badge tone={s.status === "active" ? "success" : "neutral"}>{s.status}</Badge></TD>
+                <TD className="text-right">
+                  <InventoryRowActions kind="supplier" row={s} />
+                </TD>
               </TR>
             ))}
           </TBody>

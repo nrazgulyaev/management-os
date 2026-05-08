@@ -213,6 +213,269 @@ export async function createInventoryItemAction(
 }
 
 // -----------------------------------------------------------------------------
+// Stage 10.E.1 — Update + archive (CRUD completeness rollout).
+//
+// Audit found `Add but no Edit/Delete` on inventory list pages. These
+// actions close the gap. Archive is soft-delete (status -> "archived")
+// — the schema's status text column already defaults to "active", so
+// no migration needed.
+// -----------------------------------------------------------------------------
+
+interface IdActionInput {
+  id: string;
+}
+
+// ---- Suppliers ----
+
+export async function updateSupplierAction(
+  input: IdActionInput,
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("procurement.write");
+  const parsed = createSupplierSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(suppliers)
+    .set(emptyToNull(parsed.data) as Partial<typeof suppliers.$inferInsert>)
+    .where(eq(suppliers.id, input.id))
+    .returning({ id: suppliers.id });
+  if (!row) return { ok: false, error: "Supplier not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "inventory.supplier.update",
+    entityType: "supplier",
+    entityId: input.id,
+    after: { name: parsed.data.name, supplierType: parsed.data.supplierType },
+  });
+  revalidatePath("/dashboard/inventory/suppliers");
+  return { ok: true };
+}
+
+export async function archiveSupplierAction(input: IdActionInput): Promise<ActionResult> {
+  await requirePermission("procurement.write");
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(suppliers)
+    .set({ status: "archived" })
+    .where(eq(suppliers.id, input.id))
+    .returning({ id: suppliers.id });
+  if (!row) return { ok: false, error: "Supplier not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "inventory.supplier.archive",
+    entityType: "supplier",
+    entityId: input.id,
+    after: { status: "archived" },
+  });
+  revalidatePath("/dashboard/inventory/suppliers");
+  return { ok: true };
+}
+
+// ---- Inventory locations ----
+
+export async function updateInventoryLocationAction(
+  input: IdActionInput,
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("inventory.write");
+  const parsed = createInventoryLocationSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(inventoryLocations)
+    .set(emptyToNull(parsed.data) as Partial<typeof inventoryLocations.$inferInsert>)
+    .where(eq(inventoryLocations.id, input.id))
+    .returning({ id: inventoryLocations.id });
+  if (!row) return { ok: false, error: "Location not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "inventory.location.update",
+    entityType: "inventory_location",
+    entityId: input.id,
+    after: { name: parsed.data.name, locationType: parsed.data.locationType },
+  });
+  revalidatePath("/dashboard/inventory/locations");
+  return { ok: true };
+}
+
+export async function archiveInventoryLocationAction(input: IdActionInput): Promise<ActionResult> {
+  await requirePermission("inventory.write");
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(inventoryLocations)
+    .set({ status: "archived" })
+    .where(eq(inventoryLocations.id, input.id))
+    .returning({ id: inventoryLocations.id });
+  if (!row) return { ok: false, error: "Location not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "inventory.location.archive",
+    entityType: "inventory_location",
+    entityId: input.id,
+    after: { status: "archived" },
+  });
+  revalidatePath("/dashboard/inventory/locations");
+  return { ok: true };
+}
+
+// ---- Inventory categories ----
+
+export async function updateInventoryCategoryAction(
+  input: IdActionInput,
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("inventory.write");
+  const parsed = createInventoryCategorySchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(inventoryCategories)
+    .set(emptyToNull(parsed.data) as Partial<typeof inventoryCategories.$inferInsert>)
+    .where(eq(inventoryCategories.id, input.id))
+    .returning({ id: inventoryCategories.id });
+  if (!row) return { ok: false, error: "Category not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "inventory.category.update",
+    entityType: "inventory_category",
+    entityId: input.id,
+    after: { name: parsed.data.name, key: parsed.data.key },
+  });
+  revalidatePath("/dashboard/inventory/categories");
+  return { ok: true };
+}
+
+export async function archiveInventoryCategoryAction(input: IdActionInput): Promise<ActionResult> {
+  await requirePermission("inventory.write");
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(inventoryCategories)
+    .set({ status: "archived" })
+    .where(eq(inventoryCategories.id, input.id))
+    .returning({ id: inventoryCategories.id });
+  if (!row) return { ok: false, error: "Category not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "inventory.category.archive",
+    entityType: "inventory_category",
+    entityId: input.id,
+    after: { status: "archived" },
+  });
+  revalidatePath("/dashboard/inventory/categories");
+  return { ok: true };
+}
+
+// ---- Inventory items ----
+
+export async function updateInventoryItemAction(
+  input: IdActionInput,
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("inventory.write");
+  const parsed = createInventoryItemSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+  const [row] = await db
+    .update(inventoryItems)
+    .set({
+      name: d.name,
+      sku: d.sku && d.sku !== "" ? d.sku : null,
+      categoryId: d.categoryId ?? null,
+      defaultSupplierId: d.defaultSupplierId ?? null,
+      unit: d.unit,
+      itemType: d.itemType,
+      description: d.description && d.description !== "" ? d.description : null,
+      brand: d.brand && d.brand !== "" ? d.brand : null,
+      model: d.model && d.model !== "" ? d.model : null,
+      barcode: d.barcode && d.barcode !== "" ? d.barcode : null,
+      reorderPoint: d.reorderPoint !== undefined ? String(d.reorderPoint) : null,
+      reorderQuantity: d.reorderQuantity !== undefined ? String(d.reorderQuantity) : null,
+      unitCostMinor: d.unitCostMinor ?? null,
+      currency: d.currency && d.currency !== "" ? d.currency : null,
+      ownerChargeable: d.ownerChargeable,
+      trackSerial: d.trackSerial,
+    })
+    .where(eq(inventoryItems.id, input.id))
+    .returning({ id: inventoryItems.id });
+  if (!row) return { ok: false, error: "Item not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "inventory.item.update",
+    entityType: "inventory_item",
+    entityId: input.id,
+    after: { name: d.name, itemType: d.itemType, unit: d.unit },
+  });
+  revalidatePath("/dashboard/inventory/items");
+  return { ok: true };
+}
+
+export async function archiveInventoryItemAction(input: IdActionInput): Promise<ActionResult> {
+  await requirePermission("inventory.write");
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const [row] = await db
+    .update(inventoryItems)
+    .set({ status: "archived" })
+    .where(eq(inventoryItems.id, input.id))
+    .returning({ id: inventoryItems.id });
+  if (!row) return { ok: false, error: "Item not found." };
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "inventory.item.archive",
+    entityType: "inventory_item",
+    entityId: input.id,
+    after: { status: "archived" },
+  });
+  revalidatePath("/dashboard/inventory/items");
+  return { ok: true };
+}
+
+// -----------------------------------------------------------------------------
 // Stock movement helpers
 // -----------------------------------------------------------------------------
 
