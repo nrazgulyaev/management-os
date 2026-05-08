@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { desc, eq, and } from "drizzle-orm";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
@@ -47,7 +48,23 @@ export default async function MemoryPage() {
         {rows.length === 0 ? (
           <EmptyState
             title="No memory yet"
-            description="Memory is created via agent ingestion or manual entry. Run the AI memory aggregator job to populate."
+            description="Memory is created via agent ingestion or manual entry. Run any agent now to seed the first memory items, or trigger the aggregator job from system jobs."
+            action={
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Link
+                  href="/development-os/ai-agents"
+                  className="rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40"
+                >
+                  Pick an agent to run
+                </Link>
+                <Link
+                  href="/dashboard/jobs"
+                  className="rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40"
+                >
+                  Configure aggregator job
+                </Link>
+              </div>
+            }
           />
         ) : (
           <table className="w-full text-sm border-collapse">

@@ -75,7 +75,23 @@ export default async function AgentsInboxPage() {
         {outputs.length === 0 ? (
           <EmptyState
             title="Inbox empty"
-            description="No agent outputs are awaiting your review."
+            description="No agent outputs are awaiting your review. Trigger an analysis from any agent page, or wait for the next scheduled cron run."
+            action={
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Link
+                  href="/development-os/ai-agents"
+                  className="rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40"
+                >
+                  Pick an agent to run
+                </Link>
+                <Link
+                  href="/dashboard/ai/runs"
+                  className="rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40"
+                >
+                  View past runs
+                </Link>
+              </div>
+            }
           />
         ) : (
           <table className="w-full text-sm border-collapse">

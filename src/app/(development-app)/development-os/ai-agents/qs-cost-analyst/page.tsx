@@ -8,6 +8,7 @@ import { AgentOutputsTable } from "@/components/development/agent-outputs-table"
 import { getDb } from "@/lib/db/client";
 import { agentOutputs } from "@/lib/db/schema/ai-agents";
 import { safeQuery } from "@/lib/development/safe-query";
+import { RunAgentButton } from "@/components/ai-agents/run-agent-button";
 
 export const metadata: Metadata = { title: "QS Cost Analyst · AI agents" };
 export const dynamic = "force-dynamic";
@@ -43,6 +44,7 @@ export default async function QsCostAnalystPage() {
         ]}
         description="Forecast at completion + cost overrun analysis per category."
       />
+      <RunAgentButton agentKey="qs_cost_analyst" />
       <Section title={`${rows.length} output(s)`}>
         <AgentOutputsTable
           rows={rows}

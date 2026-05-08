@@ -8,6 +8,7 @@ import { AgentOutputsTable } from "@/components/development/agent-outputs-table"
 import { getDb } from "@/lib/db/client";
 import { agentOutputs } from "@/lib/db/schema/ai-agents";
 import { safeQuery } from "@/lib/development/safe-query";
+import { RunAgentButton } from "@/components/ai-agents/run-agent-button";
 
 export const metadata: Metadata = { title: "Procurement Analyst · AI agents" };
 export const dynamic = "force-dynamic";
@@ -43,6 +44,7 @@ export default async function AgentPage() {
         ]}
         description="Vendor reliability + lead-time analysis."
       />
+      <RunAgentButton agentKey="procurement_analyst" />
       <Section title={`${rows.length} output(s)`}>
         <AgentOutputsTable
           rows={rows}
