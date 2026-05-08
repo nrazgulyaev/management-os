@@ -6,11 +6,16 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadMarketingCabinet } from "@/lib/development/server/cabinets/marketing-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { redirect } from "next/navigation";
+import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
 
 export const metadata: Metadata = { title: "Marketing staff · Cabinet" };
 export const dynamic = "force-dynamic";
 
 export default async function MarketingStaffCabinetPage() {
+  const __gateRedirect = await gateCabinetForCurrentOrg("marketing-staff");
+  if (__gateRedirect) redirect(__gateRedirect);
+
   const data = await safeQuery(
     "marketingCabinet",
     loadMarketingCabinet(),

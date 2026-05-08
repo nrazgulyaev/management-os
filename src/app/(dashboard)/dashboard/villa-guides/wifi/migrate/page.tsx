@@ -64,7 +64,7 @@ export default async function WifiMigratePage() {
         )}
       </Section>
       <Section eyebrow="Run" title="Migration sweep">
-        <WifiMigrateButton />
+        <WifiMigrateButton kmsReady={kmsReady} />
       </Section>
     </div>
   );

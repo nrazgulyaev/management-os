@@ -8,11 +8,16 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadCfoCabinet } from "@/lib/development/server/cabinets/cfo-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { formatMinorAsCurrency } from "@/lib/development/server/executive/widgets-helpers";
+import { redirect } from "next/navigation";
+import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
 
 export const metadata: Metadata = { title: "CFO / Accountant · Cabinet" };
 export const dynamic = "force-dynamic";
 
 export default async function CfoCabinetPage() {
+  const __gateRedirect = await gateCabinetForCurrentOrg("cfo-accountant");
+  if (__gateRedirect) redirect(__gateRedirect);
+
   const data = await safeQuery(
     "cfoCabinet",
     loadCfoCabinet(),

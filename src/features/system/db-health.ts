@@ -142,6 +142,89 @@ export async function safeList<T>(
   }
 }
 
+/**
+ * Stage 8.A.1 — bulk approximate row-count lookup.
+ *
+ * The system-health page tracks ~40 tables. The original implementation
+ * issued one `SELECT COUNT(*)` per table via `Promise.all`, which
+ * saturated the postgres connection pool on Vercel cold-start and hung
+ * the page >60s.
+ *
+ * `pg_stat_user_tables.n_live_tup` is a fast catalog read maintained
+ * by autovacuum — the value is approximate (last-analyze count) but
+ * accurate enough for a "is this table populated?" health check, and
+ * the whole sweep is one round-trip.
+ *
+ * Tables present in `tracked` but missing from the result map are
+ * reported as `kind: "missing_relation"` so callers can render
+ * "Migration pending".
+ */
+/**
+ * Caller passes a thin executor adapter so this module stays free of a
+ * direct `@/lib/db/client` import (and therefore importable from tests
+ * that don't load drizzle).
+ */
+export type DbHealthExec = (sql: string) => Promise<unknown[]>;
+
+export async function getApproximateRowCounts(
+  exec: DbHealthExec | null,
+  tracked: ReadonlyArray<string>,
+): Promise<Map<string, SafeReadResult<number>>> {
+  const out = new Map<string, SafeReadResult<number>>();
+  if (!exec) {
+    for (const t of tracked) {
+      out.set(t, {
+        ok: false,
+        value: 0,
+        error: { queryName: t, kind: "no_db", message: "DB not configured" },
+      });
+    }
+    return out;
+  }
+  try {
+    const rows = await exec(
+      `SELECT relname, n_live_tup::bigint AS c FROM pg_stat_user_tables WHERE schemaname = 'public'`,
+    );
+    const present = new Map<string, number>();
+    for (const r of rows as Array<{ relname: string; c: number | string | bigint }>) {
+      present.set(r.relname, Number(r.c));
+    }
+    for (const t of tracked) {
+      if (present.has(t)) {
+        out.set(t, { ok: true, value: present.get(t)! });
+      } else {
+        noteFailure(t);
+        out.set(t, {
+          ok: false,
+          value: 0,
+          error: {
+            queryName: t,
+            kind: "missing_relation",
+            message: "table not found in pg_stat_user_tables",
+          },
+        });
+      }
+    }
+    return out;
+  } catch (err) {
+    // Whole-query failure: surface every tracked table as "unknown" so
+    // the page renders a clear "DB unhealthy" signal instead of hanging.
+    for (const t of tracked) {
+      noteFailure(t);
+      out.set(t, {
+        ok: false,
+        value: 0,
+        error: {
+          queryName: t,
+          kind: "unknown",
+          message: err instanceof Error ? err.message : String(err),
+        },
+      });
+    }
+    return out;
+  }
+}
+
 /** Test seam — clears the in-process failure tally. */
 export function __resetDbHealthCounters(): void {
   SEEN_FAILURES.clear();

@@ -27,6 +27,33 @@ export default async function NewBoqPage() {
     .select({ id: projects.id, name: projects.name })
     .from(projects);
 
+  if (projectRows.length === 0) {
+    // 8.A.6 — without at least one project the form's hidden projectId
+    // ends up empty and createBoqDocument's Zod schema rejects with a
+    // generic 500. Surface a clear empty state with a CTA instead.
+    return (
+      <DevelopmentShell>
+        <PageHeader
+          breadcrumbs={[
+            { label: "Development OS", href: "/development-os" },
+            { label: "BOQ", href: "/development-os/boq" },
+            { label: "New" },
+          ]}
+          title="New BOQ document"
+        />
+        <EmptyState
+          title="No projects yet"
+          description="Create a project before drafting a BOQ — every BOQ document is scoped to one project."
+          action={
+            <Button asChild>
+              <Link href="/development-os/projects">Create a project</Link>
+            </Button>
+          }
+        />
+      </DevelopmentShell>
+    );
+  }
+
   return (
     <DevelopmentShell>
       <PageHeader

@@ -5,11 +5,16 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadWarehouseCabinet } from "@/lib/development/server/cabinets/warehouse-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { redirect } from "next/navigation";
+import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
 
 export const metadata: Metadata = { title: "Warehouse manager · Cabinet" };
 export const dynamic = "force-dynamic";
 
 export default async function WarehouseCabinetPage() {
+  const __gateRedirect = await gateCabinetForCurrentOrg("warehouse-manager");
+  if (__gateRedirect) redirect(__gateRedirect);
+
   const data = await safeQuery(
     "warehouseCabinet",
     loadWarehouseCabinet(),

@@ -6,11 +6,16 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadProcurementCabinet } from "@/lib/development/server/cabinets/procurement-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { redirect } from "next/navigation";
+import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
 
 export const metadata: Metadata = { title: "Procurement manager · Cabinet" };
 export const dynamic = "force-dynamic";
 
 export default async function ProcurementCabinetPage() {
+  const __gateRedirect = await gateCabinetForCurrentOrg("procurement-manager");
+  if (__gateRedirect) redirect(__gateRedirect);
+
   const data = await safeQuery(
     "procurementCabinet",
     loadProcurementCabinet(),

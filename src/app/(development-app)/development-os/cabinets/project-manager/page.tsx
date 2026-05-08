@@ -8,11 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadProjectManagerCabinet } from "@/lib/development/server/cabinets/project-manager-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { redirect } from "next/navigation";
+import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
 
 export const metadata: Metadata = { title: "Project manager · Cabinet" };
 export const dynamic = "force-dynamic";
 
 export default async function ProjectManagerCabinetPage() {
+  const __gateRedirect = await gateCabinetForCurrentOrg("project-manager");
+  if (__gateRedirect) redirect(__gateRedirect);
+
   const data = await safeQuery(
     "pmCabinet",
     loadProjectManagerCabinet(),

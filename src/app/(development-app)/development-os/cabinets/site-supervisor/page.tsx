@@ -9,6 +9,8 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { loadSiteSupervisorCabinet } from "@/lib/development/server/cabinets/site-supervisor-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { redirect } from "next/navigation";
+import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
 
 export const metadata: Metadata = {
   title: "Site supervisor · Cabinet",
@@ -22,6 +24,9 @@ export const dynamic = "force-dynamic";
  * Touch targets >= 44px (large `min-h-[44px]` on action cards).
  */
 export default async function SiteSupervisorCabinetPage() {
+  const __gateRedirect = await gateCabinetForCurrentOrg("site-supervisor");
+  if (__gateRedirect) redirect(__gateRedirect);
+
   const me = await getCurrentAppUser();
   const data = me
     ? await safeQuery(

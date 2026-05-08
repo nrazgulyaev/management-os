@@ -112,7 +112,12 @@ async function staleWhileRevalidate(request, cacheName) {
   const fetchPromise = fetch(request)
     .then((response) => {
       if (response.ok) {
-        caches.open(cacheName).then((c) => c.put(request, response.clone()));
+        // Clone synchronously: the original `response` is returned to the
+        // caller below and its body becomes locked once consumed. Cloning
+        // inside the async caches.open(...).then(...) chain ran AFTER the
+        // lock and threw "Failed to clone Response: body is locked".
+        const clone = response.clone();
+        caches.open(cacheName).then((c) => c.put(request, clone));
       }
       return response;
     })

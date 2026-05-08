@@ -8,11 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadQsCabinet } from "@/lib/development/server/cabinets/qs-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { redirect } from "next/navigation";
+import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
 
 export const metadata: Metadata = { title: "QS / Cost analyst · Cabinet" };
 export const dynamic = "force-dynamic";
 
 export default async function QsCabinetPage() {
+  const __gateRedirect = await gateCabinetForCurrentOrg("qs");
+  if (__gateRedirect) redirect(__gateRedirect);
+
   const data = await safeQuery(
     "qsCabinet",
     loadQsCabinet(),

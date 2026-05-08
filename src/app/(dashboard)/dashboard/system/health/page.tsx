@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { MetricCard } from "@/components/ui/metric-card";
 import { getDb } from "@/lib/db/client";
 import {
-  safeCount,
+  getApproximateRowCounts,
   type SafeReadResult,
 } from "@/features/system/db-health";
 import {
@@ -97,29 +97,27 @@ const TRACKED_TABLES = TRACKED_TABLE_GROUPS.flatMap((g) => g.tables);
 
 export default async function SystemHealthPage() {
   const db = getDb();
-  const counts = await Promise.all(
-    TRACKED_TABLES.map(async (t) => {
-      if (!db) {
-        return {
-          table: t,
-          result: {
-            ok: false,
-            value: 0,
-            error: { queryName: t, kind: "no_db" as const, message: "DB not configured" },
-          } satisfies SafeReadResult<number>,
-        };
+  // 8.A.1 — single round-trip via pg_stat_user_tables. The previous
+  // 39-way Promise.all of COUNT(*) saturated the postgres pool on
+  // Vercel cold-start and hung the page >60s.
+  const exec = db
+    ? async (s: string): Promise<unknown[]> => {
+        const rows = await db.execute(sql.raw(s));
+        return Array.isArray(rows)
+          ? (rows as unknown[])
+          : ((rows as { rows?: unknown[] }).rows ?? []);
       }
-      const result = await safeCount(`count:${t}`, async () => {
-        const rows = await db.execute(
-          sql`SELECT COUNT(*)::int AS c FROM ${sql.identifier(t)}`,
-        );
-        const arr = Array.isArray(rows) ? rows : ((rows as { rows?: unknown[] }).rows ?? []);
-        const first = arr[0] as { c?: number } | undefined;
-        return Number(first?.c ?? 0);
-      });
-      return { table: t, result };
-    }),
-  );
+    : null;
+  const countMap = await getApproximateRowCounts(exec, TRACKED_TABLES);
+  const counts: Array<{ table: string; result: SafeReadResult<number> }> =
+    TRACKED_TABLES.map((t) => ({
+      table: t,
+      result: countMap.get(t) ?? {
+        ok: false,
+        value: 0,
+        error: { queryName: t, kind: "unknown", message: "no result" },
+      },
+    }));
   const missing = counts.filter((c) => !c.result.ok).length;
   const okCount = counts.length - missing;
   const checklist: Array<{ label: string; ok: boolean; hint?: string }> = [

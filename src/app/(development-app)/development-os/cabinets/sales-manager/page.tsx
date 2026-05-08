@@ -8,11 +8,16 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { loadSalesCabinet } from "@/lib/development/server/cabinets/sales-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { redirect } from "next/navigation";
+import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
 
 export const metadata: Metadata = { title: "Sales manager · Cabinet" };
 export const dynamic = "force-dynamic";
 
 export default async function SalesManagerCabinetPage() {
+  const __gateRedirect = await gateCabinetForCurrentOrg("sales-manager");
+  if (__gateRedirect) redirect(__gateRedirect);
+
   const me = await getCurrentAppUser();
   if (!me) {
     return (
