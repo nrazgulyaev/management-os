@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listOwnerStayPolicies } from "@/features/owner-stays/services";
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
+import { AddOwnerStayPolicyButton } from "@/components/dashboard/owners/owners-add-buttons";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Owner stay policies" };
@@ -20,14 +20,7 @@ export default async function PoliciesPage() {
         ]}
         title="Owner stay policies"
         description="Per-villa or per-project rules: free nights, blackout, approval, compensation model, operational cost."
-        actions={
-          <Link
-            href="/dashboard/owner-stays/policies/new"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-          >
-            + New policy
-          </Link>
-        }
+        actions={<AddOwnerStayPolicyButton />}
       />
 
       <Section eyebrow="Catalog" title={`${policies.length} policies`}>
@@ -35,8 +28,7 @@ export default async function PoliciesPage() {
           <NoItemsYet
             entityLabel="policies"
             description="Create a policy so owner stays have a default — free nights, approval routing, compensation model."
-            addHref="/dashboard/owner-stays/policies/new"
-            addLabel="+ New policy"
+            addAction={<AddOwnerStayPolicyButton />}
           />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,7 @@ import {
 import { listVillas } from "@/features/villas/services";
 import { AddEquivalenceMemberForm } from "@/components/owner-stays/add-member-form";
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
+import { AddEquivalenceGroupButton } from "@/components/dashboard/owners/owners-add-buttons";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Equivalence groups" };
@@ -33,22 +33,14 @@ export default async function EquivalenceGroupsPage() {
         ]}
         title="Villa equivalence groups"
         description="Groups of swap-comparable villas. Used by the relocation engine: a booking can only be relocated to a villa in the same group with same-or-better quality_rank."
-        actions={
-          <Link
-            href="/dashboard/owner-stays/equivalence-groups/new"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-          >
-            + New group
-          </Link>
-        }
+        actions={<AddEquivalenceGroupButton />}
       />
 
       {groupsWithMembers.length === 0 ? (
         <NoItemsYet
           entityLabel="equivalence groups"
           description="Group swap-comparable villas so the relocation engine can move bookings between them with a same-or-better quality rank."
-          addHref="/dashboard/owner-stays/equivalence-groups/new"
-          addLabel="+ New group"
+          addAction={<AddEquivalenceGroupButton />}
         />
       ) : (
         groupsWithMembers.map((g) => (

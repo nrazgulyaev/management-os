@@ -1,11 +1,9 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { ItemCard } from "@/components/inventory/item-card";
 import { listInventoryItems } from "@/features/inventory/services";
 import { InventoryRowActions } from "@/components/dashboard/inventory/inventory-row-actions";
+import { AddInventoryItemButton } from "@/components/dashboard/inventory/inventory-add-buttons";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Inventory · Items" };
@@ -22,22 +20,14 @@ export default async function InventoryItemsPage() {
         ]}
         title="All items"
         description="Catalog of consumables, linens, towels, amenities, chemicals, spare parts, and equipment."
-        actions={
-          <Button asChild>
-            <Link href="/dashboard/inventory/items/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              New item
-            </Link>
-          </Button>
-        }
+        actions={<AddInventoryItemButton />}
       />
       <DbStatusNotice />
       {items.length === 0 ? (
         <NoItemsYet
           entityLabel="items"
           description="Add your first inventory item to start tracking stock movements across locations."
-          addHref="/dashboard/inventory/items/new"
-          addLabel="New item"
+          addAction={<AddInventoryItemButton />}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

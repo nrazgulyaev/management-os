@@ -1,12 +1,10 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { listInventoryLocations } from "@/features/inventory/services";
 import { InventoryRowActions } from "@/components/dashboard/inventory/inventory-row-actions";
+import { AddInventoryLocationButton } from "@/components/dashboard/inventory/inventory-add-buttons";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Inventory · Locations" };
@@ -23,22 +21,14 @@ export default async function LocationsPage() {
         ]}
         title="Storage locations"
         description="Warehouses, villa storage rooms, housekeeping carts, maintenance rooms."
-        actions={
-          <Button asChild>
-            <Link href="/dashboard/inventory/locations/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              New location
-            </Link>
-          </Button>
-        }
+        actions={<AddInventoryLocationButton />}
       />
       <DbStatusNotice />
       {rows.length === 0 ? (
         <NoItemsYet
           entityLabel="locations"
           description="Warehouses, villa storage rooms, housekeeping carts, maintenance rooms."
-          addHref="/dashboard/inventory/locations/new"
-          addLabel="New location"
+          addAction={<AddInventoryLocationButton />}
         />
       ) : (
         <Table>

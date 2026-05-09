@@ -1,12 +1,10 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listSuppliers } from "@/features/inventory/services";
 import { InventoryRowActions } from "@/components/dashboard/inventory/inventory-row-actions";
+import { AddSupplierButton } from "@/components/dashboard/inventory/inventory-add-buttons";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Suppliers" };
@@ -23,22 +21,14 @@ export default async function SuppliersPage() {
         ]}
         title="Suppliers"
         description="Vendors that supply linens, chemicals, electrical, and maintenance services."
-        actions={
-          <Button asChild>
-            <Link href="/dashboard/inventory/suppliers/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              New supplier
-            </Link>
-          </Button>
-        }
+        actions={<AddSupplierButton />}
       />
       <DbStatusNotice />
       {rows.length === 0 ? (
         <NoItemsYet
           entityLabel="suppliers"
           description="Vendors that supply linens, chemicals, electrical, and maintenance services."
-          addHref="/dashboard/inventory/suppliers/new"
-          addLabel="New supplier"
+          addAction={<AddSupplierButton />}
         />
       ) : (
         <Table>
