@@ -57,18 +57,26 @@ interface GeminiResponse {
 export class GeminiProvider implements AIProvider {
   readonly name = "gemini";
   readonly defaultModel: string;
+  /** Stage 10.5.B — per-instance API key override. */
+  private readonly apiKeyOverride: string | undefined;
 
-  constructor(modelOverride?: string) {
-    this.defaultModel =
-      modelOverride ?? process.env.GEMINI_MODEL ?? DEFAULT_MODEL;
+  constructor(opts?: { apiKey?: string; model?: string } | string) {
+    if (typeof opts === "string") {
+      this.defaultModel = opts;
+      this.apiKeyOverride = undefined;
+    } else {
+      this.defaultModel =
+        opts?.model ?? process.env.GEMINI_MODEL ?? DEFAULT_MODEL;
+      this.apiKeyOverride = opts?.apiKey;
+    }
   }
 
   isAvailable(): boolean {
-    return Boolean(process.env.GEMINI_API_KEY);
+    return Boolean(this.apiKeyOverride ?? process.env.GEMINI_API_KEY);
   }
 
   async complete(req: AICompletionRequest): Promise<AICompletionResponse> {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = this.apiKeyOverride ?? process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new AIProviderUnavailableError(
         "GEMINI_API_KEY is not configured.",

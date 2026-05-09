@@ -30,6 +30,7 @@ import { getOrganizationByCode } from "@/lib/development/server/organizations/or
 import { getFeatureForOrg } from "@/lib/billing/gating";
 import { ToggleAgentButton } from "../toggle-agent-button";
 import { CustomPromptForm } from "./custom-prompt-form";
+import { ProviderConfigForm } from "./provider-config-form";
 
 export const metadata: Metadata = { title: "AI agent detail · Settings" };
 export const dynamic = "force-dynamic";
@@ -165,6 +166,38 @@ export default async function AiAgentDetailPage({
             )}
           </div>
         </div>
+      </Section>
+
+      <Section
+        eyebrow="Provider"
+        title="API key + provider override"
+        description="Per-agent provider routing and API key. Defaults to the platform's system key when none is set. Encrypted at rest with AES-256-GCM."
+      >
+        <ProviderConfigForm
+          agentKey={agentKey}
+          currentProvider={
+            override?.provider === "anthropic" ||
+            override?.provider === "openai" ||
+            override?.provider === "gemini"
+              ? override.provider
+              : null
+          }
+          currentModel={override?.model ?? null}
+          hasApiKey={Boolean(override?.apiKeyEncrypted)}
+          apiKeySetAt={
+            override?.apiKeySetAt ? override.apiKeySetAt.toISOString() : null
+          }
+          lastTestStatus={
+            override?.lastTestStatus === "ok" ||
+            override?.lastTestStatus === "failed"
+              ? override.lastTestStatus
+              : null
+          }
+          lastTestAt={
+            override?.lastTestAt ? override.lastTestAt.toISOString() : null
+          }
+          lastTestError={override?.lastTestError ?? null}
+        />
       </Section>
 
       {canonicalPrompt !== null && (

@@ -47,17 +47,32 @@ interface AnthropicResponse {
 export class AnthropicProvider implements AIProvider {
   readonly name = "anthropic";
   readonly defaultModel: string;
+  /**
+   * Stage 10.5.B — per-instance API key override. When set, takes
+   * precedence over `env.server.ANTHROPIC_API_KEY`. Used by the
+   * per-org provider config + test-connection action.
+   */
+  private readonly apiKeyOverride: string | undefined;
 
-  constructor(modelOverride?: string) {
-    this.defaultModel = modelOverride ?? aiModel();
+  constructor(opts?: { apiKey?: string; model?: string } | string) {
+    // Backwards-compat: prior signature was `constructor(modelOverride?: string)`.
+    if (typeof opts === "string") {
+      this.defaultModel = opts;
+      this.apiKeyOverride = undefined;
+    } else {
+      this.defaultModel = opts?.model ?? aiModel();
+      this.apiKeyOverride = opts?.apiKey;
+    }
   }
 
   isAvailable(): boolean {
-    return isAiConfigured() && !isAiDryRun();
+    if (isAiDryRun()) return false;
+    return this.apiKeyOverride ? true : isAiConfigured();
   }
 
   async complete(req: AICompletionRequest): Promise<AICompletionResponse> {
-    if (!isAiConfigured()) {
+    const apiKey = this.apiKeyOverride ?? env.server.ANTHROPIC_API_KEY;
+    if (!apiKey) {
       throw new AIProviderUnavailableError(
         "ANTHROPIC_API_KEY is not configured.",
       );
@@ -67,8 +82,6 @@ export class AnthropicProvider implements AIProvider {
         "AI_DRY_RUN=1 — live AI calls are disabled in this environment.",
       );
     }
-
-    const apiKey = env.server.ANTHROPIC_API_KEY!;
     const model = req.model ?? this.defaultModel;
     const maxTokens = req.maxTokens ?? DEFAULT_MAX_TOKENS;
     const temperature = req.temperature ?? 0.3;

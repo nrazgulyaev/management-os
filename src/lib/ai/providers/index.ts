@@ -86,3 +86,33 @@ export function getAIProviderByName(
 export function _setAIProviderForTest(provider: AIProvider | null): void {
   cached = provider;
 }
+
+/**
+ * Stage 10.5.B — construct a fresh provider instance with caller-supplied
+ * credentials. Used by:
+ *   - the test-connection action (validates user-typed API keys before
+ *     they're encrypted + persisted)
+ *   - the agent runner (uses per-org API keys at invocation time, when
+ *     `org_ai_agent_config.api_key_encrypted` is non-NULL)
+ *
+ * Returns null for `dry_run` provider name (no creds needed) and for
+ * unrecognised provider names. Does NOT cache — every caller gets a
+ * fresh instance because credentials may differ per org per call.
+ */
+export function getAIProviderForCredentials(opts: {
+  provider: "anthropic" | "openai" | "gemini";
+  apiKey: string;
+  model?: string;
+}): AIProvider | null {
+  if (!opts.apiKey || opts.apiKey.length === 0) return null;
+  switch (opts.provider) {
+    case "anthropic":
+      return new AnthropicProvider({ apiKey: opts.apiKey, model: opts.model });
+    case "openai":
+      return new OpenAIProvider({ apiKey: opts.apiKey, model: opts.model });
+    case "gemini":
+      return new GeminiProvider({ apiKey: opts.apiKey, model: opts.model });
+    default:
+      return null;
+  }
+}
