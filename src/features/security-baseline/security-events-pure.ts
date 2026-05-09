@@ -12,6 +12,8 @@ export type SecurityEventType =
   | "mfa_recovery_used"
   | "mfa_disabled"
   | "mfa_revoked"
+  | "password_changed"
+  | "sessions_revoked_others"
   | "cron_denied"
   | "suspicious_request"
   | "secret_missing"
@@ -31,6 +33,8 @@ const SEVERITY_DEFAULTS: Record<SecurityEventType, SecurityEventSeverity> = {
   mfa_recovery_used: "warning",
   mfa_disabled: "warning",
   mfa_revoked: "warning",
+  password_changed: "info",
+  sessions_revoked_others: "warning",
   cron_denied: "warning",
   suspicious_request: "warning",
   secret_missing: "critical",
@@ -65,6 +69,10 @@ export function eventTypeLabel(type: SecurityEventType): string {
       return "MFA disabled";
     case "mfa_revoked":
       return "MFA revoked";
+    case "password_changed":
+      return "Password changed";
+    case "sessions_revoked_others":
+      return "Other sessions signed out";
     case "cron_denied":
       return "Cron denied";
     case "suspicious_request":

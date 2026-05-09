@@ -113,7 +113,15 @@ export default async function SettingsPage() {
               </>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {ctx.appUser && (
+              <Button asChild>
+                <Link href="/dashboard/settings/account-security">
+                  Account security
+                  <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
+                </Link>
+              </Button>
+            )}
             <Button asChild variant="secondary">
               <Link href="/dashboard/settings/users">
                 Manage users
