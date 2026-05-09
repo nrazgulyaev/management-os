@@ -54,6 +54,15 @@ export const organizations = pgTable(
     enabledModules: jsonb("enabled_modules")
       .notNull()
       .default(sql`'[]'::jsonb`),
+    /** Stage 10.H — per-product access. text[] of product slugs.
+     *  Allowed values: 'mgmt' (Management OS), 'dev' (Development OS).
+     *  Default '{mgmt,dev}' preserves existing behaviour for every
+     *  org that pre-dates 0091. See src/lib/products.ts for the
+     *  runtime enum + helpers. */
+    productsEnabled: text("products_enabled")
+      .array()
+      .notNull()
+      .default(sql`ARRAY['mgmt', 'dev']`),
     maxUsers: integer("max_users"),
     maxProjects: integer("max_projects"),
     maxAiAgentInvocationsPerMonth: integer(
