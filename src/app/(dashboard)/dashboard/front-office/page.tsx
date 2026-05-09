@@ -43,6 +43,11 @@ export default async function FrontOfficeTodayPage() {
       <Section eyebrow="Boards" title="Jump to a board">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card href="/dashboard/front-office/arrivals" title="Arrivals" detail={`${arrivals.length} expected today`} />
+          <Card
+            href="/dashboard/front-office/readiness"
+            title="Arrival readiness"
+            detail="Per-villa prep status + open blockers"
+          />
           <Card href="/dashboard/front-office/departures" title="Departures" detail={`${departures.length} expected today`} />
           <Card href="/dashboard/front-office/in-house" title="In-house" detail={`${inHouse.length} stays right now`} />
           <Card href="/dashboard/front-office/requests" title="Check-in / check-out requests" detail={`${openRequests.length} awaiting review`} />
