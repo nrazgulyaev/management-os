@@ -190,7 +190,9 @@ test("10.G — trial-expiry template chooses headline + tone by daysRemaining", 
     trialEndsOn: "2026-06-01",
     upgradeUrl: "https://x.test/upgrade",
   });
-  assert.match(future.subject, /ends in 5 days/);
+  // Stage 11.A.4 — subject lines now vary by bucket (heads_up / tomorrow
+  // / today / ended) instead of a single "ends in N days" pattern.
+  assert.match(future.subject, /Heads up/);
   assert.match(today.subject, /ends today/);
   assert.match(expired.subject, /has ended/);
 });

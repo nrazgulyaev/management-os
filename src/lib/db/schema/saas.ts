@@ -71,6 +71,12 @@ export const organizations = pgTable(
     trialStartedAt: timestamp("trial_started_at", { withTimezone: true }),
     trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
     trialStatus: text("trial_status").notNull().default("none"),
+    /** Stage 11.A.1 — last time the trial-expiry-reminder cron emailed
+     *  this org's owner(s). NULL until the first send. The cron uses
+     *  it to dedupe by day (skips orgs already reminded today). */
+    lastTrialReminderAt: timestamp("last_trial_reminder_at", {
+      withTimezone: true,
+    }),
     maxUsers: integer("max_users"),
     maxProjects: integer("max_projects"),
     maxAiAgentInvocationsPerMonth: integer(

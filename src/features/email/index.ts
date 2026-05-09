@@ -20,5 +20,6 @@ export {
 } from "./templates/welcome";
 export {
   trialExpiryEmailTemplate,
+  bucketForDaysRemaining,
   type TrialExpiryEmailData,
 } from "./templates/trial-expiry";

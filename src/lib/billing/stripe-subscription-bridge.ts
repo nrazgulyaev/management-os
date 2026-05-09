@@ -30,6 +30,7 @@ import {
   transitionSubscription,
   type SubscriptionStatus,
 } from "./lifecycle";
+import { markOrgTrialConverted } from "@/features/billing/trial-conversion";
 
 export type StripeWebhookEventType =
   | "customer.subscription.created"
@@ -130,6 +131,16 @@ export async function applyStripeWebhook(
         actorKind: "stripe_webhook",
         payload: { stripeEventId: event.id, trialEnd },
       });
+      // Stage 11.A.2 — flip organizations.trial_status='active' →
+      // 'converted' once Stripe confirms the subscription is active
+      // (no trial period). Best-effort; never throws.
+      if (targetStatus === "active") {
+        try {
+          await markOrgTrialConverted(sub.organizationId);
+        } catch {
+          // audit-only; main mutation already succeeded
+        }
+      }
       return { ok: true, appliedTransitions: 1, events: 1 };
     }
 
@@ -176,6 +187,14 @@ export async function applyStripeWebhook(
           setColumns: { gracePeriodEndsAt: null },
           payload: { stripeEventId: event.id },
         });
+        // Stage 11.A.2 — first paid invoice after grace also flips
+        // organizations.trial_status to 'converted' (idempotent on the
+        // org row; already-converted orgs no-op).
+        try {
+          await markOrgTrialConverted(sub.organizationId);
+        } catch {
+          // audit-only
+        }
         return { ok: true, appliedTransitions: 1, events: 1 };
       }
       await recordLifecycleEvent({
@@ -185,6 +204,13 @@ export async function applyStripeWebhook(
         actorKind: "stripe_webhook",
         payload: { stripeEventId: event.id },
       });
+      // Stage 11.A.2 — every successful invoice payment also confirms
+      // the trial → paid conversion. Idempotent.
+      try {
+        await markOrgTrialConverted(sub.organizationId);
+      } catch {
+        // audit-only
+      }
       return { ok: true, appliedTransitions: 0, events: 1 };
     }
 
