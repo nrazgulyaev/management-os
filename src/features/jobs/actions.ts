@@ -109,6 +109,7 @@ import {
 } from "@/lib/development/server/cron";
 import { runWarmRoutesJob } from "./warm-routes-job";
 import { runTrialStatusJob } from "./trial-status-job";
+import { runTrialExpiryReminderJob } from "./trial-expiry-reminder-job";
 import { ensureDefaultJobDefinitions } from "./services";
 import { acquireJobLock, releaseJobLock } from "./locks";
 import { recordSecurityEvent } from "@/features/security-baseline/security-events";
@@ -249,6 +250,8 @@ const KNOWN_JOBS = new Set([
   "warm_routes",
   // Stage 10.I.6 — trial state machine
   "trial_status",
+  // Stage 10.L — trial-expiry email reminder
+  "trial_expiry_reminder",
 ]);
 
 export type JobKey =
@@ -353,7 +356,8 @@ export type JobKey =
   | "subscription_archive_expired"
   | "subscription_purge_archived"
   | "warm_routes"
-  | "trial_status";
+  | "trial_status"
+  | "trial_expiry_reminder";
 
 /**
  * Dispatch table — maps job key to runner. Cron routes call into this
@@ -623,6 +627,8 @@ export async function executeJob(
         return runWarmRoutesJob(handle);
       case "trial_status":
         return runTrialStatusJob(handle);
+      case "trial_expiry_reminder":
+        return runTrialExpiryReminderJob(handle);
       default:
         // unreachable — KNOWN_JOBS keeps us honest
         throw new Error(`Unhandled job key: ${jobKey}`);

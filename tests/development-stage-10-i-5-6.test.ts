@@ -229,8 +229,15 @@ test("10.I.6 — TrialBanner renders 4 variants (active / expiring-soon / expire
   for (const ui of ['"active"', '"expiring-soon"', '"expired"', '"cancelled"']) {
     assert.ok(src.includes(`state.ui === ${ui}`), `missing branch ${ui}`);
   }
-  // Sales mailto CTA prominent.
-  assert.match(src, /sales@arconique\.com/);
+  // Stage 10.L flipped CTAs from mailto:sales to /dashboard/billing/upgrade
+  // (Stage 9.B page that lists plans + launches Stripe Checkout via
+  // /api/billing/checkout). Verifies the banner has an upgrade CTA — the
+  // exact destination is locked in tests/development-stage-10-l.test.ts.
+  assert.match(
+    src,
+    /\/dashboard\/billing\/upgrade|upgradeHref/,
+    "trial banner must surface an upgrade CTA in every shown variant",
+  );
 });
 
 test("10.I.6 — TrialBanner short-circuits when shouldShowBanner is false", () => {

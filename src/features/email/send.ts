@@ -1,32 +1,34 @@
-// Intentionally NOT marked `server-only`: the pure no-op body needs to
-// be importable from node:test the same way notifications/providers/*
-// do. When 10.L swaps the body to call resendProvider, the live HTTP
-// call is fired only inside server runtimes anyway.
+// Intentionally NOT marked `server-only`: pure helpers + the resend
+// provider are importable from node:test the same way
+// notifications/providers/* are. The live fetch call only fires when
+// RESEND_API_KEY is set.
 import type {
   EmailTemplate,
   RenderedEmail,
   SendEmailResult,
 } from "./templates/types";
+import { resendProvider } from "@/features/notifications/providers/resend";
+import { isResendConfigured } from "@/lib/env";
 
 /**
  * Stage 10.G — Operator-facing transactional email send entry point.
+ * Stage 10.L — wires the live Resend call.
  *
- * Today: NO-OP. Renders the template, validates the recipient, logs to
- * the server console, and returns `{ ok: true, skipped: true }`. No
- * outbound HTTP. No provider wired.
- *
- * Stage 10.L will swap the no-op body for the live Resend call (the
- * provider integration already exists in
- * `src/features/notifications/providers/resend.ts` — the swap is a few
- * lines). The function signature + return shape stays stable so every
- * caller built before 10.L keeps working.
+ * Behaviour:
+ * - Validates recipient + renders template (always).
+ * - When `RESEND_API_KEY` + `RESEND_FROM_EMAIL` are configured: sends
+ *   via the existing `resendProvider` (re-uses the queued-notification
+ *   integration; same audit trail in case of failure).
+ * - When not configured: logs to console + returns
+ *   `{ ok: true, skipped: true, reason: 'resend_not_configured' }` so
+ *   dev environments + CI continue to work without external services.
  *
  * Why a separate surface from `src/features/notifications/*`:
- * notifications is a fan-out delivery system (push + email +
- * in-app, with retries, scheduled queues, RLS scoping). This is the
- * thin transactional path — operator action triggers an email
- * immediately, no queue, no notification record. Most marketing /
- * onboarding flows live here.
+ * notifications is a fan-out delivery system (push + email + in-app,
+ * with retries, scheduled queues, RLS scoping). This is the thin
+ * transactional path — operator action triggers an email immediately,
+ * no queue, no notification record. Most marketing / onboarding flows
+ * live here.
  */
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -49,17 +51,50 @@ export async function sendEmail<Data>(
     return { ok: false, reason };
   }
 
-  // No-op delivery — Stage 10.L wires Resend here.
-  if (process.env.NODE_ENV !== "test") {
-    console.info(
-      `[email] (no-op until 10.L) template=${template.key} to=${maskEmail(to)} subject="${rendered.subject}"`,
-    );
+  // Dev / CI graceful fallback when env unconfigured.
+  if (!isResendConfigured()) {
+    if (process.env.NODE_ENV !== "test") {
+      console.info(
+        `[email] resend not configured — skipped template=${template.key} to=${maskEmail(to)} subject="${rendered.subject}"`,
+      );
+    }
+    return {
+      ok: true,
+      skipped: true,
+      reason: "resend_not_configured",
+    };
   }
 
+  // Live delivery via the existing resend provider (Stage 8.B v8B).
+  // Synthesises a DeliveryInput with a placeholder notificationId so
+  // the provider's existing audit / response-logging shape continues
+  // to work; the transactional path doesn't write a notification row.
+  const result = await resendProvider.send({
+    notificationId: `transactional-${template.key}-${Date.now()}`,
+    channel: "email",
+    recipientType: "internal_user",
+    recipientId: null,
+    recipientAddress: to,
+    title: rendered.subject,
+    body: rendered.text,
+    html: rendered.html,
+    payload: null,
+    priority: "normal",
+  });
+
+  if (result.status === "sent") {
+    return { ok: true };
+  }
+  if (result.status === "skipped") {
+    return {
+      ok: true,
+      skipped: true,
+      reason: result.errorMessage ?? "skipped",
+    };
+  }
   return {
-    ok: true,
-    skipped: true,
-    reason: "stage_10_g_noop_pending_resend_wiring",
+    ok: false,
+    reason: result.errorMessage ?? `resend status: ${result.status}`,
   };
 }
 

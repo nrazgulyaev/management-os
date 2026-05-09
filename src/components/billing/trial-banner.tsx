@@ -4,18 +4,24 @@ import type { TrialState } from "@/features/billing/trial-state";
 
 /**
  * Stage 10.I.6 — Persistent trial-state banner.
+ * Stage 10.L — CTAs flipped from mailto:sales to /dashboard/billing/upgrade
+ * (Stage 9.B page that lists plans + launches Stripe Checkout via
+ * /api/billing/checkout). The upgrade page itself surfaces a graceful
+ * "Stripe not configured — talk to sales" message when STRIPE_SECRET_KEY
+ * is unset; the banner doesn't need a separate fallback.
  *
  * Server component. Rendered at the top of the Mgmt OS + Dev OS layouts
  * (above the topbar). Variants by `state.ui`:
  *   - active           → muted info strip, X days remaining
  *   - expiring-soon    → warning strip, urgent CTA
- *   - expired          → danger strip, "Upgrade" mailto CTA prominent
- *   - cancelled        → danger strip, contact-sales CTA
+ *   - expired          → danger strip, "Upgrade" CTA prominent
+ *   - cancelled        → danger strip, "Upgrade" CTA
  *   - none / converted → returns null (banner hidden)
  */
 
-const SALES_MAILTO =
-  "mailto:sales@arconique.com?subject=Upgrade%20from%20trial";
+function upgradeHref(reason: string): string {
+  return `/dashboard/billing/upgrade?from=trial-banner&trial=${reason}`;
+}
 
 export function TrialBanner({ state }: { state: TrialState }) {
   if (!state.shouldShowBanner) return null;
@@ -33,10 +39,10 @@ export function TrialBanner({ state }: { state: TrialState }) {
             </span>
           </span>
           <Link
-            href={SALES_MAILTO}
+            href={upgradeHref("active")}
             className="text-ink hover:underline underline-offset-4"
           >
-            Upgrade →
+            Choose a plan →
           </Link>
         </div>
       </div>
@@ -52,14 +58,14 @@ export function TrialBanner({ state }: { state: TrialState }) {
             <Clock className="w-3.5 h-3.5 text-warning" strokeWidth={1.75} />
             <strong>Trial ends in {days === 0 ? "less than a day" : `${days} day${days === 1 ? "" : "s"}`}.</strong>
             <span className="text-ink-secondary">
-              Reach out to sales to keep your workspace active.
+              Choose a plan to keep your workspace active.
             </span>
           </span>
           <Link
-            href={SALES_MAILTO}
+            href={upgradeHref("expiring-soon")}
             className="font-medium text-ink hover:underline underline-offset-4"
           >
-            Talk to sales →
+            Upgrade →
           </Link>
         </div>
       </div>
@@ -86,10 +92,10 @@ export function TrialBanner({ state }: { state: TrialState }) {
             </span>
           </span>
           <Link
-            href={SALES_MAILTO}
+            href={upgradeHref(state.ui)}
             className="font-medium text-danger hover:underline underline-offset-4"
           >
-            Talk to sales →
+            Choose a plan →
           </Link>
         </div>
       </div>

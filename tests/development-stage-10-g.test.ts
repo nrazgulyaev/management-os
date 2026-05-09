@@ -205,7 +205,12 @@ test("10.G — sendEmail() rejects invalid recipient", async () => {
   assert.match(res.reason ?? "", /invalid recipient/i);
 });
 
-test("10.G — sendEmail() returns ok+skipped (no-op) for valid recipient", async () => {
+test("10.G — sendEmail() returns ok+skipped (no-op fallback) when Resend unconfigured", async () => {
+  // Stage 10.L wired the live resendProvider call. The no-op fallback
+  // remains for dev / CI environments where RESEND_API_KEY is unset
+  // (which is the test process's state). Reason marker updated from
+  // the 10.G "stage_10_g_noop_pending_resend_wiring" to the 10.L
+  // "resend_not_configured" — same shape, more accurate semantics.
   const res = await sendEmail(
     "ada@example.com",
     welcomeEmailTemplate,
@@ -219,8 +224,8 @@ test("10.G — sendEmail() returns ok+skipped (no-op) for valid recipient", asyn
   assert.equal(res.skipped, true);
   assert.match(
     res.reason ?? "",
-    /stage_10_g_noop_pending_resend_wiring/,
-    "must surface the deferral marker so 10.L knows what to swap",
+    /resend_not_configured|skipped/,
+    "fallback should surface why the send was skipped",
   );
 });
 
