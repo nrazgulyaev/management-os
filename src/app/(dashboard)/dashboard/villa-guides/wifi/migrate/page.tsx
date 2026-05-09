@@ -1,5 +1,8 @@
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
+import { Button } from "@/components/ui/button";
 import { listWifiAdmin } from "@/features/villa-guides/services";
 import { WifiMigrateButton } from "@/components/guest-stays/wifi-migrate-button";
 import { isStayLinkKmsConfigured } from "@/lib/env";
@@ -21,6 +24,14 @@ export default async function WifiMigratePage() {
         ]}
         title="Migrate Wi-Fi to encrypted"
         description="Sweeps every villa_wifi_credentials row with a legacy display_password and converts it to AES-256-GCM ciphertext under the active key. Idempotent — safe to re-run."
+        actions={
+          <Button asChild variant="secondary">
+            <Link href="/dashboard/villa-guides/security/wifi-migration">
+              View migration status + audit log
+              <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </Link>
+          </Button>
+        }
       />
       {!kmsReady && (
         <div className="rounded-md border border-warning/40 bg-warning-weak/30 p-4 text-xs text-ink-secondary">
