@@ -33,6 +33,17 @@ export interface OfflinePhoto {
     siteReportId?: string;
     villaId?: string;
     description?: string;
+    /** Stage 11.B.2 — field-task photo context. Populated when the
+     *  photo was captured against an operations task in the field PWA;
+     *  the background-sync drain knows to attach via the existing
+     *  /attachments registry instead of the site-report flow. */
+    taskId?: string;
+    /** Stage 11.B.2 — geo fix at capture time (from <GeoCheckIn>). */
+    geo?: {
+      lat: number;
+      lng: number;
+      accuracy_m: number;
+    };
   };
   createdAt: string;
 }

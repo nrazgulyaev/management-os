@@ -62,6 +62,10 @@ export const villas = pgTable(
       precision: 10,
       scale: 2,
     }),
+    /** Stage 11.B.1 — optional geo anchor for field-PWA <GeoCheckIn>.
+     *  Shape: `{ lat: number, lng: number, accuracy_m?: number, source?: string }`.
+     *  NULL when not configured; <GeoCheckIn> falls back gracefully. */
+    coordinates: jsonb("coordinates"),
     ownerVisible: boolean("owner_visible").notNull().default(true),
     /**
      * Stage 5.B.1 — multi-asset abstraction. References asset_types

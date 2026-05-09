@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { eq } from "drizzle-orm";
 import { ChevronLeft, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TaskStatusPill } from "@/components/operations/task-status-pill";
@@ -9,6 +10,7 @@ import { TaskActionBar } from "@/components/operations/task-actions";
 import { AttachmentUploader } from "@/components/attachments/attachment-uploader";
 import { AttachmentGallery } from "@/components/attachments/attachment-gallery";
 import { MaterialUsageForm } from "@/components/field/material-usage-form";
+import { FieldCaptureBlock } from "@/components/field/field-capture-block";
 import {
   getOperationTaskById,
   getTaskChecklist,
@@ -20,6 +22,32 @@ import {
   listTaskMaterialUsage,
 } from "@/features/inventory/services";
 import { getCurrentUserContext, hasPermission } from "@/features/auth/permissions";
+import { getDb } from "@/lib/db/client";
+import { villas } from "@/lib/db/schema/projects";
+
+/** Stage 11.B.1 — minimal villa coordinates lookup for the field
+ *  PWA's GeoCheckIn anchor. Returns null when the villa has no
+ *  coordinates configured (FieldCaptureBlock falls back gracefully). */
+async function getVillaAnchor(
+  villaId: string | null,
+): Promise<{ lat: number; lng: number } | null> {
+  if (!villaId) return null;
+  const db = getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select({ coordinates: villas.coordinates })
+    .from(villas)
+    .where(eq(villas.id, villaId))
+    .limit(1);
+  const c = row?.coordinates as
+    | { lat?: unknown; lng?: unknown }
+    | null
+    | undefined;
+  if (!c || typeof c.lat !== "number" || typeof c.lng !== "number") {
+    return null;
+  }
+  return { lat: c.lat, lng: c.lng };
+}
 
 export const metadata = { title: "Task — Field" };
 export const dynamic = "force-dynamic";
@@ -39,13 +67,15 @@ export default async function FieldTaskDetail({
   const canUpload = hasPermission(ctx, "attachments.write");
   const canLogMaterial = hasPermission(ctx, "inventory.write");
 
-  const [checklist, attachments, materialUsage, items, locations] = await Promise.all([
-    getTaskChecklist(id),
-    listTaskAttachments(id),
-    listTaskMaterialUsage(id),
-    canLogMaterial ? listInventoryItems({ status: "active" }) : Promise.resolve([]),
-    canLogMaterial ? listInventoryLocations() : Promise.resolve([]),
-  ]);
+  const [checklist, attachments, materialUsage, items, locations, villaAnchor] =
+    await Promise.all([
+      getTaskChecklist(id),
+      listTaskAttachments(id),
+      listTaskMaterialUsage(id),
+      canLogMaterial ? listInventoryItems({ status: "active" }) : Promise.resolve([]),
+      canLogMaterial ? listInventoryLocations() : Promise.resolve([]),
+      getVillaAnchor(task.villaId),
+    ]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -97,6 +127,19 @@ export default async function FieldTaskDetail({
         <p className="rounded-md border border-dashed border-line-soft bg-muted/20 p-4 text-sm text-ink-tertiary">
           No checklist attached. A supervisor can add one from the dashboard.
         </p>
+      )}
+
+      {/* Stage 11.B.2 — offline-friendly capture surface (PhotoCapture +
+          GeoCheckIn over the IndexedDB queue). Coexists with the
+          AttachmentUploader below — operators on a stable connection use
+          either; field staff offline / on a flaky link use this. */}
+      {canUpload && (
+        <FieldCaptureBlock
+          taskId={task.id}
+          villaId={task.villaId}
+          villaAnchor={villaAnchor}
+          villaLabel={task.villaCode ?? task.projectName ?? "this villa"}
+        />
       )}
 
       <section className="rounded-lg border border-line-soft bg-surface p-4 flex flex-col gap-3">
