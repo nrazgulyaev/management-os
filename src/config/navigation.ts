@@ -37,15 +37,20 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+// Stage 10.I.3 — public marketing nav. Trimmed from 8 to 6 entries:
+//   "Villa management" → "Management OS" (now under /products/*)
+//   "Development OS" → /products/development-os
+//   Pricing surface added (Stage 10.I.4 ships /pricing/management-os)
+//   Owner portal / Investor reporting / Guest experience / Operations
+//     stay reachable via the footer's Resources column (lower priority
+//     in the primary nav once the per-product entries take centre stage).
 export const marketingNav: NavItem[] = [
-  { href: "/villa-management", label: "Villa management" },
-  { href: "/development", label: "Development OS" },
-  { href: "/owner-portal", label: "Owner portal" },
-  { href: "/investor-reporting", label: "Investor reporting" },
-  { href: "/guest-experience", label: "Guest experience" },
-  { href: "/operations", label: "Operations" },
+  { href: "/products/management-os", label: "Management OS" },
+  { href: "/products/development-os", label: "Development OS" },
+  { href: "/pricing/management-os", label: "Pricing" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/case-studies", label: "Case studies" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export const dashboardNav: NavGroup[] = [

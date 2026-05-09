@@ -82,6 +82,11 @@ const STAGE_10_C_REDIRECTS = [
   // Stage 10.M.3 — procurement aliased URLs from the operator spec
   { source: "/dashboard/procurement/purchase-orders", destination: "/dashboard/procurement/orders" },
   { source: "/dashboard/procurement/purchase-requests", destination: "/dashboard/procurement/requests" },
+  // Stage 10.I.3 — public marketing URLs retired in favour of /products/*
+  { source: "/villa-management", destination: "/products/management-os" },
+  { source: "/development", destination: "/products/development-os" },
+  // Stage 10.I.4 — bare /pricing redirects to the Mgmt OS pricing page (default)
+  { source: "/pricing", destination: "/pricing/management-os" },
   // /development-os
   { source: "/development-os/cabinets", destination: "/development-os/cabinets/my-cabinet" },
   { source: "/development-os/notifications", destination: "/development-os/settings/notifications" },

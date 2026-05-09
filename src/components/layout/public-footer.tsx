@@ -1,29 +1,36 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 
+// Stage 10.I.3 — Products column added. Old "Platform" group split:
+// product entries land in Products; the role-specific surfaces (owner /
+// investor / guest / operations) move to Resources for lower priority.
 const groups = [
   {
-    label: "Platform",
+    label: "Products",
     links: [
-      { label: "Villa management", href: "/villa-management" },
+      { label: "Management OS", href: "/products/management-os" },
+      { label: "Development OS", href: "/products/development-os" },
+      { label: "Pricing — Management OS", href: "/pricing/management-os" },
+      { label: "Pricing — Development OS", href: "/pricing/development-os" },
+    ],
+  },
+  {
+    label: "Resources",
+    links: [
       { label: "Owner portal", href: "/owner-portal" },
       { label: "Investor reporting", href: "/investor-reporting" },
       { label: "Guest experience", href: "/guest-experience" },
       { label: "Operations", href: "/operations" },
-    ],
-  },
-  {
-    label: "Company",
-    links: [
       { label: "Portfolio", href: "/portfolio" },
       { label: "Case studies", href: "/case-studies" },
-      { label: "Contact", href: "/contact" },
     ],
   },
   {
     label: "Access",
     links: [
+      { label: "Get started free", href: "/signup" },
       { label: "Sign in", href: "/login" },
+      { label: "Contact", href: "/contact" },
       { label: "Owner portal", href: "/owner" },
       { label: "Staff field", href: "/field" },
     ],

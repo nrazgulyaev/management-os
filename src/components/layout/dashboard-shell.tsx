@@ -3,6 +3,8 @@ import { DashboardSidebar } from "./dashboard-sidebar";
 import { DashboardTopbar } from "./dashboard-topbar";
 import { countUnreadForCurrentUser } from "@/features/notifications/services";
 import { getProductsEnabledForCurrentUser } from "@/features/auth/products-access";
+import { getCurrentOrgTrial } from "@/features/billing/trial-services";
+import { TrialBanner } from "@/components/billing/trial-banner";
 
 export async function DashboardShell({
   children,
@@ -33,10 +35,20 @@ export async function DashboardShell({
     enabledProducts = null;
   }
 
+  // Stage 10.I.6 — fetch trial state for the persistent banner. Returns
+  // null for anonymous visitors (banner hidden) or DB outages.
+  let trial: Awaited<ReturnType<typeof getCurrentOrgTrial>> = null;
+  try {
+    trial = await getCurrentOrgTrial();
+  } catch {
+    trial = null;
+  }
+
   return (
     <div className="min-h-screen flex bg-canvas">
       <DashboardSidebar />
       <div className="flex-1 flex flex-col min-w-0">
+        {trial && <TrialBanner state={trial.state} />}
         <DashboardTopbar
           title={topbarTitle}
           unreadCount={unreadCount}

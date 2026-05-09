@@ -338,12 +338,26 @@ test("Stage 7.E: middleware exists at src/middleware.ts", () => {
   assert.match(src, /x-tenant-host/);
 });
 
-test("Stage 7.E: /pricing public page reads from subscriptionPlans", () => {
-  const path = "src/app/(public)/pricing/page.tsx";
-  assert.ok(fileExists(path));
-  const src = readFile(path);
-  assert.match(src, /subscriptionPlans/);
-  assert.match(src, /isPublic/);
+test("Stage 7.E: /pricing public page retired in 10.I.4 → 308 redirect to /pricing/management-os", () => {
+  // Stage 7.E originally shipped /pricing reading from subscription_plans.
+  // Stage 10.I.4 split it into per-product pages
+  // (/pricing/management-os + /pricing/development-os) driven by the
+  // hardcoded src/lib/billing/pricing.ts config; the bare /pricing URL
+  // now 308-redirects via next.config.mjs. Existing operators who land
+  // on /pricing still arrive at a meaningful page.
+  assert.equal(
+    fileExists("src/app/(public)/pricing/page.tsx"),
+    false,
+    "old /pricing/page.tsx should be removed (replaced by 308 redirect)",
+  );
+  const config = readFile("next.config.mjs");
+  assert.match(
+    config,
+    /source:\s*"\/pricing"\s*,\s*destination:\s*"\/pricing\/management-os"/,
+  );
+  // Per-product pages exist + drive from the same pricing module.
+  assert.ok(fileExists("src/app/(public)/pricing/management-os/page.tsx"));
+  assert.ok(fileExists("src/app/(public)/pricing/development-os/page.tsx"));
 });
 
 test("Stage 7.E: /sign-up auth page exists + reads plans + posts to onboarding", () => {

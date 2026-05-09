@@ -98,34 +98,21 @@ test("10.I.1 — public header surfaces Sign in CTA + Apply CTA + marketingNav",
   assert.match(src, /marketingNav/);
 });
 
-test("10.I.1 — marketingNav lists every existing public marketing page", () => {
+test("10.I.1 — marketingNav is non-empty (reshaped in 10.I.3)", () => {
+  // Note: the original 10.I.1 contract pinned the pre-10.I.3 nav (8 items
+  // including /villa-management + /development). 10.I.3 retired those URLs
+  // (308-redirected) and replaced the nav with /products/* + /pricing/*.
+  // Locked in tests/development-stage-10-i-2-3-4.test.ts.
   const src = read(NAV_CONFIG);
-  // The existing 8-item marketingNav is the source of truth for header nav.
   assert.match(src, /marketingNav.*=/);
-  // Sample a few entries — must be present.
-  for (const href of [
-    "/villa-management",
-    "/development",
-    "/owner-portal",
-    "/case-studies",
-  ]) {
-    assert.ok(
-      src.includes(`href: "${href}"`),
-      `marketingNav must list ${href}`,
-    );
-  }
+  assert.match(src, /href:\s*"\/case-studies"/);
 });
 
-test("10.I.1 — homepage uses the existing investor-grade marketing components", () => {
+test("10.I.1 — homepage uses HeroSection + TrustStrip (10.I.2 rebuild keeps the vocab)", () => {
   const src = read(HOMEPAGE);
-  // Existing components from src/components/marketing/* must still drive
-  // the page — 10.I.2 will rebuild this content but should preserve the
-  // component vocabulary.
-  for (const cmp of [
-    "HeroSection",
-    "EditorialSection",
-    "TrustStrip",
-  ]) {
+  // 10.I.2 rebuild kept HeroSection + TrustStrip; EditorialSection moved
+  // to /products/management-os in 10.I.3 alongside the deeper Mgmt OS copy.
+  for (const cmp of ["HeroSection", "TrustStrip"]) {
     assert.ok(src.includes(cmp), `homepage must use <${cmp}>`);
   }
 });

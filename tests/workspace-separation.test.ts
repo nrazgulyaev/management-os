@@ -74,12 +74,12 @@ test("developmentAppNav routes all start with /development-os", async () => {
   }
 });
 
-test("marketingNav links to public /development page", async () => {
+test("marketingNav links to public /products/development-os page (Stage 10.I.3 reshape)", async () => {
   const { marketingNav } = await import("../src/config/navigation");
   const labels = marketingNav.map((i) => i.href);
   assert.ok(
-    labels.includes("/development"),
-    "Marketing nav must link to the public /development preview",
+    labels.includes("/products/development-os"),
+    "Marketing nav must link to the public /products/development-os page",
   );
   assert.ok(
     !labels.includes("/development-os"),
@@ -98,8 +98,8 @@ test("App Router route groups exist for both workspaces", () => {
     "Development OS workspace route group must exist",
   );
   assert.ok(
-    existsSync(resolve(root, "(public)/development/page.tsx")),
-    "Public Development OS marketing page must exist",
+    existsSync(resolve(root, "(public)/products/development-os/page.tsx")),
+    "Public Development OS marketing page must exist (Stage 10.I.3 — moved from /development to /products/development-os)",
   );
 });
 

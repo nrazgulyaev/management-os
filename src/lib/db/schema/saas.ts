@@ -63,6 +63,14 @@ export const organizations = pgTable(
       .array()
       .notNull()
       .default(sql`ARRAY['mgmt', 'dev']`),
+    /** Stage 10.I.5 — trial state machine. Set by /signup; flipped to
+     *  'expired' by /api/cron/trial-status; flipped to 'converted' by
+     *  the Stripe subscription webhook (Stage 10.L). 'none' for orgs
+     *  provisioned before 10.I.5. See src/features/billing/trial-state.ts
+     *  for the pure derivation helpers. */
+    trialStartedAt: timestamp("trial_started_at", { withTimezone: true }),
+    trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+    trialStatus: text("trial_status").notNull().default("none"),
     maxUsers: integer("max_users"),
     maxProjects: integer("max_projects"),
     maxAiAgentInvocationsPerMonth: integer(

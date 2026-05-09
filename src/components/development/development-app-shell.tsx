@@ -4,6 +4,8 @@ import { DevelopmentAppTopbar } from "./development-app-topbar";
 import { OfflineIndicator } from "./pwa/offline-indicator";
 import { InstallPrompt } from "./pwa/install-prompt";
 import { getProductsEnabledForCurrentUser } from "@/features/auth/products-access";
+import { getCurrentOrgTrial } from "@/features/billing/trial-services";
+import { TrialBanner } from "@/components/billing/trial-banner";
 
 /**
  * Workspace shell for the Development OS. Mirrors the structure of
@@ -30,10 +32,19 @@ export async function DevelopmentAppShell({
     enabledProducts = null;
   }
 
+  // Stage 10.I.6 — fetch trial state for the persistent banner.
+  let trial: Awaited<ReturnType<typeof getCurrentOrgTrial>> = null;
+  try {
+    trial = await getCurrentOrgTrial();
+  } catch {
+    trial = null;
+  }
+
   return (
     <div className="min-h-screen flex bg-canvas">
       <DevelopmentAppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
+        {trial && <TrialBanner state={trial.state} />}
         <DevelopmentAppTopbar
           title={topbarTitle}
           enabledProducts={enabledProducts}

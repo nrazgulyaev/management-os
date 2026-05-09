@@ -1,214 +1,178 @@
 import Link from "next/link";
-import { ArrowRight, MessageSquare, FileSpreadsheet, Building2, Hammer, Wallet, Boxes } from "lucide-react";
+import {
+  ArrowUpRight,
+  Building2,
+  HardHat,
+  Shield,
+  Workflow,
+  Sparkles,
+  LineChart,
+  Smartphone,
+  KeyRound,
+} from "lucide-react";
 import { HeroSection } from "@/components/marketing/hero-section";
-import { EditorialSection } from "@/components/marketing/editorial-section";
-import { PlatformPreview } from "@/components/marketing/platform-preview";
 import { TrustStrip } from "@/components/marketing/trust-strip";
-import { PillarGrid } from "@/components/marketing/pillar-grid";
-import { ManagementModels } from "@/components/marketing/management-models";
-import { ProjectCard } from "@/components/marketing/project-card";
-import { CaseStudyCard } from "@/components/marketing/case-study-card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ScrollReveal, ScrollStagger, ScrollStaggerItem } from "@/components/motion/scroll-reveal";
-import { mockProjects } from "@/lib/mock/projects";
-import { caseStudies } from "@/lib/mock/case-studies";
+import {
+  ScrollReveal,
+  ScrollStagger,
+  ScrollStaggerItem,
+} from "@/components/motion/scroll-reveal";
+
+/**
+ * Stage 10.I.2 — Umbrella public homepage.
+ *
+ * Replaces the prior single-product Mgmt-OS landing. Surfaces both
+ * products as equal entry points; deep Mgmt-OS marketing moves to
+ * /products/management-os in 10.I.3, deep Dev-OS marketing moves to
+ * /products/development-os.
+ *
+ * Brand voice: Professional / investor-grade per 10.I.1 operator
+ * decision. Restrained palette, display typeface for headlines only,
+ * conversion through clarity not pressure.
+ */
+
+export const metadata = {
+  title: "Arconique OS · One platform for property",
+  description:
+    "Two operating systems. One platform. Manage every villa and develop every project from a single source of truth — designed for investor-grade trust.",
+};
 
 export default function HomePage() {
   return (
     <>
       <HeroSection
-        eyebrow="Arconique Management OS"
+        eyebrow="Arconique OS"
         title={
           <>
-            Manage every villa as an{" "}
+            One platform.{" "}
             <em className="not-italic text-accent italic">
-              investment-grade
-            </em>{" "}
-            hospitality asset.
+              Two operating systems.
+            </em>
           </>
         }
-        description="One operating system for premium Bali villa portfolios — from booking and housekeeping to investor statements and pooled-profit distribution. Designed for trust, built for transparency."
-        primaryCta={{ label: "Request management proposal", href: "/contact" }}
-        secondaryCta={{ label: "View owner portal preview", href: "/owner" }}
-      >
-        <PlatformPreview />
-      </HeroSection>
+        description="Manage every villa as an investment-grade asset. Develop every project with the same source of truth. Arconique OS is the operating layer for premium property in Southeast Asia — transparent for owners, accountable for investors, intuitive for operators."
+        primaryCta={{ label: "Get started free", href: "/signup" }}
+        secondaryCta={{ label: "See pricing", href: "/pricing/management-os" }}
+      />
 
       <TrustStrip />
 
-      {/* Problem */}
-      <EditorialSection
-        eyebrow="The problem"
-        title="Premium villa management runs on a dozen disconnected tools."
-        description="WhatsApp groups for housekeeping, spreadsheets for finance, OTA dashboards for revenue, paper checklists for cleaners, scattered receipts from suppliers, opaque PDFs once a month. Owners can't audit the numbers. Investors lose confidence. Staff lose hours."
-      >
-        <ScrollStagger className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {[
-            {
-              icon: MessageSquare,
-              title: "Chat-driven operations",
-              body: "Turnover lists in WhatsApp threads. Photos lost in scrolls. No accountability.",
-            },
-            {
-              icon: FileSpreadsheet,
-              title: "Spreadsheet finance",
-              body: "Manual closes, copy-pasted from OTA exports. Errors creep in. Statements drift.",
-            },
-            {
-              icon: Hammer,
-              title: "Maintenance amnesia",
-              body: "Tickets in inboxes. Preventive schedules forgotten. Same issues recur.",
-            },
-            {
-              icon: Boxes,
-              title: "Procurement guesswork",
-              body: "Stock counted by feel. Receipts lost. Expense allocation argued every month.",
-            },
-            {
-              icon: Building2,
-              title: "Disconnected ownership",
-              body: "Pool members, hybrid owners, individuals — all forced into the same statement.",
-            },
-            {
-              icon: Wallet,
-              title: "Opaque payouts",
-              body: "Owners receive a number, not a story. Disputes follow.",
-            },
-          ].map((item) => {
-            const Icon = item.icon;
-            return (
-              <ScrollStaggerItem
-                key={item.title}
-                className="rounded-md border border-line-soft bg-surface p-5"
-              >
-                <Icon
-                  className="w-4 h-4 text-ink-tertiary"
-                  strokeWidth={1.75}
-                />
-                <h3 className="text-ink font-medium text-base mt-3">
-                  {item.title}
-                </h3>
-                <p className="text-sm text-ink-secondary mt-2 leading-relaxed">
-                  {item.body}
-                </p>
-              </ScrollStaggerItem>
-            );
-          })}
-        </ScrollStagger>
-      </EditorialSection>
-
-      {/* Solution */}
-      <EditorialSection
-        eyebrow="The solution"
-        title="One operating system, from booking to owner payout."
-        description="Arconique Management OS connects every part of villa operations on one data core: bookings, guests, housekeeping, maintenance, procurement, smart access, finance, taxes, payouts, statements, and AI assistants — all permission-aware and investor-grade."
-        invert
-      >
-        <PillarGrid />
-      </EditorialSection>
-
-      {/* Management models */}
-      <EditorialSection
-        eyebrow="Ownership models"
-        title="Individual. Pooled. Hybrid. All native, never bolted on."
-        description="The platform models all three ownership structures from day one. Switch the toggle to see how the same monthly close produces a different statement for each."
-      >
-        <ManagementModels />
-      </EditorialSection>
-
-      {/* AI section */}
-      <EditorialSection
-        eyebrow="AI, bounded"
-        title="Eight permission-aware assistants. Never an invented number."
-        description="Every AI answer cites the source row. Retrieval runs in your auth context — assistants cannot read what you cannot read. Mutating actions require explicit human approval."
-        invert
-      >
-        <ScrollStagger className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {[
-            { n: "Investor Assistant", d: "Explains your statement with citations. Refuses speculation about returns." },
-            { n: "Finance Analyst", d: "Variance detection, narrative drafting, reconciliation flags." },
-            { n: "Operations Copilot", d: "Today's turnover risk, SLA prediction, task reassignment proposals." },
-            { n: "Guest Concierge", d: "Token-scoped, boutique tone. Never reveals smart-lock codes." },
-            { n: "Maintenance Assistant", d: "Resolution drafts grounded in playbooks and warranty notes." },
-            { n: "Procurement Assistant", d: "Low-stock forecasts, supplier scoring, draft POs (never auto-sent)." },
-            { n: "CRM Assistant", d: "Drafts replies, classifies leads, matches villas to briefs." },
-            { n: "Report Writer", d: "Investor letters and ops reports — citations attached, second-eye approval." },
-          ].map((a) => (
-            <ScrollStaggerItem
-              key={a.n}
-              className="rounded-md border border-line-soft bg-surface p-5"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-ink font-medium">{a.n}</span>
-                <Badge tone="outline">Permission-aware</Badge>
-              </div>
-              <p className="text-sm text-ink-secondary mt-2 leading-relaxed">
-                {a.d}
-              </p>
-            </ScrollStaggerItem>
-          ))}
-        </ScrollStagger>
-        <div className="mt-6 text-xs text-ink-tertiary">
-          AI providers are not yet wired in this preview build. The assistant
-          layer arrives with Versions 3–7 of the implementation roadmap.
-        </div>
-      </EditorialSection>
-
-      {/* Portfolio */}
-      <EditorialSection
-        eyebrow="Portfolio"
-        title="Three projects on the same operating system."
-        description="Eternal Villas, Enso Villas, and Ahau Gardens — each modelling a distinct ownership structure. All three run on one data core, one design language, one trust model."
-      >
-        <ScrollStagger className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {mockProjects.map((p) => (
-            <ScrollStaggerItem key={p.id}>
-              <ProjectCard project={p} />
-            </ScrollStaggerItem>
-          ))}
-        </ScrollStagger>
-      </EditorialSection>
-
-      {/* Case studies */}
-      <EditorialSection
-        eyebrow="Case studies"
-        title="Modelled scenarios you can audit."
-        description="Each project illustrates a distinct management thesis. Numbers are modelled or labelled as demo — full audited figures available under NDA on request."
-        invert
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {caseStudies.map((s) => (
-            <CaseStudyCard key={s.slug} study={s} />
-          ))}
-        </div>
-      </EditorialSection>
-
-      {/* Final CTA */}
-      <section className="border-b border-line-soft">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-24 md:py-32">
-          <ScrollReveal className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-end">
-            <div className="md:col-span-7">
-              <span className="text-label">Apply to onboard</span>
-              <h2 className="text-display text-[40px] md:text-[68px] leading-[1.04] font-medium text-ink mt-4 tracking-tight">
-                The operating system for your villa portfolio.
+      {/* Two-product picker */}
+      <section className="border-b border-line-soft py-20 md:py-28">
+        <div className="max-w-[1400px] mx-auto px-6 md:px-8">
+          <ScrollReveal>
+            <div className="max-w-2xl mb-12 md:mb-16">
+              <span className="text-label">Choose your product</span>
+              <h2 className="mt-4 font-display text-3xl md:text-5xl tracking-[-0.02em] text-ink leading-[1.05]">
+                Operate, develop, or both.
               </h2>
-            </div>
-            <div className="md:col-span-5 flex flex-col gap-5">
-              <p className="text-ink-secondary text-base md:text-lg leading-relaxed">
-                Designed for premium Bali portfolios, fractional ownership
-                models, and high-trust hospitality operations. We onboard a
-                small number of new owners each quarter.
+              <p className="mt-5 text-base md:text-lg text-ink-secondary leading-relaxed">
+                The two products share a tenant, an audit trail, and a
+                permission model — so a single workspace can run a single
+                villa or a 50-villa portfolio with five active developments.
               </p>
-              <div className="flex flex-wrap gap-3">
+            </div>
+          </ScrollReveal>
+
+          <ScrollStagger className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6">
+            <ScrollStaggerItem>
+              <ProductCard
+                icon={Building2}
+                tone="accent"
+                eyebrow="Arconique Management OS"
+                title="Run the portfolio."
+                description="Bookings, channels, owner statements, concierge, maintenance, dynamic pricing, AI agents. Everything that keeps a premium villa portfolio running smoothly + transparently."
+                features={[
+                  "Booking + channel management (7 OTAs)",
+                  "Owner statements with line-by-line audit trail",
+                  "Concierge AI for guest-facing automation",
+                  "Maintenance intelligence + preventive scheduling",
+                  "Owner-stay quotas + self-service portal",
+                ]}
+                learnMoreHref="/products/management-os"
+                trialHref="/signup?product=mgmt"
+                pricingHref="/pricing/management-os"
+              />
+            </ScrollStaggerItem>
+            <ScrollStaggerItem>
+              <ProductCard
+                icon={HardHat}
+                tone="gold"
+                eyebrow="Arconique Development OS"
+                title="Build the next one."
+                description="Project management, BOQ, drawings, procurement, quality, sales pipeline, investor portal, distributions. Designed for multi-stakeholder villa + condotel developments where every line item must reconcile."
+                features={[
+                  "BOQ + drawings + revision control",
+                  "Procurement → quotation comparison → PO",
+                  "QA/QC + method statements + quality standards",
+                  "Investor capital ledger + waterfall distributions",
+                  "Sales pipeline + buyer portal + contracts",
+                ]}
+                learnMoreHref="/products/development-os"
+                trialHref="/signup?product=dev"
+                pricingHref="/pricing/development-os"
+              />
+            </ScrollStaggerItem>
+          </ScrollStagger>
+        </div>
+      </section>
+
+      {/* Cross-cutting features */}
+      <section className="border-b border-line-soft py-20 md:py-28 bg-muted/20">
+        <div className="max-w-[1400px] mx-auto px-6 md:px-8">
+          <ScrollReveal>
+            <div className="max-w-2xl mb-12 md:mb-16">
+              <span className="text-label">Built for both products</span>
+              <h2 className="mt-4 font-display text-3xl md:text-5xl tracking-[-0.02em] text-ink leading-[1.05]">
+                Infrastructure-grade by default.
+              </h2>
+              <p className="mt-5 text-base md:text-lg text-ink-secondary leading-relaxed">
+                Whether you&apos;re running villas, building them, or both,
+                the same platform foundations keep your data tenant-isolated,
+                auditable, and fast.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <ScrollStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+            {CROSS_CUTTING_FEATURES.map((f) => (
+              <ScrollStaggerItem key={f.title}>
+                <FeatureTile
+                  icon={f.icon}
+                  title={f.title}
+                  description={f.description}
+                />
+              </ScrollStaggerItem>
+            ))}
+          </ScrollStagger>
+        </div>
+      </section>
+
+      {/* Closing CTA */}
+      <section className="py-20 md:py-28">
+        <div className="max-w-[1400px] mx-auto px-6 md:px-8">
+          <ScrollReveal>
+            <div className="rounded-md border border-line-soft bg-surface p-10 md:p-16 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+              <div className="max-w-xl">
+                <span className="text-label">Start a free trial</span>
+                <h2 className="mt-3 font-display text-2xl md:text-4xl tracking-[-0.02em] text-ink leading-[1.1]">
+                  14 days. No credit card. Real data, real workflows.
+                </h2>
+                <p className="mt-4 text-sm md:text-base text-ink-secondary leading-relaxed">
+                  Provision a workspace in under a minute. Bring your villas
+                  or projects. We&apos;ll show you the audit trail.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 shrink-0">
                 <Button asChild size="lg">
-                  <Link href="/contact">
-                    Request management proposal
-                    <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
+                  <Link href="/signup">
+                    Get started free
+                    <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="secondary">
-                  <Link href="/owner">View owner portal preview</Link>
+                  <Link href="/contact">Talk to sales</Link>
                 </Button>
               </div>
             </div>
@@ -216,5 +180,144 @@ export default function HomePage() {
         </div>
       </section>
     </>
+  );
+}
+
+const CROSS_CUTTING_FEATURES = [
+  {
+    icon: Shield,
+    title: "Multi-tenant by construction",
+    description:
+      "Row-level security on every table. Your org's data never leaves your row set, even under operator error.",
+  },
+  {
+    icon: KeyRound,
+    title: "Role-based access",
+    description:
+      "20 internal roles + cabinet-specific dashboards. Operators see what they need; investors see what they're owed.",
+  },
+  {
+    icon: Sparkles,
+    title: "AI agents integrated",
+    description:
+      "9 specialised AI agents (Concierge, QS Cost Analyst, Risk Radar, others). Per-tenant quotas, per-org budgets, audit trail per invocation.",
+  },
+  {
+    icon: LineChart,
+    title: "Real-time dashboards",
+    description:
+      "Bookings, statements, BOQ progress, cashflow forecasts. All recomputed on-the-fly with database-side aggregates.",
+  },
+  {
+    icon: Smartphone,
+    title: "Mobile-first field app",
+    description:
+      "PWA for housekeeping + maintenance + site supervision. Offline-capable. Photos captured at the source, geo-tagged, signed.",
+  },
+  {
+    icon: Workflow,
+    title: "API + webhooks",
+    description:
+      "Per-org API keys, scoped permissions, HMAC-signed webhooks. Connect your own tooling without compromising the audit trail.",
+  },
+];
+
+function ProductCard({
+  icon: Icon,
+  tone,
+  eyebrow,
+  title,
+  description,
+  features,
+  learnMoreHref,
+  trialHref,
+  pricingHref,
+}: {
+  icon: typeof Building2;
+  tone: "accent" | "gold";
+  eyebrow: string;
+  title: string;
+  description: string;
+  features: string[];
+  learnMoreHref: string;
+  trialHref: string;
+  pricingHref: string;
+}) {
+  const toneRing =
+    tone === "accent"
+      ? "border-l-2 border-l-accent"
+      : "border-l-2 border-l-gold";
+  const toneIconBg =
+    tone === "accent"
+      ? "bg-accent text-accent-contrast"
+      : "bg-gold text-white";
+  return (
+    <div
+      className={`group rounded-md border border-line-soft bg-surface p-8 md:p-10 flex flex-col gap-6 transition-shadow hover:shadow-[var(--shadow-floating)] ${toneRing}`}
+    >
+      <div className="flex items-center gap-3">
+        <span
+          className={`w-10 h-10 rounded-sm flex items-center justify-center ${toneIconBg}`}
+        >
+          <Icon className="w-5 h-5" strokeWidth={1.75} />
+        </span>
+        <span className="text-label">{eyebrow}</span>
+      </div>
+
+      <div>
+        <h3 className="font-display text-2xl md:text-3xl tracking-[-0.02em] text-ink leading-[1.1]">
+          {title}
+        </h3>
+        <p className="mt-3 text-sm md:text-base text-ink-secondary leading-relaxed">
+          {description}
+        </p>
+      </div>
+
+      <ul className="flex flex-col gap-2.5 text-sm text-ink-secondary">
+        {features.map((f) => (
+          <li key={f} className="flex items-start gap-2.5">
+            <span className="w-1 h-1 rounded-full bg-ink-tertiary mt-2 shrink-0" />
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-auto pt-2 flex flex-col sm:flex-row gap-2 flex-wrap">
+        <Button asChild>
+          <Link href={trialHref}>
+            Start free trial
+            <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
+          </Link>
+        </Button>
+        <Button asChild variant="secondary">
+          <Link href={learnMoreHref}>Learn more</Link>
+        </Button>
+        <Button asChild variant="ghost">
+          <Link href={pricingHref}>Pricing</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function FeatureTile({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Building2;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-md border border-line-soft bg-surface p-6 flex flex-col gap-3 h-full">
+      <span className="w-9 h-9 rounded-sm bg-muted flex items-center justify-center">
+        <Icon className="w-4 h-4 text-ink-secondary" strokeWidth={1.75} />
+      </span>
+      <h3 className="font-medium text-base text-ink">{title}</h3>
+      <p className="text-sm text-ink-secondary leading-relaxed">
+        {description}
+      </p>
+    </div>
   );
 }

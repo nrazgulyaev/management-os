@@ -66,7 +66,7 @@ export function PublicHeader() {
             <Link href="/login">Sign in</Link>
           </Button>
           <Button asChild size="sm" variant="primary">
-            <Link href="/contact">Apply</Link>
+            <Link href="/signup">Get started free</Link>
           </Button>
         </div>
         <button
@@ -94,7 +94,7 @@ export function PublicHeader() {
                 <Link href="/login">Sign in</Link>
               </Button>
               <Button asChild size="sm" className="flex-1">
-                <Link href="/contact">Apply</Link>
+                <Link href="/signup">Get started free</Link>
               </Button>
             </div>
           </nav>

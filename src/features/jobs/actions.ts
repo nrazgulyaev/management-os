@@ -108,6 +108,7 @@ import {
   runSubscriptionPurgeArchived,
 } from "@/lib/development/server/cron";
 import { runWarmRoutesJob } from "./warm-routes-job";
+import { runTrialStatusJob } from "./trial-status-job";
 import { ensureDefaultJobDefinitions } from "./services";
 import { acquireJobLock, releaseJobLock } from "./locks";
 import { recordSecurityEvent } from "@/features/security-baseline/security-events";
@@ -246,6 +247,8 @@ const KNOWN_JOBS = new Set([
   "subscription_purge_archived",
   // Stage 8.E.1 — cold-start mitigation.
   "warm_routes",
+  // Stage 10.I.6 — trial state machine
+  "trial_status",
 ]);
 
 export type JobKey =
@@ -349,7 +352,8 @@ export type JobKey =
   | "subscription_advance_lifecycle"
   | "subscription_archive_expired"
   | "subscription_purge_archived"
-  | "warm_routes";
+  | "warm_routes"
+  | "trial_status";
 
 /**
  * Dispatch table — maps job key to runner. Cron routes call into this
@@ -617,6 +621,8 @@ export async function executeJob(
         return runSubscriptionPurgeArchived(handle);
       case "warm_routes":
         return runWarmRoutesJob(handle);
+      case "trial_status":
+        return runTrialStatusJob(handle);
       default:
         // unreachable — KNOWN_JOBS keeps us honest
         throw new Error(`Unhandled job key: ${jobKey}`);
