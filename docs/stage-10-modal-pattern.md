@@ -201,6 +201,48 @@ Pending Mgmt OS pages for 10.F follow-up:
 - `/dashboard/security/cameras` — modal candidate (small schema)
 - `/dashboard/operations/preventive` + `/operations/tasks` — multi-FK; evaluate
 
-Pending Dev OS pages for **10.F.2**:
-- 16 entities already have `*-modal-form.tsx` components (vendors, lead-sources, asset-types, cost-categories, bank-accounts, transactions, etc.) — those predate 10.F; verify they follow the same convention.
-- Pages with `/new` page-nav still pending: distributions, drawings, boq, method-statements, qa-qc, quality-standards, safety, banking. Same pattern as 10.F.1.
+---
+
+## Stage 10.F.2 — completed (Dev OS)
+
+### Two primitives, one pattern
+
+The Dev OS layer already had **14 list pages** wired to a modal-Add via the older Stage 6.P0 `<EntityModal>` shell (a thin native `<dialog>` wrapper from `src/components/forms/entity-modal.tsx`). Those modal-forms predate 10.D's declarative `<EntityFormModal>` but follow the same pattern functionally:
+
+- Trigger button + modal in the page header
+- Single submit → existing `create*Action` → `router.refresh()`
+- No `/new` page navigation; modal stays open + surfaces error inline on failure
+
+**Decision:** treat both `<EntityModal>` (legacy primitive) and `<EntityFormModal>` (10.D primitive) as compliant with the modal-Add pattern. Don't migrate the 14 existing components — premature churn until they need editing for some other reason. New modal-Add work uses `<EntityFormModal>` (declarative field config — less boilerplate).
+
+### Newly converted list pages (3)
+
+| Page | Add button | Server action | Notes |
+|---|---|---|---|
+| `/development-os/quality-standards` | `<AddQualityStandardButton>` | `createQualityStandard` | No required FK — clean modal fit |
+| `/development-os/drawings` | `<AddDrawingButton projects=...>` | `createDrawing` | Project FK as `<select>` (workspace ≤ 50 projects) |
+| `/development-os/boq` | `<AddBoqButton projects=...>` | `createBoqDocument` | Project FK as `<select>` |
+
+### addAction wiring backfilled (2)
+
+| Page | Modal-form (existing) | Backfill |
+|---|---|---|
+| `/development-os/asset-types` | `<AssetTypeModalForm>` | added `addAction` to `<NoItemsYet>` |
+| `/development-os/marketing/lead-sources` | `<LeadSourceModalForm>` | added `addAction` to `<NoItemsYet>` |
+
+### Deferred to `/new` page (4)
+
+| Page | Reason |
+|---|---|
+| `/development-os/distributions/new` | GET-based preview computation step — operator picks projectId/type, server recomputes investor allocations, then declares. Multi-step recompute flow doesn't fit modal. |
+| `/development-os/method-statements/new` | Dynamic procedure-step array (`min: 1`, repeating add/remove rows) — too tall for modal. |
+| `/development-os/safety/new` | Emergency-optimized form: severity color buttons, `incidentTime` defaults to NOW, escalation warnings. The page UX is the value — don't strip it. |
+| `/development-os/banking/new` | Discriminated provider union (Revolut / Wise / Mandiri / BCA / Manual) with credential validation + connection test on save. Provider-branching not modelable as flat field config. |
+
+These deferrals are documented in `tmp/stage-10-f-2-decisions.md` with the same reasoning. Stage 11+ candidate to revisit once the operator surfaces a need.
+
+### Project FK trade-off
+
+`<AddDrawingButton>` and `<AddBoqButton>` accept `projects: {id, name}[]` and render the FK as a plain `<select>`. The pattern guide above says "Required FK pickers are short lists (≤ 50 options)". Arconique's typical workspace today has < 20 active projects, so `<select>` is fine. If a workspace exceeds the threshold, the `/new` page (still wired) is the fallback — no UX regression.
+
+Operators creating their first drawing/BOQ when no projects exist see a disabled button with a tooltip: "Create a project before adding drawings".

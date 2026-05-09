@@ -33,6 +33,7 @@ export default async function LeadSourcesPage() {
           <NoItemsYet
             entityLabel="lead sources"
             description="Lead sources tag every inbound enquiry by channel. Pre-seeded with 14 defaults; add custom channels as needed."
+            addAction={<LeadSourceModalForm />}
           />
         ) : (
           <table className="w-full text-sm border-collapse">

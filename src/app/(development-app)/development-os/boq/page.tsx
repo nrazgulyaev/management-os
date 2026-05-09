@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listBoqDocuments } from "@/lib/development/server/boq/boq-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { projects } from "@/lib/db/schema/projects";
+import { NoItemsYet } from "@/components/ui/primitives";
+import { AddBoqButton } from "@/components/development/boq/boq-add-buttons";
 
 export const metadata: Metadata = { title: "BOQ · Development OS" };
 export const dynamic = "force-dynamic";
@@ -36,6 +39,12 @@ export default async function BoqListPage() {
     );
   }
   const docs = await safeQuery("listBoqDocuments", listBoqDocuments(), [], 4000);
+  const projectRows = await safeQuery(
+    "boqListProjects",
+    db.select({ id: projects.id, name: projects.name }).from(projects),
+    [] as Array<{ id: string; name: string }>,
+    4000,
+  );
 
   return (
     <DevelopmentShell>
@@ -50,12 +59,7 @@ export default async function BoqListPage() {
         description="Hierarchical line-item documents per project/villa with version history. Line totals are DB-computed (GENERATED STORED). Section subtotals + document totals are recomputed atomically when items change."
         actions={
           <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/development-os/boq/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New BOQ
-              </Link>
-            </Button>
+            <AddBoqButton projects={projectRows} />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
@@ -67,9 +71,10 @@ export default async function BoqListPage() {
       />
 
       {docs.length === 0 ? (
-        <EmptyState
-          title="No BOQ documents yet"
-          description="Create the first BOQ for a project. You can import sections + items via CSV after creation."
+        <NoItemsYet
+          entityLabel="BOQ documents"
+          description="Create the first BOQ for a project — sections + line items can be CSV-imported on the detail page once the document exists."
+          addAction={<AddBoqButton projects={projectRows} />}
         />
       ) : (
         <Section eyebrow="Catalog" title="All BOQ documents">

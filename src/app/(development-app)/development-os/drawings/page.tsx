@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listDrawings } from "@/lib/development/server/drawings/drawing-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { projects } from "@/lib/db/schema/projects";
+import { NoItemsYet } from "@/components/ui/primitives";
+import { AddDrawingButton } from "@/components/development/drawings/drawings-add-buttons";
 
 export const metadata: Metadata = { title: "Drawings · Development OS" };
 export const dynamic = "force-dynamic";
@@ -26,6 +29,12 @@ export default async function DrawingsListPage() {
     );
   }
   const rows = await safeQuery("listDrawings", listDrawings(), [], 4000);
+  const projectRows = await safeQuery(
+    "drawingsListProjects",
+    db.select({ id: projects.id, name: projects.name }).from(projects),
+    [] as Array<{ id: string; name: string }>,
+    4000,
+  );
 
   return (
     <DevelopmentShell>
@@ -40,12 +49,7 @@ export default async function DrawingsListPage() {
         description="Drawing metadata + revision control. Each drawing carries multiple revisions (Rev A, B, …). At most one revision per drawing is 'issued_for_construction' at any time (DB-enforced)."
         actions={
           <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/development-os/drawings/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New drawing
-              </Link>
-            </Button>
+            <AddDrawingButton projects={projectRows} />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
@@ -57,9 +61,10 @@ export default async function DrawingsListPage() {
       />
 
       {rows.length === 0 ? (
-        <EmptyState
-          title="No drawings yet"
-          description="Add the first drawing — initial revision can be uploaded immediately after."
+        <NoItemsYet
+          entityLabel="drawings"
+          description="Each drawing carries metadata + a revision stream. Add the first drawing here, then upload Rev A on the detail page."
+          addAction={<AddDrawingButton projects={projectRows} />}
         />
       ) : (
         <Section eyebrow="Catalog" title="All drawings">

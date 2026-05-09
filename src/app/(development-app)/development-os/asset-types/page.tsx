@@ -63,6 +63,7 @@ export default async function AssetTypesPage() {
         <NoItemsYet
           entityLabel="asset types"
           description="Asset types are seeded with 12 defaults — contact support if your workspace has none."
+          addAction={<AssetTypeModalForm />}
         />
       ) : (
         <Section eyebrow="Registry" title="Asset types">

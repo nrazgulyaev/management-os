@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listQualityStandards } from "@/lib/development/server/quality-standards/quality-standard-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { NoItemsYet } from "@/components/ui/primitives";
+import { AddQualityStandardButton } from "@/components/development/quality-standards/quality-standards-add-buttons";
 
 export const metadata: Metadata = {
   title: "Quality standards · Development OS",
@@ -47,12 +49,7 @@ export default async function QualityStandardsListPage() {
         description="Acceptance-criteria templates linked back to QA/QC inspections. QA inspectors can pin an inspection result against the formal standard that was being checked."
         actions={
           <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/development-os/quality-standards/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New standard
-              </Link>
-            </Button>
+            <AddQualityStandardButton />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
@@ -64,9 +61,10 @@ export default async function QualityStandardsListPage() {
       />
 
       {rows.length === 0 ? (
-        <EmptyState
-          title="No quality standards yet"
-          description="Add the first acceptance-criteria template."
+        <NoItemsYet
+          entityLabel="quality standards"
+          description="Acceptance-criteria templates linked back to QA/QC inspections — define the first one to give inspectors a yardstick."
+          addAction={<AddQualityStandardButton />}
         />
       ) : (
         <Section eyebrow="Catalog" title="All quality standards">
