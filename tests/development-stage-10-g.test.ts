@@ -98,7 +98,12 @@ test("10.G — verifyCronAuth REJECTS bad bearer on remote host (regression for 
 // Part 1.2 — */10 schedule restored.
 // ============================================================================
 
-test("10.G — vercel.json declares warm-routes cron with */10 schedule", () => {
+test("10.G — vercel.json declares the warm-routes cron entry", () => {
+  // Operator owns the cadence. Stage 10.G originally restored */10 (Pro plan
+  // restoration) but the operator subsequently re-reverted to a daily 0 6 * * *
+  // schedule post-CHECKPOINT 1. Test pins down the entry's existence + a
+  // valid 5-field cron expression; the operator's choice of cadence is
+  // intentionally NOT regression-locked.
   const src = read(VERCEL_JSON);
   const parsed = JSON.parse(src);
   assert.ok(Array.isArray(parsed.crons), "vercel.json must declare crons[]");
@@ -106,10 +111,15 @@ test("10.G — vercel.json declares warm-routes cron with */10 schedule", () => 
     (c: { path: string }) => c.path === "/api/cron/warm-routes",
   );
   assert.ok(warm, "warm-routes cron entry must exist");
-  assert.equal(
+  assert.match(
     warm.schedule,
-    "*/10 * * * *",
-    "Vercel Pro plan restored — schedule must be every 10 min (was 0 6 * * * under Hobby)",
+    /^[\d*\/,\- ]+$/,
+    "schedule must be a valid 5-field cron expression",
+  );
+  assert.equal(
+    warm.schedule.split(/\s+/).length,
+    5,
+    "cron expression must have 5 fields (min hour day month day-of-week)",
   );
 });
 
