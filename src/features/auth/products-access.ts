@@ -1,0 +1,105 @@
+import "server-only";
+
+import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { getDb } from "@/lib/db/client";
+import { appUsers } from "@/lib/db/schema/identity";
+import { organizations } from "@/lib/db/schema/saas";
+import {
+  coerceProductSlugs,
+  PRODUCT_HOME,
+  type ProductSlug,
+} from "@/lib/products";
+import { getCurrentUserContext } from "@/features/auth/permissions";
+import { getCurrentAppUser } from "@/features/auth/current-user";
+import {
+  decideProductAccess,
+  landingPathFor,
+  type ProductAccessOutcome,
+} from "./products-access-pure";
+
+// Re-export the pure helpers so call sites have a single import path.
+export { decideProductAccess, landingPathFor };
+export type { ProductAccessOutcome };
+
+/**
+ * Stage 10.H — Per-product access read + enforcement.
+ *
+ * `getProductsEnabledForCurrentUser()` resolves the current user's
+ * organization → `products_enabled text[]`. Returns null when no
+ * signed-in user / no DB.
+ *
+ * `enforceProductAccess(product)` is the layout-level guard. It calls
+ * the helper, applies the super_admin / internal / demo bypass rules,
+ * and `redirect()`s when the org doesn't have access. Used by both
+ * Mgmt OS + Dev OS layouts.
+ *
+ * Why a layout guard instead of edge middleware: the Edge runtime
+ * can't easily query Postgres, and middleware-level redirects can't
+ * surface a friendly inline message without a separate page. The
+ * layout sits server-side per request and already has DB access.
+ */
+
+export async function getProductsEnabledForCurrentUser(): Promise<
+  ProductSlug[] | null
+> {
+  const me = await getCurrentAppUser();
+  if (!me) return null;
+  const db = getDb();
+  if (!db) return null;
+
+  // appUsers.organizationId is NOT NULL in v0071+; fall back to null in
+  // case a legacy row slipped through without it.
+  const [row] = await db
+    .select({
+      orgId: appUsers.organizationId,
+    })
+    .from(appUsers)
+    .where(eq(appUsers.id, me.id))
+    .limit(1);
+
+  if (!row?.orgId) return null;
+
+  const [org] = await db
+    .select({ productsEnabled: organizations.productsEnabled })
+    .from(organizations)
+    .where(eq(organizations.id, row.orgId))
+    .limit(1);
+
+  return coerceProductSlugs(org?.productsEnabled);
+}
+
+/**
+ * Layout-level enforcement. Call from Mgmt OS / Dev OS root layouts.
+ * - Demo mode + super_admin / audit-bot: always allowed (no redirect).
+ * - No signed-in user: pass through (the existing auth-guard surfaces
+ *   render the sign-in CTA / dashboard skeleton).
+ * - Org has access: pass through.
+ * - Org has access to a different product: 308 redirect to that
+ *   product's home.
+ * - Org has zero products: redirect to /no-product-access.
+ */
+export async function enforceProductAccess(product: ProductSlug): Promise<void> {
+  const ctx = await getCurrentUserContext();
+
+  // Pass-through when there's no signed-in user — the existing
+  // dashboard / dev-os layouts surface the sign-in CTA themselves;
+  // we don't want to short-circuit that with a redirect from the guard.
+  if (!ctx.appUser) return;
+
+  const productsEnabled = await getProductsEnabledForCurrentUser();
+  const decision = decideProductAccess({
+    product,
+    productsEnabled,
+    isSuperAdmin: ctx.isSuperAdmin,
+    isDemoMode: ctx.mode === "demo",
+  });
+
+  if (decision.allowed) return;
+
+  if (decision.alternativeProducts.length > 0) {
+    redirect(PRODUCT_HOME[decision.alternativeProducts[0]]);
+  }
+  redirect("/no-product-access");
+}
+

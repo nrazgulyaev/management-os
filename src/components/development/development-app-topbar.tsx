@@ -5,11 +5,15 @@ import Link from "next/link";
 import { Bell, Search, Sparkles } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { WorkspaceSwitcher } from "@/components/shared/workspace-switcher";
+import type { ProductSlug } from "@/lib/products";
 
 export function DevelopmentAppTopbar({
   title,
+  enabledProducts = null,
 }: {
   title?: string;
+  /** Stage 10.H — Dev OS counterpart of the Mgmt OS topbar prop. */
+  enabledProducts?: ProductSlug[] | null;
 }) {
   return (
     <header className="sticky top-0 z-30 h-16 border-b border-line-soft bg-canvas/80 backdrop-blur flex items-center px-4 md:px-8 gap-3">
@@ -17,7 +21,7 @@ export function DevelopmentAppTopbar({
         <Logo variant="mark" />
       </div>
 
-      <WorkspaceSwitcher />
+      <WorkspaceSwitcher enabledProducts={enabledProducts} />
 
       {title && (
         <h1 className="hidden md:block text-sm font-medium text-ink-secondary">

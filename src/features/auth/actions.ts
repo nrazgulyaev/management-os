@@ -4,6 +4,10 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import {
+  getProductsEnabledForCurrentUser,
+  landingPathFor,
+} from "@/features/auth/products-access";
 
 export type AuthResult =
   | { ok: true }
@@ -35,8 +39,21 @@ export async function signInAction(
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath("/dashboard");
-  redirect("/dashboard");
+  // Stage 10.H — pick the landing surface based on the user's org's
+  // products_enabled. Single-product orgs go straight to that product;
+  // dual-product orgs (and any case where the lookup fails) default to
+  // /dashboard. Zero-product orgs land on /no-product-access.
+  let landingPath = "/dashboard";
+  try {
+    const products = await getProductsEnabledForCurrentUser();
+    landingPath = landingPathFor(products);
+  } catch {
+    // Lookup failure shouldn't block sign-in — fall back to /dashboard
+    // and let the layout-level enforceProductAccess() guard sort it out.
+  }
+
+  revalidatePath(landingPath);
+  redirect(landingPath);
 }
 
 export async function signOutAction(): Promise<void> {

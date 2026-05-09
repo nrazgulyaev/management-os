@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ProductSlug } from "@/lib/products";
 
 export type WorkspaceKey =
   | "management"
@@ -30,6 +31,10 @@ interface Workspace {
   matchPrefix: string;
   icon: LucideIcon;
   tone: "accent" | "gold" | "stone" | "sage";
+  /** Stage 10.H — when set, only renders if the org has this product
+   *  in `products_enabled`. Owner / Field are not gated — they're
+   *  separate surfaces (owner portal, field PWA), not products. */
+  requiresProduct?: ProductSlug;
 }
 
 const WORKSPACES: Workspace[] = [
@@ -41,6 +46,7 @@ const WORKSPACES: Workspace[] = [
     matchPrefix: "/dashboard",
     icon: Building2,
     tone: "accent",
+    requiresProduct: "mgmt",
   },
   {
     key: "development",
@@ -50,6 +56,7 @@ const WORKSPACES: Workspace[] = [
     matchPrefix: "/development-os",
     icon: HardHat,
     tone: "gold",
+    requiresProduct: "dev",
   },
   {
     key: "owner",
@@ -91,10 +98,30 @@ function detectActive(pathname: string): Workspace {
   );
 }
 
+/** Stage 10.H — filter workspaces to those the user's org can reach.
+ *  Owner / Field aren't products and stay visible (separate access
+ *  surfaces). Mgmt + Dev are filtered by `enabledProducts`. When the
+ *  prop is null, behaves as before (renders all four — keeps the
+ *  switcher useful in pre-Stage-10.H call sites that haven't been
+ *  upgraded yet). */
+function visibleWorkspaces(
+  enabledProducts: ProductSlug[] | null,
+): Workspace[] {
+  if (enabledProducts === null) return WORKSPACES;
+  return WORKSPACES.filter((w) => {
+    if (!w.requiresProduct) return true;
+    return enabledProducts.includes(w.requiresProduct);
+  });
+}
+
 export function WorkspaceSwitcher({
   className,
+  enabledProducts = null,
 }: {
   className?: string;
+  /** Stage 10.H — gate the Mgmt OS / Dev OS entries. Owner + Field
+   *  always render; pass null to render all four (legacy callers). */
+  enabledProducts?: ProductSlug[] | null;
 }) {
   const pathname = usePathname() ?? "/";
   const active = detectActive(pathname);
@@ -102,6 +129,13 @@ export function WorkspaceSwitcher({
   const ActiveIcon = active.icon;
   const ref = React.useRef<HTMLDivElement>(null);
 
+  const workspaces = React.useMemo(
+    () => visibleWorkspaces(enabledProducts),
+    [enabledProducts],
+  );
+
+  // Hooks first (rules-of-hooks: always called in the same order) — the
+  // visibility short-circuit happens after every hook has been registered.
   React.useEffect(() => {
     if (!open) return;
     function onClick(e: MouseEvent) {
@@ -123,6 +157,11 @@ export function WorkspaceSwitcher({
   React.useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  // Hide the switcher entirely when only the current workspace is reachable.
+  if (workspaces.length <= 1) {
+    return null;
+  }
 
   return (
     <div ref={ref} className={cn("relative", className)}>
@@ -157,7 +196,7 @@ export function WorkspaceSwitcher({
             <span className="text-label">Switch workspace</span>
           </div>
           <ul className="py-1">
-            {WORKSPACES.map((w) => {
+            {workspaces.map((w) => {
               const Icon = w.icon;
               const isActive = w.key === active.key;
               return (
