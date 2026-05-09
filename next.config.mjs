@@ -79,6 +79,9 @@ const STAGE_10_C_REDIRECTS = [
   { source: "/dashboard/villa-guides/services", destination: "/dashboard/guest-services" },
   { source: "/dashboard/villa-guides/services/finance-bridge", destination: "/dashboard/guest-services/finance-bridge" },
   { source: "/dashboard/villa-guides/services/orders", destination: "/dashboard/guest-services/orders" },
+  // Stage 10.M.3 — procurement aliased URLs from the operator spec
+  { source: "/dashboard/procurement/purchase-orders", destination: "/dashboard/procurement/orders" },
+  { source: "/dashboard/procurement/purchase-requests", destination: "/dashboard/procurement/requests" },
   // /development-os
   { source: "/development-os/cabinets", destination: "/development-os/cabinets/my-cabinet" },
   { source: "/development-os/notifications", destination: "/development-os/settings/notifications" },
