@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
+import {
+  DashboardKpi,
+  NoItemsYet,
+  PageHeaderHero,
+} from "@/components/ui/primitives";
 import { Section } from "@/components/ui/section";
-import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
 import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -10,6 +13,23 @@ import { loadSalesCabinet } from "@/lib/development/server/cabinets/sales-cabine
 import { safeQuery } from "@/lib/development/safe-query";
 import { redirect } from "next/navigation";
 import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
+
+/**
+ * Stage 10.5.A.3.1 — Sales Manager cabinet (replatformed).
+ *
+ * Layout follows the pattern doc shipped in 10.5.A.1.4. Per-manager
+ * (queries take `me.id`) so different managers see different pipelines
+ * — RLS happens at the leads / sales_conversation_threads layer.
+ *
+ * KPI mapping:
+ *   - Hot leads             → hotLeadsCount
+ *   - Active conversations  → activeConversationsCount
+ *   - Reservations (MTD)    → reservationsThisMonth
+ *   - Overdue follow-ups    → followupsOverdueCount  (status bad when > 0)
+ *
+ * Side panel: top 5 hot leads (clickable), plus weekly performance
+ * snapshot from manager_performance_metrics when present.
+ */
 
 export const metadata: Metadata = { title: "Sales manager · Cabinet" };
 export const dynamic = "force-dynamic";
@@ -19,98 +39,169 @@ export default async function SalesManagerCabinetPage() {
   if (__gateRedirect) redirect(__gateRedirect);
 
   const me = await getCurrentAppUser();
+  const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
+
   if (!me) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Sales manager" />
-        <EmptyState title="Sign in" description="Log in to see your pipeline." />
+        <div className="flex flex-col gap-8">
+          <PageHeaderHero
+            eyebrow="Sales manager"
+            title="Sign in to see your pipeline"
+            description="Per-manager dashboard. Log in to load your leads, conversations, and follow-ups."
+          />
+        </div>
       </DevelopmentShell>
     );
   }
-  const data = await safeQuery(
-    "salesCabinet",
-    loadSalesCabinet(me.id),
-    {
-      hotLeadsCount: 0,
-      activeConversationsCount: 0,
-      reservationsThisMonth: 0,
-      contractsThisMonth: 0,
-      followupsOverdueCount: 0,
-      managerWeeklySnapshot: null,
-      topHotLeads: [],
-    },
-  );
+
+  const data = await safeQuery("salesCabinet", loadSalesCabinet(me.id), {
+    hotLeadsCount: 0,
+    activeConversationsCount: 0,
+    reservationsThisMonth: 0,
+    contractsThisMonth: 0,
+    followupsOverdueCount: 0,
+    managerWeeklySnapshot: null,
+    topHotLeads: [],
+  });
+
+  const overdueStatus =
+    data.followupsOverdueCount === 0
+      ? "good"
+      : data.followupsOverdueCount > 5
+        ? "bad"
+        : "warn";
+
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Sales manager"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Cabinets" },
-          { label: "Sales manager" },
-        ]}
-        description="Per-manager pipeline + performance + follow-ups."
-      />
-      <Section title="My active pipeline">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard label="Hot leads" value={String(data.hotLeadsCount)} />
-          <MetricCard
+      <div className="flex flex-col gap-8">
+        <PageHeaderHero
+          firstName={firstName ?? undefined}
+          eyebrow="Sales manager"
+          title="Your pipeline"
+          description="Hot leads, active conversations, follow-ups, and your latest performance snapshot."
+        />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <DashboardKpi
+            label="Hot leads"
+            value={String(data.hotLeadsCount)}
+            status={data.hotLeadsCount > 0 ? "good" : "neutral"}
+            drillHref="/development-os/marketing/leads?lifecycle=hot&assigned=me"
+            hint="Lifecycle status hot, assigned to you"
+          />
+          <DashboardKpi
             label="Active conversations"
             value={String(data.activeConversationsCount)}
+            status="neutral"
+            drillHref="/development-os/sales/conversations"
+            hint="Open or on hold"
           />
-          <MetricCard
-            label="Reservations this month"
+          <DashboardKpi
+            label="Reservations (MTD)"
             value={String(data.reservationsThisMonth)}
+            status={data.reservationsThisMonth === 0 ? "warn" : "good"}
+            drillHref="/development-os/marketing/leads?lifecycle=reservation"
+            hint="Lifecycle changed this month"
           />
-          <MetricCard
-            label="Contracts this month"
-            value={String(data.contractsThisMonth)}
-          />
-        </div>
-      </Section>
-      <Section title="Follow-ups">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <MetricCard
-            label="Overdue (5+ days)"
+          <DashboardKpi
+            label="Overdue follow-ups"
             value={String(data.followupsOverdueCount)}
+            status={overdueStatus}
+            drillHref="/development-os/sales/conversations?stale=true"
+            hint="No reply for 5+ days"
           />
         </div>
-      </Section>
-      {data.managerWeeklySnapshot && (
-        <Section title="My latest weekly snapshot">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <MetricCard
-              label="Lead → reservation"
-              value={`${data.managerWeeklySnapshot.leadToReservationRate ?? "—"}%`}
-            />
-            <MetricCard
-              label="Avg response (min)"
-              value={data.managerWeeklySnapshot.averageResponseTimeMinutes ?? "—"}
-            />
-            <MetricCard
-              label="AI quality score"
-              value={data.managerWeeklySnapshot.aiQualityScore ?? "—"}
-            />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            <Section eyebrow="Performance" title="My weekly snapshot">
+              {data.managerWeeklySnapshot ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <DashboardKpi
+                    label="Lead → reservation"
+                    value={`${data.managerWeeklySnapshot.leadToReservationRate ?? "—"}`}
+                    unit="%"
+                    status="neutral"
+                  />
+                  <DashboardKpi
+                    label="Avg response"
+                    value={data.managerWeeklySnapshot.averageResponseTimeMinutes ?? "—"}
+                    unit="min"
+                    status="neutral"
+                  />
+                  <DashboardKpi
+                    label="AI quality score"
+                    value={data.managerWeeklySnapshot.aiQualityScore ?? "—"}
+                    status={
+                      data.managerWeeklySnapshot.aiQualityScore !== null &&
+                      Number(data.managerWeeklySnapshot.aiQualityScore) >= 80
+                        ? "good"
+                        : "neutral"
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="rounded-md border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
+                  No weekly snapshot yet. Snapshots populate from the
+                  manager-performance cron.
+                </div>
+              )}
+            </Section>
+
+            <Section eyebrow="Contracts" title="This month">
+              <DashboardKpi
+                label="Contracts (MTD)"
+                value={String(data.contractsThisMonth)}
+                status="neutral"
+                drillHref="/development-os/marketing/leads?lifecycle=contract"
+                hint="Lifecycle changed this month"
+              />
+            </Section>
           </div>
-        </Section>
-      )}
-      <Section title="Top hot leads">
-        {data.topHotLeads.length === 0 ? (
-          <EmptyState title="No hot leads" description="All quiet on the pipeline front." />
-        ) : (
-          <ul className="text-sm space-y-1">
-            {data.topHotLeads.map((l) => (
-              <li
-                key={l.id}
-                className="flex items-center justify-between border-b border-line-soft py-2"
-              >
-                <span className="font-mono text-xs">{l.leadCode}</span>
-                <Badge tone="warning">{l.lifecycleStatus}</Badge>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+
+          <aside className="flex flex-col gap-4">
+            <Section eyebrow="Pipeline" title="Top hot leads">
+              {data.topHotLeads.length === 0 ? (
+                <NoItemsYet
+                  entityLabel="hot leads"
+                  description="All quiet on the pipeline front. New leads will appear here as they arrive."
+                />
+              ) : (
+                <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+                  {data.topHotLeads.map((l) => (
+                    <li key={l.id}>
+                      <Link
+                        href={`/development-os/marketing/leads/${l.id}`}
+                        className="flex items-center justify-between px-4 py-3 hover:bg-surface-hover"
+                      >
+                        <span className="font-mono text-xs text-ink">
+                          {l.leadCode}
+                        </span>
+                        <Badge
+                          tone={
+                            l.lifecycleStatus === "hot" ? "warning" : "neutral"
+                          }
+                        >
+                          {l.lifecycleStatus}
+                        </Badge>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-2 flex justify-end">
+                <Link
+                  href="/development-os/marketing/leads?assigned=me"
+                  className="text-xs text-ink-tertiary hover:underline"
+                >
+                  All my leads →
+                </Link>
+              </div>
+            </Section>
+          </aside>
+        </div>
+      </div>
     </DevelopmentShell>
   );
 }
