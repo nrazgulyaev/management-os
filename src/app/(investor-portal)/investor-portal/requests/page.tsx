@@ -54,8 +54,15 @@ export default async function PortalRequestsPage() {
         </div>
 
         {requests.length === 0 ? (
-          <div className="rounded-md border border-stone-300 bg-white p-6 text-sm text-stone-600">
-            No requests yet. Submit one from the Wallet tab.
+          <div className="rounded-md border border-dashed border-stone-300 bg-white px-6 py-10 text-center">
+            <p className="text-sm font-medium text-stone-700">
+              No requests yet
+            </p>
+            <p className="text-xs text-stone-500 mt-2 max-w-md mx-auto leading-relaxed">
+              Submit a withdrawal, reinvestment, or transfer request from the
+              Wallet tab. The Arconique team reviews every request before
+              execution.
+            </p>
           </div>
         ) : (
           <ul className="space-y-2">

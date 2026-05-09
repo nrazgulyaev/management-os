@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
-import { MetricCard } from "@/components/ui/metric-card";
 import { Badge } from "@/components/ui/badge";
+import { DashboardKpi } from "@/components/ui/primitives";
 import { listOwnerVillaHealthSnapshots } from "@/features/owner-intelligence/health-services";
 import { listAdminReviews } from "@/features/owner-intelligence/reviews-services";
 
@@ -28,20 +28,29 @@ export default async function OwnerIntelligenceHub() {
         description="Owner calendar, villa health snapshots, and review management. The owner-side projection (in /owner/calendar, /owner/villas/[id]/health, etc.) only ever sees the owner-safe shape — guests' contact info and access secrets stay internal."
       />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Snapshots stored" value={String(snapshots.length)} />
-        <MetricCard
+        <DashboardKpi
+          label="Snapshots stored"
+          value={String(snapshots.length)}
+          status="neutral"
+          hint="Cached owner-safe villa-health computations"
+        />
+        <DashboardKpi
           label="Villas needing attention"
           value={String(attention.length)}
-          accent={attention.length > 0}
+          status={attention.length > 0 ? "bad" : "good"}
+          hint={attention.length > 0 ? "Health watch or attention status" : "All villas in good or excellent shape"}
         />
-        <MetricCard
+        <DashboardKpi
           label="Negative reviews"
           value={String(negative.length)}
-          accent={negative.length > 0}
+          status={negative.length > 0 ? "warn" : "good"}
+          hint="Sentiment negative or rating < 3.5"
         />
-        <MetricCard
+        <DashboardKpi
           label="Recent reviews"
           value={String(recentReviews.length)}
+          status="neutral"
+          hint="Last 50 reviews on file"
         />
       </div>
       <Section eyebrow="Manage" title="Jump to">

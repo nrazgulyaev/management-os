@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
+import { NoItemsYet } from "@/components/ui/primitives";
 import { listOwnerVillaHealthSnapshots } from "@/features/owner-intelligence/health-services";
 import { GenerateAllSnapshotsButton } from "@/components/owner-intelligence/snapshot-buttons";
 
@@ -37,9 +38,10 @@ export default async function HealthListPage() {
       />
       <Section eyebrow="History" title={`${snapshots.length} snapshots`}>
         {snapshots.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            None yet. Run the generate button above to seed the dataset.
-          </p>
+          <NoItemsYet
+            entityLabel="health snapshots"
+            description="No villa health snapshots have been generated yet. Use the 'Generate snapshots' button in the page header to seed the current month for every villa with prior history."
+          />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
             <table className="w-full text-sm">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
+import { NoItemsYet } from "@/components/ui/primitives";
 import { listOwnerStayRequestsForCurrentOwner } from "@/features/owner-stays/services";
 
 export const metadata = { title: "My owner stays" };
@@ -54,9 +55,10 @@ export default async function OwnerStaysPage() {
 
       <Section eyebrow="Your requests" title={`${rows.length} requests`}>
         {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No requests yet. Use the button above to submit one.
-          </p>
+          <NoItemsYet
+            entityLabel="owner-stay requests"
+            description="No owner-stay requests yet. Use the 'Request a stay' button to submit one — your portfolio's owner-stay quota policy decides whether it counts against your annual allowance."
+          />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
             <ul className="divide-y divide-line-soft">

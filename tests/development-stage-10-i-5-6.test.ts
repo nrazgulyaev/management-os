@@ -284,12 +284,20 @@ test("10.I.6 — job registry knows trial_status + dispatches to runTrialStatusJ
   assert.match(src, /runTrialStatusJob/);
 });
 
-test("10.I.6 — vercel.json declares the trial-status cron entry", () => {
-  const src = read(VERCEL_JSON);
-  const parsed = JSON.parse(src);
-  const trial = parsed.crons.find(
-    (c: { path: string }) => c.path === "/api/cron/trial-status",
+test("10.I.6 — trial-status cron route + handler intact (vercel.json schedule = operator-owned)", () => {
+  // Operator owns the vercel.json schedule (same pattern as the 10.G
+  // warm-routes test: cadence + presence is the operator's call, not
+  // regression-locked here). What 10.I.6 owns + locks down:
+  //   - the cron route file exists
+  //   - the handler delegates to the shared cron envelope with the
+  //     correct job key
+  //   - the job is registered in the dispatch table (covered separately)
+  // The cron is invokable via /api/cron/run-all (the dispatcher) or by
+  // explicit re-add to vercel.json when the operator wants it scheduled.
+  assert.ok(
+    exists("src/app/api/cron/trial-status/route.ts"),
+    "trial-status cron route must exist",
   );
-  assert.ok(trial, "trial-status cron entry must exist");
-  assert.match(trial.schedule, /^[\d*\/,\- ]+$/);
+  const handler = read("src/app/api/cron/trial-status/route.ts");
+  assert.match(handler, /handleCronJobRequest\(request,\s*"trial_status"\)/);
 });

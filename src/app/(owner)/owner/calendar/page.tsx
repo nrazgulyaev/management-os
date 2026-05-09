@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
+import { NoItemsYet } from "@/components/ui/primitives";
 import {
   listOwnerCalendarRows,
 } from "@/features/owner-intelligence/calendar-services";
@@ -259,10 +260,10 @@ export default async function OwnerCalendarPage({
         </Section>
       )}
       {rows.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-8 text-sm text-ink-tertiary">
-          You don&apos;t have any villas linked to your account yet. Talk to
-          your property manager if you think this is wrong.
-        </p>
+        <NoItemsYet
+          entityLabel="linked villas"
+          description="You don't have any villas linked to your account yet. Talk to your property manager if you think this is wrong."
+        />
       ) : (
         rows.map((row) => (
           <Section
@@ -280,7 +281,7 @@ export default async function OwnerCalendarPage({
             }
           >
             {row.events.length === 0 ? (
-              <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
+              <p className="rounded-md border border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
                 Nothing scheduled in this window.
               </p>
             ) : (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
+import { NoItemsYet, NoMatchingResults } from "@/components/ui/primitives";
 import { listOwnerBookingSummariesForCurrentUser } from "@/features/owner-bookings/services";
 import {
   publicStatusLabel,
@@ -96,9 +97,14 @@ export default async function OwnerBookingsPage({
         />
       </div>
       {summaries.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-8 text-sm text-ink-tertiary">
-          No bookings match these filters.
-        </p>
+        source !== "all" || status !== "all" || sp.villa ? (
+          <NoMatchingResults resetHref="/owner/bookings" />
+        ) : (
+          <NoItemsYet
+            entityLabel="bookings"
+            description="No bookings on your villas yet. Bookings will appear here as they're confirmed via direct booking, OTAs, or owner stays."
+          />
+        )
       ) : (
         <Section
           eyebrow="Bookings"

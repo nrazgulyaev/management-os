@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { MetricCard } from "@/components/ui/metric-card";
+import { NoItemsYet } from "@/components/ui/primitives";
 import {
   getOwnerRevenueMetrics,
   listOwnerRevenueSourceMonthly,
@@ -83,9 +84,10 @@ export default async function OwnerRevenuePage() {
         description="Direct bookings carry no OTA commission but still include payment, admin, or management fees that may appear on your statement."
       >
         {sourceMix.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-8 text-sm text-ink-tertiary">
-            No revenue rows yet for this period.
-          </p>
+          <NoItemsYet
+            entityLabel="revenue rows"
+            description="No revenue recorded for this period yet. Once bookings settle and statements close, source-mix breakdown lands here."
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {sourceMix.map((s) => (
@@ -118,9 +120,10 @@ export default async function OwnerRevenuePage() {
         description="One row per month / source. Check-in date determines the bucket."
       >
         {monthly.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-8 text-sm text-ink-tertiary">
-            No bucket rows. Run the projection rebuild from the admin panel to seed.
-          </p>
+          <NoItemsYet
+            entityLabel="monthly buckets"
+            description="No bucket rows yet. Bucket rows are computed by the owner-revenue projection rebuild — your portfolio admin can trigger one from the admin panel."
+          />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
             <table className="w-full text-sm">

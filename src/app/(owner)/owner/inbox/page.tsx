@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Section } from "@/components/ui/section";
+import { NoItemsYet } from "@/components/ui/primitives";
 import { OwnerInboxRowActions } from "@/components/owner/inbox-actions";
 import {
   countUnreadInboxForCurrentOwner,
@@ -65,9 +66,10 @@ export default async function OwnerInboxPage({
 
       <Section eyebrow="Inbox" title="Notifications">
         {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            Your inbox is empty.
-          </p>
+          <NoItemsYet
+            entityLabel="notifications"
+            description="Your inbox is empty. Statement publishes, distribution declarations, and stay-request decisions land here when they happen."
+          />
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
             <ul className="divide-y divide-line-soft">

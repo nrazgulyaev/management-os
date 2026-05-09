@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
-import { MetricCard } from "@/components/ui/metric-card";
+import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
 import { listOwnerRevenueSourceMonthly } from "@/features/owner-bookings/services";
 import { listOwnerVillasForCurrentUser } from "@/features/owner-intelligence/calendar-services";
 import {
@@ -40,15 +40,28 @@ export default async function AdminOwnerRevenueMixPage() {
         actions={<RebuildMonthlyButton />}
       />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
+        <DashboardKpi
           label="Net owner effect"
           value={formatMoneyMinor(totalNet, currency)}
+          status="neutral"
+          hint="Across every owner in scope"
         />
-        <MetricCard label="Owners" value={String(ownerIds.length)} />
-        <MetricCard label="Bucket rows" value={String(monthly.length)} />
-        <MetricCard
+        <DashboardKpi
+          label="Owners"
+          value={String(ownerIds.length)}
+          status="neutral"
+        />
+        <DashboardKpi
+          label="Bucket rows"
+          value={String(monthly.length)}
+          status={monthly.length === 0 ? "warn" : "neutral"}
+          hint={monthly.length === 0 ? "Run rebuild to seed" : undefined}
+        />
+        <DashboardKpi
           label="Source buckets"
           value={String(sourceMix.length)}
+          status="neutral"
+          hint="direct / OTA / owner-stay / etc."
         />
       </div>
       <Section eyebrow="Source mix" title="Per source totals">

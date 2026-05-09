@@ -73,8 +73,14 @@ export default async function DashboardPage() {
           {strings.dashActiveCommitments}
         </h2>
         {commitments.length === 0 ? (
-          <div className="rounded-md border border-stone-200 bg-white p-6 text-sm text-stone-600">
-            {strings.dashNoCommitments}
+          <div className="rounded-md border border-dashed border-stone-300 bg-white px-6 py-10 text-center">
+            <p className="text-sm font-medium text-stone-700">
+              {strings.dashNoCommitments}
+            </p>
+            <p className="text-xs text-stone-500 mt-2 max-w-md mx-auto leading-relaxed">
+              When Arconique creates a commitment under your account, it will
+              appear here with capital-call progress + distribution history.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
