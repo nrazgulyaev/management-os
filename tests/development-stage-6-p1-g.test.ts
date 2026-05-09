@@ -384,7 +384,9 @@ test("integrations page: exists + renders channel manager card with stats", () =
   assert.match(src, /Channel manager/);
   assert.match(src, /Active connections/);
   assert.match(src, /Connections in error/);
-  assert.match(src, /API calls \(7d\)/);
+  // Stage 10.M.5 renamed the label "API calls (7d)" → "API calls · 7d"
+  // when migrating to <DashboardKpi> (10.D primitive).
+  assert.match(src, /API calls · 7d/);
 });
 
 test("integrations page: links to channels grid + inbox + conflicts", () => {

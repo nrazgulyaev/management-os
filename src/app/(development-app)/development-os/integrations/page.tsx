@@ -7,13 +7,14 @@ import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { DashboardKpi } from "@/components/ui/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
   channelConnections,
   channelSyncLog,
 } from "@/lib/db/schema/channel-manager";
-import { CHANNEL_LABELS } from "@/components/development/channels/connect-channel-modal";
+import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = {
   title: "Integrations · Development OS",
@@ -22,14 +23,12 @@ export const dynamic = "force-dynamic";
 
 /**
  * Stage 6.P1.G.3 — Platform-wide integrations health hub.
- *
- * One card per integration category. Channel Manager is fully
- * populated in P1; the others are placeholders (Banking → P3,
- * Communications → P2, Marketing → P4, Productivity → P5, AI Agents →
- * extends Stage 3.A) so operators see the full integration roadmap
- * from day one.
- *
- * Click "Channel Manager" → drill into the channels grid.
+ * Stage 10.M.5 — fixed runtime 500 (Track B closure):
+ *   - Dropped the dead `void CHANNEL_LABELS` import that pulled a
+ *     "use client" module into this server-component graph.
+ *   - Wrapped every db query in safeQuery so a query failure surfaces
+ *     a degraded view (zeros) instead of a 500 page.
+ *   - Switched StatTile → 10.D <DashboardKpi>.
  */
 export default async function IntegrationsHubPage() {
   const db = getDb();
@@ -46,33 +45,54 @@ export default async function IntegrationsHubPage() {
   }
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const [statusRow, recentErrors, recentApiCallsRow] = await Promise.all([
-    db
-      .select({
-        active: sql<number>`count(*) FILTER (WHERE ${channelConnections.status} = 'active')::int`,
-        error: sql<number>`count(*) FILTER (WHERE ${channelConnections.status} = 'error')::int`,
-        paused: sql<number>`count(*) FILTER (WHERE ${channelConnections.status} = 'paused')::int`,
-        total: sql<number>`count(*)::int`,
-      })
-      .from(channelConnections)
-      .then((rows) => rows[0]),
-    db
-      .select({
-        c: sql<number>`count(*)::int`,
-      })
-      .from(channelSyncLog)
-      .where(
-        sql`${channelSyncLog.status} = 'failed' AND ${channelSyncLog.triggeredAt} >= ${sevenDaysAgo}`,
-      )
-      .then((rows) => Number(rows[0]?.c ?? 0)),
-    db
-      .select({
-        c: sql<number>`coalesce(sum(${channelSyncLog.apiCallsCount}), 0)::int`,
-      })
-      .from(channelSyncLog)
-      .where(sql`${channelSyncLog.triggeredAt} >= ${sevenDaysAgo}`)
-      .then((rows) => Number(rows[0]?.c ?? 0)),
+
+  const statusFallback = { active: 0, error: 0, paused: 0, total: 0 };
+
+  const [statusRow, recentErrors, recentApiCalls] = await Promise.all([
+    safeQuery(
+      "integrations.connectionStatus",
+      db
+        .select({
+          active: sql<number>`count(*) FILTER (WHERE ${channelConnections.status} = 'active')::int`,
+          error: sql<number>`count(*) FILTER (WHERE ${channelConnections.status} = 'error')::int`,
+          paused: sql<number>`count(*) FILTER (WHERE ${channelConnections.status} = 'paused')::int`,
+          total: sql<number>`count(*)::int`,
+        })
+        .from(channelConnections)
+        .then((rows) => rows[0] ?? statusFallback),
+      statusFallback,
+      4000,
+    ),
+    safeQuery(
+      "integrations.recentErrors",
+      db
+        .select({ c: sql<number>`count(*)::int` })
+        .from(channelSyncLog)
+        .where(
+          sql`${channelSyncLog.status} = 'failed' AND ${channelSyncLog.triggeredAt} >= ${sevenDaysAgo}`,
+        )
+        .then((rows) => Number(rows[0]?.c ?? 0)),
+      0,
+      4000,
+    ),
+    safeQuery(
+      "integrations.apiCalls7d",
+      db
+        .select({
+          c: sql<number>`coalesce(sum(${channelSyncLog.apiCallsCount}), 0)::int`,
+        })
+        .from(channelSyncLog)
+        .where(sql`${channelSyncLog.triggeredAt} >= ${sevenDaysAgo}`)
+        .then((rows) => Number(rows[0]?.c ?? 0)),
+      0,
+      4000,
+    ),
   ]);
+
+  const activeCount = Number(statusRow.active ?? 0);
+  const errorCount = Number(statusRow.error ?? 0);
+  const pausedCount = Number(statusRow.paused ?? 0);
+  const totalCount = Number(statusRow.total ?? 0);
 
   return (
     <DevelopmentShell>
@@ -81,7 +101,7 @@ export default async function IntegrationsHubPage() {
           { label: "Development OS", href: "/development-os" },
           { label: "Integrations" },
         ]}
-        eyebrow={`${statusRow?.active ?? 0} active · ${statusRow?.error ?? 0} in error · ${recentErrors} errors in last 7d`}
+        eyebrow={`${activeCount} active · ${errorCount} in error · ${recentErrors} errors in last 7d`}
         title="Integrations"
         description="Health hub for every external system the platform talks to. Click a category to drill into per-connection detail."
         actions={
@@ -100,28 +120,32 @@ export default async function IntegrationsHubPage() {
         description="Booking.com, Airbnb, Trip.com, Agoda, Expedia, VRBO, Hotels.com. Each connection is per villa × channel."
       >
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatTile
+          <DashboardKpi
             label="Active connections"
-            value={String(statusRow?.active ?? 0)}
-            hint={`of ${statusRow?.total ?? 0} total`}
+            value={String(activeCount)}
+            status={activeCount > 0 ? "good" : "neutral"}
+            hint={`of ${totalCount} total`}
           />
-          <StatTile
+          <DashboardKpi
             label="Connections in error"
-            value={String(statusRow?.error ?? 0)}
-            tone={(statusRow?.error ?? 0) > 0 ? "danger" : "neutral"}
+            value={String(errorCount)}
+            status={errorCount > 0 ? "bad" : "good"}
+            hint={errorCount > 0 ? "Investigate from /development-os/channels" : "All connections healthy"}
           />
-          <StatTile
+          <DashboardKpi
             label="Paused"
-            value={String(statusRow?.paused ?? 0)}
+            value={String(pausedCount)}
+            status={pausedCount > 0 ? "warn" : "neutral"}
+            hint="Not actively syncing"
           />
-          <StatTile
-            label="API calls (7d)"
-            value={recentApiCallsRow.toLocaleString()}
+          <DashboardKpi
+            label="API calls · 7d"
+            value={recentApiCalls.toLocaleString()}
+            status={recentErrors > 0 ? "warn" : "neutral"}
             hint={`${recentErrors} failed sync${recentErrors === 1 ? "" : "s"}`}
-            tone={recentErrors > 0 ? "warning" : "neutral"}
           />
         </div>
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
           <Button asChild>
             <Link href="/development-os/channels">Open channels →</Link>
           </Button>
@@ -170,38 +194,6 @@ export default async function IntegrationsHubPage() {
   );
 }
 
-function StatTile({
-  label,
-  value,
-  hint,
-  tone,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: "danger" | "warning" | "neutral";
-}) {
-  const valueClass =
-    tone === "danger"
-      ? "text-danger"
-      : tone === "warning"
-        ? "text-warning"
-        : "text-ink";
-  return (
-    <div className="rounded-md border border-line-soft p-3">
-      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-        {label}
-      </div>
-      <div className={`mt-1 text-xl font-medium tabular-nums ${valueClass}`}>
-        {value}
-      </div>
-      {hint && (
-        <div className="text-[11px] text-ink-tertiary mt-0.5">{hint}</div>
-      )}
-    </div>
-  );
-}
-
 function PlaceholderCard({
   title,
   stage,
@@ -223,5 +215,3 @@ function PlaceholderCard({
     </div>
   );
 }
-
-void CHANNEL_LABELS; // imported for future per-channel breakdown — keep ref alive
