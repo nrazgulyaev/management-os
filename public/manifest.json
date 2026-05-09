@@ -1,8 +1,8 @@
 {
-  "name": "Arconique Development OS",
+  "name": "Arconique",
   "short_name": "Arconique",
-  "description": "Real estate development operating system",
-  "start_url": "/development-os/dashboard",
+  "description": "Property operations + development OS — bookings, owner statements, BOQ, procurement, field tasks.",
+  "start_url": "/dashboard",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#ffffff",
@@ -53,14 +53,28 @@
   ],
   "shortcuts": [
     {
+      "name": "Today's tasks",
+      "short_name": "Field",
+      "url": "/field",
+      "description": "Field-app task list — housekeeping + maintenance + inspection"
+    },
+    {
       "name": "Site Supervisor",
+      "short_name": "Site",
       "url": "/development-os/cabinets/site-supervisor",
       "description": "Site reports + photo upload"
     },
     {
       "name": "Quick Photo",
+      "short_name": "Photo",
       "url": "/development-os/operations/site-reports/quick-photo",
       "description": "Take photo immediately"
+    },
+    {
+      "name": "Front office today",
+      "short_name": "Today",
+      "url": "/dashboard/front-office",
+      "description": "Arrivals, departures, in-house"
     }
   ]
 }

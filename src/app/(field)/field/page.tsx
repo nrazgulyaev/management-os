@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { FieldQuickActions } from "@/components/field/field-quick-actions";
-import { TaskStatusPill } from "@/components/operations/task-status-pill";
-import { PriorityPill } from "@/components/operations/priority-pill";
-import { ChevronRight, CheckCircle2, Clock, Wrench } from "lucide-react";
+import { CheckCircle2, Clock, Wrench } from "lucide-react";
+import { MobileTaskCard } from "@/components/ui/primitives";
+import type { MobileTaskStatus } from "@/components/ui/primitives";
 import { listTasksForCurrentStaff, type OperationTaskRow } from "@/features/operations/services";
 import { listCurrentReadiness } from "@/features/readiness/services";
 import { isDbConfigured } from "@/lib/env";
@@ -226,16 +226,18 @@ function isOpenStatus(s: string) {
   return s !== "completed" && s !== "approved" && s !== "cancelled";
 }
 
-const READINESS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
-  ready: "success",
-  occupied: "info",
-  cleaning: "warning",
-  inspection: "info",
-  dirty: "warning",
-  out_of_order: "danger",
-  maintenance_block: "danger",
-  unknown: "neutral",
-};
+function toMobileStatus(s: string): MobileTaskStatus {
+  if (s === "completed" || s === "approved") return "complete";
+  if (s === "in_progress") return "in_progress";
+  if (s === "cancelled") return "blocked";
+  return "pending";
+}
+
+function actionLabelFor(status: string): string {
+  if (status === "in_progress") return "Continue";
+  if (status === "completed" || status === "approved") return "Review";
+  return "Open";
+}
 
 export default async function FieldHome() {
   const live = isDbConfigured();
@@ -405,43 +407,21 @@ function TaskGroup({
           const href =
             t.source === "db" ? `/field/tasks/${t.id}` : "/field/tasks/demo";
           const readiness = t.villaId ? readinessByVilla[t.villaId] : null;
+          const metaParts: string[] = [];
+          if (t.villaCode) metaParts.push(t.villaCode);
+          if (readiness) metaParts.push(readiness);
+          if (t.source === "mock") metaParts.push("demo");
           return (
-            <Link
+            <MobileTaskCard
               key={t.id}
+              title={t.title}
+              subtitle={`${t.taskCode} · ${t.category.replace(/_/g, " ")}${t.priority !== "normal" ? ` · ${t.priority}` : ""}`}
+              status={toMobileStatus(t.status)}
+              when={t.scheduledFor ?? undefined}
+              meta={metaParts.length > 0 ? metaParts.join(" · ") : undefined}
+              actionLabel={actionLabelFor(t.status)}
               href={href}
-              className="rounded-lg border border-line-soft bg-surface p-5 flex items-start justify-between gap-3 hover:border-line-strong transition-colors active:translate-y-[1px] min-h-[88px]"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-[11px] text-ink-tertiary">
-                    {t.taskCode}
-                  </span>
-                  <PriorityPill priority={t.priority} />
-                  {t.scheduledFor && (
-                    <span className="text-[11px] text-ink-tertiary tabular-nums">
-                      {t.scheduledFor}
-                    </span>
-                  )}
-                  {readiness && (
-                    <Badge tone={READINESS_TONES[readiness] ?? "neutral"}>
-                      {readiness}
-                    </Badge>
-                  )}
-                  {t.source === "mock" && <Badge tone="neutral">demo</Badge>}
-                </div>
-                <div className="text-ink font-medium text-base mt-2">
-                  {t.title}
-                </div>
-                <div className="text-xs text-ink-secondary mt-0.5 capitalize">
-                  {t.category.replace(/_/g, " ")}
-                  {t.villaCode ? ` · ${t.villaCode}` : ""}
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <TaskStatusPill status={t.status} />
-                <ChevronRight className="w-5 h-5 text-ink-tertiary" />
-              </div>
-            </Link>
+            />
           );
         })}
       </div>

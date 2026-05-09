@@ -477,18 +477,21 @@ test("offline-sync route requires authentication", () => {
 // ===========================================================================
 
 test("public/manifest.json exists + valid JSON with required keys", () => {
+  // Stage 10.K generalized the manifest: name dropped the "Development OS"
+  // suffix (now serves Mgmt OS + Dev OS + Field), start_url moved to
+  // /dashboard. short_name + display + icons contract unchanged.
   assert.ok(exists("public/manifest.json"));
   const obj = JSON.parse(read("public/manifest.json"));
-  assert.equal(obj.name, "Arconique Development OS");
+  assert.equal(obj.name, "Arconique");
   assert.equal(obj.short_name, "Arconique");
   assert.equal(obj.display, "standalone");
   assert.ok(Array.isArray(obj.icons));
   assert.ok(obj.icons.length >= 4);
 });
 
-test("manifest start_url is dashboard", () => {
+test("manifest start_url points at the Mgmt OS dashboard (Stage 10.K)", () => {
   const obj = JSON.parse(read("public/manifest.json"));
-  assert.equal(obj.start_url, "/development-os/dashboard");
+  assert.equal(obj.start_url, "/dashboard");
 });
 
 test("manifest has shortcuts for Site Supervisor + Quick Photo", () => {
