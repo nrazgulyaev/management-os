@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db/client";
@@ -40,34 +41,44 @@ export type { ProductAccessOutcome };
  * layout sits server-side per request and already has DB access.
  */
 
-export async function getProductsEnabledForCurrentUser(): Promise<
-  ProductSlug[] | null
-> {
-  const me = await getCurrentAppUser();
-  if (!me) return null;
-  const db = getDb();
-  if (!db) return null;
+/**
+ * Stage 10.6.B.2-fix — wrapped in React's `cache()` so the layout +
+ * any subsequent server-component caller share ONE DB roundtrip
+ * within a single request. Combined with the `cache()` wrap on
+ * getCurrentUserContext, the layout-level enforceProductAccess call
+ * goes from 5 DB queries down to 2 (auth + roles join + organizations
+ * lookup, deduped per request).
+ */
+export const getProductsEnabledForCurrentUser = cache(
+  async function getProductsEnabledForCurrentUser(): Promise<
+    ProductSlug[] | null
+  > {
+    const me = await getCurrentAppUser();
+    if (!me) return null;
+    const db = getDb();
+    if (!db) return null;
 
-  // appUsers.organizationId is NOT NULL in v0071+; fall back to null in
-  // case a legacy row slipped through without it.
-  const [row] = await db
-    .select({
-      orgId: appUsers.organizationId,
-    })
-    .from(appUsers)
-    .where(eq(appUsers.id, me.id))
-    .limit(1);
+    // appUsers.organizationId is NOT NULL in v0071+; fall back to null in
+    // case a legacy row slipped through without it.
+    const [row] = await db
+      .select({
+        orgId: appUsers.organizationId,
+      })
+      .from(appUsers)
+      .where(eq(appUsers.id, me.id))
+      .limit(1);
 
-  if (!row?.orgId) return null;
+    if (!row?.orgId) return null;
 
-  const [org] = await db
-    .select({ productsEnabled: organizations.productsEnabled })
-    .from(organizations)
-    .where(eq(organizations.id, row.orgId))
-    .limit(1);
+    const [org] = await db
+      .select({ productsEnabled: organizations.productsEnabled })
+      .from(organizations)
+      .where(eq(organizations.id, row.orgId))
+      .limit(1);
 
-  return coerceProductSlugs(org?.productsEnabled);
-}
+    return coerceProductSlugs(org?.productsEnabled);
+  },
+);
 
 /**
  * Layout-level enforcement. Call from Mgmt OS / Dev OS root layouts.

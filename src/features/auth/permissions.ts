@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
@@ -15,7 +16,16 @@ import {
 export type { CurrentUserContext, RoleKey };
 export { hasPermissionImpl as hasPermission };
 
-export async function getCurrentUserContext(): Promise<CurrentUserContext> {
+/**
+ * Stage 10.6.B.2-fix — wrapped in React's `cache()` so the layout +
+ * every server component in a single render share ONE DB roundtrip
+ * instead of N. Before the wrap, every page handler that called
+ * `requirePermission()` re-queried `app_users + user_roles + roles`
+ * even though the layout had already done it; on production the
+ * compounded load was a primary contributor to the 13 P0 500s.
+ */
+export const getCurrentUserContext = cache(
+  async function getCurrentUserContext(): Promise<CurrentUserContext> {
   if (!isDbConfigured()) {
     return {
       mode: "demo",
@@ -73,7 +83,7 @@ export async function getCurrentUserContext(): Promise<CurrentUserContext> {
     isInternal: roleKeys.some((r) => INTERNAL_ROLES.includes(r)),
     isSuperAdmin: roleKeys.includes("super_admin"),
   };
-}
+});
 
 export class AuthorizationError extends Error {
   readonly code = "UNAUTHORIZED";

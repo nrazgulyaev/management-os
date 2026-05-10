@@ -12,6 +12,7 @@ import {
   getNotificationRules,
   getNotificationTemplates,
 } from "@/lib/development/server/notifications";
+import { safeQuery } from "@/lib/development/safe-query";
 import {
   isNotificationsDryRun,
   isResendConfigured,
@@ -24,10 +25,25 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function NotificationsAdminPage() {
+  // Stage 10.6.B.2-fix — wrap each query individually so a single
+  // slow/failing loader doesn't 500 the whole page (Promise.all
+  // rejects on first rejection).
   const [rules, templates, deliveryLog] = await Promise.all([
-    getNotificationRules(),
-    getNotificationTemplates(),
-    getNotificationDeliveryLog({ limit: 100 }),
+    safeQuery(
+      "settings-notifications.getNotificationRules",
+      getNotificationRules(),
+      [] as Awaited<ReturnType<typeof getNotificationRules>>,
+    ),
+    safeQuery(
+      "settings-notifications.getNotificationTemplates",
+      getNotificationTemplates(),
+      [] as Awaited<ReturnType<typeof getNotificationTemplates>>,
+    ),
+    safeQuery(
+      "settings-notifications.getNotificationDeliveryLog",
+      getNotificationDeliveryLog({ limit: 100 }),
+      [] as Awaited<ReturnType<typeof getNotificationDeliveryLog>>,
+    ),
   ]);
 
   return (
