@@ -1,7 +1,40 @@
 # 00 — Executive summary
 
-**Status**: 🟡 IN PROGRESS — CHECKPOINT 3 (Dev OS audit) shipped 2026-05-10.
-**Next**: CHECKPOINT 4 — Cross-cutting (mobile, integrations, SubscriptionOS gap). Does NOT auto-launch; awaits operator review.
+**Status**: 🟡 IN PROGRESS — CHECKPOINT 4 (cross-cutting) shipped 2026-05-10.
+**Next**: CHECKPOINT 5 — Executive summary finalisation + ranked fix list + Phase 10.6.B-F prompt seeds. Does NOT auto-launch; awaits operator review.
+
+---
+
+## CHECKPOINT 4 headline findings
+
+### Mobile responsiveness (30-page sweep at 375×667)
+- **26 of 30 pages clean** (87%) — Stage 10.5.A cabinet pattern degrades to single-column cleanly, hero text scales, side panels flow below
+- **4 horizontal-overflow violators** (P2-P3 polish): `/sign-up` (14px), `/development-os/sales` (67px), `/development-os/ai-agents` (109px), `/dashboard/notifications` (6px)
+- Total remediation: ~5h. **No mobile blockers for customer launch.**
+- See [`05-cross-cutting/mobile-responsiveness.md`](05-cross-cutting/mobile-responsiveness.md)
+
+### Integration matrix (15 services audited)
+- **Only AI agents at Stage 10.5.B parity** (per-org UI + encrypted storage + test connection + status indicator + multi-provider). Set the bar.
+- **5 P0 broken integrations** (Stripe, WhatsApp, Resend, channel managers, Google Workspace) need to reach 10.5.B parity for customer launch
+- **9 lower-priority** (Maps / SMS / Analytics / etc.) deferred to Phase 10.6.F
+- Phase 10.6.D scope: ~32-50h ≈ 1-2 weeks ✓ matches master plan
+- See [`05-cross-cutting/integration-completeness.md`](05-cross-cutting/integration-completeness.md)
+
+### SubscriptionOS gap analysis (operator priority)
+- **Foundations shipped**: 7-table subscription schema + 6 cron jobs + Stripe bridge + trial-conversion helper + per-org plan-upgrade page (customer-side)
+- **Platform-owner UI MISSING**: revenue dashboard, customer drill-down, trial funnel, comp management, Stripe customer reconciliation
+- **Recommended architecture**: new `(admin)` route group with `/admin/{customers,subscriptions,revenue,trials,comps,stripe}` + `enforcePlatformAdmin()` gate
+- **Phase 10.6.E MVP**: ~52h ≈ 2 weeks ✓ matches master plan
+- **Pre-requisites**: fix 5 platform-side P0 500s + confirm Stripe end-to-end + confirm `dev_os_usage_metrics` cron running
+- See [`05-cross-cutting/subscription-os-gap.md`](05-cross-cutting/subscription-os-gap.md)
+
+### Demo data quality
+- **Audit-bot org has zero application data** in production → cabinets render empty even though pages are functional
+- Existing seed scripts (`seed.ts`, `seed-dev-os.mjs`) target `ARCONIQUE_DEFAULT` org; need a `seed-audit-bot-demo.ts` scoped to audit-bot
+- ~8-10h task should be the FIRST Phase 10.6.B item so subsequent visual review (10.6.C) is against populated surfaces
+- See [`05-cross-cutting/demo-data-quality.md`](05-cross-cutting/demo-data-quality.md)
+
+---
 
 ---
 
@@ -227,16 +260,19 @@ CHECKPOINT 2 surfaces the candidates:
 
 ---
 
-## ⛔ HALT — CHECKPOINT 3 review before CHECKPOINT 4 launches
+## ⛔ HALT — CHECKPOINT 4 review before CHECKPOINT 5 launches
 
-Per cadence rule, CHECKPOINT 4 (cross-cutting + integrations +
-SubscriptionOS gap) does NOT auto-launch.
+Per cadence rule, CHECKPOINT 5 (executive-summary finalisation +
+ranked fix list + Phase 10.6.B-F prompt seeds) does NOT auto-launch.
 
 Operator should:
-1. Browse [`02-dev-os-by-section/`](02-dev-os-by-section/) — confirm format consistency with CHECKPOINT 2 Mgmt OS files.
-2. Review [`_p0-500-diagnoses.md`](02-dev-os-by-section/_p0-500-diagnoses.md) — confirm the 11 hypothesis-triples are reasonable; reproduce 1-2 in browser per Q6 + paste Vercel log.
-3. Confirm the AI agent activation/connectivity finding (single carry-over from Stage 10.5.B = single ~6-12h fix unblocks all 10 cabinets + Concierge AI).
-4. Confirm BoQ resolution (works at `/boq`; `/quantity-surveying` is separate placeholder).
-5. Reply **"go 10.6.A.checkpoint-4"** OR with course corrections.
+1. Browse [`05-cross-cutting/`](05-cross-cutting/) — confirm CHECKPOINT 4 deliverables.
+2. Review [`subscription-os-gap.md`](05-cross-cutting/subscription-os-gap.md) carefully — operator-flagged as priority. Confirm the (admin) route-group architecture proposal + Phase 10.6.E MVP scoping.
+3. Spot-check 2-3 of the 30 mobile screenshots in [`screenshots/mobile/`](screenshots/mobile/) — confirm the cabinet pattern degrades cleanly.
+4. Confirm the integration matrix prioritisation (5 P0 integrations to reach Stage 10.5.B parity in 10.6.D).
+5. Confirm demo-data seed task is the first 10.6.B work-item.
+6. Reply **"go 10.6.A.checkpoint-5"** OR with course corrections.
 
-Estimated CHECKPOINT 4 effort: ~1 day for cross-cutting (mobile responsiveness sample of 30 pages + integration matrix + SubscriptionOS gap analysis).
+Estimated CHECKPOINT 5 effort: ~1 day to finalise the ranked fix
+list + draft the Phase 10.6.B-F prompt seeds the operator will paste
+back to launch each phase.
