@@ -312,7 +312,13 @@ test("aiExecute integrates router pipeline", () => {
 
 test("aiExecute uses router-resolved model unless caller overrides", () => {
   const src = readFile("src/lib/ai/execute.ts");
-  assert.match(src, /const resolvedModel = input\.model \?\? route\.model/);
+  // Stage 10.6.B.3 extended this to ALSO honor per-org model overrides
+  // (Stage 10.5.B carry-over). The original `input.model ?? route.model`
+  // contract is preserved at the outer fallback level; the per-org
+  // model slots in between caller input and router default.
+  assert.match(src, /const resolvedModel\b/);
+  assert.match(src, /input\.model\s*\?\?/);
+  assert.match(src, /route\.model/);
   assert.match(src, /model:\s*resolvedModel/);
 });
 

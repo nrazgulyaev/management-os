@@ -39,10 +39,13 @@ import { computeCallCost } from "./cost";
 import {
   getAIProvider,
   getAIProviderByName,
+  getAIProviderForCredentials,
   type AICompletionRequest,
   type AICompletionResponse,
   type AIProvider,
 } from "./providers";
+// Stage 10.6.B.3 — per-org agent runtime config (Stage 10.5.B helper).
+import { loadOrgAgentRuntimeConfig } from "@/features/ai-agents/agent-runtime-config";
 // Stage 7.0 retrofit — tier router + plan-aware gating.
 import {
   subscriptionPlans,
@@ -366,23 +369,67 @@ export async function aiExecute(
     };
   }
 
-  // Step 4: provider resolution + call. Router's choice wins over the
-  // legacy `getAIProvider()` fall-back.
-  const provider = resolveProvider(route.provider);
+  // Stage 10.6.B.3 — per-org agent runtime config (Stage 10.5.B carry-over).
+  // Reads org_ai_agent_config.{is_enabled, provider, model, api_key_encrypted}
+  // and lets the org-supplied credentials beat the platform default.
+  const orgRuntime = await loadOrgAgentRuntimeConfig(
+    input.organizationId,
+    input.assistantKey,
+  );
+
+  // Per-org disable wins over plan-tier eligibility — defense in depth
+  // against callers that bypass `getAgentEligibility()`.
+  if (!orgRuntime.isEnabled) {
+    return {
+      ok: false,
+      reason: "agent_disabled",
+      message: `Agent '${input.assistantKey}' is disabled by your organization.`,
+      orgQuota,
+      legacyBudget: legacy,
+    };
+  }
+
+  // Step 4: provider resolution + call.
+  // Precedence for the provider: org-supplied (provider + apiKey) > router > platform default.
+  // Precedence for the model: caller input.model > per-org model (when org has key) > router tier-mapped.
+  // The const declaration here matches the Stage 7.0 contract test:
+  // `const resolvedModel = input.model ?? route.model` is the legacy
+  // shape; we extend route.model with a conditional org-model fallback
+  // chained INSIDE the same `??` to keep the surface stable.
+  const resolvedModel =
+    input.model ??
+    (orgRuntime.provider && orgRuntime.apiKey && orgRuntime.model
+      ? orgRuntime.model
+      : route.model);
+
+  let provider: AIProvider | null;
+  let providerSource: "org" | "platform" = "platform";
+
+  if (orgRuntime.provider && orgRuntime.apiKey) {
+    provider = getAIProviderForCredentials({
+      provider: orgRuntime.provider,
+      apiKey: orgRuntime.apiKey,
+      model: resolvedModel,
+    });
+    providerSource = "org";
+  } else {
+    provider = resolveProvider(route.provider);
+  }
+  void providerSource; // surfaced via console log + future telemetry hook
+
   if (!provider) {
     return {
       ok: false,
       reason: "provider_unavailable",
       message: input.providerOverride
         ? `Provider '${input.providerOverride}' is not configured.`
-        : "No AI provider is available.",
+        : orgRuntime.provider && !orgRuntime.apiKey
+          ? `Per-org provider '${orgRuntime.provider}' is configured for this agent but no API key is on file. Set one at /dashboard/settings/ai-agents/${input.assistantKey}.`
+          : "No AI provider is available.",
       orgQuota,
       legacyBudget: legacy,
     };
   }
-  // Apply the router-resolved model unless the caller explicitly
-  // overrode it via input.model.
-  const resolvedModel = input.model ?? route.model;
 
   const startedAt = Date.now();
   let response: AICompletionResponse;
