@@ -1,7 +1,45 @@
 # 00 — Executive summary
 
-**Status**: 🟡 IN PROGRESS — CHECKPOINT 2 (Mgmt OS audit) shipped 2026-05-10.
-**Next**: CHECKPOINT 3 — Dev OS audit (~80 pages). Does NOT auto-launch; awaits operator review.
+**Status**: 🟡 IN PROGRESS — CHECKPOINT 3 (Dev OS audit) shipped 2026-05-10.
+**Next**: CHECKPOINT 4 — Cross-cutting (mobile, integrations, SubscriptionOS gap). Does NOT auto-launch; awaits operator review.
+
+---
+
+## CHECKPOINT 3 headline numbers (Dev OS only)
+
+**Total Dev OS URLs audited**: 91 (subset of 234)
+
+**After categorization + 45s-timeout retest**:
+- 🟢 USABLE: **79 (87%)**
+- 🔴 Confirmed 500 server errors (P0): **11**
+- ⏳ DEFERRED: **1** (`/development-os/quantity-surveying` — intentional "coming soon"; the BoQ feature operator asked about ships at `/development-os/boq` and works ✅)
+- (53 prior timeouts in main sweep all confirmed USABLE on retest — same harness flakiness pattern as Mgmt OS)
+
+**11 confirmed P0 500s — root-cause estimate**: 5-7 unique fixes (single root causes cascade across paired pages). Each diagnosed against 3 hypotheses in [`02-dev-os-by-section/_p0-500-diagnoses.md`](02-dev-os-by-section/_p0-500-diagnoses.md). **Common fix pattern**: defensive loaders return empty array instead of throwing. Effort: ~10-15h total.
+
+**AI agents activation**: 9 agent pages all 🟢 USABLE. **Universal blocker**: agent-runner integration carry-over from Stage 10.5.B — per-org provider/key not wired into runtime. Single ~6-12h refactor unblocks all 10 cabinets' AI tiles. See [`_ai-agents-activation-status.md`](02-dev-os-by-section/_ai-agents-activation-status.md) + [`_per-cabinet-ai-connectivity.md`](02-dev-os-by-section/_per-cabinet-ai-connectivity.md).
+
+**QS BoQ resolved**: BoQ document management EXISTS and works at `/development-os/boq`. The `/development-os/quantity-surveying` "coming soon" is a separate intentional placeholder for a planned QS-rollup surface. Operator decision needed at 10.6.F: build the rollup OR remove placeholder + redirect to `/boq`.
+
+---
+
+## Combined Mgmt + Dev OS findings (CHECKPOINT 1-3)
+
+| Metric | Mgmt OS | Dev OS | Total |
+|---|---|---|---|
+| Pages audited | ~234 | 91 | ~270 unique URLs |
+| 🟢 USABLE | 220 | 79 | **~299** |
+| 🔴 P0 500 | 2 | 11 | **13** |
+| ⏳ DEFERRED | 1 | 1 | 2 |
+| ⚠️ Operator-flagged behavioral bugs (USABLE-but-broken) | ~17 | additional Modal-First + AI connectivity | ~17+ |
+| Modal-First Add violators | ~30 of 48 list pages | ~13 of 16 list pages | **~43 of 64 (~67%)** |
+
+**Single-helper fix sizing for systemic issues**:
+- Modal-First Add helper + Cancel-button-as-Button: ~22-26h closes 43 violators + 10-15 modal forms
+- Agent-runner integration carry-over: ~6-12h unblocks all 10 cabinets + Concierge AI
+- Defensive-loader pattern across 5-7 unique fixes: ~10-15h closes all 13 P0 500s
+
+**Total Phase 10.6.B critical-fix budget**: ~40-55h for the systemic close. Plus per-page operator-flagged behavioral fixes: ~30-50h. Combined: **~70-100h Phase 10.6.B = 2-3 weeks per launch-prompt estimate ✓**.
 
 ---
 
@@ -189,13 +227,16 @@ CHECKPOINT 2 surfaces the candidates:
 
 ---
 
-## ⛔ HALT — CHECKPOINT 2 review before CHECKPOINT 3 launches
+## ⛔ HALT — CHECKPOINT 3 review before CHECKPOINT 4 launches
 
-Per cadence rule (operator-confirmed: "Не combine Mgmt + Dev OS into
-single sweep"), CHECKPOINT 3 (Dev OS audit) does NOT auto-launch.
+Per cadence rule, CHECKPOINT 4 (cross-cutting + integrations +
+SubscriptionOS gap) does NOT auto-launch.
 
 Operator should:
-1. Browse the per-section files in [`01-mgmt-os-by-section/`](01-mgmt-os-by-section/) — confirm format depth + content density.
-2. Review the 10 cabinet screenshots in [`screenshots/cabinets/`](screenshots/cabinets/) and confirm the visual gap analysis in [`_cabinets-visual-reaudit.md`](01-mgmt-os-by-section/_cabinets-visual-reaudit.md).
-3. Reproduce 1-2 of the 13 confirmed 500s in browser per Q6 — paste error + Vercel log into the corresponding section file.
-4. Reply **"go 10.6.A.checkpoint-3"** OR with course corrections.
+1. Browse [`02-dev-os-by-section/`](02-dev-os-by-section/) — confirm format consistency with CHECKPOINT 2 Mgmt OS files.
+2. Review [`_p0-500-diagnoses.md`](02-dev-os-by-section/_p0-500-diagnoses.md) — confirm the 11 hypothesis-triples are reasonable; reproduce 1-2 in browser per Q6 + paste Vercel log.
+3. Confirm the AI agent activation/connectivity finding (single carry-over from Stage 10.5.B = single ~6-12h fix unblocks all 10 cabinets + Concierge AI).
+4. Confirm BoQ resolution (works at `/boq`; `/quantity-surveying` is separate placeholder).
+5. Reply **"go 10.6.A.checkpoint-4"** OR with course corrections.
+
+Estimated CHECKPOINT 4 effort: ~1 day for cross-cutting (mobile responsiveness sample of 30 pages + integration matrix + SubscriptionOS gap analysis).

@@ -1,7 +1,31 @@
-# 06 — Issues by severity (running list — populated CHECKPOINT 2-5)
+# 06 — Issues by severity (running list — CHECKPOINT 1-3 populated)
 
 Ranked by severity. CHECKPOINT 5 will produce the final ordered list;
 this file accumulates findings as each checkpoint runs.
+
+---
+
+## CHECKPOINT 3 additions (Dev OS-side)
+
+### Universal AI agent runtime blocker (P1, single fix)
+Stage 10.5.B carry-over: agent runner doesn't read per-org config.
+Single ~6-12h refactor unblocks per-org provider/key for all 9 agents
++ Concierge AI + makes all 10 cabinet AI tiles functional.
+See [`02-dev-os-by-section/_ai-agents-activation-status.md`](02-dev-os-by-section/_ai-agents-activation-status.md).
+
+### Dev OS Modal-First violators (P1, batch fix)
+~13 of 16 list pages. Closed by the same shared helper that closes
+the Mgmt OS ~30 violators. See
+[`02-dev-os-by-section/_modal-first-scan-devos.md`](02-dev-os-by-section/_modal-first-scan-devos.md).
+
+### `/development-os/quantity-surveying` (P3, decision needed)
+Intentional "coming soon" placeholder. Operator decision at 10.6.F:
+build the QS-rollup surface OR remove placeholder + redirect to
+`/development-os/boq`.
+
+### 11 Dev OS 500 server errors (P0)
+Diagnosed in [`02-dev-os-by-section/_p0-500-diagnoses.md`](02-dev-os-by-section/_p0-500-diagnoses.md).
+Root cause estimate: 5-7 unique fixes via defensive-loader pattern.
 
 ---
 
