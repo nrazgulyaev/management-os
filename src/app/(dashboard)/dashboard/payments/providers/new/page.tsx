@@ -5,6 +5,7 @@ import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { getDb } from "@/lib/db/client";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { safeQuery } from "@/lib/development/safe-query";
 import { ConnectPaymentForm } from "@/components/payments/connect-payment-form";
 
 export const metadata = { title: "Add payment processor" };
@@ -20,7 +21,11 @@ export default async function NewPaymentConnectionPage() {
       </div>
     );
   }
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  const org = await safeQuery(
+    "payments-providers-new.getOrganizationByCode",
+    getOrganizationByCode("ARCONIQUE_DEFAULT"),
+    null,
+  );
   if (!org) {
     return (
       <div className="flex flex-col gap-10">

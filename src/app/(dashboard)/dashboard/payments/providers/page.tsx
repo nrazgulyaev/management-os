@@ -9,6 +9,7 @@ import { listPaymentProviderAccounts } from "@/features/direct-booking/deposits"
 import { getDb } from "@/lib/db/client";
 import { paymentProcessorConnections } from "@/lib/db/schema/payment-processors";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { safeQuery } from "@/lib/development/safe-query";
 import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
 import { NoItemsYet } from "@/components/ui/primitives";
 
@@ -25,15 +26,27 @@ const STATUS_TONE: Record<string, "success" | "danger" | "warning" | "neutral"> 
   };
 
 export default async function ProvidersPage() {
-  const rows = await listPaymentProviderAccounts();
+  const rows = await safeQuery(
+    "payments-providers.listPaymentProviderAccounts",
+    listPaymentProviderAccounts(),
+    [] as Awaited<ReturnType<typeof listPaymentProviderAccounts>>,
+  );
   const db = getDb();
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  const org = await safeQuery(
+    "payments-providers.getOrganizationByCode",
+    getOrganizationByCode("ARCONIQUE_DEFAULT"),
+    null,
+  );
   const connections =
     db && org
-      ? await db
-          .select()
-          .from(paymentProcessorConnections)
-          .where(eq(paymentProcessorConnections.organizationId, org.id))
+      ? await safeQuery(
+          "payments-providers.paymentProcessorConnections",
+          db
+            .select()
+            .from(paymentProcessorConnections)
+            .where(eq(paymentProcessorConnections.organizationId, org.id)),
+          [] as Array<typeof paymentProcessorConnections.$inferSelect>,
+        )
       : [];
   return (
     <div className="flex flex-col gap-10">

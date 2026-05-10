@@ -52,20 +52,28 @@ export default async function WhatsappSetupPage() {
     ]);
     arconiquePhones = phones;
     templates = t;
-    org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+    org = await safeQuery(
+      "settings-whatsapp.getOrganizationByCode",
+      getOrganizationByCode("ARCONIQUE_DEFAULT"),
+      null,
+    );
     if (org) {
-      const [existingCreds] = await db
-        .select({ id: oauthConnections.id })
-        .from(oauthConnections)
-        .where(
-          and(
-            eq(oauthConnections.organizationId, org.id),
-            eq(oauthConnections.provider, "twilio_whatsapp"),
-            eq(oauthConnections.isActive, true),
-          ),
-        )
-        .limit(1);
-      hasSavedCreds = !!existingCreds;
+      const existing = await safeQuery(
+        "settings-whatsapp.oauthConnections",
+        db
+          .select({ id: oauthConnections.id })
+          .from(oauthConnections)
+          .where(
+            and(
+              eq(oauthConnections.organizationId, org.id),
+              eq(oauthConnections.provider, "twilio_whatsapp"),
+              eq(oauthConnections.isActive, true),
+            ),
+          )
+          .limit(1),
+        [] as Array<{ id: string }>,
+      );
+      hasSavedCreds = existing.length > 0;
     }
   }
   const approvedTemplateCount = templates.filter(

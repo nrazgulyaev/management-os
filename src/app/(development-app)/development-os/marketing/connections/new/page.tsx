@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { safeQuery } from "@/lib/development/safe-query";
 import { ConnectMarketingForm } from "@/components/marketing/connect-marketing-form";
 
 export const metadata: Metadata = {
@@ -28,7 +29,11 @@ export default async function NewMarketingConnectionPage() {
   // Stage 7.E tenant subdomain isn't wired into the dashboard layout
   // yet (see Stage 7.E closure note). Until it is, fall back to the
   // canonical Arconique org.
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  const org = await safeQuery(
+    "marketing-connections-new.getOrganizationByCode",
+    getOrganizationByCode("ARCONIQUE_DEFAULT"),
+    null,
+  );
   if (!org) {
     return (
       <DevelopmentShell>

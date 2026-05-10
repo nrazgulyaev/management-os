@@ -7,6 +7,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 import { listApiKeysForOrg } from "@/lib/development/server/api/api-key-queries";
+import { safeQuery } from "@/lib/development/safe-query";
 import { ApiKeyModalForm } from "@/components/development/platform/api-key-modal-form";
 
 export const metadata: Metadata = { title: "API keys · Settings" };
@@ -14,8 +15,18 @@ export const dynamic = "force-dynamic";
 
 export default async function ApiKeysPage() {
   const me = await getCurrentAppUser();
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  const keys = org ? await listApiKeysForOrg(org.id) : [];
+  const org = await safeQuery(
+    "settings-api-keys.getOrganizationByCode",
+    getOrganizationByCode("ARCONIQUE_DEFAULT"),
+    null,
+  );
+  const keys = org
+    ? await safeQuery(
+        "settings-api-keys.listApiKeysForOrg",
+        listApiKeysForOrg(org.id),
+        [] as Awaited<ReturnType<typeof listApiKeysForOrg>>,
+      )
+    : [];
 
   return (
     <DevelopmentShell>

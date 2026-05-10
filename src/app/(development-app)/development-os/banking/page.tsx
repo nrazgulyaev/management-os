@@ -12,6 +12,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { bankConnections } from "@/lib/db/schema/banking";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = {
   title: "Banking · Development OS",
@@ -38,12 +39,20 @@ export default async function BankingPage() {
       </DevelopmentShell>
     );
   }
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  const org = await safeQuery(
+    "banking.getOrganizationByCode",
+    getOrganizationByCode("ARCONIQUE_DEFAULT"),
+    null,
+  );
   const rows = org
-    ? await db
-        .select()
-        .from(bankConnections)
-        .where(eq(bankConnections.organizationId, org.id))
+    ? await safeQuery(
+        "banking.bankConnections",
+        db
+          .select()
+          .from(bankConnections)
+          .where(eq(bankConnections.organizationId, org.id)),
+        [] as Array<typeof bankConnections.$inferSelect>,
+      )
     : [];
 
   return (

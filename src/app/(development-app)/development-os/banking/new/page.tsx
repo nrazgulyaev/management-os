@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { safeQuery } from "@/lib/development/safe-query";
 import { ConnectBankForm } from "@/components/banking/connect-bank-form";
 
 export const metadata: Metadata = {
@@ -25,7 +26,11 @@ export default async function NewBankConnectionPage() {
       </DevelopmentShell>
     );
   }
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  const org = await safeQuery(
+    "banking-new.getOrganizationByCode",
+    getOrganizationByCode("ARCONIQUE_DEFAULT"),
+    null,
+  );
   if (!org) {
     return (
       <DevelopmentShell>

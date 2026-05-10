@@ -12,6 +12,7 @@ import { getCurrentAppUser } from "@/features/auth/current-user";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 import { listGoogleConnectionsForOrg } from "@/lib/google-workspace/service";
 import { isGoogleWorkspaceConfigured } from "@/lib/env";
+import { safeQuery } from "@/lib/development/safe-query";
 import { GoogleWorkspaceActions } from "@/components/settings/google-workspace-connection";
 
 export const metadata: Metadata = {
@@ -50,9 +51,17 @@ export default async function GoogleWorkspaceSettingsPage({
   }
 
   const me = await getCurrentAppUser();
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  const org = await safeQuery(
+    "settings-google-workspace.getOrganizationByCode",
+    getOrganizationByCode("ARCONIQUE_DEFAULT"),
+    null,
+  );
   const connections = org
-    ? await listGoogleConnectionsForOrg({ organizationId: org.id })
+    ? await safeQuery(
+        "settings-google-workspace.listGoogleConnectionsForOrg",
+        listGoogleConnectionsForOrg({ organizationId: org.id }),
+        [] as Awaited<ReturnType<typeof listGoogleConnectionsForOrg>>,
+      )
     : [];
 
   const myConnection = me

@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 import { listWebhookSubscriptions } from "@/lib/development/server/webhooks/webhook-queries";
+import { safeQuery } from "@/lib/development/safe-query";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { WebhookModalForm } from "@/components/development/platform/webhook-modal-form";
 
@@ -13,11 +14,19 @@ export const metadata: Metadata = { title: "Webhooks · Settings" };
 export const dynamic = "force-dynamic";
 
 export default async function WebhooksPage() {
-  const [me, org] = await Promise.all([
-    getCurrentAppUser(),
+  const me = await getCurrentAppUser();
+  const org = await safeQuery(
+    "settings-webhooks.getOrganizationByCode",
     getOrganizationByCode("ARCONIQUE_DEFAULT"),
-  ]);
-  const subs = org ? await listWebhookSubscriptions(org.id) : [];
+    null,
+  );
+  const subs = org
+    ? await safeQuery(
+        "settings-webhooks.listWebhookSubscriptions",
+        listWebhookSubscriptions(org.id),
+        [] as Awaited<ReturnType<typeof listWebhookSubscriptions>>,
+      )
+    : [];
 
   return (
     <DevelopmentShell>

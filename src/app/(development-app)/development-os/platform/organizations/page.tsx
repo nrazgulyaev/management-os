@@ -6,12 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listOrganizations } from "@/lib/development/server/organizations/organization-queries";
+import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = { title: "Organizations · Platform" };
 export const dynamic = "force-dynamic";
 
 export default async function OrganizationsPage() {
-  const orgs = await listOrganizations();
+  const orgs = await safeQuery(
+    "platform-organizations.listOrganizations",
+    listOrganizations(),
+    [] as Awaited<ReturnType<typeof listOrganizations>>,
+  );
 
   return (
     <DevelopmentShell>

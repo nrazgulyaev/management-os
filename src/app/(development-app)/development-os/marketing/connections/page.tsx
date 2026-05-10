@@ -10,6 +10,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listConnectionsForUi } from "@/lib/marketing/queries";
+import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = { title: "Connections · Marketing" };
 export const dynamic = "force-dynamic";
@@ -24,7 +25,11 @@ export default async function MarketingConnectionsPage() {
       </DevelopmentShell>
     );
   }
-  const connections = await listConnectionsForUi();
+  const connections = await safeQuery(
+    "marketing-connections.list",
+    listConnectionsForUi(),
+    [] as Awaited<ReturnType<typeof listConnectionsForUi>>,
+  );
 
   return (
     <DevelopmentShell>

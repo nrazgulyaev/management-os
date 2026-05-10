@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 import { listExportRequestsForOrg } from "@/lib/development/server/data-export/data-export-actions";
+import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = { title: "Data export · Settings" };
 export const dynamic = "force-dynamic";
@@ -18,8 +19,18 @@ const STATUS_TONES: Record<string, "success" | "warning" | "danger" | "neutral">
 };
 
 export default async function DataExportPage() {
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  const requests = org ? await listExportRequestsForOrg(org.id) : [];
+  const org = await safeQuery(
+    "settings-data-export.getOrganizationByCode",
+    getOrganizationByCode("ARCONIQUE_DEFAULT"),
+    null,
+  );
+  const requests = org
+    ? await safeQuery(
+        "settings-data-export.listExportRequestsForOrg",
+        listExportRequestsForOrg(org.id),
+        [] as Awaited<ReturnType<typeof listExportRequestsForOrg>>,
+      )
+    : [];
 
   return (
     <DevelopmentShell>

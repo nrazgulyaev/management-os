@@ -5,12 +5,17 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listOrganizations } from "@/lib/development/server/organizations/organization-queries";
 import { renderBrandingCss } from "@/lib/development/server/organizations/branding-helpers";
+import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = { title: "Branding · Platform" };
 export const dynamic = "force-dynamic";
 
 export default async function BrandingPage() {
-  const orgs = await listOrganizations();
+  const orgs = await safeQuery(
+    "platform-branding.listOrganizations",
+    listOrganizations(),
+    [] as Awaited<ReturnType<typeof listOrganizations>>,
+  );
 
   return (
     <DevelopmentShell>
