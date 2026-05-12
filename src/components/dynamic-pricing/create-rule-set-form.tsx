@@ -4,14 +4,21 @@ import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPricingRuleSetAction } from "@/features/dynamic-pricing/actions";
 
-export function CreateRuleSetForm() {
+export function CreateRuleSetForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+} = {}) {
   const [state, dispatch] = useActionState(createPricingRuleSetAction, null);
   const router = useRouter();
   useEffect(() => {
     if (state?.ok && state.id) {
-      router.push(`/dashboard/pricing/rule-sets/${state.id}`);
+      if (onSuccess) onSuccess();
+      else router.push(`/dashboard/pricing/rule-sets/${state.id}`);
     }
-  }, [state, router]);
+  }, [state, router, onSuccess]);
   return (
     <form action={dispatch} className="flex flex-col gap-3 rounded-md border border-line-soft bg-surface p-5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -36,6 +43,15 @@ export function CreateRuleSetForm() {
         <button type="submit" className="h-9 px-4 rounded-full bg-ink text-ink-inverse text-xs font-medium hover:bg-ink/90">
           Create rule set
         </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-9 px-4 rounded-full border border-line-soft text-xs text-ink hover:bg-muted"
+          >
+            Cancel
+          </button>
+        )}
         {state && !state.ok && <span className="text-xs text-danger">{state.error}</span>}
       </div>
     </form>

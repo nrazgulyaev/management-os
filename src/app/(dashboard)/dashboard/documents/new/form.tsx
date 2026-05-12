@@ -1,27 +1,40 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
 import { Field, FormShell, inputCls, selectCls } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { Button } from "@/components/ui/button";
+import { useModalOrRouteForm } from "@/lib/forms/use-modal-or-route-form";
 import { createDocumentAction } from "@/features/documents/actions";
 import type { ActionResult } from "@/features/projects/actions";
 
-const initial: ActionResult | null = null;
-
-export function DocumentForm() {
-  const [state, dispatch] = useActionState(createDocumentAction, initial);
+export function DocumentForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+} = {}) {
+  const { state, submitAction, pending } = useModalOrRouteForm<ActionResult>(
+    createDocumentAction,
+    { onSuccess },
+  );
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   return (
-    <form action={dispatch}>
+    <form action={submitAction}>
       <FormShell
         title="Document metadata"
         footer={
           <>
-            <Button asChild variant="ghost">
-              <Link href="/dashboard/documents">Cancel</Link>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost">
+                <Link href="/dashboard/documents">Cancel</Link>
+              </Button>
+            )}
             <SubmitButton>Create document</SubmitButton>
           </>
         }

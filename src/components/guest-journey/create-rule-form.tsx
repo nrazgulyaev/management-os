@@ -35,7 +35,13 @@ const SUGGESTION_OPTIONS = [
   "info",
 ];
 
-export function CreateGuestJourneyRuleForm() {
+export function CreateGuestJourneyRuleForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+} = {}) {
   const [state, dispatch] = useActionState(
     createGuestJourneyRuleAction,
     null,
@@ -44,9 +50,10 @@ export function CreateGuestJourneyRuleForm() {
 
   useEffect(() => {
     if (state?.ok && state.id) {
-      router.push(`/dashboard/guest-journey/rules/${state.id}`);
+      if (onSuccess) onSuccess();
+      else router.push(`/dashboard/guest-journey/rules/${state.id}`);
     }
-  }, [state, router]);
+  }, [state, router, onSuccess]);
 
   return (
     <form
@@ -111,6 +118,15 @@ export function CreateGuestJourneyRuleForm() {
         >
           Create rule
         </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-9 px-4 rounded-full border border-line-soft text-xs text-ink hover:bg-muted"
+          >
+            Cancel
+          </button>
+        )}
         {state && !state.ok && (
           <span className="text-xs text-danger">{state.error}</span>
         )}

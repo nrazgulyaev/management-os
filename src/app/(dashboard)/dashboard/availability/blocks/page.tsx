@@ -3,7 +3,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { listVillaCalendarBlocks } from "@/features/availability/services";
+import { listVillas } from "@/features/villas/services";
 import { CancelBlockButton } from "@/components/availability/cancel-block-button";
+import { CalendarBlockAddButton } from "@/components/availability/block-add-button";
 
 export const metadata = { title: "Calendar blocks" };
 export const dynamic = "force-dynamic";
@@ -14,11 +16,15 @@ export default async function BlocksListPage({
   searchParams: Promise<{ status?: string; blockType?: string }>;
 }) {
   const sp = await searchParams;
-  const blocks = await listVillaCalendarBlocks({
-    status: sp.status || undefined,
-    blockType: sp.blockType || undefined,
-    limit: 500,
-  });
+  const [blocks, villas] = await Promise.all([
+    listVillaCalendarBlocks({
+      status: sp.status || undefined,
+      blockType: sp.blockType || undefined,
+      limit: 500,
+    }),
+    listVillas(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName ?? ""}` }));
 
   return (
     <div className="flex flex-col gap-10">
@@ -29,14 +35,7 @@ export default async function BlocksListPage({
         ]}
         title="Calendar blocks"
         description="All blocks across the portfolio. Booking-sourced blocks are managed via their booking; cancel manual blocks here when no longer needed."
-        actions={
-          <Link
-            href="/dashboard/availability/blocks/new"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-          >
-            + New block
-          </Link>
-        }
+        actions={<CalendarBlockAddButton villas={villaOpts} />}
       />
 
       <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-widest">

@@ -4,6 +4,7 @@ import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { listServiceVendors } from "@/features/service-fulfilment/services";
 import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
+import { VendorAddButton } from "@/components/service-fulfilment/vendor-add-button";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Service vendors" };
@@ -20,14 +21,7 @@ export default async function VendorsListPage() {
         ]}
         title="Service vendors"
         description="Vendor registry. Each vendor is mapped to one or more guest services they can fulfil."
-        actions={
-          <Link
-            href="/dashboard/service-fulfilment/vendors/new"
-            className="h-9 px-4 inline-flex items-center rounded-full bg-ink text-ink-inverse text-xs font-medium hover:bg-ink/90"
-          >
-            New vendor
-          </Link>
-        }
+        actions={<VendorAddButton />}
       />
       <Section eyebrow="Registry" title={`${vendors.length} vendors`}>
         {vendors.length === 0 ? (

@@ -2,11 +2,10 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Plus } from "lucide-react";
 import { listDocuments } from "@/features/documents/services";
+import { DocumentAddButton } from "@/components/documents/document-add-button";
 import { isDbConfigured } from "@/lib/env";
 
 export const metadata = { title: "Documents" };
@@ -25,12 +24,7 @@ export default async function DocumentsPage() {
         actions={
           <div className="flex items-center gap-2">
             <SourceBadge source={source} />
-            <Button asChild>
-              <Link href="/dashboard/documents/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                Add document
-              </Link>
-            </Button>
+            <DocumentAddButton />
           </div>
         }
       />

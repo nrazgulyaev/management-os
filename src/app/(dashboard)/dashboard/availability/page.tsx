@@ -7,6 +7,8 @@ import {
   listAvailableVillas,
   listVillaCalendarBlocks,
 } from "@/features/availability/services";
+import { listVillas } from "@/features/villas/services";
+import { CalendarBlockAddButton } from "@/components/availability/block-add-button";
 
 export const metadata = { title: "Availability" };
 export const dynamic = "force-dynamic";
@@ -32,7 +34,7 @@ function next7DaysWindow() {
 
 export default async function AvailabilityPage() {
   const { start, end } = next7DaysWindow();
-  const [available, blocks] = await Promise.all([
+  const [available, blocks, villas] = await Promise.all([
     listAvailableVillas({ rangeStart: start, rangeEnd: end }),
     listVillaCalendarBlocks({
       rangeStart: start,
@@ -40,7 +42,9 @@ export default async function AvailabilityPage() {
       status: "active",
       limit: 200,
     }),
+    listVillas(),
   ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName ?? ""}` }));
 
   return (
     <div className="flex flex-col gap-10">
@@ -48,14 +52,7 @@ export default async function AvailabilityPage() {
         breadcrumbs={[{ label: "Availability" }]}
         title="Availability board"
         description="Master calendar primitive — every reason a villa is unavailable lives here. Confirmed bookings, owner stays, deep cleans, OOO, internal/channel holds. Half-open intervals, so back-to-back stays are not a conflict."
-        actions={
-          <Link
-            href="/dashboard/availability/blocks/new"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-          >
-            + New block
-          </Link>
-        }
+        actions={<CalendarBlockAddButton villas={villaOpts} />}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

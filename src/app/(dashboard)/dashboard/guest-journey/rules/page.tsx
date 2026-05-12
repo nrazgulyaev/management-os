@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { listGuestJourneyRules } from "@/features/guest-journey/services";
+import { GuestJourneyRuleAddButton } from "@/components/guest-journey/rule-add-button";
 
 export const metadata = { title: "Journey rules" };
 export const dynamic = "force-dynamic";
@@ -18,14 +19,7 @@ export default async function JourneyRulesList() {
         ]}
         title="Journey rules"
         description="Each rule maps a (stage, anchor, offset, channel) tuple to either a guest suggestion, a queued notification, or both."
-        actions={
-          <Link
-            href="/dashboard/guest-journey/rules/new"
-            className="h-9 px-4 inline-flex items-center rounded-full bg-ink text-ink-inverse text-xs font-medium hover:bg-ink/90"
-          >
-            New rule
-          </Link>
-        }
+        actions={<GuestJourneyRuleAddButton />}
       />
       <Section eyebrow="Rules" title={`${rules.length} configured`}>
         <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">

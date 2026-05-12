@@ -14,17 +14,22 @@ const MANUAL_BLOCK_TYPES = BLOCKING_BLOCK_TYPES.filter(
 
 export function CalendarBlockForm({
   villas,
+  onSuccess,
+  onCancel,
 }: {
   villas: { id: string; label: string }[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [state, dispatch] = useActionState(createVillaCalendarBlockAction, null);
 
   useEffect(() => {
     if (state?.ok && state.blockId) {
-      router.push("/dashboard/availability/blocks");
+      if (onSuccess) onSuccess();
+      else router.push("/dashboard/availability/blocks");
     }
-  }, [state, router]);
+  }, [state, router, onSuccess]);
 
   return (
     <form action={dispatch}>
@@ -34,7 +39,11 @@ export function CalendarBlockForm({
             {state && !state.ok && (
               <span className="text-xs text-danger mr-auto">{state.error}</span>
             )}
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => (onCancel ? onCancel() : router.back())}
+            >
               Cancel
             </Button>
             <SubmitButton>Create block</SubmitButton>

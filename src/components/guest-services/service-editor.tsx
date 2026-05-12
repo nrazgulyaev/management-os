@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useActionState } from "react";
 import type { GuestService } from "@/lib/db/schema/guest-services";
 import { upsertServiceAction } from "@/features/guest-services/actions";
@@ -27,13 +28,20 @@ export function ServiceEditorForm({
   categories,
   projects,
   villas,
+  onSuccess,
+  onCancel,
 }: {
   service?: GuestService;
   categories: CategoryOption[];
   projects: ProjectOption[];
   villas: VillaOption[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const [state, dispatch] = useActionState(upsertServiceAction, null);
+  React.useEffect(() => {
+    if (state?.ok && onSuccess) onSuccess();
+  }, [state, onSuccess]);
   return (
     <form
       action={dispatch}
@@ -288,6 +296,15 @@ export function ServiceEditorForm({
         >
           {service ? "Save changes" : "Create service"}
         </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-10 px-5 rounded-full border border-line-soft text-sm text-ink hover:bg-muted"
+          >
+            Cancel
+          </button>
+        )}
         {state?.ok && (
           <span className="text-xs text-success">Saved.</span>
         )}

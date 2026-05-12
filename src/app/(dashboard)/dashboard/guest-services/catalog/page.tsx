@@ -6,11 +6,14 @@ import {
   listAllCatalogServices,
   listCategories,
 } from "@/features/guest-services/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
 import {
   describePricingModel,
   formatMinorMoney,
   type PricingModel,
 } from "@/features/guest-services/pricing";
+import { ServiceAddButton } from "@/components/guest-services/service-add-button";
 
 export const metadata = { title: "Guest services catalog" };
 export const dynamic = "force-dynamic";
@@ -25,7 +28,7 @@ export default async function CatalogPage({
   }>;
 }) {
   const sp = await searchParams;
-  const [services, categories] = await Promise.all([
+  const [services, categories, villas, projects] = await Promise.all([
     listAllCatalogServices({
       status:
         sp.status === "active" ||
@@ -38,7 +41,16 @@ export default async function CatalogPage({
       limit: 500,
     }),
     listCategories({ includeArchived: false }),
+    listVillas(),
+    listProjects(),
   ]);
+  const categoryOpts = categories.map((c) => ({ id: c.id, name: c.name }));
+  const projectOpts = projects.map((p) => ({ id: p.id, name: p.name }));
+  const villaOpts = villas.map((v) => ({
+    id: v.id,
+    unitCode: v.unitCode,
+    projectName: v.projectName,
+  }));
   return (
     <div className="flex flex-col gap-10">
       <PageHeader
@@ -49,12 +61,11 @@ export default async function CatalogPage({
         title="Catalog"
         description="Editable list of guest-facing services. Villa-scoped rows beat project-scoped rows; project-scoped rows beat global. Set guest_visible=false to hide a service without archiving it."
         actions={
-          <Link
-            href="/dashboard/guest-services/catalog/new"
-            className="h-10 px-4 rounded-full bg-ink text-ink-inverse text-sm font-medium inline-flex items-center hover:bg-ink/90"
-          >
-            New service
-          </Link>
+          <ServiceAddButton
+            categories={categoryOpts}
+            projects={projectOpts}
+            villas={villaOpts}
+          />
         }
       />
       <Section eyebrow="Filter" title={`${services.length} services`}>

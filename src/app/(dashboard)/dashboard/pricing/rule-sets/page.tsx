@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { listPricingRuleSets } from "@/features/dynamic-pricing/services";
+import { RuleSetAddButton } from "@/components/dynamic-pricing/rule-set-add-button";
 
 export const metadata = { title: "Pricing rule sets" };
 export const dynamic = "force-dynamic";
@@ -18,14 +19,7 @@ export default async function RuleSetsPage() {
         ]}
         title="Rule sets"
         description="Each rule set is the top of a (scope, priority, base) triple that drives nightly pricing."
-        actions={
-          <Link
-            href="/dashboard/pricing/rule-sets/new"
-            className="h-9 px-4 inline-flex items-center rounded-full bg-ink text-ink-inverse text-xs font-medium hover:bg-ink/90"
-          >
-            New rule set
-          </Link>
-        }
+        actions={<RuleSetAddButton />}
       />
       <Section eyebrow="Catalog" title={`${sets.length} rule sets`}>
         <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">

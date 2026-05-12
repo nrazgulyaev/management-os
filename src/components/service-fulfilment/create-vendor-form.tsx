@@ -15,14 +15,21 @@ const VENDOR_TYPES = [
   "other",
 ];
 
-export function CreateVendorForm() {
+export function CreateVendorForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+} = {}) {
   const [state, dispatch] = useActionState(createServiceVendorAction, null);
   const router = useRouter();
   useEffect(() => {
     if (state?.ok && state.id) {
-      router.push(`/dashboard/service-fulfilment/vendors/${state.id}`);
+      if (onSuccess) onSuccess();
+      else router.push(`/dashboard/service-fulfilment/vendors/${state.id}`);
     }
-  }, [state, router]);
+  }, [state, router, onSuccess]);
   return (
     <form
       action={dispatch}
@@ -56,6 +63,15 @@ export function CreateVendorForm() {
         >
           Create vendor
         </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-9 px-4 rounded-full border border-line-soft text-xs text-ink hover:bg-muted"
+          >
+            Cancel
+          </button>
+        )}
         {state && !state.ok && (
           <span className="text-xs text-danger">{state.error}</span>
         )}
