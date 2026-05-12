@@ -2,16 +2,27 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { FeedStatusPill } from "@/components/integrations/feed-status-pill";
 import { SyncAllButton } from "@/components/integrations/sync-all-button";
+import { CalendarFeedAddButton } from "@/components/integrations/feed-add-button";
 import { listCalendarFeeds } from "@/features/integrations/calendar-sync/services";
+import { listVillas } from "@/features/villas/services";
+import { listBookingChannels } from "@/features/channels/services";
 
 export const metadata = { title: "Bookings · Sync" };
 export const dynamic = "force-dynamic";
 
 export default async function BookingsSyncPage() {
-  const feeds = await listCalendarFeeds();
+  const [feeds, villas, channels] = await Promise.all([
+    listCalendarFeeds(),
+    listVillas(),
+    listBookingChannels(),
+  ]);
+  const villaOpts = villas.map((v) => ({
+    id: v.id,
+    label: `${v.unitCode} · ${v.projectName ?? ""}`,
+  }));
+  const channelOpts = channels.map((c) => ({ id: c.id, label: c.name }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -24,9 +35,11 @@ export default async function BookingsSyncPage() {
         actions={
           <div className="flex gap-2">
             <SyncAllButton />
-            <Button asChild variant="secondary">
-              <Link href="/dashboard/integrations/calendar-feeds/new">Add feed</Link>
-            </Button>
+            <CalendarFeedAddButton
+              villas={villaOpts}
+              channels={channelOpts}
+              cancelHref="/dashboard/bookings/sync"
+            />
           </div>
         }
       />

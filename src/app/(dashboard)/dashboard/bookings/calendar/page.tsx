@@ -5,6 +5,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Button } from "@/components/ui/button";
 import { BookingCalendarGrid } from "@/components/integrations/booking-calendar-grid";
+import { BookingAddButton } from "@/components/bookings/booking-add-button";
+import { listBookingChannels } from "@/features/channels/services";
+import { listGuests } from "@/features/guests/services";
 import { getDb } from "@/lib/db/client";
 import { bookings, bookingChannels } from "@/lib/db/schema/bookings";
 import { villas, projects } from "@/lib/db/schema/projects";
@@ -74,6 +77,21 @@ export default async function BookingsCalendarPage() {
     source: b.sourceReference ? ("channel" as const) : ("manual" as const),
   }));
 
+  const [channelOpts, guestOpts] = await Promise.all([
+    listBookingChannels(),
+    listGuests(),
+  ]);
+  const villaOptions = villaRows.map((v) => ({
+    id: v.id,
+    label: `${v.unitCode} · ${v.projectName}`,
+  }));
+  const channelOptions = channelOpts.map((c) => ({
+    id: c.id,
+    label: c.name,
+    key: c.key,
+  }));
+  const guestOptions = guestOpts.map((g) => ({ id: g.id, label: g.fullName }));
+
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -88,9 +106,12 @@ export default async function BookingsCalendarPage() {
             <Button asChild variant="secondary">
               <Link href="/dashboard/bookings/sync">Sync feeds</Link>
             </Button>
-            <Button asChild>
-              <Link href="/dashboard/bookings/new">New booking</Link>
-            </Button>
+            <BookingAddButton
+              villas={villaOptions}
+              channels={channelOptions}
+              guests={guestOptions}
+              label="New booking"
+            />
           </div>
         }
       />

@@ -3,6 +3,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listRatePlans } from "@/features/pricing/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
+import { RatePlanAddButton } from "@/components/pricing/rate-plan-add-button";
 
 export const metadata = { title: "Rate plans" };
 export const dynamic = "force-dynamic";
@@ -12,7 +15,16 @@ function formatMoney(minor: number, currency: string) {
 }
 
 export default async function RatePlansPage() {
-  const plans = await listRatePlans();
+  const [plans, villas, projects] = await Promise.all([
+    listRatePlans(),
+    listVillas(),
+    listProjects(),
+  ]);
+  const villaOpts = villas.map((v) => ({
+    id: v.id,
+    label: `${v.unitCode} · ${v.projectName ?? ""}`,
+  }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-10">
       <PageHeader
@@ -22,14 +34,7 @@ export default async function RatePlansPage() {
         ]}
         title="Rate plans"
         description="Per-villa or per-project nightly rate + seasons + overrides. Used by the owner-stay estimator and (in v9C+) the direct-booking quote endpoint."
-        actions={
-          <Link
-            href="/dashboard/bookings/rates/new"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-          >
-            + New plan
-          </Link>
-        }
+        actions={<RatePlanAddButton villas={villaOpts} projects={projectOpts} />}
       />
 
       <div className="rounded-md border border-info-weak/40 bg-info-weak/20 px-5 py-3 text-xs text-info">

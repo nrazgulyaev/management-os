@@ -5,8 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Plus } from "lucide-react";
 import { listBookings } from "@/features/bookings/services";
+import { listVillas } from "@/features/villas/services";
+import { listBookingChannels } from "@/features/channels/services";
+import { listGuests } from "@/features/guests/services";
+import { BookingAddButton } from "@/components/bookings/booking-add-button";
 
 export const metadata = { title: "Bookings" };
 export const dynamic = "force-dynamic";
@@ -32,8 +35,16 @@ const statusTone: Record<string, "success" | "info" | "neutral" | "warning"> = {
 };
 
 export default async function BookingsPage() {
-  const bookings = await listBookings();
+  const [bookings, villas, channels, guests] = await Promise.all([
+    listBookings(),
+    listVillas(),
+    listBookingChannels(),
+    listGuests(),
+  ]);
   const source = bookings[0]?.source ?? "mock";
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
+  const channelOpts = channels.map((c) => ({ id: c.id, label: c.name, key: c.key }));
+  const guestOpts = guests.map((g) => ({ id: g.id, label: g.fullName }));
 
   return (
     <div className="flex flex-col gap-8">
@@ -47,12 +58,12 @@ export default async function BookingsPage() {
             <Button asChild variant="secondary">
               <Link href="/dashboard/channels">Channels</Link>
             </Button>
-            <Button asChild>
-              <Link href="/dashboard/bookings/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                Manual booking
-              </Link>
-            </Button>
+            <BookingAddButton
+              villas={villaOpts}
+              channels={channelOpts}
+              guests={guestOpts}
+              label="Manual booking"
+            />
           </div>
         }
       />

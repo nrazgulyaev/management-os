@@ -19,17 +19,24 @@ export function CalendarFeedForm({
   villas,
   channels,
   cancelHref,
+  onSuccess,
+  onCancel,
 }: {
   villas: Option[];
   channels: Option[];
   cancelHref: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const [state, dispatch] = useActionState(createCalendarFeedAction, initial);
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   const router = useRouter();
   useEffect(() => {
-    if (state?.ok && state.redirectTo) router.push(state.redirectTo);
-  }, [state, router]);
+    if (state?.ok) {
+      if (onSuccess) onSuccess();
+      else if (state.redirectTo) router.push(state.redirectTo);
+    }
+  }, [state, router, onSuccess]);
 
   return (
     <form action={dispatch}>
@@ -38,7 +45,13 @@ export function CalendarFeedForm({
         description="iCal/ICS URL from Airbnb, Booking.com, Vrbo, or any external calendar."
         footer={
           <>
-            <Button asChild variant="ghost"><a href={cancelHref}>Cancel</a></Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost"><a href={cancelHref}>Cancel</a></Button>
+            )}
             <SubmitButton>Add feed</SubmitButton>
           </>
         }
