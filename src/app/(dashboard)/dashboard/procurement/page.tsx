@@ -3,23 +3,34 @@ import { PageHeader } from "@/components/ui/page-header";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Plus, ListPlus, FileText } from "lucide-react";
+import { ListPlus } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { RequestCard } from "@/components/procurement/request-card";
 import { PurchaseOrderStatusPill } from "@/components/procurement/purchase-status-pill";
+import { PurchaseRequestAddButton } from "@/components/procurement/request-add-button";
+import { PurchaseOrderAddButton } from "@/components/procurement/order-add-button";
 import {
   listPurchaseOrders,
   listPurchaseRequests,
 } from "@/features/procurement/services";
+import { listSuppliers } from "@/features/inventory/services";
+import { listProjects } from "@/features/projects/services";
+import { listVillas } from "@/features/villas/services";
 
 export const metadata = { title: "Procurement" };
 export const dynamic = "force-dynamic";
 
 export default async function ProcurementHomePage() {
-  const [requests, orders] = await Promise.all([
+  const [requests, orders, suppliers, projects, villas] = await Promise.all([
     listPurchaseRequests(),
     listPurchaseOrders(),
+    listSuppliers(),
+    listProjects(),
+    listVillas(),
   ]);
+  const supplierOpts = suppliers.map((s) => ({ id: s.id, label: s.name }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
 
   const pending = requests.filter((r) => r.status === "submitted").length;
   const draft = requests.filter((r) => r.status === "draft").length;
@@ -35,18 +46,16 @@ export default async function ProcurementHomePage() {
         description="Purchase requests, purchase orders, and supplier coordination."
         actions={
           <div className="flex gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/dashboard/procurement/orders/new">
-                <FileText className="w-4 h-4" strokeWidth={1.75} />
-                New PO
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/dashboard/procurement/requests/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New request
-              </Link>
-            </Button>
+            <PurchaseOrderAddButton
+              suppliers={supplierOpts}
+              projects={projectOpts}
+              villas={villaOpts}
+            />
+            <PurchaseRequestAddButton
+              suppliers={supplierOpts}
+              projects={projectOpts}
+              villas={villaOpts}
+            />
           </div>
         }
       />

@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { PurchaseOrderStatusPill } from "@/components/procurement/purchase-status-pill";
+import { PurchaseOrderAddButton } from "@/components/procurement/order-add-button";
 import { listPurchaseOrders } from "@/features/procurement/services";
+import { listSuppliers } from "@/features/inventory/services";
+import { listProjects } from "@/features/projects/services";
+import { listVillas } from "@/features/villas/services";
 import { formatMoneyMinor } from "@/lib/money";
 import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
 
@@ -30,10 +34,18 @@ export default async function PurchaseOrdersPage({
 }) {
   const sp = await searchParams;
   const statusFilter = sp.status ?? "";
-  const all = await listPurchaseOrders();
+  const [all, suppliers, projects, villas] = await Promise.all([
+    listPurchaseOrders(),
+    listSuppliers(),
+    listProjects(),
+    listVillas(),
+  ]);
   const rows = statusFilter
     ? all.filter((o) => o.status === statusFilter)
     : all;
+  const supplierOpts = suppliers.map((s) => ({ id: s.id, label: s.name }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
 
   const kpiOpen = all.filter(
     (o) => !["received", "cancelled"].includes(o.status),
@@ -55,12 +67,11 @@ export default async function PurchaseOrdersPage({
         description="Sent → confirmed → partially received → received. Cancelled at any point. Detail page handles per-line receive + status transitions."
         actions={
           <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/dashboard/procurement/orders/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New PO
-              </Link>
-            </Button>
+            <PurchaseOrderAddButton
+              suppliers={supplierOpts}
+              projects={projectOpts}
+              villas={villaOpts}
+            />
             <Button asChild variant="secondary">
               <Link href="/dashboard/procurement">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

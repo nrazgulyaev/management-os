@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { FeedStatusPill } from "@/components/integrations/feed-status-pill";
 import { SyncAllButton } from "@/components/integrations/sync-all-button";
+import { CalendarFeedAddButton } from "@/components/integrations/feed-add-button";
 import { listCalendarFeeds } from "@/features/integrations/calendar-sync/services";
+import { listVillas } from "@/features/villas/services";
+import { listBookingChannels } from "@/features/channels/services";
 import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
 import { NoItemsYet } from "@/components/ui/primitives";
 
@@ -13,7 +14,13 @@ export const metadata = { title: "Calendar feeds" };
 export const dynamic = "force-dynamic";
 
 export default async function CalendarFeedsPage() {
-  const feeds = await listCalendarFeeds();
+  const [feeds, villas, channels] = await Promise.all([
+    listCalendarFeeds(),
+    listVillas(),
+    listBookingChannels(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName ?? ""}` }));
+  const channelOpts = channels.map((c) => ({ id: c.id, label: c.name }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -26,12 +33,11 @@ export default async function CalendarFeedsPage() {
         actions={
           <div className="flex items-center gap-2">
             <SyncAllButton />
-            <Button asChild>
-              <Link href="/dashboard/integrations/calendar-feeds/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                Add feed
-              </Link>
-            </Button>
+            <CalendarFeedAddButton
+              villas={villaOpts}
+              channels={channelOpts}
+              cancelHref="/dashboard/integrations/calendar-feeds"
+            />
           </div>
         }
       />

@@ -18,15 +18,22 @@ const initial: ActionResult | null = null;
 export function NewInventoryCountForm({
   locations,
   cancelHref,
+  onSuccess,
+  onCancel,
 }: {
   locations: Option[];
   cancelHref: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const [state, dispatch] = useActionState(createInventoryCountAction, initial);
   const router = useRouter();
   useEffect(() => {
-    if (state?.ok && state.redirectTo) router.push(state.redirectTo);
-  }, [state, router]);
+    if (state?.ok) {
+      if (onSuccess) onSuccess();
+      else if (state.redirectTo) router.push(state.redirectTo);
+    }
+  }, [state, router, onSuccess]);
   return (
     <form action={dispatch}>
       <FormShell
@@ -34,7 +41,11 @@ export function NewInventoryCountForm({
         description="Lines are pre-filled from the location's current stock; counters overwrite the counted column."
         footer={
           <>
-            <Button asChild variant="ghost"><a href={cancelHref}>Cancel</a></Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+            ) : (
+              <Button asChild variant="ghost"><a href={cancelHref}>Cancel</a></Button>
+            )}
             <SubmitButton>Start count</SubmitButton>
           </>
         }

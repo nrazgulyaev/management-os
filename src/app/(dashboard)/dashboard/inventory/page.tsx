@@ -3,15 +3,19 @@ import { PageHeader } from "@/components/ui/page-header";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Plus, AlertTriangle, ArrowDownToLine } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { ItemCard } from "@/components/inventory/item-card";
 import { MovementTable } from "@/components/inventory/movement-table";
+import { InventoryItemAddButton } from "@/components/inventory/inventory-item-add-button";
+import { MovementAddButton } from "@/components/inventory/movement-add-button";
 import {
+  listInventoryCategories,
   listInventoryItems,
   listInventoryLocations,
   listInventoryMovements,
   listLowStockItems,
+  listSuppliers,
 } from "@/features/inventory/services";
 import { getLastRunByJobKey } from "@/features/jobs/services";
 import { LastRunBadge } from "@/components/jobs/last-run-badge";
@@ -25,16 +29,25 @@ export default async function InventoryHomePage() {
   // relation on any one feed doesn't 500 the whole hub. The 500 was
   // observed authenticated only — likely an RLS policy that the
   // unauthenticated mock-fallback path skipped.
-  const [itemsR, lowStockR, locationsR, recentMovementsR] = await Promise.all([
+  const [itemsR, lowStockR, locationsR, recentMovementsR, categoriesR, suppliersR] = await Promise.all([
     safeList("inventory.items", () => listInventoryItems({ limit: 500 })),
     safeList("inventory.lowStock", () => listLowStockItems()),
     safeList("inventory.locations", () => listInventoryLocations()),
     safeList("inventory.movements", () => listInventoryMovements({ limit: 10 })),
+    safeList("inventory.categories", () => listInventoryCategories()),
+    safeList("inventory.suppliers", () => listSuppliers()),
   ]);
   const items = itemsR.value;
   const lowStock = lowStockR.value;
   const locations = locationsR.value;
   const recentMovements = recentMovementsR.value;
+  const categoryOpts = categoriesR.value.map((c) => ({ id: c.id, label: c.name }));
+  const supplierOpts = suppliersR.value.map((s) => ({ id: s.id, label: s.name }));
+  const movementItemOpts = items.map((i) => ({
+    id: i.id,
+    label: `${i.name}${i.sku ? ` · ${i.sku}` : ""}`,
+  }));
+  const locationOpts = locations.map((l) => ({ id: l.id, label: l.name }));
   const lastScanRun = await getLastRunByJobKey("scan_low_stock").catch(
     () => null,
   );
@@ -50,18 +63,8 @@ export default async function InventoryHomePage() {
         description="Stock levels, low-stock alerts, and recent movements across warehouses, villas, and carts."
         actions={
           <div className="flex gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/dashboard/inventory/movements/new">
-                <ArrowDownToLine className="w-4 h-4" strokeWidth={1.75} />
-                Movement
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/dashboard/inventory/items/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New item
-              </Link>
-            </Button>
+            <MovementAddButton items={movementItemOpts} locations={locationOpts} />
+            <InventoryItemAddButton categories={categoryOpts} suppliers={supplierOpts} />
           </div>
         }
       />
