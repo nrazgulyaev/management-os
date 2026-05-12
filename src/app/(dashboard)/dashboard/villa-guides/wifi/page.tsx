@@ -3,13 +3,25 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { listWifiAdmin } from "@/features/villa-guides/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
+import { WifiAddButton } from "@/components/villa-guides/wifi-add-button";
 
 export const metadata = { title: "Wi-Fi credentials" };
 export const dynamic = "force-dynamic";
 
 export default async function WifiList() {
-  const rows = await listWifiAdmin();
+  const [rows, villas, projects] = await Promise.all([
+    listWifiAdmin(),
+    listVillas(),
+    listProjects(),
+  ]);
   const legacyCount = rows.filter((r) => r.hasLegacyPlaintext).length;
+  const villaOpts = villas.map((v) => ({
+    id: v.id,
+    label: `${v.unitCode} · ${v.projectName ?? ""}`,
+  }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-10">
       <PageHeader
@@ -29,12 +41,7 @@ export default async function WifiList() {
                 Migrate {legacyCount} legacy plaintext row{legacyCount === 1 ? "" : "s"}
               </Link>
             )}
-            <Link
-              href="/dashboard/villa-guides/wifi/new"
-              className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-            >
-              + Add Wi-Fi
-            </Link>
+            <WifiAddButton villas={villaOpts} projects={projectOpts} />
           </div>
         }
       />

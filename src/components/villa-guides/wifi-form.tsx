@@ -26,18 +26,23 @@ export function WifiForm({
   villas,
   projects,
   wifi,
+  onSuccess,
+  onCancel,
 }: {
   villas: { id: string; label: string }[];
   projects: { id: string; label: string }[];
   wifi?: WifiFormDefaults;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [state, dispatch] = useActionState(upsertWifiAction, null);
   useEffect(() => {
     if (state?.ok && state.wifiId) {
-      router.push("/dashboard/villa-guides/wifi");
+      if (onSuccess) onSuccess();
+      else router.push("/dashboard/villa-guides/wifi");
     }
-  }, [state, router]);
+  }, [state, router, onSuccess]);
   return (
     <form action={dispatch}>
       <FormShell
@@ -46,7 +51,11 @@ export function WifiForm({
             {state && !state.ok && (
               <span className="text-xs text-danger mr-auto">{state.error}</span>
             )}
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => (onCancel ? onCancel() : router.back())}
+            >
               Cancel
             </Button>
             <SubmitButton>Save</SubmitButton>
