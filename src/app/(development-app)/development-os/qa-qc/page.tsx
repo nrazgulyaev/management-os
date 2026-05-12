@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { asc, eq } from "drizzle-orm";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -8,8 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { QaQcAddButton } from "@/components/development/qa-qc/qa-qc-add-button";
 import { getDb } from "@/lib/db/client";
-import { listQaQcIssues } from "@/lib/development/server/qa-qc/qa-qc-queries";
+import {
+  listQaQcCategories,
+  listQaQcIssues,
+} from "@/lib/development/server/qa-qc/qa-qc-queries";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { safeQuery } from "@/lib/development/safe-query";
 import { ExportButton } from "@/components/development/bulk-import/export-button";
 
@@ -55,6 +61,28 @@ export default async function QaQcListPage({
     4000,
   );
 
+  const [addProjects, addVillas, addCategories] = await Promise.all([
+    safeQuery(
+      "qa-qc.projects",
+      db.select({ id: projects.id, name: projects.name }).from(projects).orderBy(asc(projects.name)),
+      [] as Array<{ id: string; name: string }>,
+    ),
+    safeQuery(
+      "qa-qc.villas",
+      db
+        .select({ id: villas.id, unitCode: villas.unitCode, projectId: villas.projectId })
+        .from(villas)
+        .innerJoin(projects, eq(projects.id, villas.projectId))
+        .orderBy(asc(villas.unitCode)),
+      [] as Array<{ id: string; unitCode: string; projectId: string }>,
+    ),
+    safeQuery(
+      "qa-qc.categories",
+      listQaQcCategories(),
+      [] as Array<{ id: string; displayName: string }>,
+    ),
+  ]);
+
   const openCount = issues.filter(
     (i) => !["accepted", "closed"].includes(i.status),
   ).length;
@@ -71,12 +99,11 @@ export default async function QaQcListPage({
         description="Per-villa quality issues. Lifecycle: open → assigned → in_progress → ready_for_reinspection → accepted/rejected → closed. Status transitions are validated by qa-qc-helpers.ts (pure, runtime tested)."
         actions={
           <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/development-os/qa-qc/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New issue
-              </Link>
-            </Button>
+            <QaQcAddButton
+              projects={addProjects}
+              villas={addVillas}
+              categories={addCategories}
+            />
             <ExportButton entity="qa_qc_issues" />
             <Button asChild variant="secondary">
               <Link href="/development-os">

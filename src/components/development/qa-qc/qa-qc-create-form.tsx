@@ -17,12 +17,16 @@ export function QaQcCreateForm({
   categories,
   defaultProjectId,
   defaultVillaId,
+  onSuccess,
+  onCancel,
 }: {
   projects: Array<{ id: string; name: string }>;
   villas: Array<{ id: string; unitCode: string; projectId: string }>;
   categories: Array<{ id: string; displayName: string }>;
   defaultProjectId?: string;
   defaultVillaId?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -61,7 +65,8 @@ export function QaQcCreateForm({
           description,
           deadlineAt: deadline || null,
         });
-        router.push(`/development-os/qa-qc/${out.issueCode}`);
+        if (onSuccess) onSuccess();
+        else router.push(`/development-os/qa-qc/${out.issueCode}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Create failed");
       }
@@ -209,10 +214,17 @@ export function QaQcCreateForm({
         </p>
       )}
 
-      <Button type="submit" disabled={pending} className="min-h-[44px] w-full md:w-auto">
-        {pending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-        Log issue
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={pending} className="min-h-[44px] w-full md:w-auto">
+          {pending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+          Log issue
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+            Cancel
+          </Button>
+        )}
+      </div>
 
       <p className="text-[11px] text-ink-tertiary">
         Photos can be attached on the detail page after creation.

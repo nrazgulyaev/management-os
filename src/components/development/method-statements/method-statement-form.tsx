@@ -28,7 +28,13 @@ interface StepDraft {
 
 let nextStepId = 1;
 
-export function MethodStatementForm() {
+export function MethodStatementForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+} = {}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [methodCode, setMethodCode] = useState("");
@@ -79,9 +85,8 @@ export function MethodStatementForm() {
             duration: s.duration.trim() || undefined,
           })),
         });
-        router.push(
-          `/development-os/method-statements/${encodeURIComponent(out.methodCode)}`,
-        );
+        if (onSuccess) onSuccess();
+        else router.push(`/development-os/method-statements/${encodeURIComponent(out.methodCode)}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Create failed");
       }
@@ -173,10 +178,17 @@ export function MethodStatementForm() {
         </ul>
       </div>
 
-      <Button type="submit" disabled={pending}>
-        {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-        Create method statement
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={pending}>
+          {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+          Create method statement
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+            Cancel
+          </Button>
+        )}
+      </div>
       {error && <p className="text-xs text-danger">{error}</p>}
     </form>
   );

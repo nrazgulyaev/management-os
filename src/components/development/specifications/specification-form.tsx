@@ -30,7 +30,13 @@ const CATEGORIES = [
   "other",
 ] as const;
 
-export function SpecificationForm() {
+export function SpecificationForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+} = {}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [specCode, setSpecCode] = useState("");
@@ -61,9 +67,8 @@ export function SpecificationForm() {
           modelNumber: modelNumber || null,
           colorCode: colorCode || null,
         });
-        router.push(
-          `/development-os/specifications/${encodeURIComponent(out.specCode)}`,
-        );
+        if (onSuccess) onSuccess();
+        else router.push(`/development-os/specifications/${encodeURIComponent(out.specCode)}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Create failed");
       }
@@ -149,10 +154,17 @@ export function SpecificationForm() {
           />
         </label>
       </div>
-      <Button type="submit" disabled={pending}>
-        {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-        Create specification
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={pending}>
+          {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+          Create specification
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+            Cancel
+          </Button>
+        )}
+      </div>
       {error && <p className="text-xs text-danger">{error}</p>}
     </form>
   );

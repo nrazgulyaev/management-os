@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { SpecificationAddButton } from "@/components/development/specifications/specification-add-button";
 import { getDb } from "@/lib/db/client";
 import { listSpecifications } from "@/lib/development/server/specifications/specification-queries";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -47,12 +48,7 @@ export default async function SpecificationsListPage() {
         description="Material/finish specifications. Linked to BOQ items for material selections, and to quality standards for acceptance-criteria templates."
         actions={
           <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/development-os/specifications/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New spec
-              </Link>
-            </Button>
+            <SpecificationAddButton />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

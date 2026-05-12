@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { MethodStatementAddButton } from "@/components/development/method-statements/method-statement-add-button";
 import { getDb } from "@/lib/db/client";
 import { listMethodStatements } from "@/lib/development/server/method-statements/method-statement-queries";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -56,12 +57,7 @@ export default async function MethodStatementsListPage() {
         description="Step-by-step procedures used by site staff. JSONB procedure_steps allows structured rendering. Tools, materials, PPE, hazards all declared upfront."
         actions={
           <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/development-os/method-statements/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New SOP
-              </Link>
-            </Button>
+            <MethodStatementAddButton />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
