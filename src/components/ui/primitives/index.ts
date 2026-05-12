@@ -95,3 +95,9 @@ export type { RowActionsMenuProps, RowAction, RowActionTone } from "./row-action
 
 export { PageHeaderHero } from "./page-header-hero";
 export type { PageHeaderHeroProps } from "./page-header-hero";
+
+export { ModalFirstAddButton } from "./modal-first-add-button";
+export type {
+  ModalFirstAddButtonProps,
+  ModalFirstFormProps,
+} from "./modal-first-add-button";
