@@ -234,30 +234,36 @@ async function main(): Promise<void> {
       d.setUTCDate(d.getUTCDate() + 6);
       return d.toISOString().slice(0, 10);
     })();
+    // Migration 0072 (Stage 5.J.2) added organization_id NOT NULL to
+    // a Dev OS allow-list of tables. The Drizzle schema files weren't
+    // updated, so the first seed run hit a NOT NULL violation. All
+    // INSERTs below now thread `orgId` through.
     await sql`
       INSERT INTO manager_performance_metrics
-        (id, manager_id, period_start, period_end, period_type,
-         total_leads_assigned, total_conversations_active,
+        (id, organization_id, manager_id, period_start, period_end,
+         period_type, total_leads_assigned, total_conversations_active,
          reservations_secured, contracts_signed,
          lead_to_reservation_rate, average_response_time_minutes,
          ai_quality_score)
-      VALUES (${randomUUID()}, ${auditUserId}, ${weekStart}, ${weekEnd},
-              'weekly', 12, 4, 2, 1, '16.50', '23.00', '85.00')
+      VALUES (${randomUUID()}, ${orgId}, ${auditUserId},
+              ${weekStart}, ${weekEnd}, 'weekly',
+              12, 4, 2, 1, '16.50', '23.00', '85.00')
       ON CONFLICT (manager_id, period_start, period_end, period_type)
       DO NOTHING
     `;
     console.log("✓ manager_performance_metrics ensured");
 
-    // 7. agent_outputs — 1 per runnable agent.
+    // 7. agent_outputs — 1 per runnable agent. organization_id NOT NULL
+    // per migration 0072 (Stage 5.J.2 propagation).
     for (const agentKey of RUNNABLE_AGENTS) {
       const code = `AUDIT-${agentKey.toUpperCase()}-${Date.now()
         .toString()
         .slice(-6)}`;
       await sql`
         INSERT INTO agent_outputs
-          (id, output_code, agent_key, output_category, title, summary,
-           detailed_output, status)
-        SELECT ${randomUUID()}, ${code}, ${agentKey},
+          (id, organization_id, output_code, agent_key,
+           output_category, title, summary, detailed_output, status)
+        SELECT ${randomUUID()}, ${orgId}, ${code}, ${agentKey},
                'audit_seed',
                ${"Sample " + agentKey + " output"},
                ${"Demo output seeded by audit-bot. Replace with a real run from /development-os/ai-agents/" + agentKey + "."},
@@ -275,9 +281,10 @@ async function main(): Promise<void> {
     );
 
     // 8. executive_metrics_snapshot — single company-wide row.
+    // organization_id NOT NULL per migration 0072.
     await sql`
       INSERT INTO executive_metrics_snapshots
-        (id, snapshot_date, snapshot_type, scope,
+        (id, organization_id, snapshot_date, snapshot_type, scope,
          total_cash_on_hand_minor, total_receivables_minor,
          payables_due_next_30_days_minor, payables_overdue_minor,
          cash_at_30_days_minor, cash_at_60_days_minor,
@@ -286,7 +293,7 @@ async function main(): Promise<void> {
          hot_leads_count, reservations_count,
          total_committed_capital_minor, total_drawn_capital_minor,
          pending_distribution_minor, base_currency)
-      SELECT ${randomUUID()}, CURRENT_DATE, 'daily', 'company_wide',
+      SELECT ${randomUUID()}, ${orgId}, CURRENT_DATE, 'daily', 'company_wide',
              550000000000, 80000000000, 120000000000, 0,
              430000000000, 380000000000, 320000000000, 3,
              3, 12, 4, 2,

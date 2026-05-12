@@ -149,6 +149,29 @@ test("10.6.B.1 — INSERTs only into the 7 documented tables", () => {
 // Runnable-agents catalog matches the documented 7
 // ============================================================================
 
+test("10.6.B.1 — INSERTs into Stage 5.J.2-propagated tables include organization_id", () => {
+  const src = read(SCRIPT);
+  // Migration 0072 added organization_id NOT NULL to these 3 tables.
+  // Each INSERT must thread orgId through or the seed hits a NOT NULL
+  // violation (operator caught this on the first real run).
+  for (const table of [
+    "manager_performance_metrics",
+    "agent_outputs",
+    "executive_metrics_snapshots",
+  ]) {
+    // Match: `INSERT INTO <table> ( ... organization_id ... )` plus a
+    // `${orgId}` reference inside the same statement.
+    const insertBlock = new RegExp(
+      `INSERT INTO\\s+${table}[\\s\\S]{0,400}organization_id[\\s\\S]{0,800}\\$\\{orgId\\}`,
+    );
+    assert.match(
+      src,
+      insertBlock,
+      `${table} INSERT must include organization_id + reference orgId`,
+    );
+  }
+});
+
 test("10.6.B.1 — RUNNABLE_AGENTS includes the 7 user-runnable agents", () => {
   const src = read(SCRIPT);
   for (const agent of [
