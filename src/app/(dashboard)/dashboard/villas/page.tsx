@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Plus, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { VillaRowActions } from "@/components/villas/villa-row-actions";
+import { VillaAddButton } from "@/components/villas/villa-add-button";
 
 export const metadata = { title: "Villas" };
 export const dynamic = "force-dynamic";
@@ -35,12 +36,7 @@ export default async function VillasPage() {
               <Filter className="w-4 h-4" strokeWidth={1.75} />
               Filter
             </Button>
-            <Button asChild>
-              <Link href="/dashboard/villas/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                Add villa
-              </Link>
-            </Button>
+            <VillaAddButton projects={projectOptions} />
           </div>
         }
       />

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Plus, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { listProjects } from "@/features/projects/services";
+import { ProjectAddButton } from "@/components/projects/project-add-button";
 
 export const metadata = { title: "Projects" };
 export const dynamic = "force-dynamic";
@@ -34,12 +34,7 @@ export default async function ProjectsPage() {
         actions={
           <div className="flex gap-2 items-center">
             <SourceBadge source={source} />
-            <Button asChild>
-              <Link href="/dashboard/projects/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New project
-              </Link>
-            </Button>
+            <ProjectAddButton />
           </div>
         }
       />

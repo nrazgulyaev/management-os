@@ -1,17 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
 import { Field, FormShell, inputCls, selectCls, textareaCls } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { Button } from "@/components/ui/button";
+import { useModalOrRouteForm } from "@/lib/forms/use-modal-or-route-form";
 import {
   createProjectAction,
   updateProjectAction,
   type ActionResult,
 } from "./actions";
-
-const initial: ActionResult | null = null;
 
 export interface ProjectFormDefaults {
   id?: string;
@@ -32,27 +30,40 @@ export function ProjectForm({
   mode,
   defaults,
   cancelHref = "/dashboard/projects",
+  onSuccess,
+  onCancel,
 }: {
   mode: "create" | "edit";
   defaults?: ProjectFormDefaults;
   cancelHref?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const action = mode === "edit" ? updateProjectAction : createProjectAction;
-  const [state, dispatch] = useActionState(action, initial);
+  const { state, submitAction, pending } = useModalOrRouteForm<ActionResult>(
+    action,
+    { onSuccess },
+  );
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   const v = defaults ?? {};
 
   return (
-    <form action={dispatch}>
+    <form action={submitAction}>
       {mode === "edit" && v.id && <input type="hidden" name="id" value={v.id} />}
       <FormShell
         title={mode === "edit" ? "Edit project" : "Project details"}
         description="All fields marked with * are required."
         footer={
           <>
-            <Button asChild variant="ghost">
-              <Link href={cancelHref}>Cancel</Link>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost">
+                <Link href={cancelHref}>Cancel</Link>
+              </Button>
+            )}
             <SubmitButton>{mode === "edit" ? "Save changes" : "Create project"}</SubmitButton>
           </>
         }
