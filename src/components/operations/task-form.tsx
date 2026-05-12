@@ -23,6 +23,8 @@ export function TaskForm({
   templates,
   cancelHref,
   defaultCategory = "housekeeping",
+  onSuccess,
+  onCancel,
 }: {
   villas: Option[];
   projects: Option[];
@@ -30,14 +32,19 @@ export function TaskForm({
   templates: Option[];
   cancelHref: string;
   defaultCategory?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const [state, dispatch] = useActionState(createOperationTaskAction, initial);
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   const router = useRouter();
 
   useEffect(() => {
-    if (state?.ok && state.redirectTo) router.push(state.redirectTo);
-  }, [state, router]);
+    if (state?.ok) {
+      if (onSuccess) onSuccess();
+      else if (state.redirectTo) router.push(state.redirectTo);
+    }
+  }, [state, router, onSuccess]);
 
   return (
     <form action={dispatch}>
@@ -46,9 +53,15 @@ export function TaskForm({
         description="Tasks materialise into the field workflow once assigned."
         footer={
           <>
-            <Button asChild variant="ghost">
-              <a href={cancelHref}>Cancel</a>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost">
+                <a href={cancelHref}>Cancel</a>
+              </Button>
+            )}
             <SubmitButton>Create task</SubmitButton>
           </>
         }

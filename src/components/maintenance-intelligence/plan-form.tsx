@@ -23,7 +23,7 @@ const FREQUENCIES = [
   "custom",
 ] as const;
 
-interface TemplateOption {
+export interface TemplateOption {
   id: string;
   label: string;
   defaultFrequency: string;
@@ -38,9 +38,13 @@ interface TemplateOption {
 export function PlanForm({
   villas,
   templates,
+  onSuccess,
+  onCancel,
 }: {
   villas: { id: string; label: string }[];
   templates: TemplateOption[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [state, dispatch] = useActionState(
@@ -55,11 +59,10 @@ export function PlanForm({
 
   useEffect(() => {
     if (state?.ok && state.planId) {
-      router.push(
-        `/dashboard/maintenance-intelligence/plans/${state.planId}`,
-      );
+      if (onSuccess) onSuccess();
+      else router.push(`/dashboard/maintenance-intelligence/plans/${state.planId}`);
     }
-  }, [state, router]);
+  }, [state, router, onSuccess]);
 
   return (
     <form action={dispatch}>
@@ -69,7 +72,11 @@ export function PlanForm({
             {state && !state.ok && (
               <span className="text-xs text-danger mr-auto">{state.error}</span>
             )}
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => (onCancel ? onCancel() : router.back())}
+            >
               Cancel
             </Button>
             <SubmitButton>Create plan</SubmitButton>

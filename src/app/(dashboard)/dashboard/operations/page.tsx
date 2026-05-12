@@ -2,20 +2,25 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Calendar, Plus, Wrench, ListChecks, Sparkles } from "lucide-react";
+import { Calendar, Wrench, ListChecks, Sparkles } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { OperationsBoard } from "@/components/dashboard/operations-board";
 import { OperationsMetricsGrid } from "@/components/operations/operations-metrics";
 import { TaskCard } from "@/components/operations/task-card";
 import { MaintenanceTicketCard } from "@/components/operations/maintenance-ticket-card";
 import { ScheduleCard } from "@/components/operations/schedule-card";
+import { TaskAddButton } from "@/components/operations/task-add-button";
 import {
   getOperationsMetrics,
+  listChecklistTemplates,
   listMaintenanceTickets,
   listOperationTasks,
   listPreventiveSchedules,
   listServiceRequests,
 } from "@/features/operations/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
+import { listAppUsers } from "@/features/auth/users-service";
 import { todayYmd } from "@/features/operations/scheduling";
 import { isDbConfigured } from "@/lib/env";
 import { getLastRunByJobKey } from "@/features/jobs/services";
@@ -37,6 +42,10 @@ export default async function OperationsBoardPage() {
     preventiveDue,
     newRequests,
     lastPreventiveRun,
+    addVillas,
+    addProjects,
+    addUsers,
+    addTemplates,
   ] = await Promise.all([
     getOperationsMetrics(),
     listOperationTasks({ priority: "urgent", limit: 6 }),
@@ -45,7 +54,15 @@ export default async function OperationsBoardPage() {
     listPreventiveSchedules({ dueOnOrBefore: todayYmd(), status: "active", limit: 6 }),
     listServiceRequests({ status: "new", limit: 6 }),
     getLastRunByJobKey("generate_preventive_tasks"),
+    listVillas(),
+    listProjects(),
+    listAppUsers(),
+    listChecklistTemplates(),
   ]);
+  const villaOpts = addVillas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
+  const projectOpts = addProjects.map((p) => ({ id: p.id, label: p.name }));
+  const userOpts = addUsers.map((u) => ({ id: u.id, label: `${u.fullName} · ${u.email}` }));
+  const templateOpts = addTemplates.map((t) => ({ id: t.id, label: t.name }));
 
   return (
     <div className="flex flex-col gap-10">
@@ -61,12 +78,12 @@ export default async function OperationsBoardPage() {
                 Preventive
               </Link>
             </Button>
-            <Button asChild>
-              <Link href="/dashboard/operations/tasks/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New task
-              </Link>
-            </Button>
+            <TaskAddButton
+              villas={villaOpts}
+              projects={projectOpts}
+              appUsers={userOpts}
+              templates={templateOpts}
+            />
           </div>
         }
       />

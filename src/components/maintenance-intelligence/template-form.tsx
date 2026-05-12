@@ -39,14 +39,21 @@ const FREQUENCIES = [
   "custom",
 ] as const;
 
-export function TemplateForm() {
+export function TemplateForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+} = {}) {
   const router = useRouter();
   const [state, dispatch] = useActionState(createMaintenanceTemplateAction, null);
   useEffect(() => {
     if (state?.ok && state.templateId) {
-      router.push("/dashboard/maintenance-intelligence/templates");
+      if (onSuccess) onSuccess();
+      else router.push("/dashboard/maintenance-intelligence/templates");
     }
-  }, [state, router]);
+  }, [state, router, onSuccess]);
   return (
     <form action={dispatch}>
       <FormShell
@@ -55,7 +62,11 @@ export function TemplateForm() {
             {state && !state.ok && (
               <span className="text-xs text-danger mr-auto">{state.error}</span>
             )}
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => (onCancel ? onCancel() : router.back())}
+            >
               Cancel
             </Button>
             <SubmitButton>Create template</SubmitButton>

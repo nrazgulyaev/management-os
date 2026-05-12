@@ -1,10 +1,14 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { TaskCard } from "@/components/operations/task-card";
-import { listOperationTasks } from "@/features/operations/services";
+import { TaskAddButton } from "@/components/operations/task-add-button";
+import {
+  listChecklistTemplates,
+  listOperationTasks,
+} from "@/features/operations/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
+import { listAppUsers } from "@/features/auth/users-service";
 import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
 import { NoItemsYet } from "@/components/ui/primitives";
 
@@ -12,7 +16,17 @@ export const metadata = { title: "Operations · Housekeeping" };
 export const dynamic = "force-dynamic";
 
 export default async function HousekeepingPage() {
-  const tasks = await listOperationTasks({ category: "housekeeping", limit: 200 });
+  const [tasks, villas, projects, users, templates] = await Promise.all([
+    listOperationTasks({ category: "housekeeping", limit: 200 }),
+    listVillas(),
+    listProjects(),
+    listAppUsers(),
+    listChecklistTemplates(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
+  const userOpts = users.map((u) => ({ id: u.id, label: `${u.fullName} · ${u.email}` }));
+  const templateOpts = templates.map((t) => ({ id: t.id, label: t.name }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -23,12 +37,14 @@ export default async function HousekeepingPage() {
         title="Housekeeping"
         description="Cleaning turnovers, deep cleans, common-area inspections."
         actions={
-          <Button asChild>
-            <Link href="/dashboard/operations/tasks/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              New cleaning
-            </Link>
-          </Button>
+          <TaskAddButton
+            villas={villaOpts}
+            projects={projectOpts}
+            appUsers={userOpts}
+            templates={templateOpts}
+            defaultCategory="housekeeping"
+            label="New cleaning"
+          />
         }
       />
       <DbStatusNotice />

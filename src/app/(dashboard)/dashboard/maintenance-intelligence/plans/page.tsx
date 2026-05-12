@@ -2,8 +2,13 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
-import { listVillaMaintenancePlans } from "@/features/maintenance-intelligence/services";
+import {
+  listMaintenanceTemplates,
+  listVillaMaintenancePlans,
+} from "@/features/maintenance-intelligence/services";
+import { listVillas } from "@/features/villas/services";
 import { GenerateDuePlansButton } from "@/components/maintenance-intelligence/generate-due-button";
+import { PlanAddButton } from "@/components/maintenance-intelligence/plan-add-button";
 
 export const metadata = { title: "Maintenance plans" };
 export const dynamic = "force-dynamic";
@@ -20,9 +25,23 @@ export default async function PlansPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const sp = await searchParams;
-  const plans = await listVillaMaintenancePlans({
-    status: sp.status || "active",
-  });
+  const [plans, villas, templates] = await Promise.all([
+    listVillaMaintenancePlans({ status: sp.status || "active" }),
+    listVillas(),
+    listMaintenanceTemplates({ status: "active" }),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
+  const templateOpts = templates.map((t) => ({
+    id: t.id,
+    label: `${t.name} · ${t.category} · ${t.defaultFrequency}`,
+    defaultFrequency: t.defaultFrequency,
+    defaultIntervalDays: t.defaultIntervalDays,
+    defaultDurationMinutes: t.defaultDurationMinutes,
+    defaultPriority: t.defaultPriority,
+    canBeDoneWhileOccupied: t.canBeDoneWhileOccupied,
+    guestDisruptionLevel: t.guestDisruptionLevel,
+    requiresVillaEmpty: t.requiresVillaEmpty,
+  }));
   const now = new Date();
   return (
     <div className="flex flex-col gap-10">
@@ -36,12 +55,7 @@ export default async function PlansPage({
         actions={
           <div className="flex items-center gap-2">
             <GenerateDuePlansButton />
-            <Link
-              href="/dashboard/maintenance-intelligence/plans/new"
-              className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-            >
-              + New plan
-            </Link>
+            <PlanAddButton villas={villaOpts} templates={templateOpts} />
           </div>
         }
       />

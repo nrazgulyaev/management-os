@@ -21,19 +21,26 @@ export function PreventiveScheduleForm({
   templates,
   appUsers,
   cancelHref,
+  onSuccess,
+  onCancel,
 }: {
   villas: Option[];
   projects: Option[];
   templates: Option[];
   appUsers: Option[];
   cancelHref: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const [state, dispatch] = useActionState(createPreventiveScheduleAction, initial);
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   const router = useRouter();
   useEffect(() => {
-    if (state?.ok) router.push("/dashboard/operations/preventive");
-  }, [state, router]);
+    if (state?.ok) {
+      if (onSuccess) onSuccess();
+      else router.push("/dashboard/operations/preventive");
+    }
+  }, [state, router, onSuccess]);
 
   return (
     <form action={dispatch}>
@@ -42,9 +49,15 @@ export function PreventiveScheduleForm({
         description="Recurring inspections and services. The runtime mints a new task each time the schedule comes due."
         footer={
           <>
-            <Button asChild variant="ghost">
-              <a href={cancelHref}>Cancel</a>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost">
+                <a href={cancelHref}>Cancel</a>
+              </Button>
+            )}
             <SubmitButton>Create schedule</SubmitButton>
           </>
         }

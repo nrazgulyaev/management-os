@@ -19,17 +19,24 @@ export function MaintenanceTicketForm({
   villas,
   projects,
   cancelHref,
+  onSuccess,
+  onCancel,
 }: {
   villas: Option[];
   projects: Option[];
   cancelHref: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const [state, dispatch] = useActionState(createMaintenanceTicketAction, initial);
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   const router = useRouter();
   useEffect(() => {
-    if (state?.ok && state.redirectTo) router.push(state.redirectTo);
-  }, [state, router]);
+    if (state?.ok) {
+      if (onSuccess) onSuccess();
+      else if (state.redirectTo) router.push(state.redirectTo);
+    }
+  }, [state, router, onSuccess]);
 
   return (
     <form action={dispatch}>
@@ -38,9 +45,15 @@ export function MaintenanceTicketForm({
         description="A ticket can later be linked to a generated repair task."
         footer={
           <>
-            <Button asChild variant="ghost">
-              <a href={cancelHref}>Cancel</a>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost">
+                <a href={cancelHref}>Cancel</a>
+              </Button>
+            )}
             <SubmitButton>Open ticket</SubmitButton>
           </>
         }

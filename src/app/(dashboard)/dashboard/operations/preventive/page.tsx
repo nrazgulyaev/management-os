@@ -1,11 +1,15 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { ScheduleCard } from "@/components/operations/schedule-card";
 import { GeneratePreventiveButton } from "@/components/operations/generate-preventive-button";
-import { listPreventiveSchedules } from "@/features/operations/services";
+import { PreventiveAddButton } from "@/components/operations/preventive-add-button";
+import {
+  listChecklistTemplates,
+  listPreventiveSchedules,
+} from "@/features/operations/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
+import { listAppUsers } from "@/features/auth/users-service";
 import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
 import { NoItemsYet } from "@/components/ui/primitives";
 
@@ -13,7 +17,17 @@ export const metadata = { title: "Operations · Preventive" };
 export const dynamic = "force-dynamic";
 
 export default async function PreventiveSchedulesPage() {
-  const schedules = await listPreventiveSchedules({ limit: 200 });
+  const [schedules, villas, projects, users, templates] = await Promise.all([
+    listPreventiveSchedules({ limit: 200 }),
+    listVillas(),
+    listProjects(),
+    listAppUsers(),
+    listChecklistTemplates(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
+  const userOpts = users.map((u) => ({ id: u.id, label: `${u.fullName} · ${u.email}` }));
+  const templateOpts = templates.map((t) => ({ id: t.id, label: t.name }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -26,12 +40,12 @@ export default async function PreventiveSchedulesPage() {
         actions={
           <div className="flex gap-2">
             <GeneratePreventiveButton />
-            <Button asChild>
-              <Link href="/dashboard/operations/preventive/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New schedule
-              </Link>
-            </Button>
+            <PreventiveAddButton
+              villas={villaOpts}
+              projects={projectOpts}
+              templates={templateOpts}
+              appUsers={userOpts}
+            />
           </div>
         }
       />

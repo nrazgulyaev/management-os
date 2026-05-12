@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Badge } from "@/components/ui/badge";
 import { listDamageReports } from "@/features/operations/services";
+import { listVillas } from "@/features/villas/services";
 import { formatMoneyMinor } from "@/lib/money";
+import { DamageAddButton } from "@/components/operations/damage-add-button";
 import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
 import { NoItemsYet } from "@/components/ui/primitives";
 
@@ -13,7 +12,11 @@ export const metadata = { title: "Operations · Damage reports" };
 export const dynamic = "force-dynamic";
 
 export default async function DamageReportsPage() {
-  const reports = await listDamageReports({ limit: 200 });
+  const [reports, villas] = await Promise.all([
+    listDamageReports({ limit: 200 }),
+    listVillas(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -23,14 +26,7 @@ export default async function DamageReportsPage() {
         ]}
         title="Damage reports"
         description="Damage logged during cleaning or stays. Drives owner / guest cost allocation."
-        actions={
-          <Button asChild>
-            <Link href="/dashboard/operations/damage-reports/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              Log damage
-            </Link>
-          </Button>
-        }
+        actions={<DamageAddButton villas={villaOpts} />}
       />
       <DbStatusNotice />
       <div className="rounded-md border border-line-soft bg-surface overflow-hidden">

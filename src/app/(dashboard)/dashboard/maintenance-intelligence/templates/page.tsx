@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { listMaintenanceTemplates } from "@/features/maintenance-intelligence/services";
+import { TemplateAddButton } from "@/components/maintenance-intelligence/template-add-button";
 
 export const metadata = { title: "Maintenance templates" };
 export const dynamic = "force-dynamic";
@@ -18,14 +19,7 @@ export default async function TemplatesPage() {
         ]}
         title="Maintenance templates"
         description="Catalog of preventive checks (AC, pool, pest, garden, pump, electrical, smart-lock battery…). Plans are villa-specific instances of these templates."
-        actions={
-          <Link
-            href="/dashboard/maintenance-intelligence/templates/new"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-          >
-            + New template
-          </Link>
-        }
+        actions={<TemplateAddButton />}
       />
       <Section eyebrow="Catalog" title={`${templates.length} templates`}>
         {templates.length === 0 ? (

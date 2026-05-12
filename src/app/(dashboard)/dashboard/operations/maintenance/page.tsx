@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { MaintenanceTicketCard } from "@/components/operations/maintenance-ticket-card";
+import { MaintenanceAddButton } from "@/components/operations/maintenance-add-button";
 import { listMaintenanceTickets } from "@/features/operations/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
 import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
 import { NoItemsYet } from "@/components/ui/primitives";
 
@@ -12,7 +12,13 @@ export const metadata = { title: "Operations · Maintenance" };
 export const dynamic = "force-dynamic";
 
 export default async function MaintenancePage() {
-  const tickets = await listMaintenanceTickets({ limit: 200 });
+  const [tickets, villas, projects] = await Promise.all([
+    listMaintenanceTickets({ limit: 200 }),
+    listVillas(),
+    listProjects(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -22,14 +28,7 @@ export default async function MaintenancePage() {
         ]}
         title="Maintenance tickets"
         description="Reported issues, repair triage, and parts coordination."
-        actions={
-          <Button asChild>
-            <Link href="/dashboard/operations/maintenance/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              New ticket
-            </Link>
-          </Button>
-        }
+        actions={<MaintenanceAddButton villas={villaOpts} projects={projectOpts} />}
       />
       <DbStatusNotice />
       <div className="flex flex-col gap-2">
