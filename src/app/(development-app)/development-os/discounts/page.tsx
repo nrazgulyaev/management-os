@@ -13,6 +13,7 @@ import {
   getDiscounts,
   getPendingDiscountApprovals,
 } from "@/lib/development/server/discounts";
+import { safeQuery } from "@/lib/development/safe-query";
 import {
   DISCOUNT_REASON_LABEL,
   DISCOUNT_STATUS_LABEL,
@@ -40,10 +41,24 @@ function fmtPercent(v: number | null): string {
 }
 
 export default async function DiscountsPage() {
+  // Stage 10.6.B.2-fix.2 — wrap each query individually so a single
+  // failing loader doesn't 500 the whole page.
   const [pending, all, limits] = await Promise.all([
-    getPendingDiscountApprovals(),
-    getDiscounts(),
-    getAllAuthorizationLimits(),
+    safeQuery(
+      "discounts.getPendingDiscountApprovals",
+      getPendingDiscountApprovals(),
+      [] as Awaited<ReturnType<typeof getPendingDiscountApprovals>>,
+    ),
+    safeQuery(
+      "discounts.getDiscounts",
+      getDiscounts(),
+      [] as Awaited<ReturnType<typeof getDiscounts>>,
+    ),
+    safeQuery(
+      "discounts.getAllAuthorizationLimits",
+      getAllAuthorizationLimits(),
+      [] as Awaited<ReturnType<typeof getAllAuthorizationLimits>>,
+    ),
   ]);
 
   return (
