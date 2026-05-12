@@ -1,30 +1,29 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { listFeeLines } from "@/features/finance/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
 import { FinanceTable } from "@/components/finance/finance-table";
+import { FeeAddButton } from "@/components/finance/fee-add-button";
 import { DbStatusNotice } from "@/components/admin/db-status";
 
 export const metadata = { title: "Fee ledger" };
 export const dynamic = "force-dynamic";
 
 export default async function FeesPage() {
-  const rows = await listFeeLines();
+  const [rows, villas, projects] = await Promise.all([
+    listFeeLines(),
+    listVillas(),
+    listProjects(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
         breadcrumbs={[{ label: "Finance", href: "/dashboard/finance" }, { label: "Fees" }]}
         title="Fees"
         description="OTA commission, payment processing, bank, FX, agent and manager commissions."
-        actions={
-          <Button asChild>
-            <Link href="/dashboard/finance/fees/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              New fee
-            </Link>
-          </Button>
-        }
+        actions={<FeeAddButton villas={villaOpts} projects={projectOpts} />}
       />
       <DbStatusNotice />
       <FinanceTable

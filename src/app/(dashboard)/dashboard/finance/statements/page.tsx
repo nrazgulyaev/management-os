@@ -1,18 +1,33 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Plus } from "lucide-react";
-import { listOwnerStatements } from "@/features/finance/services";
+import {
+  listOwnerStatements,
+  listStatementPeriods,
+} from "@/features/finance/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
+import { listOwners } from "@/features/owners/services";
 import { StatementStatusPill } from "@/components/finance/period-pill";
+import { StatementAddButton } from "@/components/finance/statement-add-button";
 import { formatMoneyMinor } from "@/lib/money";
 
 export const metadata = { title: "Owner statements" };
 export const dynamic = "force-dynamic";
 
 export default async function StatementsPage() {
-  const rows = await listOwnerStatements();
+  const [rows, owners, villas, projects, periods] = await Promise.all([
+    listOwnerStatements(),
+    listOwners(),
+    listVillas(),
+    listProjects(),
+    listStatementPeriods(),
+  ]);
+  const ownerOpts = owners.map((o) => ({ id: o.id, label: o.displayName }));
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
+  const periodOpts = periods.map((p) => ({ id: p.id, label: p.label }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -20,12 +35,12 @@ export default async function StatementsPage() {
         title="Owner statements"
         description="Generated from the ledger. Drafts are reproducible — generating again replaces lines but preserves the statement code."
         actions={
-          <Button asChild>
-            <Link href="/dashboard/finance/statements/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              Generate statement
-            </Link>
-          </Button>
+          <StatementAddButton
+            owners={ownerOpts}
+            villas={villaOpts}
+            projects={projectOpts}
+            periods={periodOpts}
+          />
         }
       />
       <DbStatusNotice />

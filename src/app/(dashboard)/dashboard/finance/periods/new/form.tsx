@@ -1,27 +1,40 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
 import { Field, FormShell, inputCls } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { Button } from "@/components/ui/button";
+import { useModalOrRouteForm } from "@/lib/forms/use-modal-or-route-form";
 import { createStatementPeriodAction } from "@/features/finance/actions";
 import type { ActionResult } from "@/features/projects/actions";
 
-const initial: ActionResult | null = null;
-
-export function PeriodForm() {
-  const [state, dispatch] = useActionState(createStatementPeriodAction, initial);
+export function PeriodForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+} = {}) {
+  const { state, submitAction, pending } = useModalOrRouteForm<ActionResult>(
+    createStatementPeriodAction,
+    { onSuccess },
+  );
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   return (
-    <form action={dispatch}>
+    <form action={submitAction}>
       <FormShell
         title="Period details"
         footer={
           <>
-            <Button asChild variant="ghost">
-              <Link href="/dashboard/finance/periods">Cancel</Link>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost">
+                <Link href="/dashboard/finance/periods">Cancel</Link>
+              </Button>
+            )}
             <SubmitButton>Create period</SubmitButton>
           </>
         }

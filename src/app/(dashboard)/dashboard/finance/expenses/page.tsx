@@ -1,30 +1,29 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { listExpenseLines } from "@/features/finance/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
 import { FinanceTable } from "@/components/finance/finance-table";
+import { ExpenseAddButton } from "@/components/finance/expense-add-button";
 import { DbStatusNotice } from "@/components/admin/db-status";
 
 export const metadata = { title: "Expenses" };
 export const dynamic = "force-dynamic";
 
 export default async function ExpensesPage() {
-  const rows = await listExpenseLines();
+  const [rows, villas, projects] = await Promise.all([
+    listExpenseLines(),
+    listVillas(),
+    listProjects(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
         breadcrumbs={[{ label: "Finance", href: "/dashboard/finance" }, { label: "Expenses" }]}
         title="Operating expenses"
         description="Utilities, cleaning, maintenance, capex, renovation. Allocation scope governs how the expense flows into owner statements."
-        actions={
-          <Button asChild>
-            <Link href="/dashboard/finance/expenses/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              New expense
-            </Link>
-          </Button>
-        }
+        actions={<ExpenseAddButton villas={villaOpts} projects={projectOpts} />}
       />
       <DbStatusNotice />
       <FinanceTable

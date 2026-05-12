@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Plus } from "lucide-react";
 import { listStatementPeriods } from "@/features/finance/services";
 import { PeriodPill } from "@/components/finance/period-pill";
+import { PeriodAddButton } from "@/components/finance/period-add-button";
 
 export const metadata = { title: "Statement periods" };
 export const dynamic = "force-dynamic";
@@ -18,14 +17,7 @@ export default async function PeriodsPage() {
         breadcrumbs={[{ label: "Finance", href: "/dashboard/finance" }, { label: "Periods" }]}
         title="Statement periods"
         description="Open → closing → closed → locked. Closed and locked periods refuse new financial mutations at the database layer."
-        actions={
-          <Button asChild>
-            <Link href="/dashboard/finance/periods/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              New period
-            </Link>
-          </Button>
-        }
+        actions={<PeriodAddButton />}
       />
       <DbStatusNotice />
       <Table>

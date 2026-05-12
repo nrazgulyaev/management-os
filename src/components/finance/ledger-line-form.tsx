@@ -1,15 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Field, FormShell, inputCls, selectCls } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { Button } from "@/components/ui/button";
 import { MoneyInput } from "@/components/finance/money-input";
+import { useModalOrRouteForm } from "@/lib/forms/use-modal-or-route-form";
 import type { ActionResult } from "@/features/projects/actions";
-
-const initial: ActionResult | null = null;
 
 export interface ScopeOption {
   id: string;
@@ -39,22 +38,33 @@ export interface LedgerLineFormProps {
   /** Extra fields rendered after the standard set. */
   extraFields?: React.ReactNode;
   submitLabel?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
 export function LedgerLineForm(props: LedgerLineFormProps) {
-  const [state, dispatch] = useActionState(props.action, initial);
+  const { state, submitAction, pending } = useModalOrRouteForm<ActionResult>(
+    props.action,
+    { onSuccess: props.onSuccess },
+  );
   const [currency, setCurrency] = useState("USD");
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
 
   return (
-    <form action={dispatch}>
+    <form action={submitAction}>
       <FormShell
         title={props.title}
         footer={
           <>
-            <Button asChild variant="ghost">
-              <Link href={props.cancelHref}>Cancel</Link>
-            </Button>
+            {props.onCancel ? (
+              <Button type="button" variant="ghost" onClick={props.onCancel} disabled={pending}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost">
+                <Link href={props.cancelHref}>Cancel</Link>
+              </Button>
+            )}
             <SubmitButton>{props.submitLabel ?? "Post"}</SubmitButton>
           </>
         }

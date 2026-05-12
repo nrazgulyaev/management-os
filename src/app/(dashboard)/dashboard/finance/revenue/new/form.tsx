@@ -1,15 +1,14 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Field, FormShell, inputCls, selectCls } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { Button } from "@/components/ui/button";
 import { MoneyInput } from "@/components/finance/money-input";
+import { useModalOrRouteForm } from "@/lib/forms/use-modal-or-route-form";
 import { createRevenueLineAction } from "@/features/finance/actions";
 import type { ActionResult } from "@/features/projects/actions";
-
-const initial: ActionResult | null = null;
 const REVENUE_TYPES = [
   "nightly",
   "cleaning_fee",
@@ -27,22 +26,35 @@ const REVENUE_TYPES = [
 export function RevenueLineForm({
   villas,
   projects,
+  onSuccess,
+  onCancel,
 }: {
   villas: { id: string; label: string }[];
   projects: { id: string; label: string }[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
-  const [state, dispatch] = useActionState(createRevenueLineAction, initial);
+  const { state, submitAction, pending } = useModalOrRouteForm<ActionResult>(
+    createRevenueLineAction,
+    { onSuccess },
+  );
   const [currency, setCurrency] = useState("USD");
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   return (
-    <form action={dispatch}>
+    <form action={submitAction}>
       <FormShell
         title="Revenue line"
         footer={
           <>
-            <Button asChild variant="ghost">
-              <Link href="/dashboard/finance/revenue">Cancel</Link>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost">
+                <Link href="/dashboard/finance/revenue">Cancel</Link>
+              </Button>
+            )}
             <SubmitButton>Post revenue</SubmitButton>
           </>
         }

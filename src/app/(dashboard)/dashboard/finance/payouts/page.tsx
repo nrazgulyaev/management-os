@@ -2,10 +2,9 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Plus } from "lucide-react";
 import { listPayoutBatches, listPayoutLines } from "@/features/finance/services";
+import { PayoutBatchAddButton } from "@/components/finance/payout-batch-add-button";
 import { formatMoneyMinor } from "@/lib/money";
 
 export const metadata = { title: "Payouts" };
@@ -24,12 +23,7 @@ export default async function PayoutsPage() {
         description="Owner payouts grouped into batches. No real payment processing in v3 — wires up in v8."
         actions={
           <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/dashboard/finance/payouts/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New batch
-              </Link>
-            </Button>
+            <PayoutBatchAddButton />
           </div>
         }
       />

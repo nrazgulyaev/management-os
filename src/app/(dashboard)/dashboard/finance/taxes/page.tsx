@@ -1,30 +1,29 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { listTaxLines } from "@/features/finance/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
 import { FinanceTable } from "@/components/finance/finance-table";
+import { TaxAddButton } from "@/components/finance/tax-add-button";
 import { DbStatusNotice } from "@/components/admin/db-status";
 
 export const metadata = { title: "Taxes" };
 export const dynamic = "force-dynamic";
 
 export default async function TaxesPage() {
-  const rows = await listTaxLines();
+  const [rows, villas, projects] = await Promise.all([
+    listTaxLines(),
+    listVillas(),
+    listProjects(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
         breadcrumbs={[{ label: "Finance", href: "/dashboard/finance" }, { label: "Taxes" }]}
         title="Taxes"
         description="Local hospitality tax, VAT, withholding. Owner-visible by default unless explicitly hidden."
-        actions={
-          <Button asChild>
-            <Link href="/dashboard/finance/taxes/new">
-              <Plus className="w-4 h-4" strokeWidth={1.75} />
-              New tax line
-            </Link>
-          </Button>
-        }
+        actions={<TaxAddButton villas={villaOpts} projects={projectOpts} />}
       />
       <DbStatusNotice />
       <FinanceTable
