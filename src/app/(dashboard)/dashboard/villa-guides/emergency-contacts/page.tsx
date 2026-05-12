@@ -3,14 +3,23 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listEmergencyContactsAdmin } from "@/features/villa-guides/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
 import { VillaGuidesRowActions } from "@/components/dashboard/villa-guides/villa-guides-row-actions";
+import { ContactAddButton } from "@/components/villa-guides/contact-add-button";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Emergency contacts" };
 export const dynamic = "force-dynamic";
 
 export default async function EmergencyContactsList() {
-  const rows = await listEmergencyContactsAdmin();
+  const [rows, villas, projects] = await Promise.all([
+    listEmergencyContactsAdmin(),
+    listVillas(),
+    listProjects(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName ?? ""}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-10">
       <PageHeader
@@ -20,14 +29,7 @@ export default async function EmergencyContactsList() {
         ]}
         title="Emergency contacts"
         description="Police, hospital, concierge, manager. The villa-scoped list replaces the project-scoped fallback."
-        actions={
-          <Link
-            href="/dashboard/villa-guides/emergency-contacts/new"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-          >
-            + New contact
-          </Link>
-        }
+        actions={<ContactAddButton villas={villaOpts} projects={projectOpts} />}
       />
       <Section eyebrow="Catalog" title={`${rows.length} contacts`}>
         {rows.length === 0 ? (

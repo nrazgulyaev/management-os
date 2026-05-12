@@ -3,13 +3,22 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listUtilityAccounts } from "@/features/utilities/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
 import { formatBalanceLabel } from "@/features/utilities/risk-pure";
+import { UtilityAccountAddButton } from "@/components/utilities/account-add-button";
 
 export const metadata = { title: "Utility accounts" };
 export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
-  const rows = await listUtilityAccounts();
+  const [rows, villas, projects] = await Promise.all([
+    listUtilityAccounts(),
+    listVillas(),
+    listProjects(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName ?? ""}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-10">
       <PageHeader
@@ -19,14 +28,7 @@ export default async function AccountsPage() {
         ]}
         title="Utility accounts"
         description="Per-villa utility metadata, thresholds, and provider hooks. Token meter is on for prepay accounts (PLN tokens, prepaid water)."
-        actions={
-          <Link
-            href="/dashboard/utilities/accounts/new"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-          >
-            + New account
-          </Link>
-        }
+        actions={<UtilityAccountAddButton villas={villaOpts} projects={projectOpts} />}
       />
       <Section eyebrow="Accounts" title={`${rows.length} accounts`}>
         {rows.length === 0 ? (

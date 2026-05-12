@@ -1,38 +1,50 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Field, FormShell, inputCls, selectCls } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { Button } from "@/components/ui/button";
+import { useModalOrRouteForm } from "@/lib/forms/use-modal-or-route-form";
 import { createShareAction } from "@/features/shares/actions";
 import type { ActionResult } from "@/features/projects/actions";
-
-const initial: ActionResult | null = null;
 
 export function ShareForm({
   owners,
   projects,
   villas,
+  onSuccess,
+  onCancel,
 }: {
   owners: { id: string; label: string }[];
   projects: { id: string; label: string }[];
   villas: { id: string; label: string }[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
-  const [state, dispatch] = useActionState(createShareAction, initial);
+  const { state, submitAction, pending } = useModalOrRouteForm<ActionResult>(
+    createShareAction,
+    { onSuccess },
+  );
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   const [model, setModel] = useState<"individual" | "pooled" | "hybrid">("individual");
 
   return (
-    <form action={dispatch}>
+    <form action={submitAction}>
       <FormShell
         title="Share details"
         description="Active shares for the same villa or pool must total exactly 100%. The platform warns when they don't."
         footer={
           <>
-            <Button asChild variant="ghost">
-              <Link href="/dashboard/shares">Cancel</Link>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost">
+                <Link href="/dashboard/shares">Cancel</Link>
+              </Button>
+            )}
             <SubmitButton>Create share</SubmitButton>
           </>
         }

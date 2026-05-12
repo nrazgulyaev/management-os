@@ -1,14 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
 import { Field, FormShell, inputCls, selectCls } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { Button } from "@/components/ui/button";
+import { useModalOrRouteForm } from "@/lib/forms/use-modal-or-route-form";
 import { createOwnerAction, updateOwnerAction } from "./actions";
 import type { ActionResult } from "@/features/projects/actions";
-
-const initial: ActionResult | null = null;
 
 export interface OwnerFormDefaults {
   id?: string;
@@ -26,25 +24,38 @@ export function OwnerForm({
   mode,
   defaults,
   cancelHref = "/dashboard/owners",
+  onSuccess,
+  onCancel,
 }: {
   mode: "create" | "edit";
   defaults?: OwnerFormDefaults;
   cancelHref?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const action = mode === "edit" ? updateOwnerAction : createOwnerAction;
-  const [state, dispatch] = useActionState(action, initial);
+  const { state, submitAction, pending } = useModalOrRouteForm<ActionResult>(
+    action,
+    { onSuccess },
+  );
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   const v = defaults ?? {};
   return (
-    <form action={dispatch}>
+    <form action={submitAction}>
       {mode === "edit" && v.id && <input type="hidden" name="id" value={v.id} />}
       <FormShell
         title={mode === "edit" ? "Edit owner" : "Owner details"}
         footer={
           <>
-            <Button asChild variant="ghost">
-              <Link href={cancelHref}>Cancel</Link>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+                Cancel
+              </Button>
+            ) : (
+              <Button asChild variant="ghost">
+                <Link href={cancelHref}>Cancel</Link>
+              </Button>
+            )}
             <SubmitButton>{mode === "edit" ? "Save changes" : "Create owner"}</SubmitButton>
           </>
         }

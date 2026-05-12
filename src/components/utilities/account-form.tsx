@@ -18,17 +18,22 @@ const TYPES = ["electricity", "water", "internet", "gas", "waste", "security", "
 export function UtilityAccountForm({
   villas,
   projects,
+  onSuccess,
+  onCancel,
 }: {
   villas: { id: string; label: string }[];
   projects: { id: string; label: string }[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [state, dispatch] = useActionState(createUtilityAccountAction, null);
   useEffect(() => {
     if (state?.ok && state.accountId) {
-      router.push(`/dashboard/utilities/accounts/${state.accountId}`);
+      if (onSuccess) onSuccess();
+      else router.push(`/dashboard/utilities/accounts/${state.accountId}`);
     }
-  }, [state, router]);
+  }, [state, router, onSuccess]);
   return (
     <form action={dispatch}>
       <FormShell
@@ -37,7 +42,11 @@ export function UtilityAccountForm({
             {state && !state.ok && (
               <span className="text-xs text-danger mr-auto">{state.error}</span>
             )}
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => (onCancel ? onCancel() : router.back())}
+            >
               Cancel
             </Button>
             <SubmitButton>Create account</SubmitButton>

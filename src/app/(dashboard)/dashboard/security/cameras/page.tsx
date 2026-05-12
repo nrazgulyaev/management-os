@@ -3,7 +3,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listSecurityCameraDevices } from "@/features/security/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
 import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
+import { CameraAddButton } from "@/components/security/camera-add-button";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Cameras" };
@@ -17,7 +20,13 @@ const STATUS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | 
 };
 
 export default async function CamerasPage() {
-  const cameras = await listSecurityCameraDevices();
+  const [cameras, villas, projects] = await Promise.all([
+    listSecurityCameraDevices(),
+    listVillas(),
+    listProjects(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName ?? ""}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
 
   return (
     <div className="flex flex-col gap-10">
@@ -28,14 +37,7 @@ export default async function CamerasPage() {
         ]}
         title="Cameras"
         description="Registry only — the platform never streams video. Operators click through to the vendor app for live feeds."
-        actions={
-          <Link
-            href="/dashboard/security/cameras/new"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-          >
-            + New camera
-          </Link>
-        }
+        actions={<CameraAddButton villas={villaOpts} projects={projectOpts} />}
       />
 
       <Section eyebrow="Devices" title={`${cameras.length} cameras`}>

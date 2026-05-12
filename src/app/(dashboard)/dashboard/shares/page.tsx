@@ -4,21 +4,31 @@ import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Button } from "@/components/ui/button";
-import { Plus, AlertTriangle, ShieldCheck } from "lucide-react";
-import { listOwnershipShares } from "@/features/owners/services";
+import { AlertTriangle, ShieldCheck } from "lucide-react";
+import { listOwners, listOwnershipShares } from "@/features/owners/services";
+import { listProjects } from "@/features/projects/services";
+import { listVillas } from "@/features/villas/services";
 import { computeShareTotals } from "@/features/shares/totals";
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
+import { ShareAddButton } from "@/components/shares/share-add-button";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Ownership shares" };
 export const dynamic = "force-dynamic";
 
 export default async function SharesPage() {
-  const shares = await listOwnershipShares();
+  const [shares, owners, projects, villas] = await Promise.all([
+    listOwnershipShares(),
+    listOwners(),
+    listProjects(),
+    listVillas(),
+  ]);
   const totals = computeShareTotals(shares);
   const issues = totals.filter((t) => t.exceedsHundred || t.underAllocated);
   const source = shares[0]?.source ?? "mock";
+  const ownerOpts = owners.map((o) => ({ id: o.id, label: o.displayName }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
 
   return (
     <div className="flex flex-col gap-8">
@@ -29,12 +39,7 @@ export default async function SharesPage() {
         actions={
           <div className="flex items-center gap-2">
             <SourceBadge source={source} />
-            <Button asChild>
-              <Link href="/dashboard/shares/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New share
-              </Link>
-            </Button>
+            <ShareAddButton owners={ownerOpts} projects={projectOpts} villas={villaOpts} />
           </div>
         }
       />

@@ -3,14 +3,23 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { listGuideSectionsAdmin } from "@/features/villa-guides/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
 import { VillaGuidesRowActions } from "@/components/dashboard/villa-guides/villa-guides-row-actions";
+import { SectionAddButton } from "@/components/villa-guides/section-add-button";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Guide sections" };
 export const dynamic = "force-dynamic";
 
 export default async function SectionsList() {
-  const rows = await listGuideSectionsAdmin();
+  const [rows, villas, projects] = await Promise.all([
+    listGuideSectionsAdmin(),
+    listVillas(),
+    listProjects(),
+  ]);
+  const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName ?? ""}` }));
+  const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-10">
       <PageHeader
@@ -20,14 +29,7 @@ export default async function SectionsList() {
         ]}
         title="Guide sections"
         description="Sections shown on /stay/[token]. The villa-scoped row wins when both villa- and project-scoped rows exist for the same key."
-        actions={
-          <Link
-            href="/dashboard/villa-guides/sections/new"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
-          >
-            + New section
-          </Link>
-        }
+        actions={<SectionAddButton villas={villaOpts} projects={projectOpts} />}
       />
       <Section eyebrow="Catalog" title={`${rows.length} sections`}>
         {rows.length === 0 ? (

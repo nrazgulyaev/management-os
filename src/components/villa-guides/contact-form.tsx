@@ -29,17 +29,22 @@ const TYPES = [
 export function ContactForm({
   villas,
   projects,
+  onSuccess,
+  onCancel,
 }: {
   villas: { id: string; label: string }[];
   projects: { id: string; label: string }[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [state, dispatch] = useActionState(upsertEmergencyContactAction, null);
   useEffect(() => {
     if (state?.ok && state.contactId) {
-      router.push("/dashboard/villa-guides/emergency-contacts");
+      if (onSuccess) onSuccess();
+      else router.push("/dashboard/villa-guides/emergency-contacts");
     }
-  }, [state, router]);
+  }, [state, router, onSuccess]);
   return (
     <form action={dispatch}>
       <FormShell
@@ -48,7 +53,11 @@ export function ContactForm({
             {state && !state.ok && (
               <span className="text-xs text-danger mr-auto">{state.error}</span>
             )}
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => (onCancel ? onCancel() : router.back())}
+            >
               Cancel
             </Button>
             <SubmitButton>Save</SubmitButton>

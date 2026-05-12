@@ -32,17 +32,22 @@ const CATS = [
 export function PlaceForm({
   villas,
   projects,
+  onSuccess,
+  onCancel,
 }: {
   villas: { id: string; label: string }[];
   projects: { id: string; label: string }[];
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [state, dispatch] = useActionState(upsertNeighborhoodPlaceAction, null);
   useEffect(() => {
     if (state?.ok && state.placeId) {
-      router.push("/dashboard/villa-guides/neighborhood");
+      if (onSuccess) onSuccess();
+      else router.push("/dashboard/villa-guides/neighborhood");
     }
-  }, [state, router]);
+  }, [state, router, onSuccess]);
   return (
     <form action={dispatch}>
       <FormShell
@@ -51,7 +56,11 @@ export function PlaceForm({
             {state && !state.ok && (
               <span className="text-xs text-danger mr-auto">{state.error}</span>
             )}
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => (onCancel ? onCancel() : router.back())}
+            >
               Cancel
             </Button>
             <SubmitButton>Save</SubmitButton>
