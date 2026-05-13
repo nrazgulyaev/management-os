@@ -297,6 +297,7 @@ export async function listOpenSuggestions(limit = 100) {
 export async function listMaintenanceRiskEvents(opts?: {
   status?: string | string[];
   severity?: string;
+  riskType?: string;
   villaId?: string;
   limit?: number;
 }) {
@@ -310,6 +311,8 @@ export async function listMaintenanceRiskEvents(opts?: {
   }
   if (opts?.severity)
     filters.push(eq(maintenanceRiskEvents.severity, opts.severity));
+  if (opts?.riskType)
+    filters.push(eq(maintenanceRiskEvents.riskType, opts.riskType));
   if (opts?.villaId)
     filters.push(eq(maintenanceRiskEvents.villaId, opts.villaId));
   const rows = await db
