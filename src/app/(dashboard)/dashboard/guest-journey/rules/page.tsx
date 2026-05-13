@@ -22,7 +22,7 @@ export default async function JourneyRulesList() {
         actions={<GuestJourneyRuleAddButton />}
       />
       <Section eyebrow="Rules" title={`${rules.length} configured`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-canvas/50 text-left">
               <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">

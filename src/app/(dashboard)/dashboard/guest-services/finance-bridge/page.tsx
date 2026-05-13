@@ -82,7 +82,7 @@ export default async function FinanceBridgePage() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-line-soft bg-surface p-5">
+    <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-5">
       <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
         {label}
       </div>
@@ -110,13 +110,13 @@ function BridgeTable({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-md border border-line-soft bg-surface p-6 text-center text-xs text-ink-tertiary">
+      <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-6 text-center text-xs text-ink-tertiary">
         {emptyHint}
       </div>
     );
   }
   return (
-    <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
+    <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="bg-canvas/50 text-left">
           <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">

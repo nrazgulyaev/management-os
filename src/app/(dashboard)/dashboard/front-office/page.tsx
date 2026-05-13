@@ -132,11 +132,11 @@ export default async function FrontOfficeTodayPage() {
         <aside className="flex flex-col gap-4">
           <Section eyebrow="Inbox" title="Guest requests">
             {openRequests.length === 0 ? (
-              <div className="rounded-md border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
+              <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm text-ink-secondary">
                 No pending check-in / check-out requests right now.
               </div>
             ) : (
-              <div className="rounded-md border border-line-soft bg-surface p-5">
+              <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-5">
                 <div className="text-display text-[40px] leading-none font-medium font-mono tabular-nums text-ink">
                   {openRequests.length}
                 </div>
@@ -191,7 +191,7 @@ function BoardCard({
   return (
     <Link
       href={href}
-      className="rounded-md border border-line-soft bg-surface p-5 hover:border-line-strong transition-colors block"
+      className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card hover:shadow-elevated-card hover:border-line-strong transition-all block"
     >
       <div className="text-ink font-medium text-base">{title}</div>
       <div className="text-sm text-ink-secondary mt-1">{detail}</div>
@@ -204,7 +204,7 @@ function CrossLink({ href, label }: { href: string; label: string }) {
     <li>
       <Link
         href={href}
-        className="block rounded-md border border-line-soft bg-surface px-4 py-3 text-sm text-ink hover:border-line-strong transition-colors"
+        className="block rounded-2xl border border-line-soft bg-surface px-4 py-3 text-sm text-ink shadow-soft-card hover:shadow-elevated-card hover:border-line-strong transition-all"
       >
         {label} <span aria-hidden>→</span>
       </Link>

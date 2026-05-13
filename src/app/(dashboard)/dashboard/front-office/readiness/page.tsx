@@ -148,7 +148,7 @@ function ReadinessTable({
   rows: Awaited<ReturnType<typeof listArrivalReadiness>>;
 }) {
   return (
-    <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+    <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
       <table className="w-full text-sm">
         <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
           <tr>

@@ -19,7 +19,7 @@ export default async function JourneyRunsPage() {
         description="Each row is one (booking, rule) pair. Idempotent — re-runs are no-ops on the unique index."
       />
       <Section eyebrow="History" title={`${runs.length} runs`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-canvas/50 text-left">
               <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">

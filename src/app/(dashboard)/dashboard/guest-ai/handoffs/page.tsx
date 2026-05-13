@@ -73,7 +73,7 @@ export default async function HandoffsListPage({
         actions={
           <Link
             href="/dashboard/guest-ai/handoffs/metrics"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
+            className="text-sm px-4 py-2 rounded-full border border-line-soft hover:border-line-strong"
           >
             SLA metrics →
           </Link>
@@ -111,7 +111,7 @@ export default async function HandoffsListPage({
             Urgent only
           </FilterPill>
         </div>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-canvas/50 text-left">
               <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">

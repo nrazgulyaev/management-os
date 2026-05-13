@@ -55,7 +55,7 @@ export default async function OrderDetailPage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
           <Section eyebrow="Request" title="Details">
-            <dl className="rounded-md border border-line-soft bg-surface p-6 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <dl className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <Pair label="Service">
                 {service?.name ?? "—"}
                 <div className="text-[11px] text-ink-tertiary mt-0.5">
@@ -111,7 +111,7 @@ export default async function OrderDetailPage({
           </Section>
 
           <Section eyebrow="Activity" title="Timeline">
-            <ol className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+            <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
               {events.length === 0 && (
                 <li className="px-4 py-4 text-xs text-ink-tertiary">
                   No events yet.
@@ -155,7 +155,7 @@ export default async function OrderDetailPage({
           </Section>
 
           <Section eyebrow="Finance" title="Bridge">
-            <div className="rounded-md border border-line-soft bg-surface p-4 flex flex-col gap-3 text-sm">
+            <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-4 flex flex-col gap-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-ink-secondary">Status</span>
                 <Badge
@@ -204,7 +204,7 @@ export default async function OrderDetailPage({
 
           <Section eyebrow="Fulfilment" title="Operational layer">
             {fulfilment ? (
-              <div className="rounded-md border border-line-soft bg-surface p-4 flex flex-col gap-2">
+              <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-4 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs text-ink">
                     {fulfilment.fulfilmentCode}
@@ -219,7 +219,7 @@ export default async function OrderDetailPage({
                 </Link>
               </div>
             ) : (
-              <div className="rounded-md border border-dashed border-line-soft bg-muted/20 px-4 py-3 flex items-center justify-between gap-3">
+              <div className="rounded-2xl border border-dashed border-line-soft bg-muted/20 px-5 py-4 flex items-center justify-between gap-3">
                 <span className="text-xs text-ink-tertiary">
                   No fulfilment yet — create one to dispatch a vendor.
                 </span>

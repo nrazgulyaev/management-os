@@ -40,7 +40,7 @@ export default async function TokenDetail({
       />
 
       <Section eyebrow="Status" title="Token">
-        <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <Field label="Status">
             <Badge tone={STATUS_TONES[t.status] ?? "neutral"}>{t.status}</Badge>
           </Field>
@@ -77,7 +77,7 @@ export default async function TokenDetail({
         title="Where the guest goes"
         description="The raw token is shown only at issue time. After that, the prefix is the only identifier — share the URL via the issued email/phone path."
       >
-        <div className="rounded-md border border-line-soft bg-surface p-5 text-sm">
+        <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm">
           <p className="text-ink-secondary">
             <span className="font-mono text-[12px]">/stay/&lt;token&gt;</span> — full token never logged.
           </p>

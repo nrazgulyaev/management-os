@@ -63,11 +63,11 @@ export default async function GuestAIHub() {
         description="Click through to view the full transcript and model metrics."
       >
         {recent.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
+          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
             No active concierge sessions yet.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-canvas/50 text-left">
                 <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
@@ -117,13 +117,13 @@ export default async function GuestAIHub() {
         <div className="flex flex-wrap gap-3">
           <Link
             href="/dashboard/guest-ai/sessions"
-            className="text-sm rounded-md border border-line-soft bg-surface p-4 hover:border-line-strong"
+            className="text-sm rounded-2xl border border-line-soft bg-surface p-4 shadow-soft-card hover:shadow-elevated-card hover:border-line-strong"
           >
             All sessions →
           </Link>
           <Link
             href="/dashboard/guest-ai/handoffs"
-            className="text-sm rounded-md border border-line-soft bg-surface p-4 hover:border-line-strong"
+            className="text-sm rounded-2xl border border-line-soft bg-surface p-4 shadow-soft-card hover:shadow-elevated-card hover:border-line-strong"
           >
             All handoffs →
           </Link>

@@ -77,7 +77,7 @@ export default async function CatalogPage({
             <input
               name="search"
               defaultValue={sp.search ?? ""}
-              className="h-10 px-3 rounded-sm border border-line-soft bg-canvas text-sm"
+              className="h-10 px-3 rounded-xl border border-line-soft bg-canvas text-sm"
               placeholder="airport transfer…"
             />
           </div>
@@ -88,7 +88,7 @@ export default async function CatalogPage({
             <select
               name="categoryId"
               defaultValue={sp.categoryId ?? ""}
-              className="h-10 px-3 rounded-sm border border-line-soft bg-canvas text-sm"
+              className="h-10 px-3 rounded-xl border border-line-soft bg-canvas text-sm"
             >
               <option value="">All</option>
               {categories.map((c) => (
@@ -105,7 +105,7 @@ export default async function CatalogPage({
             <select
               name="status"
               defaultValue={sp.status ?? ""}
-              className="h-10 px-3 rounded-sm border border-line-soft bg-canvas text-sm"
+              className="h-10 px-3 rounded-xl border border-line-soft bg-canvas text-sm"
             >
               <option value="">All</option>
               <option value="active">Active</option>
@@ -121,7 +121,7 @@ export default async function CatalogPage({
           </button>
         </form>
 
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-canvas/50 text-left">
               <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">

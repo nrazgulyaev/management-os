@@ -89,7 +89,7 @@ export default async function HandoffMetricsPage() {
           eyebrow="Attachments"
           title="By handoff type"
         >
-          <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+          <ul className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
             {view.attachmentCountsByType.map((b) => (
               <li
                 key={b.handoffType}
@@ -111,11 +111,11 @@ export default async function HandoffMetricsPage() {
         description="Sorted by age. Tap to triage."
       >
         {overdueOpen.length === 0 ? (
-          <p className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-tertiary">
+          <p className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-6 text-sm text-ink-tertiary">
             None — nice.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
+          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-canvas/50 text-left">
                 <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
@@ -185,11 +185,11 @@ function BucketSection({
   return (
     <Section eyebrow="Breakdown" title={title}>
       {buckets.length === 0 ? (
-        <p className="rounded-md border border-line-soft bg-surface p-4 text-xs text-ink-tertiary">
+        <p className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-4 text-xs text-ink-tertiary">
           No data yet. Guest AI handoff metrics roll up from concierge sessions; first signals appear after a guest interacts with the AI.
         </p>
       ) : (
-        <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+        <ul className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
           {buckets.map((b) => (
             <li
               key={b.key}

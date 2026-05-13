@@ -108,7 +108,7 @@ function HubLink({
   return (
     <Link
       href={href}
-      className="rounded-md border border-line-soft bg-surface p-4 hover:border-line-strong"
+      className="rounded-2xl border border-line-soft bg-surface p-4 shadow-soft-card hover:shadow-elevated-card hover:border-line-strong"
     >
       <div className="text-sm text-ink font-medium">{title}</div>
       <div className="text-xs text-ink-tertiary mt-1">{description}</div>

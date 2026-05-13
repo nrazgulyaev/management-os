@@ -71,7 +71,7 @@ export default async function SessionDetailPage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
           <Section eyebrow="Transcript" title={`${messages.length} entries`}>
-            <ol className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+            <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
               {messages.length === 0 && (
                 <li className="px-4 py-4 text-xs text-ink-tertiary">
                   No messages yet.
@@ -117,7 +117,7 @@ export default async function SessionDetailPage({
 
         <div className="flex flex-col gap-6">
           <Section eyebrow="Metrics" title="At a glance">
-            <dl className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 gap-4 text-sm">
+            <dl className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 gap-4 text-sm">
               <Pair label="Total input tokens">
                 {totalInputTokens.toLocaleString()}
               </Pair>
@@ -146,11 +146,11 @@ export default async function SessionDetailPage({
             title={`${handoffs.length} created from this session`}
           >
             {handoffs.length === 0 ? (
-              <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-3 py-3 text-xs text-ink-tertiary">
+              <p className="rounded-2xl border border-dashed border-line-soft bg-muted/20 px-4 py-3 text-xs text-ink-tertiary">
                 None yet.
               </p>
             ) : (
-              <ol className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+              <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
                 {handoffs.map((h) => (
                   <li
                     key={h.id}
@@ -204,7 +204,7 @@ export default async function SessionDetailPage({
           </Section>
 
           <Section eyebrow="Runs" title={`${runs.length} model runs`}>
-            <ol className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+            <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
               {runs.length === 0 && (
                 <li className="px-4 py-4 text-xs text-ink-tertiary">
                   No runs yet.

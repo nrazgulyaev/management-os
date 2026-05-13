@@ -93,7 +93,7 @@ export default async function StorageHealthPage() {
           />
         </div>
         {health.notes.length > 0 && (
-          <ul className="mt-4 rounded-md border border-line-soft bg-canvas/40 p-4 text-[11px] text-ink-secondary list-disc list-inside space-y-1">
+          <ul className="mt-4 rounded-2xl border border-line-soft bg-canvas/40 p-4 text-[11px] text-ink-secondary list-disc list-inside space-y-1">
             {health.notes.map((n, i) => (
               <li key={i}>{n}</li>
             ))}
@@ -138,11 +138,11 @@ export default async function StorageHealthPage() {
         description="Each row tried to strip EXIF/text chunks and failed. The attachment is hidden from the guest until an operator triages it."
       >
         {failedMetadata.length === 0 ? (
-          <p className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-tertiary">
+          <p className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-6 text-sm text-ink-tertiary">
             No failed strips. 🎉
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
+          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-canvas/50 text-left">
                 <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
@@ -193,7 +193,7 @@ export default async function StorageHealthPage() {
         title="Daily cleanup cron"
         description="The platform runs `guest_request_attachment_cleanup` every 24 hours via /api/cron/guest-request-attachments-cleanup. Use the manual button above to trigger it on demand."
       >
-        <div className="rounded-md border border-line-soft bg-surface p-5 text-sm flex items-center gap-3">
+        <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm flex items-center gap-3">
           <Badge tone={TONES[health.bucketExists]}>cron · enabled</Badge>
           <span className="text-ink-secondary">
             Sweeps `pending` attachments older than 24h, deletes the

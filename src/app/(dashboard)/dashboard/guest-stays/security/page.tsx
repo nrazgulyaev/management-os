@@ -94,7 +94,7 @@ function Card({
   return (
     <Link
       href={href}
-      className="rounded-md border border-line-soft bg-surface p-5 hover:border-line-strong transition-colors block"
+      className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card hover:shadow-elevated-card hover:border-line-strong transition-all block"
     >
       <div className="text-ink font-medium text-base">{title}</div>
       <div className="text-sm text-ink-secondary mt-1">{detail}</div>

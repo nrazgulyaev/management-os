@@ -27,7 +27,7 @@ export function GuestForm() {
         }
       >
         {state && !state.ok && (
-          <div className="rounded-md border border-danger/30 bg-danger-weak/40 px-4 py-2.5 text-sm text-ink">
+          <div className="rounded-2xl border border-danger/30 bg-danger-weak/40 px-4 py-2.5 text-sm text-ink">
             {state.error}
           </div>
         )}

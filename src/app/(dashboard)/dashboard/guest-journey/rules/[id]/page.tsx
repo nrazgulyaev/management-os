@@ -93,7 +93,7 @@ function Field({
   mono?: boolean;
 }) {
   return (
-    <div className="rounded-md border border-line-soft bg-surface p-4">
+    <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-4">
       <dt className="text-[10px] uppercase tracking-widest text-ink-tertiary">
         {label}
       </dt>

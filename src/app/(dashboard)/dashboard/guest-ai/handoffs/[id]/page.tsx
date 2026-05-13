@@ -156,7 +156,7 @@ export default async function HandoffDetailPage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
           <Section eyebrow="Guest message" title="Summary">
-            <div className="rounded-md border border-line-soft bg-surface p-5 text-sm whitespace-pre-wrap">
+            <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm whitespace-pre-wrap">
               {handoff.guestSummary}
             </div>
           </Section>
@@ -166,7 +166,7 @@ export default async function HandoffDetailPage({
             title={`Last ${transcript.length} AI message${transcript.length === 1 ? "" : "s"}`}
             description="Redacted excerpt from the AI session at the moment of escalation. Never includes Wi-Fi passwords or door codes."
           >
-            <ol className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+            <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
               {transcript.length === 0 && (
                 <li className="px-4 py-4 text-xs text-ink-tertiary">
                   No prior messages — this was a first-touch escalation.
@@ -190,7 +190,7 @@ export default async function HandoffDetailPage({
             title={`${replies.length} repl${replies.length === 1 ? "y" : "ies"}`}
             description="Guest-visible replies appear in the guest portal. Internal notes are admin-only and never reach the guest."
           >
-            <ol className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+            <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
               {replies.length === 0 && (
                 <li className="px-4 py-4 text-xs text-ink-tertiary">
                   No replies yet. Use the composer below to send the
@@ -239,7 +239,7 @@ export default async function HandoffDetailPage({
                           return (
                             <li
                               key={a.id}
-                              className="rounded-md border border-line-soft bg-canvas px-2 py-1.5 text-[11px] flex items-center gap-2"
+                              className="rounded-xl border border-line-soft bg-canvas px-2.5 py-1.5 text-[11px] flex items-center gap-2"
                             >
                               {a.visibility === "internal_only" && (
                                 <span className="text-[10px] uppercase tracking-widest text-warning">
@@ -355,7 +355,7 @@ export default async function HandoffDetailPage({
         <div className="flex flex-col gap-6">
           <Section eyebrow="Service request" title="Linked operational ticket">
             {serviceRequest ? (
-              <div className="rounded-md border border-line-soft bg-surface p-5 flex flex-col gap-3 text-sm">
+              <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-5 flex flex-col gap-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs">
                     {serviceRequest.requestCode}
@@ -374,7 +374,7 @@ export default async function HandoffDetailPage({
                 </Link>
               </div>
             ) : (
-              <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-4 text-xs text-ink-tertiary">
+              <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-6 py-5 text-xs text-ink-tertiary">
                 No service request linked. Contact ops to create one
                 manually.
               </p>
@@ -410,7 +410,7 @@ export default async function HandoffDetailPage({
           </Section>
 
           <Section eyebrow="SLA" title="Response times">
-            <dl className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 gap-3 text-xs">
+            <dl className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 gap-3 text-xs">
               <Pair label="Time to ack">{formatDuration(ackDurSec)}</Pair>
               <Pair label="First response">
                 {formatDuration(firstReplyDurSec)}
@@ -426,7 +426,7 @@ export default async function HandoffDetailPage({
           </Section>
 
           <Section eyebrow="Stay context" title="Reference">
-            <dl className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 gap-3 text-xs">
+            <dl className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 gap-3 text-xs">
               <Pair label="Token prefix">
                 {handoff.tokenPrefix ? `${handoff.tokenPrefix}…` : "—"}
               </Pair>
