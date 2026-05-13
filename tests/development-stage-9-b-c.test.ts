@@ -48,16 +48,18 @@ test("9.B checkout: 503 stripe_not_configured when STRIPE_SECRET_KEY missing (St
   assert.match(src, /status:\s*503/);
 });
 
-test("9.B checkout: validates input via Zod + resolves plan + checks Stripe price id", () => {
+test("9.B checkout (Sprint 3b rewrite): validates input + resolves plan_packaging + checks Stripe price id", () => {
   const src = read("src/app/api/billing/checkout/route.ts");
   assert.match(src, /import\s*\{\s*z\s*\}\s*from\s*"zod"/);
-  // Looks up the plan + maps to the right Stripe price id by billing cycle.
-  assert.match(src, /\.from\(subscriptionPlans\)/);
+  // Sprint 3b: looks up plan_packaging keyed by packaging_key instead
+  // of the old subscription_plans-keyed-by-plan_code lookup.
+  assert.match(src, /\.from\(planPackaging\)/);
+  assert.match(src, /packagingKey/);
   assert.match(src, /stripeAnnualPriceId/);
   assert.match(src, /stripeMonthlyPriceId/);
-  // Refuses 'plan_not_purchasable' when the price id is missing — common
-  // for 'internal' / 'trial' tiers.
-  assert.match(src, /plan_not_purchasable/);
+  // Refuses 'packaging_not_purchasable' when the price id is missing
+  // (un-provisioned row, or Enterprise tier with no Stripe SKU).
+  assert.match(src, /packaging_not_purchasable/);
 });
 
 test("9.B checkout: passes org_id + user_id + plan_code as Stripe metadata", () => {
