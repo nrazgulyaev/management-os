@@ -194,7 +194,7 @@ export default async function OperationsBoardPage() {
       </div>
 
       <Section eyebrow="Guest" title="New service requests">
-        <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
           {newRequests.length === 0 ? (
             <div className="p-6 text-sm text-ink-tertiary">No new service requests.</div>
           ) : (
@@ -231,7 +231,7 @@ function EmptyState({
   label: string;
 }) {
   return (
-    <div className="rounded-md border border-dashed border-line-soft bg-muted/20 p-6 flex items-center gap-3 text-sm text-ink-tertiary">
+    <div className="rounded-3xl border border-dashed border-line-soft bg-muted/20 p-7 flex items-center gap-3 text-sm text-ink-tertiary">
       <Icon className="w-4 h-4" strokeWidth={1.75} />
       {label}
     </div>

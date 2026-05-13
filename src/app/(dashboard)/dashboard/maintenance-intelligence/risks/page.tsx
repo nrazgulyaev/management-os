@@ -75,11 +75,11 @@ export default async function RisksPage({
 
       <Section eyebrow="Risks" title={`${rows.length} rows`}>
         {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
+          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
             None.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
             <ul className="divide-y divide-line-soft">
               {rows.map((r) => (
                 <li

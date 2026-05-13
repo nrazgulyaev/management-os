@@ -29,7 +29,7 @@ export default async function DamageReportsPage() {
         actions={<DamageAddButton villas={villaOpts} />}
       />
       <DbStatusNotice />
-      <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+      <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
         {reports.length === 0 ? (
           <NoItemsYet
             entityLabel="damage reports"

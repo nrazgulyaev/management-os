@@ -21,7 +21,7 @@ export default async function ChecklistsPage() {
       />
       <DbStatusNotice />
       <Section eyebrow="Library" title="Templates available">
-        <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
           {templates.length === 0 ? (
             <p className="p-6 text-sm text-ink-tertiary">
               No checklist templates yet. Add your first checklist

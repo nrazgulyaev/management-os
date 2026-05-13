@@ -23,7 +23,7 @@ export default async function ServiceRequestsPage() {
         description="Guest- and concierge-initiated requests routed through operations."
       />
       <DbStatusNotice />
-      <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+      <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
         {requests.length === 0 ? (
           <NoItemsYet
             entityLabel="service requests"

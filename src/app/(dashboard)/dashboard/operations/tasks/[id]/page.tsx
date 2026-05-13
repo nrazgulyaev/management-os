@@ -166,7 +166,7 @@ export default async function OperationTaskDetail({
               No material usage logged for this task yet.
             </p>
           ) : (
-            <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+            <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
               <ul className="divide-y divide-line-soft">
                 {materialUsage.map((u) => (
                   <li key={u.id} className="p-4 flex items-center justify-between gap-3">
