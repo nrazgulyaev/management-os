@@ -11,6 +11,7 @@ import {
   HardHat,
   Home,
   KeyRound,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,8 @@ export type WorkspaceKey =
   | "management"
   | "development"
   | "owner"
-  | "field";
+  | "field"
+  | "subscription";
 
 interface Workspace {
   key: WorkspaceKey;
@@ -30,11 +32,16 @@ interface Workspace {
   /** Path prefix used to detect "current workspace". */
   matchPrefix: string;
   icon: LucideIcon;
-  tone: "accent" | "gold" | "stone" | "sage";
+  tone: "accent" | "gold" | "stone" | "sage" | "ink";
   /** Stage 10.H — when set, only renders if the org has this product
-   *  in `products_enabled`. Owner / Field are not gated — they're
-   *  separate surfaces (owner portal, field PWA), not products. */
+   *  in `products_enabled`. Owner / Field / Subscription are not gated
+   *  — they're separate surfaces (owner portal, field PWA, platform-
+   *  admin), not products. */
   requiresProduct?: ProductSlug;
+  /** Stage 10.6.E.1 — when true, only renders if the user is super_admin.
+   *  SubscriptionOS is the platform-admin workspace (manage customer
+   *  organizations, subscriptions, billing). Hidden from non-platform users. */
+  requiresSuperAdmin?: boolean;
 }
 
 const WORKSPACES: Workspace[] = [
@@ -76,6 +83,16 @@ const WORKSPACES: Workspace[] = [
     icon: KeyRound,
     tone: "stone",
   },
+  {
+    key: "subscription",
+    name: "SubscriptionOS",
+    description: "Platform-admin: manage customer orgs, billing, support.",
+    href: "/subscriptions",
+    matchPrefix: "/subscriptions",
+    icon: Layers,
+    tone: "ink",
+    requiresSuperAdmin: true,
+  },
 ];
 
 const toneIcon: Record<Workspace["tone"], string> = {
@@ -83,6 +100,7 @@ const toneIcon: Record<Workspace["tone"], string> = {
   gold: "bg-gold text-white",
   sage: "bg-data-sage text-white",
   stone: "bg-data-stone text-white",
+  ink: "bg-ink text-ink-inverse",
 };
 
 function detectActive(pathname: string): Workspace {
@@ -98,18 +116,21 @@ function detectActive(pathname: string): Workspace {
   );
 }
 
-/** Stage 10.H — filter workspaces to those the user's org can reach.
+/** Stage 10.H + 10.6.E.1 — filter workspaces to those the user can reach.
  *  Owner / Field aren't products and stay visible (separate access
- *  surfaces). Mgmt + Dev are filtered by `enabledProducts`. When the
- *  prop is null, behaves as before (renders all four — keeps the
- *  switcher useful in pre-Stage-10.H call sites that haven't been
- *  upgraded yet). */
+ *  surfaces). Mgmt + Dev are filtered by `enabledProducts`.
+ *  SubscriptionOS is filtered by `isSuperAdmin` (platform-admin only).
+ *  When `enabledProducts` is null, behaves as before (renders Mgmt + Dev
+ *  unconditionally — keeps the switcher useful in pre-Stage-10.H call
+ *  sites that haven't been upgraded yet). */
 function visibleWorkspaces(
   enabledProducts: ProductSlug[] | null,
+  isSuperAdmin: boolean,
 ): Workspace[] {
-  if (enabledProducts === null) return WORKSPACES;
   return WORKSPACES.filter((w) => {
+    if (w.requiresSuperAdmin && !isSuperAdmin) return false;
     if (!w.requiresProduct) return true;
+    if (enabledProducts === null) return true;
     return enabledProducts.includes(w.requiresProduct);
   });
 }
@@ -117,11 +138,15 @@ function visibleWorkspaces(
 export function WorkspaceSwitcher({
   className,
   enabledProducts = null,
+  isSuperAdmin = false,
 }: {
   className?: string;
   /** Stage 10.H — gate the Mgmt OS / Dev OS entries. Owner + Field
    *  always render; pass null to render all four (legacy callers). */
   enabledProducts?: ProductSlug[] | null;
+  /** Stage 10.6.E.1 — gate the SubscriptionOS entry. Defaults to false
+   *  so the platform-admin workspace stays hidden from regular users. */
+  isSuperAdmin?: boolean;
 }) {
   const pathname = usePathname() ?? "/";
   const active = detectActive(pathname);
@@ -130,8 +155,8 @@ export function WorkspaceSwitcher({
   const ref = React.useRef<HTMLDivElement>(null);
 
   const workspaces = React.useMemo(
-    () => visibleWorkspaces(enabledProducts),
-    [enabledProducts],
+    () => visibleWorkspaces(enabledProducts, isSuperAdmin),
+    [enabledProducts, isSuperAdmin],
   );
 
   // Hooks first (rules-of-hooks: always called in the same order) — the
