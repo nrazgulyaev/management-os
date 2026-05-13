@@ -7,32 +7,33 @@ import { ImpersonationBanner } from "@/components/subscription-os/impersonation-
 
 export const metadata: Metadata = {
   title: {
-    default: "Arconique SubscriptionOS",
-    template: "%s · Arconique SubscriptionOS",
+    default: "Arconique Platform Admin OS",
+    template: "%s · Arconique Platform Admin OS",
   },
 };
 
 /**
- * Stage 10.6.E.1 — SubscriptionOS layout.
+ * Sprint 2 — Platform Admin OS layout (renamed from (subscription-app)
+ * in Stage 10.6.E.1; URL prefix moved from /subscriptions to /platform
+ * to free the `subscription` subdomain name for public sales).
  *
- * Per CHECKPOINT 5 architecture defaults:
- *   - URL prefix: /subscriptions (not /platform-admin — operator-facing)
- *   - Permission: super_admin role required (10.6.E.2 may extend with
- *     a separate `customer_support` role; for v1 we gate on isSuperAdmin)
+ * Permission model unchanged from 10.6.E.1:
+ *   - super_admin role required (10.6.E.2 may extend with a separate
+ *     `customer_support` role; for v1 we gate on isSuperAdmin)
  *   - Layout pattern mirrors 10.6.B.2-fix: try/catch around the auth
  *     check + isRedirectError-aware re-throw + ServiceTemporarilyUnavailable
  *     fallback so a transient auth-path failure doesn't 500 the page
  *
- * Unlike Mgmt OS / Dev OS, SubscriptionOS is NOT product-gated by the
- * org's `productsEnabled` array — it's a platform-admin surface that
- * exists regardless of which products the org subscribes to. We bypass
- * `enforceProductAccess()` entirely and gate purely on super_admin role.
+ * Unlike Mgmt OS / Dev OS, Platform Admin OS is NOT product-gated by
+ * the org's `productsEnabled` array — it's a platform-admin surface
+ * that exists regardless of which products the org subscribes to. We
+ * bypass `enforceProductAccess()` entirely and gate purely on
+ * super_admin role.
  *
- * For v1 the body is just the page content (no shell yet — the /subscriptions
- * landing page in 10.6.E.1.2 carries its own header). 10.6.E.2 introduces
- * <SubscriptionAppShell> with sidebar nav + topbar.
+ * For v1 the body is just the page content (no shell yet — the
+ * /platform landing page carries its own header).
  */
-export default async function SubscriptionAppLayout({
+export default async function PlatformAppLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -53,10 +54,10 @@ export default async function SubscriptionAppLayout({
 
     // Live mode — must be authenticated AND super_admin.
     if (!ctx.appUser) {
-      redirect("/login?next=/subscriptions");
+      redirect("/login?next=/platform");
     }
     if (!ctx.isSuperAdmin) {
-      redirect("/no-product-access?reason=subscription-os-requires-super-admin");
+      redirect("/no-product-access?reason=platform-os-requires-super-admin");
     }
 
     return (
@@ -67,7 +68,7 @@ export default async function SubscriptionAppLayout({
     );
   } catch (err) {
     if (isRedirectError(err)) throw err;
-    console.error("[layout/subscription] auth check threw:", err);
+    console.error("[layout/platform] auth check threw:", err);
     return <ServiceTemporarilyUnavailable area="dev" />;
   }
 }

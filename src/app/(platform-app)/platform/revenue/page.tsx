@@ -14,7 +14,7 @@ import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { getRevenueSnapshot } from "@/lib/subscription-os/queries";
 import { safeQuery } from "@/lib/development/safe-query";
 
-export const metadata: Metadata = { title: "Revenue · SubscriptionOS" };
+export const metadata: Metadata = { title: "Revenue · Platform Admin OS" };
 export const dynamic = "force-dynamic";
 
 function fmtMoney(minor: bigint, currency: string): string {
@@ -60,7 +60,7 @@ export default async function RevenueDashboardPage() {
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
       <PageHeader
         breadcrumbs={[
-          { label: "SubscriptionOS", href: "/subscriptions" },
+          { label: "Platform Admin OS", href: "/platform" },
           { label: "Revenue" },
         ]}
         eyebrow="Platform metrics"

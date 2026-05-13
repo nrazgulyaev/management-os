@@ -23,7 +23,7 @@ import {
 } from "@/lib/subscription-os/queries";
 import { safeQuery } from "@/lib/development/safe-query";
 
-export const metadata: Metadata = { title: "Organizations · SubscriptionOS" };
+export const metadata: Metadata = { title: "Organizations · Platform Admin OS" };
 export const dynamic = "force-dynamic";
 
 const STATUS_TONE: Record<
@@ -90,7 +90,7 @@ export default async function OrganizationsListPage({
   };
 
   // Build filter URLs preserving search.
-  const baseHref = "/subscriptions/organizations";
+  const baseHref = "/platform/organizations";
   const buildHref = (s: string): string => {
     const params = new URLSearchParams();
     if (s) params.set("status", s);
@@ -111,7 +111,7 @@ export default async function OrganizationsListPage({
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
       <PageHeader
         breadcrumbs={[
-          { label: "SubscriptionOS", href: "/subscriptions" },
+          { label: "Platform Admin OS", href: "/platform" },
           { label: "Organizations" },
         ]}
         eyebrow={`${orgs.length} organization${orgs.length === 1 ? "" : "s"}`}
@@ -150,7 +150,7 @@ export default async function OrganizationsListPage({
                 <TR key={o.id}>
                   <TD>
                     <Link
-                      href={`/subscriptions/${o.organizationCode}`}
+                      href={`/platform/${o.organizationCode}`}
                       className="flex flex-col gap-0.5 hover:text-accent transition-colors"
                     >
                       <span className="text-ink font-medium truncate">
@@ -210,7 +210,7 @@ export default async function OrganizationsListPage({
                   </TD>
                   <TD className="text-right">
                     <Link
-                      href={`/subscriptions/${o.organizationCode}`}
+                      href={`/platform/${o.organizationCode}`}
                       className="inline-flex items-center text-ink-tertiary hover:text-ink"
                     >
                       <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />

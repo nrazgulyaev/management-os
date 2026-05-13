@@ -22,7 +22,7 @@ export type WorkspaceKey =
   | "development"
   | "owner"
   | "field"
-  | "subscription";
+  | "platform";
 
 interface Workspace {
   key: WorkspaceKey;
@@ -34,12 +34,12 @@ interface Workspace {
   icon: LucideIcon;
   tone: "accent" | "gold" | "stone" | "sage" | "ink";
   /** Stage 10.H — when set, only renders if the org has this product
-   *  in `products_enabled`. Owner / Field / Subscription are not gated
+   *  in `products_enabled`. Owner / Field / Platform are not gated
    *  — they're separate surfaces (owner portal, field PWA, platform-
    *  admin), not products. */
   requiresProduct?: ProductSlug;
   /** Stage 10.6.E.1 — when true, only renders if the user is super_admin.
-   *  SubscriptionOS is the platform-admin workspace (manage customer
+   *  Platform Admin OS is the platform-admin workspace (manage customer
    *  organizations, subscriptions, billing). Hidden from non-platform users. */
   requiresSuperAdmin?: boolean;
 }
@@ -84,11 +84,11 @@ const WORKSPACES: Workspace[] = [
     tone: "stone",
   },
   {
-    key: "subscription",
-    name: "SubscriptionOS",
+    key: "platform",
+    name: "Platform Admin OS",
     description: "Platform-admin: manage customer orgs, billing, support.",
-    href: "/subscriptions",
-    matchPrefix: "/subscriptions",
+    href: "/platform",
+    matchPrefix: "/platform",
     icon: Layers,
     tone: "ink",
     requiresSuperAdmin: true,
@@ -119,7 +119,7 @@ function detectActive(pathname: string): Workspace {
 /** Stage 10.H + 10.6.E.1 — filter workspaces to those the user can reach.
  *  Owner / Field aren't products and stay visible (separate access
  *  surfaces). Mgmt + Dev are filtered by `enabledProducts`.
- *  SubscriptionOS is filtered by `isSuperAdmin` (platform-admin only).
+ *  Platform Admin OS is filtered by `isSuperAdmin` (platform-admin only).
  *  When `enabledProducts` is null, behaves as before (renders Mgmt + Dev
  *  unconditionally — keeps the switcher useful in pre-Stage-10.H call
  *  sites that haven't been upgraded yet). */
@@ -144,8 +144,9 @@ export function WorkspaceSwitcher({
   /** Stage 10.H — gate the Mgmt OS / Dev OS entries. Owner + Field
    *  always render; pass null to render all four (legacy callers). */
   enabledProducts?: ProductSlug[] | null;
-  /** Stage 10.6.E.1 — gate the SubscriptionOS entry. Defaults to false
-   *  so the platform-admin workspace stays hidden from regular users. */
+  /** Stage 10.6.E.1 — gate the Platform Admin OS entry. Defaults to
+   *  false so the platform-admin workspace stays hidden from regular
+   *  users. */
   isSuperAdmin?: boolean;
 }) {
   const pathname = usePathname() ?? "/";

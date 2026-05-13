@@ -43,8 +43,8 @@ const ACTION_BUTTONS = "src/components/subscription-os/per-org-action-buttons.ts
 const BANNER = "src/components/subscription-os/impersonation-banner.tsx";
 const START_BTN = "src/components/subscription-os/impersonation-start-button.tsx";
 const END_BTN = "src/components/subscription-os/impersonation-end-button.tsx";
-const ORG_DETAIL = "src/app/(subscription-app)/subscriptions/[orgCode]/page.tsx";
-const LAYOUT = "src/app/(subscription-app)/layout.tsx";
+const ORG_DETAIL = "src/app/(platform-app)/platform/[orgCode]/page.tsx";
+const LAYOUT = "src/app/(platform-app)/layout.tsx";
 
 // ============================================================================
 // Server actions module
@@ -242,7 +242,7 @@ test("10.6.E.2.5.3 — per-org detail page surfaces ImpersonationStartButton in 
   assert.match(src, /<ImpersonationStartButton organizationCode/);
 });
 
-test("10.6.E.2.5.3 — SubscriptionOS layout mounts ImpersonationBanner above children", () => {
+test("10.6.E.2.5.3 — Platform Admin OS layout mounts ImpersonationBanner above children", () => {
   const src = read(LAYOUT);
   assert.match(
     src,

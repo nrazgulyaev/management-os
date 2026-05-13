@@ -16,7 +16,7 @@ import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { listSubscriptionOsOrgs } from "@/lib/subscription-os/queries";
 import { safeQuery } from "@/lib/development/safe-query";
 
-export const metadata: Metadata = { title: "Usage · SubscriptionOS" };
+export const metadata: Metadata = { title: "Usage · Platform Admin OS" };
 export const dynamic = "force-dynamic";
 
 export default async function UsageDashboardPage() {
@@ -45,7 +45,7 @@ export default async function UsageDashboardPage() {
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
       <PageHeader
         breadcrumbs={[
-          { label: "SubscriptionOS", href: "/subscriptions" },
+          { label: "Platform Admin OS", href: "/platform" },
           { label: "Usage" },
         ]}
         eyebrow="Platform metrics"
@@ -116,7 +116,7 @@ export default async function UsageDashboardPage() {
                   <TR key={o.id}>
                     <TD>
                       <Link
-                        href={`/subscriptions/${o.organizationCode}`}
+                        href={`/platform/${o.organizationCode}`}
                         className="text-ink font-medium hover:text-accent"
                       >
                         {o.name}

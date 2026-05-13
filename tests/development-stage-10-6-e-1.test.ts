@@ -30,8 +30,8 @@ function read(rel: string): string {
   return readFileSync(resolve(ROOT, rel), "utf8");
 }
 
-const LAYOUT = "src/app/(subscription-app)/layout.tsx";
-const LANDING = "src/app/(subscription-app)/subscriptions/page.tsx";
+const LAYOUT = "src/app/(platform-app)/layout.tsx";
+const LANDING = "src/app/(platform-app)/platform/page.tsx";
 const SWITCHER = "src/components/shared/workspace-switcher.tsx";
 const DOC = "docs/subscription-os-architecture.md";
 
@@ -63,7 +63,7 @@ test("10.6.E.1.0 — layout gates on isSuperAdmin (not enforceProductAccess)", (
   // Explicit super_admin check + redirect to /no-product-access on miss
   assert.match(
     src,
-    /if \(!ctx\.isSuperAdmin\)[\s\S]{0,200}redirect\("\/no-product-access\?reason=subscription-os-requires-super-admin"\)/,
+    /if \(!ctx\.isSuperAdmin\)[\s\S]{0,200}redirect\("\/no-product-access\?reason=platform-os-requires-super-admin"\)/,
   );
   // Does NOT call enforceProductAccess (platform-admin workspace, not
   // product-gated). Comments mentioning the bypass are fine; the
@@ -76,24 +76,24 @@ test("10.6.E.1.0 — layout has demo-mode bypass (matches Mgmt OS / Dev OS patte
   assert.match(src, /ctx\.mode === "demo"/);
 });
 
-test("10.6.E.1.0 — layout redirects unauthenticated users to /login?next=/subscriptions", () => {
+test("10.6.E.1.0 — layout redirects unauthenticated users to /login?next=/platform (Sprint 2 rename)", () => {
   const src = read(LAYOUT);
-  assert.match(src, /redirect\("\/login\?next=\/subscriptions"\)/);
+  assert.match(src, /redirect\("\/login\?next=\/platform"\)/);
 });
 
 // ============================================================================
 // Workspace switcher — 5th entry + super_admin filter
 // ============================================================================
 
-test("10.6.E.1.1 — switcher adds 'subscription' workspace key", () => {
+test("10.6.E.1.1 — switcher adds 'platform' workspace key (Sprint 2 rename from 'subscription')", () => {
   const src = read(SWITCHER);
   assert.match(
     src,
-    /export type WorkspaceKey =[\s\S]{0,200}\| "subscription"/,
+    /export type WorkspaceKey =[\s\S]{0,200}\| "platform"/,
   );
-  assert.match(src, /key: "subscription"/);
-  assert.match(src, /name: "SubscriptionOS"/);
-  assert.match(src, /href: "\/subscriptions"/);
+  assert.match(src, /key: "platform"/);
+  assert.match(src, /name: "Platform Admin OS"/);
+  assert.match(src, /href: "\/platform"/);
 });
 
 test("10.6.E.1.1 — switcher introduces requiresSuperAdmin filter on Workspace interface", () => {
@@ -115,7 +115,7 @@ test("10.6.E.1.1 — visibleWorkspaces() filters by both enabledProducts AND isS
   );
 });
 
-test("10.6.E.1.1 — switcher adds 'ink' tone (bg-ink text-ink-inverse) for SubscriptionOS", () => {
+test("10.6.E.1.1 — switcher adds 'ink' tone (bg-ink text-ink-inverse) for Platform Admin OS", () => {
   const src = read(SWITCHER);
   assert.match(src, /ink: "bg-ink text-ink-inverse"/);
 });
@@ -124,7 +124,7 @@ test("10.6.E.1.1 — switcher adds 'ink' tone (bg-ink text-ink-inverse) for Subs
 // Landing page
 // ============================================================================
 
-test("10.6.E.1.2 — /subscriptions landing page ships", () => {
+test("10.6.E.1.2 — /platform landing page ships (Sprint 2 rename from /subscriptions)", () => {
   assert.ok(existsSync(resolve(ROOT, LANDING)));
 });
 
@@ -170,10 +170,11 @@ test("10.6.E.1.3 — architecture decisions doc shipped", () => {
   assert.match(src, /^# SubscriptionOS — Architecture/m);
 });
 
-test("10.6.E.1.3 — doc locks URL prefix /subscriptions + permission model + schema impact", () => {
+test("10.6.E.1.3 — doc locks URL prefix /platform + permission model + schema impact (Sprint 2 rename from /subscriptions)", () => {
   const src = read(DOC);
   assert.match(src, /URL structure/);
-  assert.match(src, /Locked.*\/subscriptions/);
+  // Sprint 2 superseded the original `/subscriptions` decision.
+  assert.match(src, /\/platform/);
   assert.match(src, /Permission model/);
   assert.match(src, /Schema impact/);
   assert.match(src, /0 migrations/);

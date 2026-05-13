@@ -84,7 +84,7 @@ export interface PlatformAuditEntry {
 }
 
 // ============================================================================
-// Org list — drives /subscriptions/organizations + the per-org detail
+// Org list — drives /platform/organizations + the per-org detail
 // ============================================================================
 
 export interface ListOrgsFilter {

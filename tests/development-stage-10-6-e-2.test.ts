@@ -40,11 +40,11 @@ function read(rel: string): string {
 }
 
 const QUERIES = "src/lib/subscription-os/queries.ts";
-const PAGE_ORGS = "src/app/(subscription-app)/subscriptions/organizations/page.tsx";
-const PAGE_DETAIL = "src/app/(subscription-app)/subscriptions/[orgCode]/page.tsx";
-const PAGE_REVENUE = "src/app/(subscription-app)/subscriptions/revenue/page.tsx";
-const PAGE_USAGE = "src/app/(subscription-app)/subscriptions/usage/page.tsx";
-const PAGE_AUDIT = "src/app/(subscription-app)/subscriptions/audit/page.tsx";
+const PAGE_ORGS = "src/app/(platform-app)/platform/organizations/page.tsx";
+const PAGE_DETAIL = "src/app/(platform-app)/platform/[orgCode]/page.tsx";
+const PAGE_REVENUE = "src/app/(platform-app)/platform/revenue/page.tsx";
+const PAGE_USAGE = "src/app/(platform-app)/platform/usage/page.tsx";
+const PAGE_AUDIT = "src/app/(platform-app)/platform/audit/page.tsx";
 
 // ============================================================================
 // Shared queries module
@@ -210,11 +210,12 @@ test("10.6.E.2.6 — audit page renders empty-state pointing to 10.6.E.2.5 imper
 });
 
 // ============================================================================
-// Cross-cutting — every page is in (subscription-app) layout
+// Cross-cutting — every page is in (platform-app) layout (Sprint 2 rename
+// from (subscription-app); super_admin gating unchanged)
 // ============================================================================
 
-test("10.6.E.2 — all 5 admin pages live under (subscription-app) layout (super_admin gated)", () => {
+test("10.6.E.2 — all 5 admin pages live under (platform-app) layout (super_admin gated)", () => {
   for (const p of [PAGE_ORGS, PAGE_DETAIL, PAGE_REVENUE, PAGE_USAGE, PAGE_AUDIT]) {
-    assert.ok(p.startsWith("src/app/(subscription-app)/"), `${p} not under subscription-app layout`);
+    assert.ok(p.startsWith("src/app/(platform-app)/"), `${p} not under platform-app layout`);
   }
 });

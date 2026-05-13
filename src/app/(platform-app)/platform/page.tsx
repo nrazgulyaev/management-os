@@ -30,7 +30,7 @@ import {
 import { getCurrentAppUser } from "@/features/auth/current-user";
 
 export const metadata: Metadata = {
-  title: "SubscriptionOS · Platform admin",
+  title: "Platform Admin OS",
 };
 export const dynamic = "force-dynamic";
 
@@ -49,7 +49,7 @@ const PLANNED_PAGES: PageCard[] = [
     description:
       "All customer orgs at a glance. Filter by status (trial / paid / cancelled), search by name/email, drill into any org for subscription state + actions.",
     icon: <Building2 className="w-5 h-5" />,
-    href: "/subscriptions/organizations",
+    href: "/platform/organizations",
     status: "needs-config",
     detail: "Ships in 10.6.E.2.1",
   },
@@ -58,7 +58,7 @@ const PLANNED_PAGES: PageCard[] = [
     description:
       "MRR, ARR, customer count by tier, trial → paid conversion rate, churn rate. Read from existing orgSubscriptions + subscriptionPlans tables.",
     icon: <LineChart className="w-5 h-5" />,
-    href: "/subscriptions/revenue",
+    href: "/platform/revenue",
     status: "needs-config",
     detail: "Ships in 10.6.E.2.3",
   },
@@ -67,7 +67,7 @@ const PLANNED_PAGES: PageCard[] = [
     description:
       "Per-org AI token consumption, storage usage, active users, cost estimates. Read from usageMetrics table.",
     icon: <LineChart className="w-5 h-5" />,
-    href: "/subscriptions/usage",
+    href: "/platform/usage",
     status: "needs-config",
     detail: "Ships in 10.6.E.2.4",
   },
@@ -76,7 +76,7 @@ const PLANNED_PAGES: PageCard[] = [
     description:
       "View as customer (read-only impersonation), audit trail per customer org, common issue templates. Tickets stay external (Plain / Linear / Intercom) per CHECKPOINT 5 default.",
     icon: <LifeBuoy className="w-5 h-5" />,
-    href: "/subscriptions/support",
+    href: "/platform/support",
     status: "needs-config",
     detail: "Ships in 10.6.E.2.5",
   },
@@ -85,7 +85,7 @@ const PLANNED_PAGES: PageCard[] = [
     description:
       "Every platform-admin action logged: who, when, what, before/after. Searchable + exportable. Read-only.",
     icon: <ScrollText className="w-5 h-5" />,
-    href: "/subscriptions/audit",
+    href: "/platform/audit",
     status: "needs-config",
     detail: "Ships in 10.6.E.2.6",
   },
@@ -94,7 +94,7 @@ const PLANNED_PAGES: PageCard[] = [
     description:
       "Per-org subscription management via Stripe Customer Portal. Required wiring lives in 10.6.D.2.2 — this page surfaces the per-org portal links once that ships.",
     icon: <CreditCard className="w-5 h-5" />,
-    href: "/subscriptions/billing",
+    href: "/platform/billing",
     status: "needs-config",
     detail: "Ships after 10.6.D.2.2 (Stripe Connect) lands",
   },
@@ -108,12 +108,12 @@ export default async function SubscriptionsLandingPage() {
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
       <CabinetGreetingBlock
         firstName={firstName}
-        eyebrow="SubscriptionOS · Platform admin"
+        eyebrow="Platform Admin OS"
         subline="Manage customer organizations, billing, and platform-admin tooling. v1 architecture phase shipped — admin pages land in 10.6.E.2."
       />
 
       <PageHeaderHero
-        eyebrow="Welcome to SubscriptionOS"
+        eyebrow="Welcome to Platform Admin OS"
         title="Run the business of the platform."
         description="Customer org overview, subscription state, revenue rollups, customer support, and platform-admin audit log — gated to super_admin and separate from per-tenant Mgmt OS / Dev OS."
         actions={
@@ -137,7 +137,7 @@ export default async function SubscriptionsLandingPage() {
               Foundation already in place
             </h2>
             <p className="text-sm md:text-base text-ink-secondary leading-relaxed max-w-3xl">
-              The SubscriptionOS schema (orgSubscriptions FSM, subscriptionPlans,
+              The Platform Admin OS schema (orgSubscriptions FSM, subscriptionPlans,
               featureFlags, planFeatures, lifecycle audit) shipped in Stage 7.D.
               Stripe webhooks + trial-status cron + workspace switcher all
               exist. 10.6.E is the operator-facing layer on top — no new

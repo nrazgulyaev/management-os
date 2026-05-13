@@ -1,7 +1,7 @@
 /**
- * Stage 10.6.E.2.5 — SubscriptionOS server actions.
+ * Stage 10.6.E.2.5 — Platform Admin OS server actions.
  *
- * Per-org admin actions invoked from /subscriptions/[orgCode]:
+ * Per-org admin actions invoked from /platform/[orgCode]:
  *   - extendTrialAction       — push trialEndsAt forward by N days
  *   - markAsCompAction        — set isInternalComp = true
  *   - cancelSubscriptionAction — transition status to "cancelling"
@@ -15,10 +15,15 @@
  *      layout already gates, but server actions can be invoked from
  *      anywhere)
  *   2. Emits an audit_events row with action prefix `platform.*` so the
- *      action automatically surfaces in /subscriptions/audit
+ *      action automatically surfaces in /platform/audit
  *   3. For status transitions: uses transitionSubscription() which
  *      enforces the FSM (canTransition) + writes the lifecycle event
  *      in the same transaction
+ *
+ * Note: this file's path remains `src/lib/subscription-os/actions.ts`
+ * — the lib folder rename is out of scope for the Sprint 2 URL move.
+ * The URL surface (route group + path) has moved to /platform; the
+ * backend lib name persists.
  */
 
 "use server";
@@ -130,9 +135,9 @@ export async function extendTrialAction(
       metadata: { organizationCode, additionalDays },
     });
 
-    revalidatePath(`/subscriptions/${organizationCode}`);
-    revalidatePath("/subscriptions/organizations");
-    revalidatePath("/subscriptions/audit");
+    revalidatePath(`/platform/${organizationCode}`);
+    revalidatePath("/platform/organizations");
+    revalidatePath("/platform/audit");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "extend failed" };
@@ -182,9 +187,9 @@ export async function markAsCompAction(
       metadata: { organizationCode, reason },
     });
 
-    revalidatePath(`/subscriptions/${organizationCode}`);
-    revalidatePath("/subscriptions/organizations");
-    revalidatePath("/subscriptions/audit");
+    revalidatePath(`/platform/${organizationCode}`);
+    revalidatePath("/platform/organizations");
+    revalidatePath("/platform/audit");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "comp failed" };
@@ -232,9 +237,9 @@ export async function cancelSubscriptionAction(
       metadata: { organizationCode, reason },
     });
 
-    revalidatePath(`/subscriptions/${organizationCode}`);
-    revalidatePath("/subscriptions/organizations");
-    revalidatePath("/subscriptions/audit");
+    revalidatePath(`/platform/${organizationCode}`);
+    revalidatePath("/platform/organizations");
+    revalidatePath("/platform/audit");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "cancel failed" };
@@ -299,7 +304,7 @@ export async function startImpersonationAction(
       },
     });
 
-    revalidatePath("/subscriptions/audit");
+    revalidatePath("/platform/audit");
     return { ok: true };
   } catch (e) {
     return {
@@ -338,7 +343,7 @@ export async function endImpersonationAction(): Promise<ActionResult> {
       }
     }
 
-    revalidatePath("/subscriptions/audit");
+    revalidatePath("/platform/audit");
     return { ok: true };
   } catch (e) {
     return {

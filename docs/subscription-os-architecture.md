@@ -3,6 +3,16 @@
 **Stage**: 10.6.E.1 (architecture phase)
 **Status**: Layout + workspace switcher entry + landing page shipped. 6 admin pages land in 10.6.E.2.
 
+> **Sprint 2 update (supersedes the §URL-structure decision below):**
+> The workspace was renamed **Platform Admin OS** and the URL prefix
+> moved from `/subscriptions` to `/platform`. The route group is now
+> `src/app/(platform-app)/platform/*`. Rationale: free the
+> `subscription` subdomain name for the public
+> `subscription.arconique.com` sales surface. Permission model,
+> schema impact, and 10.6.B.2-fix resilience pattern are unchanged.
+> See the historical §URL-structure section below for the original
+> 10.6.E.1 decision rationale.
+
 ---
 
 ## TL;DR

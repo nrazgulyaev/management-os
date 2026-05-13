@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { listPlatformAuditEntries } from "@/lib/subscription-os/queries";
 import { safeQuery } from "@/lib/development/safe-query";
 
-export const metadata: Metadata = { title: "Audit · SubscriptionOS" };
+export const metadata: Metadata = { title: "Audit · Platform Admin OS" };
 export const dynamic = "force-dynamic";
 
 export default async function PlatformAuditPage() {
@@ -30,7 +30,7 @@ export default async function PlatformAuditPage() {
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
       <PageHeader
         breadcrumbs={[
-          { label: "SubscriptionOS", href: "/subscriptions" },
+          { label: "Platform Admin OS", href: "/platform" },
           { label: "Audit" },
         ]}
         eyebrow={`${entries.length} entr${entries.length === 1 ? "y" : "ies"}`}

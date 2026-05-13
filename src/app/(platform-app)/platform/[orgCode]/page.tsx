@@ -28,7 +28,7 @@ import { ImpersonationStartButton } from "@/components/subscription-os/impersona
 import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = {
-  title: "Org detail · SubscriptionOS",
+  title: "Org detail · Platform Admin OS",
 };
 export const dynamic = "force-dynamic";
 
@@ -84,8 +84,8 @@ export default async function OrgDetailPage({
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
       <DetailPageHero
         breadcrumbs={[
-          { label: "SubscriptionOS", href: "/subscriptions" },
-          { label: "Organizations", href: "/subscriptions/organizations" },
+          { label: "Platform Admin OS", href: "/platform" },
+          { label: "Organizations", href: "/platform/organizations" },
           { label: org.name },
         ]}
         eyebrow={org.organizationType}
@@ -199,7 +199,7 @@ export default async function OrgDetailPage({
               Integrations command center
             </Link>
             <Link
-              href={`/subscriptions/audit?org=${org.organizationCode}`}
+              href={`/platform/audit?org=${org.organizationCode}`}
               className="inline-flex items-center gap-2 text-sm text-ink hover:text-accent"
             >
               <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
@@ -215,7 +215,7 @@ export default async function OrgDetailPage({
               <strong>Impersonation scaffold ships now</strong> — clicking
               "View as customer" sets the cookie + emits a
               <code> platform.impersonate.start</code> audit entry + renders
-              the warning banner overlay across SubscriptionOS pages. The
+              the warning banner overlay across Platform Admin OS pages. The
               middleware org_id resolution swap (so /dashboard/* actually
               loads the impersonated org's data) is a focused follow-up
               that pairs with RLS policy review.
