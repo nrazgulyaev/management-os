@@ -10,7 +10,9 @@ import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listPurchaseRequests } from "@/lib/development/server/procurement/procurement-actions";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import { safeQuery } from "@/lib/development/safe-query";
+import { PurchaseRequestDevAddButton } from "@/components/development/procurement/purchase-request-add-button";
 
 export const metadata: Metadata = { title: "Purchase requests · Development OS" };
 export const dynamic = "force-dynamic";
@@ -48,12 +50,20 @@ export default async function PurchaseRequestsPage({
       </DevelopmentShell>
     );
   }
-  const requests = await safeQuery(
-    "listPurchaseRequests",
-    listPurchaseRequests({ status: sp.status, limit: 200 }),
-    [],
-    4000,
-  );
+  const [requests, projects] = await Promise.all([
+    safeQuery(
+      "listPurchaseRequests",
+      listPurchaseRequests({ status: sp.status, limit: 200 }),
+      [],
+      4000,
+    ),
+    safeQuery(
+      "purchaseRequests.projects",
+      getDevelopmentProjects(),
+      [] as Array<{ id: string; name: string; slug: string }>,
+      4000,
+    ),
+  ]);
 
   return (
     <DevelopmentShell>
@@ -68,11 +78,7 @@ export default async function PurchaseRequestsPage({
         description="Site staff request → procurement collects quotations → approval → PO. Mobile-friendly create form is at /procurement/purchase-requests/new."
         actions={
           <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/development-os/procurement/purchase-requests/new">
-                + New request
-              </Link>
-            </Button>
+            <PurchaseRequestDevAddButton projects={projects} />
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

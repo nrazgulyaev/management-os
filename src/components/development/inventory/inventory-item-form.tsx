@@ -24,7 +24,13 @@ const CATEGORIES = [
 
 const UOMS = ["bag", "kg", "m", "m2", "m3", "piece", "liter", "set"] as const;
 
-export function InventoryItemForm() {
+export function InventoryItemForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+} = {}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [sku, setSku] = useState("");
@@ -52,7 +58,8 @@ export function InventoryItemForm() {
           unitOfMeasure: uom,
           reorderPoint: reorderPoint ? Number(reorderPoint) : null,
         });
-        router.push(`/development-os/inventory/items/${encodeURIComponent(out.sku)}`);
+        if (onSuccess) onSuccess();
+        else router.push(`/development-os/inventory/items/${encodeURIComponent(out.sku)}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Create failed");
       }
@@ -134,10 +141,17 @@ export function InventoryItemForm() {
           placeholder="e.g., 50 (triggers low-stock alert)"
         />
       </label>
-      <Button type="submit" disabled={pending}>
-        {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-        Create item
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={pending}>
+          {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+          Create item
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+            Cancel
+          </Button>
+        )}
+      </div>
       {error && <p className="text-xs text-danger">{error}</p>}
     </form>
   );

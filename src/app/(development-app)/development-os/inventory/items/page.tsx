@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { getDb } from "@/lib/db/client";
 import { listInventoryItems } from "@/lib/development/server/inventory/inventory-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { ExportButton } from "@/components/development/bulk-import/export-button";
+import { InventoryItemDevAddButton } from "@/components/development/inventory/inventory-item-dev-add-button";
 
 export const metadata: Metadata = {
   title: "Inventory items · Development OS",
@@ -49,12 +50,7 @@ export default async function InventoryItemsPage() {
             <Button asChild variant="secondary">
               <Link href="/development-os/inventory/movements">Movements</Link>
             </Button>
-            <Button asChild>
-              <Link href="/development-os/inventory/items/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New SKU
-              </Link>
-            </Button>
+            <InventoryItemDevAddButton />
             <ExportButton entity="inventory_items" />
             <Button asChild variant="secondary">
               <Link href="/development-os">

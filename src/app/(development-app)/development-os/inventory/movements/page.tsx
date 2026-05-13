@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
-import { listInventoryMovements } from "@/lib/development/server/inventory/inventory-queries";
+import {
+  listInventoryItems,
+  listInventoryLocations,
+  listInventoryMovements,
+} from "@/lib/development/server/inventory/inventory-queries";
+import { projects } from "@/lib/db/schema/projects";
 import { safeQuery } from "@/lib/development/safe-query";
+import { MovementDevAddButton } from "@/components/development/inventory/movement-dev-add-button";
 
 export const metadata: Metadata = { title: "Movements · Development OS" };
 export const dynamic = "force-dynamic";
@@ -44,12 +50,32 @@ export default async function InventoryMovementsPage({
       </DevelopmentShell>
     );
   }
-  const movements = await safeQuery(
-    "listInventoryMovements",
-    listInventoryMovements({ movementType: params.type, limit: 200 }),
-    [],
-    4000,
-  );
+  const [movements, items, locations, projectRows] = await Promise.all([
+    safeQuery(
+      "listInventoryMovements",
+      listInventoryMovements({ movementType: params.type, limit: 200 }),
+      [],
+      4000,
+    ),
+    safeQuery(
+      "movements.items",
+      listInventoryItems({ activeOnly: true }),
+      [] as Awaited<ReturnType<typeof listInventoryItems>>,
+      4000,
+    ),
+    safeQuery(
+      "movements.locations",
+      listInventoryLocations(),
+      [] as Awaited<ReturnType<typeof listInventoryLocations>>,
+      4000,
+    ),
+    safeQuery(
+      "movements.projects",
+      db.select({ id: projects.id, name: projects.name }).from(projects),
+      [] as Array<{ id: string; name: string }>,
+      4000,
+    ),
+  ]);
 
   return (
     <DevelopmentShell>
@@ -64,12 +90,11 @@ export default async function InventoryMovementsPage({
         description="Append-only stock movement log. Every received, reserved, issued, transferred, used, damaged, etc. event is recorded here. Stock balances are derived (atomic writes via inventory-actions.ts)."
         actions={
           <div className="flex gap-2">
-            <Button asChild>
-              <Link href="/development-os/inventory/movements/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                Record movement
-              </Link>
-            </Button>
+            <MovementDevAddButton
+              items={items}
+              locations={locations}
+              projects={projectRows}
+            />
             <Button asChild variant="secondary">
               <Link href="/development-os/inventory/items">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />

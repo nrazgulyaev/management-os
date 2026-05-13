@@ -27,11 +27,15 @@ export function InventoryMovementForm({
   locations,
   projects,
   defaultMovementType,
+  onSuccess,
+  onCancel,
 }: {
   items: Array<{ id: string; sku: string; displayName: string; unitOfMeasure: string }>;
   locations: Array<{ id: string; locationCode: string; displayName: string; locationType: string }>;
   projects: Array<{ id: string; name: string }>;
   defaultMovementType?: typeof MOVEMENT_TYPES[number];
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -83,7 +87,8 @@ export function InventoryMovementForm({
           projectId: projectId || null,
           reason: reason || null,
         });
-        router.push(
+        if (onSuccess) onSuccess();
+        else router.push(
           `/development-os/inventory/items/${encodeURIComponent(
             items.find((i) => i.id === itemId)?.sku ?? "",
           )}`,
@@ -214,10 +219,17 @@ export function InventoryMovementForm({
         />
       </label>
 
-      <Button type="submit" disabled={pending} className="min-h-[44px]">
-        {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-        Record movement
-      </Button>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={pending} className="min-h-[44px]">
+          {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+          Record movement
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={pending}>
+            Cancel
+          </Button>
+        )}
+      </div>
       {error && <p className="text-xs text-danger">{error}</p>}
     </form>
   );

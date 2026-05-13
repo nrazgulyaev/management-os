@@ -37,9 +37,13 @@ const emptyLine: LineDraft = {
 export function InvoiceCreateForm({
   taxTypes,
   categories,
+  onSuccess,
+  onCancel,
 }: {
   taxTypes: Array<{ id: string; displayName: string; ratePercentage: string }>;
   categories: Array<{ id: string; label: string }>;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -144,7 +148,8 @@ export function InvoiceCreateForm({
               : undefined,
           })),
         });
-        router.push(`/development-os/finance/invoices/${out.id}`);
+        if (onSuccess) onSuccess();
+        else router.push(`/development-os/finance/invoices/${out.id}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Create failed");
       }
@@ -448,6 +453,11 @@ export function InvoiceCreateForm({
           {pending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
           Create invoice
         </Button>
+        {onCancel && (
+          <Button variant="ghost" onClick={onCancel} disabled={pending}>
+            Cancel
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -34,8 +34,12 @@ const CATEGORY_OPTIONS = [
 
 export function PurchaseRequestMobileForm({
   projects,
+  onSuccess,
+  onCancel,
 }: {
   projects: Array<{ id: string; name: string; slug: string }>;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -102,9 +106,8 @@ export function PurchaseRequestMobileForm({
           // — failures don't roll back the create.
           // (Not exposed from client; defer to detail page.)
         }
-        router.push(
-          `/development-os/procurement/purchase-requests/${out.requestCode}`,
-        );
+        if (onSuccess) onSuccess();
+        else router.push(`/development-os/procurement/purchase-requests/${out.requestCode}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Create failed");
       }
@@ -284,6 +287,17 @@ export function PurchaseRequestMobileForm({
           ) : null}
           Save (operator submits via detail page)
         </Button>
+        {onCancel && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCancel}
+            disabled={pending}
+            className="min-h-[44px]"
+          >
+            Cancel
+          </Button>
+        )}
       </div>
     </div>
   );

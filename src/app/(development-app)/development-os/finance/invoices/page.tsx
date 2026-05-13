@@ -10,9 +10,12 @@ import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listInvoices } from "@/lib/development/server/invoices/invoice-actions";
+import { listActiveTaxTypes } from "@/lib/development/server/tax/tax-actions";
+import { getCostCategories } from "@/lib/development/server/cost-categories";
 import { safeQuery } from "@/lib/development/safe-query";
 import { FinanceTabs } from "@/components/development/finance/finance-tabs";
 import { ExportButton } from "@/components/development/bulk-import/export-button";
+import { InvoiceAddButton } from "@/components/development/finance/invoice-add-button";
 
 export const metadata: Metadata = { title: "Invoices · Development OS" };
 export const dynamic = "force-dynamic";
@@ -71,20 +74,38 @@ export default async function InvoicesPage({
     );
   }
 
-  const invoices = await safeQuery(
-    "listInvoices",
-    listInvoices({
-      invoiceType:
-        sp.type && ["payable", "receivable", "investor_call", "internal"].includes(sp.type)
-          ? sp.type
-          : undefined,
-      status: sp.status,
-      projectId: sp.project,
-      limit: 200,
-    }),
-    [],
-    4000,
-  );
+  const [invoices, taxTypes, costCategories] = await Promise.all([
+    safeQuery(
+      "listInvoices",
+      listInvoices({
+        invoiceType:
+          sp.type && ["payable", "receivable", "investor_call", "internal"].includes(sp.type)
+            ? sp.type
+            : undefined,
+        status: sp.status,
+        projectId: sp.project,
+        limit: 200,
+      }),
+      [],
+      4000,
+    ),
+    safeQuery(
+      "invoices.taxTypes",
+      listActiveTaxTypes(),
+      [] as Array<{ id: string; displayName: string; ratePercentage: string }>,
+      4000,
+    ),
+    safeQuery(
+      "invoices.costCategories",
+      getCostCategories(),
+      [] as Array<{ id: string; displayName: string }>,
+      4000,
+    ),
+  ]);
+  const categoryOpts = costCategories.map((c) => ({
+    id: c.id,
+    label: c.displayName,
+  }));
 
   const totalOutstanding = invoices.reduce(
     (s, i) => s + BigInt(i.outstandingMinor ?? "0"),
@@ -111,11 +132,7 @@ export default async function InvoicesPage({
         description="Vendor bills, milestone invoices to buyers, and capital-call invoices to investors. Lives in parallel with capital_commitments — they never overlap."
         actions={
           <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/development-os/finance/invoices/new">
-                + New invoice
-              </Link>
-            </Button>
+            <InvoiceAddButton taxTypes={taxTypes} categories={categoryOpts} />
             <ExportButton entity="invoices" />
             <Button asChild variant="secondary">
               <Link href="/development-os/finance">
