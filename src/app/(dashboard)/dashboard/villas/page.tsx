@@ -11,6 +11,7 @@ import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { VillaRowActions } from "@/components/villas/villa-row-actions";
 import { VillaAddButton } from "@/components/villas/villa-add-button";
+import { ListTableCard } from "@/components/ui/primitives";
 
 export const metadata = { title: "Villas" };
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export default async function VillasPage() {
   const projectOptions = projects.map((p) => ({ id: p.id, name: p.name }));
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <PageHeader
         breadcrumbs={[
           { label: "Portfolio", href: "/dashboard" },
@@ -43,6 +44,11 @@ export default async function VillasPage() {
 
       <DbStatusNotice />
 
+      <ListTableCard
+        eyebrow="Portfolio"
+        title="All villas"
+        count={villas.length}
+      >
       <Table>
         <THead>
           <TR>
@@ -105,6 +111,7 @@ export default async function VillasPage() {
           )}
         </TBody>
       </Table>
+      </ListTableCard>
     </div>
   );
 }

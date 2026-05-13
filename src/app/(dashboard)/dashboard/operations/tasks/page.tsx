@@ -12,7 +12,12 @@ import { listProjects } from "@/features/projects/services";
 import { listAppUsers } from "@/features/auth/users-service";
 import type { ListOperationTaskFilters } from "@/features/operations/services";
 import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
-import { NoItemsYet } from "@/components/ui/primitives";
+import {
+  FilterPills,
+  ListTableCard,
+  NoItemsYet,
+  type FilterPillItem,
+} from "@/components/ui/primitives";
 
 export const metadata = { title: "Operations · Tasks" };
 export const dynamic = "force-dynamic";
@@ -52,8 +57,23 @@ export default async function OperationsTasksList({
   const userOpts = users.map((u) => ({ id: u.id, label: `${u.fullName} · ${u.email}` }));
   const templateOpts = templates.map((t) => ({ id: t.id, label: t.name }));
 
+  const statusPills: FilterPillItem[] = [
+    { value: "", label: "All", href: "/dashboard/operations/tasks" },
+    ...STATUSES.map((s) => ({
+      value: s,
+      label: s.replace(/_/g, " "),
+      href: `/dashboard/operations/tasks?status=${s}`,
+    })),
+  ];
+  const categoryPills: FilterPillItem[] = CATEGORIES.map((c) => ({
+    value: c,
+    label: c.replace(/_/g, " "),
+    href: `/dashboard/operations/tasks?category=${c}`,
+  }));
+  const currentStatusKey = sp.status ?? "";
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <PageHeader
         breadcrumbs={[
           { label: "Operations", href: "/dashboard/operations" },
@@ -73,24 +93,13 @@ export default async function OperationsTasksList({
 
       <DbStatusNotice />
 
-      <div className="flex flex-wrap gap-2">
-        <FilterPill label="All" href="/dashboard/operations/tasks" active={!sp.status && !sp.category && !sp.priority} />
-        {STATUSES.map((s) => (
-          <FilterPill
-            key={s}
-            label={s.replace(/_/g, " ")}
-            href={`/dashboard/operations/tasks?status=${s}`}
-            active={sp.status === s}
-          />
-        ))}
-        {CATEGORIES.map((c) => (
-          <FilterPill
-            key={c}
-            label={c.replace(/_/g, " ")}
-            href={`/dashboard/operations/tasks?category=${c}`}
-            active={sp.category === c}
-          />
-        ))}
+      <div className="flex flex-col gap-4">
+        <FilterPills items={statusPills} current={currentStatusKey} label="Status" />
+        <FilterPills
+          items={categoryPills}
+          current={sp.category ?? ""}
+          label="Category"
+        />
       </div>
 
       <div className="flex flex-col gap-2">
@@ -134,25 +143,3 @@ export default async function OperationsTasksList({
   );
 }
 
-function FilterPill({
-  label,
-  href,
-  active,
-}: {
-  label: string;
-  href: string;
-  active: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`text-[11px] uppercase tracking-widest px-3 py-1.5 rounded-full border ${
-        active
-          ? "bg-ink text-ink-inverse border-ink"
-          : "border-line-soft text-ink-secondary hover:border-line-strong"
-      }`}
-    >
-      {label}
-    </Link>
-  );
-}

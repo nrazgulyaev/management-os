@@ -7,7 +7,7 @@ import { DbStatusNotice } from "@/components/admin/db-status";
 import { listOwners } from "@/features/owners/services";
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
 import { OwnerAddButton } from "@/components/owners/owner-add-button";
-import { NoItemsYet } from "@/components/ui/primitives";
+import { ListTableCard, NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Owners & investors" };
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export default async function OwnersPage() {
   const source = owners[0]?.source ?? "mock";
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <PageHeader
         breadcrumbs={[
           { label: "Portfolio", href: "/dashboard" },
@@ -49,6 +49,11 @@ export default async function OwnersPage() {
           addLabel="New owner"
         />
       ) : (
+        <ListTableCard
+          eyebrow="Stakeholders"
+          title="All owners & investors"
+          count={owners.length}
+        >
         <Table>
           <THead>
             <TR>
@@ -110,6 +115,7 @@ export default async function OwnersPage() {
             ))}
           </TBody>
         </Table>
+        </ListTableCard>
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import { listVillas } from "@/features/villas/services";
 import { listBookingChannels } from "@/features/channels/services";
 import { listGuests } from "@/features/guests/services";
 import { BookingAddButton } from "@/components/bookings/booking-add-button";
+import { ListTableCard } from "@/components/ui/primitives";
 
 export const metadata = { title: "Bookings" };
 export const dynamic = "force-dynamic";
@@ -47,7 +48,7 @@ export default async function BookingsPage() {
   const guestOpts = guests.map((g) => ({ id: g.id, label: g.fullName }));
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <PageHeader
         breadcrumbs={[{ label: "Bookings" }]}
         title="Bookings"
@@ -70,6 +71,11 @@ export default async function BookingsPage() {
 
       <DbStatusNotice />
 
+      <ListTableCard
+        eyebrow="Reservations"
+        title="All bookings"
+        count={bookings.length}
+      >
       <Table>
         <THead>
           <TR>
@@ -133,6 +139,7 @@ export default async function BookingsPage() {
           )}
         </TBody>
       </Table>
+      </ListTableCard>
     </div>
   );
 }

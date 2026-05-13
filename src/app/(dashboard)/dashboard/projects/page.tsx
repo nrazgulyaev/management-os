@@ -23,7 +23,7 @@ export default async function ProjectsPage() {
   const source = projects[0]?.source ?? "mock";
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <PageHeader
         breadcrumbs={[
           { label: "Portfolio", href: "/dashboard" },
@@ -41,12 +41,12 @@ export default async function ProjectsPage() {
 
       <DbStatusNotice />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {projects.map((p) => (
           <Link
             key={p.id}
             href={`/dashboard/projects/${p.slug}`}
-            className="group rounded-lg border border-line-soft bg-surface p-6 flex flex-col gap-4 hover:border-line-strong transition-colors"
+            className="group rounded-3xl border border-line-soft bg-surface p-7 flex flex-col gap-4 hover:border-line-strong hover:shadow-soft-card transition-all"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
