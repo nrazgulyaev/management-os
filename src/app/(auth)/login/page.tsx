@@ -17,7 +17,7 @@ export default function LoginPage() {
         <div className="flex-1 flex items-center">
           <div className="max-w-sm w-full mx-auto">
             <span className="text-label">Arconique Management OS</span>
-            <h1 className="text-display text-[40px] leading-[1.05] font-medium mt-4 text-ink">
+            <h1 className="text-display text-[44px] md:text-[56px] leading-[1.0] font-medium mt-4 text-ink tracking-tight">
               Welcome back.
             </h1>
             <p className="mt-3 text-ink-secondary">
@@ -46,7 +46,7 @@ export default function LoginPage() {
                   <Link
                     key={l.href}
                     href={l.href}
-                    className="flex items-center justify-between rounded-sm border border-line-soft bg-surface hover:bg-muted px-3 h-10 text-sm text-ink transition-colors"
+                    className="flex items-center justify-between rounded-2xl border border-line-soft bg-surface hover:bg-muted hover:shadow-soft-card px-4 h-12 text-sm text-ink transition-all"
                   >
                     {l.label}
                     <ArrowUpRight

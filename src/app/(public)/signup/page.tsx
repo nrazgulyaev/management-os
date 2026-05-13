@@ -21,21 +21,21 @@ export default async function SignupPage({
     productParam === "mgmt" || productParam === "dev" ? productParam : "both";
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-6 py-16">
+    <div className="min-h-[80vh] flex items-center justify-center px-6 py-16 bg-canvas">
       <div className="w-full max-w-lg">
-        <div className="text-center mb-8">
+        <div className="text-center mb-10">
           <span className="text-label">Get started</span>
-          <h1 className="mt-3 font-display text-3xl md:text-4xl tracking-[-0.02em] text-ink leading-[1.1]">
+          <h1 className="mt-3 font-display text-[40px] md:text-[56px] leading-[1.0] tracking-[-0.02em] text-ink">
             14-day free trial.
           </h1>
-          <p className="mt-3 text-sm text-ink-secondary leading-relaxed">
+          <p className="mt-4 text-sm md:text-base text-ink-secondary leading-relaxed">
             No credit card. Real workflows, real data. Cancel anytime — your
             workspace becomes read-only after the trial unless you choose a
             plan.
           </p>
         </div>
 
-        <div className="rounded-md border border-line-soft bg-surface p-6 md:p-8">
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-elevated-card p-8 md:p-10">
           <SignupForm defaultProduct={defaultProduct} />
         </div>
 

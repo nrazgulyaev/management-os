@@ -72,7 +72,7 @@ export function PricingPage({ pricing }: { pricing: ProductPricing }) {
               </h2>
             </div>
           </ScrollReveal>
-          <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
+          <div className="rounded-3xl border border-line-soft bg-surface overflow-x-auto shadow-soft-card">
             <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
                 <tr>
@@ -143,7 +143,7 @@ export function PricingPage({ pricing }: { pricing: ProductPricing }) {
           <ScrollStagger className="flex flex-col gap-4">
             {pricing.faq.map((q) => (
               <ScrollStaggerItem key={q.question}>
-                <details className="group rounded-md border border-line-soft bg-surface px-5 py-4">
+                <details className="group rounded-2xl border border-line-soft bg-surface px-6 py-5 shadow-soft-card">
                   <summary className="cursor-pointer flex items-center justify-between gap-3 list-none">
                     <span className="text-sm font-medium text-ink">
                       {q.question}
@@ -166,7 +166,7 @@ export function PricingPage({ pricing }: { pricing: ProductPricing }) {
       <section className="py-20 md:py-28">
         <div className="max-w-[1400px] mx-auto px-6 md:px-8">
           <ScrollReveal>
-            <div className="rounded-md border border-line-soft bg-surface p-10 md:p-16 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+            <div className="rounded-3xl border border-line-soft bg-gradient-emerald-soft shadow-elevated-card p-10 md:p-16 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
               <div className="max-w-xl">
                 <span className="text-label">{TRIAL_BANNER_COPY}</span>
                 <h2 className="mt-3 font-display text-2xl md:text-4xl tracking-[-0.02em] text-ink leading-[1.1]">
@@ -203,16 +203,16 @@ function TierCard({ tier }: { tier: PricingTier }) {
   return (
     <div
       className={cn(
-        "rounded-md border bg-surface p-7 md:p-8 flex flex-col gap-5 h-full",
+        "rounded-3xl border p-7 md:p-8 flex flex-col gap-5 h-full transition-shadow",
         isHighlighted
-          ? "border-ink shadow-[var(--shadow-floating)]"
-          : "border-line-soft",
+          ? "border-line-soft bg-gradient-emerald-soft shadow-elevated-card"
+          : "border-line-soft bg-surface shadow-soft-card hover:shadow-elevated-card",
       )}
     >
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-medium text-base text-ink">{tier.name}</h3>
         {isHighlighted && (
-          <span className="text-[10px] tracking-[0.18em] uppercase text-ink-inverse bg-ink rounded-sm px-2 py-1">
+          <span className="text-[10px] tracking-[0.18em] uppercase text-ink-inverse bg-ink rounded-full px-3 py-1">
             Recommended
           </span>
         )}
@@ -221,11 +221,11 @@ function TierCard({ tier }: { tier: PricingTier }) {
         {tier.bestFor}
       </p>
       <div className="flex items-baseline gap-1.5">
-        <span className="font-display text-4xl tracking-[-0.02em] text-ink">
+        <span className="font-display text-[48px] md:text-[56px] leading-[1.0] tracking-[-0.02em] text-ink">
           {formatTierPrice(tier)}
         </span>
         {tier.monthlyUsd !== null && (
-          <span className="text-sm text-ink-tertiary">/mo</span>
+          <span className="text-base text-ink-tertiary">/mo</span>
         )}
       </div>
       <span className="text-[11px] text-ink-tertiary">{tier.limit}</span>

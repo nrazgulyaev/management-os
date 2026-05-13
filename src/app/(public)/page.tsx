@@ -153,7 +153,7 @@ export default function HomePage() {
       <section className="py-20 md:py-28">
         <div className="max-w-[1400px] mx-auto px-6 md:px-8">
           <ScrollReveal>
-            <div className="rounded-md border border-line-soft bg-surface p-10 md:p-16 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+            <div className="rounded-3xl border border-line-soft bg-gradient-emerald-soft shadow-elevated-card p-10 md:p-16 flex flex-col md:flex-row md:items-center md:justify-between gap-8">
               <div className="max-w-xl">
                 <span className="text-label">Start a free trial</span>
                 <h2 className="mt-3 font-display text-2xl md:text-4xl tracking-[-0.02em] text-ink leading-[1.1]">
@@ -243,17 +243,17 @@ function ProductCard({
   trialHref: string;
   pricingHref: string;
 }) {
-  const toneRing =
+  const toneBg =
     tone === "accent"
-      ? "border-l-2 border-l-accent"
-      : "border-l-2 border-l-gold";
+      ? "bg-gradient-emerald-soft"
+      : "bg-gradient-gold-soft";
   const toneIconBg =
     tone === "accent"
       ? "bg-accent text-accent-contrast"
       : "bg-gold text-white";
   return (
     <div
-      className={`group rounded-md border border-line-soft bg-surface p-8 md:p-10 flex flex-col gap-6 transition-shadow hover:shadow-[var(--shadow-floating)] ${toneRing}`}
+      className={`group rounded-3xl border border-line-soft ${toneBg} p-8 md:p-10 flex flex-col gap-6 shadow-soft-card transition-shadow hover:shadow-elevated-card`}
     >
       <div className="flex items-center gap-3">
         <span
@@ -310,9 +310,9 @@ function FeatureTile({
   description: string;
 }) {
   return (
-    <div className="rounded-md border border-line-soft bg-surface p-6 flex flex-col gap-3 h-full">
-      <span className="w-9 h-9 rounded-sm bg-muted flex items-center justify-center">
-        <Icon className="w-4 h-4 text-ink-secondary" strokeWidth={1.75} />
+    <div className="rounded-3xl border border-line-soft bg-surface p-7 flex flex-col gap-3 h-full shadow-soft-card hover:shadow-elevated-card transition-shadow">
+      <span className="w-11 h-11 rounded-full bg-muted flex items-center justify-center">
+        <Icon className="w-5 h-5 text-ink-secondary" strokeWidth={1.75} />
       </span>
       <h3 className="font-medium text-base text-ink">{title}</h3>
       <p className="text-sm text-ink-secondary leading-relaxed">

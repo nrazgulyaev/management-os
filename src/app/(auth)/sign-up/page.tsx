@@ -43,7 +43,7 @@ export default async function SignUpPage({
         <div className="flex-1 flex items-center">
           <div className="max-w-sm w-full mx-auto">
             <span className="text-label">Arconique Management OS</span>
-            <h1 className="text-display text-[40px] leading-[1.05] font-medium mt-4 text-ink">
+            <h1 className="text-display text-[44px] md:text-[56px] leading-[1.0] font-medium mt-4 text-ink tracking-tight">
               Start your 14-day trial
             </h1>
             <p className="mt-3 text-ink-secondary">
