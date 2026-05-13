@@ -1,21 +1,24 @@
 /**
- * Stage 9.B — plan-upgrade page.
+ * Sprint 3b — plan-upgrade page (post packaging rewrite).
  *
- * Lists every public + active subscription plan in tier-rank order,
- * highlights the org's current plan (if it has an active
- * subscription), and renders an "Upgrade to <plan>" / "Switch to
- * <plan>" button per row. The button posts to /api/billing/checkout
- * which creates a Stripe Checkout Session and returns the URL — the
- * client redirects there.
+ * Reads `plan_packaging` (12 rows, 3 plan kinds × 4 tiers, Sprint-3b
+ * source of truth) and renders an upgrade card per *packaging*. The
+ * Stage-9.B subscription_plans-keyed implementation was retired in
+ * Sprint 3b: customers now subscribe to a packaging (e.g.
+ * "mgmt-only-pro", "bundle-scale"), and the mapping resolves it to
+ * a `plan_code` for gating + a `products_enabled` array for cabinet
+ * visibility.
  *
- * If `STRIPE_SECRET_KEY` is not yet set on Vercel (Stage 9.A
- * deferred), the checkout endpoint returns 503 and the form surfaces
- * a clear "Stripe not configured — contact support" message. The UI
- * itself is fully rendered + ready for the moment live keys land.
+ * Current-packaging detection compares the org's
+ * `org_subscriptions.plan_code` AND its `organizations.products_enabled`
+ * against each row. A packaging is "current" iff its plan_code matches
+ * AND its products_enabled multiset equals the org's.
  *
- * Wired to Stage 7.F.D.3 cabinet gating: when `pageGate` returns this
- * URL with `?locked=<flag>`, the banner above the plan grid explains
- * which feature triggered the upgrade prompt.
+ * If `STRIPE_SECRET_KEY` is absent (Stage 9.A deferred), the checkout
+ * endpoint still returns 503; the button surfaces a clear message.
+ *
+ * Wired to Stage 7.F.D.3 cabinet gating: `?locked=<flag>` continues
+ * to display the explanatory banner above the grid.
  */
 
 import type { Metadata } from "next";
@@ -27,9 +30,10 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
 import {
-  subscriptionPlans,
+  planPackaging,
   orgSubscriptions,
 } from "@/lib/db/schema/subscriptions";
+import { organizations } from "@/lib/db/schema/saas";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 import { UpgradeButton } from "./upgrade-button";
 
@@ -45,73 +49,126 @@ function formatPriceMinor(minor: bigint, currency: string): string {
   }).format(major);
 }
 
-interface PlanRow {
+interface PackagingRow {
   id: string;
+  packagingKey: string;
+  planKind: string;
+  tierKey: string;
   planCode: string;
+  productsEnabled: string[];
   displayName: string;
-  description: string | null;
-  tierRank: number;
   monthlyPriceMinor: bigint;
-  annualPriceMinor: bigint | null;
+  annualPriceMinor: bigint;
   currency: string;
-  trialPeriodDays: number;
   hasMonthlyPriceId: boolean;
   hasAnnualPriceId: boolean;
-  isInternal: boolean;
+  isEnterprise: boolean;
+}
+
+function arraysEqualAsSet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const set = new Set(a);
+  for (const x of b) if (!set.has(x)) return false;
+  return true;
+}
+
+function packagingDisplayName(row: {
+  planKind: string;
+  tierKey: string;
+}): string {
+  const kindLabel =
+    row.planKind === "management-only"
+      ? "Management"
+      : row.planKind === "development-only"
+        ? "Development"
+        : "Bundle";
+  const tierLabel = row.tierKey[0].toUpperCase() + row.tierKey.slice(1);
+  return `${kindLabel} · ${tierLabel}`;
 }
 
 export default async function UpgradePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ locked?: string; checkout?: string; reason?: string }>;
+  searchParams?: Promise<{
+    locked?: string;
+    checkout?: string;
+    reason?: string;
+    cycle?: string;
+  }>;
 }) {
   const sp = (await searchParams) ?? {};
+  const cycle: "monthly" | "annual" =
+    sp.cycle === "annual" ? "annual" : "monthly";
+
   const db = getDb();
   if (!db) {
     return (
       <div className="flex flex-col gap-8">
         <PageHeader title="Upgrade plan" />
-        <EmptyState title="Database not configured" description="Set DATABASE_URL." />
+        <EmptyState
+          title="Database not configured"
+          description="Set DATABASE_URL."
+        />
       </div>
     );
   }
   const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
 
-  const rawPlans = await db
+  const rawPackagings = await db
     .select()
-    .from(subscriptionPlans)
+    .from(planPackaging)
     .where(
       and(
-        eq(subscriptionPlans.isActive, true),
-        eq(subscriptionPlans.isPublic, true),
+        eq(planPackaging.isActive, true),
+        eq(planPackaging.isPublic, true),
       ),
     )
-    .orderBy(asc(subscriptionPlans.tierRank));
+    .orderBy(asc(planPackaging.sortOrder));
 
-  const plans: PlanRow[] = rawPlans.map((p) => ({
+  const packagings: PackagingRow[] = rawPackagings.map((p) => ({
     id: p.id,
+    packagingKey: p.packagingKey,
+    planKind: p.planKind,
+    tierKey: p.tierKey,
     planCode: p.planCode,
-    displayName: p.displayName,
-    description: p.description,
-    tierRank: p.tierRank,
+    productsEnabled: p.productsEnabled,
+    displayName: packagingDisplayName(p),
     monthlyPriceMinor: p.monthlyPriceMinor,
     annualPriceMinor: p.annualPriceMinor,
     currency: p.currency,
-    trialPeriodDays: p.trialPeriodDays,
     hasMonthlyPriceId: !!p.stripeMonthlyPriceId,
     hasAnnualPriceId: !!p.stripeAnnualPriceId,
-    isInternal: p.isInternal,
+    isEnterprise: p.tierKey === "enterprise",
   }));
 
-  const activeSub = org
-    ? await db
-        .select()
-        .from(orgSubscriptions)
-        .where(eq(orgSubscriptions.organizationId, org.id))
-        .limit(1)
-        .then((rows) => rows[0])
-    : null;
-  const currentPlanCode = activeSub?.planCode ?? null;
+  // Resolve current packaging: (plan_code, products_enabled) must
+  // match the active subscription + org. A trialing org with plan_code
+  // = 'trial' won't match any packaging here — that's fine, the page
+  // simply has no "Current" badge until they upgrade.
+  let currentPackagingKey: string | null = null;
+  if (org) {
+    const activeSub = await db
+      .select({ planCode: orgSubscriptions.planCode })
+      .from(orgSubscriptions)
+      .where(eq(orgSubscriptions.organizationId, org.id))
+      .limit(1)
+      .then((rows) => rows[0]);
+    const orgRow = await db
+      .select({ productsEnabled: organizations.productsEnabled })
+      .from(organizations)
+      .where(eq(organizations.id, org.id))
+      .limit(1)
+      .then((rows) => rows[0]);
+    if (activeSub && orgRow) {
+      const orgProducts = orgRow.productsEnabled ?? [];
+      const match = packagings.find(
+        (p) =>
+          p.planCode === activeSub.planCode &&
+          arraysEqualAsSet(p.productsEnabled, orgProducts),
+      );
+      currentPackagingKey = match?.packagingKey ?? null;
+    }
+  }
 
   return (
     <div className="flex flex-col gap-10">
@@ -122,42 +179,52 @@ export default async function UpgradePage({
         ]}
         title="Pick a plan"
         description={
-          currentPlanCode
-            ? `Your workspace is on the ${currentPlanCode} plan. Switching takes effect at the next billing cycle.`
-            : "Pick a plan to activate your workspace."
+          currentPackagingKey
+            ? `Your workspace is on the ${currentPackagingKey} packaging. Switching takes effect at the next billing cycle.`
+            : "Pick a packaging to activate your workspace."
         }
       />
 
       {sp.locked && (
         <div className="rounded border border-warning/40 bg-warning-weak/30 px-4 py-3 text-sm text-ink-secondary">
           <span className="font-medium">Upgrade required.</span>{" "}
-          The feature you tried to access (<span className="font-mono text-xs">{sp.locked}</span>)
-          isn't included in your current plan. Pick a higher tier below.
+          The feature you tried to access (
+          <span className="font-mono text-xs">{sp.locked}</span>) isn't
+          included in your current plan. Pick a higher tier below.
         </div>
       )}
       {sp.checkout === "cancelled" && (
         <div className="rounded border border-line-soft bg-muted/30 px-4 py-3 text-sm text-ink-secondary">
-          You cancelled the Stripe Checkout flow — your workspace is unchanged.
-          Pick a plan again whenever you're ready.
+          You cancelled the Stripe Checkout flow — your workspace is
+          unchanged. Pick a plan again whenever you're ready.
         </div>
       )}
       {sp.reason === "no_customer" && (
         <div className="rounded border border-line-soft bg-muted/30 px-4 py-3 text-sm text-ink-secondary">
-          You don't have a Stripe customer record yet — pick a plan to start.
+          You don't have a Stripe customer record yet — pick a plan to
+          start.
         </div>
       )}
 
-      <Section eyebrow="Plans" title={`${plans.length} plan${plans.length === 1 ? "" : "s"} available`}>
-        {plans.length === 0 ? (
+      <Section
+        eyebrow="Plans"
+        title={`${packagings.length} packaging${packagings.length === 1 ? "" : "s"} available`}
+        description={`Billing cycle: ${cycle}. Switch via ?cycle=annual or the public /pricing toggle.`}
+      >
+        {packagings.length === 0 ? (
           <EmptyState
-            title="No plans configured"
-            description="The subscription_plans table has no public + active rows. Apply migration 0085 + the seed."
+            title="No packagings configured"
+            description="The plan_packaging table has no public + active rows. Apply migration 0096 + the seed."
           />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {plans.map((p) => {
-              const isCurrent = currentPlanCode === p.planCode;
-              const isFree = p.monthlyPriceMinor === 0n;
+            {packagings.map((p) => {
+              const isCurrent = currentPackagingKey === p.packagingKey;
+              const priceMinor =
+                cycle === "annual" ? p.annualPriceMinor : p.monthlyPriceMinor;
+              const hasPriceId =
+                cycle === "annual" ? p.hasAnnualPriceId : p.hasMonthlyPriceId;
+              const isFree = priceMinor === 0n;
               return (
                 <div
                   key={p.id}
@@ -169,27 +236,35 @@ export default async function UpgradePage({
                   </div>
                   <div>
                     <span className="text-2xl font-semibold tabular-nums">
-                      {isFree ? "Free" : formatPriceMinor(p.monthlyPriceMinor, p.currency)}
+                      {p.isEnterprise
+                        ? "Custom"
+                        : isFree
+                          ? "Free"
+                          : formatPriceMinor(priceMinor, p.currency)}
                     </span>
-                    {!isFree && (
-                      <span className="text-sm text-ink-tertiary"> / month</span>
+                    {!p.isEnterprise && !isFree && (
+                      <span className="text-sm text-ink-tertiary">
+                        {cycle === "annual" ? " / year" : " / month"}
+                      </span>
                     )}
                   </div>
-                  {p.description && (
-                    <p className="text-sm text-ink-secondary leading-relaxed">
-                      {p.description}
-                    </p>
-                  )}
-                  {p.trialPeriodDays > 0 && (
-                    <p className="text-xs text-ink-tertiary">
-                      Includes a {p.trialPeriodDays}-day trial.
-                    </p>
-                  )}
+                  <p className="text-xs text-ink-tertiary">
+                    {p.planKind} · plan_code:{" "}
+                    <span className="font-mono">{p.planCode}</span> ·
+                    products: {p.productsEnabled.join(", ") || "—"}
+                  </p>
                   <div className="mt-auto pt-3 flex flex-col gap-2">
-                    {p.isInternal ? (
-                      <Badge tone="neutral">Internal — by invitation</Badge>
-                    ) : !p.hasMonthlyPriceId ? (
-                      <Badge tone="warning">Stripe price not yet configured</Badge>
+                    {p.isEnterprise ? (
+                      <Link
+                        href="/contact?subject=enterprise"
+                        className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium hover:bg-muted/40"
+                      >
+                        Talk to sales →
+                      </Link>
+                    ) : !hasPriceId ? (
+                      <Badge tone="warning">
+                        Stripe price not yet provisioned
+                      </Badge>
                     ) : isCurrent ? (
                       <Link
                         href="/api/billing/portal"
@@ -199,8 +274,9 @@ export default async function UpgradePage({
                       </Link>
                     ) : (
                       <UpgradeButton
-                        planCode={p.planCode}
+                        packagingKey={p.packagingKey}
                         displayName={p.displayName}
+                        billingCycle={cycle}
                       />
                     )}
                   </div>
@@ -214,14 +290,20 @@ export default async function UpgradePage({
       <Section eyebrow="Help" title="Questions?">
         <p className="text-sm text-ink-secondary leading-relaxed max-w-prose">
           Plan features + per-plan AI eligibility are documented at{" "}
-          <Link href="/dashboard/settings/ai-agents" className="underline">
+          <Link
+            href="/dashboard/settings/ai-agents"
+            className="underline"
+          >
             /dashboard/settings/ai-agents
           </Link>
           . Contact{" "}
-          <a href="mailto:support@arconique.com" className="underline">
+          <a
+            href="mailto:support@arconique.com"
+            className="underline"
+          >
             support@arconique.com
           </a>{" "}
-          for custom (Enterprise) terms or annual billing.
+          for custom (Enterprise) terms.
         </p>
       </Section>
     </div>

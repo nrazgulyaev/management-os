@@ -93,16 +93,21 @@ test("9.B: /dashboard/billing/upgrade page + UpgradeButton client component ship
   }
 });
 
-test("9.B upgrade page: lists plans, highlights current, shows locked banner from cabinet gate", () => {
+test("9.B upgrade page (Sprint 3b rewrite): lists packagings, highlights current, shows locked banner", () => {
   const src = read(
     "src/app/(dashboard)/dashboard/billing/upgrade/page.tsx",
   );
   assert.match(src, /export const dynamic = "force-dynamic"/);
-  // Reads only public + active plans, ordered by tier rank.
-  assert.match(src, /isPublic[\s\S]{0,80}isActive|isActive[\s\S]{0,80}isPublic/);
-  assert.match(src, /asc\(subscriptionPlans\.tierRank\)/);
-  // Reads the org's current subscription to highlight current plan.
+  // Sprint 3b: reads public + active rows from plan_packaging
+  // (the Stage-9.B subscription_plans-keyed read was retired).
+  assert.match(src, /planPackaging\.isPublic/);
+  assert.match(src, /planPackaging\.isActive/);
+  assert.match(src, /asc\(planPackaging\.sortOrder\)/);
+  // Reads the org's current subscription to highlight current packaging.
   assert.match(src, /\.from\(orgSubscriptions\)/);
+  // Compares against organizations.products_enabled too — a packaging
+  // is current only when both plan_code AND products_enabled match.
+  assert.match(src, /productsEnabled/);
   // Surfaces the `?locked=<flag>` query param sent by pageGate.
   assert.match(src, /sp\.locked/);
 });

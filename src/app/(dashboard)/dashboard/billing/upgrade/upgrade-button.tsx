@@ -1,22 +1,24 @@
 "use client";
 
 /**
- * Stage 9.B — Upgrade button.
+ * Sprint 3b — Upgrade button (post packaging rewrite).
  *
- * Calls /api/billing/checkout, expects { ok, sessionUrl } JSON, and
- * redirects to the Stripe Checkout Session. On 503
- * (stripe_not_configured) surfaces a clear message about live Stripe
- * activation pending.
+ * Posts `{ packaging_key, billing_cycle }` to /api/billing/checkout.
+ * Expects `{ ok, sessionUrl }` JSON, hard-redirects to the Stripe
+ * Checkout Session. On 503 (stripe_not_configured) surfaces a clear
+ * message about live Stripe activation pending.
  */
 
 import { useState, useTransition } from "react";
 
 export function UpgradeButton({
-  planCode,
+  packagingKey,
   displayName,
+  billingCycle = "monthly",
 }: {
-  planCode: string;
+  packagingKey: string;
   displayName: string;
+  billingCycle?: "monthly" | "annual";
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,10 @@ export function UpgradeButton({
       const resp = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ plan_code: planCode, billing_cycle: "monthly" }),
+        body: JSON.stringify({
+          packaging_key: packagingKey,
+          billing_cycle: billingCycle,
+        }),
       });
       const body = (await resp.json().catch(() => ({}))) as {
         ok?: boolean;
@@ -39,9 +44,13 @@ export function UpgradeButton({
           setError(
             "Live billing is being activated — please contact support@arconique.com to upgrade in the meantime.",
           );
-        } else if (body.reason === "plan_not_purchasable") {
+        } else if (body.reason === "packaging_not_purchasable") {
           setError(
-            `${displayName} isn't yet purchasable — Stripe price ID not mapped. Contact support.`,
+            `${displayName} isn't yet purchasable — Stripe price ID not mapped. Run scripts/stripe-provision.ts (or contact support).`,
+          );
+        } else if (body.reason === "packaging_not_found") {
+          setError(
+            `${displayName} isn't in the catalog. This is likely a bug — please contact support.`,
           );
         } else {
           setError(body.reason ?? `Checkout failed (${resp.status}).`);
@@ -61,7 +70,7 @@ export function UpgradeButton({
         disabled={pending}
         className="inline-flex items-center justify-center rounded-full bg-ink px-4 py-2 text-sm font-medium text-ink-inverse hover:bg-ink/90 disabled:opacity-60"
       >
-        {pending ? "Opening Stripe…" : `Upgrade to ${displayName}`}
+        {pending ? "Opening Stripe…" : `Switch to ${displayName}`}
       </button>
       {error && (
         <p className="text-xs text-danger" role="alert">
