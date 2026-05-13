@@ -314,7 +314,10 @@ test("Stage 7.E: extractTenantSlug returns null for apex + reserved", () => {
   assert.equal(extractTenantSlug("www.arconique.com"), null);
   assert.equal(extractTenantSlug("api.arconique.com"), null);
   assert.equal(extractTenantSlug("app.arconique.com"), null);
-  assert.equal(extractTenantSlug("admin.arconique.com"), null);
+  // Sprint 2 — `admin` removed from RESERVED_SUBDOMAINS; the platform-
+  // admin role moved to platform.arconique.com. A tenant named "admin"
+  // would now resolve as a regular per-tenant slug.
+  assert.equal(extractTenantSlug("admin.arconique.com"), "admin");
   assert.equal(extractTenantSlug("investors.arconique.com"), null);
   assert.equal(extractTenantSlug("docs.arconique.com"), null);
 });
