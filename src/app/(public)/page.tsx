@@ -24,6 +24,7 @@ import {
   ProductLanding,
   type ProductLandingKind,
 } from "@/components/product-landing/product-landing";
+import { SalesHub } from "@/components/marketing/sales-hub";
 
 /**
  * Stage 10.I.2 — Umbrella public homepage.
@@ -62,11 +63,12 @@ export default async function HomePage() {
     // anonymous → /login?next=/platform, others → /no-product-access.
     redirect("/platform");
   }
-  if (
-    product === "management" ||
-    product === "development" ||
-    product === "subscription"
-  ) {
+  // Sprint 3a — `subscription.arconique.com/` lands on the full
+  // SalesHub composition (was a placeholder ProductLanding in Sprint 2).
+  if (product === "subscription") {
+    return <SalesHub />;
+  }
+  if (product === "management" || product === "development") {
     return <ProductLanding product={product as ProductLandingKind} />;
   }
   // Apex `arconique.com` (or any non-product host) — continue with the

@@ -341,24 +341,27 @@ test("Stage 7.E: middleware exists at src/middleware.ts", () => {
   assert.match(src, /x-tenant-host/);
 });
 
-test("Stage 7.E: /pricing public page retired in 10.I.4 → 308 redirect to /pricing/management-os", () => {
+test("Stage 7.E + Sprint 3a: /pricing un-retired by Sprint 3a (consolidated 3-column page)", () => {
   // Stage 7.E originally shipped /pricing reading from subscription_plans.
-  // Stage 10.I.4 split it into per-product pages
-  // (/pricing/management-os + /pricing/development-os) driven by the
-  // hardcoded src/lib/billing/pricing.ts config; the bare /pricing URL
-  // now 308-redirects via next.config.mjs. Existing operators who land
-  // on /pricing still arrive at a meaningful page.
+  // Stage 10.I.4 split it into per-product pages and 308-redirected
+  // bare /pricing to /pricing/management-os. Sprint 3a un-retired the
+  // bare /pricing URL with a consolidated three-column (Mgmt-only /
+  // Dev-only / Bundle) page driven by src/lib/marketing/pricing-tiers.ts.
+  // Both surfaces coexist until Sprint 3b reconciles them alongside
+  // Stripe wiring.
   assert.equal(
     fileExists("src/app/(public)/pricing/page.tsx"),
-    false,
-    "old /pricing/page.tsx should be removed (replaced by 308 redirect)",
+    true,
+    "Sprint 3a re-introduced (public)/pricing/page.tsx",
   );
   const config = readFile("next.config.mjs");
-  assert.match(
+  assert.doesNotMatch(
     config,
     /source:\s*"\/pricing"\s*,\s*destination:\s*"\/pricing\/management-os"/,
+    "Sprint 3a removed the /pricing → /pricing/management-os redirect",
   );
-  // Per-product pages exist + drive from the same pricing module.
+  // Per-product pages still exist + still drive from the same
+  // Stage-10.I.4 pricing module.
   assert.ok(fileExists("src/app/(public)/pricing/management-os/page.tsx"));
   assert.ok(fileExists("src/app/(public)/pricing/development-os/page.tsx"));
 });

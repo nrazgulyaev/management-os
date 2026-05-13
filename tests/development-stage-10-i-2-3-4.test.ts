@@ -226,16 +226,25 @@ test("10.I.4 — shared PricingPage component renders comparison table + FAQ + t
   assert.match(src, /signup\?product=/);
 });
 
-test("10.I.4 — old /pricing page retired (308 redirect to /pricing/management-os)", () => {
+test("10.I.4 — /pricing page un-retired by Sprint 3a (consolidated 3-column model replaces the 308 redirect)", () => {
+  // Stage 10.I.4 originally retired the bare /pricing page and routed
+  // it to /pricing/management-os via a 308 redirect. Sprint 3a brought
+  // /pricing back as the consolidated Mgmt-only / Dev-only / Bundle
+  // pricing page (driven by src/lib/marketing/pricing-tiers.ts). Both
+  // the new top-level page AND the per-product Stage-10.I.4 pages now
+  // coexist until Sprint 3b reconciles them alongside Stripe wiring.
   assert.equal(
     exists("src/app/(public)/pricing/page.tsx"),
-    false,
-    "old /pricing/page.tsx should be removed (replaced by 308 redirect)",
+    true,
+    "Sprint 3a re-introduced (public)/pricing/page.tsx",
   );
   const src = read(NEXT_CONFIG);
-  assert.match(
+  // The old 308 redirect must be gone — otherwise the new page is
+  // unreachable.
+  assert.doesNotMatch(
     src,
     /source:\s*"\/pricing"\s*,\s*destination:\s*"\/pricing\/management-os"/,
+    "Sprint 3a should have removed the /pricing → /pricing/management-os redirect from next.config.mjs",
   );
 });
 

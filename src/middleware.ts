@@ -86,10 +86,14 @@ export const PRODUCT_SUBDOMAINS = {
     defaultLanding: "/",
   },
   subscription: {
-    // Public sales surface — content lands in Sprint 3. For now the
-    // existing marketing pages (currently under (public)/*) are the
-    // canonical sales pages, so they're allowed here. Sprint 3 will
-    // add /pricing/* etc. and may move a few of these around.
+    // Public sales surface. Sprint 3a aligns this list with the
+    // routes that actually exist in `src/app/(public)/` — see the
+    // content inventory at docs/audits/2026-05-13-sprint-3a-content-
+    // inventory.md for the audit. The spec's `/management-os` and
+    // `/development-os` URLs aren't here because (a) the Mgmt-OS
+    // sales detail already lives at `/products/management-os`, and
+    // (b) `/development-os` is owned by the Dev OS app — a top-level
+    // `(public)/development-os/page.tsx` would collide at build.
     allowedPrefixes: [
       "/pricing",
       "/signup",
@@ -101,8 +105,6 @@ export const PRODUCT_SUBDOMAINS = {
       "/operations",
       "/investor-reporting",
       "/owner-portal",
-      "/villa-management",
-      "/development",
       "/book",
       "/login",
       "/accept-invitation",
