@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  CabinetGreetingBlock,
   DashboardKpi,
   NoItemsYet,
   PageHeaderHero,
@@ -74,21 +75,34 @@ export default async function SalesManagerCabinetPage() {
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
+        <CabinetGreetingBlock
+          firstName={firstName}
+          eyebrow="Sales manager · Cabinet"
+          subline={`${data.hotLeadsCount} hot lead${data.hotLeadsCount === 1 ? "" : "s"} · ${data.followupsOverdueCount} overdue follow-up${data.followupsOverdueCount === 1 ? "" : "s"}`}
+          badge={
+            data.followupsOverdueCount > 0 ? (
+              <Badge tone="danger">{data.followupsOverdueCount} overdue</Badge>
+            ) : null
+          }
+        />
+
         <PageHeaderHero
-          firstName={firstName ?? undefined}
-          eyebrow="Sales manager"
+          eyebrow="This week"
           title="Your pipeline"
           description="Hot leads, active conversations, follow-ups, and your latest performance snapshot."
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardKpi
+            variant="hero"
+            tone="emerald-soft"
             label="Hot leads"
             value={String(data.hotLeadsCount)}
             status={data.hotLeadsCount > 0 ? "good" : "neutral"}
             drillHref="/development-os/marketing/leads?lifecycle=hot&assigned=me"
             hint="Lifecycle status hot, assigned to you"
+            className="sm:col-span-2 lg:col-span-2"
           />
           <DashboardKpi
             label="Active conversations"

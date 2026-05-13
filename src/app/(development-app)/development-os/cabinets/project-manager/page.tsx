@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  CabinetGreetingBlock,
   DashboardKpi,
   NoItemsYet,
   PageHeaderHero,
@@ -60,10 +61,24 @@ export default async function ProjectManagerCabinetPage() {
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
+        <CabinetGreetingBlock
+          firstName={firstName}
+          eyebrow="Project manager · Cabinet"
+          subline={
+            t.activeProjectsCount === 0
+              ? "No active projects yet — add one to start tracking risk."
+              : `${t.activeProjectsCount} active project${t.activeProjectsCount === 1 ? "" : "s"} · ${data.projectsAtRisk.length} on watch`
+          }
+          badge={
+            data.projectsAtRisk.length > 0 ? (
+              <Badge tone="warning">{data.projectsAtRisk.length} at risk</Badge>
+            ) : null
+          }
+        />
+
         <PageHeaderHero
-          firstName={firstName ?? undefined}
-          eyebrow="Project manager"
+          eyebrow="This week"
           title={
             t.activeProjectsCount === 0
               ? "No active projects yet"
@@ -74,10 +89,13 @@ export default async function ProjectManagerCabinetPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardKpi
+            variant="hero"
+            tone="emerald-soft"
             label="Active projects"
             value={String(t.activeProjectsCount)}
             status="neutral"
             drillHref="/development-os/projects"
+            className="sm:col-span-2 lg:col-span-2"
           />
           <DashboardKpi
             label="Open QA / QC"

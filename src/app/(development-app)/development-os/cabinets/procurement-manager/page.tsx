@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  CabinetGreetingBlock,
   DashboardKpi,
   PageHeaderHero,
 } from "@/components/ui/primitives";
@@ -48,18 +49,26 @@ export default async function ProcurementCabinetPage() {
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
+        <CabinetGreetingBlock
+          firstName={firstName}
+          eyebrow="Procurement manager · Cabinet"
+          subline={`${data.pendingApprovalsCount} PR${data.pendingApprovalsCount === 1 ? "" : "s"} pending · ${data.posAwaitingDeliveryCount} open PO${data.posAwaitingDeliveryCount === 1 ? "" : "s"}`}
+        />
+
         <PageHeaderHero
-          firstName={firstName ?? undefined}
-          eyebrow="Procurement manager"
+          eyebrow="Pipeline"
           title="Procurement pipeline"
           description="Purchase requests, RFQs, open POs, and supplier performance."
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardKpi
+            variant="hero"
+            tone="coral-soft"
             label="PRs pending"
             value={String(data.pendingApprovalsCount)}
+            className="sm:col-span-2 lg:col-span-2"
             status={
               data.pendingApprovalsCount === 0
                 ? "good"

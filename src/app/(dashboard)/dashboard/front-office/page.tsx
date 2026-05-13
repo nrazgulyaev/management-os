@@ -1,8 +1,10 @@
 import Link from "next/link";
 import {
+  CabinetGreetingBlock,
   DashboardKpi,
   PageHeaderHero,
 } from "@/components/ui/primitives";
+import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import {
@@ -41,21 +43,34 @@ export default async function FrontOfficeTodayPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
+      <CabinetGreetingBlock
+        firstName={firstName}
+        eyebrow="Front office · Cabinet"
+        subline={`${arrivals.length} arrival${arrivals.length === 1 ? "" : "s"} · ${departures.length} departure${departures.length === 1 ? "" : "s"} · ${inHouse.length} in-house`}
+        badge={
+          openRequests.length > 0 ? (
+            <Badge tone="warning">{openRequests.length} pending</Badge>
+          ) : null
+        }
+      />
+
       <PageHeaderHero
-        firstName={firstName ?? undefined}
-        eyebrow="Front office"
+        eyebrow="Today"
         title="Today at the front desk"
         description="Arrivals, departures, in-house guests, and pending check-in / check-out requests."
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <DashboardKpi
+          variant="hero"
+          tone="coral-soft"
           label="Arrivals today"
           value={String(arrivals.length)}
           status={arrivals.length === 0 ? "neutral" : "good"}
           drillHref="/dashboard/front-office/arrivals"
           hint="Expected check-ins"
+          className="sm:col-span-2 lg:col-span-2"
         />
         <DashboardKpi
           label="Departures today"

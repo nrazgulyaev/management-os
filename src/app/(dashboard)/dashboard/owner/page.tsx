@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { DashboardKpi, NoItemsYet, PageHeaderHero } from "@/components/ui/primitives";
+import {
+  CabinetGreetingBlock,
+  DashboardKpi,
+  NoItemsYet,
+  PageHeaderHero,
+} from "@/components/ui/primitives";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -65,10 +70,24 @@ export default async function OwnerDashboardPage() {
         : "warn";
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeaderHero
-        firstName={firstName ?? undefined}
+    <div className="flex flex-col gap-10">
+      <CabinetGreetingBlock
+        firstName={firstName}
         eyebrow="Owner overview"
+        subline={
+          data.villasCount === 0
+            ? "Welcome to Arconique. Your portfolio will appear here once shares are linked."
+            : `${data.villasCount} villa${data.villasCount === 1 ? "" : "s"} under your watch · ${data.alerts.length} ${data.alerts.length === 1 ? "alert" : "alerts"} this week`
+        }
+        badge={
+          data.alerts.length > 0 ? (
+            <Badge tone="warning">{data.alerts.length} pending</Badge>
+          ) : null
+        }
+      />
+
+      <PageHeaderHero
+        eyebrow="This week"
         title={
           data.villasCount === 0
             ? "Welcome to Arconique."
@@ -79,12 +98,15 @@ export default async function OwnerDashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <DashboardKpi
+          variant="hero"
+          tone="emerald-soft"
           label="Portfolio size"
           value={String(data.villasCount)}
           unit={data.villasCount === 1 ? "villa" : "villas"}
           status="neutral"
           drillHref="/dashboard/villas"
           hint="Active ownership shares"
+          className="sm:col-span-2 lg:col-span-2"
         />
         <DashboardKpi
           label="Villas in good health"
@@ -155,11 +177,11 @@ export default async function OwnerDashboardPage() {
                 description="When ownership shares are linked to your account, your villas will surface here."
               />
             ) : (
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {data.villas.map((v) => (
                   <li
                     key={v.villaId}
-                    className="rounded-md border border-line-soft bg-surface p-4 flex flex-col gap-2"
+                    className="rounded-3xl border border-line-soft bg-surface p-6 flex flex-col gap-3 shadow-soft-card"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -229,7 +251,7 @@ export default async function OwnerDashboardPage() {
                 negative reviews here when they appear.
               </div>
             ) : (
-              <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+              <ul className="rounded-3xl border border-line-soft bg-surface divide-y divide-line-soft shadow-soft-card overflow-hidden">
                 {data.alerts.map((a, i) => (
                   <li key={`${a.kind}-${i}`} className="px-4 py-3">
                     <Link
@@ -295,7 +317,7 @@ function QuickLink({ href, label }: { href: string; label: string }) {
     <li>
       <Link
         href={href}
-        className="block rounded-md border border-line-soft bg-surface px-4 py-3 text-sm text-ink hover:border-line-strong transition-colors"
+        className="block rounded-2xl border border-line-soft bg-surface px-5 py-4 text-sm text-ink hover:border-line-strong hover:shadow-soft-card transition-all"
       >
         {label} <span aria-hidden>→</span>
       </Link>

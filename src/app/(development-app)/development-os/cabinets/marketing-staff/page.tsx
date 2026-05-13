@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   DashboardKpi,
+  CabinetGreetingBlock,
   PageHeaderHero,
 } from "@/components/ui/primitives";
 import { Section } from "@/components/ui/section";
@@ -61,21 +62,29 @@ export default async function MarketingStaffCabinetPage() {
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
+        <CabinetGreetingBlock
+          firstName={firstName}
+          eyebrow="Marketing staff · Cabinet"
+          subline={`${data.hotLeadsCount} hot lead${data.hotLeadsCount === 1 ? "" : "s"} · ${data.leadsThisWeek} new this week`}
+        />
+
         <PageHeaderHero
-          firstName={firstName ?? undefined}
-          eyebrow="Marketing staff"
+          eyebrow="This week"
           title="Marketing performance"
           description="Leads this week, content pipeline, and campaign activity at a glance."
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardKpi
+            variant="hero"
+            tone="gold-soft"
             label="Hot leads"
             value={String(data.hotLeadsCount)}
             status={data.hotLeadsCount > 0 ? "good" : "neutral"}
             drillHref="/development-os/marketing/leads?lifecycle=hot"
             hint="Lifecycle status hot"
+            className="sm:col-span-2 lg:col-span-2"
           />
           <DashboardKpi
             label="Leads this week"

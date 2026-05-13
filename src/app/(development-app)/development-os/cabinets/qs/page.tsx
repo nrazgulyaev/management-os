@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   DashboardKpi,
   NoItemsYet,
+  CabinetGreetingBlock,
   PageHeaderHero,
 } from "@/components/ui/primitives";
 import { Section } from "@/components/ui/section";
@@ -50,20 +51,28 @@ export default async function QsCabinetPage() {
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
+        <CabinetGreetingBlock
+          firstName={firstName}
+          eyebrow="QS / Cost analyst · Cabinet"
+          subline={`${data.activeBoqCount} active BOQ${data.activeBoqCount === 1 ? "" : "s"} · ${data.awaitingQsAnalysisCount} awaiting analysis`}
+        />
+
         <PageHeaderHero
-          firstName={firstName ?? undefined}
-          eyebrow="QS / Cost analyst"
+          eyebrow="Cost analysis"
           title="Cost analysis"
           description="BOQ progress, specifications coverage, and AI cost insights."
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardKpi
+            variant="hero"
+            tone="emerald-soft"
             label="Active BOQs"
             value={String(data.activeBoqCount)}
             status="neutral"
             drillHref="/development-os/boq"
+            className="sm:col-span-2 lg:col-span-2"
           />
           <DashboardKpi
             label="Awaiting QS analysis"

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  CabinetGreetingBlock,
   DashboardKpi,
   PageHeaderHero,
 } from "@/components/ui/primitives";
+import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadWarehouseCabinet } from "@/lib/development/server/cabinets/warehouse-cabinet-queries";
@@ -45,21 +47,34 @@ export default async function WarehouseCabinetPage() {
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
+        <CabinetGreetingBlock
+          firstName={firstName}
+          eyebrow="Warehouse manager · Cabinet"
+          subline={`${data.totalSkuCount} active SKU${data.totalSkuCount === 1 ? "" : "s"} · ${data.lowStockItemsCount} low · ${data.zeroStockItemsCount} out`}
+          badge={
+            data.zeroStockItemsCount > 0 ? (
+              <Badge tone="danger">{data.zeroStockItemsCount} out of stock</Badge>
+            ) : null
+          }
+        />
+
         <PageHeaderHero
-          firstName={firstName ?? undefined}
-          eyebrow="Warehouse manager"
+          eyebrow="Today"
           title="Stock overview"
           description="Inventory levels, today's movements, and material quality alerts."
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <DashboardKpi
+            variant="hero"
+            tone="ink-deep"
             label="Total SKUs"
             value={String(data.totalSkuCount)}
             status="neutral"
             drillHref="/development-os/inventory"
             hint="Active items"
+            className="sm:col-span-2 lg:col-span-2"
           />
           <DashboardKpi
             label="Low stock"

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  CabinetGreetingBlock,
   DashboardKpi,
   NoItemsYet,
   PageHeaderHero,
@@ -98,10 +99,26 @@ export default async function CfoCabinetPage() {
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
+        <CabinetGreetingBlock
+          firstName={firstName}
+          eyebrow="CFO / Accountant · Cabinet"
+          subline={
+            s
+              ? `${formatMinorAsCurrency(s.cashOnHandMinor, c)} on hand · ${data.invoicesAwaitingPaymentCount} invoice${data.invoicesAwaitingPaymentCount === 1 ? "" : "s"} awaiting payment`
+              : "Daily snapshot pending — run the executive metrics cron to populate."
+          }
+          badge={
+            s && s.unclassifiedTransactionsCount > 0 ? (
+              <Badge tone="warning">
+                {s.unclassifiedTransactionsCount} unclassified
+              </Badge>
+            ) : null
+          }
+        />
+
         <PageHeaderHero
-          firstName={firstName ?? undefined}
-          eyebrow="CFO / Accountant"
+          eyebrow="Today"
           title="Financial overview"
           description="Cash position, payables, and where attention is needed today."
         />
@@ -115,12 +132,15 @@ export default async function CfoCabinetPage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <DashboardKpi
+                variant="hero"
+                tone="ink-deep"
                 label="Cash on hand"
                 value={formatMinorAsCurrency(s.cashOnHandMinor, c)}
                 status={cashStatus(s)}
                 delta={deltaFor(s.cashOnHandMinor, prev, "cashOnHandMinor")}
                 drillHref="/development-os/banking"
                 hint={`vs ${formatMinorAsCurrency(s.payablesNext30Minor, c)} due 30d`}
+                className="sm:col-span-2 lg:col-span-2"
               />
               <DashboardKpi
                 label="Receivables"
@@ -239,7 +259,7 @@ export default async function CfoCabinetPage() {
                       No transactions yet.
                     </div>
                   ) : (
-                    <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+                    <ul className="rounded-3xl border border-line-soft bg-surface divide-y divide-line-soft shadow-soft-card overflow-hidden">
                       {data.recentTransactions.map((t) => (
                         <li
                           key={t.id}
@@ -309,7 +329,7 @@ function AiInsightCard({
   hrefBase: string;
 }) {
   return (
-    <div className="rounded-md border border-line-soft bg-surface p-4">
+    <div className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card">
       <div className="text-label">{label}</div>
       {code ? (
         <Link

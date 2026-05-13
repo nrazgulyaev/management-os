@@ -4,6 +4,7 @@ import { Camera, ClipboardList, AlertTriangle, Package } from "lucide-react";
 import {
   DashboardKpi,
   NoItemsYet,
+  CabinetGreetingBlock,
   PageHeaderHero,
 } from "@/components/ui/primitives";
 import { Section } from "@/components/ui/section";
@@ -58,10 +59,19 @@ export default async function SiteSupervisorCabinetPage() {
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-10">
+        <CabinetGreetingBlock
+          firstName={firstName}
+          eyebrow="Site supervisor · Cabinet"
+          subline={
+            data
+              ? `${data.todaysSiteReportCount} report${data.todaysSiteReportCount === 1 ? "" : "s"} filed today · ${data.openQaQcAssignedToMe} open issue${data.openQaQcAssignedToMe === 1 ? "" : "s"}`
+              : "Sign in to see your site activity."
+          }
+        />
+
         <PageHeaderHero
-          firstName={firstName ?? undefined}
-          eyebrow="Site supervisor"
+          eyebrow="Today on site"
           title="Today on site"
           description="Field-first dashboard. Mobile-optimised. Capture photos, file the day's report, raise issues."
         />
@@ -75,8 +85,11 @@ export default async function SiteSupervisorCabinetPage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <DashboardKpi
+                variant="hero"
+                tone="gold-soft"
                 label="Tasks today"
                 value={String(data.todaysSiteReportCount)}
+                className="sm:col-span-2 lg:col-span-2"
                 status={
                   data.todaysSiteReportCount === 0 ? "warn" : "neutral"
                 }
