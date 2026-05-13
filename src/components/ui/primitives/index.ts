@@ -15,7 +15,12 @@
  */
 
 export { DashboardKpi } from "./dashboard-kpi";
-export type { DashboardKpiProps, KpiStatus } from "./dashboard-kpi";
+export type {
+  DashboardKpiProps,
+  KpiStatus,
+  KpiVariant,
+  KpiTone,
+} from "./dashboard-kpi";
 
 export { Timeline } from "./timeline";
 export type { TimelineProps, TimelineStage, TimelineStageStatus } from "./timeline";
@@ -101,3 +106,7 @@ export type {
   ModalFirstAddButtonProps,
   ModalFirstFormProps,
 } from "./modal-first-add-button";
+
+// Stage 10.6.C.1 — cabinet greeting block (reference doctor-portal pattern).
+export { CabinetGreetingBlock } from "./cabinet-greeting-block";
+export type { CabinetGreetingBlockProps } from "./cabinet-greeting-block";

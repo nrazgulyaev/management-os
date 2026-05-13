@@ -61,11 +61,26 @@
   --r-lg: 20px;
   --r-xl: 32px;
 
+  /* Stage 10.6.C.1 — bigger radii for hero cards */
+  --r-2xl: 20px;
+  --r-3xl: 24px;
+  --r-4xl: 32px;
+
   /* Shadows (soft, low) */
   --shadow-flat: 0 0 0 1px var(--line-soft);
   --shadow-rest: 0 1px 2px rgba(15, 17, 16, 0.04), 0 0 0 1px var(--line-soft);
   --shadow-raised: 0 6px 20px -8px rgba(15, 17, 16, 0.1), 0 0 0 1px var(--line-soft);
   --shadow-floating: 0 20px 60px -20px rgba(15, 17, 16, 0.22), 0 0 0 1px var(--line-soft);
+
+  /* Stage 10.6.C.1 — softer / more lifted hero card shadows */
+  --shadow-soft-card: 0 2px 12px -4px rgba(15, 17, 16, 0.06), 0 0 0 1px var(--line-soft);
+  --shadow-elevated-card: 0 8px 32px -12px rgba(15, 17, 16, 0.12), 0 0 0 1px var(--line-soft);
+
+  /* Stage 10.6.C.1 — hero card gradients (used for primary KPIs in cabinets) */
+  --gradient-emerald-soft: linear-gradient(135deg, #dce6df 0%, #c8d8cd 100%);
+  --gradient-gold-soft: linear-gradient(135deg, #f1e7d1 0%, #e6d9b8 100%);
+  --gradient-coral-soft: linear-gradient(135deg, #f0d9d2 0%, #e8c5bb 100%);
+  --gradient-ink-deep: linear-gradient(135deg, #141716 0%, #0c0e0d 100%);
 
   /* Motion */
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -107,6 +122,15 @@
   --shadow-rest: 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line-soft);
   --shadow-raised: 0 6px 20px -8px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line-soft);
   --shadow-floating: 0 20px 60px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--line-soft);
+
+  /* Stage 10.6.C.1 — dark-mode hero card shadows + gradients */
+  --shadow-soft-card: 0 2px 12px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--line-soft);
+  --shadow-elevated-card: 0 8px 32px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--line-soft);
+
+  --gradient-emerald-soft: linear-gradient(135deg, #15332a 0%, #1a3a30 100%);
+  --gradient-gold-soft: linear-gradient(135deg, #2a2313 0%, #332b1a 100%);
+  --gradient-coral-soft: linear-gradient(135deg, #2a1614 0%, #331b18 100%);
+  --gradient-ink-deep: linear-gradient(135deg, #050706 0%, #000000 100%);
 }
 
 /* -----------------------------------------------------------
@@ -154,6 +178,9 @@
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
   --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-2xl);
+  --radius-3xl: var(--r-3xl);
+  --radius-4xl: var(--r-4xl);
 
   --font-display: var(--font-display), Georgia, "Iowan Old Style", serif;
   --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
@@ -251,5 +278,27 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Stage 10.6.C.1 — hero card gradient utilities */
+  .bg-gradient-emerald-soft {
+    background: var(--gradient-emerald-soft);
+  }
+  .bg-gradient-gold-soft {
+    background: var(--gradient-gold-soft);
+  }
+  .bg-gradient-coral-soft {
+    background: var(--gradient-coral-soft);
+  }
+  .bg-gradient-ink-deep {
+    background: var(--gradient-ink-deep);
+  }
+
+  /* Stage 10.6.C.1 — hero card shadow utilities */
+  .shadow-soft-card {
+    box-shadow: var(--shadow-soft-card);
+  }
+  .shadow-elevated-card {
+    box-shadow: var(--shadow-elevated-card);
   }
 }

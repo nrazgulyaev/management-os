@@ -24,6 +24,20 @@ import { TrendingDown, TrendingUp, Minus, ChevronRight } from "lucide-react";
 
 export type KpiStatus = "good" | "warn" | "bad" | "neutral";
 
+/**
+ * Stage 10.6.C.1 — `variant` controls visual mass.
+ *  - "default" (28px value, p-5, rounded-md) — existing 10.B behavior
+ *  - "hero"    (56-72px value, p-8, rounded-3xl) — the primary KPI in
+ *               a cabinet, optionally with a gradient background
+ */
+export type KpiVariant = "default" | "hero";
+export type KpiTone =
+  | "surface"
+  | "emerald-soft"
+  | "gold-soft"
+  | "coral-soft"
+  | "ink-deep";
+
 export interface DashboardKpiProps {
   label: string;
   value: string;
@@ -36,7 +50,19 @@ export interface DashboardKpiProps {
   drillHref?: string;
   onClick?: () => void;
   className?: string;
+  /** Stage 10.6.C.1 — visual variant. Default preserves existing 10.B behavior. */
+  variant?: KpiVariant;
+  /** Stage 10.6.C.1 — tone (background) for hero variant. */
+  tone?: KpiTone;
 }
+
+const TONE_CLS: Record<KpiTone, string> = {
+  "surface": "bg-surface",
+  "emerald-soft": "bg-gradient-emerald-soft",
+  "gold-soft": "bg-gradient-gold-soft",
+  "coral-soft": "bg-gradient-coral-soft",
+  "ink-deep": "bg-gradient-ink-deep text-ink-inverse",
+};
 
 const STATUS_RING: Record<KpiStatus, string> = {
   good: "border-l-2 border-l-success",
@@ -58,7 +84,11 @@ export function DashboardKpi(props: DashboardKpiProps) {
     drillHref,
     onClick,
     className,
+    variant = "default",
+    tone = "surface",
   } = props;
+  const isHero = variant === "hero";
+  const isDarkTone = tone === "ink-deep";
 
   const trend = delta
     ? delta.value > 0
@@ -81,16 +111,46 @@ export function DashboardKpi(props: DashboardKpiProps) {
   const body = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <span className="text-label">{label}</span>
+        <span
+          className={cn(
+            "text-label",
+            isDarkTone && "text-ink-inverse opacity-80",
+          )}
+        >
+          {label}
+        </span>
         {interactive && (
-          <ChevronRight className="w-4 h-4 text-ink-tertiary" aria-hidden />
+          <ChevronRight
+            className={cn(
+              "w-4 h-4",
+              isDarkTone ? "text-ink-inverse opacity-70" : "text-ink-tertiary",
+            )}
+            aria-hidden
+          />
         )}
       </div>
       <div className="flex items-baseline gap-1.5 font-mono tabular-nums">
-        <span className="text-display text-[28px] leading-[32px] font-medium text-ink">
+        <span
+          className={cn(
+            "text-display font-medium",
+            isHero
+              ? "text-[56px] leading-[1.0] md:text-[64px] md:leading-[0.95]"
+              : "text-[28px] leading-[32px]",
+            isDarkTone ? "text-ink-inverse" : "text-ink",
+          )}
+        >
           {value}
         </span>
-        {unit && <span className="text-sm text-ink-tertiary">{unit}</span>}
+        {unit && (
+          <span
+            className={cn(
+              isHero ? "text-base" : "text-sm",
+              isDarkTone ? "text-ink-inverse opacity-70" : "text-ink-tertiary",
+            )}
+          >
+            {unit}
+          </span>
+        )}
       </div>
       <div className="flex items-center justify-between mt-1 gap-3 min-h-[1rem]">
         {delta ? (
@@ -126,9 +186,16 @@ export function DashboardKpi(props: DashboardKpiProps) {
   );
 
   const baseCls = cn(
-    "rounded-md bg-surface border border-line-soft p-5 flex flex-col gap-2",
+    "flex flex-col gap-2 border border-line-soft",
+    isHero
+      ? "rounded-3xl p-7 md:p-8 gap-4 shadow-soft-card"
+      : "rounded-md p-5",
+    TONE_CLS[tone],
     STATUS_RING[status],
-    interactive && "transition-shadow hover:shadow-[var(--shadow-raised)] cursor-pointer",
+    interactive &&
+      (isHero
+        ? "transition-shadow hover:shadow-elevated-card cursor-pointer"
+        : "transition-shadow hover:shadow-[var(--shadow-raised)] cursor-pointer"),
     className,
   );
 
