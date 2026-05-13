@@ -49,9 +49,12 @@ import {
 import { markOrgTrialConverted } from "@/features/billing/trial-conversion";
 import { recordAuditEvent } from "@/features/audit/services";
 import {
-  PRODUCT_SLUGS,
-  type ProductSlug,
-} from "@/lib/products";
+  parseProductsEnabledMetadata,
+} from "./stripe-subscription-bridge-pure";
+
+// Re-export so existing call sites (and tests via the bridge module)
+// continue to work alongside the server-only barrier.
+export { parseProductsEnabledMetadata };
 
 export type StripeWebhookEventType =
   | "customer.subscription.created"
@@ -77,36 +80,6 @@ export type BridgeResult =
 // ============================================================================
 // Sprint 3c — products_enabled sync from Stripe metadata
 // ============================================================================
-
-const VALID_SLUGS = new Set<string>(PRODUCT_SLUGS);
-
-/**
- * Parse a comma-separated `products_enabled` metadata string into a
- * validated `ProductSlug[]` array.
- *
- *   "mgmt,dev"  → ["mgmt", "dev"]
- *   "mgmt"      → ["mgmt"]
- *   "mgmt,bad"  → ["mgmt"]  (unknown values silently dropped)
- *   ""          → []
- *   undefined   → null      (signals "metadata absent")
- *
- * Returning `null` (vs `[]`) lets the caller distinguish "Stripe sent
- * us an empty list — apply it" from "Stripe didn't send the field —
- * leave org.products_enabled alone".
- */
-export function parseProductsEnabledMetadata(
-  raw: unknown,
-): ProductSlug[] | null {
-  if (raw === undefined || raw === null) return null;
-  if (typeof raw !== "string") return null;
-  const trimmed = raw.trim();
-  if (trimmed === "") return [];
-  return trimmed
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter((s) => VALID_SLUGS.has(s))
-    .map((s) => s as ProductSlug);
-}
 
 /**
  * Read the subscription's `metadata.products_enabled` and apply it to
