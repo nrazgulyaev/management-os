@@ -47,6 +47,7 @@ import {
   type CommsItem,
   type ProfileRailItem,
 } from "@/components/ui/primitives";
+import { ProductAccessChangedBanner } from "@/components/layout/product-access-changed-banner";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,15 @@ function shortBillions(rawBillions: number): string {
   return `Rp ${(rawBillions / 1000).toFixed(2)}B`;
 }
 
-export default async function DashboardHome() {
+export default async function DashboardHome({
+  searchParams,
+}: {
+  // Sprint 3c — `?from=<product>&reason=<…>` is set when
+  // enforceProductAccess() redirects a user here after losing access
+  // to another product. The banner below surfaces the explanation.
+  searchParams?: Promise<{ from?: string; reason?: string }>;
+}) {
+  const sp = (await searchParams) ?? {};
   const [liveCounts, me] = await Promise.all([
     getLiveDashboardCounts(),
     getCurrentAppUser(),
@@ -192,6 +201,9 @@ export default async function DashboardHome() {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Sprint 3c — soft toast when redirected from a now-inaccessible
+          product (e.g. just lost access to Dev OS via plan change). */}
+      <ProductAccessChangedBanner from={sp.from} reason={sp.reason} />
       {/* Row 1 — greeting */}
       <CabinetGreetingBlock
         firstName={firstName}

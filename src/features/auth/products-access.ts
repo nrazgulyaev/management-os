@@ -108,9 +108,17 @@ export async function enforceProductAccess(product: ProductSlug): Promise<void> 
 
   if (decision.allowed) return;
 
+  // Sprint 3c — stamp `?from=<product>&reason=…` so the destination
+  // layout can surface a "you lost access to X" banner (e.g. Bundle
+  // → Mgmt-only customer who just got bumped off /development-os).
+  // Stage 10.H's existing redirect target picks the first alternative
+  // product the org still has access to; we just enrich the URL.
   if (decision.alternativeProducts.length > 0) {
-    redirect(PRODUCT_HOME[decision.alternativeProducts[0]]);
+    const alt = decision.alternativeProducts[0];
+    redirect(
+      `${PRODUCT_HOME[alt]}?from=${product}&reason=${decision.reason ?? "product_not_enabled"}`,
+    );
   }
-  redirect("/no-product-access");
+  redirect(`/no-product-access?from=${product}`);
 }
 

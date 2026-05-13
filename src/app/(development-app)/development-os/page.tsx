@@ -6,6 +6,7 @@ import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { ProductAccessChangedBanner } from "@/components/layout/product-access-changed-banner";
 import { DevelopmentMetricCard } from "@/components/development/metric-card";
 import { ModuleCard } from "@/components/development/module-card";
 import { ProjectHealthCard } from "@/components/development/project-health-card";
@@ -28,13 +29,23 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-export default async function DevelopmentCommandCenterPage() {
+export default async function DevelopmentCommandCenterPage({
+  searchParams,
+}: {
+  // Sprint 3c — `?from=<product>&reason=<…>` is set when
+  // enforceProductAccess() redirects a user here after losing access
+  // to another product (typically Mgmt-only customers landing here
+  // after a Bundle→Dev-only switch in the rare reverse direction).
+  searchParams?: Promise<{ from?: string; reason?: string }>;
+}) {
+  const sp = (await searchParams) ?? {};
   const nextModules = getModulesByStatus("next");
   const roadmapModules = getModulesByStatus("roadmap");
   const projects = await getDevelopmentProjects();
 
   return (
     <DevelopmentShell>
+      <ProductAccessChangedBanner from={sp.from} reason={sp.reason} />
       <PageHeader
         eyebrow="Thursday · 30 April 2026"
         title="Development command center."
