@@ -52,6 +52,11 @@ const CABINETS: CabinetSpec[] = [
     name: "CFO / Accountant",
     path: "src/app/(development-app)/development-os/cabinets/cfo-accountant/page.tsx",
     expectedTone: "ink-deep",
+    // Sprint 4 replaced the CabinetGreetingBlock + PageHeaderHero
+    // stack with the new <HeroGreetingAI> primitive. The hero KPI
+    // (variant="hero" + tone="ink-deep") is preserved further down
+    // the page; the 10.6.C.1 greeting/header assertions don't apply.
+    sprint4Hero: true,
   },
   {
     name: "Project Manager",
@@ -91,34 +96,46 @@ const CABINETS: CabinetSpec[] = [
 ];
 
 for (const cab of CABINETS) {
-  test(`10.6.C.1 — ${cab.name} imports CabinetGreetingBlock`, () => {
-    const src = read(cab.path);
-    assert.match(src, /CabinetGreetingBlock/);
-  });
+  if (cab.sprint4Hero) {
+    // Sprint-4 cabinets use HeroGreetingAI in place of the
+    // CabinetGreetingBlock + PageHeaderHero stack. The hero-KPI tone
+    // check below still applies (those KPIs survive Sprint 4).
+    test(`10.6.C.1 — ${cab.name} uses Sprint-4 HeroGreetingAI (replaces greeting + header stack)`, () => {
+      const src = read(cab.path);
+      assert.match(src, /<HeroGreetingAI/);
+      assert.doesNotMatch(src, /<CabinetGreetingBlock/);
+      assert.doesNotMatch(src, /<PageHeaderHero/);
+    });
+  } else {
+    test(`10.6.C.1 — ${cab.name} imports CabinetGreetingBlock`, () => {
+      const src = read(cab.path);
+      assert.match(src, /CabinetGreetingBlock/);
+    });
 
-  test(`10.6.C.1 — ${cab.name} renders <CabinetGreetingBlock firstName={...}>`, () => {
-    const src = read(cab.path);
-    // Must render the greeting with the resolved firstName binding
-    assert.match(
-      src,
-      /<CabinetGreetingBlock[\s\S]{0,400}firstName=\{firstName\}/,
-    );
-    // And include an eyebrow (cabinet identity)
-    assert.match(
-      src,
-      /<CabinetGreetingBlock[\s\S]{0,500}eyebrow=/,
-    );
-  });
+    test(`10.6.C.1 — ${cab.name} renders <CabinetGreetingBlock firstName={...}>`, () => {
+      const src = read(cab.path);
+      // Must render the greeting with the resolved firstName binding
+      assert.match(
+        src,
+        /<CabinetGreetingBlock[\s\S]{0,400}firstName=\{firstName\}/,
+      );
+      // And include an eyebrow (cabinet identity)
+      assert.match(
+        src,
+        /<CabinetGreetingBlock[\s\S]{0,500}eyebrow=/,
+      );
+    });
+
+    test(`10.6.C.1 — ${cab.name} keeps PageHeaderHero (greeting block layered above)`, () => {
+      const src = read(cab.path);
+      // Both primitives present — greeting + hero header
+      assert.match(src, /<PageHeaderHero/);
+    });
+  }
 
   test(`10.6.C.1 — ${cab.name} renders one hero KPI with tone="${cab.expectedTone}"`, () => {
     const src = read(cab.path);
     assert.match(src, /variant="hero"/);
     assert.match(src, new RegExp(`tone="${cab.expectedTone}"`));
-  });
-
-  test(`10.6.C.1 — ${cab.name} keeps PageHeaderHero (greeting block layered above)`, () => {
-    const src = read(cab.path);
-    // Both primitives present — greeting + hero header
-    assert.match(src, /<PageHeaderHero/);
   });
 }

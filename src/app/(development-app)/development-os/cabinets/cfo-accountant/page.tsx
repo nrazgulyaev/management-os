@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  CabinetGreetingBlock,
   DashboardKpi,
   NoItemsYet,
-  PageHeaderHero,
   SparklineChart,
   type KpiStatus,
 } from "@/components/ui/primitives";
+import {
+  HatchedBarChart,
+  HalfDonutGauge,
+  HeroGreetingAI,
+  type HatchedBarDatum,
+} from "@/components/award";
 import { synthSparklineSeries } from "@/lib/sparkline-series";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
@@ -24,17 +28,25 @@ import {
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { redirect } from "next/navigation";
 import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
+import {
+  ArrowUpRight,
+  ClipboardPaste,
+  FilePlus2,
+  Sparkles,
+} from "lucide-react";
 
 /**
- * Stage 10.5.A.1.2 — CFO/Accountant cabinet (replatformed).
+ * Stage 10.5.A.1.2 — CFO/Accountant cabinet · Sprint 4 refresh.
  *
- * Was: PageHeader + 3 sections of MetricCard grids (Stage 6 baseline).
- * Now: PageHeaderHero greeting + 4 status-coded DashboardKpi tiles
- * with trend deltas vs the previous snapshot + a 3-column body
- * (cashflow forecast, pending workload, AI insights) + a side
- * "Recent transactions" feed.
+ * Stage 10.5.A shipped PageHeaderHero + 4 DashboardKpi tiles + a
+ * 3-column body. Sprint 1 wired live sparklines into the hero KPIs.
+ * Sprint 4 replaces the top two blocks with the new <HeroGreetingAI>
+ * pattern (Reference 1 silhouette), adds a "Today's pulse" row
+ * (HatchedBarChart of daily transaction counts + HalfDonutGauge for
+ * review-queue burn), and surfaces quick-entry + import CTAs at the
+ * top.
  *
- * Trend semantics:
+ * Trend semantics for the existing snapshot KPIs (unchanged):
  *   - Cash on hand: ↑ is good (status reflects threshold against
  *     payables_overdue).
  *   - Receivables: ↑ is amber (more outstanding); status follows the
@@ -43,6 +55,44 @@ import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
  *   - Unclassified transactions (anomaly proxy): >0 is amber, >5 is
  *     bad. Carry-over: real anomaly detection lands in 10.5.B.
  */
+
+function todayLabel(now: Date): string {
+  const day = now.getDate();
+  const weekday = now.toLocaleDateString("en-US", { weekday: "short" });
+  const month = now.toLocaleDateString("en-US", { month: "long" });
+  return `${day} · ${weekday}, ${month}`;
+}
+
+/**
+ * Sprint 4 — bucket recent transactions into daily counts for the
+ * past 7 calendar days. Used by HatchedBarChart on the cabinet apex.
+ * Days with at least one transaction render as solid; days with zero
+ * render as hatched (track-only).
+ */
+function dailyCountsLast7Days(
+  recent: { transactionDate: string }[],
+  today: Date,
+): HatchedBarDatum[] {
+  const counts = new Map<string, number>();
+  for (const t of recent) {
+    counts.set(t.transactionDate, (counts.get(t.transactionDate) ?? 0) + 1);
+  }
+  const out: HatchedBarDatum[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - i);
+    const iso = d.toISOString().slice(0, 10);
+    const n = counts.get(iso) ?? 0;
+    const label = d.toLocaleDateString("en-US", { weekday: "narrow" });
+    out.push({
+      label,
+      value: Math.max(n, 1), // give zero-days a small placeholder height
+      status: n > 0 ? "active" : "inactive",
+      caption: n > 0 ? String(n) : undefined,
+    });
+  }
+  return out;
+}
 
 export const metadata: Metadata = { title: "CFO / Accountant · Cabinet" };
 export const dynamic = "force-dynamic";
@@ -98,32 +148,93 @@ export default async function CfoCabinetPage() {
   const s = data.latestSnapshot;
   const prev = data.previousSnapshot;
   const c = s?.baseCurrency ?? "IDR";
+  const now = new Date();
+  const dailyTxnCounts = dailyCountsLast7Days(
+    data.recentTransactions,
+    now,
+  );
+  const reviewQueueTotal =
+    (s?.unclassifiedTransactionsCount ?? 0) +
+    data.pendingTaxClassificationsCount +
+    data.invoicesAwaitingPaymentCount;
+  // The HalfDonutGauge surfaces "review queue burn" — the share of
+  // pending items that have been worked through. We don't have a
+  // historical "starting queue" stat yet, so we proxy it: solved =
+  // total recent transactions - reviewQueueTotal (positive only).
+  const txnsThisMonth = data.recentTransactions.length;
+  const queueRatio =
+    txnsThisMonth > 0
+      ? Math.max(
+          0,
+          Math.min(1, (txnsThisMonth - reviewQueueTotal) / txnsThisMonth),
+        )
+      : 0;
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-10">
-        <CabinetGreetingBlock
+      <div className="flex flex-col gap-8 md:gap-10">
+        {/* Sprint 4 — HeroGreetingAI replaces the Stage 10.5.A
+            CabinetGreetingBlock + PageHeaderHero stack. */}
+        <HeroGreetingAI
           firstName={firstName}
-          eyebrow="CFO / Accountant · Cabinet"
-          subline={
-            s
-              ? `${formatMinorAsCurrency(s.cashOnHandMinor, c)} on hand · ${data.invoicesAwaitingPaymentCount} invoice${data.invoicesAwaitingPaymentCount === 1 ? "" : "s"} awaiting payment`
-              : "Daily snapshot pending — run the executive metrics cron to populate."
-          }
-          badge={
-            s && s.unclassifiedTransactionsCount > 0 ? (
-              <Badge tone="warning">
-                {s.unclassifiedTransactionsCount} unclassified
-              </Badge>
-            ) : null
-          }
+          role="CFO / Accountant · Cabinet"
+          dateLabel={todayLabel(now)}
+          aiPromptPlaceholder="Ask anything — categorise, summarise, reconcile."
+          showMyTasksHref="/development-os/finance/transactions/quick-entry"
         />
 
-        <PageHeaderHero
-          eyebrow="Today"
-          title="Financial overview"
-          description="Cash position, payables, and where attention is needed today."
-        />
+        {/* Sprint 4 — quick-action strip. Surfaces the new bookkeeper
+            entry surfaces (quick-entry + import) + the AI assistant
+            page directly under the hero so daily users don't dig. */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          {[
+            {
+              href: "/development-os/finance/transactions/quick-entry",
+              icon: FilePlus2,
+              label: "Sheets-style quick entry",
+              caption: "Inline grid · Tab/Enter to fly through rows",
+            },
+            {
+              href: "/development-os/finance/transactions/import",
+              icon: ClipboardPaste,
+              label: "Import transactions",
+              caption: "Paste · CSV · XLSX",
+            },
+            {
+              href: "/development-os/ai-agents/tax-assistant",
+              icon: Sparkles,
+              label: "AI Tax Assistant",
+              caption: data.latestTaxAssistantOutputCode
+                ? `Latest run: ${data.latestTaxAssistantOutputCode}`
+                : "Categorise + classify in seconds",
+            },
+          ].map(({ href, icon: Icon, label, caption }) => (
+            <Link
+              key={href}
+              href={href}
+              className="rounded-3xl border border-line-soft bg-surface shadow-soft-card px-5 py-4 flex items-center gap-4 hover:bg-muted/40 transition-colors"
+            >
+              <span className="shrink-0 w-10 h-10 rounded-full bg-gradient-emerald-soft border border-line-soft inline-flex items-center justify-center">
+                <Icon
+                  className="w-4 h-4 text-ink"
+                  strokeWidth={1.75}
+                />
+              </span>
+              <span className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-medium text-ink truncate">
+                  {label}
+                </span>
+                <span className="text-xs text-ink-tertiary truncate">
+                  {caption}
+                </span>
+              </span>
+              <ArrowUpRight
+                className="w-4 h-4 text-ink-tertiary shrink-0"
+                strokeWidth={1.75}
+              />
+            </Link>
+          ))}
+        </div>
 
         {!s ? (
           <NoItemsYet
@@ -391,6 +502,50 @@ export default async function CfoCabinetPage() {
                 </Section>
               </aside>
             </div>
+
+            {/* Sprint 4 — Today's pulse: 7-day txn count + queue burn */}
+            <Section
+              eyebrow="Today's pulse"
+              title="Bookkeeping cadence"
+              description="Days with bookkeeping activity over the last 7 calendar days, and how much of this month's review queue you've cleared."
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
+                <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
+                      Last 7 days
+                    </span>
+                    <span className="text-xs text-ink-tertiary tabular-nums">
+                      {data.recentTransactions.length} recent transactions
+                    </span>
+                  </div>
+                  <HatchedBarChart
+                    data={dailyTxnCounts}
+                    tone="emerald"
+                    height={200}
+                  />
+                </div>
+                <HalfDonutGauge
+                  variant="gold"
+                  value={Math.round(queueRatio * 100)}
+                  max={100}
+                  label={
+                    <>
+                      <p className="text-display text-[28px] md:text-[36px] leading-none font-medium text-ink tabular-nums">
+                        {Math.round(queueRatio * 100)}%
+                      </p>
+                      <p className="text-xs text-ink-tertiary mt-1">
+                        Review queue cleared
+                      </p>
+                    </>
+                  }
+                  legend={[
+                    { label: `${reviewQueueTotal} pending` },
+                    { label: `${txnsThisMonth} this period`, color: "var(--line-strong)" },
+                  ]}
+                />
+              </div>
+            </Section>
           </>
         )}
       </div>
