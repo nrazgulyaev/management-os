@@ -167,7 +167,7 @@ export function EntityFormModal<T extends Record<string, unknown>>({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-[2px]" />
         <Dialog.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full rounded-md bg-surface shadow-[var(--shadow-floating)] flex flex-col max-h-[90vh]",
+            "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full rounded-3xl bg-surface shadow-[var(--shadow-floating)] flex flex-col max-h-[90vh]",
             WIDTH[width],
             className,
           )}

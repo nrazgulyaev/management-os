@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { DetailPageHero } from "@/components/ui/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ export default async function OwnerDetailPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
+      <DetailPageHero
         breadcrumbs={[
           { label: "Owners", href: "/dashboard/owners" },
           { label: owner.displayName },
@@ -36,22 +36,25 @@ export default async function OwnerDetailPage({
         eyebrow={owner.type.replace("_", " ")}
         title={owner.displayName}
         description={owner.legalName ?? undefined}
-        actions={<SourceBadge source={owner.source} />}
-      />
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat
-          label="Status"
-          value={
+        statusRow={
+          <>
+            <SourceBadge source={owner.source} />
             <Badge tone={owner.status === "active" ? "success" : "neutral"}>
               {owner.status}
             </Badge>
-          }
-        />
-        <Stat label="Email" value={<span className="text-sm">{owner.email ?? "—"}</span>} />
-        <Stat label="Phone" value={<span className="text-sm">{owner.phone ?? "—"}</span>} />
-        <Stat label="Tax residency" value={<span className="text-sm">{owner.taxResidency ?? "—"}</span>} />
-      </div>
+          </>
+        }
+        summaryStrip={[
+          { label: "Email", value: owner.email ?? "—" },
+          { label: "Phone", value: owner.phone ?? "—" },
+          { label: "Tax residency", value: owner.taxResidency ?? "—" },
+          {
+            label: "Active shares",
+            value: shares.length.toString(),
+            hint: `${activeGrants.length} portal grant${activeGrants.length === 1 ? "" : "s"}`,
+          },
+        ]}
+      />
 
       <Section
         eyebrow="Owner-portal access"
@@ -139,11 +142,3 @@ export default async function OwnerDetailPage({
   );
 }
 
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-md border border-line-soft bg-surface p-4">
-      <div className="text-label">{label}</div>
-      <div className="mt-1.5 text-ink">{value}</div>
-    </div>
-  );
-}

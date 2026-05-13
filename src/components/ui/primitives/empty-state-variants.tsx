@@ -17,7 +17,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { EmptyState } from "@/components/ui/empty-state";
+import { EmptyState, type EmptyStateTone } from "@/components/ui/empty-state";
 import { Inbox, Search, Settings, Plus } from "lucide-react";
 
 /**
@@ -32,6 +32,7 @@ export function NoItemsYet({
   addHref,
   addLabel,
   addAction,
+  tone,
 }: {
   /** Plural noun, e.g. "vendors", "lead sources". */
   entityLabel: string;
@@ -40,6 +41,13 @@ export function NoItemsYet({
   addLabel?: string;
   /** Client-component slot for EntityFormModal-driven Add. */
   addAction?: React.ReactNode;
+  /**
+   * Stage 10.6.C.3 — pass-through tone for the underlying EmptyState.
+   * Defaults to "default" (dashed muted look). Use "soft" for friendlier
+   * card-style emptiness; "emerald" / "gold" / "coral" for first-run
+   * gradient accent (use sparingly).
+   */
+  tone?: EmptyStateTone;
 }) {
   const action =
     addAction ??
@@ -62,6 +70,7 @@ export function NoItemsYet({
         `Add your first ${entityLabel.replace(/s$/, "")} to get started.`
       }
       action={action}
+      tone={tone}
     />
   );
 }

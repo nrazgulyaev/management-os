@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { DetailPageHero } from "@/components/ui/primitives";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
@@ -24,7 +24,7 @@ export default async function VillaDetailPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
+      <DetailPageHero
         breadcrumbs={[
           { label: "Portfolio", href: "/dashboard" },
           { label: "Villas", href: "/dashboard/villas" },
@@ -33,10 +33,14 @@ export default async function VillaDetailPage({
         eyebrow={villa.projectName}
         title={villa.name ?? villa.unitCode}
         description={`${villa.unitCode} · ${villa.bedrooms} bedrooms · ${villa.managementModel}`}
-        actions={
-          <div className="flex items-center gap-2 flex-wrap">
+        statusRow={
+          <>
             <SourceBadge source={villa.source} />
             <StatusPill status={villa.status} />
+          </>
+        }
+        actions={
+          <>
             {villa.source === "db" && (
               <ArchiveButton
                 id={villa.id}
@@ -52,8 +56,23 @@ export default async function VillaDetailPage({
                 Edit
               </Link>
             </Button>
-          </div>
+          </>
         }
+        summaryStrip={[
+          { label: "Bedrooms", value: villa.bedrooms.toString() },
+          { label: "Bathrooms", value: villa.bathrooms?.toString() ?? "—" },
+          {
+            label: "Built area",
+            value: villa.builtAreaSqm ? `${villa.builtAreaSqm} m²` : "—",
+          },
+          {
+            label: "Nightly · USD",
+            value:
+              villa.currentNightlyRateUsd !== null
+                ? `$${villa.currentNightlyRateUsd.toLocaleString()}`
+                : "—",
+          },
+        ]}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

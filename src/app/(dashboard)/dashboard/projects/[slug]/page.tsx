@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { DetailPageHero } from "@/components/ui/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { Section } from "@/components/ui/section";
@@ -31,7 +31,7 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
+      <DetailPageHero
         breadcrumbs={[
           { label: "Portfolio", href: "/dashboard" },
           { label: "Projects", href: "/dashboard/projects" },
@@ -40,9 +40,15 @@ export default async function ProjectDetailPage({
         eyebrow={project.location}
         title={project.name}
         description={project.description ?? project.concept ?? undefined}
-        actions={
-          <div className="flex items-center gap-2 flex-wrap">
+        statusRow={
+          <>
             <SourceBadge source={project.source} />
+            <Badge tone="success">{project.status.replace("_", " ")}</Badge>
+            <Badge tone="outline">{project.managementStatus}</Badge>
+          </>
+        }
+        actions={
+          <>
             {project.source === "db" && (
               <ArchiveButton
                 id={project.id}
@@ -61,16 +67,24 @@ export default async function ProjectDetailPage({
             <Button asChild>
               <Link href={`/dashboard/villas/new?project=${project.id}`}>Add villa</Link>
             </Button>
-          </div>
+          </>
         }
+        summaryStrip={[
+          {
+            label: "Total villas",
+            value: project.totalVillas?.toString() ?? "—",
+          },
+          {
+            label: "Active villas",
+            value: villas.length.toString(),
+          },
+          { label: "Location", value: project.location },
+          {
+            label: "Slug",
+            value: <span className="font-mono text-base">{project.slug}</span>,
+          },
+        ]}
       />
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="Status" value={<Badge tone="success">{project.status.replace("_", " ")}</Badge>} />
-        <Stat label="Management" value={<Badge tone="outline">{project.managementStatus}</Badge>} />
-        <Stat label="Total villas" value={project.totalVillas?.toString() ?? "—"} />
-        <Stat label="Slug" value={<span className="font-mono text-sm">{project.slug}</span>} />
-      </div>
 
       <Section
         eyebrow="Villas"
@@ -122,11 +136,3 @@ export default async function ProjectDetailPage({
   );
 }
 
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-md border border-line-soft bg-surface p-4">
-      <div className="text-label">{label}</div>
-      <div className="mt-1.5 text-ink">{value}</div>
-    </div>
-  );
-}

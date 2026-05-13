@@ -83,7 +83,7 @@ export function EntityModal({
       onClick={onBackdropClick}
       className={cn(
         // layout
-        "p-0 rounded-md bg-canvas border border-line-soft shadow-xl",
+        "p-0 rounded-3xl bg-canvas border border-line-soft shadow-xl",
         "w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] overflow-hidden",
         widthCls,
         // override default <dialog> centering for mobile-friendliness

@@ -117,3 +117,7 @@ export type { FilterPillsProps, FilterPillItem } from "./filter-pills";
 
 export { ListTableCard } from "./list-table-card";
 export type { ListTableCardProps } from "./list-table-card";
+
+// Stage 10.6.C.3 — entity detail page hero primitive.
+export { DetailPageHero } from "./detail-page-hero";
+export type { DetailPageHeroProps } from "./detail-page-hero";
