@@ -25,7 +25,7 @@ export default async function OwnerStaysOverview() {
         actions={
           <Link
             href="/dashboard/owner-stays/requests"
-            className="text-sm px-3 py-1.5 rounded-sm border border-line-soft hover:border-line-strong"
+            className="text-sm px-4 py-2 rounded-full border border-line-soft hover:border-line-strong"
           >
             All requests
           </Link>
@@ -55,7 +55,7 @@ function Card({ href, title, detail }: { href: string; title: string; detail: st
   return (
     <Link
       href={href}
-      className="rounded-md border border-line-soft bg-surface p-5 hover:border-line-strong transition-colors block"
+      className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card hover:shadow-elevated-card hover:border-line-strong transition-all block"
     >
       <div className="text-ink font-medium text-base">{title}</div>
       <div className="text-sm text-ink-secondary mt-1">{detail}</div>

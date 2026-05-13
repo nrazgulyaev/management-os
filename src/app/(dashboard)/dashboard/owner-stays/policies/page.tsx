@@ -1,10 +1,9 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
 import { listOwnerStayPolicies } from "@/features/owner-stays/services";
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
 import { AddOwnerStayPolicyButton } from "@/components/dashboard/owners/owners-add-buttons";
-import { NoItemsYet } from "@/components/ui/primitives";
+import { NoItemsYet, ListTableCard } from "@/components/ui/primitives";
 
 export const metadata = { title: "Owner stay policies" };
 export const dynamic = "force-dynamic";
@@ -23,16 +22,21 @@ export default async function PoliciesPage() {
         actions={<AddOwnerStayPolicyButton />}
       />
 
-      <Section eyebrow="Catalog" title={`${policies.length} policies`}>
-        {policies.length === 0 ? (
+      <ListTableCard
+        eyebrow="Catalog"
+        title="Policies"
+        count={policies.length}
+        isEmpty={policies.length === 0}
+        emptyState={
           <NoItemsYet
             entityLabel="policies"
             description="Create a policy so owner stays have a default — free nights, approval routing, compensation model."
             addAction={<AddOwnerStayPolicyButton />}
           />
-        ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
+        }
+      >
+        {policies.length === 0 ? null : (
+          <table className="w-full text-sm">
               <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
                 <tr>
                   <th className="text-left px-3 py-2">Name</th>
@@ -99,9 +103,8 @@ export default async function PoliciesPage() {
                 ))}
               </tbody>
             </table>
-          </div>
         )}
-      </Section>
+      </ListTableCard>
     </div>
   );
 }

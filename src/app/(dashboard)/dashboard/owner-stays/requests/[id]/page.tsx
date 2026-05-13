@@ -67,7 +67,7 @@ export default async function OwnerStayRequestDetail({
       />
 
       <Section eyebrow="Status" title="Request">
-        <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <Field label="Status">
             <Badge tone={STATUS_TONES[request.status] ?? "neutral"}>
               {request.status.replace(/_/g, " ")}
@@ -125,7 +125,7 @@ export default async function OwnerStayRequestDetail({
         title="Complete + finance bridge"
         description="Mark the stay completed once the owner has checked out, then bridge it into finance. The bridge is idempotent — re-running never duplicates rows."
       >
-        <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <Field label="Completed at">
             {request.completedAt ? (
               <span className="text-ink-secondary tabular-nums">
@@ -154,7 +154,7 @@ export default async function OwnerStayRequestDetail({
         {timeline.length === 0 ? (
           <p className="text-sm text-ink-tertiary">No transitions recorded yet.</p>
         ) : (
-          <ol className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
+          <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
             {timeline.map((e, i) => (
               <li key={i} className="p-4 flex items-start justify-between gap-4">
                 <div>
@@ -182,11 +182,11 @@ export default async function OwnerStayRequestDetail({
         }
       >
         {candidates.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
+          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
             No candidates discovered yet.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
             <ul className="divide-y divide-line-soft">
               {candidates.map((c) => (
                 <RelocationCandidateRow key={c.id} candidate={c} />

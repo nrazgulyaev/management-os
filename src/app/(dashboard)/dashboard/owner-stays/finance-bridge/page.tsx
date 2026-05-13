@@ -6,6 +6,7 @@ import { Section } from "@/components/ui/section";
 import { listFinanceLinks } from "@/features/owner-stays/finance-bridge";
 import { listOwnerStayRequests } from "@/features/owner-stays/services";
 import { BridgePendingButton } from "@/components/owner-stays/bridge-pending-button";
+import { ListTableCard } from "@/components/ui/primitives";
 
 export const metadata = { title: "Owner stay finance bridge" };
 export const dynamic = "force-dynamic";
@@ -69,11 +70,11 @@ export default async function FinanceBridgePage() {
 
       <Section eyebrow="Pending" title={`${pendingBridge.length} approved/completed stays`}>
         {pendingBridge.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
+          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
             No approved or completed owner stays awaiting the bridge.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
                 <tr>
@@ -120,7 +121,7 @@ export default async function FinanceBridgePage() {
 
       <Section eyebrow="Bridged" title={`${bridged.length} rows`}>
         {bridged.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
+          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
             No bridged rows yet.
           </p>
         ) : (
@@ -165,7 +166,7 @@ function BridgeTable({
   statusTones: Record<string, "neutral" | "info" | "warning" | "success" | "danger">;
 }) {
   return (
-    <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+    <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
       <table className="w-full text-sm">
         <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
           <tr>

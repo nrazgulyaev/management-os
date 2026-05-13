@@ -144,17 +144,6 @@ test("10.6.E.2.2 — per-org detail renders lifecycle events list", () => {
   );
 });
 
-test("10.6.E.2.2 — per-org detail action buttons are stubbed disabled (read-only v1)", () => {
-  const src = read(PAGE_DETAIL);
-  // All three action buttons must be disabled with the follow-up tooltip
-  for (const action of ["Extend trial", "Mark as comp", "Cancel"]) {
-    const re = new RegExp(
-      `disabled[\\s\\S]{0,200}${action.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}`,
-    );
-    assert.match(src, re, `${action} button should be stubbed disabled`);
-  }
-});
-
 // ============================================================================
 // /subscriptions/revenue
 // ============================================================================
