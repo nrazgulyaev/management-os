@@ -110,3 +110,10 @@ export type {
 // Stage 10.6.C.1 — cabinet greeting block (reference doctor-portal pattern).
 export { CabinetGreetingBlock } from "./cabinet-greeting-block";
 export type { CabinetGreetingBlockProps } from "./cabinet-greeting-block";
+
+// Stage 10.6.C.2 — list page modernization primitives.
+export { FilterPills } from "./filter-pills";
+export type { FilterPillsProps, FilterPillItem } from "./filter-pills";
+
+export { ListTableCard } from "./list-table-card";
+export type { ListTableCardProps } from "./list-table-card";
