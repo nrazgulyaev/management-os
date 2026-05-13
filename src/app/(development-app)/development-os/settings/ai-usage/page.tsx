@@ -83,7 +83,7 @@ function BreakdownCard({
     }))
     .sort((a, b) => b.costUsd - a.costUsd);
   return (
-    <div className="rounded-md border border-line-soft p-4">
+    <div className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card">
       <div className="text-label mb-3">{title}</div>
       {rows.length === 0 ? (
         <div className="text-xs text-ink-tertiary">No runs aggregated yet.</div>

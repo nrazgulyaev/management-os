@@ -109,7 +109,7 @@ export default async function AiAgentDetailPage({
 
       <Section eyebrow="Status" title="Eligibility + state">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded border border-line-soft bg-surface px-4 py-3">
+          <div className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card">
             <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
               Tier
             </div>
@@ -120,7 +120,7 @@ export default async function AiAgentDetailPage({
               {desc.tier === 3 && "Heavy reasoning on Opus."}
             </div>
           </div>
-          <div className="rounded border border-line-soft bg-surface px-4 py-3">
+          <div className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card">
             <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
               Plan
             </div>
@@ -143,7 +143,7 @@ export default async function AiAgentDetailPage({
               )}
             </div>
           </div>
-          <div className="rounded border border-line-soft bg-surface px-4 py-3">
+          <div className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card">
             <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
               State
             </div>
@@ -206,7 +206,7 @@ export default async function AiAgentDetailPage({
           title="Kickoff prompt"
           description="Sent to the agent when an operator presses 'Run now'. The canonical prompt below ships with the platform; you can override it for your workspace without changing other tenants."
         >
-          <div className="rounded border border-line-soft bg-muted/20 p-4 text-sm">
+          <div className="rounded-2xl border border-line-soft bg-muted/30 p-5 text-sm">
             <div className="text-[11px] uppercase tracking-widest text-ink-tertiary mb-2">
               Canonical prompt
             </div>
