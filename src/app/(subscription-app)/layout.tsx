@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { ServiceTemporarilyUnavailable } from "@/components/system/service-temporarily-unavailable";
+import { ImpersonationBanner } from "@/components/subscription-os/impersonation-banner";
 
 export const metadata: Metadata = {
   title: {
@@ -42,7 +43,12 @@ export default async function SubscriptionAppLayout({
     // Demo mode (no DB) — let through; matches the demo-bypass pattern
     // used by enforceProductAccess in Stage 10.H.
     if (ctx.mode === "demo") {
-      return <main className="min-h-screen bg-canvas">{children}</main>;
+      return (
+        <main className="min-h-screen bg-canvas">
+          <ImpersonationBanner />
+          {children}
+        </main>
+      );
     }
 
     // Live mode — must be authenticated AND super_admin.
@@ -53,7 +59,12 @@ export default async function SubscriptionAppLayout({
       redirect("/no-product-access?reason=subscription-os-requires-super-admin");
     }
 
-    return <main className="min-h-screen bg-canvas">{children}</main>;
+    return (
+      <main className="min-h-screen bg-canvas">
+        <ImpersonationBanner />
+        {children}
+      </main>
+    );
   } catch (err) {
     if (isRedirectError(err)) throw err;
     console.error("[layout/subscription] auth check threw:", err);

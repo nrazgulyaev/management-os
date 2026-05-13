@@ -19,11 +19,12 @@ import {
   ListTableCard,
 } from "@/components/ui/primitives";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   getSubscriptionOsOrgByCode,
   getOrgLifecycleEvents,
 } from "@/lib/subscription-os/queries";
+import { PerOrgActionButtons } from "@/components/subscription-os/per-org-action-buttons";
+import { ImpersonationStartButton } from "@/components/subscription-os/impersonation-start-button";
 import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = {
@@ -104,20 +105,11 @@ export default async function OrgDetailPage({
           </>
         }
         actions={
-          <>
-            {/* Action buttons stubbed for 10.6.E.2 — wired in follow-up
-                sub-phase that pairs them with audit-log emission +
-                impersonation flow. */}
-            <Button variant="secondary" disabled title="Ships in 10.6.E.2 follow-up">
-              Extend trial
-            </Button>
-            <Button variant="secondary" disabled title="Ships in 10.6.E.2 follow-up">
-              Mark as comp
-            </Button>
-            <Button variant="secondary" disabled title="Ships in 10.6.E.2 follow-up">
-              Cancel
-            </Button>
-          </>
+          <PerOrgActionButtons
+            organizationCode={org.organizationCode}
+            status={org.status}
+            isInternalComp={org.isInternalComp}
+          />
         }
         summaryStrip={[
           {
@@ -190,6 +182,7 @@ export default async function OrgDetailPage({
             <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
               Quick actions
             </span>
+            <ImpersonationStartButton organizationCode={org.organizationCode} />
             <Link
               href={`mailto:${org.organizationCode}@example.com`}
               className="inline-flex items-center gap-2 text-sm text-ink hover:text-accent"
@@ -219,9 +212,13 @@ export default async function OrgDetailPage({
               Roadmap
             </span>
             <p className="text-xs text-ink-secondary leading-relaxed">
-              "View as customer" impersonation tool ships in 10.6.E.2.5
-              with cookie-driven read-only context switch + unmissable
-              banner overlay + audit-log entry per session.
+              <strong>Impersonation scaffold ships now</strong> — clicking
+              "View as customer" sets the cookie + emits a
+              <code> platform.impersonate.start</code> audit entry + renders
+              the warning banner overlay across SubscriptionOS pages. The
+              middleware org_id resolution swap (so /dashboard/* actually
+              loads the impersonated org's data) is a focused follow-up
+              that pairs with RLS policy review.
             </p>
             <p className="text-xs text-ink-secondary leading-relaxed">
               Stripe Customer Portal per-org link ships once 10.6.D.2.2
