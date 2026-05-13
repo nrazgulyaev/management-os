@@ -1,15 +1,12 @@
 /**
- * Sprint 3a — consolidated `/pricing` page.
+ * Sprint 3a + 3b — consolidated `/pricing` page.
  *
  * Three columns (Management only · Development only · Bundle), four
- * tiers per column. Display-only — Stripe / live checkout wires in
- * Sprint 3b. Each tier's "Start free trial" routes to the existing
- * `/signup` flow with a `tier=` hint.
+ * tiers per column. Sprint 3b adds the Monthly / Annual toggle and
+ * wires each tier's CTA to `/signup?packaging_key=…&cycle=…` so the
+ * existing trial-then-tier flow can read both fields.
  *
- * Reads tiers from src/lib/marketing/pricing-tiers.ts (Sprint 3a
- * source of truth) — coexists with the older Stage-10.I.4
- * src/lib/billing/pricing.ts which still drives the per-product
- * `/pricing/management-os` + `/pricing/development-os` pages.
+ * Reads tiers from src/lib/marketing/pricing-tiers.ts.
  *
  * Visual: leans into the 10.6.C.1 gradient hero tokens —
  * emerald-soft / gold-soft / coral-soft per column, rounded-3xl card
@@ -25,6 +22,8 @@ import {
   PRICING_PLANS,
   type PricingTier,
 } from "@/lib/marketing/pricing-tiers";
+import { packagingKeyFor } from "@/lib/billing/marketing-mapping";
+import { PricingCycleToggle } from "@/components/marketing/pricing-cycle-toggle";
 
 export const metadata: Metadata = {
   title: "Pricing · Arconique",
@@ -88,13 +87,21 @@ export default function PricingPage() {
             {PRICING_COPY.annualDiscountPct}%. Enterprise tiers are custom —
             we'll work it out together.
           </p>
+          <PricingCycleToggle
+            annualDiscountPct={PRICING_COPY.annualDiscountPct}
+            className="mt-2"
+          />
         </div>
       </section>
 
       {/* Plan grid */}
       <section className="border-b border-line-soft">
         <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-16 md:py-24">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div
+            className="group grid grid-cols-1 lg:grid-cols-3 gap-6"
+            data-pricing-grid="root"
+            data-cycle="monthly"
+          >
             {PRICING_PLANS.map((plan) => {
               const limitRows = LIMIT_ROWS_BY_PLAN[plan.key];
               return (
@@ -209,12 +216,36 @@ function TierRow({
   planKey: string;
 }) {
   const isEnterprise = tier.key === "enterprise";
-  const cta = isEnterprise
+  const packagingKey = packagingKeyFor(
+    planKey as "management-only" | "development-only" | "bundle",
+    tier.key,
+  );
+  // Sprint 3b — CTA encodes packaging_key + cycle so the trial flow
+  // (and Sprint 3c's checkout redirect after the trial) can read it.
+  // The cycle reflects the grid's current data-cycle (set by the
+  // PricingCycleToggle); the toggle dispatches `pricing-cycle-change`
+  // events so any other surface that depends on `cycle` can subscribe.
+  const ctaMonthly = isEnterprise
     ? PRICING_COPY.enterpriseCta
     : {
         label: PRICING_COPY.defaultStartCta.label,
-        href: `${PRICING_COPY.defaultStartCta.href}?plan=${planKey}&tier=${tier.key}`,
+        href: `${PRICING_COPY.defaultStartCta.href}?packaging_key=${packagingKey}&cycle=monthly`,
       };
+  const ctaAnnual = isEnterprise
+    ? PRICING_COPY.enterpriseCta
+    : {
+        label: PRICING_COPY.defaultStartCta.label,
+        href: `${PRICING_COPY.defaultStartCta.href}?packaging_key=${packagingKey}&cycle=annual`,
+      };
+
+  // Annual price (rounded to whole dollars for display). The
+  // plan_packaging table holds the canonical cents value; this
+  // displayed number is recomputed from the marketing-tier source so
+  // anyone re-reading the file can audit the math against the spec.
+  const annualMonthlyEquivalent =
+    tier.monthlyUsd === null
+      ? null
+      : Math.round((tier.monthlyUsd * 12 * 0.85) / 12);
 
   return (
     <div
@@ -234,9 +265,23 @@ function TierRow({
             </span>
           )}
         </div>
-        <div className="flex items-baseline gap-1 font-mono tabular-nums">
-          <span className="text-display text-[28px] md:text-[32px] leading-none font-medium text-ink">
+        <div
+          className="flex items-baseline gap-1 font-mono tabular-nums"
+          data-price-stack="true"
+        >
+          {/* Monthly price — visible when grid data-cycle=monthly */}
+          <span
+            className="text-display text-[28px] md:text-[32px] leading-none font-medium text-ink group-data-[cycle=annual]:hidden"
+            data-cycle-price="monthly"
+          >
             {formatPrice(tier.monthlyUsd)}
+          </span>
+          {/* Annual price-per-month — visible when grid data-cycle=annual */}
+          <span
+            className="text-display text-[28px] md:text-[32px] leading-none font-medium text-ink hidden group-data-[cycle=annual]:inline"
+            data-cycle-price="annual"
+          >
+            {formatPrice(annualMonthlyEquivalent)}
           </span>
           {tier.monthlyUsd !== null && (
             <span className="text-ink-tertiary text-xs">/mo</span>
@@ -274,15 +319,30 @@ function TierRow({
         ))}
       </ul>
 
+      {/* Two CTAs rendered; toggle hides one. Enterprise uses the
+          same href for both so this is also a no-op for that tier. */}
       <Link
-        href={cta.href}
-        className={`inline-flex items-center justify-center gap-1.5 rounded-3xl px-5 h-10 text-xs md:text-sm font-medium transition-colors mt-1 ${
+        href={ctaMonthly.href}
+        data-cycle-cta="monthly"
+        className={`inline-flex items-center justify-center gap-1.5 rounded-3xl px-5 h-10 text-xs md:text-sm font-medium transition-colors mt-1 group-data-[cycle=annual]:hidden ${
           tier.highlight
             ? "bg-ink text-ink-inverse hover:bg-ink/90"
             : "bg-surface text-ink border border-line-soft hover:bg-muted"
         }`}
       >
-        {cta.label}
+        {ctaMonthly.label}
+        <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
+      </Link>
+      <Link
+        href={ctaAnnual.href}
+        data-cycle-cta="annual"
+        className={`hidden group-data-[cycle=annual]:inline-flex items-center justify-center gap-1.5 rounded-3xl px-5 h-10 text-xs md:text-sm font-medium transition-colors mt-1 ${
+          tier.highlight
+            ? "bg-ink text-ink-inverse hover:bg-ink/90"
+            : "bg-surface text-ink border border-line-soft hover:bg-muted"
+        }`}
+      >
+        {ctaAnnual.label}
         <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
       </Link>
     </div>

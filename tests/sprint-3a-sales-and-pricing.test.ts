@@ -177,17 +177,20 @@ test("sprint-3a — /pricing uses gradient hero tones (per column) + 14-day tria
   assert.match(src, /shadow-soft-card/);
 });
 
-test("sprint-3a — /pricing tier CTAs carry plan + tier query params for the existing signup flow", () => {
+test("sprint-3a + 3b — /pricing tier CTAs carry packaging_key + cycle query params for the trial flow", () => {
   const src = read(PRICING);
-  // Each non-enterprise tier links into the existing /signup flow with
-  // ?plan=... + tier=... appended. The base path comes from
-  // PRICING_COPY.defaultStartCta.href so the source carries the
-  // interpolation pattern (not the literal "/signup" prefix).
+  // Sprint 3b: CTAs encode packaging_key (resolves to plan_code +
+  // products_enabled via marketing-mapping) + cycle (monthly|annual).
+  // Two CTAs render per tier; the data-cycle toggle picks one.
   assert.match(
     src,
-    /\?plan=\$\{planKey\}&tier=\$\{tier\.key\}/,
+    /\?packaging_key=\$\{packagingKey\}&cycle=monthly/,
   );
-  // And the base path on PRICING_COPY is /signup.
+  assert.match(
+    src,
+    /\?packaging_key=\$\{packagingKey\}&cycle=annual/,
+  );
+  // PRICING_COPY.defaultStartCta still anchors on /signup.
   const tiers = read(TIERS);
   assert.match(tiers, /defaultStartCta:\s*\{[\s\S]{0,200}href:\s*"\/signup"/);
 });
