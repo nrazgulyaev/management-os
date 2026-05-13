@@ -52,12 +52,13 @@ export function SparklineChart({
   height = 32,
   className,
 }: SparklineChartProps) {
+  // Stable gradient id per render so multiple sparklines on a page don't
+  // collide. React.useId is stable across SSR/hydration; must be called
+  // unconditionally before any early return (rules-of-hooks).
+  const gradientId = `sparkline-grad-${React.useId().replace(/:/g, "")}`;
   if (!data || data.length < 2) return null;
   const color = TONE_VAR[tone];
   const series = data.map((v, i) => ({ i, v }));
-  // Stable gradient id per render so multiple sparklines on a page don't
-  // collide. React.useId is stable across SSR/hydration.
-  const gradientId = `sparkline-grad-${React.useId().replace(/:/g, "")}`;
 
   return (
     <div
