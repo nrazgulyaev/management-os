@@ -12,6 +12,7 @@
 
 import * as React from "react";
 import { useTransition } from "react";
+import Link from "next/link";
 import { ArrowUpRight, Loader2 } from "lucide-react";
 import {
   SpreadsheetView,
@@ -280,13 +281,13 @@ export function QuickEntryForm({
               </ul>
             )}
             {result.successCount > 0 && (
-              <a
+              <Link
                 href="/development-os/finance/transactions"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline self-start"
               >
                 Open transactions list
                 <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
-              </a>
+              </Link>
             )}
           </div>
         )}
