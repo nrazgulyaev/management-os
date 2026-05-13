@@ -81,7 +81,7 @@ export default async function IntegrationsHubPage() {
       configureHref: "/dashboard/payments/providers",
       detail: stripeReady
         ? "STRIPE_SECRET_KEY set. Per-org Stripe customer IDs tracked in orgSubscriptions."
-        : "Set STRIPE_SECRET_KEY env var to enable. Per-org connect UI in 10.6.D.2 follow-up.",
+        : "Set STRIPE_SECRET_KEY env var to enable. Per-org connect UI ships soon.",
     },
     {
       name: "Resend (transactional email)",
@@ -92,7 +92,7 @@ export default async function IntegrationsHubPage() {
       scope: "platform",
       configureHref: "/dashboard/settings/integrations/resend",
       detail: resendReady
-        ? "Platform API key set. Per-org from-email override is a 10.6.D.2 follow-up."
+        ? "Platform API key set. Per-org from-email override ships soon."
         : "Set RESEND_API_KEY + RESEND_FROM_EMAIL env. Currently emails fall back to NOTIFICATIONS_DRY_RUN.",
     },
     {
@@ -105,7 +105,7 @@ export default async function IntegrationsHubPage() {
       configureHref: "/development-os/settings/whatsapp",
       detail: twilioReady
         ? "Twilio platform credentials set. Per-org override UI ships in /development-os/settings/whatsapp."
-        : "Set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN to enable. Per-org Meta WhatsApp flow ships in 10.6.D.2 follow-up.",
+        : "Set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN to enable. Per-org Meta WhatsApp flow ships soon.",
     },
     {
       name: "Channel managers",
@@ -116,7 +116,7 @@ export default async function IntegrationsHubPage() {
       scope: "per-org",
       configureHref: "/dashboard/integrations/channels",
       detail:
-        "OAuth flow exists in /integrations/channels. Operator-flagged: 'cannot add new channel' — shipping verification + UI fix in 10.6.D.2 follow-up.",
+        "OAuth flow exists in /integrations/channels. Operator-flagged: 'cannot add new channel' — shipping verification + UI fix soon.",
     },
     {
       name: "Maps (Google Maps API)",
@@ -125,7 +125,7 @@ export default async function IntegrationsHubPage() {
       icon: <MapPin className="w-5 h-5" />,
       status: "not-available",
       scope: "platform",
-      detail: "No UI yet. 10.6.D.2 follow-up adds per-org Maps API key + villa coordinate editor.",
+      detail: "No UI yet. A follow-up adds per-org Maps API key + villa coordinate editor.",
     },
 
     // ── Working today, settings UI exists ─────────────────────────────────
@@ -137,7 +137,7 @@ export default async function IntegrationsHubPage() {
       status: "configured",
       scope: "per-org",
       configureHref: "/dashboard/integrations/calendar-feeds",
-      detail: "URLs stored plaintext (unguessable + RLS-protected); encryption planned for 10.6.D.2 follow-up.",
+      detail: "URLs stored plaintext (unguessable + RLS-protected); encryption planned soon.",
     },
     {
       name: "Banking sync",
@@ -156,7 +156,7 @@ export default async function IntegrationsHubPage() {
       status: "configured",
       scope: "per-org",
       configureHref: "/development-os/marketing/connections",
-      detail: "AES-256-GCM credentials. Test-connection wiring is a 10.6.D.2 follow-up.",
+      detail: "AES-256-GCM credentials. Test-connection wiring ships soon.",
     },
     {
       name: "Webhooks (outbound)",
@@ -165,7 +165,7 @@ export default async function IntegrationsHubPage() {
       status: "configured",
       scope: "per-org",
       configureHref: "/development-os/settings/webhooks",
-      detail: "Signing secret encryption is a 10.6.D.2 follow-up.",
+      detail: "Signing secret encryption ships soon.",
     },
 
     // ── Platform-wide (env-only, working) ─────────────────────────────────
@@ -176,7 +176,7 @@ export default async function IntegrationsHubPage() {
       status: twilioReady ? "ready" : "not-available",
       scope: "platform",
       detail: twilioReady
-        ? "Shares Twilio credentials with WhatsApp. Per-org override planned for 10.6.D.2 follow-up."
+        ? "Shares Twilio credentials with WhatsApp. Per-org override planned."
         : "Optional. Set TWILIO_FROM_SMS to enable.",
     },
     {
@@ -186,7 +186,7 @@ export default async function IntegrationsHubPage() {
       status: dbReady ? "ready" : "not-available",
       scope: "platform",
       configureHref: "/dashboard/system/storage",
-      detail: "Bucket health visible at /system/storage. Per-org bucket UI is 10.6.D.2 follow-up.",
+      detail: "Bucket health visible at /system/storage. Per-org bucket UI ships soon.",
     },
     {
       name: "Auth (Supabase Auth + Google OAuth)",
@@ -195,7 +195,7 @@ export default async function IntegrationsHubPage() {
       status: authReady ? "ready" : "not-available",
       scope: "platform",
       detail: authReady
-        ? "Platform Supabase Auth. Per-org SSO is a future Stage 11+ initiative."
+        ? "Platform Supabase Auth. Per-org SSO is a future initiative."
         : "Set NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     },
     {
@@ -220,7 +220,7 @@ export default async function IntegrationsHubPage() {
         ? undefined
         : "STAY_LINK_KMS_SECRET not set — every per-org integration above will fall back to plaintext storage.",
       detail: kmsReady
-        ? "Platform key. Per-org key rotation is a Stage 11+ security hardening initiative."
+        ? "Platform key. Per-org key rotation is a future hardening initiative."
         : undefined,
     },
   ];

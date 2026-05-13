@@ -330,11 +330,14 @@ test("Transactions page mounts FinanceTabs + TransactionModalForm + fetches all 
   assert.match(src, /getDevelopmentProjects/);
 });
 
-test("Invoices page mounts FinanceTabs (existing /new full-page form preserved)", () => {
+test("Invoices page mounts FinanceTabs (10.6.C.2.3 migrated to modal Add with /new deep-link fallback)", () => {
   const src = read(INV_PAGE);
   assert.match(src, /<FinanceTabs/);
-  // Existing "New invoice" full-page link still present (modal-exception case for complex multi-line form)
-  assert.match(src, /href="\/development-os\/finance\/invoices\/new"/);
+  // 10.6.C.2.3 replaced the inline "New invoice" link with InvoiceAddButton
+  // (a ModalFirstAddButton wrapper). The /new route is preserved via the
+  // wrapper's newRouteHref prop as a deep-link fallback, so external
+  // bookmarks still work.
+  assert.match(src, /<InvoiceAddButton/);
 });
 
 test("Vendors page mounts FinanceTabs + VendorModalForm + retains 'Detailed form' link to /vendors/new", () => {
