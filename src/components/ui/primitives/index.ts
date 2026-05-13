@@ -128,3 +128,29 @@ export type {
   IntegrationStatusCardProps,
   IntegrationStatus,
 } from "./integration-status-card";
+
+// Sprint 1 — recharts-based chart primitives + dashboard composition cards.
+export { SparklineChart } from "./sparkline-chart";
+export type { SparklineChartProps, SparklineTone } from "./sparkline-chart";
+
+export { AreaChartCard } from "./area-chart-card";
+export type {
+  AreaChartCardProps,
+  AreaChartPoint,
+  AreaChartTone,
+  PinnedTooltipSpec,
+} from "./area-chart-card";
+
+export { DonutRatioCard } from "./donut-ratio-card";
+export type { DonutRatioCardProps, DonutTone } from "./donut-ratio-card";
+
+export { ProfileRailCard } from "./profile-rail-card";
+export type {
+  ProfileRailCardProps,
+  ProfileUser,
+  ProfileOrg,
+  ProfileRailItem,
+} from "./profile-rail-card";
+
+export { CommsPanel } from "./comms-panel";
+export type { CommsPanelProps, CommsHeader, CommsItem } from "./comms-panel";
