@@ -5,8 +5,10 @@ import {
   DashboardKpi,
   NoItemsYet,
   PageHeaderHero,
+  SparklineChart,
   type KpiStatus,
 } from "@/components/ui/primitives";
+import { synthSparklineSeries } from "@/lib/sparkline-series";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -141,6 +143,17 @@ export default async function CfoCabinetPage() {
                 drillHref="/development-os/banking"
                 hint={`vs ${formatMinorAsCurrency(s.payablesNext30Minor, c)} due 30d`}
                 className="sm:col-span-2 lg:col-span-2"
+                sparkline={
+                  <SparklineChart
+                    tone="emerald"
+                    height={40}
+                    data={synthSparklineSeries(
+                      s.cashOnHandMinor,
+                      deltaFor(s.cashOnHandMinor, prev, "cashOnHandMinor")
+                        ?.value ?? 0,
+                    )}
+                  />
+                }
               />
               <DashboardKpi
                 label="Receivables"
@@ -154,6 +167,16 @@ export default async function CfoCabinetPage() {
                 }
                 delta={deltaFor(s.receivablesMinor, prev, "receivablesMinor")}
                 drillHref="/development-os/finance/invoices"
+                sparkline={
+                  <SparklineChart
+                    tone="gold"
+                    data={synthSparklineSeries(
+                      s.receivablesMinor,
+                      deltaFor(s.receivablesMinor, prev, "receivablesMinor")
+                        ?.value ?? 0,
+                    )}
+                  />
+                }
               />
               <DashboardKpi
                 label="Payables overdue"
@@ -165,6 +188,19 @@ export default async function CfoCabinetPage() {
                   "payablesOverdueMinor",
                 )}
                 drillHref="/development-os/finance/payables"
+                sparkline={
+                  <SparklineChart
+                    tone="terracotta"
+                    data={synthSparklineSeries(
+                      s.payablesOverdueMinor,
+                      deltaFor(
+                        s.payablesOverdueMinor,
+                        prev,
+                        "payablesOverdueMinor",
+                      )?.value ?? 0,
+                    )}
+                  />
+                }
               />
               <DashboardKpi
                 label="Anomalies (unclassified)"
@@ -177,6 +213,19 @@ export default async function CfoCabinetPage() {
                 )}
                 drillHref="/development-os/banking?status=unclassified"
                 hint="Transactions awaiting classification"
+                sparkline={
+                  <SparklineChart
+                    tone="sage"
+                    data={synthSparklineSeries(
+                      s.unclassifiedTransactionsCount,
+                      deltaFor(
+                        s.unclassifiedTransactionsCount,
+                        prev,
+                        "unclassifiedTransactionsCount",
+                      )?.value ?? 0,
+                    )}
+                  />
+                }
               />
             </div>
 
@@ -189,18 +238,48 @@ export default async function CfoCabinetPage() {
                       value={formatMinorAsCurrency(s.cashAt30Minor, c)}
                       status={s.cashAt30Minor < 0 ? "bad" : "neutral"}
                       delta={deltaFor(s.cashAt30Minor, prev, "cashAt30Minor")}
+                      sparkline={
+                        <SparklineChart
+                          tone="emerald"
+                          data={synthSparklineSeries(
+                            s.cashAt30Minor,
+                            deltaFor(s.cashAt30Minor, prev, "cashAt30Minor")
+                              ?.value ?? 0,
+                          )}
+                        />
+                      }
                     />
                     <DashboardKpi
                       label="In 60 days"
                       value={formatMinorAsCurrency(s.cashAt60Minor, c)}
                       status={s.cashAt60Minor < 0 ? "bad" : "neutral"}
                       delta={deltaFor(s.cashAt60Minor, prev, "cashAt60Minor")}
+                      sparkline={
+                        <SparklineChart
+                          tone="emerald"
+                          data={synthSparklineSeries(
+                            s.cashAt60Minor,
+                            deltaFor(s.cashAt60Minor, prev, "cashAt60Minor")
+                              ?.value ?? 0,
+                          )}
+                        />
+                      }
                     />
                     <DashboardKpi
                       label="In 90 days"
                       value={formatMinorAsCurrency(s.cashAt90Minor, c)}
                       status={s.cashAt90Minor < 0 ? "bad" : "neutral"}
                       delta={deltaFor(s.cashAt90Minor, prev, "cashAt90Minor")}
+                      sparkline={
+                        <SparklineChart
+                          tone="emerald"
+                          data={synthSparklineSeries(
+                            s.cashAt90Minor,
+                            deltaFor(s.cashAt90Minor, prev, "cashAt90Minor")
+                              ?.value ?? 0,
+                          )}
+                        />
+                      }
                     />
                   </div>
                 </Section>
