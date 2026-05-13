@@ -85,13 +85,16 @@ const STAGE_10_C_REDIRECTS = [
   // Stage 10.I.3 — public marketing URLs retired in favour of /products/*
   { source: "/villa-management", destination: "/products/management-os" },
   { source: "/development", destination: "/products/development-os" },
-  // Stage 10.I.4 retired the bare /pricing page and 308-redirected it
-  // to /pricing/management-os. Sprint 3a un-retired /pricing to host
-  // the consolidated three-column (Mgmt-only / Dev-only / Bundle)
-  // pricing page on subscription.arconique.com. The per-product
-  // /pricing/management-os and /pricing/development-os pages remain
-  // (older Stage 10.I.4 tier model — reconciled with the new
-  // pricing-tiers module in Sprint 3b alongside Stripe wiring).
+  // Stage 10.I.4 originally retired the bare /pricing page and
+  // 308-redirected it to /pricing/management-os. Sprint 3a un-retired
+  // /pricing for the consolidated three-column (Mgmt-only / Dev-only
+  // / Bundle) page; Sprint 3b then retired the per-product
+  // /pricing/management-os and /pricing/development-os pages entirely
+  // (the Stage-10.I.4 tier model was incompatible with the
+  // Sprint-3a/3b plan_packaging model and held a duplicate source of
+  // truth). Both former URLs now 308 to the consolidated /pricing.
+  { source: "/pricing/management-os", destination: "/pricing" },
+  { source: "/pricing/development-os", destination: "/pricing" },
   // /development-os
   { source: "/development-os/cabinets", destination: "/development-os/cabinets/my-cabinet" },
   { source: "/development-os/notifications", destination: "/development-os/settings/notifications" },

@@ -52,6 +52,10 @@ const ALLOWLIST = new Set<string>([
   "subscription_plans",
   "feature_flags",
   "plan_features",
+  // Sprint 3b — platform-wide packaging catalog (joins marketing-tier
+  // names to plan_codes + Stripe IDs; no org_id; same posture as
+  // subscription_plans above).
+  "plan_packaging",
 ]);
 
 interface MigrationCorpus {

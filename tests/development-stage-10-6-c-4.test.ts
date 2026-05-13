@@ -25,7 +25,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -72,62 +72,21 @@ test("10.6.C.4.1 — homepage FeatureTile bumped to rounded-3xl + shadow-soft-ca
 
 // ============================================================================
 // Pricing
+//
+// Sprint 3b retired the shared `src/components/marketing/pricing-page.tsx`
+// renderer (Stage-10.I.4 per-product pricing config). The seven
+// 10.6.C.4.3 assertions below verified the Stage-10.I.4 component
+// received 10.6.C.1 token treatment; with the component deleted, the
+// only surviving invariant is the absence of the file. Sprint 3a's
+// consolidated /pricing page carries its own 10.6.C.1 token treatment
+// (verified separately in tests/sprint-3a-sales-and-pricing.test.ts).
 // ============================================================================
 
-test("10.6.C.4.3 — pricing TierCard highlighted variant uses gradient-emerald-soft + rounded-3xl + shadow-elevated-card", () => {
-  const src = read("src/components/marketing/pricing-page.tsx");
-  assert.match(
-    src,
-    /isHighlighted[\s\S]{0,200}border-line-soft bg-gradient-emerald-soft shadow-elevated-card/,
-  );
-});
-
-test("10.6.C.4.3 — pricing TierCard non-highlighted variant uses rounded-3xl + shadow-soft-card hover", () => {
-  const src = read("src/components/marketing/pricing-page.tsx");
-  assert.match(
-    src,
-    /border-line-soft bg-surface shadow-soft-card hover:shadow-elevated-card/,
-  );
-});
-
-test("10.6.C.4.3 — pricing TierCard price bumped to 48-56pt display", () => {
-  const src = read("src/components/marketing/pricing-page.tsx");
-  assert.match(
-    src,
-    /font-display text-\[48px\] md:text-\[56px\]/,
-  );
-});
-
-test("10.6.C.4.3 — pricing comparison table wrapped in rounded-3xl + shadow-soft-card", () => {
-  const src = read("src/components/marketing/pricing-page.tsx");
-  assert.match(
-    src,
-    /rounded-3xl border border-line-soft bg-surface overflow-x-auto shadow-soft-card/,
-  );
-});
-
-test("10.6.C.4.3 — pricing FAQ details bumped to rounded-2xl + shadow-soft-card", () => {
-  const src = read("src/components/marketing/pricing-page.tsx");
-  assert.match(
-    src,
-    /<details className="group rounded-2xl border border-line-soft bg-surface px-6 py-5 shadow-soft-card"/,
-  );
-});
-
-test("10.6.C.4.3 — pricing closing CTA uses gradient-emerald-soft", () => {
-  const src = read("src/components/marketing/pricing-page.tsx");
-  // The closing CTA section's div uses the gradient
-  assert.match(
-    src,
-    /rounded-3xl border border-line-soft bg-gradient-emerald-soft shadow-elevated-card/,
-  );
-});
-
-test("10.6.C.4.3 — pricing TierCard 'Recommended' pill is rounded-full", () => {
-  const src = read("src/components/marketing/pricing-page.tsx");
-  assert.match(
-    src,
-    /text-ink-inverse bg-ink rounded-full px-3 py-1[\s\S]{0,80}Recommended/,
+test("10.6.C.4.3 retired by Sprint 3b — old shared PricingPage component removed", () => {
+  assert.equal(
+    existsSync(resolve(ROOT, "src/components/marketing/pricing-page.tsx")),
+    false,
+    "Stage-10.I.4 PricingPage component should have been deleted in Sprint 3b",
   );
 });
 

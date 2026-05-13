@@ -214,3 +214,60 @@ export type OrgSubscription = typeof orgSubscriptions.$inferSelect;
 export type NewOrgSubscription = typeof orgSubscriptions.$inferInsert;
 export type SubscriptionLifecycleEvent =
   typeof subscriptionLifecycleEvents.$inferSelect;
+
+/**
+ * Sprint 3b — Marketing-tier ↔ Stripe-product packaging table.
+ *
+ * One row per customer-facing packaging (e.g. "mgmt-only-pro",
+ * "bundle-scale"). Joins the Sprint-3a marketing taxonomy to the DB
+ * gating taxonomy (Stage 7.B `subscription_plans`) and carries the
+ * Stripe product + monthly + annual price IDs once
+ * `scripts/stripe-provision.ts` runs.
+ *
+ * See `src/lib/billing/marketing-mapping.ts` for the canonical
+ * packaging → plan_code resolution and migration
+ * `drizzle/0096_plan_packaging.sql` for the seed.
+ */
+export const planPackaging = pgTable(
+  "plan_packaging",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    packagingKey: text("packaging_key").notNull().unique(),
+    planKind: text("plan_kind").notNull(),
+    tierKey: text("tier_key").notNull(),
+    planCode: text("plan_code").notNull(),
+    productsEnabled: text("products_enabled").array().notNull(),
+    monthlyPriceMinor: bigint("monthly_price_minor", { mode: "bigint" })
+      .notNull()
+      .default(0n),
+    annualPriceMinor: bigint("annual_price_minor", { mode: "bigint" })
+      .notNull()
+      .default(0n),
+    currency: text("currency").notNull().default("USD"),
+    stripeProductId: text("stripe_product_id"),
+    stripeMonthlyPriceId: text("stripe_monthly_price_id"),
+    stripeAnnualPriceId: text("stripe_annual_price_id"),
+    stripeProvisionedAt: timestamp("stripe_provisioned_at", {
+      withTimezone: true,
+    }),
+    isPublic: boolean("is_public").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(100),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("plan_packaging_plan_code_idx").on(t.planCode),
+    index("plan_packaging_active_idx").on(t.isActive),
+    index("plan_packaging_public_idx").on(t.isPublic),
+    uniqueIndex("plan_packaging_kind_tier_uq").on(t.planKind, t.tierKey),
+  ],
+);
+
+export type PlanPackaging = typeof planPackaging.$inferSelect;
+export type NewPlanPackaging = typeof planPackaging.$inferInsert;

@@ -14,13 +14,17 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Sprint 3b retired the Stage-10.I.4 per-product pricing config
+// (`src/lib/billing/pricing.ts`) and replaced it with the
+// `plan_packaging` table + `src/lib/marketing/pricing-tiers.ts` +
+// `src/lib/billing/marketing-mapping.ts`. The 10.I.4-era assertions
+// below are kept as historical retirement checks (they now assert
+// the *absence* of the old surface and the presence of the 308
+// redirects to /pricing).
 import {
-  MANAGEMENT_OS_PRICING,
-  DEVELOPMENT_OS_PRICING,
-  pricingFor,
-  formatTierPrice,
-  TRIAL_DURATION_DAYS,
-} from "../src/lib/billing/pricing";
+  resolveMarketingMapping,
+  ALL_MARKETING_MAPPINGS,
+} from "../src/lib/billing/marketing-mapping";
 
 const HERE =
   typeof __dirname !== "undefined"
@@ -161,96 +165,72 @@ test("10.I.3 — public footer surfaces Products + Resources + Access groups", (
 });
 
 // ============================================================================
-// 10.I.4 — Pricing pages + config
+// 10.I.4 — Retired surface (Sprint 3b)
+//
+// The Stage-10.I.4 per-product pricing config + per-product pages
+// (/pricing/management-os, /pricing/development-os) were retired in
+// Sprint 3b. Their content was incompatible with the
+// Sprint-3a/3b plan_packaging model. Both former URLs now 308 to the
+// consolidated /pricing.
 // ============================================================================
 
-test("10.I.4 — pricing config exposes both products via pricingFor()", () => {
-  assert.equal(MANAGEMENT_OS_PRICING.product, "mgmt");
-  assert.equal(DEVELOPMENT_OS_PRICING.product, "dev");
-  assert.equal(pricingFor("mgmt"), MANAGEMENT_OS_PRICING);
-  assert.equal(pricingFor("dev"), DEVELOPMENT_OS_PRICING);
-});
-
-test("10.I.4 — pricing tiers match operator-decision values ($99/$299/$199/$499)", () => {
-  const mgmt = MANAGEMENT_OS_PRICING.tiers;
-  assert.equal(mgmt.find((t) => t.key === "starter")?.monthlyUsd, 99);
-  assert.equal(mgmt.find((t) => t.key === "professional")?.monthlyUsd, 299);
-  assert.equal(mgmt.find((t) => t.key === "enterprise")?.monthlyUsd, null);
-
-  const dev = DEVELOPMENT_OS_PRICING.tiers;
-  assert.equal(dev.find((t) => t.key === "starter")?.monthlyUsd, 199);
-  assert.equal(dev.find((t) => t.key === "professional")?.monthlyUsd, 499);
-  assert.equal(dev.find((t) => t.key === "enterprise")?.monthlyUsd, null);
-});
-
-test("10.I.4 — Professional tier is highlighted in both products", () => {
-  for (const product of [MANAGEMENT_OS_PRICING, DEVELOPMENT_OS_PRICING]) {
-    const pro = product.tiers.find((t) => t.key === "professional");
-    assert.equal(pro?.highlight, true);
-    const enterprise = product.tiers.find((t) => t.key === "enterprise");
-    assert.equal(enterprise?.highlight, undefined);
-  }
-});
-
-test("10.I.4 — formatTierPrice formats correctly for paid + enterprise", () => {
+test("10.I.4 retired by Sprint 3b — old per-product pricing config removed", () => {
   assert.equal(
-    formatTierPrice(MANAGEMENT_OS_PRICING.tiers[0]),
-    "$99",
-  );
-  assert.equal(
-    formatTierPrice(MANAGEMENT_OS_PRICING.tiers[2]),
-    "Contact sales",
+    exists(PRICING_CONFIG),
+    false,
+    "src/lib/billing/pricing.ts should have been deleted in Sprint 3b",
   );
 });
 
-test("10.I.4 — TRIAL_DURATION_DAYS exported as 14 (operator decision)", () => {
-  assert.equal(TRIAL_DURATION_DAYS, 14);
+test("10.I.4 retired by Sprint 3b — old per-product pricing pages removed", () => {
+  assert.equal(exists(MGMT_PRICING_PAGE), false);
+  assert.equal(exists(DEV_PRICING_PAGE), false);
 });
 
-test("10.I.4 — both pricing pages exist + import shared PricingPage", () => {
-  for (const f of [MGMT_PRICING_PAGE, DEV_PRICING_PAGE]) {
-    assert.ok(exists(f));
-    const src = read(f);
-    assert.match(src, /PricingPage/);
-    assert.match(src, /MANAGEMENT_OS_PRICING|DEVELOPMENT_OS_PRICING/);
-  }
+test("10.I.4 retired by Sprint 3b — shared PricingPage component removed", () => {
+  assert.equal(exists(PRICING_PAGE_LIB), false);
 });
 
-test("10.I.4 — shared PricingPage component renders comparison table + FAQ + tier cards", () => {
-  assert.ok(exists(PRICING_PAGE_LIB));
-  const src = read(PRICING_PAGE_LIB);
-  assert.match(src, /Feature matrix/);
-  assert.match(src, /FAQ/);
-  assert.match(src, /TierCard/);
-  // Each tier CTA must deep-link signup.
-  assert.match(src, /signup\?product=/);
+test("Sprint 3b — next.config.mjs 308-redirects /pricing/{management,development}-os to /pricing", () => {
+  const src = read(NEXT_CONFIG);
+  assert.match(
+    src,
+    /source:\s*"\/pricing\/management-os"\s*,\s*destination:\s*"\/pricing"/,
+  );
+  assert.match(
+    src,
+    /source:\s*"\/pricing\/development-os"\s*,\s*destination:\s*"\/pricing"/,
+  );
 });
 
-test("10.I.4 — /pricing page un-retired by Sprint 3a (consolidated 3-column model replaces the 308 redirect)", () => {
-  // Stage 10.I.4 originally retired the bare /pricing page and routed
-  // it to /pricing/management-os via a 308 redirect. Sprint 3a brought
-  // /pricing back as the consolidated Mgmt-only / Dev-only / Bundle
-  // pricing page (driven by src/lib/marketing/pricing-tiers.ts). Both
-  // the new top-level page AND the per-product Stage-10.I.4 pages now
-  // coexist until Sprint 3b reconciles them alongside Stripe wiring.
+test("Sprint 3b — consolidated /pricing page still exists (post-3a)", () => {
   assert.equal(
     exists("src/app/(public)/pricing/page.tsx"),
     true,
-    "Sprint 3a re-introduced (public)/pricing/page.tsx",
-  );
-  const src = read(NEXT_CONFIG);
-  // The old 308 redirect must be gone — otherwise the new page is
-  // unreachable.
-  assert.doesNotMatch(
-    src,
-    /source:\s*"\/pricing"\s*,\s*destination:\s*"\/pricing\/management-os"/,
-    "Sprint 3a should have removed the /pricing → /pricing/management-os redirect from next.config.mjs",
+    "Sprint 3a's consolidated /pricing page survives Sprint 3b",
   );
 });
 
-test("10.I.4 — pricing config FAQ surfaces the trial messaging", () => {
-  assert.ok(exists(PRICING_CONFIG));
-  const src = read(PRICING_CONFIG);
+test("Sprint 3b — marketing-mapping module replaces the Stage-10.I.4 config", () => {
+  // All 12 (planKind × tierKey) cells resolve to a DB plan_code +
+  // products_enabled.
+  assert.equal(ALL_MARKETING_MAPPINGS.length, 12);
+  // Spot-check a few canonical resolutions.
+  const bundlePro = resolveMarketingMapping("bundle", "pro");
+  assert.equal(bundlePro.planCode, "standard");
+  assert.deepEqual([...bundlePro.productsEnabled].sort(), ["dev", "mgmt"]);
+  const mgmtScale = resolveMarketingMapping("management-only", "scale");
+  assert.equal(mgmtScale.planCode, "pro");
+  assert.deepEqual(mgmtScale.productsEnabled, ["mgmt"]);
+  const devEnt = resolveMarketingMapping("development-only", "enterprise");
+  assert.equal(devEnt.planCode, "enterprise");
+});
+
+test("Sprint 3b inherits 10.I.4 — trial messaging now lives on the new marketing-tiers module", () => {
+  // The Stage-10.I.4 PRICING_CONFIG file was deleted; the trial copy
+  // moved to src/lib/marketing/pricing-tiers.ts (Sprint 3a, retained
+  // through Sprint 3b).
+  const src = read("src/lib/marketing/pricing-tiers.ts");
   assert.match(src, /14-day free trial|14 days/);
   assert.match(src, /No credit card/);
 });

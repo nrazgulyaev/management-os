@@ -341,18 +341,19 @@ test("Stage 7.E: middleware exists at src/middleware.ts", () => {
   assert.match(src, /x-tenant-host/);
 });
 
-test("Stage 7.E + Sprint 3a: /pricing un-retired by Sprint 3a (consolidated 3-column page)", () => {
+test("Stage 7.E + Sprint 3a + Sprint 3b: /pricing is consolidated; per-product pages retired", () => {
   // Stage 7.E originally shipped /pricing reading from subscription_plans.
   // Stage 10.I.4 split it into per-product pages and 308-redirected
-  // bare /pricing to /pricing/management-os. Sprint 3a un-retired the
-  // bare /pricing URL with a consolidated three-column (Mgmt-only /
-  // Dev-only / Bundle) page driven by src/lib/marketing/pricing-tiers.ts.
-  // Both surfaces coexist until Sprint 3b reconciles them alongside
-  // Stripe wiring.
+  // bare /pricing to /pricing/management-os.
+  // Sprint 3a un-retired bare /pricing with a consolidated three-column
+  //   (Mgmt-only / Dev-only / Bundle) page driven by
+  //   src/lib/marketing/pricing-tiers.ts.
+  // Sprint 3b then retired the per-product /pricing/management-os and
+  //   /pricing/development-os pages — both 308 to the consolidated /pricing.
   assert.equal(
     fileExists("src/app/(public)/pricing/page.tsx"),
     true,
-    "Sprint 3a re-introduced (public)/pricing/page.tsx",
+    "Sprint 3a's consolidated /pricing page survives Sprint 3b",
   );
   const config = readFile("next.config.mjs");
   assert.doesNotMatch(
@@ -360,10 +361,24 @@ test("Stage 7.E + Sprint 3a: /pricing un-retired by Sprint 3a (consolidated 3-co
     /source:\s*"\/pricing"\s*,\s*destination:\s*"\/pricing\/management-os"/,
     "Sprint 3a removed the /pricing → /pricing/management-os redirect",
   );
-  // Per-product pages still exist + still drive from the same
-  // Stage-10.I.4 pricing module.
-  assert.ok(fileExists("src/app/(public)/pricing/management-os/page.tsx"));
-  assert.ok(fileExists("src/app/(public)/pricing/development-os/page.tsx"));
+  // Per-product pages retired in Sprint 3b.
+  assert.equal(
+    fileExists("src/app/(public)/pricing/management-os/page.tsx"),
+    false,
+  );
+  assert.equal(
+    fileExists("src/app/(public)/pricing/development-os/page.tsx"),
+    false,
+  );
+  // Both former URLs now 308-redirect to /pricing.
+  assert.match(
+    config,
+    /source:\s*"\/pricing\/management-os"\s*,\s*destination:\s*"\/pricing"/,
+  );
+  assert.match(
+    config,
+    /source:\s*"\/pricing\/development-os"\s*,\s*destination:\s*"\/pricing"/,
+  );
 });
 
 test("Stage 7.E: /sign-up auth page exists + reads plans + posts to onboarding", () => {

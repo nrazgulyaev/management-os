@@ -193,15 +193,15 @@ test("8.C.E: banking connection components + actions shipped", () => {
 // 8.C — Workflow F: Sign-up flow invariants
 // ===========================================================================
 
-test("8.C.F: sign-up route + pricing pages + legal placeholders exist (10.I.4 split + 10.I.5 public signup)", () => {
+test("8.C.F: sign-up route + pricing + legal placeholders exist (post Sprint-3a/3b)", () => {
   // Stage 7.E /sign-up auth route still ships.
   assert.ok(exists("src/app/(auth)/sign-up/page.tsx"));
   // Stage 10.I.5 added a public marketing signup at /signup.
   assert.ok(exists("src/app/(public)/signup/page.tsx"));
-  // Stage 10.I.4 split /pricing into per-product pages; the bare URL
-  // 308-redirects via next.config.mjs.
-  assert.ok(exists("src/app/(public)/pricing/management-os/page.tsx"));
-  assert.ok(exists("src/app/(public)/pricing/development-os/page.tsx"));
+  // Sprint 3a's consolidated /pricing page (Sprint 3b retired the
+  // per-product /pricing/management-os and /pricing/development-os
+  // pages — both 308 to /pricing via next.config.mjs).
+  assert.ok(exists("src/app/(public)/pricing/page.tsx"));
   // Stage 8.A.2 placeholders.
   assert.ok(exists("src/app/(public)/legal/terms/page.tsx"));
   assert.ok(exists("src/app/(public)/legal/privacy/page.tsx"));
