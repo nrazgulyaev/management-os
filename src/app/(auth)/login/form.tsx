@@ -16,11 +16,24 @@ function Submit({ disabled }: { disabled?: boolean }) {
   );
 }
 
-export function LoginForm({ supabaseReady }: { supabaseReady: boolean }) {
+export function LoginForm({
+  supabaseReady,
+  product,
+}: {
+  supabaseReady: boolean;
+  /** Sprint 2 — `x-product` value from the request host (one of
+   *  "management" | "development" | "subscription" | "platform" | "").
+   *  Threaded into the form as a hidden input so the server action can
+   *  pick the post-login redirect target. */
+  product?: string;
+}) {
   const [state, action] = useActionState(signInAction, initial);
 
   return (
     <form action={action} className="mt-10 flex flex-col gap-4">
+      {product ? (
+        <input type="hidden" name="product" value={product} />
+      ) : null}
       {state && !state.ok && (
         <div className="rounded-sm border border-danger/30 bg-danger-weak/40 px-3 py-2 text-xs text-ink">
           {state.error}

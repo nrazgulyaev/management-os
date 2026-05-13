@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   ArrowUpRight,
   Building2,
@@ -18,6 +20,10 @@ import {
   ScrollStagger,
   ScrollStaggerItem,
 } from "@/components/motion/scroll-reveal";
+import {
+  ProductLanding,
+  type ProductLandingKind,
+} from "@/components/product-landing/product-landing";
 
 /**
  * Stage 10.I.2 — Umbrella public homepage.
@@ -30,6 +36,13 @@ import {
  * Brand voice: Professional / investor-grade per 10.I.1 operator
  * decision. Restrained palette, display typeface for headlines only,
  * conversion through clarity not pressure.
+ *
+ * Sprint 2 update — when the request arrives via a product subdomain
+ * (middleware stamps `x-product: management|development|subscription
+ * |platform`), this page short-circuits the umbrella marketing and
+ * renders a product-specific apex landing instead. `platform` redirects
+ * into the platform-admin layout which carries its own super_admin
+ * gate.
  */
 
 export const metadata = {
@@ -38,7 +51,32 @@ export const metadata = {
     "Two operating systems. One platform. Manage every villa and develop every project from a single source of truth — designed for investor-grade trust.",
 };
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  // Sprint 2 — per-product subdomain branch.
+  const h = await headers();
+  const product = h.get("x-product");
+  if (product === "platform") {
+    // Hand off to the (platform-app) layout: super_admin → /platform,
+    // anonymous → /login?next=/platform, others → /no-product-access.
+    redirect("/platform");
+  }
+  if (
+    product === "management" ||
+    product === "development" ||
+    product === "subscription"
+  ) {
+    return <ProductLanding product={product as ProductLandingKind} />;
+  }
+  // Apex `arconique.com` (or any non-product host) — continue with the
+  // existing umbrella marketing homepage. (Sprint 5 will hand the apex
+  // off to the capital/ project; this code path stays as the transition
+  // fallback until then.)
+  return <HomePageContent />;
+}
+
+function HomePageContent() {
   return (
     <>
       <HeroSection

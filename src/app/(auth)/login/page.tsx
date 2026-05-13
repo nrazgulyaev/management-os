@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { Logo } from "@/components/brand/logo";
 import { Badge } from "@/components/ui/badge";
 import { ArrowUpRight } from "lucide-react";
@@ -6,9 +7,61 @@ import { isSupabaseAuthConfigured } from "@/lib/env";
 import { LoginForm } from "./form";
 
 export const metadata = { title: "Sign in" };
+export const dynamic = "force-dynamic";
 
-export default function LoginPage() {
+interface ProductCopy {
+  workspaceLabel: string;
+  quickLinks: { href: string; label: string }[];
+}
+
+const PRODUCT_COPY: Record<string, ProductCopy> = {
+  management: {
+    workspaceLabel: "Arconique Management OS",
+    quickLinks: [
+      { href: "/dashboard", label: "Admin dashboard" },
+      { href: "/owner", label: "Owner portal" },
+      { href: "/field", label: "Staff field" },
+      { href: "/stay/demo", label: "Guest stay" },
+    ],
+  },
+  development: {
+    workspaceLabel: "Arconique Development OS",
+    quickLinks: [
+      { href: "/development-os", label: "Development OS" },
+      { href: "/investor-portal/login", label: "Investor portal" },
+      { href: "/buyer-portal/login", label: "Buyer portal" },
+      { href: "/vendor", label: "Vendor portal" },
+    ],
+  },
+  platform: {
+    workspaceLabel: "Arconique Platform Admin OS",
+    quickLinks: [{ href: "/platform", label: "Platform admin" }],
+  },
+  subscription: {
+    workspaceLabel: "Arconique",
+    quickLinks: [
+      { href: "/pricing", label: "View pricing" },
+      { href: "/signup", label: "Sign up" },
+      { href: "/contact", label: "Contact sales" },
+    ],
+  },
+};
+
+const DEFAULT_COPY: ProductCopy = {
+  workspaceLabel: "Arconique Management OS",
+  quickLinks: [
+    { href: "/dashboard", label: "Admin dashboard" },
+    { href: "/owner", label: "Owner portal" },
+    { href: "/field", label: "Staff field" },
+    { href: "/stay/demo", label: "Guest stay" },
+  ],
+};
+
+export default async function LoginPage() {
   const supabaseReady = isSupabaseAuthConfigured();
+  const h = await headers();
+  const product = h.get("x-product") ?? "";
+  const copy = PRODUCT_COPY[product] ?? DEFAULT_COPY;
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-canvas">
@@ -16,7 +69,7 @@ export default function LoginPage() {
         <Logo />
         <div className="flex-1 flex items-center">
           <div className="max-w-sm w-full mx-auto">
-            <span className="text-label">Arconique Management OS</span>
+            <span className="text-label">{copy.workspaceLabel}</span>
             <h1 className="text-display text-[44px] md:text-[56px] leading-[1.0] font-medium mt-4 text-ink tracking-tight">
               Welcome back.
             </h1>
@@ -24,11 +77,13 @@ export default function LoginPage() {
               Sign in to your staff, owner, or investor workspace.
             </p>
 
-            <LoginForm supabaseReady={supabaseReady} />
+            <LoginForm supabaseReady={supabaseReady} product={product} />
 
             <div className="mt-10 pt-6 border-t border-line-soft">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-label">Demo access</span>
+                <span className="text-label">
+                  {product === "subscription" ? "Explore" : "Demo access"}
+                </span>
                 <Badge tone="gold">Preview build</Badge>
               </div>
               <p className="text-sm text-ink-secondary mb-4">
@@ -37,12 +92,7 @@ export default function LoginPage() {
                   : "Authentication isn't fully wired. Jump straight into a surface to preview."}
               </p>
               <div className="grid grid-cols-2 gap-2">
-                {[
-                  { href: "/dashboard", label: "Admin dashboard" },
-                  { href: "/owner", label: "Owner portal" },
-                  { href: "/field", label: "Staff field" },
-                  { href: "/stay/demo", label: "Guest stay" },
-                ].map((l) => (
+                {copy.quickLinks.map((l) => (
                   <Link
                     key={l.href}
                     href={l.href}
@@ -60,7 +110,10 @@ export default function LoginPage() {
           </div>
         </div>
         <p className="text-xs text-ink-tertiary">
-          © {new Date().getFullYear()} Arconique · management.arconique.com
+          © {new Date().getFullYear()} Arconique ·{" "}
+          {product
+            ? `${product}.arconique.com`
+            : "management.arconique.com"}
         </p>
       </div>
       <div

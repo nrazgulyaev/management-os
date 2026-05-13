@@ -16,7 +16,36 @@ export type AuthResult =
 const credSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
+  /**
+   * Sprint 2 — optional product hint stamped by the login page when the
+   * request arrives on a product subdomain. Bounds the post-login
+   * redirect to a path that's reachable on that subdomain.
+   */
+  product: z
+    .enum(["management", "development", "subscription", "platform"])
+    .optional(),
 });
+
+/**
+ * Sprint 2 — preferred landing path per product subdomain. Returned
+ * when the login form carries a product hint, overriding the
+ * Stage-10.H products_enabled lookup. Each path is within that
+ * subdomain's allowedPrefixes (see src/middleware.ts), so the
+ * post-login redirect never bounces off the subdomain gate.
+ *
+ * Platform is special: the (platform-app) layout enforces super_admin
+ * on /platform, so we send everyone there and let the layout reject
+ * non-platform users (it will redirect them to /no-product-access).
+ */
+const PRODUCT_LANDING: Record<
+  "management" | "development" | "subscription" | "platform",
+  string
+> = {
+  management: "/dashboard",
+  development: "/development-os",
+  subscription: "/pricing",
+  platform: "/platform",
+};
 
 export async function signInAction(
   _prev: AuthResult | null,
@@ -36,20 +65,29 @@ export async function signInAction(
     };
   }
 
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { error } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
   if (error) return { ok: false, error: error.message };
 
-  // Stage 10.H — pick the landing surface based on the user's org's
-  // products_enabled. Single-product orgs go straight to that product;
-  // dual-product orgs (and any case where the lookup fails) default to
-  // /dashboard. Zero-product orgs land on /no-product-access.
-  let landingPath = "/dashboard";
-  try {
-    const products = await getProductsEnabledForCurrentUser();
-    landingPath = landingPathFor(products);
-  } catch {
-    // Lookup failure shouldn't block sign-in — fall back to /dashboard
-    // and let the layout-level enforceProductAccess() guard sort it out.
+  // Sprint 2 — when the user signed in on a product subdomain, prefer
+  // that product's canonical landing. Otherwise fall back to the
+  // Stage-10.H products_enabled-driven landing (single-product orgs go
+  // to their product, dual-product orgs to /dashboard, zero-product
+  // orgs to /no-product-access).
+  let landingPath: string;
+  if (parsed.data.product) {
+    landingPath = PRODUCT_LANDING[parsed.data.product];
+  } else {
+    landingPath = "/dashboard";
+    try {
+      const products = await getProductsEnabledForCurrentUser();
+      landingPath = landingPathFor(products);
+    } catch {
+      // Lookup failure shouldn't block sign-in — fall back to /dashboard
+      // and let the layout-level enforceProductAccess() guard sort it out.
+    }
   }
 
   revalidatePath(landingPath);
