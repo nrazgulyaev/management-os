@@ -121,3 +121,10 @@ export type { ListTableCardProps } from "./list-table-card";
 // Stage 10.6.C.3 — entity detail page hero primitive.
 export { DetailPageHero } from "./detail-page-hero";
 export type { DetailPageHeroProps } from "./detail-page-hero";
+
+// Stage 10.6.D.2 — external integrations command center primitive.
+export { IntegrationStatusCard } from "./integration-status-card";
+export type {
+  IntegrationStatusCardProps,
+  IntegrationStatus,
+} from "./integration-status-card";
