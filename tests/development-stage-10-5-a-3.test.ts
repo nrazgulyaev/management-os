@@ -71,9 +71,11 @@ const CLOSURE_DOC = "docs/STAGE-10-5-A-COMPLETE.md";
 // 10.5.A.3.1-3 — Per-cabinet contract for the three new replatforms
 // ============================================================================
 
-const NEW_PAGES = [
-  { key: "sales-manager", path: SALES, gate: "sales-manager" },
-  { key: "warehouse-manager", path: WAREHOUSE, gate: "warehouse-manager" },
+// Mega-Sprint Phases 2 + 5 migrated Sales Manager (Phase 2) and
+// Warehouse Manager (Phase 5) off the 10.5.A.3 contract onto the
+// Sprint-4 gold standard. Their per-cabinet assertions live below
+// under the mega-sprint phase headers.
+const NEW_PAGES: Array<{ key: string; path: string; gate: string }> = [
   // Front Office is in Mgmt OS; gating happens at the (dashboard) layout
   // (enforceProductAccess("mgmt")) — no per-page gateCabinetForCurrentOrg.
 ];
@@ -163,10 +165,34 @@ test("mega-sprint phase-2 — Sales Manager exposes a quick-action strip to capt
 
 test("10.5.A.3.2 — Warehouse page surfaces SKU / low / zero / QA labels", () => {
   const src = read(WAREHOUSE);
+  // Mega-Sprint Phase 5 rebuilt the cabinet on KpiRowMixed. "Total
+  // SKUs" KPI relocated to the side rail; "QA on materials" sits in
+  // the bottom 2/3 column. All four operator-facing labels survive.
   assert.match(src, /Total SKUs/);
   assert.match(src, /Low stock/);
   assert.match(src, /Zero stock/);
   assert.match(src, /QA on materials/);
+});
+
+test("mega-sprint phase-5 — Warehouse KpiRowMixed surfaces Low stock hero + Pending deliveries / Movements / Zero stock", () => {
+  const src = read(WAREHOUSE);
+  assert.match(src, /Low stock/);
+  assert.match(src, /Pending deliveries/);
+  assert.match(src, /Movements today/);
+  assert.match(src, /Zero stock/);
+});
+
+test("mega-sprint phase-5 — Warehouse exposes a quick-action strip to log movements + receive + watchlist", () => {
+  const src = read(WAREHOUSE);
+  assert.match(src, /Log stock movement/);
+  assert.match(src, /Receive delivery/);
+  assert.match(src, /Low-stock watchlist/);
+});
+
+test("mega-sprint phase-5 — Warehouse renders <PatrolTimeline> of recent movements", () => {
+  const src = read(WAREHOUSE);
+  assert.match(src, /<PatrolTimeline/);
+  assert.match(src, /recentMovements/);
 });
 
 // ============================================================================

@@ -127,7 +127,12 @@ const CABINETS: CabinetSpec[] = [
   {
     name: "Warehouse Manager",
     path: "src/app/(development-app)/development-os/cabinets/warehouse-manager/page.tsx",
-    expectedTone: "ink-deep",
+    // Mega-Sprint Phase 5 replaced the CabinetGreetingBlock +
+    // PageHeaderHero stack with <HeroGreetingAI>; the hero KPI now
+    // lives on <KpiRowMixed heroTone="gold-solid"> (Low stock).
+    expectedTone: "none",
+    sprint4Hero: true,
+    kpiRowMixed: true,
   },
 ];
 

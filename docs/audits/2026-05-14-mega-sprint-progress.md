@@ -56,3 +56,15 @@ section consolidates deferrals across all 12 phases.
 - **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 gold-solid hero (BoQs under review) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (gold). AI insight ✓ real inline 3-card grid of qs-cost-analyst outputs. Side panel ✓ retained cross-links + Specs-added KPI + Latest analysis KPI.
 
 ---
+
+## Phase 5 · Warehouse Manager (D5)
+
+- **Score:** 4.5/5 vs gold standard.
+- **LOC:** warehouse-manager/page.tsx 173 → ~330; warehouse-cabinet-queries.ts +75.
+- **Tests:** 6087 → 6080 (10 obsolete loop assertions retired from 10.5.A.3, 3 new mega-sprint phase-5 assertions added; net -7).
+- **Primitives shipped:** none new — phase consumes existing Sprint-4 primitives (HeroGreetingAI + KpiRowMixed gold-solid + HatchedBarChart gold + HalfDonutGauge emerald) and reuses Phase-1's `<PatrolTimeline>` to render inventory movement events.
+- **Data layer:** extended `loadWarehouseCabinet` with `pendingDeliveriesCount` (POs in `ordered` / `partially_delivered`), `movementsLast7Days` (daily inventory movement counts for the hatched-bar), and `recentMovements` (top 8 movements joined to item.display_name for the timeline rail).
+- **Deferrals:** (1) Stock-movement quick-entry route at `/development-os/inventory/movements/quick-entry` with `<SpreadsheetView>` + `bulkInsertMovements` server action — audit §D5 estimates 0.5 day, reuses Sprint-4 bookkeeper recipe. Deferred. (2) Stocktake quick-entry at `/development-os/inventory/stocktake/quick-entry` — audit §D5 estimates 0.5 day, mobile-first sheet. Deferred (audit itself notes "mobile UX needs polish; deferred to v2"). (3) Delivery-receipt OCR via `<PhotoCapture>` — deferred to a richer receiving flow.
+- **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 gold-solid hero (Low stock) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (gold) + emerald half-donut (SKUs above reorder). Activity rail ✓ PatrolTimeline of inventory movements with semantic status pills (inflows=ok, outflows=info, damaged/lost=alert). Side panel ✓ surface cross-links + Total SKUs KPI.
+
+---
