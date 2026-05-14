@@ -106,7 +106,13 @@ const CABINETS: CabinetSpec[] = [
   {
     name: "Sales Manager",
     path: "src/app/(development-app)/development-os/cabinets/sales-manager/page.tsx",
-    expectedTone: "emerald-soft",
+    // Mega-Sprint Phase 2 replaced the CabinetGreetingBlock +
+    // PageHeaderHero stack with <HeroGreetingAI> and swapped the
+    // hero KPI for a <KpiRowMixed>. LeadFunnelChart anchors the
+    // pipeline section below the KPIs.
+    expectedTone: "none",
+    sprint4Hero: true,
+    kpiRowMixed: true,
   },
   {
     name: "Warehouse Manager",

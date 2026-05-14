@@ -55,3 +55,11 @@ export type {
   PhotoEvidenceItem,
   PhotoEvidenceStatus,
 } from "./photo-evidence-grid";
+
+// Phase 2 — Sales Manager + Marketing primitives.
+export { LeadFunnelChart } from "./lead-funnel-chart";
+export type {
+  LeadFunnelChartProps,
+  FunnelStage,
+  FunnelStageTone,
+} from "./lead-funnel-chart";

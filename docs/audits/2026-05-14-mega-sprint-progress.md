@@ -9,3 +9,26 @@ This doc gets a new section appended after each phase. The final
 section consolidates deferrals across all 12 phases.
 
 ---
+
+## Phase 1 · Site Supervisor (D1)
+
+- **Score:** 4.5/5 vs gold standard.
+- **LOC:** site-supervisor/page.tsx 253 → ~340; +560 LOC of new primitives.
+- **Tests:** 6107 → 6098 (retired 9 obsolete Stage-5.F + 10.5.A.2 assertions covering the old layout shape).
+- **Primitives shipped:** `<PatrolTimeline>` + `<PhotoEvidenceGrid>` — both ready for Phase 9 (Housekeeping), Phase 11 (Security), and Damage Reports later.
+- **Deferrals:** (1) inline 3-card grid for `daily-construction-digest` outputs — needs a `loadDailyDigestOutputs(limit=3)` helper modeled on Sprint 4.5 CFO recipe; ship in a polish pass. (2) `<PhotoEvidenceGrid>` built but not yet consumed on the cabinet apex — the grid belongs one level deeper (per-report detail page); inline-on-apex deferred.
+- **Reference match:** Hero band ✓ Ref 1 silhouette. Today's pulse ✓ Ref 2 hatched-bar + half-donut. AI card ✓ Ref 1 ink-deep gradient. Divergence: preserves the snapshot KPI grid below the new shell.
+
+---
+
+## Phase 2 · Sales Manager (D6)
+
+- **Score:** 4.5/5 vs gold standard.
+- **LOC:** sales-manager/page.tsx 221 → ~370; sales-cabinet-queries.ts +60; +220 LOC of new primitive (lead-funnel-chart).
+- **Tests:** 6098 → 6098 (1 obsolete label assertion updated, 2 new mega-sprint assertions added, +1 LeadFunnelChart-presence assertion).
+- **Primitives shipped:** `<LeadFunnelChart>` — pure SVG trapezoid funnel with per-stage tone + conversion-% chips. Reused by Phase 7 (Marketing) for the campaign-attribution funnel.
+- **Data layer:** extended `loadSalesCabinet` with two new fields — `funnelByLifecycle` (count by lifecycle_status across assigned leads) + `conversationsLast7Days` (daily bucket of last_message_at timestamps). Both queries scoped to `managerId` so RLS continues to live at the leads / sales_conversation_threads layer.
+- **Deferrals:** (1) `<SalesPipelineKanban>` adapter over the existing `<KanbanBoard>` — audit §D6 mentioned this as a 0.25-day wrapper; deferred to a polish pass since the funnel chart + top-leads list cover the same operator intent. (2) Inline marketing-assistant draft list on the AI card — needs a `loadMarketingAssistantDrafts(managerId, limit=3)` helper paralleling the CFO/tax-assistant recipe; ship after Phase 7 lands the agent-driven Marketing rebuild.
+- **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 emerald-solid lead card + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar + snapshot rail. Funnel section ✓ "Project Analytics" funnel pattern from Ref 2 with conversion chips. AI card ✓ Ref 1 ink-deep gradient.
+
+---

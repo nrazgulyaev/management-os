@@ -136,12 +136,29 @@ test("10.5.A.3.3 — Front Office surfaces Arrivals / Departures / In-house / Pe
 
 test("10.5.A.3.1 — Sales page surfaces per-manager pipeline + weekly snapshot section", () => {
   const src = read(SALES);
+  // Mega-Sprint Phase 2 rebuilt the cabinet on KpiRowMixed. The
+  // "Active conversations" KPI was retired (the active-thread count
+  // now lives as a sub-line on the conversation-cadence section);
+  // the four KpiRowMixed labels assert the new contract.
   assert.match(src, /Hot leads/);
-  assert.match(src, /Active conversations/);
   assert.match(src, /Reservations \(MTD\)/);
+  assert.match(src, /Contracts \(MTD\)/);
   assert.match(src, /Overdue follow-ups/);
   // Weekly snapshot only renders when data.managerWeeklySnapshot is present.
   assert.match(src, /managerWeeklySnapshot/);
+});
+
+test("mega-sprint phase-2 — Sales Manager surfaces a LeadFunnelChart on the pipeline section", () => {
+  const src = read(SALES);
+  assert.match(src, /<LeadFunnelChart/);
+  assert.match(src, /funnelByLifecycle/);
+});
+
+test("mega-sprint phase-2 — Sales Manager exposes a quick-action strip to capture leads + reply + AI drafter", () => {
+  const src = read(SALES);
+  assert.match(src, /Capture new lead/);
+  assert.match(src, /Reply to overdue threads/);
+  assert.match(src, /AI follow-up drafter/);
 });
 
 test("10.5.A.3.2 — Warehouse page surfaces SKU / low / zero / QA labels", () => {

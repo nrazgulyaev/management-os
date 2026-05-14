@@ -15,6 +15,17 @@ export interface SalesCabinetData {
     aiQualityScore: string | null;
   } | null;
   topHotLeads: Array<{ id: string; leadCode: string; lifecycleStatus: string }>;
+  /**
+   * Phase 2 — pipeline counts by lifecycle stage, sourced from the
+   * leads table where assigned_manager_id matches. Drives the
+   * LeadFunnelChart on the cabinet apex.
+   */
+  funnelByLifecycle: Array<{ lifecycleStatus: string; count: number }>;
+  /**
+   * Phase 2 — conversation activity bucketed by ISO date for the
+   * last 7 days. Drives the HatchedBarChart "Today's pulse" tile.
+   */
+  conversationsLast7Days: Array<{ isoDate: string; count: number }>;
 }
 
 export async function loadSalesCabinet(
@@ -30,6 +41,8 @@ export async function loadSalesCabinet(
       followupsOverdueCount: 0,
       managerWeeklySnapshot: null,
       topHotLeads: [],
+      funnelByLifecycle: [],
+      conversationsLast7Days: [],
     };
   }
   const summary = await db.execute<{
@@ -98,6 +111,30 @@ export async function loadSalesCabinet(
      ORDER BY lifecycle_status_changed_at DESC LIMIT 5
   `);
 
+  const funnelRows = await db.execute<{
+    lifecycle_status: string;
+    count: string;
+  }>(sql`
+    SELECT lifecycle_status, COUNT(*)::text AS count
+      FROM leads
+     WHERE assigned_manager_id = ${managerId}::uuid
+       AND lifecycle_status IS NOT NULL
+     GROUP BY lifecycle_status
+  `);
+
+  const convRows = await db.execute<{
+    iso_date: string;
+    count: string;
+  }>(sql`
+    SELECT to_char(date_trunc('day', last_message_at), 'YYYY-MM-DD') AS iso_date,
+           COUNT(*)::text AS count
+      FROM sales_conversation_threads
+     WHERE primary_sales_manager_id = ${managerId}::uuid
+       AND last_message_at >= (now() - INTERVAL '7 days')
+     GROUP BY 1
+     ORDER BY 1 ASC
+  `);
+
   return {
     hotLeadsCount: Number(s?.hot ?? "0"),
     activeConversationsCount: Number(s?.active_conv ?? "0"),
@@ -118,6 +155,20 @@ export async function loadSalesCabinet(
         id: r.id,
         leadCode: r.lead_code,
         lifecycleStatus: r.lifecycle_status,
+      })) ?? [],
+    funnelByLifecycle:
+      (funnelRows as unknown as {
+        rows: Array<{ lifecycle_status: string; count: string }>;
+      }).rows?.map((r) => ({
+        lifecycleStatus: r.lifecycle_status,
+        count: Number(r.count ?? "0"),
+      })) ?? [],
+    conversationsLast7Days:
+      (convRows as unknown as {
+        rows: Array<{ iso_date: string; count: string }>;
+      }).rows?.map((r) => ({
+        isoDate: r.iso_date,
+        count: Number(r.count ?? "0"),
       })) ?? [],
   };
 }
