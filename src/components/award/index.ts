@@ -64,6 +64,17 @@ export type {
   FunnelStageTone,
 } from "./lead-funnel-chart";
 
+// Phase 12 — Investor Portal primitives.
+export { InvestorHeroGreetingAI } from "./investor-hero-greeting-ai";
+export type { InvestorHeroGreetingAIProps } from "./investor-hero-greeting-ai";
+
+export { DistributionWaterfall } from "./distribution-waterfall";
+export type {
+  DistributionWaterfallProps,
+  WaterfallStage,
+  WaterfallStageTone,
+} from "./distribution-waterfall";
+
 // Phase 8 — Front Office + Concierge primitives.
 export { RoomStatusBoard } from "./room-status-board";
 export type {
