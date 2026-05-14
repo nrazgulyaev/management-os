@@ -116,3 +116,15 @@ section consolidates deferrals across all 12 phases.
 - **Reference match:** Hero band ✓ Ref 1 silhouette (Mgmt-OS placeholder). KpiRowMixed ✓ Ref 2 emerald-solid hero (Today's turnovers count/total) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (emerald) + emerald half-donut. Activity rail ✓ PatrolTimeline with status pills (completed=ok, in_progress=info, awaiting_approval=warn, blocked=alert). AI placeholder ✓ ink-deep card naming the future agent.
 
 ---
+
+## Phase 10 · Concierge (M5)
+
+- **Score:** 4/5 vs gold standard.
+- **LOC:** new `/dashboard/concierge/page.tsx` ~330 LOC. Legacy hubs at `/dashboard/guest-ai`, `/dashboard/guest-services`, `/dashboard/guest-journey` survive as sub-routes per the operator decision lock ("merge 3 hubs into /dashboard/concierge").
+- **Tests:** 6075 → 6075 (additive — no concierge cabinet contract previously existed).
+- **Primitives shipped:** none new — phase consumes existing Sprint-4 primitives (HeroGreetingAI + KpiRowMixed coral-solid + HalfDonutGauge) and reuses Phase-1 `<PatrolTimeline>` + Phase-8 `<GuestArrivalsList>`. Demonstrates the cross-cabinet primitive reuse pattern across three different sub-domains.
+- **Data layer:** zero new queries. Apex pulls from five existing services in parallel: `countSessionsByStatus`, `countHandoffsByStatus`, `getOrderStats`, `listAdminSessions`, and `listArrivals`. The "Service-order revenue" tile reads the bridgedRevenueMinor already computed in `getOrderStats`.
+- **Deferrals:** (1) Dedicated operator-facing `concierge-handoff` agent — explicitly deferred per the operator decision lock. AI card ships a placeholder. (2) `<CommsPanel>` consumer per audit §M5 — would require a unified inbox feed across sessions + handoffs + service-order messages; not yet wired. The PatrolTimeline of sessions covers the activity rail need for now. (3) Avg response latency KPI — needs a per-session latency aggregator that does not exist yet; the four headline KPIs cover the operator-decision-lock contract without it.
+- **Reference match:** Hero band ✓ Ref 1 silhouette (Mgmt-OS placeholder copy). KpiRowMixed ✓ Ref 2 coral-solid hero (Active sessions) + 3 surface cards. Today's pulse ✓ HalfDonutGauge for handoff health + revenue snapshot tile. Arrivals list ✓ Phase-8 GuestArrivalsList consumed for the second time. Activity rail ✓ PatrolTimeline of active sessions. Hub-card grid ✓ legacy hubs surface as a cross-link strip with up-to-date counts. AI placeholder ✓ ink-deep card naming the future agent.
+
+---
