@@ -40,11 +40,28 @@ export interface CfoCabinetRecentTransaction {
   transactionDate: string;
 }
 
+/**
+ * Sprint 4.5 — single tax-assistant output preview surfaced on the
+ * cabinet apex. Up to 3 are returned (most recent first); each
+ * carries enough information to render a self-contained card
+ * without a join.
+ */
+export interface CfoCabinetTaxAssistantOutput {
+  outputCode: string;
+  title: string;
+  summary: string;
+  status: string;
+  createdAt: string;
+}
+
 export interface CfoCabinetData {
   latestSnapshot: CfoCabinetSnapshot | null;
   previousSnapshot: CfoCabinetSnapshot | null;
   recentTransactions: CfoCabinetRecentTransaction[];
+  /** @deprecated Sprint 4.5 — use `recentTaxAssistantOutputs[0]?.outputCode` */
   latestTaxAssistantOutputCode: string | null;
+  /** Sprint 4.5 — last 3 outputs (most recent first). */
+  recentTaxAssistantOutputs: CfoCabinetTaxAssistantOutput[];
   latestQsCostAnalystOutputCode: string | null;
   pendingTaxClassificationsCount: number;
   invoicesAwaitingPaymentCount: number;
@@ -55,6 +72,7 @@ const EMPTY: CfoCabinetData = {
   previousSnapshot: null,
   recentTransactions: [],
   latestTaxAssistantOutputCode: null,
+  recentTaxAssistantOutputs: [],
   latestQsCostAnalystOutputCode: null,
   pendingTaxClassificationsCount: 0,
   invoicesAwaitingPaymentCount: 0,
@@ -150,11 +168,33 @@ export async function loadCfoCabinet(): Promise<CfoCabinetData> {
     transactionDate: r.transaction_date,
   }));
 
-  const taxRow = await db.execute<{ output_code: string }>(sql`
-    SELECT output_code FROM agent_outputs
+  const taxRows = await db.execute<{
+    output_code: string;
+    title: string;
+    summary: string;
+    status: string;
+    created_at: string;
+  }>(sql`
+    SELECT output_code, title, summary, status, created_at::text
+      FROM agent_outputs
      WHERE agent_key = 'tax_assistant'
-     ORDER BY created_at DESC LIMIT 1
+     ORDER BY created_at DESC LIMIT 3
   `);
+  const recentTaxAssistantOutputs: CfoCabinetTaxAssistantOutput[] = (
+    (taxRows as unknown as { rows: Array<{
+      output_code: string;
+      title: string;
+      summary: string;
+      status: string;
+      created_at: string;
+    }> }).rows ?? []
+  ).map((r) => ({
+    outputCode: r.output_code,
+    title: r.title,
+    summary: r.summary,
+    status: r.status,
+    createdAt: r.created_at,
+  }));
   const qsRow = await db.execute<{ output_code: string }>(sql`
     SELECT output_code FROM agent_outputs
      WHERE agent_key = 'qs_cost_analyst'
@@ -174,9 +214,12 @@ export async function loadCfoCabinet(): Promise<CfoCabinetData> {
     latestSnapshot: latest,
     previousSnapshot: previous,
     recentTransactions,
+    // Back-compat alias for callers that haven't migrated to the new
+    // `recentTaxAssistantOutputs` array. Kept until all Sprint-4 page
+    // consumers (cabinet apex + AI Insights) are on the new field.
     latestTaxAssistantOutputCode:
-      (taxRow as unknown as { rows: Array<{ output_code: string }> }).rows?.[0]
-        ?.output_code ?? null,
+      recentTaxAssistantOutputs[0]?.outputCode ?? null,
+    recentTaxAssistantOutputs,
     latestQsCostAnalystOutputCode:
       (qsRow as unknown as { rows: Array<{ output_code: string }> }).rows?.[0]
         ?.output_code ?? null,

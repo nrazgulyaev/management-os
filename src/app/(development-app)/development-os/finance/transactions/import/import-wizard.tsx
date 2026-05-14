@@ -25,11 +25,19 @@ import {
   parsePaste,
   parseXlsx,
   type AppliedRow,
+  type ColumnMapping,
   type DestinationField,
+  type ParsedSheet,
   DESTINATION_FIELDS,
 } from "@/lib/development/server/transaction-import";
 import { bulkRecordTransactions } from "@/lib/development/server/transaction-bulk-actions";
 import type { BulkRecordResult } from "@/lib/development/server/transaction-bulk-actions";
+import {
+  listImportTemplates,
+  recordImportTemplateUse,
+  saveImportTemplate,
+  type SavedImportTemplate,
+} from "@/lib/development/server/import-template-actions";
 import { cn } from "@/lib/utils";
 
 export interface ImportBankAccountOption {
@@ -120,14 +128,10 @@ export function ImportWizard({
 
 function PasteTab({ bankAccountId }: { bankAccountId: string | null }) {
   const [raw, setRaw] = React.useState("");
-  const [applied, setApplied] = React.useState<AppliedRow[] | null>(null);
-  const [headers, setHeaders] = React.useState<string[]>([]);
+  const [parsed, setParsed] = React.useState<ParsedSheet | null>(null);
 
   function handleParse(): void {
-    const parsed = parsePaste(raw);
-    setHeaders(parsed.headers);
-    const mapping = autoMapHeaders(parsed.headers);
-    setApplied(applyMapping(parsed, mapping));
+    setParsed(parsePaste(raw));
   }
 
   return (
@@ -157,21 +161,20 @@ function PasteTab({ bankAccountId }: { bankAccountId: string | null }) {
           >
             Parse + preview
           </button>
-          {applied && (
+          {parsed && (
             <span className="text-xs text-ink-tertiary">
-              {applied.length} row{applied.length === 1 ? "" : "s"} parsed.
-              Auto-mapped {Object.keys(headers.length ? headers : []).length} header
-              {headers.length === 1 ? "" : "s"}.
+              {parsed.rows.length} row{parsed.rows.length === 1 ? "" : "s"} parsed
+              · {parsed.headers.length} header{parsed.headers.length === 1 ? "" : "s"}.
             </span>
           )}
         </div>
       </div>
 
-      {applied && (
-        <ReviewPreview
-          applied={applied}
-          headers={headers}
+      {parsed && (
+        <ImportPreviewPanel
+          parsed={parsed}
           bankAccountId={bankAccountId}
+          sourceKind="sheets_paste"
         />
       )}
     </section>
@@ -183,8 +186,7 @@ function PasteTab({ bankAccountId }: { bankAccountId: string | null }) {
 // ============================================================================
 
 function UploadTab({ bankAccountId }: { bankAccountId: string | null }) {
-  const [applied, setApplied] = React.useState<AppliedRow[] | null>(null);
-  const [headers, setHeaders] = React.useState<string[]>([]);
+  const [parsed, setParsed] = React.useState<ParsedSheet | null>(null);
   const [fileName, setFileName] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -193,13 +195,10 @@ function UploadTab({ bankAccountId }: { bankAccountId: string | null }) {
     setFileName(file.name);
     try {
       const buf = await file.arrayBuffer();
-      const parsed = parseXlsx(buf);
-      setHeaders(parsed.headers);
-      const mapping = autoMapHeaders(parsed.headers);
-      setApplied(applyMapping(parsed, mapping));
+      setParsed(parseXlsx(buf));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-      setApplied(null);
+      setParsed(null);
     }
   }
 
@@ -236,11 +235,11 @@ function UploadTab({ bankAccountId }: { bankAccountId: string | null }) {
         )}
       </div>
 
-      {applied && (
-        <ReviewPreview
-          applied={applied}
-          headers={headers}
+      {parsed && (
+        <ImportPreviewPanel
+          parsed={parsed}
           bankAccountId={bankAccountId}
+          sourceKind="xlsx"
         />
       )}
     </section>
@@ -276,6 +275,313 @@ function SheetsLivePlaceholder() {
 // ============================================================================
 // Shared review + commit
 // ============================================================================
+
+/**
+ * Sprint 4.5 — preview panel that owns the editable column-mapping
+ * state + template save/load. Derives `applied` from
+ * `(parsed, mapping)` so changes re-render the preview live. The
+ * <TemplatePicker> + <ColumnMapper> sit above the preview.
+ */
+function ImportPreviewPanel({
+  parsed,
+  bankAccountId,
+  sourceKind,
+}: {
+  parsed: ParsedSheet;
+  bankAccountId: string | null;
+  /** Persisted into saved templates so the picker can scope by kind. */
+  sourceKind: "sheets_paste" | "xlsx" | "csv" | "sheets_live";
+}) {
+  const [mapping, setMapping] = React.useState<ColumnMapping>(() =>
+    autoMapHeaders(parsed.headers),
+  );
+  React.useEffect(() => {
+    setMapping(autoMapHeaders(parsed.headers));
+  }, [parsed]);
+
+  const applied = React.useMemo(
+    () => applyMapping(parsed, mapping),
+    [parsed, mapping],
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      <TemplatePicker
+        sourceKind={sourceKind}
+        currentMapping={mapping}
+        onApply={(m) => setMapping(m)}
+      />
+      <ColumnMapper
+        headers={parsed.headers}
+        mapping={mapping}
+        onChange={setMapping}
+      />
+      <ReviewPreview
+        applied={applied}
+        headers={parsed.headers}
+        bankAccountId={bankAccountId}
+      />
+    </div>
+  );
+}
+
+/**
+ * Sprint 4.5 — Template picker + save UI. Lists saved templates for
+ * the current org (highest version per name) and lets the operator
+ * apply one or save the current mapping under a new name.
+ */
+function TemplatePicker({
+  sourceKind,
+  currentMapping,
+  onApply,
+}: {
+  sourceKind: "sheets_paste" | "xlsx" | "csv" | "sheets_live";
+  currentMapping: ColumnMapping;
+  onApply: (mapping: ColumnMapping) => void;
+}) {
+  const [templates, setTemplates] = React.useState<SavedImportTemplate[]>([]);
+  const [picked, setPicked] = React.useState<string>("");
+  const [saveName, setSaveName] = React.useState("");
+  const [pending, startTransition] = useTransition();
+  const [info, setInfo] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    listImportTemplates()
+      .then((list) => {
+        if (!cancelled) setTemplates(list);
+      })
+      .catch(() => {
+        /* listing failures are non-fatal — operator can still save */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function handleApply(id: string): void {
+    setPicked(id);
+    setError(null);
+    setInfo(null);
+    const t = templates.find((x) => x.id === id);
+    if (!t) return;
+    onApply(t.columnMapping);
+    setInfo(`Applied template "${t.name}" v${t.version}.`);
+    void recordImportTemplateUse({ id }).catch(() => {
+      // Audit-only; main apply already succeeded.
+    });
+  }
+
+  function handleSave(): void {
+    setError(null);
+    setInfo(null);
+    if (!saveName.trim()) {
+      setError("Pick a name for the template.");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const saved = await saveImportTemplate({
+          name: saveName.trim(),
+          sourceKind,
+          columnMapping: currentMapping,
+        });
+        setTemplates((prev) => {
+          // Replace any existing entry with the same name (since
+          // listImportTemplates returns one per name, highest version).
+          const others = prev.filter((p) => p.name !== saved.name);
+          return [saved, ...others].sort((a, b) => a.name.localeCompare(b.name));
+        });
+        setPicked(saved.id);
+        setSaveName("");
+        setInfo(`Saved "${saved.name}" v${saved.version}.`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    });
+  }
+
+  return (
+    <section
+      className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3"
+      data-stage10="import-template-picker"
+    >
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h3 className="text-sm font-medium text-ink">Mapping template</h3>
+          <p className="text-xs text-ink-tertiary leading-relaxed mt-1">
+            Apply a saved template, or name the current column-mapping
+            to reuse next time. Templates are versioned — saving
+            under an existing name auto-bumps the version.
+          </p>
+        </div>
+        <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
+          {templates.length} saved
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-ink-tertiary">Apply saved</span>
+          <select
+            value={picked}
+            onChange={(e) => handleApply(e.target.value)}
+            disabled={templates.length === 0}
+            className="rounded-md border border-line-soft bg-canvas px-2 h-9 text-sm text-ink disabled:opacity-60"
+          >
+            <option value="">— pick a template</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} (v{t.version}, {t.useCount} uses)
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-ink-tertiary">Save current as</span>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              placeholder="e.g. MyBookkeeperFormat"
+              className="flex-1 min-w-0 rounded-md border border-line-soft bg-canvas px-3 h-9 text-sm text-ink placeholder:text-ink-tertiary focus:outline-none focus:border-line-strong"
+            />
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={pending || saveName.trim() === ""}
+              className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 h-9 text-xs font-medium text-ink-inverse hover:bg-ink/90 disabled:opacity-60"
+            >
+              {pending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Save
+            </button>
+          </div>
+        </label>
+      </div>
+
+      {(info || error) && (
+        <p
+          className={
+            error
+              ? "text-xs text-danger"
+              : "text-xs text-success"
+          }
+          role={error ? "alert" : undefined}
+        >
+          {error ?? info}
+        </p>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Sprint 4.5 — Column mapping override.
+ *
+ * Lists every source header with a select picking which destination
+ * field it maps to. "(don't map)" leaves the column unused.
+ * Re-emits a fresh `ColumnMapping` on every change.
+ */
+function ColumnMapper({
+  headers,
+  mapping,
+  onChange,
+}: {
+  headers: string[];
+  mapping: ColumnMapping;
+  onChange: (next: ColumnMapping) => void;
+}) {
+  if (headers.length === 0) return null;
+  const usedFields = new Set<DestinationField>();
+  for (const dest of Object.values(mapping.destination_mapping)) {
+    if (dest) usedFields.add(dest);
+  }
+
+  function updateHeader(
+    header: string,
+    next: DestinationField | "",
+  ): void {
+    const draft: ColumnMapping = {
+      ...mapping,
+      destination_mapping: { ...mapping.destination_mapping },
+    };
+    if (next === "") {
+      delete draft.destination_mapping[header];
+    } else {
+      // Drop any other header that's currently claiming `next` — each
+      // destination field can be sourced from at most one column.
+      for (const h of Object.keys(draft.destination_mapping)) {
+        if (h !== header && draft.destination_mapping[h] === next) {
+          delete draft.destination_mapping[h];
+        }
+      }
+      draft.destination_mapping[header] = next;
+    }
+    onChange(draft);
+  }
+
+  return (
+    <section
+      className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3"
+      data-stage10="column-mapper"
+    >
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h3 className="text-sm font-medium text-ink">Column mapping</h3>
+          <p className="text-xs text-ink-tertiary leading-relaxed mt-1">
+            Each source header maps to one destination field (or
+            "—" for skip). Auto-mapped via heuristics; tweak below if
+            anything's off.
+          </p>
+        </div>
+        <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
+          {Object.keys(mapping.destination_mapping).length} /{" "}
+          {headers.length} mapped
+        </span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {headers.map((h) => {
+          const current = mapping.destination_mapping[h];
+          return (
+            <label
+              key={h}
+              className="flex flex-col gap-1 text-xs"
+              data-mapper-row={h}
+            >
+              <span className="text-ink-tertiary truncate" title={h}>
+                {h}
+              </span>
+              <select
+                value={current ?? ""}
+                onChange={(e) =>
+                  updateHeader(h, e.target.value as DestinationField | "")
+                }
+                className="rounded-md border border-line-soft bg-canvas px-2 h-9 text-sm text-ink"
+              >
+                <option value="">— skip column</option>
+                {DESTINATION_FIELDS.map((f) => (
+                  <option
+                    key={f}
+                    value={f}
+                    disabled={f !== current && usedFields.has(f)}
+                  >
+                    {f}
+                    {f !== current && usedFields.has(f)
+                      ? " (taken)"
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 function ReviewPreview({
   applied,

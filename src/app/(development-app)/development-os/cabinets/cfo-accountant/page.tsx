@@ -140,6 +140,7 @@ export default async function CfoCabinetPage() {
     previousSnapshot: null,
     recentTransactions: [],
     latestTaxAssistantOutputCode: null,
+    recentTaxAssistantOutputs: [],
     latestQsCostAnalystOutputCode: null,
     pendingTaxClassificationsCount: 0,
     invoicesAwaitingPaymentCount: 0,
@@ -426,13 +427,69 @@ export default async function CfoCabinetPage() {
                   </div>
                 </Section>
 
-                <Section eyebrow="AI" title="Insights">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <AiInsightCard
-                      label="Latest tax assistant"
-                      code={data.latestTaxAssistantOutputCode}
-                      hrefBase="/development-os/ai-agents/tax-assistant/outputs"
-                    />
+                <Section
+                  eyebrow="AI"
+                  title="Tax Assistant — recent runs"
+                  description="Last three tax-classification suggestions. Click any one to review the agent's full output + apply or reject."
+                  action={
+                    <Link
+                      href="/development-os/ai-agents/tax-assistant"
+                      className="text-xs text-ink-tertiary hover:underline"
+                    >
+                      Open assistant →
+                    </Link>
+                  }
+                >
+                  {data.recentTaxAssistantOutputs.length === 0 ? (
+                    <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm text-ink-tertiary">
+                      No tax-assistant runs yet. Trigger the assistant
+                      from a transaction or the cron will populate
+                      this on next pass.
+                    </div>
+                  ) : (
+                    <ul className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {data.recentTaxAssistantOutputs.map((out) => (
+                        <li
+                          key={out.outputCode}
+                          className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-5 flex flex-col gap-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                              {out.outputCode}
+                            </span>
+                            <Badge
+                              tone={
+                                out.status === "approved"
+                                  ? "success"
+                                  : out.status === "rejected"
+                                    ? "danger"
+                                    : "warning"
+                              }
+                            >
+                              {out.status.replace(/_/g, " ")}
+                            </Badge>
+                          </div>
+                          <h4 className="text-sm font-medium leading-tight">
+                            {out.title}
+                          </h4>
+                          <p className="text-xs opacity-80 leading-relaxed line-clamp-3">
+                            {out.summary}
+                          </p>
+                          <Link
+                            href={`/development-os/ai-agents/tax-assistant/outputs/${out.outputCode}`}
+                            className="mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-ink-inverse/15 hover:bg-ink-inverse/25 px-3 h-7 text-[11px] font-medium transition-colors"
+                          >
+                            Review
+                            <ArrowUpRight
+                              className="w-3 h-3"
+                              strokeWidth={1.75}
+                            />
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                     <AiInsightCard
                       label="Latest QS cost analyst"
                       code={data.latestQsCostAnalystOutputCode}

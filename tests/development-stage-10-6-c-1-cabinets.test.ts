@@ -35,6 +35,12 @@ interface CabinetSpec {
   name: string;
   path: string;
   expectedTone: "emerald-soft" | "gold-soft" | "coral-soft" | "ink-deep";
+  /**
+   * Sprint 4 — set true for cabinets that replaced the 10.6.C.1
+   * CabinetGreetingBlock + PageHeaderHero stack with
+   * <HeroGreetingAI>. The hero-KPI tone check below still applies.
+   */
+  sprint4Hero?: boolean;
 }
 
 const CABINETS: CabinetSpec[] = [
