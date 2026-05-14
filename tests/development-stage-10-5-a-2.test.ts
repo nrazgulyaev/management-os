@@ -44,13 +44,11 @@ const DECISIONS_DOC = "tmp/stage-10-5-a-2-decisions.md";
 // KpiRowMixed + Today's pulse). Removed from the looped contract;
 // per-cabinet assertions below are updated separately.
 // Other phases will remove their cabinets from this loop as they land.
-// Mega-Sprint Phases 3 + 4 — Procurement Manager (Phase 3) and QS
-// (Phase 4) migrated off the 10.5.A.2 contract onto the Sprint-4 gold
-// standard. Removed from the looped contract; per-cabinet assertions
-// below are updated separately.
-const PAGES: Array<{ key: string; path: string; gate: string }> = [
-  { key: "marketing-staff", path: MKT, gate: "marketing-staff" },
-];
+// Mega-Sprint Phases 3 + 4 + 7 — Procurement Manager (Phase 3), QS
+// (Phase 4), and Marketing Staff (Phase 7) migrated off the 10.5.A.2
+// contract onto the Sprint-4 gold standard. The loop now stands
+// empty; per-cabinet assertions below are updated separately.
+const PAGES: Array<{ key: string; path: string; gate: string }> = [];
 
 // ============================================================================
 // Cross-cabinet contract — every page replatformed cleanly
@@ -196,7 +194,10 @@ test("mega-sprint phase-3 — Procurement renders inline procurement-analyst out
 
 test("10.5.A.2.4 — Marketing headline KPIs surface lead + content signals", () => {
   const src = read(MKT);
-  assert.match(src, /Hot leads/);
+  // Mega-Sprint Phase 7 — "Hot leads" KPI relocated to the publish-
+  // cadence subline. KpiRowMixed now surfaces Scheduled this week /
+  // Leads this week / Approval queue / Active campaigns.
+  assert.match(src, /Scheduled this week/);
   assert.match(src, /Leads this week/);
   assert.match(src, /Approval queue/);
   assert.match(src, /Active campaigns/);
@@ -208,6 +209,24 @@ test("10.5.A.2.4 — Marketing renders the per-status content breakdown when dat
   assert.match(src, /statusEntries/);
   assert.match(src, /b\[1\] - a\[1\]/);
   assert.match(src, /Content by status/);
+});
+
+test("mega-sprint phase-7 — Marketing surfaces a LeadFunnelChart consumed from Phase 2", () => {
+  const src = read(MKT);
+  assert.match(src, /<LeadFunnelChart/);
+  assert.match(src, /funnelByLifecycle/);
+});
+
+test("mega-sprint phase-7 — Marketing exposes a quick-action strip for content + approval + AI assistant", () => {
+  const src = read(MKT);
+  assert.match(src, /Schedule content/);
+  assert.match(src, /Approval queue/);
+  assert.match(src, /AI marketing assistant/);
+});
+
+test("mega-sprint phase-7 — Marketing renders inline marketing-assistant output grid", () => {
+  const src = read(MKT);
+  assert.match(src, /recentMarketingAssistantOutputs/);
 });
 
 // ============================================================================

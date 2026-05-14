@@ -12,6 +12,17 @@ export interface MarketingCabinetData {
   leadsThisWeek: number;
   hotLeadsCount: number;
   latestMarketingAssistantOutputCode: string | null;
+  /** Phase 7 — content-publish cadence over last 7 days. */
+  publishesLast7Days: Array<{ isoDate: string; count: number }>;
+  /** Phase 7 — lead pipeline by lifecycle stage for the funnel. */
+  funnelByLifecycle: Array<{ lifecycleStatus: string; count: number }>;
+  /** Phase 7 — top 3 marketing-assistant outputs for the inline AI grid. */
+  recentMarketingAssistantOutputs: Array<{
+    outputCode: string;
+    title: string;
+    summary: string;
+    createdAt: string;
+  }>;
 }
 
 export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
@@ -26,6 +37,9 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
       leadsThisWeek: 0,
       hotLeadsCount: 0,
       latestMarketingAssistantOutputCode: null,
+      publishesLast7Days: [],
+      funnelByLifecycle: [],
+      recentMarketingAssistantOutputs: [],
     };
   }
   const statusRows = await db.execute<{ status: string; n: string }>(sql`
@@ -75,6 +89,41 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
      ORDER BY created_at DESC LIMIT 1
   `);
 
+  const dailyPublishes = await db.execute<{
+    iso_date: string;
+    count: string;
+  }>(sql`
+    SELECT to_char(date_trunc('day', published_at), 'YYYY-MM-DD') AS iso_date,
+           COUNT(*)::text AS count
+      FROM content_pieces
+     WHERE status = 'published'
+       AND published_at >= (now() - INTERVAL '7 days')
+     GROUP BY 1
+     ORDER BY 1 ASC
+  `);
+
+  const funnelRows = await db.execute<{
+    lifecycle_status: string;
+    count: string;
+  }>(sql`
+    SELECT lifecycle_status, COUNT(*)::text AS count
+      FROM leads
+     WHERE lifecycle_status IS NOT NULL
+     GROUP BY lifecycle_status
+  `);
+
+  const recentOutputs = await db.execute<{
+    output_code: string;
+    title: string;
+    summary: string;
+    created_at: string;
+  }>(sql`
+    SELECT output_code, title, summary, created_at::text
+      FROM agent_outputs
+     WHERE agent_key = 'marketing_assistant'
+     ORDER BY created_at DESC LIMIT 3
+  `);
+
   return {
     contentByStatus,
     contentApprovalQueueCount: Number(s?.review ?? "0"),
@@ -86,5 +135,33 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
     latestMarketingAssistantOutputCode:
       (latestMa as unknown as { rows: Array<{ output_code: string }> }).rows?.[0]
         ?.output_code ?? null,
+    publishesLast7Days:
+      (dailyPublishes as unknown as {
+        rows: Array<{ iso_date: string; count: string }>;
+      }).rows?.map((r) => ({
+        isoDate: r.iso_date,
+        count: Number(r.count ?? "0"),
+      })) ?? [],
+    funnelByLifecycle:
+      (funnelRows as unknown as {
+        rows: Array<{ lifecycle_status: string; count: string }>;
+      }).rows?.map((r) => ({
+        lifecycleStatus: r.lifecycle_status,
+        count: Number(r.count ?? "0"),
+      })) ?? [],
+    recentMarketingAssistantOutputs:
+      (recentOutputs as unknown as {
+        rows: Array<{
+          output_code: string;
+          title: string;
+          summary: string;
+          created_at: string;
+        }>;
+      }).rows?.map((r) => ({
+        outputCode: r.output_code,
+        title: r.title,
+        summary: r.summary,
+        createdAt: r.created_at,
+      })) ?? [],
   };
 }

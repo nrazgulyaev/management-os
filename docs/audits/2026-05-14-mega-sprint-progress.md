@@ -80,3 +80,15 @@ section consolidates deferrals across all 12 phases.
 - **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 emerald-solid hero (Active projects) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (emerald) + emerald half-donut (projects in good standing). AI grid ✓ real inline 3-card grid pulling daily digest + weekly plan + executive brief outputs in one feed. Portfolio pipeline ✓ KanbanBoard primitive consumed for the first time. Side panel ✓ Critical-path mini-feed preserved with riskScore + budget snapshot.
 
 ---
+
+## Phase 7 · Marketing Staff (D7)
+
+- **Score:** 4.5/5 vs gold standard.
+- **LOC:** marketing-staff/page.tsx 235 → ~350; marketing-cabinet-queries.ts +75.
+- **Tests:** 6080 → 6075 (8 obsolete loop assertions retired, 3 new mega-sprint phase-7 assertions added; net -5).
+- **Primitives shipped:** none new — phase consumes existing Sprint-4 primitives (HeroGreetingAI + KpiRowMixed coral-solid + HatchedBarChart terracotta) and re-uses Phase-2's `<LeadFunnelChart>` for the cross-channel funnel.
+- **Data layer:** extended `loadMarketingCabinet` with `publishesLast7Days` (daily content_pieces publishes for the hatched-bar), `funnelByLifecycle` (lead counts grouped by lifecycle_status for the funnel chart), and `recentMarketingAssistantOutputs` (top 3 outputs for the inline AI grid).
+- **Deferrals:** (1) `<ContentCalendarStrip>` primitive — audit §D7 marked it as "REUSES EXISTING" via a HatchedBarChart wrapper; this phase delivers the wrapper as the Today's-pulse section. (2) Top-attributed-source MTD KPI — would require an attribution-event aggregator that does not currently exist; deferred. (3) Channel-split DonutRatioCard — needs a per-channel publish breakdown; the per-status breakdown list is the interim surface. (4) `attribution` cross-link survives via the Phase-1 quick-action strip vocabulary; standalone attribution panel is downstream work.
+- **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 coral-solid hero (Scheduled this week) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (terracotta, daily publishes). Funnel section ✓ Phase-2 LeadFunnelChart consumed for the second time. AI grid ✓ real inline 3-card grid of marketing-assistant outputs. Side panel ✓ per-channel snapshot KPIs (Scheduled / Published / In approval).
+
+---
