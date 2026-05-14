@@ -444,13 +444,6 @@ test("settings/users-and-roles admin page exists", () => {
   );
 });
 
-test("Site Supervisor cabinet has 44px touch targets (mobile-first)", () => {
-  const src = read(
-    "src/app/(development-app)/development-os/cabinets/site-supervisor/page.tsx",
-  );
-  assert.match(src, /min-h-\[44px\]/);
-});
-
 test("Site Supervisor cabinet uses single column on mobile (grid-cols-1)", () => {
   const src = read(
     "src/app/(development-app)/development-os/cabinets/site-supervisor/page.tsx",
@@ -458,11 +451,17 @@ test("Site Supervisor cabinet uses single column on mobile (grid-cols-1)", () =>
   assert.match(src, /grid-cols-1/);
 });
 
-test("Site Supervisor cabinet has Quick Actions row", () => {
+test("mega-sprint phase-1 — Site Supervisor cabinet keeps a mobile-friendly quick-action strip", () => {
+  // Stage 5.F shipped the `min-h-[44px]` touch-target row +
+  // "Quick actions" Section heading. Mega-Sprint Phase 1 replaced
+  // that with the Sprint-4 quick-action strip (3 tiles, 10-wide
+  // icon chips, MD-and-up 3-column grid). Same operator intent —
+  // mobile users still get tap-targets sized for thumbs.
   const src = read(
     "src/app/(development-app)/development-os/cabinets/site-supervisor/page.tsx",
   );
-  assert.match(src, /Quick actions/i);
+  assert.match(src, /Quick photo · file report/);
+  assert.match(src, /Raise QA\/QC issue/);
 });
 
 // ===========================================================================

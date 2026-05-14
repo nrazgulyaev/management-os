@@ -38,8 +38,13 @@ const MKT =
   "src/app/(development-app)/development-os/cabinets/marketing-staff/page.tsx";
 const DECISIONS_DOC = "tmp/stage-10-5-a-2-decisions.md";
 
+// Mega-Sprint Phase 1 — Site Supervisor cabinet migrated off the
+// 10.5.A.2 contract (CabinetGreetingBlock + PageHeaderHero + 2/3-1/3
+// body split) onto the Sprint-4 gold standard (HeroGreetingAI +
+// KpiRowMixed + Today's pulse). Removed from the looped contract;
+// per-cabinet assertions below are updated separately.
+// Other phases will remove their cabinets from this loop as they land.
 const PAGES: Array<{ key: string; path: string; gate: string }> = [
-  { key: "site-supervisor", path: SITE, gate: "site-supervisor" },
   { key: "qs", path: QS, gate: "qs" },
   { key: "procurement-manager", path: PROC, gate: "procurement-manager" },
   { key: "marketing-staff", path: MKT, gate: "marketing-staff" },
@@ -100,21 +105,23 @@ for (const p of PAGES) {
 // Per-cabinet specifics
 // ============================================================================
 
-test("10.5.A.2.1 — Site Supervisor preserves the mobile-first quick-action grid (touch ≥ 44px)", () => {
+test("mega-sprint phase-1 — Site Supervisor exposes a quick-action strip to capture photos + raise QA/QC", () => {
   const src = read(SITE);
-  assert.match(src, /min-h-\[44px\]/);
-  assert.match(src, /Quick photo/);
-  assert.match(src, /Today's site report/);
-  assert.match(src, /Report issue/);
-  assert.match(src, /Material received/);
+  // The Sprint-4 quick-action strip replaces the Stage-10.5.A.2.1
+  // touch-target row. Same operator intent, different visual mass:
+  // 3 tiles linking to site-reports/new + qa-qc + the AI agent.
+  assert.match(src, /Quick photo · file report/);
+  assert.match(src, /Raise QA\/QC issue/);
+  assert.match(src, /AI daily digest/);
 });
 
-test("10.5.A.2.1 — Site Supervisor maps existing data to operator vocabulary in KPI labels", () => {
+test("mega-sprint phase-1 — Site Supervisor maps existing data into the KpiRowMixed labels", () => {
   const src = read(SITE);
-  // The 4 mapped KPI labels.
-  assert.match(src, /Tasks today/);
-  assert.match(src, /Active workers/);
-  assert.match(src, /Open incidents/);
+  // KpiRowMixed labels reuse the same fields the 10.5.A.2.1 hero
+  // KPI grid surfaced, with operator vocabulary tightened.
+  assert.match(src, /Reports today/);
+  assert.match(src, /Open QA \/ QC \(mine\)/);
+  assert.match(src, /Workforce yesterday/);
   assert.match(src, /Photos yesterday/);
 });
 

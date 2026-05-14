@@ -40,3 +40,18 @@ export type {
   TeamRowItem,
   TeamRowStatus,
 } from "./team-row-list";
+
+// Phase 1 — Site Supervisor + Security + Housekeeping primitives.
+export { PatrolTimeline } from "./patrol-timeline";
+export type {
+  PatrolTimelineProps,
+  PatrolEvent,
+  PatrolEventStatus,
+} from "./patrol-timeline";
+
+export { PhotoEvidenceGrid } from "./photo-evidence-grid";
+export type {
+  PhotoEvidenceGridProps,
+  PhotoEvidenceItem,
+  PhotoEvidenceStatus,
+} from "./photo-evidence-grid";

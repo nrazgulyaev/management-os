@@ -34,13 +34,21 @@ function read(rel: string): string {
 interface CabinetSpec {
   name: string;
   path: string;
-  expectedTone: "emerald-soft" | "gold-soft" | "coral-soft" | "ink-deep";
+  expectedTone: "emerald-soft" | "gold-soft" | "coral-soft" | "ink-deep" | "none";
   /**
    * Sprint 4 — set true for cabinets that replaced the 10.6.C.1
    * CabinetGreetingBlock + PageHeaderHero stack with
-   * <HeroGreetingAI>. The hero-KPI tone check below still applies.
+   * <HeroGreetingAI>. Implies the cabinet ships <HeroGreetingAI>;
+   * `expectedTone` is still asserted unless it's "none".
    */
   sprint4Hero?: boolean;
+  /**
+   * Mega-Sprint — set true for cabinets that ALSO replaced their
+   * `variant="hero"` DashboardKpi with a <KpiRowMixed> row. Sets
+   * `expectedTone="none"` implicitly — the hero-tone check is
+   * skipped and a <KpiRowMixed> presence check runs instead.
+   */
+  kpiRowMixed?: boolean;
 }
 
 const CABINETS: CabinetSpec[] = [
@@ -72,7 +80,13 @@ const CABINETS: CabinetSpec[] = [
   {
     name: "Site Supervisor",
     path: "src/app/(development-app)/development-os/cabinets/site-supervisor/page.tsx",
-    expectedTone: "gold-soft",
+    // Mega-Sprint Phase 1 replaced the CabinetGreetingBlock +
+    // PageHeaderHero stack with <HeroGreetingAI>. Hero KPI tone now
+    // lives on KpiRowMixed (default emerald-solid); the cabinet's
+    // historical gold-soft hero KPI was retired.
+    expectedTone: "none",
+    sprint4Hero: true,
+    kpiRowMixed: true,
   },
   {
     name: "QS",
@@ -139,9 +153,16 @@ for (const cab of CABINETS) {
     });
   }
 
-  test(`10.6.C.1 — ${cab.name} renders one hero KPI with tone="${cab.expectedTone}"`, () => {
-    const src = read(cab.path);
-    assert.match(src, /variant="hero"/);
-    assert.match(src, new RegExp(`tone="${cab.expectedTone}"`));
-  });
+  if (cab.kpiRowMixed) {
+    test(`mega-sprint — ${cab.name} renders a <KpiRowMixed> in place of a DashboardKpi hero variant`, () => {
+      const src = read(cab.path);
+      assert.match(src, /<KpiRowMixed/);
+    });
+  } else if (cab.expectedTone !== "none") {
+    test(`10.6.C.1 — ${cab.name} renders one hero KPI with tone="${cab.expectedTone}"`, () => {
+      const src = read(cab.path);
+      assert.match(src, /variant="hero"/);
+      assert.match(src, new RegExp(`tone="${cab.expectedTone}"`));
+    });
+  }
 }
