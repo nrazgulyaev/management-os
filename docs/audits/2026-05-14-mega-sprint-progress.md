@@ -128,3 +128,15 @@ section consolidates deferrals across all 12 phases.
 - **Reference match:** Hero band ✓ Ref 1 silhouette (Mgmt-OS placeholder copy). KpiRowMixed ✓ Ref 2 coral-solid hero (Active sessions) + 3 surface cards. Today's pulse ✓ HalfDonutGauge for handoff health + revenue snapshot tile. Arrivals list ✓ Phase-8 GuestArrivalsList consumed for the second time. Activity rail ✓ PatrolTimeline of active sessions. Hub-card grid ✓ legacy hubs surface as a cross-link strip with up-to-date counts. AI placeholder ✓ ink-deep card naming the future agent.
 
 ---
+
+## Phase 11 · Security (M2)
+
+- **Score:** 4/5 vs gold standard. **This is a rebuild, not a refactor** — surface went from 42 LOC to ~380 LOC.
+- **LOC:** security/page.tsx 42 → ~380.
+- **Tests:** 6075 → 6075 (additive — no security cabinet contract previously existed beyond the stub).
+- **Primitives shipped:** none new — phase consumes existing Sprint-4 primitives (HeroGreetingAI + KpiRowMixed ink-deep + HatchedBarChart terracotta + HalfDonutGauge emerald) and reuses Phase-1's `<PatrolTimeline>` for the security-event activity rail. Validates the audit thesis that PatrolTimeline is a "security cabinet primitive" not site-supervisor-only.
+- **Data layer:** zero new tables. Apex pulls from three existing services in parallel: `listSecurityCameraDevices` (registry stats), `listSecurityEventsForAdmin` (auth + suspicious-request events from `auth_security_events`), and `listOperationTasks({ category: "security" })` (proxy for patrol logs + incidents). Patrol-completion % is derived from security-tasks scheduled-for-today vs completed-today.
+- **Deferrals:** (1) Dedicated `patrol_events` + `security_incidents` tables — audit §M2 calls these out as "needs design + build". Cabinet uses operation_tasks as a proxy in V1; v2 would introduce a richer patrol-log schema with photo evidence. (2) `<CameraGrid>` polish — current registry list is functional but flat; visual grid + per-device health timeline deferred. (3) `security-copilot` agent — explicitly deferred per the operator decision lock. (4) Access-event aggregator — auth events surface; physical access-control events would need integration with on-site hardware not in scope.
+- **Reference match:** Hero band ✓ Ref 1 silhouette (Mgmt-OS placeholder copy). KpiRowMixed ✓ Ref 2 ink-deep hero (Open incidents) + Camera health / Patrol completion / Auth events. Today's pulse ✓ Ref 2 hatched-bar (terracotta, auth events) + emerald half-donut (camera health). Activity rail ✓ PatrolTimeline of recent auth events with severity-coded status pills (critical/high=alert, warning/medium=warn, info=info). Camera registry ✓ promoted from sole-content to a 2/3-col table card; side panel ✓ cross-links + patrols-today KPI + AI placeholder.
+
+---
