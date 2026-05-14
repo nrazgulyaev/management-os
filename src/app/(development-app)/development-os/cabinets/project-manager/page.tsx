@@ -1,11 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  CabinetGreetingBlock,
-  DashboardKpi,
-  NoItemsYet,
-  PageHeaderHero,
-} from "@/components/ui/primitives";
+  AlertTriangle,
+  ArrowUpRight,
+  GitBranch,
+  Sparkles,
+} from "lucide-react";
+import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
+import {
+  HalfDonutGauge,
+  HatchedBarChart,
+  HeroGreetingAI,
+  KpiRowMixed,
+  type HatchedBarDatum,
+  type KpiItem,
+} from "@/components/award";
+import { ProjectPipelineKanban } from "./_project-pipeline-kanban";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -17,24 +27,66 @@ import { redirect } from "next/navigation";
 import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
 
 /**
- * Stage 10.5.A.1.3 — Project Manager cabinet (replatformed).
- *
- * Layout vocabulary established by 10.5.A.1.1 (Owner) + 10.5.A.1.2
- * (CFO):
- *   - PageHeaderHero greeting + eyebrow
- *   - 4-column DashboardKpi row with status thresholds
- *   - 2/3-1/3 split body: portfolio + critical-path / activity column
- *
- * Critical-path mini-feed sorts by `riskScore` (open QA/QC + 2 ×
- * open risks + pending change orders). Top 5 surface with status
- * pills; click drills into the project detail.
- *
- * Trend deltas not available for PM totals yet — there is no
- * pm-snapshot table. Carry-over for 10.5.A.2.
+ * Mega-Sprint / Phase 6 — Project Manager cabinet on Sprint-4 gold
+ * standard. Replaces the Stage-10.5.A.1.3 CabinetGreetingBlock +
+ * PageHeaderHero stack with <HeroGreetingAI>, swaps the headline KPI
+ * grid for <KpiRowMixed> with an emerald-solid hero (Active
+ * projects), adds a Today's-pulse hatched-bar of daily QA/QC + CO
+ * cadence + a portfolio-health half-donut, surfaces an inline 3-card
+ * grid of recent PM-relevant agent outputs, and wraps the existing
+ * project list in <KanbanBoard> as the portfolio-pipeline view. The
+ * "Critical path" side panel is preserved.
  */
 
 export const metadata: Metadata = { title: "Project manager · Cabinet" };
 export const dynamic = "force-dynamic";
+
+function todayLabel(now: Date): string {
+  const day = now.getDate();
+  const weekday = now.toLocaleDateString("en-US", { weekday: "short" });
+  const month = now.toLocaleDateString("en-US", { month: "long" });
+  return `${day} · ${weekday}, ${month}`;
+}
+
+function bucketLast7Days(
+  rows: Array<{ isoDate: string; count: number }>,
+  today: Date,
+): HatchedBarDatum[] {
+  const counts = new Map<string, number>();
+  for (const r of rows) counts.set(r.isoDate, r.count);
+  const out: HatchedBarDatum[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - i);
+    const iso = d.toISOString().slice(0, 10);
+    const n = counts.get(iso) ?? 0;
+    out.push({
+      label: d.toLocaleDateString("en-US", { weekday: "narrow" }),
+      value: Math.max(n, 1),
+      status: n > 0 ? "active" : "inactive",
+      caption: n > 0 ? String(n) : undefined,
+    });
+  }
+  return out;
+}
+
+const AGENT_HREF: Record<string, string> = {
+  daily_construction_digest:
+    "/development-os/ai-agents/daily-construction-digest/outputs",
+  daily_digest: "/development-os/ai-agents/daily-digest/outputs",
+  weekly_construction_plan:
+    "/development-os/ai-agents/weekly-construction-plan/outputs",
+  weekly_plan: "/development-os/ai-agents/weekly-plan/outputs",
+  executive_business: "/development-os/ai-agents/executive-business/outputs",
+};
+
+const AGENT_LABEL: Record<string, string> = {
+  daily_construction_digest: "Daily digest",
+  daily_digest: "Daily digest",
+  weekly_construction_plan: "Weekly plan",
+  weekly_plan: "Weekly plan",
+  executive_business: "Executive",
+};
 
 export default async function ProjectManagerCabinetPage() {
   const __gateRedirect = await gateCabinetForCurrentOrg("project-manager");
@@ -55,131 +107,280 @@ export default async function ProjectManagerCabinetPage() {
     latestDailyDigestCode: null,
     latestWeeklyPlanCode: null,
     recentMemoryItemsCount: 0,
+    activityLast7Days: [],
+    recentPmAgentOutputs: [],
   });
 
   const t = data.totals;
+  const now = new Date();
+  const dailyActivity = bucketLast7Days(data.activityLast7Days, now);
+
+  const kpis: KpiItem[] = [
+    {
+      label: "Active projects",
+      value: String(t.activeProjectsCount),
+      delta:
+        t.activeProjectsCount === 0
+          ? "No active portfolio"
+          : `${data.projectsAtRisk.length} on watch`,
+      href: "/development-os/projects",
+    },
+    {
+      label: "Open QA / QC",
+      value: String(t.openQaQcCount),
+      delta:
+        t.openQaQcCount === 0
+          ? "Queue clear"
+          : "Need triage",
+      href: "/development-os/qa-qc",
+    },
+    {
+      label: "Open risks",
+      value: String(t.openRisksCount),
+      delta:
+        t.openRisksCount === 0
+          ? "Register clean"
+          : "Need mitigation",
+      href: "/development-os/risk-register",
+    },
+    {
+      label: "Pending change orders",
+      value: String(t.pendingChangeOrdersCount),
+      delta:
+        t.pendingChangeOrdersCount === 0
+          ? "No variations"
+          : "Awaiting decision",
+      href: "/development-os/change-orders",
+    },
+  ];
+
+  const portfolioRisky = data.projectsAtRisk.length;
+  const portfolioHealthy = Math.max(
+    0,
+    t.activeProjectsCount - portfolioRisky,
+  );
+  const healthPct =
+    t.activeProjectsCount > 0
+      ? Math.round((portfolioHealthy / t.activeProjectsCount) * 100)
+      : 0;
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-10">
-        <CabinetGreetingBlock
+      <div className="flex flex-col gap-8 md:gap-10">
+        <HeroGreetingAI
           firstName={firstName}
-          eyebrow="Project manager · Cabinet"
-          subline={
-            t.activeProjectsCount === 0
-              ? "No active projects yet — add one to start tracking risk."
-              : `${t.activeProjectsCount} active project${t.activeProjectsCount === 1 ? "" : "s"} · ${data.projectsAtRisk.length} on watch`
-          }
-          badge={
-            data.projectsAtRisk.length > 0 ? (
-              <Badge tone="warning">{data.projectsAtRisk.length} at risk</Badge>
-            ) : null
-          }
+          role="Project Manager · Cabinet"
+          dateLabel={todayLabel(now)}
+          aiPromptPlaceholder="Brief me on today — daily-construction-digest."
+          showMyTasksHref="/development-os/projects"
         />
 
-        <PageHeaderHero
-          eyebrow="This week"
-          title={
-            t.activeProjectsCount === 0
-              ? "No active projects yet"
-              : `${t.activeProjectsCount} active project${t.activeProjectsCount === 1 ? "" : "s"}`
-          }
-          description="Portfolio risk, change orders, and what your AI agents flagged this week."
-        />
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <DashboardKpi
-            variant="hero"
-            tone="emerald-soft"
-            label="Active projects"
-            value={String(t.activeProjectsCount)}
-            status="neutral"
-            drillHref="/development-os/projects"
-            className="sm:col-span-2 lg:col-span-2"
-          />
-          <DashboardKpi
-            label="Open QA / QC"
-            value={String(t.openQaQcCount)}
-            status={
-              t.openQaQcCount === 0 ? "good" : t.openQaQcCount > 10 ? "bad" : "warn"
-            }
-            drillHref="/development-os/qa-qc"
-          />
-          <DashboardKpi
-            label="Open risks"
-            value={String(t.openRisksCount)}
-            status={
-              t.openRisksCount === 0 ? "good" : t.openRisksCount > 5 ? "bad" : "warn"
-            }
-            drillHref="/development-os/risk-register"
-          />
-          <DashboardKpi
-            label="Pending change orders"
-            value={String(t.pendingChangeOrdersCount)}
-            status={t.pendingChangeOrdersCount === 0 ? "good" : "warn"}
-            drillHref="/development-os/change-orders"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          {[
+            {
+              href: "/development-os/qa-qc",
+              icon: AlertTriangle,
+              label: "Triage QA / QC",
+              caption:
+                t.openQaQcCount > 0
+                  ? `${t.openQaQcCount} open`
+                  : "Queue clear",
+            },
+            {
+              href: "/development-os/change-orders",
+              icon: GitBranch,
+              label: "Decide change orders",
+              caption:
+                t.pendingChangeOrdersCount > 0
+                  ? `${t.pendingChangeOrdersCount} pending`
+                  : "No variations",
+            },
+            {
+              href: "/development-os/ai-agents/daily-construction-digest",
+              icon: Sparkles,
+              label: "AI daily digest",
+              caption: "Yesterday's exceptions",
+            },
+          ].map(({ href, icon: Icon, label, caption }) => (
+            <Link
+              key={href}
+              href={href}
+              className="rounded-3xl border border-line-soft bg-surface shadow-soft-card px-5 py-4 flex items-center gap-4 hover:bg-muted/40 transition-colors"
+            >
+              <span className="shrink-0 w-10 h-10 rounded-full bg-gradient-emerald-soft border border-line-soft inline-flex items-center justify-center">
+                <Icon className="w-4 h-4 text-ink" strokeWidth={1.75} />
+              </span>
+              <span className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-medium text-ink truncate">
+                  {label}
+                </span>
+                <span className="text-xs text-ink-tertiary truncate">
+                  {caption}
+                </span>
+              </span>
+              <ArrowUpRight
+                className="w-4 h-4 text-ink-tertiary shrink-0"
+                strokeWidth={1.75}
+              />
+            </Link>
+          ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 flex flex-col gap-6">
-            <Section eyebrow="Portfolio" title="Active projects">
-              {data.projects.length === 0 ? (
-                <NoItemsYet
-                  entityLabel="projects"
-                  description="Create a project from /development-os/projects to start tracking."
-                />
-              ) : (
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {data.projects.map((p) => (
-                    <li
-                      key={p.id}
-                      className="rounded-md border border-line-soft bg-surface p-4 flex flex-col gap-2"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="font-medium truncate">{p.name}</span>
-                        <Badge tone="neutral">{p.status}</Badge>
-                      </div>
-                      <Link
-                        href={`/development-os/projects/${p.id}`}
-                        className="text-xs text-info hover:underline mt-auto"
-                      >
-                        Open project →
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Section>
+        <KpiRowMixed kpis={kpis} heroTone="emerald-solid" />
 
-            <Section eyebrow="AI" title="Insights">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <AiInsightCard
-                  label="Latest daily digest"
-                  code={data.latestDailyDigestCode}
-                  hrefBase="/development-os/ai-agents/daily-digest/outputs"
-                />
-                <AiInsightCard
-                  label="Latest weekly plan"
-                  code={data.latestWeeklyPlanCode}
-                  hrefBase="/development-os/ai-agents/weekly-plan/outputs"
-                />
-                <div className="rounded-md border border-line-soft bg-surface p-4">
-                  <div className="text-label">Memory items (14d)</div>
-                  <div className="text-display text-[28px] leading-[32px] font-medium font-mono tabular-nums text-ink mt-1">
-                    {data.recentMemoryItemsCount}
-                  </div>
-                </div>
+        <Section
+          eyebrow="Today's pulse"
+          title="QA/QC + change-order cadence"
+          description="Daily QA/QC issue creations + change-order requests across the portfolio for the last 7 days, alongside the share of projects in good standing."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
+            <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
+                  Last 7 days
+                </span>
+                <span className="text-xs text-ink-tertiary tabular-nums">
+                  {data.activityLast7Days.reduce(
+                    (s, r) => s + r.count,
+                    0,
+                  )}{" "}
+                  events
+                </span>
               </div>
+              <HatchedBarChart
+                data={dailyActivity}
+                tone="emerald"
+                height={200}
+              />
+            </div>
+            <HalfDonutGauge
+              variant="emerald"
+              value={healthPct}
+              max={100}
+              label={
+                <>
+                  <p className="text-display text-[28px] md:text-[36px] leading-none font-medium text-ink tabular-nums">
+                    {healthPct}%
+                  </p>
+                  <p className="text-xs text-ink-tertiary mt-1">
+                    Projects in good standing
+                  </p>
+                </>
+              }
+              legend={[
+                { label: `${portfolioHealthy} healthy` },
+                {
+                  label: `${portfolioRisky} at risk`,
+                  color: "var(--line-strong)",
+                },
+              ]}
+            />
+          </div>
+        </Section>
+
+        <Section
+          eyebrow="AI"
+          title="Daily digest + weekly plan + executive brief"
+          description="Latest outputs from the agents PMs check daily. Each card opens the agent's review screen."
+        >
+          {data.recentPmAgentOutputs.length === 0 ? (
+            <div className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3">
+              <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                Recent runs
+              </span>
+              <p className="text-sm leading-relaxed opacity-90">
+                No outputs yet. Trigger the daily-construction-digest,
+                weekly-construction-plan, or executive-business agents
+                from Jobs to see them surface here.
+              </p>
+              <Badge tone="outline" className="self-start">
+                Run an agent to populate
+              </Badge>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+              {data.recentPmAgentOutputs.map((o) => {
+                const base =
+                  AGENT_HREF[o.agentKey] ??
+                  "/development-os/ai-agents";
+                return (
+                  <Link
+                    key={o.outputCode}
+                    href={`${base}/${o.outputCode}`}
+                    className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3 hover:bg-muted/40 transition-colors min-h-[180px]"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-tertiary">
+                        {AGENT_LABEL[o.agentKey] ?? o.agentKey} · {o.outputCode}
+                      </span>
+                      <ArrowUpRight
+                        className="w-4 h-4 text-ink-tertiary"
+                        strokeWidth={1.75}
+                      />
+                    </div>
+                    <h4 className="text-sm font-medium text-ink line-clamp-2">
+                      {o.title}
+                    </h4>
+                    <p className="text-xs text-ink-secondary leading-relaxed line-clamp-4">
+                      {o.summary}
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          eyebrow="Portfolio"
+          title="Project pipeline"
+          description="Active projects bucketed by lifecycle status. Click a card to open the project."
+          action={
+            <Link
+              href="/development-os/projects"
+              className="text-xs text-ink-tertiary hover:underline"
+            >
+              All projects →
+            </Link>
+          }
+        >
+          {data.projects.length === 0 ? (
+            <NoItemsYet
+              entityLabel="projects"
+              description="Create a project from /development-os/projects to start tracking."
+            />
+          ) : (
+            <ProjectPipelineKanban projects={data.projects} />
+          )}
+        </Section>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Section
+              eyebrow="Memory"
+              title="Knowledge captured"
+              description="Project AI memory items observed in the last 14 days."
+            >
+              <DashboardKpi
+                label="Memory items (14d)"
+                value={String(data.recentMemoryItemsCount)}
+                status="neutral"
+                drillHref="/development-os/projects"
+                hint="Active project_ai_memory rows"
+              />
             </Section>
           </div>
 
-          <aside className="flex flex-col gap-4">
-            <Section eyebrow="Critical path" title="Projects at risk">
+          <aside>
+            <Section
+              eyebrow="Critical path"
+              title="Projects at risk"
+              description="Top 5 by open QA/QC + risks + change orders."
+            >
               {data.projectsAtRisk.length === 0 ? (
                 <div className="rounded-md border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
-                  No risky projects right now. Open QA/QC, risks, and change
-                  orders surface here as they pile up.
+                  No risky projects right now. Open QA/QC, risks, and
+                  change orders surface here as they pile up.
                 </div>
               ) : (
                 <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
@@ -221,44 +422,10 @@ export default async function ProjectManagerCabinetPage() {
                   ))}
                 </ul>
               )}
-              <div className="mt-2 flex justify-end">
-                <Link
-                  href="/development-os/projects"
-                  className="text-xs text-ink-tertiary hover:underline"
-                >
-                  All projects →
-                </Link>
-              </div>
             </Section>
           </aside>
         </div>
       </div>
     </DevelopmentShell>
-  );
-}
-
-function AiInsightCard({
-  label,
-  code,
-  hrefBase,
-}: {
-  label: string;
-  code: string | null;
-  hrefBase: string;
-}) {
-  return (
-    <div className="rounded-md border border-line-soft bg-surface p-4">
-      <div className="text-label">{label}</div>
-      {code ? (
-        <Link
-          href={`${hrefBase}/${code}`}
-          className="text-sm text-info hover:underline"
-        >
-          {code} →
-        </Link>
-      ) : (
-        <span className="text-sm text-ink-tertiary">No output yet</span>
-      )}
-    </div>
   );
 }

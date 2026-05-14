@@ -75,7 +75,14 @@ const CABINETS: CabinetSpec[] = [
   {
     name: "Project Manager",
     path: "src/app/(development-app)/development-os/cabinets/project-manager/page.tsx",
-    expectedTone: "emerald-soft",
+    // Mega-Sprint Phase 6 replaced the CabinetGreetingBlock +
+    // PageHeaderHero stack with <HeroGreetingAI>; the hero KPI now
+    // lives on <KpiRowMixed heroTone="emerald-solid">. Portfolio
+    // pipeline now uses <KanbanBoard> via the client island
+    // <ProjectPipelineKanban>.
+    expectedTone: "none",
+    sprint4Hero: true,
+    kpiRowMixed: true,
   },
   {
     name: "Site Supervisor",

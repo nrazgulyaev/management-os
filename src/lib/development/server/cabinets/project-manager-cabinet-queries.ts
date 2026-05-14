@@ -41,6 +41,23 @@ export interface ProjectManagerCabinetData {
   latestDailyDigestCode: string | null;
   latestWeeklyPlanCode: string | null;
   recentMemoryItemsCount: number;
+  /**
+   * Phase 6 — daily QA/QC + change-order creation cadence over the
+   * last 7 days. Drives the HatchedBarChart in Today's pulse.
+   */
+  activityLast7Days: Array<{ isoDate: string; count: number }>;
+  /**
+   * Phase 6 — top 3 recent PM-relevant agent outputs across
+   * daily_construction_digest / weekly_construction_plan /
+   * executive_business agents.
+   */
+  recentPmAgentOutputs: Array<{
+    agentKey: string;
+    outputCode: string;
+    title: string;
+    summary: string;
+    createdAt: string;
+  }>;
 }
 
 const EMPTY: ProjectManagerCabinetData = {
@@ -55,6 +72,8 @@ const EMPTY: ProjectManagerCabinetData = {
   latestDailyDigestCode: null,
   latestWeeklyPlanCode: null,
   recentMemoryItemsCount: 0,
+  activityLast7Days: [],
+  recentPmAgentOutputs: [],
 };
 
 export async function loadProjectManagerCabinet(): Promise<ProjectManagerCabinetData> {
@@ -161,6 +180,41 @@ export async function loadProjectManagerCabinet(): Promise<ProjectManagerCabinet
        AND last_observed_at >= CURRENT_DATE - INTERVAL '14 days'
   `);
 
+  const activityRows = await db.execute<{
+    iso_date: string;
+    count: string;
+  }>(sql`
+    SELECT to_char(d::date, 'YYYY-MM-DD') AS iso_date, COUNT(*)::text AS count
+      FROM (
+        SELECT created_at AS d FROM qa_qc_issues
+         WHERE created_at >= (now() - INTERVAL '7 days')
+        UNION ALL
+        SELECT requested_at::timestamptz AS d FROM change_orders
+         WHERE requested_at >= (CURRENT_DATE - INTERVAL '7 days')
+      ) events
+     GROUP BY 1
+     ORDER BY 1 ASC
+  `);
+
+  const recentOutputs = await db.execute<{
+    agent_key: string;
+    output_code: string;
+    title: string;
+    summary: string;
+    created_at: string;
+  }>(sql`
+    SELECT agent_key, output_code, title, summary, created_at::text
+      FROM agent_outputs
+     WHERE agent_key IN (
+       'daily_construction_digest',
+       'daily_digest',
+       'weekly_construction_plan',
+       'weekly_plan',
+       'executive_business'
+     )
+     ORDER BY created_at DESC LIMIT 3
+  `);
+
   return {
     projects,
     projectsAtRisk,
@@ -179,5 +233,28 @@ export async function loadProjectManagerCabinet(): Promise<ProjectManagerCabinet
     recentMemoryItemsCount: Number(
       (memRow as unknown as { rows: Array<{ n: string }> }).rows?.[0]?.n ?? "0",
     ),
+    activityLast7Days:
+      (activityRows as unknown as {
+        rows: Array<{ iso_date: string; count: string }>;
+      }).rows?.map((r) => ({
+        isoDate: r.iso_date,
+        count: Number(r.count ?? "0"),
+      })) ?? [],
+    recentPmAgentOutputs:
+      (recentOutputs as unknown as {
+        rows: Array<{
+          agent_key: string;
+          output_code: string;
+          title: string;
+          summary: string;
+          created_at: string;
+        }>;
+      }).rows?.map((r) => ({
+        agentKey: r.agent_key,
+        outputCode: r.output_code,
+        title: r.title,
+        summary: r.summary,
+        createdAt: r.created_at,
+      })) ?? [],
   };
 }

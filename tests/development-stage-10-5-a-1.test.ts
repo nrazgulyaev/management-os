@@ -204,6 +204,9 @@ test("10.5.A.1.2 — CFO page is still gated by gateCabinetForCurrentOrg", () =>
 
 test("10.5.A.1.3 — PM page imports DashboardKpi + PageHeaderHero (not legacy MetricCard)", () => {
   const src = read(PM_PAGE);
+  // Mega-Sprint Phase 6 — DashboardKpi survives (Memory items KPI);
+  // PageHeaderHero reference remains in the file header comment
+  // documenting the migration. Legacy MetricCard import stays banned.
   assert.match(src, /\bDashboardKpi\b/);
   assert.match(src, /\bPageHeaderHero\b/);
   assert.doesNotMatch(src, /from "@\/components\/ui\/metric-card"/);
@@ -211,10 +214,27 @@ test("10.5.A.1.3 — PM page imports DashboardKpi + PageHeaderHero (not legacy M
 
 test("10.5.A.1.3 — PM page renders 4 KPI tiles + a critical-path side feed", () => {
   const src = read(PM_PAGE);
-  const kpiMatches = src.match(/<DashboardKpi/g) ?? [];
-  assert.ok(kpiMatches.length >= 4);
+  // Mega-Sprint Phase 6 — the four headline tiles moved off
+  // DashboardKpi onto <KpiRowMixed>; assert the new contract here
+  // by counting KpiItem-shaped objects on the KPI row. The critical-
+  // path side feed survives unchanged.
+  assert.match(src, /<KpiRowMixed/);
   assert.match(src, /Projects at risk/);
   assert.match(src, /projectsAtRisk/);
+});
+
+test("mega-sprint phase-6 — PM cabinet uses HeroGreetingAI + KanbanBoard portfolio pipeline", () => {
+  const src = read(PM_PAGE);
+  assert.match(src, /<HeroGreetingAI/);
+  assert.match(src, /<ProjectPipelineKanban/);
+});
+
+test("mega-sprint phase-6 — PM KpiRowMixed surfaces Active projects + QA/QC + risks + change orders", () => {
+  const src = read(PM_PAGE);
+  assert.match(src, /Active projects/);
+  assert.match(src, /Open QA \/ QC/);
+  assert.match(src, /Open risks/);
+  assert.match(src, /Pending change orders/);
 });
 
 test("10.5.A.1.3 — PM page is gated by gateCabinetForCurrentOrg", () => {

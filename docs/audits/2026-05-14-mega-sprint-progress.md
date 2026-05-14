@@ -68,3 +68,15 @@ section consolidates deferrals across all 12 phases.
 - **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 gold-solid hero (Low stock) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (gold) + emerald half-donut (SKUs above reorder). Activity rail ✓ PatrolTimeline of inventory movements with semantic status pills (inflows=ok, outflows=info, damaged/lost=alert). Side panel ✓ surface cross-links + Total SKUs KPI.
 
 ---
+
+## Phase 6 · Project Manager (D3)
+
+- **Score:** 4.5/5 vs gold standard.
+- **LOC:** project-manager/page.tsx 264 → ~330; pm-cabinet-queries.ts +60; new client island `_project-pipeline-kanban.tsx` (~50 LOC).
+- **Tests:** 6080 → 6080 (1 obsolete ≥4 KPI assertion rewritten for KpiRowMixed contract, 2 new mega-sprint phase-6 assertions added; net 0).
+- **Primitives shipped:** none new — phase consumes existing Sprint-4 primitives (HeroGreetingAI + KpiRowMixed emerald-solid + HatchedBarChart + HalfDonutGauge) and wires the previously-unused `<KanbanBoard>` primitive via a thin `<ProjectPipelineKanban>` client island that buckets projects by lifecycle status.
+- **Data layer:** extended `loadProjectManagerCabinet` with `activityLast7Days` (daily QA/QC + change-order creations for the hatched-bar) and `recentPmAgentOutputs` (top 3 outputs across daily-construction-digest + weekly-construction-plan + executive-business agents for the inline AI grid).
+- **Deferrals:** (1) `<TeamRowList>` for active subcontractors per audit §D3 — would need a subcontractor-aggregator query that does not currently exist; deferred. (2) `<DonutRatioCard>` project-completion % — requires a per-project planned-vs-actual roll-up; not on the critical path. (3) Drag-and-drop card moves in the portfolio kanban — currently read-only (click-through opens the project); audit explicitly notes PM is a "consumer of data, not a daily producer", so write-back is intentionally out of scope.
+- **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 emerald-solid hero (Active projects) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (emerald) + emerald half-donut (projects in good standing). AI grid ✓ real inline 3-card grid pulling daily digest + weekly plan + executive brief outputs in one feed. Portfolio pipeline ✓ KanbanBoard primitive consumed for the first time. Side panel ✓ Critical-path mini-feed preserved with riskScore + budget snapshot.
+
+---
