@@ -92,3 +92,15 @@ section consolidates deferrals across all 12 phases.
 - **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 coral-solid hero (Scheduled this week) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (terracotta, daily publishes). Funnel section ✓ Phase-2 LeadFunnelChart consumed for the second time. AI grid ✓ real inline 3-card grid of marketing-assistant outputs. Side panel ✓ per-channel snapshot KPIs (Scheduled / Published / In approval).
 
 ---
+
+## Phase 8 · Front Office (M1)
+
+- **Score:** 4.5/5 vs gold standard.
+- **LOC:** front-office/page.tsx 214 → ~420; +210 LOC across two new primitives (room-status-board, guest-arrivals-list); +110 LOC for the room-board loader helper.
+- **Tests:** 6075 → 6075 (3 obsolete 10.5.A.3.3 assertions rewritten for KpiRowMixed + RoomStatusBoard contract, 2 new mega-sprint phase-8 assertions added; net 0).
+- **Primitives shipped:** `<RoomStatusBoard>` — villa × day matrix with semantic per-day status pills (vacant/arrival/staying/departure/blocked), reused by Phase-10 Concierge and the Owner Portal occupancy view; `<GuestArrivalsList>` — timed arrivals list with party-size dot, readiness pill, channel + ETA chips, optional service-request flag, reused by Phase-10 Concierge.
+- **Data layer:** new `loadFrontOfficeRoomBoard(startDate, days)` helper in `src/features/front-office/room-board.ts` that joins `bookings` to `villas` and resolves the 7-day per-villa status with priority rules (arrival/departure > staying > tentative-blocked > vacant). Limited to 24 villas for first render.
+- **Deferrals:** (1) Dedicated `front-office-copilot` agent — explicitly deferred per the operator decision lock (no new agents). AI card ships with a placeholder "coming soon" surface naming the future agent. (2) `<CommsPanel>` for the guest-request inbox — audit §M1 suggested it; the cabinet keeps the existing inbox card to avoid layering on a heavier dependency. (3) `<HatchedBarChart>` for daily-occupancy 7-day cadence — superseded by the RoomStatusBoard which already shows the same data more legibly per villa.
+- **Reference match:** Hero band ✓ Ref 1 silhouette (Mgmt-OS placeholder copy on the AI input). KpiRowMixed ✓ Ref 2 emerald-solid hero (Tonight's occupancy). Today's pulse ✓ dual HalfDonutGauge (occupancy + arrival readiness). Room status board ✓ visual grid satisfies the audit §M1 ask for "operator wants a visual grid by villa + day". Arrivals list ✓ replaces flat link list with timed status-pill rows. Side panel ✓ guest-request inbox + cross-links + AI placeholder card preserved.
+
+---

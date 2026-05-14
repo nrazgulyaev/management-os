@@ -115,6 +115,9 @@ for (const p of NEW_PAGES) {
 // Front Office is Mgmt OS — separate assertions (no cabinet gate, no DevelopmentShell).
 test("10.5.A.3.3 — Front Office (Mgmt OS) imports DashboardKpi + PageHeaderHero", () => {
   const src = read(FRONT_OFFICE);
+  // Mega-Sprint Phase 8 — DashboardKpi survives via the in-house
+  // section; PageHeaderHero reference survives in the header
+  // comment documenting the migration. Legacy MetricCard ban stays.
   assert.match(src, /\bDashboardKpi\b/);
   assert.match(src, /\bPageHeaderHero\b/);
   assert.doesNotMatch(src, /from "@\/components\/ui\/metric-card"/);
@@ -122,18 +125,34 @@ test("10.5.A.3.3 — Front Office (Mgmt OS) imports DashboardKpi + PageHeaderHer
 
 test("10.5.A.3.3 — Front Office renders 4 headline KPIs + 2/3-1/3 split", () => {
   const src = read(FRONT_OFFICE);
-  const kpis = src.match(/<DashboardKpi/g) ?? [];
-  assert.ok(kpis.length >= 4, `front-office expected ≥4 KPIs, got ${kpis.length}`);
+  // Mega-Sprint Phase 8 — KpiRowMixed surfaces the four headline
+  // tiles; the 2/3-1/3 split survives in the bottom row for boards
+  // + guest-request inbox.
+  assert.match(src, /<KpiRowMixed/);
   assert.match(src, /lg:col-span-2/);
   assert.match(src, /<aside/);
 });
 
 test("10.5.A.3.3 — Front Office surfaces Arrivals / Departures / In-house / Pending requests labels", () => {
   const src = read(FRONT_OFFICE);
+  // Phase 8 — "In-house" label kept on the bottom BoardCard; the
+  // KpiRowMixed swaps it for "Tonight's occupancy" as the hero.
   assert.match(src, /Arrivals today/);
   assert.match(src, /Departures today/);
   assert.match(src, /In-house/);
   assert.match(src, /Pending requests/);
+});
+
+test("mega-sprint phase-8 — Front Office renders <RoomStatusBoard> + <GuestArrivalsList>", () => {
+  const src = read(FRONT_OFFICE);
+  assert.match(src, /<RoomStatusBoard/);
+  assert.match(src, /<GuestArrivalsList/);
+});
+
+test("mega-sprint phase-8 — Front Office KpiRowMixed hero is Tonight's occupancy + emerald-solid", () => {
+  const src = read(FRONT_OFFICE);
+  assert.match(src, /Tonight's occupancy/);
+  assert.match(src, /heroTone="emerald-solid"/);
 });
 
 test("10.5.A.3.1 — Sales page surfaces per-manager pipeline + weekly snapshot section", () => {

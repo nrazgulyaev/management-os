@@ -60,7 +60,14 @@ const CABINETS: CabinetSpec[] = [
   {
     name: "Front Office",
     path: "src/app/(dashboard)/dashboard/front-office/page.tsx",
-    expectedTone: "coral-soft",
+    // Mega-Sprint Phase 8 replaced the CabinetGreetingBlock +
+    // PageHeaderHero stack with <HeroGreetingAI>; the hero KPI now
+    // lives on <KpiRowMixed heroTone="emerald-solid"> (Tonight's
+    // occupancy). RoomStatusBoard + GuestArrivalsList anchor the
+    // page.
+    expectedTone: "none",
+    sprint4Hero: true,
+    kpiRowMixed: true,
   },
   {
     name: "CFO / Accountant",

@@ -63,3 +63,18 @@ export type {
   FunnelStage,
   FunnelStageTone,
 } from "./lead-funnel-chart";
+
+// Phase 8 — Front Office + Concierge primitives.
+export { RoomStatusBoard } from "./room-status-board";
+export type {
+  RoomStatusBoardProps,
+  RoomStatusRow,
+  RoomDayStatus,
+} from "./room-status-board";
+
+export { GuestArrivalsList } from "./guest-arrivals-list";
+export type {
+  GuestArrivalsListProps,
+  GuestArrivalItem,
+  GuestArrivalReadiness,
+} from "./guest-arrivals-list";
