@@ -44,13 +44,11 @@ const DECISIONS_DOC = "tmp/stage-10-5-a-2-decisions.md";
 // KpiRowMixed + Today's pulse). Removed from the looped contract;
 // per-cabinet assertions below are updated separately.
 // Other phases will remove their cabinets from this loop as they land.
-// Mega-Sprint Phase 3 — Procurement Manager cabinet migrated off the
-// 10.5.A.2 contract (CabinetGreetingBlock + PageHeaderHero + 2/3-1/3
-// body split) onto the Sprint-4 gold standard (HeroGreetingAI +
-// KpiRowMixed + Today's pulse). Removed from the looped contract;
-// per-cabinet assertions below are updated separately.
+// Mega-Sprint Phases 3 + 4 — Procurement Manager (Phase 3) and QS
+// (Phase 4) migrated off the 10.5.A.2 contract onto the Sprint-4 gold
+// standard. Removed from the looped contract; per-cabinet assertions
+// below are updated separately.
 const PAGES: Array<{ key: string; path: string; gate: string }> = [
-  { key: "qs", path: QS, gate: "qs" },
   { key: "marketing-staff", path: MKT, gate: "marketing-staff" },
 ];
 
@@ -131,6 +129,9 @@ test("mega-sprint phase-1 — Site Supervisor maps existing data into the KpiRow
 
 test("10.5.A.2.2 — QS surfaces the 'Latest analysis' KPI as a drill into the AI agent output", () => {
   const src = read(QS);
+  // Mega-Sprint Phase 4 — KPI now lives in the side rail instead of
+  // the headline grid. The drill href + the latest-output binding
+  // still anchor the assertion.
   assert.match(src, /Latest analysis/);
   assert.match(src, /qs-cost-analyst\/outputs\//);
 });
@@ -142,6 +143,25 @@ test("10.5.A.2.2 — QS recent-BOQs list is now a vertical link list (not a flat
     src,
     /rounded-md border border-line-soft bg-surface divide-y divide-line-soft/,
   );
+});
+
+test("mega-sprint phase-4 — QS KpiRowMixed surfaces BoQ review / change orders / AI anomaly labels", () => {
+  const src = read(QS);
+  assert.match(src, /BoQs under review/);
+  assert.match(src, /Open change orders/);
+  assert.match(src, /AI anomalies \(7d\)/);
+});
+
+test("mega-sprint phase-4 — QS exposes a quick-action strip to review BoQ + change orders + AI analyst", () => {
+  const src = read(QS);
+  assert.match(src, /Review BoQ/);
+  assert.match(src, /Change orders/);
+  assert.match(src, /AI cost analyst/);
+});
+
+test("mega-sprint phase-4 — QS renders inline qs-cost-analyst output grid", () => {
+  const src = read(QS);
+  assert.match(src, /recentQsAnalystOutputs/);
 });
 
 test("mega-sprint phase-3 — Procurement KpiRowMixed surfaces PR / RFQ / PO / Spend MTD labels", () => {

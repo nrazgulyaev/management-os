@@ -44,3 +44,15 @@ section consolidates deferrals across all 12 phases.
 - **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 coral-solid hero (PRs awaiting quotation) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (terracotta) + half-donut gauge (gold tone, delivered vs in-flight). AI insight ✓ real inline 3-card grid of procurement-analyst outputs (CFO/Sprint-4.5 recipe). Side panel ✓ retained cross-links + "Latest analyst output" KPI.
 
 ---
+
+## Phase 4 · QS / Cost Analyst (D2)
+
+- **Score:** 4.5/5 vs gold standard.
+- **LOC:** qs/page.tsx 177 → ~310; qs-cabinet-queries.ts +90.
+- **Tests:** 6092 → 6087 (5 obsolete loop assertions retired, 3 new mega-sprint phase-4 assertions added; net -5 because the loop dropped both procurement-manager and qs entries leaving only marketing-staff as the legacy contract holder).
+- **Primitives shipped:** none new — phase consumes existing Sprint-4 primitives (HeroGreetingAI + KpiRowMixed gold-solid + HatchedBarChart gold tone) plus the CFO inline 3-card output grid recipe.
+- **Data layer:** extended `loadQsCabinet` with `boqsUnderReviewCount` (proxy for "lines awaiting QS review" via boq_documents.status='under_review'), `openChangeOrdersCount` (change_orders status in 'requested'/'under_review'), `anomaliesThisWeekCount` + `anomaliesLast7Days` (qs_cost_analyst output cadence over the last week), and `recentQsAnalystOutputs` (top 3 outputs for the inline AI grid).
+- **Deferrals:** (1) `<BoqGrid>` / `<SpreadsheetView>` quick-entry route at `/development-os/boq/quick-entry` — audit §D2 estimates 0.5 day, would require a `bulkInsertBoqLines` server action paralleling the Sprint-4 bookkeeper quick-entry recipe. Deferred to a polish pass. (2) Project-level budget-variance % KPI — needs a heavier dev_budget_lines × dev_transactions roll-up; the cabinet currently surfaces "Active BoQs" instead. Tracked as a §D2 carry-over.
+- **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 gold-solid hero (BoQs under review) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (gold). AI insight ✓ real inline 3-card grid of qs-cost-analyst outputs. Side panel ✓ retained cross-links + Specs-added KPI + Latest analysis KPI.
+
+---
