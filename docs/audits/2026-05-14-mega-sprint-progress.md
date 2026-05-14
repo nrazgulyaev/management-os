@@ -104,3 +104,15 @@ section consolidates deferrals across all 12 phases.
 - **Reference match:** Hero band ✓ Ref 1 silhouette (Mgmt-OS placeholder copy on the AI input). KpiRowMixed ✓ Ref 2 emerald-solid hero (Tonight's occupancy). Today's pulse ✓ dual HalfDonutGauge (occupancy + arrival readiness). Room status board ✓ visual grid satisfies the audit §M1 ask for "operator wants a visual grid by villa + day". Arrivals list ✓ replaces flat link list with timed status-pill rows. Side panel ✓ guest-request inbox + cross-links + AI placeholder card preserved.
 
 ---
+
+## Phase 9 · Housekeeping (M3)
+
+- **Score:** 4/5 vs gold standard (loses 0.5 on the photo grid — surface ships as a placeholder pending the aggregation query).
+- **LOC:** new `/dashboard/housekeeping/page.tsx` ~360 LOC; legacy `/dashboard/operations/housekeeping/page.tsx` preserved unchanged as the full-task-list board.
+- **Tests:** 6075 → 6075 (no test changes — housekeeping has no prior cabinet contract; the new apex is additive).
+- **Primitives shipped:** none new — phase consumes existing Sprint-4 primitives (HeroGreetingAI + KpiRowMixed emerald-solid + HatchedBarChart + HalfDonutGauge) and the Phase-1 `<PatrolTimeline>` + `<PhotoEvidenceGrid>` primitives. Validates the Phase-1 primitive thesis that these are cross-cabinet primitives, not site-supervisor-only.
+- **Data layer:** reuses the existing `listOperationTasks({ category: "housekeeping" })` service — no new queries required. Today's-pulse cadence is derived in the page from `scheduledFor` timestamps.
+- **Deferrals:** (1) Dedicated `housekeeping-scheduler` agent — explicitly deferred per the operator decision lock. AI card ships a placeholder. (2) `<PhotoEvidenceGrid>` aggregator query — needs a join between operation_tasks and an as-yet-unbuilt photos table; cabinet ships with an empty-state surface that names the gap. (3) Mobile UX polish for cleaners — audit §M3 explicitly notes "mobile UX needs polish; deferred to v2". The existing `<MobileTaskCard>` integration on the per-task detail page is unchanged. (4) `<RoomStatusBoard>` consumer on housekeeping per audit §M3 — would require a per-villa cleaning-status join not yet wired; the Front-Office surface already shows the visual board.
+- **Reference match:** Hero band ✓ Ref 1 silhouette (Mgmt-OS placeholder). KpiRowMixed ✓ Ref 2 emerald-solid hero (Today's turnovers count/total) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (emerald) + emerald half-donut. Activity rail ✓ PatrolTimeline with status pills (completed=ok, in_progress=info, awaiting_approval=warn, blocked=alert). AI placeholder ✓ ink-deep card naming the future agent.
+
+---
