@@ -21,6 +21,10 @@ import {
 } from "@/components/ui/primitives/spreadsheet-view";
 import { bulkRecordTransactions } from "@/lib/development/server/transaction-bulk-actions";
 import type { BulkRecordResult } from "@/lib/development/server/transaction-bulk-actions";
+import {
+  ReceiptExtractor,
+  type ReceiptDraftRow,
+} from "./receipt-extractor";
 
 const CURRENCY_OPTIONS = ["USD", "EUR", "IDR", "USDT"] as const;
 const DIRECTION_OPTIONS = ["inflow", "outflow"] as const;
@@ -61,6 +65,68 @@ export function QuickEntryForm({
   const [result, setResult] = React.useState<BulkRecordResult | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Sprint 4.5 — receipts confirmed via <ReceiptExtractor> land here
+  // (one bulk-record call per confirm, single row). The grid below
+  // shows the running list so the operator can see what's been added
+  // without scrolling away from the spreadsheet.
+  const [recentlyAdded, setRecentlyAdded] = React.useState<
+    Array<{ transactionCode: string; summary: string }>
+  >([]);
+
+  function handleReceiptConfirm(row: ReceiptDraftRow): void {
+    setError(null);
+    if (!bankAccountId) {
+      setError("Pick a bank account first.");
+      return;
+    }
+    const amountMajor = Number(row.amountMajor);
+    if (!Number.isFinite(amountMajor) || amountMajor <= 0) {
+      setError(
+        "Receipt amount couldn't be parsed — edit the row inline before saving.",
+      );
+      return;
+    }
+    const currency = row.currency.toUpperCase();
+    const minorMultiplier = currency === "USDT" ? 1_000_000 : 100;
+    startTransition(async () => {
+      try {
+        const out = await bulkRecordTransactions({
+          bankAccountId,
+          rows: [
+            {
+              date: row.date,
+              direction: row.direction,
+              amountMinor: Math.round(amountMajor * minorMultiplier),
+              currency: currency as
+                | (typeof CURRENCY_OPTIONS)[number],
+              fxRate: "1",
+              categoryName: row.categorySuggestion || null,
+              projectCode: null,
+              counterpartyName: row.vendor || null,
+              description: row.description,
+              notes: row.categorySuggestion
+                ? `AI suggested category: ${row.categorySuggestion}`
+                : null,
+            },
+          ],
+        });
+        const first = out.results[0];
+        if (first?.ok) {
+          setRecentlyAdded((prev) => [
+            {
+              transactionCode: first.transactionCode ?? "?",
+              summary: `${row.vendor || "(no vendor)"} · ${row.amountMajor} ${currency}`,
+            },
+            ...prev,
+          ]);
+        } else {
+          setError(first?.error ?? "Save failed.");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    });
+  }
 
   const columns = React.useMemo<SpreadsheetColumn<QuickEntryRow>[]>(
     () => [
@@ -235,6 +301,8 @@ export function QuickEntryForm({
         </p>
       </header>
 
+      <ReceiptExtractor onConfirm={handleReceiptConfirm} />
+
       <SpreadsheetView
         columns={columns}
         rows={[]}
@@ -242,6 +310,27 @@ export function QuickEntryForm({
         onCommit={handleCommit}
         caption="Use the cells below to enter transactions. Press Save (Ctrl/Cmd-S) when ready."
       />
+
+      {recentlyAdded.length > 0 && (
+        <section
+          className="rounded-3xl border border-line-soft bg-gradient-emerald-soft shadow-soft-card p-5 md:p-6 flex flex-col gap-2"
+          data-stage10="quick-entry-recent-receipts"
+        >
+          <h3 className="text-sm font-medium text-ink">
+            Added from receipts
+          </h3>
+          <ul className="flex flex-col gap-1 text-xs text-ink-secondary">
+            {recentlyAdded.map((r, i) => (
+              <li
+                key={`${r.transactionCode}-${i}`}
+                className="font-mono tabular-nums"
+              >
+                {r.transactionCode} · {r.summary}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
         {pending && (
