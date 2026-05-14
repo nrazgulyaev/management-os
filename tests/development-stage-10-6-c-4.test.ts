@@ -94,19 +94,24 @@ test("10.6.C.4.3 retired by Sprint 3b — old shared PricingPage component remov
 // Products pages
 // ============================================================================
 
-test("10.6.C.4.2 — products/management-os closing CTA gradient-emerald-soft", () => {
+test("10.6.C.4.2 — products/management-os closing CTA uses a gradient + elevated-card shadow", () => {
+  // Sprint LD-1 — closing CTA now uses gradient-coral-soft (the
+  // "Get started" band per the new spec). The 10.6.C.4 contract
+  // is still satisfied: rounded-3xl + a gradient + shadow-elevated-card.
   const src = read("src/app/(public)/products/management-os/page.tsx");
   assert.match(
     src,
-    /rounded-3xl border border-line-soft bg-gradient-emerald-soft shadow-elevated-card/,
+    /rounded-3xl bg-gradient-coral-soft shadow-elevated-card/,
   );
 });
 
-test("10.6.C.4.2 — products/development-os closing CTA gradient-gold-soft", () => {
+test("10.6.C.4.2 — products/development-os closing CTA uses a gradient + elevated-card shadow", () => {
+  // Sprint LD-1 — closing CTA now uses gradient-coral-soft (matches
+  // mgmt for visual rhythm at the bottom of both landings).
   const src = read("src/app/(public)/products/development-os/page.tsx");
   assert.match(
     src,
-    /rounded-3xl border border-line-soft bg-gradient-gold-soft shadow-elevated-card/,
+    /rounded-3xl bg-gradient-coral-soft shadow-elevated-card/,
   );
 });
 

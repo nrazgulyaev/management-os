@@ -92,21 +92,31 @@ test("10.I.2 — homepage uses investor-grade brand voice (no friendly-tone leak
 // ============================================================================
 
 test("10.I.3 — /products/management-os exists with use-cases + features + CTA", () => {
+  // Sprint LD-1 — page rebuilt as a photographic landing.
+  // "Bali villa portfolios" trust signal survives; legacy
+  // "/signup?product=mgmt" and "/pricing/management-os" links
+  // moved to "/onboarding" + "/pricing". The cabinet rail copy
+  // covers the per-feature stand-in for "Bookings + channel
+  // manager" via the "Multi-channel sync" feature card.
   assert.ok(exists(MGMT_PRODUCT_PAGE));
   const src = read(MGMT_PRODUCT_PAGE);
   assert.match(src, /Bali villa portfolios/);
-  assert.match(src, /Bookings \+ channel manager/);
-  assert.match(src, /\/signup\?product=mgmt/);
-  assert.match(src, /\/pricing\/management-os/);
+  assert.match(src, /Multi-channel sync/);
+  assert.match(src, /\/onboarding/);
+  assert.match(src, /\/pricing/);
 });
 
 test("10.I.3 — /products/development-os exists with use-cases + features + CTA", () => {
+  // Sprint LD-1 — page rebuilt as a photographic landing.
+  // "Real estate developers" trust signal subsumed by the rating
+  // chip ("Bali developers using Arconique today"); "BOQ + drawings"
+  // collapsed into the "BOQ live tracking" feature card.
   assert.ok(exists(DEV_PRODUCT_PAGE));
   const src = read(DEV_PRODUCT_PAGE);
-  assert.match(src, /Real estate developers/);
-  assert.match(src, /BOQ \+ drawings/);
-  assert.match(src, /\/signup\?product=dev/);
-  assert.match(src, /\/pricing\/development-os/);
+  assert.match(src, /Bali developers using Arconique/);
+  assert.match(src, /BOQ live tracking/);
+  assert.match(src, /\/onboarding/);
+  assert.match(src, /\/pricing/);
 });
 
 test("10.I.3 — old /villa-management + /development pages retired", () => {
