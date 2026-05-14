@@ -32,3 +32,15 @@ section consolidates deferrals across all 12 phases.
 - **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 emerald-solid lead card + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar + snapshot rail. Funnel section ✓ "Project Analytics" funnel pattern from Ref 2 with conversion chips. AI card ✓ Ref 1 ink-deep gradient.
 
 ---
+
+## Phase 3 · Procurement Manager (D4)
+
+- **Score:** 4.5/5 vs gold standard.
+- **LOC:** procurement-manager/page.tsx 181 → ~370; procurement-cabinet-queries.ts +95.
+- **Tests:** 6098 → 6092 (8 obsolete loop+pattern assertions retired, 2 new mega-sprint assertions added; net -6).
+- **Primitives shipped:** none new — phase consumes existing Sprint-4 primitives (HeroGreetingAI + KpiRowMixed + HatchedBarChart + HalfDonutGauge) and the existing CFO recipe for the inline 3-card agent-output grid.
+- **Data layer:** extended `loadProcurementCabinet` with `prsLast7Days` (daily PR submissions for the hatched-bar), `topPendingPrs` (side rail list), `spendMtd` (sum of total_amount_usd_minor on POs created this month), and `recentProcurementAnalystOutputs` (top 3 agent outputs feeding the inline AI grid).
+- **Deferrals:** (1) `<RfqMatrix>` consumer wiring at `/development-os/procurement/quotation-comparison` — the route exists, the primitive is built, but the comparison page is not yet a real consumer; audit §D4 estimates 0.5 day. (2) Quotation paste-import wizard at `/development-os/procurement/quotations/import` — would reuse the Sprint 4 import-wizard pattern, audit §D4 estimates 0.5 day. Both deferred to a follow-up sprint; the cabinet apex itself is on the gold standard.
+- **Reference match:** Hero band ✓ Ref 1 silhouette. KpiRowMixed ✓ Ref 2 coral-solid hero (PRs awaiting quotation) + 3 surface cards. Today's pulse ✓ Ref 2 hatched-bar (terracotta) + half-donut gauge (gold tone, delivered vs in-flight). AI insight ✓ real inline 3-card grid of procurement-analyst outputs (CFO/Sprint-4.5 recipe). Side panel ✓ retained cross-links + "Latest analyst output" KPI.
+
+---

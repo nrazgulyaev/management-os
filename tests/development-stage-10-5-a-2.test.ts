@@ -44,9 +44,13 @@ const DECISIONS_DOC = "tmp/stage-10-5-a-2-decisions.md";
 // KpiRowMixed + Today's pulse). Removed from the looped contract;
 // per-cabinet assertions below are updated separately.
 // Other phases will remove their cabinets from this loop as they land.
+// Mega-Sprint Phase 3 — Procurement Manager cabinet migrated off the
+// 10.5.A.2 contract (CabinetGreetingBlock + PageHeaderHero + 2/3-1/3
+// body split) onto the Sprint-4 gold standard (HeroGreetingAI +
+// KpiRowMixed + Today's pulse). Removed from the looped contract;
+// per-cabinet assertions below are updated separately.
 const PAGES: Array<{ key: string; path: string; gate: string }> = [
   { key: "qs", path: QS, gate: "qs" },
-  { key: "procurement-manager", path: PROC, gate: "procurement-manager" },
   { key: "marketing-staff", path: MKT, gate: "marketing-staff" },
 ];
 
@@ -140,18 +144,34 @@ test("10.5.A.2.2 — QS recent-BOQs list is now a vertical link list (not a flat
   );
 });
 
-test("10.5.A.2.3 — Procurement headline KPIs cover PRs / RFQs / Open POs / Deliveries", () => {
+test("mega-sprint phase-3 — Procurement KpiRowMixed surfaces PR / RFQ / PO / Spend MTD labels", () => {
   const src = read(PROC);
-  assert.match(src, /PRs pending/);
+  // Mega-Sprint Phase 3 rebuilt the headline KPIs on KpiRowMixed.
+  // "Deliveries (7d)" retired — replaced by "Spend (MTD)" sourced
+  // from material_purchase_orders this month.
+  assert.match(src, /PRs awaiting quotation/);
   assert.match(src, /RFQs to compare/);
   assert.match(src, /Open POs/);
-  assert.match(src, /Deliveries \(7d\)/);
+  assert.match(src, /Spend \(MTD\)/);
 });
 
 test("10.5.A.2.3 — Procurement side panel cross-links to vendor + inventory surfaces", () => {
   const src = read(PROC);
   assert.match(src, /\/development-os\/vendors/);
   assert.match(src, /\/development-os\/inventory/);
+});
+
+test("mega-sprint phase-3 — Procurement exposes a quick-action strip to raise PR + compare quotations + AI analyst", () => {
+  const src = read(PROC);
+  assert.match(src, /Raise new PR/);
+  assert.match(src, /Compare quotations/);
+  assert.match(src, /AI procurement analyst/);
+});
+
+test("mega-sprint phase-3 — Procurement renders inline procurement-analyst output grid", () => {
+  const src = read(PROC);
+  assert.match(src, /recentProcurementAnalystOutputs/);
+  assert.match(src, /procurement-analyst\/outputs\//);
 });
 
 test("10.5.A.2.4 — Marketing headline KPIs surface lead + content signals", () => {

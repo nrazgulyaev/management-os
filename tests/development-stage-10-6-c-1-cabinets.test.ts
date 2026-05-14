@@ -96,7 +96,12 @@ const CABINETS: CabinetSpec[] = [
   {
     name: "Procurement Manager",
     path: "src/app/(development-app)/development-os/cabinets/procurement-manager/page.tsx",
-    expectedTone: "coral-soft",
+    // Mega-Sprint Phase 3 replaced the CabinetGreetingBlock +
+    // PageHeaderHero stack with <HeroGreetingAI>; the hero KPI now
+    // lives on <KpiRowMixed heroTone="coral-solid">.
+    expectedTone: "none",
+    sprint4Hero: true,
+    kpiRowMixed: true,
   },
   {
     name: "Marketing Staff",
