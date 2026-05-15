@@ -22,6 +22,8 @@ import { getCurrentAppUser } from "@/features/auth/current-user";
 import { listSecurityCameraDevices } from "@/features/security/services";
 import { listSecurityEventsForAdmin } from "@/features/security-baseline/mfa-services";
 import { listOperationTasks } from "@/features/operations/services";
+import { loadSecurityCopilotOutputs } from "@/lib/development/server/ai/security-copilot-queries";
+import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
 
 /**
  * Mega-Sprint / Phase 11 — Security cabinet REBUILD.
@@ -97,10 +99,18 @@ export default async function SecurityCabinetPage() {
   const me = await getCurrentAppUser();
   const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
 
-  const [cameras, events, securityTasks] = await Promise.all([
+  const [
+    cameras,
+    events,
+    securityTasks,
+    copilotOutputs,
+    copilotEnabled,
+  ] = await Promise.all([
     listSecurityCameraDevices(),
     listSecurityEventsForAdmin(50),
     listOperationTasks({ category: "security", limit: 100 }),
+    loadSecurityCopilotOutputs({ limit: 3 }).catch(() => []),
+    isAgentEnabledForCurrentOrg("security_copilot").catch(() => false),
   ]);
 
   const totalCameras = cameras.length;
@@ -423,20 +433,65 @@ export default async function SecurityCabinetPage() {
           </Section>
 
           <Section eyebrow="AI" title="Security copilot">
-            <div className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3">
-              <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                Coming soon
-              </span>
-              <p className="text-sm leading-relaxed opacity-90">
-                A dedicated security copilot will surface camera-
-                offline alerts, patrol-late warnings, and unusual
-                auth patterns here. Until it ships, monitor the auth
-                events log + camera registry directly.
-              </p>
-              <Badge tone="outline" className="self-start">
-                security-copilot — not yet shipped
-              </Badge>
-            </div>
+            {!copilotEnabled ? (
+              <Link
+                href="/dashboard/settings/ai-agents/security_copilot"
+                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+              >
+                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                  Coming soon · Configure key
+                </span>
+                <p className="text-sm leading-relaxed opacity-90">
+                  The security-copilot agent ships with a dry-run
+                  default. Wire a provider key to flip it live; the
+                  overnight incident brief surfaces here.
+                </p>
+                <Badge tone="outline" className="self-start">
+                  Configure provider →
+                </Badge>
+              </Link>
+            ) : copilotOutputs.length === 0 ? (
+              <Link
+                href="/dashboard/ai/jobs?agent=security_copilot"
+                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+              >
+                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                  No runs yet
+                </span>
+                <p className="text-sm leading-relaxed opacity-90">
+                  Trigger the security-copilot to brief the supervisor
+                  on overnight incidents and patrol gaps.
+                </p>
+                <Badge tone="outline" className="self-start">
+                  Run copilot →
+                </Badge>
+              </Link>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {copilotOutputs.map((o) => (
+                  <Link
+                    key={o.id}
+                    href={`/dashboard/ai/outputs/${o.outputCode}`}
+                    className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-5 md:p-6 flex flex-col gap-2 hover:opacity-95 transition-opacity"
+                  >
+                    <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                      {new Date(o.createdAt).toLocaleDateString("en-US", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "numeric",
+                        minute: "numeric",
+                      })}
+                    </span>
+                    <h4 className="text-sm font-medium line-clamp-2">
+                      {o.title}
+                    </h4>
+                    <p className="text-xs opacity-90 leading-relaxed line-clamp-3">
+                      {o.summary}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            )}
           </Section>
         </aside>
       </div>
