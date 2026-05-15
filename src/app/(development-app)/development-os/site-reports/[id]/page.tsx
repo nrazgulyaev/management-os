@@ -20,6 +20,8 @@ import {
 import { PhotoGallery } from "@/components/development/site-reports/photo-gallery";
 import { PhotoUploadZone } from "@/components/development/site-reports/photo-upload-zone";
 import { ConstructionAnalysisCard } from "@/components/development/site-reports/construction-analysis-card";
+import { PhotoEvidenceGrid } from "@/components/award";
+import { loadSiteReportPhotos } from "@/lib/development/server/site-reports/site-report-photo-queries";
 import { getSiteZones } from "@/lib/development/server/site-reports";
 import { getActiveAnalysisForReport } from "@/lib/development/server/construction-analysis-actions";
 import {
@@ -56,6 +58,8 @@ export default async function SiteReportDetailPage({
   const constructionAnalysis = await getActiveAnalysisForReport(report.id).catch(
     () => null,
   );
+  // Sprint MD-2.A — Load photo-evidence items for the grid section.
+  const evidencePhotos = await loadSiteReportPhotos(report.id).catch(() => []);
 
   async function handleSubmit() {
     "use server";
@@ -287,6 +291,18 @@ export default async function SiteReportDetailPage({
           </form>
         </Section>
       )}
+
+      <Section
+        eyebrow="Evidence"
+        title="Photo evidence"
+        description="Quick-scan grid with per-photo sync status. Click a thumbnail to open the full image."
+      >
+        <PhotoEvidenceGrid
+          items={evidencePhotos}
+          columns={3}
+          emptyMessage="No photos attached to this report yet. Upload below."
+        />
+      </Section>
 
       <Section eyebrow="Photos" title="Site photos">
         <PhotoGallery

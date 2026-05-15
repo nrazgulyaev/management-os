@@ -24,6 +24,10 @@ import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { loadSalesCabinet } from "@/lib/development/server/cabinets/sales-cabinet-queries";
+import {
+  loadMarketingAssistantDrafts,
+  type MarketingAssistantDraft,
+} from "@/lib/development/server/ai/marketing-assistant-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { redirect } from "next/navigation";
 import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
@@ -124,6 +128,15 @@ export default async function SalesManagerCabinetPage() {
     funnelByLifecycle: [],
     conversationsLast7Days: [],
   });
+
+  // Sprint MD-3.B — Load the 3 most-recent marketing-assistant
+  // drafts for the inline AI grid that replaces the Phase-2
+  // placeholder.
+  const drafts = await safeQuery(
+    "salesMarketingAssistant",
+    loadMarketingAssistantDrafts({ managerId: me.id, limit: 3 }),
+    [] as MarketingAssistantDraft[],
+  );
 
   const now = new Date();
   const overdueStatus =
@@ -393,20 +406,63 @@ export default async function SalesManagerCabinetPage() {
             </Link>
           }
         >
-          <div className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3">
-            <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-              Recent drafts
-            </span>
-            <p className="text-sm leading-relaxed opacity-90">
-              The marketing-assistant agent drafts personalised follow-up
-              messages for overdue threads and suggests next-step
-              qualifying questions. Open the agent surface above to review
-              the latest drafts and send them out.
-            </p>
-            <Badge tone="outline" className="self-start">
-              Inline draft list coming in a polish pass
-            </Badge>
-          </div>
+          {drafts.length === 0 ? (
+            <Link
+              href="/development-os/ai-agents/marketing-assistant"
+              className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+            >
+              <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                No drafts yet
+              </span>
+              <p className="text-sm leading-relaxed opacity-90">
+                The marketing-assistant agent drafts personalised follow-up
+                messages for overdue threads and suggests next-step
+                qualifying questions. Trigger a run to populate this grid.
+              </p>
+              <Badge tone="outline" className="self-start">
+                Generate draft →
+              </Badge>
+            </Link>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+              {drafts.map((d) => (
+                <Link
+                  key={d.id}
+                  href={`/development-os/ai-agents/marketing-assistant/outputs/${d.outputCode}`}
+                  className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                      {d.channel}
+                      {" · "}
+                      {new Date(d.createdAt).toLocaleDateString("en-US", {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </span>
+                    <Badge tone="outline" className="text-[10px]">
+                      {d.status === "awaiting_review"
+                        ? "Draft"
+                        : d.status === "approved"
+                          ? "Approved"
+                          : d.status === "executed"
+                            ? "Published"
+                            : d.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm font-medium leading-snug line-clamp-2">
+                    {d.headline}
+                  </p>
+                  <p className="text-xs opacity-90 leading-relaxed line-clamp-3">
+                    {d.snippet}
+                  </p>
+                  <span className="mt-auto inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] opacity-80">
+                    Open draft
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </Section>
       </div>
     </DevelopmentShell>

@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { listOperationTasks } from "@/features/operations/services";
+import { loadOperationTaskPhotos } from "@/lib/development/server/operations/task-photo-queries";
 
 /**
  * Mega-Sprint / Phase 9 — Housekeeping cabinet apex at
@@ -196,10 +197,14 @@ export default async function HousekeepingCabinetPage() {
       statusLabel: t.status.replaceAll("_", " "),
     }));
 
-  // PhotoEvidenceGrid placeholder — task detail flow populates this
-  // grid; the cabinet apex surfaces an empty state until the
-  // photo-aggregator query lands.
-  const photoItems: PhotoEvidenceItem[] = [];
+  // Sprint MD-2.C — Photo evidence aggregator. Scopes to today's
+  // housekeeping tasks (regardless of status) so cleaners can verify
+  // their photo uploads landed without leaving the cabinet apex.
+  const todayTaskIds = todays.map((t) => t.id);
+  const photoItems: PhotoEvidenceItem[] = await loadOperationTaskPhotos(
+    todayTaskIds,
+    12,
+  ).catch(() => []);
 
   return (
     <div className="flex flex-col gap-8 md:gap-10">
@@ -341,7 +346,7 @@ export default async function HousekeepingCabinetPage() {
       >
         <PhotoEvidenceGrid
           items={photoItems}
-          emptyMessage="Photo aggregation coming in a follow-up — upload from a task detail page in the meantime."
+          emptyMessage="No turnover photos uploaded today yet. Cleaners can attach photos from the per-task detail page."
         />
       </Section>
 

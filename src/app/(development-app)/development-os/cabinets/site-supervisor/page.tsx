@@ -25,6 +25,10 @@ import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { loadSiteSupervisorCabinet } from "@/lib/development/server/cabinets/site-supervisor-cabinet-queries";
+import {
+  loadDailyDigestOutputs,
+  type DailyDigestOutput,
+} from "@/lib/development/server/ai/daily-digest-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { redirect } from "next/navigation";
 import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
@@ -100,6 +104,16 @@ export default async function SiteSupervisorCabinetPage() {
         },
       )
     : null;
+
+  // Sprint MD-3.A — Load the 3 most-recent daily-construction-digest
+  // outputs for the inline AI grid that replaces the Phase-1 placeholder.
+  const digests = me
+    ? await safeQuery(
+        "siteSupervisorDailyDigest",
+        loadDailyDigestOutputs({ limit: 3 }),
+        [] as DailyDigestOutput[],
+      )
+    : [];
 
   const now = new Date();
   const dailyCounts = data ? reportsLast7Days(data.recentReports, now) : [];
@@ -328,13 +342,9 @@ export default async function SiteSupervisorCabinetPage() {
               )}
             </Section>
 
-            {/* AI placeholder — daily-construction-digest exists as
-                an agent; surfacing its last 3 outputs follows the
-                Sprint-4.5 CFO pattern. For Phase 1 we link out to
-                the agent page (mirroring CFO's quick-action strip
-                target) and defer the inline 3-card grid until the
-                same query helper used on the CFO cabinet is wired
-                for the digest agent. */}
+            {/* Sprint MD-3.A — Inline 3-card grid of recent
+                daily-construction-digest outputs. Replaces the
+                Phase-1 placeholder. */}
             <Section
               eyebrow="AI"
               title="Daily construction digest"
@@ -348,20 +358,71 @@ export default async function SiteSupervisorCabinetPage() {
                 </Link>
               }
             >
-              <div className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3">
-                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                  Recent runs
-                </span>
-                <p className="text-sm leading-relaxed opacity-90">
-                  The daily-construction-digest agent runs nightly and
-                  files an executive summary of yesterday's exceptions
-                  + a plan for today. Open the agent surface above to
-                  review the latest output and approve or annotate it.
-                </p>
-                <Badge tone="outline" className="self-start">
-                  Inline 3-card grid coming in a polish pass
-                </Badge>
-              </div>
+              {digests.length === 0 ? (
+                <Link
+                  href="/development-os/ai-agents/daily-construction-digest"
+                  className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+                >
+                  <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                    No runs yet
+                  </span>
+                  <p className="text-sm leading-relaxed opacity-90">
+                    The daily-construction-digest agent runs nightly and
+                    files an executive summary of yesterday's exceptions
+                    + a plan for today. Trigger a run from the agent
+                    surface to populate this grid.
+                  </p>
+                  <Badge tone="outline" className="self-start">
+                    Run digest →
+                  </Badge>
+                </Link>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+                  {digests.map((d) => (
+                    <Link
+                      key={d.id}
+                      href={`/development-os/ai-agents/daily-construction-digest/outputs/${d.outputCode}`}
+                      className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                          {new Date(d.createdAt).toLocaleDateString(
+                            "en-US",
+                            { day: "numeric", month: "short" },
+                          )}
+                          {d.projectName ? ` · ${d.projectName}` : ""}
+                        </span>
+                        <ArrowUpRight
+                          className="w-3.5 h-3.5 opacity-80"
+                          strokeWidth={1.75}
+                        />
+                      </div>
+                      <p className="text-sm font-medium leading-snug line-clamp-2">
+                        {d.title}
+                      </p>
+                      {d.latestExceptions.length > 0 && (
+                        <ul className="flex flex-col gap-1.5 text-xs opacity-90 leading-relaxed">
+                          {d.latestExceptions.slice(0, 3).map((ex, i) => (
+                            <li
+                              key={`${d.id}-ex-${i}`}
+                              className="flex items-start gap-2"
+                            >
+                              <span
+                                aria-hidden
+                                className="inline-block w-1 h-1 mt-1.5 rounded-full bg-white/60 shrink-0"
+                              />
+                              <span className="line-clamp-2">{ex}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <span className="mt-auto inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] opacity-80">
+                        View digest
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </Section>
           </>
         )}
