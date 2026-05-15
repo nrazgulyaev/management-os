@@ -6,7 +6,7 @@ import {
   Inbox,
   Sparkles,
 } from "lucide-react";
-import { DashboardKpi } from "@/components/ui/primitives";
+import { DashboardKpi, DonutRatioCard } from "@/components/ui/primitives";
 import {
   HatchedBarChart,
   HeroGreetingAI,
@@ -20,6 +20,10 @@ import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadMarketingCabinet } from "@/lib/development/server/cabinets/marketing-cabinet-queries";
+import {
+  loadChannelSplit,
+  loadTopAttributedSource,
+} from "@/lib/development/server/marketing/attribution-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { redirect } from "next/navigation";
@@ -115,6 +119,26 @@ export default async function MarketingStaffCabinetPage() {
     (a, b) => b[1] - a[1],
   );
 
+  // Sprint MD-4 Phase 2 — attribution + channel-split aggregators.
+  const [topSource, channelSplit] = await Promise.all([
+    safeQuery(
+      "marketingTopAttribution",
+      loadTopAttributedSource({}),
+      null as Awaited<ReturnType<typeof loadTopAttributedSource>>,
+    ),
+    safeQuery(
+      "marketingChannelSplit",
+      loadChannelSplit({}),
+      [] as Awaited<ReturnType<typeof loadChannelSplit>>,
+    ),
+  ]);
+  const topChannelPublishCount = channelSplit.reduce(
+    (acc, r) => acc + r.publishCount,
+    0,
+  );
+  const topChannel =
+    channelSplit.length > 0 ? channelSplit[0] : null;
+
   const kpis: KpiItem[] = [
     {
       label: "Scheduled this week",
@@ -143,15 +167,22 @@ export default async function MarketingStaffCabinetPage() {
           : "Awaiting review",
       href: "/development-os/marketing/content?status=pending_review",
     },
-    {
-      label: "Active campaigns",
-      value: String(data.activeCampaignsCount),
-      delta:
-        data.activeCampaignsCount === 0
-          ? "None running"
-          : "Currently active",
-      href: "/development-os/marketing/campaigns?status=active",
-    },
+    topSource
+      ? {
+          label: "Top attributed source",
+          value: topSource.sourceLabel,
+          delta: `${topSource.conversionCount} conv · ${topSource.conversionRate}% rate`,
+          href: "/development-os/marketing/attribution",
+        }
+      : {
+          label: "Active campaigns",
+          value: String(data.activeCampaignsCount),
+          delta:
+            data.activeCampaignsCount === 0
+              ? "None running"
+              : "Currently active",
+          href: "/development-os/marketing/campaigns?status=active",
+        },
   ];
 
   return (
@@ -253,6 +284,39 @@ export default async function MarketingStaffCabinetPage() {
         >
           <LeadFunnelChart stages={funnelStages} height={300} />
         </Section>
+
+        {channelSplit.length > 0 && topChannel && (
+          <Section
+            eyebrow="Channels"
+            title="Channel split (published content)"
+            description="Share of published variants by platform target. Top channel donut + per-channel breakdown beneath."
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-4 md:gap-5">
+              <DonutRatioCard
+                title={`Top channel · ${topChannel.channel}`}
+                numerator={topChannel.publishCount}
+                denominator={topChannelPublishCount}
+                tone={topChannel.tone}
+                caption={`${topChannel.publishCount} of ${topChannelPublishCount} variants on ${topChannel.channel}`}
+              />
+              <ul className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
+                {channelSplit.map((c) => (
+                  <li
+                    key={c.channel}
+                    className="px-5 py-3 flex items-center justify-between gap-3"
+                  >
+                    <span className="text-sm font-medium text-ink capitalize">
+                      {c.channel}
+                    </span>
+                    <span className="text-xs text-ink-secondary font-mono tabular-nums">
+                      {c.publishCount} · {c.shareOfTotal}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Section>
+        )}
 
         <Section
           eyebrow="AI"
