@@ -22,6 +22,7 @@
     "check:cron-auth": "node --import tsx scripts/check-cron-auth.ts",
     "check:migrations": "node --import tsx scripts/check-migrations.ts",
     "smoke:routes": "node --import tsx scripts/smoke-routes.ts",
+    "audit:rsc": "tsx scripts/audit-rsc.ts",
     "staging:report": "node --import tsx scripts/staging-readiness-report.ts",
     "docs:route-map": "node --import tsx scripts/generate-route-map-doc.ts",
     "preflight:deploy": "node --import tsx scripts/preflight-deploy.ts",

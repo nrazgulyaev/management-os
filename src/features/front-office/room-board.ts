@@ -36,20 +36,24 @@ export async function loadFrontOfficeRoomBoard(
   const start = dates[0];
   const end = dates[dates.length - 1];
 
+  // STAB-1 fix: villas table column is `unit_code` (per
+  // src/lib/db/schema/projects.ts), not `villa_code`. The old name
+  // crashed the entire /dashboard/front-office cabinet with
+  // PostgreSQL error 42703 (column does not exist).
   const villaRows = await db.execute<{
     id: string;
-    villa_code: string;
+    unit_code: string;
     project_name: string | null;
   }>(sql`
-    SELECT v.id::text, v.villa_code, p.name AS project_name
+    SELECT v.id::text, v.unit_code, p.name AS project_name
       FROM villas v
       LEFT JOIN projects p ON p.id = v.project_id
-     ORDER BY v.villa_code ASC
+     ORDER BY v.unit_code ASC
      LIMIT 24
   `);
   const villas =
     (villaRows as unknown as {
-      rows: Array<{ id: string; villa_code: string; project_name: string | null }>;
+      rows: Array<{ id: string; unit_code: string; project_name: string | null }>;
     }).rows ?? [];
 
   if (villas.length === 0) return { dates, rows: [] };
@@ -83,7 +87,7 @@ export async function loadFrontOfficeRoomBoard(
     for (const iso of dates) days[iso] = "vacant";
     byVilla.set(v.id, {
       villaId: v.id,
-      villaCode: v.villa_code,
+      villaCode: v.unit_code,
       projectName: v.project_name,
       days,
     });
