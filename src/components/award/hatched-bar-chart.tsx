@@ -22,6 +22,7 @@ import {
 } from "recharts";
 import type { TooltipContentProps } from "recharts/types/component/Tooltip";
 import { cn } from "@/lib/utils";
+import { formatValueFromSpec, type FormatSpec } from "./format-specs";
 
 export type HatchedBarTone = "emerald" | "gold" | "sage" | "terracotta";
 
@@ -55,8 +56,14 @@ export interface HatchedBarChartProps {
   highlightIndex?: number;
   /** Pixel height for the chart area. Defaults to 220. */
   height?: number;
-  /** Optional custom formatter for the tooltip value. */
-  formatValue?: (value: number) => string;
+  /**
+   * Tooltip value formatting. Serialisable across the RSC boundary
+   * so server-component consumers can pass it safely. Pair with
+   * `valuePrefix` / `valueSuffix` for non-Intl currency labels.
+   */
+  formatSpec?: FormatSpec;
+  valuePrefix?: string;
+  valueSuffix?: string;
   className?: string;
 }
 
@@ -138,9 +145,13 @@ function CustomBar(props: CustomBarProps) {
 function HatchedTooltip({
   active,
   payload,
-  formatValue,
+  formatSpec,
+  valuePrefix,
+  valueSuffix,
 }: TooltipContentProps<number, string> & {
-  formatValue?: (v: number) => string;
+  formatSpec?: FormatSpec;
+  valuePrefix?: string;
+  valueSuffix?: string;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const p = payload[0];
@@ -150,7 +161,10 @@ function HatchedTooltip({
     <div className="rounded-md bg-surface border border-line-soft px-3 py-2 shadow-soft-card text-xs">
       <div className="font-medium text-ink">{datum.label}</div>
       <div className="font-mono tabular-nums text-ink-secondary mt-0.5">
-        {formatValue ? formatValue(value) : value}
+        {formatValueFromSpec(value, formatSpec, {
+          prefix: valuePrefix,
+          suffix: valueSuffix,
+        })}
       </div>
     </div>
   );
@@ -161,7 +175,9 @@ export function HatchedBarChart({
   tone = "emerald",
   highlightIndex,
   height = 220,
-  formatValue,
+  formatSpec,
+  valuePrefix,
+  valueSuffix,
   className,
 }: HatchedBarChartProps) {
   const solidFill = TONE_VAR[tone];
@@ -224,7 +240,9 @@ export function HatchedBarChart({
             content={(p) => (
               <HatchedTooltip
                 {...(p as TooltipContentProps<number, string>)}
-                formatValue={formatValue}
+                formatSpec={formatSpec}
+                valuePrefix={valuePrefix}
+                valueSuffix={valueSuffix}
               />
             )}
           />

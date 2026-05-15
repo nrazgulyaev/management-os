@@ -80,11 +80,6 @@ function rupiahShort(minor: number): string {
   return `Rp ${(minor / 1_000_000).toFixed(0)}K`;
 }
 
-function shortBillions(rawBillions: number): string {
-  // monthlyRevenueStrip values are in millions (raw 1_364 means 1.364B IDR).
-  return `Rp ${(rawBillions / 1000).toFixed(2)}B`;
-}
-
 export default async function DashboardHome({
   searchParams,
 }: {
@@ -109,15 +104,22 @@ export default async function DashboardHome({
     liveCounts?.activeBookings ?? mockVillas.filter((v) => v.status === "occupied").length;
   const openTickets = maintenanceTickets.length;
 
-  // Revenue area-chart series, last 6 months.
+  // Revenue area-chart series, last 6 months. Source values arrive
+  // in millions (1_364 → 1.364B IDR); scale to billions upstream so
+  // the AreaChartCard's serialisable format spec ("number-2dp" with
+  // "Rp " prefix + "B" suffix) renders the right magnitude. The
+  // previous function-prop formatter triggered the RSC
+  // "Functions cannot be passed directly to Client Components"
+  // crash on /dashboard.
   const revenueSeries: AreaChartPoint[] = monthlyRevenueStrip.map((m) => ({
     date: m.month,
-    value: m.revenue,
+    value: m.revenue / 1000,
   }));
   // Peak month for the pinned tooltip.
   const peakMonth = revenueSeries.reduce((best, p) =>
     p.value > best.value ? p : best,
   );
+  const peakMonthLabel = `Rp ${peakMonth.value.toFixed(2)}B`;
 
   // Profile rail — top 5 occupancy villas as "active" items.
   const topVillas: ProfileRailItem[] = [...mockVillas]
@@ -248,9 +250,11 @@ export default async function DashboardHome({
           tone="emerald"
           data={revenueSeries}
           chartHeight={220}
-          formatValue={(v) => shortBillions(v)}
+          formatSpec="number-2dp"
+          valuePrefix="Rp "
+          valueSuffix="B"
           pinnedTooltip={{
-            value: shortBillions(peakMonth.value),
+            value: peakMonthLabel,
             label: `${peakMonth.date} · peak`,
           }}
           accessory={

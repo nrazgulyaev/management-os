@@ -158,11 +158,8 @@ export default async function DashboardPage() {
             date: q.quarter,
             value: q.cumulativeBalanceUsdMinor / 100,
           }))}
-          formatValue={(v) =>
-            `${data.primaryCurrency} ${v.toLocaleString("en-US", {
-              maximumFractionDigits: 0,
-            })}`
-          }
+          formatSpec="number"
+          valuePrefix={`${data.primaryCurrency} `}
           pinnedTooltip={
             forecast.length > 0
               ? {

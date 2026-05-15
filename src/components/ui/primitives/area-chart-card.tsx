@@ -27,6 +27,10 @@ import {
 } from "recharts";
 import type { TooltipContentProps } from "recharts/types/component/Tooltip";
 import { cn } from "@/lib/utils";
+import {
+  formatValueFromSpec,
+  type FormatSpec,
+} from "@/components/award/format-specs";
 
 export type AreaChartTone =
   | "emerald"
@@ -78,8 +82,15 @@ export interface AreaChartCardProps {
   accessory?: React.ReactNode;
   /** Pixel height of the chart area. Defaults to 200. */
   chartHeight?: number;
-  /** Optional pre-formatted value formatter for the hover tooltip. */
-  formatValue?: (value: number) => string;
+  /**
+   * Hover-tooltip value formatting. Serialisable across the RSC
+   * boundary — server-component consumers can pass this safely.
+   * Pair with `valuePrefix` / `valueSuffix` for currency labels that
+   * `Intl.NumberFormat` doesn't cover (e.g. "Rp …B").
+   */
+  formatSpec?: FormatSpec;
+  valuePrefix?: string;
+  valueSuffix?: string;
   className?: string;
 }
 
@@ -87,10 +98,14 @@ function DefaultTooltip({
   active,
   payload,
   label,
-  formatValue,
+  formatSpec,
+  valuePrefix,
+  valueSuffix,
   isDark,
 }: TooltipContentProps<number, string> & {
-  formatValue?: (v: number) => string;
+  formatSpec?: FormatSpec;
+  valuePrefix?: string;
+  valueSuffix?: string;
   isDark: boolean;
 }) {
   if (!active || !payload || payload.length === 0) return null;
@@ -106,7 +121,10 @@ function DefaultTooltip({
       )}
     >
       <div className="font-medium">
-        {formatValue ? formatValue(value) : value.toLocaleString()}
+        {formatValueFromSpec(value, formatSpec, {
+          prefix: valuePrefix,
+          suffix: valueSuffix,
+        })}
       </div>
       {label && <div className="opacity-70 mt-0.5">{label}</div>}
     </div>
@@ -121,7 +139,9 @@ export function AreaChartCard({
   pinnedTooltip,
   accessory,
   chartHeight = 200,
-  formatValue,
+  formatSpec,
+  valuePrefix,
+  valueSuffix,
   className,
 }: AreaChartCardProps) {
   const isDark = tone === "ink";
@@ -223,7 +243,9 @@ export function AreaChartCard({
                 content={(props) => (
                   <DefaultTooltip
                     {...(props as TooltipContentProps<number, string>)}
-                    formatValue={formatValue}
+                    formatSpec={formatSpec}
+                    valuePrefix={valuePrefix}
+                    valueSuffix={valueSuffix}
                     isDark={isDark}
                   />
                 )}

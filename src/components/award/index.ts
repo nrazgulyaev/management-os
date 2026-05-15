@@ -101,3 +101,10 @@ export type {
   GuestArrivalItem,
   GuestArrivalReadiness,
 } from "./guest-arrivals-list";
+
+// Hotfix HF-1 — Serializable format specs that replace the
+// function-prop tooltip formatter. Re-exported from the award
+// barrel so consumers can render the same format outside the
+// chart.
+export { formatValueFromSpec } from "./format-specs";
+export type { FormatSpec } from "./format-specs";
