@@ -1,0 +1,992 @@
+[
+  {
+    "file": "src/features/ai-agents/run-agent-action.ts",
+    "line": 140,
+    "kind": "insert-missing-org",
+    "table": "agentOutputs"
+  },
+  {
+    "file": "src/lib/development/server/actions.ts",
+    "line": 98,
+    "kind": "insert-missing-org",
+    "table": "projectPhases"
+  },
+  {
+    "file": "src/lib/development/server/ai-memory/memory-actions.ts",
+    "line": 84,
+    "kind": "insert-missing-org",
+    "table": "projectAiMemory"
+  },
+  {
+    "file": "src/lib/development/server/ai-memory/memory-actions.ts",
+    "line": 98,
+    "kind": "update-missing-org-where",
+    "table": "projectAiMemory"
+  },
+  {
+    "file": "src/lib/development/server/ai-memory/memory-actions.ts",
+    "line": 115,
+    "kind": "insert-missing-org",
+    "table": "projectAiMemory"
+  },
+  {
+    "file": "src/lib/development/server/ai-memory/memory-actions.ts",
+    "line": 142,
+    "kind": "update-missing-org-where",
+    "table": "projectAiMemory"
+  },
+  {
+    "file": "src/lib/development/server/boq/boq-actions.ts",
+    "line": 49,
+    "kind": "insert-missing-org",
+    "table": "boqDocuments"
+  },
+  {
+    "file": "src/lib/development/server/boq/boq-actions.ts",
+    "line": 82,
+    "kind": "insert-missing-org",
+    "table": "boqSections"
+  },
+  {
+    "file": "src/lib/development/server/boq/boq-actions.ts",
+    "line": 124,
+    "kind": "insert-missing-org",
+    "table": "boqItems"
+  },
+  {
+    "file": "src/lib/development/server/boq/boq-actions.ts",
+    "line": 192,
+    "kind": "update-missing-org-where",
+    "table": "boqSections"
+  },
+  {
+    "file": "src/lib/development/server/boq/boq-actions.ts",
+    "line": 197,
+    "kind": "update-missing-org-where",
+    "table": "boqDocuments"
+  },
+  {
+    "file": "src/lib/development/server/boq/boq-actions.ts",
+    "line": 232,
+    "kind": "update-missing-org-where",
+    "table": "boqSections"
+  },
+  {
+    "file": "src/lib/development/server/boq/boq-actions.ts",
+    "line": 239,
+    "kind": "insert-missing-org",
+    "table": "boqSections"
+  },
+  {
+    "file": "src/lib/development/server/boq/boq-actions.ts",
+    "line": 259,
+    "kind": "insert-missing-org",
+    "table": "boqItems"
+  },
+  {
+    "file": "src/lib/development/server/boq/boq-actions.ts",
+    "line": 327,
+    "kind": "update-missing-org-where",
+    "table": "boqDocuments"
+  },
+  {
+    "file": "src/lib/development/server/buyers/buyer-actions.ts",
+    "line": 50,
+    "kind": "insert-missing-org",
+    "table": "buyers"
+  },
+  {
+    "file": "src/lib/development/server/buyers/buyer-actions.ts",
+    "line": 82,
+    "kind": "insert-missing-org",
+    "table": "buyerUnitAssignments"
+  },
+  {
+    "file": "src/lib/development/server/buyers/buyer-actions.ts",
+    "line": 108,
+    "kind": "update-missing-org-where",
+    "table": "buyers"
+  },
+  {
+    "file": "src/lib/development/server/buyers/buyer-actions.ts",
+    "line": 131,
+    "kind": "update-missing-org-where",
+    "table": "buyers"
+  },
+  {
+    "file": "src/lib/development/server/campaigns/campaign-actions.ts",
+    "line": 27,
+    "kind": "insert-missing-org",
+    "table": "campaigns"
+  },
+  {
+    "file": "src/lib/development/server/campaigns/campaign-actions.ts",
+    "line": 53,
+    "kind": "update-missing-org-where",
+    "table": "campaigns"
+  },
+  {
+    "file": "src/lib/development/server/campaigns/campaign-actions.ts",
+    "line": 86,
+    "kind": "insert-missing-org",
+    "table": "campaignCosts"
+  },
+  {
+    "file": "src/lib/development/server/campaigns/campaign-actions.ts",
+    "line": 99,
+    "kind": "update-missing-org-where",
+    "table": "campaigns"
+  },
+  {
+    "file": "src/lib/development/server/change-orders/change-order-actions.ts",
+    "line": 68,
+    "kind": "insert-missing-org",
+    "table": "changeOrders"
+  },
+  {
+    "file": "src/lib/development/server/change-orders/change-order-actions.ts",
+    "line": 127,
+    "kind": "update-missing-org-where",
+    "table": "changeOrders"
+  },
+  {
+    "file": "src/lib/development/server/construction-analysis-actions.ts",
+    "line": 125,
+    "kind": "update-missing-org-where",
+    "table": "siteReports"
+  },
+  {
+    "file": "src/lib/development/server/content/content-actions.ts",
+    "line": 55,
+    "kind": "update-missing-org-where",
+    "table": "contentPieces"
+  },
+  {
+    "file": "src/lib/development/server/content/content-actions.ts",
+    "line": 84,
+    "kind": "insert-missing-org",
+    "table": "contentVariants"
+  },
+  {
+    "file": "src/lib/development/server/conversation-review/conversation-actions.ts",
+    "line": 15,
+    "kind": "update-missing-org-where",
+    "table": "salesConversationThreads"
+  },
+  {
+    "file": "src/lib/development/server/conversation-review/conversation-actions.ts",
+    "line": 47,
+    "kind": "update-missing-org-where",
+    "table": "salesConversationThreads"
+  },
+  {
+    "file": "src/lib/development/server/conversation-review/conversation-actions.ts",
+    "line": 53,
+    "kind": "update-missing-org-where",
+    "table": "salesConversationThreads"
+  },
+  {
+    "file": "src/lib/development/server/conversation-review/manager-performance-actions.ts",
+    "line": 32,
+    "kind": "insert-missing-org",
+    "table": "managerPerformanceMetrics"
+  },
+  {
+    "file": "src/lib/development/server/decisions/decision-actions.ts",
+    "line": 43,
+    "kind": "insert-missing-org",
+    "table": "projectDecisions"
+  },
+  {
+    "file": "src/lib/development/server/decisions/decision-actions.ts",
+    "line": 102,
+    "kind": "update-missing-org-where",
+    "table": "projectDecisions"
+  },
+  {
+    "file": "src/lib/development/server/decisions/decision-actions.ts",
+    "line": 114,
+    "kind": "update-missing-org-where",
+    "table": "projectDecisions"
+  },
+  {
+    "file": "src/lib/development/server/drawings/drawing-actions.ts",
+    "line": 74,
+    "kind": "insert-missing-org",
+    "table": "drawings"
+  },
+  {
+    "file": "src/lib/development/server/drawings/drawing-actions.ts",
+    "line": 109,
+    "kind": "insert-missing-org",
+    "table": "drawingRevisions"
+  },
+  {
+    "file": "src/lib/development/server/drawings/drawing-actions.ts",
+    "line": 166,
+    "kind": "update-missing-org-where",
+    "table": "drawingRevisions"
+  },
+  {
+    "file": "src/lib/development/server/drawings/drawing-actions.ts",
+    "line": 191,
+    "kind": "update-missing-org-where",
+    "table": "drawingRevisions"
+  },
+  {
+    "file": "src/lib/development/server/drawings/drawing-actions.ts",
+    "line": 222,
+    "kind": "insert-missing-org",
+    "table": "drawingDistributionLog"
+  },
+  {
+    "file": "src/lib/development/server/email.ts",
+    "line": 164,
+    "kind": "insert-missing-org",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/email.ts",
+    "line": 184,
+    "kind": "update-missing-org-where",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/email.ts",
+    "line": 196,
+    "kind": "update-missing-org-where",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/email.ts",
+    "line": 211,
+    "kind": "update-missing-org-where",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/executive-digest/digest-actions.ts",
+    "line": 30,
+    "kind": "insert-missing-org",
+    "table": "executiveDigests"
+  },
+  {
+    "file": "src/lib/development/server/executive-digest/digest-actions.ts",
+    "line": 72,
+    "kind": "update-missing-org-where",
+    "table": "executiveDigests"
+  },
+  {
+    "file": "src/lib/development/server/executive-digest/digest-actions.ts",
+    "line": 99,
+    "kind": "update-missing-org-where",
+    "table": "executiveDigests"
+  },
+  {
+    "file": "src/lib/development/server/executive-digest/digest-actions.ts",
+    "line": 139,
+    "kind": "update-missing-org-where",
+    "table": "executiveDigests"
+  },
+  {
+    "file": "src/lib/development/server/inventory/inventory-actions.ts",
+    "line": 52,
+    "kind": "insert-missing-org",
+    "table": "devOsInventoryItems"
+  },
+  {
+    "file": "src/lib/development/server/inventory/inventory-actions.ts",
+    "line": 125,
+    "kind": "insert-missing-org",
+    "table": "devOsInventoryMovements"
+  },
+  {
+    "file": "src/lib/development/server/inventory/inventory-actions.ts",
+    "line": 171,
+    "kind": "update-missing-org-where",
+    "table": "devOsInventoryStockBalances"
+  },
+  {
+    "file": "src/lib/development/server/inventory/inventory-actions.ts",
+    "line": 215,
+    "kind": "update-missing-org-where",
+    "table": "devOsInventoryStockBalances"
+  },
+  {
+    "file": "src/lib/development/server/inventory/inventory-actions.ts",
+    "line": 220,
+    "kind": "insert-missing-org",
+    "table": "devOsInventoryStockBalances"
+  },
+  {
+    "file": "src/lib/development/server/inventory/inventory-actions.ts",
+    "line": 281,
+    "kind": "insert-missing-org",
+    "table": "devOsInventoryLocations"
+  },
+  {
+    "file": "src/lib/development/server/investor-actions.ts",
+    "line": 42,
+    "kind": "insert-missing-org",
+    "table": "investors"
+  },
+  {
+    "file": "src/lib/development/server/investor-actions.ts",
+    "line": 77,
+    "kind": "update-missing-org-where",
+    "table": "investors"
+  },
+  {
+    "file": "src/lib/development/server/investor-actions.ts",
+    "line": 118,
+    "kind": "update-missing-org-where",
+    "table": "investors"
+  },
+  {
+    "file": "src/lib/development/server/investor-portal-requests/request-actions.ts",
+    "line": 51,
+    "kind": "insert-missing-org",
+    "table": "investorPortalRequests"
+  },
+  {
+    "file": "src/lib/development/server/investor-portal-requests/request-actions.ts",
+    "line": 106,
+    "kind": "update-missing-org-where",
+    "table": "investorPortalRequests"
+  },
+  {
+    "file": "src/lib/development/server/investor-portal-requests/request-actions.ts",
+    "line": 189,
+    "kind": "insert-missing-org",
+    "table": "walletMovements"
+  },
+  {
+    "file": "src/lib/development/server/investor-portal-requests/request-actions.ts",
+    "line": 208,
+    "kind": "update-missing-org-where",
+    "table": "investorWallets"
+  },
+  {
+    "file": "src/lib/development/server/investor-portal-requests/request-actions.ts",
+    "line": 216,
+    "kind": "update-missing-org-where",
+    "table": "investorPortalRequests"
+  },
+  {
+    "file": "src/lib/development/server/investor-portal-requests/request-actions.ts",
+    "line": 242,
+    "kind": "update-missing-org-where",
+    "table": "investorPortalRequests"
+  },
+  {
+    "file": "src/lib/development/server/invoices/invoice-actions.ts",
+    "line": 79,
+    "kind": "insert-missing-org",
+    "table": "devInvoices"
+  },
+  {
+    "file": "src/lib/development/server/invoices/invoice-actions.ts",
+    "line": 107,
+    "kind": "insert-missing-org",
+    "table": "devInvoiceLines"
+  },
+  {
+    "file": "src/lib/development/server/invoices/invoice-actions.ts",
+    "line": 175,
+    "kind": "update-missing-org-where",
+    "table": "devInvoices"
+  },
+  {
+    "file": "src/lib/development/server/invoices/invoice-actions.ts",
+    "line": 199,
+    "kind": "update-missing-org-where",
+    "table": "devInvoices"
+  },
+  {
+    "file": "src/lib/development/server/material-actions.ts",
+    "line": 77,
+    "kind": "insert-missing-org",
+    "table": "materialPurchaseOrders"
+  },
+  {
+    "file": "src/lib/development/server/material-actions.ts",
+    "line": 98,
+    "kind": "insert-missing-org",
+    "table": "materialPoLines"
+  },
+  {
+    "file": "src/lib/development/server/material-actions.ts",
+    "line": 127,
+    "kind": "update-missing-org-where",
+    "table": "materialPurchaseOrders"
+  },
+  {
+    "file": "src/lib/development/server/material-actions.ts",
+    "line": 214,
+    "kind": "insert-missing-org",
+    "table": "materialDeliveries"
+  },
+  {
+    "file": "src/lib/development/server/material-actions.ts",
+    "line": 233,
+    "kind": "insert-missing-org",
+    "table": "materialDeliveryLines"
+  },
+  {
+    "file": "src/lib/development/server/material-actions.ts",
+    "line": 243,
+    "kind": "update-missing-org-where",
+    "table": "materialPoLines"
+  },
+  {
+    "file": "src/lib/development/server/material-actions.ts",
+    "line": 266,
+    "kind": "update-missing-org-where",
+    "table": "materialPurchaseOrders"
+  },
+  {
+    "file": "src/lib/development/server/material-actions.ts",
+    "line": 291,
+    "kind": "update-missing-org-where",
+    "table": "materialDeliveries"
+  },
+  {
+    "file": "src/lib/development/server/method-statements/method-statement-actions.ts",
+    "line": 80,
+    "kind": "insert-missing-org",
+    "table": "methodStatements"
+  },
+  {
+    "file": "src/lib/development/server/method-statements/method-statement-actions.ts",
+    "line": 134,
+    "kind": "update-missing-org-where",
+    "table": "methodStatements"
+  },
+  {
+    "file": "src/lib/development/server/notification-actions.ts",
+    "line": 170,
+    "kind": "update-missing-org-where",
+    "table": "devNotificationRules"
+  },
+  {
+    "file": "src/lib/development/server/notification-actions.ts",
+    "line": 190,
+    "kind": "insert-missing-org",
+    "table": "devNotificationRules"
+  },
+  {
+    "file": "src/lib/development/server/notification-actions.ts",
+    "line": 292,
+    "kind": "insert-missing-org",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/notification-actions.ts",
+    "line": 312,
+    "kind": "update-missing-org-where",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/notification-actions.ts",
+    "line": 320,
+    "kind": "update-missing-org-where",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/notification-actions.ts",
+    "line": 337,
+    "kind": "update-missing-org-where",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/notification-actions.ts",
+    "line": 357,
+    "kind": "update-missing-org-where",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/notification-actions.ts",
+    "line": 372,
+    "kind": "update-missing-org-where",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/notification-actions.ts",
+    "line": 382,
+    "kind": "update-missing-org-where",
+    "table": "devNotificationDeliveryLog"
+  },
+  {
+    "file": "src/lib/development/server/notifications/notification-actions.ts",
+    "line": 41,
+    "kind": "insert-missing-org",
+    "table": "notificationDispatchLog"
+  },
+  {
+    "file": "src/lib/development/server/offline-sync/sync-actions.ts",
+    "line": 85,
+    "kind": "insert-missing-org",
+    "table": "offlineActionQueue"
+  },
+  {
+    "file": "src/lib/development/server/photo-analyst-actions.ts",
+    "line": 53,
+    "kind": "update-missing-org-where",
+    "table": "siteReportPhotos"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 51,
+    "kind": "insert-missing-org",
+    "table": "devOsPurchaseRequests"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 135,
+    "kind": "update-missing-org-where",
+    "table": "devOsPurchaseRequests"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 184,
+    "kind": "insert-missing-org",
+    "table": "procurementQuotations"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 200,
+    "kind": "insert-missing-org",
+    "table": "procurementQuotationLines"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 211,
+    "kind": "update-missing-org-where",
+    "table": "devOsPurchaseRequests"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 265,
+    "kind": "update-missing-org-where",
+    "table": "procurementQuotations"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 282,
+    "kind": "update-missing-org-where",
+    "table": "procurementQuotations"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 299,
+    "kind": "insert-missing-org",
+    "table": "materialPurchaseOrders"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 318,
+    "kind": "insert-missing-org",
+    "table": "materialPoLines"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 330,
+    "kind": "update-missing-org-where",
+    "table": "devOsPurchaseRequests"
+  },
+  {
+    "file": "src/lib/development/server/procurement/procurement-actions.ts",
+    "line": 563,
+    "kind": "insert-missing-org",
+    "table": "devOsPurchaseRequests"
+  },
+  {
+    "file": "src/lib/development/server/procurement/quotation-bulk-actions.ts",
+    "line": 200,
+    "kind": "insert-missing-org",
+    "table": "procurementQuotations"
+  },
+  {
+    "file": "src/lib/development/server/procurement/quotation-bulk-actions.ts",
+    "line": 230,
+    "kind": "insert-missing-org",
+    "table": "procurementQuotationLines"
+  },
+  {
+    "file": "src/lib/development/server/productivity/productivity-actions.ts",
+    "line": 37,
+    "kind": "insert-missing-org",
+    "table": "productivityLogs"
+  },
+  {
+    "file": "src/lib/development/server/push/subscription-actions.ts",
+    "line": 27,
+    "kind": "insert-missing-org",
+    "table": "pushSubscriptions"
+  },
+  {
+    "file": "src/lib/development/server/push/subscription-actions.ts",
+    "line": 60,
+    "kind": "update-missing-org-where",
+    "table": "pushSubscriptions"
+  },
+  {
+    "file": "src/lib/development/server/qa-qc/qa-qc-actions.ts",
+    "line": 53,
+    "kind": "insert-missing-org",
+    "table": "qaQcIssues"
+  },
+  {
+    "file": "src/lib/development/server/qa-qc/qa-qc-actions.ts",
+    "line": 130,
+    "kind": "update-missing-org-where",
+    "table": "qaQcIssues"
+  },
+  {
+    "file": "src/lib/development/server/qa-qc/qa-qc-actions.ts",
+    "line": 181,
+    "kind": "insert-missing-org",
+    "table": "qaQcInspections"
+  },
+  {
+    "file": "src/lib/development/server/qa-qc/qa-qc-actions.ts",
+    "line": 206,
+    "kind": "update-missing-org-where",
+    "table": "qaQcIssues"
+  },
+  {
+    "file": "src/lib/development/server/qa-qc/qa-qc-actions.ts",
+    "line": 238,
+    "kind": "insert-missing-org",
+    "table": "qaQcIssuePhotos"
+  },
+  {
+    "file": "src/lib/development/server/quality-standards/quality-standard-actions.ts",
+    "line": 36,
+    "kind": "insert-missing-org",
+    "table": "qualityStandards"
+  },
+  {
+    "file": "src/lib/development/server/quality-standards/quality-standard-actions.ts",
+    "line": 59,
+    "kind": "update-missing-org-where",
+    "table": "qualityStandards"
+  },
+  {
+    "file": "src/lib/development/server/risk-radar/risk-radar-actions.ts",
+    "line": 19,
+    "kind": "insert-missing-org",
+    "table": "riskRadarAlerts"
+  },
+  {
+    "file": "src/lib/development/server/risk-radar/risk-radar-actions.ts",
+    "line": 53,
+    "kind": "update-missing-org-where",
+    "table": "riskRadarAlerts"
+  },
+  {
+    "file": "src/lib/development/server/risk-radar/risk-radar-actions.ts",
+    "line": 76,
+    "kind": "update-missing-org-where",
+    "table": "riskRadarAlerts"
+  },
+  {
+    "file": "src/lib/development/server/risk-radar/risk-radar-actions.ts",
+    "line": 100,
+    "kind": "update-missing-org-where",
+    "table": "riskRadarAlerts"
+  },
+  {
+    "file": "src/lib/development/server/risks/risk-actions.ts",
+    "line": 66,
+    "kind": "insert-missing-org",
+    "table": "projectRisks"
+  },
+  {
+    "file": "src/lib/development/server/risks/risk-actions.ts",
+    "line": 105,
+    "kind": "update-missing-org-where",
+    "table": "projectRisks"
+  },
+  {
+    "file": "src/lib/development/server/roles/role-actions.ts",
+    "line": 105,
+    "kind": "insert-missing-org",
+    "table": "cabinetPreferences"
+  },
+  {
+    "file": "src/lib/development/server/schedule/baseline-actions.ts",
+    "line": 52,
+    "kind": "update-missing-org-where",
+    "table": "scheduleBaselines"
+  },
+  {
+    "file": "src/lib/development/server/schedule/baseline-actions.ts",
+    "line": 61,
+    "kind": "insert-missing-org",
+    "table": "scheduleBaselines"
+  },
+  {
+    "file": "src/lib/development/server/schedule/baseline-actions.ts",
+    "line": 78,
+    "kind": "update-missing-org-where",
+    "table": "scheduleBaselines"
+  },
+  {
+    "file": "src/lib/development/server/schedule/baseline-actions.ts",
+    "line": 128,
+    "kind": "insert-missing-org",
+    "table": "scheduleVariances"
+  },
+  {
+    "file": "src/lib/development/server/schedule/resource-pool-actions.ts",
+    "line": 36,
+    "kind": "insert-missing-org",
+    "table": "resourcePools"
+  },
+  {
+    "file": "src/lib/development/server/schedule/resource-pool-actions.ts",
+    "line": 69,
+    "kind": "insert-missing-org",
+    "table": "taskResourceAssignments"
+  },
+  {
+    "file": "src/lib/development/server/schedule/resource-pool-actions.ts",
+    "line": 128,
+    "kind": "update-missing-org-where",
+    "table": "resourcePools"
+  },
+  {
+    "file": "src/lib/development/server/schedule/resource-pool-actions.ts",
+    "line": 140,
+    "kind": "update-missing-org-where",
+    "table": "resourcePools"
+  },
+  {
+    "file": "src/lib/development/server/schedule/schedule-actions.ts",
+    "line": 42,
+    "kind": "insert-missing-org",
+    "table": "projectTasks"
+  },
+  {
+    "file": "src/lib/development/server/schedule/schedule-actions.ts",
+    "line": 139,
+    "kind": "insert-missing-org",
+    "table": "taskDependencies"
+  },
+  {
+    "file": "src/lib/development/server/schedule/schedule-actions.ts",
+    "line": 206,
+    "kind": "update-missing-org-where",
+    "table": "projectTasks"
+  },
+  {
+    "file": "src/lib/development/server/shared-costs/shared-cost-actions.ts",
+    "line": 82,
+    "kind": "insert-missing-org",
+    "table": "sharedCostAllocations"
+  },
+  {
+    "file": "src/lib/development/server/shared-costs/shared-cost-actions.ts",
+    "line": 95,
+    "kind": "insert-missing-org",
+    "table": "sharedCostAllocationLines"
+  },
+  {
+    "file": "src/lib/development/server/shared-costs/shared-cost-actions.ts",
+    "line": 159,
+    "kind": "insert-missing-org",
+    "table": "devTransactions"
+  },
+  {
+    "file": "src/lib/development/server/shared-costs/shared-cost-actions.ts",
+    "line": 179,
+    "kind": "update-missing-org-where",
+    "table": "sharedCostAllocationLines"
+  },
+  {
+    "file": "src/lib/development/server/shared-costs/shared-cost-actions.ts",
+    "line": 186,
+    "kind": "update-missing-org-where",
+    "table": "sharedCostAllocations"
+  },
+  {
+    "file": "src/lib/development/server/shared-costs/shared-cost-actions.ts",
+    "line": 211,
+    "kind": "update-missing-org-where",
+    "table": "sharedCostAllocations"
+  },
+  {
+    "file": "src/lib/development/server/site-report-actions.ts",
+    "line": 91,
+    "kind": "insert-missing-org",
+    "table": "siteReports"
+  },
+  {
+    "file": "src/lib/development/server/site-report-actions.ts",
+    "line": 134,
+    "kind": "insert-missing-org",
+    "table": "siteReportZones"
+  },
+  {
+    "file": "src/lib/development/server/site-report-actions.ts",
+    "line": 164,
+    "kind": "insert-missing-org",
+    "table": "siteWorkforceLogs"
+  },
+  {
+    "file": "src/lib/development/server/site-report-actions.ts",
+    "line": 201,
+    "kind": "update-missing-org-where",
+    "table": "siteReports"
+  },
+  {
+    "file": "src/lib/development/server/site-report-actions.ts",
+    "line": 234,
+    "kind": "update-missing-org-where",
+    "table": "siteReports"
+  },
+  {
+    "file": "src/lib/development/server/site-report-actions.ts",
+    "line": 261,
+    "kind": "insert-missing-org",
+    "table": "siteReportPhotos"
+  },
+  {
+    "file": "src/lib/development/server/site-report-actions.ts",
+    "line": 317,
+    "kind": "insert-missing-org",
+    "table": "materialConsumptionLogs"
+  },
+  {
+    "file": "src/lib/development/server/site-report-actions.ts",
+    "line": 328,
+    "kind": "update-missing-org-where",
+    "table": "materialPoLines"
+  },
+  {
+    "file": "src/lib/development/server/site-report-actions.ts",
+    "line": 373,
+    "kind": "insert-missing-org",
+    "table": "siteZones"
+  },
+  {
+    "file": "src/lib/development/server/specifications/specification-actions.ts",
+    "line": 56,
+    "kind": "insert-missing-org",
+    "table": "specifications"
+  },
+  {
+    "file": "src/lib/development/server/specifications/specification-actions.ts",
+    "line": 92,
+    "kind": "update-missing-org-where",
+    "table": "specifications"
+  },
+  {
+    "file": "src/lib/development/server/specifications/specification-actions.ts",
+    "line": 103,
+    "kind": "update-missing-org-where",
+    "table": "specifications"
+  },
+  {
+    "file": "src/lib/development/server/tax/tax-actions.ts",
+    "line": 112,
+    "kind": "update-missing-org-where",
+    "table": "devTransactions"
+  },
+  {
+    "file": "src/lib/development/server/tax/tax-actions.ts",
+    "line": 162,
+    "kind": "insert-missing-org",
+    "table": "taxPeriodReports"
+  },
+  {
+    "file": "src/lib/development/server/transaction-actions.ts",
+    "line": 129,
+    "kind": "insert-missing-org",
+    "table": "devTransactions"
+  },
+  {
+    "file": "src/lib/development/server/transaction-actions.ts",
+    "line": 172,
+    "kind": "update-missing-org-where",
+    "table": "devBankAccounts"
+  },
+  {
+    "file": "src/lib/development/server/transaction-actions.ts",
+    "line": 200,
+    "kind": "update-missing-org-where",
+    "table": "devCommitmentsLedger"
+  },
+  {
+    "file": "src/lib/development/server/transaction-actions.ts",
+    "line": 223,
+    "kind": "update-missing-org-where",
+    "table": "devTransactions"
+  },
+  {
+    "file": "src/lib/development/server/transaction-actions.ts",
+    "line": 252,
+    "kind": "update-missing-org-where",
+    "table": "devTransactions"
+  },
+  {
+    "file": "src/lib/development/server/transaction-actions.ts",
+    "line": 267,
+    "kind": "update-missing-org-where",
+    "table": "devTransactions"
+  },
+  {
+    "file": "src/lib/development/server/vendor-actions.ts",
+    "line": 49,
+    "kind": "insert-missing-org",
+    "table": "vendors"
+  },
+  {
+    "file": "src/lib/development/server/vendor-actions.ts",
+    "line": 84,
+    "kind": "update-missing-org-where",
+    "table": "vendors"
+  },
+  {
+    "file": "src/lib/development/server/vendor-actions.ts",
+    "line": 94,
+    "kind": "update-missing-org-where",
+    "table": "vendors"
+  },
+  {
+    "file": "src/lib/development/server/vendor-actions.ts",
+    "line": 116,
+    "kind": "update-missing-org-where",
+    "table": "vendors"
+  },
+  {
+    "file": "src/lib/development/server/vendor-actions.ts",
+    "line": 156,
+    "kind": "insert-missing-org",
+    "table": "vendorEngagements"
+  },
+  {
+    "file": "src/lib/development/server/vendor-actions.ts",
+    "line": 194,
+    "kind": "update-missing-org-where",
+    "table": "vendorEngagements"
+  },
+  {
+    "file": "src/lib/development/server/vendor-actions.ts",
+    "line": 218,
+    "kind": "update-missing-org-where",
+    "table": "vendorEngagements"
+  },
+  {
+    "file": "src/lib/development/server/work-packages/work-package-actions.ts",
+    "line": 39,
+    "kind": "insert-missing-org",
+    "table": "workPackages"
+  },
+  {
+    "file": "src/lib/development/server/work-packages/work-package-actions.ts",
+    "line": 92,
+    "kind": "update-missing-org-where",
+    "table": "workPackages"
+  }
+]

@@ -16,6 +16,7 @@ import { appUsers } from "./identity";
 import { projects, villas } from "./projects";
 import { contacts } from "./contacts";
 import { documents } from "./documents";
+import { organizations } from "./saas";
 import {
   capitalDrawdowns,
   distributions,
@@ -44,6 +45,13 @@ export const devBankAccounts = pgTable(
   "dev_bank_accounts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation). The
+    // Drizzle TS schema was never updated, so INSERTs without
+    // organizationId crashed with PG 23502. Reflecting the DB column
+    // here unblocks the actions; nothing about the DB changes.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     accountCode: text("account_code").notNull().unique(),
     accountName: text("account_name").notNull(),
     /** 'bank' | 'crypto_exchange' | 'crypto_wallet' | 'cash' */
@@ -106,6 +114,11 @@ export const devCostCategories = pgTable(
   "dev_cost_categories",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: same as dev_bank_accounts — migration 0072 added
+    // organization_id NOT NULL, Drizzle TS lagged.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     categoryCode: text("category_code").notNull().unique(),
     parentCategoryId: uuid("parent_category_id"),
     displayName: text("display_name").notNull(),

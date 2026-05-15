@@ -1,9 +1,21 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { devCostCategories } from "@/lib/db/schema/dev-finance";
+import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+
+// HF-5: same multi-tenant fix pattern as bank-account-actions.ts.
+async function requireDefaultOrgId(): Promise<string> {
+  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  if (!org) {
+    throw new Error(
+      "ARCONIQUE_DEFAULT organization missing — apply migration 0071",
+    );
+  }
+  return org.id;
+}
 
 const createSchema = z.object({
   categoryCode: z
@@ -35,9 +47,11 @@ export async function createCostCategory(
 ): Promise<{ id: string; categoryCode: string }> {
   const parsed = createSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireDefaultOrgId();
   const [row] = await db
     .insert(devCostCategories)
     .values({
+      organizationId,
       categoryCode: parsed.categoryCode,
       parentCategoryId: parsed.parentCategoryId ?? null,
       displayName: parsed.displayName,
@@ -70,18 +84,28 @@ export async function updateCostCategory(
   if (parsed.notes !== undefined) updates.notes = parsed.notes;
   if (parsed.parentCategoryId !== undefined)
     updates.parentCategoryId = parsed.parentCategoryId;
+  // HF-5: scope UPDATE by org_id to prevent cross-tenant mutation.
+  const organizationId = await requireDefaultOrgId();
   await db
     .update(devCostCategories)
     .set(updates)
-    .where(eq(devCostCategories.id, parsed.id));
+    .where(
+      and(
+        eq(devCostCategories.id, parsed.id),
+        eq(devCostCategories.organizationId, organizationId),
+      ),
+    );
 }
 
 export async function deactivateCostCategory(id: string): Promise<void> {
   const db = requireDb();
-  // Check no active children
+  const organizationId = await requireDefaultOrgId();
+  // Check no active children (scoped to this org).
   const [{ count: childCount }] = (await db.execute(sql`
     SELECT count(*)::int AS count FROM dev_cost_categories
-    WHERE parent_category_id = ${id} AND is_active = true
+    WHERE parent_category_id = ${id}
+      AND organization_id = ${organizationId}
+      AND is_active = true
   `)) as Array<{ count: number }>;
   if (childCount > 0) {
     throw new Error(
@@ -91,5 +115,10 @@ export async function deactivateCostCategory(id: string): Promise<void> {
   await db
     .update(devCostCategories)
     .set({ isActive: false, updatedAt: new Date() })
-    .where(eq(devCostCategories.id, id));
+    .where(
+      and(
+        eq(devCostCategories.id, id),
+        eq(devCostCategories.organizationId, organizationId),
+      ),
+    );
 }

@@ -1,10 +1,26 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { devBankAccounts } from "@/lib/db/schema/dev-finance";
 import { SUPPORTED_CURRENCIES } from "@/lib/development/constants/investor-constants";
+import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+
+// HF-5: multi-tenant tables (added by migration 0072) require
+// organization_id on every INSERT and on the WHERE clause of every
+// UPDATE/DELETE. Matches the established pattern from
+// src/lib/banking/bookkeeper-actions.ts +
+// src/lib/messaging/inbox-actions.ts etc.
+async function requireDefaultOrgId(): Promise<string> {
+  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  if (!org) {
+    throw new Error(
+      "ARCONIQUE_DEFAULT organization missing — apply migration 0071",
+    );
+  }
+  return org.id;
+}
 
 const createSchema = z.object({
   accountCode: z
@@ -39,9 +55,11 @@ export async function createBankAccount(
 ): Promise<{ id: string; accountCode: string }> {
   const parsed = createSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireDefaultOrgId();
   const [row] = await db
     .insert(devBankAccounts)
     .values({
+      organizationId,
       accountCode: parsed.accountCode,
       accountName: parsed.accountName,
       accountType: parsed.accountType,
@@ -68,6 +86,9 @@ export async function updateBankAccountThreshold(
   newThresholdMinor: bigint | string | number | null,
 ): Promise<void> {
   const db = requireDb();
+  // HF-5: scope UPDATE by organization_id alongside id so a stale
+  // session cannot mutate a row in a sibling tenant.
+  const organizationId = await requireDefaultOrgId();
   await db
     .update(devBankAccounts)
     .set({
@@ -75,7 +96,12 @@ export async function updateBankAccountThreshold(
         newThresholdMinor != null ? toBig(newThresholdMinor) : null,
       updatedAt: new Date(),
     })
-    .where(eq(devBankAccounts.id, id));
+    .where(
+      and(
+        eq(devBankAccounts.id, id),
+        eq(devBankAccounts.organizationId, organizationId),
+      ),
+    );
 }
 
 const recordBalanceSchema = z.object({
@@ -90,10 +116,17 @@ export async function recordBankBalance(
 ): Promise<void> {
   const parsed = recordBalanceSchema.parse(input);
   const db = requireDb();
+  // HF-5: scope SELECT + UPDATE by organization_id.
+  const organizationId = await requireDefaultOrgId();
   const [account] = await db
     .select()
     .from(devBankAccounts)
-    .where(eq(devBankAccounts.id, parsed.id))
+    .where(
+      and(
+        eq(devBankAccounts.id, parsed.id),
+        eq(devBankAccounts.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!account) throw new Error("Bank account not found");
 
@@ -117,5 +150,10 @@ export async function recordBankBalance(
       lastFxRate: parsed.fxRate,
       updatedAt: new Date(),
     })
-    .where(eq(devBankAccounts.id, parsed.id));
+    .where(
+      and(
+        eq(devBankAccounts.id, parsed.id),
+        eq(devBankAccounts.organizationId, organizationId),
+      ),
+    );
 }
