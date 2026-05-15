@@ -29,6 +29,7 @@ import { listArrivals } from "@/features/front-office/services";
 import { isAiConfigured, isAiDryRun } from "@/lib/env";
 import { loadConciergeHandoffOutputs } from "@/lib/development/server/ai/concierge-handoff-queries";
 import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
+import { safeQuery } from "@/lib/development/safe-query";
 
 /**
  * Mega-Sprint / Phase 10 — Concierge cabinet apex consolidating
@@ -83,11 +84,46 @@ export default async function ConciergeCabinetPage() {
     handoffOutputs,
     handoffEnabled,
   ] = await Promise.all([
-    countSessionsByStatus(),
-    countHandoffsByStatus(),
-    getOrderStats(),
-    listAdminSessions({ limit: 8, status: "active" }),
-    listArrivals(today),
+    // STAB-3 fix: wrap every concierge cabinet fetch in safeQuery
+    // (4s timeout). The `listAdminSessions` query joins
+    // guest_ai_concierge_sessions × guest_stay_tokens × bookings ×
+    // a CTE for message counts, and was timing out at the PG layer
+    // (statement-timeout 57014) under non-trivial data load. The
+    // unhandled rejection bubbled up and crashed the whole page
+    // with a 500. Same pattern as STAB-2's reservations fix.
+    safeQuery(
+      "concierge:countSessionsByStatus",
+      countSessionsByStatus(),
+      { active: 0, archived: 0, refused: 0 },
+      4000,
+    ),
+    safeQuery(
+      "concierge:countHandoffsByStatus",
+      countHandoffsByStatus(),
+      { created: 0, linked: 0, acknowledged: 0, resolved: 0, urgent: 0 },
+      4000,
+    ),
+    safeQuery(
+      "concierge:getOrderStats",
+      getOrderStats(),
+      {
+        total: 0,
+        active: 0,
+        fulfilled: 0,
+        cancelled: 0,
+        pendingFinanceBridge: 0,
+        bridgedRevenueMinor: 0n,
+        currency: null,
+      },
+      4000,
+    ),
+    safeQuery(
+      "concierge:listAdminSessions",
+      listAdminSessions({ limit: 8, status: "active" }),
+      [],
+      4000,
+    ),
+    safeQuery("concierge:listArrivals", listArrivals(today), [], 4000),
     loadConciergeHandoffOutputs({ limit: 3 }).catch(() => []),
     isAgentEnabledForCurrentOrg("concierge_handoff").catch(() => false),
   ]);

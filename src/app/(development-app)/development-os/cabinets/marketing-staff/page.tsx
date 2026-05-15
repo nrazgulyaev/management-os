@@ -156,7 +156,7 @@ export default async function MarketingStaffCabinetPage() {
         data.leadsThisWeek === 0
           ? "No new inbound"
           : "Created in last 7d",
-      href: "/development-os/marketing/leads",
+      href: "/development-os/sales",
     },
     {
       label: "Approval queue",
@@ -275,7 +275,7 @@ export default async function MarketingStaffCabinetPage() {
           description="Counts by lifecycle stage across all leads. Conversion-% chips reflect previous-stage carry-through."
           action={
             <Link
-              href="/development-os/marketing/leads"
+              href="/development-os/sales"
               className="text-xs text-ink-tertiary hover:underline"
             >
               All leads →

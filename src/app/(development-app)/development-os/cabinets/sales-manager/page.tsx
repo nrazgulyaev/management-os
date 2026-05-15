@@ -154,7 +154,7 @@ export default async function SalesManagerCabinetPage() {
         data.hotLeadsCount === 0
           ? "Pipeline is quiet"
           : `${data.hotLeadsCount} need a reply`,
-      href: "/development-os/marketing/leads?lifecycle=hot&assigned=me",
+      href: "/development-os/sales?lifecycle=hot&assigned=me",
     },
     {
       label: "Reservations (MTD)",
@@ -163,7 +163,7 @@ export default async function SalesManagerCabinetPage() {
         data.reservationsThisMonth === 0
           ? "None this month"
           : `${data.reservationsThisMonth} this month`,
-      href: "/development-os/marketing/leads?lifecycle=reservation",
+      href: "/development-os/sales?lifecycle=reservation",
     },
     {
       label: "Contracts (MTD)",
@@ -172,7 +172,7 @@ export default async function SalesManagerCabinetPage() {
         data.contractsThisMonth === 0
           ? "Close one this month"
           : `${data.contractsThisMonth} closed`,
-      href: "/development-os/marketing/leads?lifecycle=contract",
+      href: "/development-os/sales?lifecycle=contract",
     },
     {
       label: "Overdue follow-ups",
@@ -181,7 +181,7 @@ export default async function SalesManagerCabinetPage() {
         data.followupsOverdueCount === 0
           ? "All caught up"
           : "Stale 5+ days",
-      href: "/development-os/sales/conversations?stale=true",
+      href: "/development-os/marketing/conversations?stale=true",
     },
   ];
 
@@ -199,19 +199,19 @@ export default async function SalesManagerCabinetPage() {
           role="Sales Manager · Cabinet"
           dateLabel={todayLabel(now)}
           aiPromptPlaceholder="Ask the marketing-assistant to draft a follow-up."
-          showMyTasksHref="/development-os/sales/conversations"
+          showMyTasksHref="/development-os/marketing/conversations"
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
           {[
             {
-              href: "/development-os/marketing/leads/new",
+              href: "/development-os/sales/new",
               icon: UserPlus,
               label: "Capture new lead",
               caption: "Manual entry · imports",
             },
             {
-              href: "/development-os/sales/conversations?stale=true",
+              href: "/development-os/marketing/conversations?stale=true",
               icon: MessageSquare,
               label: "Reply to overdue threads",
               caption:
@@ -326,7 +326,7 @@ export default async function SalesManagerCabinetPage() {
           description="Counts by lifecycle stage across leads assigned to you. Conversion-% chips between stages reflect the previous-stage carry-through."
           action={
             <Link
-              href="/development-os/marketing/leads?assigned=me"
+              href="/development-os/sales?assigned=me"
               className="text-xs text-ink-tertiary hover:underline"
             >
               All my leads →
@@ -353,7 +353,7 @@ export default async function SalesManagerCabinetPage() {
                   {data.topHotLeads.map((l) => (
                     <li key={l.id}>
                       <Link
-                        href={`/development-os/marketing/leads/${l.id}`}
+                        href={`/development-os/sales/${l.id}`}
                         className="flex items-center justify-between px-4 py-3 hover:bg-surface-hover"
                       >
                         <span className="font-mono text-xs text-ink">
@@ -386,7 +386,7 @@ export default async function SalesManagerCabinetPage() {
                 label="Overdue follow-ups"
                 value={String(data.followupsOverdueCount)}
                 status={overdueStatus}
-                drillHref="/development-os/sales/conversations?stale=true"
+                drillHref="/development-os/marketing/conversations?stale=true"
                 hint="No reply for 5+ days"
               />
             </Section>
