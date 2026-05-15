@@ -15,6 +15,8 @@ import {
   summarizeQuotationComparisons,
   type ComparisonListRow,
 } from "@/lib/development/server/procurement/quotation-comparison-queries";
+import { loadQuotationMatrix } from "@/lib/development/server/procurement/quotation-matrix-queries";
+import { QuotationMatrixIsland } from "./_matrix-island";
 
 export const metadata: Metadata = {
   title: "Quotation comparison · Development OS",
@@ -48,7 +50,7 @@ function priceSpread(row: ComparisonListRow): number | null {
 }
 
 export default async function QuotationComparisonListPage() {
-  const [rows, awaiting] = await Promise.all([
+  const [rows, awaiting, matrix] = await Promise.all([
     safeQuery(
       "quotationComparisons",
       listQuotationComparisons(),
@@ -61,6 +63,12 @@ export default async function QuotationComparisonListPage() {
       [] as Awaited<
         ReturnType<typeof listPurchaseRequestsAwaitingQuotations>
       >,
+      4000,
+    ),
+    safeQuery(
+      "quotationMatrix",
+      loadQuotationMatrix(),
+      { lines: [], vendors: [], cellsByPrAndVendor: {} },
       4000,
     ),
   ]);
@@ -113,6 +121,20 @@ export default async function QuotationComparisonListPage() {
           hint="Across every open + decided RFQ"
         />
       </div>
+
+      {matrix.lines.length > 0 && matrix.vendors.length > 0 && (
+        <Section
+          eyebrow="Award matrix"
+          title="Pick a winner per row, create POs in one batch"
+          description="Side-by-side comparison across every PR that has at least one quotation. Defaults match the lowest-price highlight; click a different vendor radio to override."
+        >
+          <QuotationMatrixIsland
+            lines={matrix.lines}
+            vendors={matrix.vendors}
+            cellsByPrAndVendor={matrix.cellsByPrAndVendor}
+          />
+        </Section>
+      )}
 
       <Section
         eyebrow="Active comparisons"

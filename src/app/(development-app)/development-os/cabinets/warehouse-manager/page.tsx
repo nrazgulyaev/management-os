@@ -184,7 +184,7 @@ export default async function WarehouseCabinetPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
           {[
             {
-              href: "/development-os/inventory/movements/new",
+              href: "/development-os/inventory/movements/quick-entry",
               icon: PackagePlus,
               label: "Log stock movement",
               caption: "Inflow · outflow · transfer",

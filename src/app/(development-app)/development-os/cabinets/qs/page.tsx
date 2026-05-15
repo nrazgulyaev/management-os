@@ -134,9 +134,9 @@ export default async function QsCabinetPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
           {[
             {
-              href: "/development-os/boq",
+              href: "/development-os/boq/quick-entry",
               icon: FileSpreadsheet,
-              label: "Review BoQ",
+              label: "BoQ quick entry",
               caption: `${data.boqsUnderReviewCount} under review`,
             },
             {

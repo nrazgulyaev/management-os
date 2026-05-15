@@ -150,9 +150,12 @@ test("mega-sprint phase-4 — QS KpiRowMixed surfaces BoQ review / change orders
   assert.match(src, /AI anomalies \(7d\)/);
 });
 
-test("mega-sprint phase-4 — QS exposes a quick-action strip to review BoQ + change orders + AI analyst", () => {
+test("mega-sprint phase-4 — QS exposes a quick-action strip to enter BoQ + change orders + AI analyst", () => {
   const src = read(QS);
-  assert.match(src, /Review BoQ/);
+  // Sprint MD-1 — first card swapped from "Review BoQ" to
+  // "BoQ quick entry" with href -> /boq/quick-entry to surface the
+  // new bulk-entry route. The other two cards survive unchanged.
+  assert.match(src, /BoQ quick entry/);
   assert.match(src, /Change orders/);
   assert.match(src, /AI cost analyst/);
 });
@@ -179,9 +182,12 @@ test("10.5.A.2.3 — Procurement side panel cross-links to vendor + inventory su
   assert.match(src, /\/development-os\/inventory/);
 });
 
-test("mega-sprint phase-3 — Procurement exposes a quick-action strip to raise PR + compare quotations + AI analyst", () => {
+test("mega-sprint phase-3 — Procurement exposes a quick-action strip to import quotations + compare + AI analyst", () => {
   const src = read(PROC);
-  assert.match(src, /Raise new PR/);
+  // Sprint MD-1 — first card swapped from "Raise new PR" to
+  // "Import quotations" with href -> /quotations/import. PR
+  // creation still reachable from the body sections + cross-links.
+  assert.match(src, /Import quotations/);
   assert.match(src, /Compare quotations/);
   assert.match(src, /AI procurement analyst/);
 });

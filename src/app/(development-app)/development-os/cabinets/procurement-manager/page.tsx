@@ -164,10 +164,10 @@ export default async function ProcurementCabinetPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
           {[
             {
-              href: "/development-os/procurement/purchase-requests/new",
+              href: "/development-os/procurement/quotations/import",
               icon: ClipboardList,
-              label: "Raise new PR",
-              caption: "Single form · paste-import",
+              label: "Import quotations",
+              caption: "Paste · XLSX · per-vendor split",
             },
             {
               href: "/development-os/procurement/quotation-comparison",
