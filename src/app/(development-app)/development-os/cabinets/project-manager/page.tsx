@@ -6,20 +6,30 @@ import {
   GitBranch,
   Sparkles,
 } from "lucide-react";
-import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
+import {
+  DashboardKpi,
+  DonutRatioCard,
+  NoItemsYet,
+} from "@/components/ui/primitives";
 import {
   HalfDonutGauge,
   HatchedBarChart,
   HeroGreetingAI,
   KpiRowMixed,
+  TeamRowList,
   type HatchedBarDatum,
   type KpiItem,
+  type TeamRowItem,
 } from "@/components/award";
 import { ProjectPipelineKanban } from "./_project-pipeline-kanban";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadProjectManagerCabinet } from "@/lib/development/server/cabinets/project-manager-cabinet-queries";
+import {
+  loadActiveSubcontractors,
+  loadProjectCompletion,
+} from "@/lib/development/server/pm/pm-subcontractor-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { formatMinorAsCurrency } from "@/lib/development/server/executive/widgets-helpers";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -114,6 +124,41 @@ export default async function ProjectManagerCabinetPage() {
   const t = data.totals;
   const now = new Date();
   const dailyActivity = bucketLast7Days(data.activityLast7Days, now);
+
+  // Sprint MD-4 Phase 1 — subcontractor + completion aggregators.
+  const projectIds = data.projects.map((p) => p.id);
+  const [subcontractors, completionRows] = await Promise.all([
+    safeQuery(
+      "pmSubcontractors",
+      loadActiveSubcontractors(projectIds, 8),
+      [] as Awaited<ReturnType<typeof loadActiveSubcontractors>>,
+    ),
+    safeQuery(
+      "pmCompletion",
+      loadProjectCompletion(projectIds),
+      [] as Awaited<ReturnType<typeof loadProjectCompletion>>,
+    ),
+  ]);
+  const completionNumerator = completionRows.reduce(
+    (acc, r) => acc + r.actualPercent,
+    0,
+  );
+  const completionDenominator =
+    completionRows.length === 0 ? 100 : completionRows.length * 100;
+  const subcontractorTeamItems: TeamRowItem[] = subcontractors.map((s) => ({
+    name: s.name,
+    workingOn: s.projectName
+      ? `${s.workingOn} · ${s.projectName}`
+      : s.workingOn,
+    status:
+      s.status === "active"
+        ? "in_progress"
+        : s.status === "blocked"
+          ? "blocked"
+          : "pending",
+    statusLabel: s.statusLabel,
+    href: s.href,
+  }));
 
   const kpis: KpiItem[] = [
     {
@@ -329,6 +374,31 @@ export default async function ProjectManagerCabinetPage() {
               })}
             </div>
           )}
+        </Section>
+
+        <Section
+          eyebrow="Team"
+          title="Active subcontractors + completion"
+          description="Subcontractors currently delivering on a work package alongside the portfolio's actual-completion roll-up."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
+            <TeamRowList
+              items={subcontractorTeamItems}
+              heading="Subcontractors on site"
+              emptyMessage="No active subcontractor assignments. Assign a primary vendor to a work package to surface them here."
+            />
+            <DonutRatioCard
+              title="Portfolio completion"
+              numerator={completionNumerator}
+              denominator={completionDenominator}
+              tone="emerald"
+              caption={
+                completionRows.length === 0
+                  ? "No work packages tracked yet"
+                  : `Across ${completionRows.length} project${completionRows.length === 1 ? "" : "s"}`
+              }
+            />
+          </div>
         </Section>
 
         <Section
