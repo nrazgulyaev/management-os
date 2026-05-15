@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray, lte } from "drizzle-orm";
+import { and, eq, lte } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   maintenanceTemplates,
@@ -554,5 +554,12 @@ export async function resolveRiskEventAction(
   return { ok: true };
 }
 
-// Suppress unused-import warnings.
-export const _drizzle = { inArray };
+// COMPLETE-1 fix: a `"use server"` file may only export async
+// functions. The previous `export const _drizzle = { inArray }` was a
+// dev-only unused-import shim that worked under Next 14 but crashes
+// Next 15 prod builds with `A "use server" file can only export
+// async functions, found object` — surfacing as a 500 on any page
+// that imports a real action from this file (e.g.
+// /dashboard/maintenance-intelligence/templates). The `inArray`
+// import is now consumed inside this file's action bodies, so the
+// shim is unnecessary.
