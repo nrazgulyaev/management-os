@@ -12,3 +12,7 @@ next-env.d.ts
 coverage/
 tmp/
 .env.production.local
+
+# Playwright (STAB-2)
+test-results/
+playwright-report/

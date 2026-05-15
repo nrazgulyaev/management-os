@@ -38,7 +38,14 @@ function fmtUsd(minor: bigint): string {
 export default async function ReservationsPage() {
   const db = getDb();
   const [reservations, contactRows, villaRows] = await Promise.all([
-    getReservations(),
+    // STAB-2 fix: getReservations() was unwrapped while the sibling
+    // queries on this same page were protected by safeQuery with a
+    // 4000ms timeout. When the reservations join hung at the DB
+    // level, the whole /development-os/reservations page hung
+    // indefinitely (curl times out at 30s, Playwright never gets
+    // domcontentloaded). Wrapping it in the same safeQuery pattern
+    // makes the page render with an empty list rather than blocking.
+    safeQuery("getReservations", getReservations(), [], 4000),
     db
       ? safeQuery(
           "contacts list",
