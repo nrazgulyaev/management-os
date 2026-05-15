@@ -13,11 +13,16 @@ import {
   formatUsdMinor,
 } from "@/lib/development/constants/investor-constants";
 import {
+  AreaChartCard,
   DistributionWaterfall,
   InvestorHeroGreetingAI,
   type WaterfallStage,
 } from "@/components/award";
 import { Section } from "@/components/ui/section";
+import {
+  loadForecastCashflow,
+  type ForecastQuarterRow,
+} from "@/lib/development/server/investor/forecast-cashflow-queries";
 
 /**
  * Mega-Sprint / Phase 12 — Investor Portal Dashboard on the Sprint-4
@@ -61,9 +66,12 @@ export default async function DashboardPage() {
   if (!session) redirect("/investor-portal/login");
 
   const strings = getPortalStrings(session.reportingLanguage);
-  const [data, commitments] = await Promise.all([
+  const [data, commitments, forecast] = await Promise.all([
     getInvestorDashboard(),
     getMyCommitments(),
+    loadForecastCashflow(session.investorId, 4).catch(
+      () => [] as ForecastQuarterRow[],
+    ),
   ]);
 
   const committed = Number(BigInt(data.totalCommittedUsdMinor)) / 100;
@@ -140,6 +148,32 @@ export default async function DashboardPage() {
             </span>
           }
           currency={data.primaryCurrency}
+        />
+
+        <AreaChartCard
+          title="Forecast cashflow"
+          period={`${forecast[0]?.quarter ?? ""}–${forecast[forecast.length - 1]?.quarter ?? ""}`}
+          tone="ink"
+          data={forecast.map((q) => ({
+            date: q.quarter,
+            value: q.cumulativeBalanceUsdMinor / 100,
+          }))}
+          formatValue={(v) =>
+            `${data.primaryCurrency} ${v.toLocaleString("en-US", {
+              maximumFractionDigits: 0,
+            })}`
+          }
+          pinnedTooltip={
+            forecast.length > 0
+              ? {
+                  value: `${data.primaryCurrency} ${(
+                    forecast[forecast.length - 1].cumulativeBalanceUsdMinor /
+                    100
+                  ).toLocaleString("en-US", { maximumFractionDigits: 0 })}`,
+                  label: `Projected ${forecast[forecast.length - 1].quarter}`,
+                }
+              : undefined
+          }
         />
 
         <Section

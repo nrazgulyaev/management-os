@@ -75,6 +75,18 @@ export type {
   WaterfallStageTone,
 } from "./distribution-waterfall";
 
+// Sprint MD-4 Phase 3 — investor-portal-friendly re-export of the
+// ink-deep AreaChartCard. The 10.J.2 guardrail bans importing the
+// `@/components/ui/primitives` barrel from inside the investor
+// portal; re-exporting through the award barrel keeps the chart
+// reachable without contaminating the stone-theme contract.
+export { AreaChartCard } from "@/components/ui/primitives/area-chart-card";
+export type {
+  AreaChartCardProps,
+  AreaChartPoint,
+  AreaChartTone,
+} from "@/components/ui/primitives/area-chart-card";
+
 // Phase 8 — Front Office + Concierge primitives.
 export { RoomStatusBoard } from "./room-status-board";
 export type {
