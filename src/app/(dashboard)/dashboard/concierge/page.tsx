@@ -27,6 +27,8 @@ import { countHandoffsByStatus } from "@/features/guest-ai-concierge/handoff-ser
 import { getOrderStats } from "@/features/guest-services/services";
 import { listArrivals } from "@/features/front-office/services";
 import { isAiConfigured, isAiDryRun } from "@/lib/env";
+import { loadConciergeHandoffOutputs } from "@/lib/development/server/ai/concierge-handoff-queries";
+import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
 
 /**
  * Mega-Sprint / Phase 10 — Concierge cabinet apex consolidating
@@ -72,14 +74,23 @@ export default async function ConciergeCabinetPage() {
   const me = await getCurrentAppUser();
   const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
 
-  const [sessionCounts, handoffCounts, orderStats, recentSessions, arrivals] =
-    await Promise.all([
-      countSessionsByStatus(),
-      countHandoffsByStatus(),
-      getOrderStats(),
-      listAdminSessions({ limit: 8, status: "active" }),
-      listArrivals(today),
-    ]);
+  const [
+    sessionCounts,
+    handoffCounts,
+    orderStats,
+    recentSessions,
+    arrivals,
+    handoffOutputs,
+    handoffEnabled,
+  ] = await Promise.all([
+    countSessionsByStatus(),
+    countHandoffsByStatus(),
+    getOrderStats(),
+    listAdminSessions({ limit: 8, status: "active" }),
+    listArrivals(today),
+    loadConciergeHandoffOutputs({ limit: 3 }).catch(() => []),
+    isAgentEnabledForCurrentOrg("concierge_handoff").catch(() => false),
+  ]);
 
   const live = isAiConfigured() && !isAiDryRun();
   const openHandoffs =
@@ -354,21 +365,65 @@ export default async function ConciergeCabinetPage() {
           </Section>
 
           <Section eyebrow="AI" title="Concierge handoff agent">
-            <div className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3">
-              <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                Coming soon
-              </span>
-              <p className="text-sm leading-relaxed opacity-90">
-                A dedicated operator-facing handoff agent will
-                surface urgent escalations, suggested replies, and
-                guest-profile context here. Until it ships, the
-                Concierge AI's user-facing sessions feed this cabinet
-                directly.
-              </p>
-              <Badge tone="outline" className="self-start">
-                concierge-handoff — not yet shipped
-              </Badge>
-            </div>
+            {!handoffEnabled ? (
+              <Link
+                href="/dashboard/settings/ai-agents/concierge_handoff"
+                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+              >
+                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                  Coming soon · Configure key
+                </span>
+                <p className="text-sm leading-relaxed opacity-90">
+                  The concierge-handoff agent ships with a dry-run
+                  default. Wire a provider key to flip it live;
+                  ranked attention list surfaces here.
+                </p>
+                <Badge tone="outline" className="self-start">
+                  Configure provider →
+                </Badge>
+              </Link>
+            ) : handoffOutputs.length === 0 ? (
+              <Link
+                href="/dashboard/ai/jobs?agent=concierge_handoff"
+                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+              >
+                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                  No runs yet
+                </span>
+                <p className="text-sm leading-relaxed opacity-90">
+                  Trigger the concierge-handoff agent to rank active
+                  sessions by human-attention urgency.
+                </p>
+                <Badge tone="outline" className="self-start">
+                  Run agent →
+                </Badge>
+              </Link>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {handoffOutputs.map((o) => (
+                  <Link
+                    key={o.id}
+                    href={`/dashboard/ai/outputs/${o.outputCode}`}
+                    className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-5 md:p-6 flex flex-col gap-2 hover:opacity-95 transition-opacity"
+                  >
+                    <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                      {new Date(o.createdAt).toLocaleDateString("en-US", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "numeric",
+                        minute: "numeric",
+                      })}
+                    </span>
+                    <h4 className="text-sm font-medium line-clamp-2">
+                      {o.title}
+                    </h4>
+                    <p className="text-xs opacity-90 leading-relaxed line-clamp-3">
+                      {o.summary}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            )}
           </Section>
         </aside>
       </div>
