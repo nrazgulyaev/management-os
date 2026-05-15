@@ -8,6 +8,7 @@ import {
   appUserRoles,
   cabinetPreferences,
 } from "@/lib/db/schema/role-cabinets";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   ALL_ROLE_KEYS,
   isValidRoleAssignment,
@@ -102,9 +103,12 @@ export async function saveCabinetPreferences(input: z.input<typeof prefsSchema>)
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  // HF-5: cabinet_preferences is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
   await db
     .insert(cabinetPreferences)
     .values({
+      organizationId,
       userId: parsed.data.userId,
       defaultCabinetKey: parsed.data.defaultCabinetKey ?? null,
       cabinetWidgetPreferences: parsed.data.cabinetWidgetPreferences ?? {},

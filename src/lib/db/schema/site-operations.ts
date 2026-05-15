@@ -19,6 +19,7 @@ import { projects, villas } from "./projects";
 import { contacts } from "./contacts";
 import { documents } from "./documents";
 import { devCommitmentsLedger } from "./dev-finance";
+import { organizations } from "./saas";
 
 /**
  * Development OS — Stage 2.4 schema (site operations + vendor CRM +
@@ -51,6 +52,10 @@ export const vendors = pgTable(
   "vendors",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: migration 0072 added organization_id NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     vendorCode: text("vendor_code").notNull().unique(),
     legalName: text("legal_name").notNull(),
     legalEntityType: text("legal_entity_type"),
@@ -124,6 +129,10 @@ export const vendorEngagements = pgTable(
   "vendor_engagements",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: migration 0072 added organization_id NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     vendorId: uuid("vendor_id")
       .notNull()
       .references(() => vendors.id, { onDelete: "restrict" }),
@@ -176,6 +185,10 @@ export const siteZones = pgTable(
   "site_zones",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "restrict" }),
@@ -223,6 +236,10 @@ export const siteReports = pgTable(
   "site_reports",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "restrict" }),
@@ -283,6 +300,10 @@ export const siteReportZones = pgTable(
   "site_report_zones",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     siteReportId: uuid("site_report_id")
       .notNull()
       .references(() => siteReports.id, { onDelete: "cascade" }),
@@ -330,6 +351,10 @@ export const siteReportPhotos = pgTable(
   "site_report_photos",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     siteReportId: uuid("site_report_id")
       .notNull()
       .references(() => siteReports.id, { onDelete: "cascade" }),
@@ -378,6 +403,10 @@ export const siteWorkforceLogs = pgTable(
   "site_workforce_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     siteReportId: uuid("site_report_id")
       .notNull()
       .references(() => siteReports.id, { onDelete: "cascade" }),
@@ -434,6 +463,10 @@ export const materialPurchaseOrders = pgTable(
   "material_purchase_orders",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     poCode: text("po_code").notNull().unique(),
     projectId: uuid("project_id")
       .notNull()
@@ -493,6 +526,10 @@ export const materialPoLines = pgTable(
   "material_po_lines",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     poId: uuid("po_id")
       .notNull()
       .references(() => materialPurchaseOrders.id, { onDelete: "cascade" }),
@@ -544,6 +581,10 @@ export const materialDeliveries = pgTable(
   "material_deliveries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     deliveryCode: text("delivery_code").notNull().unique(),
     poId: uuid("po_id")
       .notNull()
@@ -593,6 +634,10 @@ export const materialDeliveryLines = pgTable(
   "material_delivery_lines",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     deliveryId: uuid("delivery_id")
       .notNull()
       .references(() => materialDeliveries.id, { onDelete: "cascade" }),
@@ -630,6 +675,10 @@ export const materialConsumptionLogs = pgTable(
   "material_consumption_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     siteReportId: uuid("site_report_id")
       .notNull()
       .references(() => siteReports.id, { onDelete: "restrict" }),

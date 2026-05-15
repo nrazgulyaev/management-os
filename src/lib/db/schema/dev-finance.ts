@@ -213,6 +213,10 @@ export const devCommitmentsLedger = pgTable(
   "dev_commitments_ledger",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: migration 0072 added organization_id NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "restrict" }),
@@ -279,6 +283,10 @@ export const devTransactions = pgTable(
   "dev_transactions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: migration 0072 added organization_id NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     transactionCode: text("transaction_code").notNull().unique(),
 
     bankAccountId: uuid("bank_account_id")

@@ -97,7 +97,7 @@ test("finance permissions matrix grants finance.* roles correctly", async () => 
   const { hasPermission } = await import("../src/features/auth/permission-matrix");
   const fm = {
     mode: "live" as const,
-    appUser: { id: "u", email: "a@b", fullName: "A", status: "active" },
+    appUser: { id: "u", email: "a@b", fullName: "A", status: "active", organizationId: "00000000-0000-0000-0000-000000000000" },
     roles: ["finance_manager" as const],
     isInternal: true,
     isSuperAdmin: false,

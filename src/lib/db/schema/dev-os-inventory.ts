@@ -32,11 +32,16 @@ import {
   siteReports,
 } from "./site-operations";
 import { qaQcIssues } from "./qa-qc";
+import { organizations } from "./saas";
 
 export const devOsInventoryItems = pgTable(
   "dev_os_inventory_items",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     sku: text("sku").notNull().unique(),
     displayName: text("display_name").notNull(),
     description: text("description"),
@@ -76,6 +81,10 @@ export const devOsInventoryLocations = pgTable(
   "dev_os_inventory_locations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     locationCode: text("location_code").notNull().unique(),
     displayName: text("display_name").notNull(),
     /**
@@ -99,6 +108,10 @@ export const devOsInventoryStockBalances = pgTable(
   "dev_os_inventory_stock_balances",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     itemId: uuid("item_id")
       .notNull()
       .references(() => devOsInventoryItems.id),
@@ -135,6 +148,10 @@ export const devOsInventoryMovements = pgTable(
   "dev_os_inventory_movements",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     movementCode: text("movement_code").notNull().unique(),
     itemId: uuid("item_id")
       .notNull()

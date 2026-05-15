@@ -21,11 +21,16 @@ import { projects, villas } from "./projects";
 import { vendors } from "./site-operations";
 import { appUsers } from "./identity";
 import { documents } from "./documents";
+import { organizations } from "./saas";
 
 export const drawings = pgTable(
   "drawings",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     drawingCode: text("drawing_code").notNull().unique(),
     drawingNumber: text("drawing_number").notNull(),
     title: text("title").notNull(),
@@ -74,6 +79,10 @@ export const drawingRevisions = pgTable(
   "drawing_revisions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     drawingId: uuid("drawing_id")
       .notNull()
       .references(() => drawings.id, { onDelete: "cascade" }),
@@ -116,6 +125,10 @@ export const drawingDistributionLog = pgTable(
   "drawing_distribution_log",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     revisionId: uuid("revision_id")
       .notNull()
       .references(() => drawingRevisions.id, { onDelete: "cascade" }),

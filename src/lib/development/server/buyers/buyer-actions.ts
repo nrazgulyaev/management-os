@@ -1,10 +1,11 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { buyers, buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const KYC_STATUSES = [
   "not_started",
@@ -37,6 +38,7 @@ const createBuyerSchema = z.object({
 
 export async function createBuyer(input: z.input<typeof createBuyerSchema>) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createBuyerSchema.parse(input);
   const db = requireDb();
 
@@ -50,6 +52,7 @@ export async function createBuyer(input: z.input<typeof createBuyerSchema>) {
   const [row] = await db
     .insert(buyers)
     .values({
+      organizationId,
       buyerCode,
       contactId: parsed.contactId ?? null,
       displayName: parsed.displayName,
@@ -77,11 +80,13 @@ export async function assignUnitToBuyer(
   input: z.input<typeof assignUnitSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = assignUnitSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(buyerUnitAssignments)
     .values({
+      organizationId,
       buyerId: parsed.buyerId,
       unitId: parsed.unitId,
       status: parsed.status,
@@ -103,6 +108,7 @@ export async function activateBuyerPortalAccess(
   input: z.input<typeof inviteSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = inviteSchema.parse(input);
   const db = requireDb();
   const [row] = await db
@@ -112,7 +118,12 @@ export async function activateBuyerPortalAccess(
       portalAccessEnabled: true,
       portalInvitedAt: new Date(),
     })
-    .where(eq(buyers.id, parsed.buyerId))
+    .where(
+      and(
+        eq(buyers.id, parsed.buyerId),
+        eq(buyers.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }
@@ -126,6 +137,7 @@ export async function updateBuyerKycStatus(
   input: z.input<typeof updateKycSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = updateKycSchema.parse(input);
   const db = requireDb();
   const [row] = await db
@@ -135,7 +147,12 @@ export async function updateBuyerKycStatus(
       kycCompletedAt:
         parsed.kycStatus === "verified" ? new Date() : null,
     })
-    .where(eq(buyers.id, parsed.buyerId))
+    .where(
+      and(
+        eq(buyers.id, parsed.buyerId),
+        eq(buyers.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

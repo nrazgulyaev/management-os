@@ -262,7 +262,7 @@ test("notification permissions still gate on the v7 matrix", async () => {
   );
   const ops = {
     mode: "live" as const,
-    appUser: { id: "u", email: "x@x", fullName: "Ops", status: "active" },
+    appUser: { id: "u", email: "x@x", fullName: "Ops", status: "active", organizationId: "00000000-0000-0000-0000-000000000000" },
     roles: ["operations_manager" as const],
     isInternal: true,
     isSuperAdmin: false,

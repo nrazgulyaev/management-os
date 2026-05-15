@@ -13,11 +13,16 @@ import {
 import { sql } from "drizzle-orm";
 import { vendors } from "./site-operations";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const specifications = pgTable(
   "specifications",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     specCode: text("spec_code").notNull().unique(),
     specName: text("spec_name").notNull(),
     description: text("description").notNull(),

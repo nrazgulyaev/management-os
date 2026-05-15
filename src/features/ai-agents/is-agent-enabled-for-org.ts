@@ -1,7 +1,7 @@
 import "server-only";
 
 import { loadOrgAgentRuntimeConfig } from "./agent-runtime-config";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Sprint MD-5 — Boolean "is this agent fully wired for this org"
@@ -40,9 +40,8 @@ export async function isAgentEnabledForCurrentOrg(
   agentKey: string,
 ): Promise<boolean> {
   try {
-    const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-    if (!org) return false;
-    return isAgentEnabledForOrg(org.id, agentKey);
+    const orgId = await requireOrgId();
+    return isAgentEnabledForOrg(orgId, agentKey);
   } catch {
     return false;
   }

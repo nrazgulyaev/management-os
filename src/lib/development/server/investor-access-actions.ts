@@ -9,6 +9,7 @@ import { investors } from "@/lib/db/schema/investor-capital";
 import { devNotificationDeliveryLog } from "@/lib/db/schema/sales";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { sendDevOsEmail } from "./email";
 import { REPORTING_LANGUAGES } from "@/lib/development/constants/investor-constants";
 
@@ -256,6 +257,7 @@ export async function grantInvestorPortalAccess(
   // 8. Audit-log the grant action itself (the rate-limit counter
   // reads this row).
   await db.insert(devNotificationDeliveryLog).values({
+    organizationId: arconiqueOrgId,
     triggerEntityType: "investor_portal_access",
     triggerEntityId: parsed.investorId,
     recipientUserId: staffUserId,
@@ -301,6 +303,7 @@ export async function revokeInvestorPortalAccess(
   const staffUserId = ctx.appUser?.id ?? null;
 
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [user] = await db
     .select({
       id: appUsers.id,
@@ -344,6 +347,7 @@ export async function revokeInvestorPortalAccess(
     .where(eq(appUsers.id, user.id));
 
   await db.insert(devNotificationDeliveryLog).values({
+    organizationId,
     triggerEntityType: "investor_portal_access",
     triggerEntityId: parsed.investorId,
     recipientUserId: staffUserId,

@@ -34,7 +34,7 @@ import {
   orgSubscriptions,
 } from "@/lib/db/schema/subscriptions";
 import { organizations } from "@/lib/db/schema/saas";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { UpgradeButton } from "./upgrade-button";
 
 export const metadata: Metadata = { title: "Upgrade plan · Billing" };
@@ -112,7 +112,12 @@ export default async function UpgradePage({
       </div>
     );
   }
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  let orgId: string | null = null;
+  try {
+    orgId = await requireOrgId();
+  } catch {
+    orgId = null;
+  }
 
   const rawPackagings = await db
     .select()
@@ -146,17 +151,17 @@ export default async function UpgradePage({
   // = 'trial' won't match any packaging here — that's fine, the page
   // simply has no "Current" badge until they upgrade.
   let currentPackagingKey: string | null = null;
-  if (org) {
+  if (orgId) {
     const activeSub = await db
       .select({ planCode: orgSubscriptions.planCode })
       .from(orgSubscriptions)
-      .where(eq(orgSubscriptions.organizationId, org.id))
+      .where(eq(orgSubscriptions.organizationId, orgId))
       .limit(1)
       .then((rows) => rows[0]);
     const orgRow = await db
       .select({ productsEnabled: organizations.productsEnabled })
       .from(organizations)
-      .where(eq(organizations.id, org.id))
+      .where(eq(organizations.id, orgId))
       .limit(1)
       .then((rows) => rows[0]);
     if (activeSub && orgRow) {

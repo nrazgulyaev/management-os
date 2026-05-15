@@ -7,6 +7,7 @@ import { requireDb } from "@/lib/db/client";
 import { aiConstructionAnalyses } from "@/lib/db/schema/ai-development";
 import { siteReports } from "@/lib/db/schema/site-operations";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   analyzeSiteReport,
   type SupervisorOutcome,
@@ -83,6 +84,8 @@ export async function approveAnalysis(
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
   const db = requireDb();
+  // HF-5: scope site_reports UPDATE by organization_id.
+  const organizationId = await requireOrgId();
 
   await db.transaction(async (tx) => {
     const [a] = await tx
@@ -129,7 +132,12 @@ export async function approveAnalysis(
             merged as typeof siteReports.$inferInsert["summaryTranslations"],
           updatedAt: new Date(),
         })
-        .where(eq(siteReports.id, a.siteReportId));
+        .where(
+          and(
+            eq(siteReports.id, a.siteReportId),
+            eq(siteReports.organizationId, organizationId),
+          ),
+        );
     }
   });
 

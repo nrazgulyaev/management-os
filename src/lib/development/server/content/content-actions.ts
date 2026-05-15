@@ -1,10 +1,11 @@
 "use server";
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { contentPieces, contentVariants } from "@/lib/db/schema/marketing";
+import { requireOrgId } from "@/features/auth/require-org";
 import { isValidTransition } from "./content-status-helpers";
 
 export async function transitionContentStatus(args: {
@@ -24,10 +25,16 @@ export async function transitionContentStatus(args: {
 }) {
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(contentPieces)
-    .where(eq(contentPieces.contentCode, args.contentCode))
+    .where(
+      and(
+        eq(contentPieces.contentCode, args.contentCode),
+        eq(contentPieces.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   const current = rows[0];
   if (!current) return { ok: false as const, error: "Not found" };
@@ -55,7 +62,12 @@ export async function transitionContentStatus(args: {
   await db
     .update(contentPieces)
     .set(updates)
-    .where(eq(contentPieces.contentCode, args.contentCode));
+    .where(
+      and(
+        eq(contentPieces.contentCode, args.contentCode),
+        eq(contentPieces.organizationId, organizationId),
+      ),
+    );
   return { ok: true as const };
 }
 
@@ -75,13 +87,20 @@ export async function createContentVariant(input: z.input<typeof createVariantSc
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   const parentRows = await db
     .select({ id: contentPieces.id })
     .from(contentPieces)
-    .where(eq(contentPieces.contentCode, parsed.data.parentContentCode))
+    .where(
+      and(
+        eq(contentPieces.contentCode, parsed.data.parentContentCode),
+        eq(contentPieces.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!parentRows[0]) return { ok: false as const, error: "Parent not found" };
   await db.insert(contentVariants).values({
+    organizationId,
     parentContentId: parentRows[0].id,
     variantType: parsed.data.variantType,
     variantLabel: parsed.data.variantLabel,

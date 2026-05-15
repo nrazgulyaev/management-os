@@ -19,6 +19,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
 import { projects } from "./projects";
+import { organizations } from "./saas";
 
 export const appUserRoles = pgTable(
   "app_user_roles",
@@ -55,6 +56,10 @@ export const appUserRoles = pgTable(
 
 export const cabinetPreferences = pgTable("cabinet_preferences", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // HF-5: added by migration 0072 (multi-tenant propagation).
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id),
   userId: uuid("user_id")
     .notNull()
     .unique()

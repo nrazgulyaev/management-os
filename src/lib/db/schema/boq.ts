@@ -20,11 +20,16 @@ import { projects, villas } from "./projects";
 import { appUsers } from "./identity";
 import { devCostCategories } from "./dev-finance";
 import { devOsInventoryItems } from "./dev-os-inventory";
+import { organizations } from "./saas";
 
 export const boqDocuments = pgTable(
   "boq_documents",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: migration 0072 added organization_id NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     boqCode: text("boq_code").notNull().unique(),
     title: text("title").notNull(),
     description: text("description"),
@@ -64,6 +69,10 @@ export const boqSections = pgTable(
   "boq_sections",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: migration 0072 added organization_id NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     boqDocumentId: uuid("boq_document_id")
       .notNull()
       .references(() => boqDocuments.id, { onDelete: "cascade" }),
@@ -92,6 +101,10 @@ export const boqItems = pgTable(
   "boq_items",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: migration 0072 added organization_id NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     sectionId: uuid("section_id")
       .notNull()
       .references(() => boqSections.id, { onDelete: "cascade" }),

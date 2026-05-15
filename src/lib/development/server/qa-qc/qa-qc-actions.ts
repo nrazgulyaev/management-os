@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -9,6 +9,7 @@ import {
   qaQcIssuePhotos,
 } from "@/lib/db/schema/qa-qc";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   assertValidQaQcTransition,
   type QaQcStatus,
@@ -36,6 +37,7 @@ const createIssueSchema = z.object({
 
 export async function createQaQcIssue(input: z.input<typeof createIssueSchema>) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createIssueSchema.parse(input);
   const db = requireDb();
   if (!ctx.appUser?.id) {
@@ -53,6 +55,7 @@ export async function createQaQcIssue(input: z.input<typeof createIssueSchema>) 
   const [row] = await db
     .insert(qaQcIssues)
     .values({
+      organizationId,
       issueCode,
       title: parsed.title,
       projectId: parsed.projectId,
@@ -94,6 +97,7 @@ export async function transitionQaQcIssue(
   input: z.input<typeof transitionSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
 
@@ -101,7 +105,12 @@ export async function transitionQaQcIssue(
     const [current] = await tx
       .select()
       .from(qaQcIssues)
-      .where(eq(qaQcIssues.id, parsed.issueId))
+      .where(
+        and(
+          eq(qaQcIssues.id, parsed.issueId),
+          eq(qaQcIssues.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!current) throw new Error(`issue ${parsed.issueId} not found`);
 
@@ -130,7 +139,12 @@ export async function transitionQaQcIssue(
     const [row] = await tx
       .update(qaQcIssues)
       .set(updates)
-      .where(eq(qaQcIssues.id, parsed.issueId))
+      .where(
+        and(
+          eq(qaQcIssues.id, parsed.issueId),
+          eq(qaQcIssues.organizationId, organizationId),
+        ),
+      )
       .returning();
     return row;
   });
@@ -151,6 +165,7 @@ export async function recordQaQcInspection(
   input: z.input<typeof recordInspectionSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = recordInspectionSchema.parse(input);
   const db = requireDb();
   if (!ctx.appUser?.id) {
@@ -161,7 +176,12 @@ export async function recordQaQcInspection(
     const [current] = await tx
       .select()
       .from(qaQcIssues)
-      .where(eq(qaQcIssues.id, parsed.issueId))
+      .where(
+        and(
+          eq(qaQcIssues.id, parsed.issueId),
+          eq(qaQcIssues.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!current) throw new Error(`issue ${parsed.issueId} not found`);
     if (current.status !== "ready_for_reinspection") {
@@ -181,6 +201,7 @@ export async function recordQaQcInspection(
     const [inspection] = await tx
       .insert(qaQcInspections)
       .values({
+        organizationId,
         issueId: parsed.issueId,
         inspectionNumber: nextNumber,
         inspectorId: ctx.appUser!.id,
@@ -206,7 +227,12 @@ export async function recordQaQcInspection(
       await tx
         .update(qaQcIssues)
         .set(updates)
-        .where(eq(qaQcIssues.id, parsed.issueId));
+        .where(
+          and(
+            eq(qaQcIssues.id, parsed.issueId),
+            eq(qaQcIssues.organizationId, organizationId),
+          ),
+        );
     }
 
     return { inspection, newStatus };
@@ -230,6 +256,7 @@ export async function attachQaQcPhoto(
   input: z.input<typeof attachPhotoSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = attachPhotoSchema.parse(input);
   const db = requireDb();
   if (!ctx.appUser?.id) {
@@ -238,6 +265,7 @@ export async function attachQaQcPhoto(
   const [row] = await db
     .insert(qaQcIssuePhotos)
     .values({
+      organizationId,
       issueId: parsed.issueId,
       documentId: parsed.documentId,
       photoRole: parsed.photoRole,

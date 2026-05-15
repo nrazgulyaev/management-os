@@ -15,7 +15,7 @@ import {
   googleWorkspaceOAuthRedirectUri,
 } from "@/lib/env";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -78,9 +78,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Resolve current user + org for the grant. Stage 7.E tenant
-  // subdomain isn't yet wired into dashboard layout; fall back to
-  // ARCONIQUE_DEFAULT.
+  // Resolve current user + org for the grant via the authenticated
+  // session (TENANT-1 read-side migration).
   const me = await getCurrentAppUser();
   if (!me) {
     return redirect(
@@ -88,8 +87,10 @@ export async function GET(request: NextRequest) {
       url,
     );
   }
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
     return redirect(
       "/development-os/settings/google-workspace?error=no_org",
       url,
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
 
   try {
     await persistGoogleOAuthGrant({
-      organizationId: org.id,
+      organizationId: orgId,
       userId: me.id,
       accountEmail,
       accessToken: tokens.accessToken,

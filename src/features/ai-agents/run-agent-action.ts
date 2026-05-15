@@ -21,7 +21,7 @@ import { agentOutputs } from "@/lib/db/schema/ai-agents";
 import { orgAiAgentConfig } from "@/lib/db/schema/org-ai-agent-config";
 import { aiExecute } from "@/lib/ai/execute";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { getAgentEligibility } from "./agent-config-actions";
 import { RUN_NOW_AGENTS, type RunNowAgentKey } from "./run-agent-config";
 
@@ -62,10 +62,11 @@ export async function runAgentAction(
   const me = await getCurrentAppUser();
   if (!me) return { ok: false, error: "Not signed in." };
 
-  // Stage 7.E tenant subdomain not yet wired through — fall back to
-  // ARCONIQUE_DEFAULT (same compromise other dev-os actions use).
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
+  // TENANT-1 — resolve org from the authenticated session.
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
     return { ok: false, error: "No organization context available." };
   }
 
@@ -73,7 +74,7 @@ export async function runAgentAction(
   // hits aiExecute. Distinguishes plan-tier denial, no-subscription,
   // and per-org disable so the operator gets an actionable error
   // instead of a generic "AI access disabled".
-  const eligibility = await getAgentEligibility(org.id, agentKey);
+  const eligibility = await getAgentEligibility(orgId, agentKey);
   if (!eligibility.eligible) {
     const message =
       eligibility.reason === "no_subscription"
@@ -96,7 +97,7 @@ export async function runAgentAction(
     .from(orgAiAgentConfig)
     .where(
       and(
-        eq(orgAiAgentConfig.organizationId, org.id),
+        eq(orgAiAgentConfig.organizationId, orgId),
         eq(orgAiAgentConfig.agentKey, agentKey),
       ),
     )
@@ -109,7 +110,7 @@ export async function runAgentAction(
   const usingOverride = effectivePrompt !== config.kickoffPrompt;
 
   const exec = await aiExecute({
-    organizationId: org.id,
+    organizationId: orgId,
     assistantKey: agentKey,
     triggeredByUserId: me.id,
     inputSummary: usingOverride
@@ -140,6 +141,8 @@ export async function runAgentAction(
   const [row] = await db
     .insert(agentOutputs)
     .values({
+      // HF-5: organization_id is NOT NULL on agent_outputs (migration 0072).
+      organizationId: orgId,
       outputCode,
       agentKey,
       outputCategory: "snapshot",

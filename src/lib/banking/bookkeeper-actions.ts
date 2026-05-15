@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { bankTransactions, reconciliationRules } from "@/lib/db/schema/banking";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import {
   closePeriod,
@@ -24,9 +24,7 @@ import {
  */
 
 async function resolveActiveOrgId(): Promise<string> {
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) throw new Error("ARCONIQUE_DEFAULT organization not found");
-  return org.id;
+  return requireOrgId();
 }
 
 export async function syncConnectionAction(connectionId: string): Promise<void> {

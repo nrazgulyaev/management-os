@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { listGoogleConnectionsForOrg } from "@/lib/google-workspace/service";
 import { isGoogleWorkspaceConfigured } from "@/lib/env";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -51,18 +51,12 @@ export default async function GoogleWorkspaceSettingsPage({
   }
 
   const me = await getCurrentAppUser();
-  const org = await safeQuery(
-    "settings-google-workspace.getOrganizationByCode",
-    getOrganizationByCode("ARCONIQUE_DEFAULT"),
-    null,
+  const orgId = await requireOrgId();
+  const connections = await safeQuery(
+    "settings-google-workspace.listGoogleConnectionsForOrg",
+    listGoogleConnectionsForOrg({ organizationId: orgId }),
+    [] as Awaited<ReturnType<typeof listGoogleConnectionsForOrg>>,
   );
-  const connections = org
-    ? await safeQuery(
-        "settings-google-workspace.listGoogleConnectionsForOrg",
-        listGoogleConnectionsForOrg({ organizationId: org.id }),
-        [] as Awaited<ReturnType<typeof listGoogleConnectionsForOrg>>,
-      )
-    : [];
 
   const myConnection = me
     ? (connections.find((c) => c.userId === me.id && c.isActive) ?? null)
@@ -146,7 +140,7 @@ export default async function GoogleWorkspaceSettingsPage({
                 </div>
                 <GoogleWorkspaceActions
                   connectionId={myConnection.id}
-                  organizationId={org?.id ?? null}
+                  organizationId={orgId}
                 />
               </div>
             ) : (
@@ -160,7 +154,7 @@ export default async function GoogleWorkspaceSettingsPage({
                 </div>
                 <GoogleWorkspaceActions
                   connectionId={null}
-                  organizationId={org?.id ?? null}
+                  organizationId={orgId}
                 />
               </div>
             )}

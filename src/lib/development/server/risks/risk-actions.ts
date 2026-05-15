@@ -1,10 +1,11 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { projectRisks } from "@/lib/db/schema/project-memory";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const PROBABILITIES = [
   "very_low",
@@ -58,6 +59,8 @@ export async function createProjectRisk(input: z.input<typeof createSchema>) {
   await requireInternalUser();
   const parsed = createSchema.parse(input);
   const db = requireDb();
+  // HF-5: project_risks is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
   const [{ count }] = await db
     .select({ count: sql<string>`COUNT(*)::text` })
     .from(projectRisks);
@@ -66,6 +69,7 @@ export async function createProjectRisk(input: z.input<typeof createSchema>) {
   const [row] = await db
     .insert(projectRisks)
     .values({
+      organizationId,
       riskCode,
       title: parsed.title,
       projectId: parsed.projectId,
@@ -97,6 +101,8 @@ export async function transitionRiskStatus(
   await requireInternalUser();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
+  // HF-5: scope UPDATE by organization_id.
+  const organizationId = await requireOrgId();
   const updates: Record<string, unknown> = { mitigationStatus: parsed.to };
   if (parsed.to.startsWith("closed_")) {
     updates.closedAt = new Date().toISOString().slice(0, 10);
@@ -105,7 +111,12 @@ export async function transitionRiskStatus(
   const [row] = await db
     .update(projectRisks)
     .set(updates)
-    .where(eq(projectRisks.id, parsed.riskId))
+    .where(
+      and(
+        eq(projectRisks.id, parsed.riskId),
+        eq(projectRisks.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

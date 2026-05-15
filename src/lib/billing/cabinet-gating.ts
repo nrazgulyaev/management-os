@@ -20,7 +20,7 @@ import "server-only";
 
 import { getFeatureForOrg } from "./gating";
 import { CABINET_TO_FLAG } from "./cabinet-flags";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export { CABINET_TO_FLAG };
 
@@ -55,10 +55,9 @@ export async function gateCabinet(
 /**
  * Stage 8.A.3 — convenience wrapper used by cabinet pages.
  *
- * Resolves the current org via the same `ARCONIQUE_DEFAULT` fallback
- * pattern other dev-os pages use (see settings/data-export, settings/
- * api-keys), then delegates to `gateCabinet`. If no org is reachable
- * (DB unconfigured or seed not yet loaded), gating is bypassed so the
+ * Resolves the current org from the authenticated session (TENANT-1
+ * read-side migration), then delegates to `gateCabinet`. If no org is
+ * reachable (no session / DB unconfigured), gating is bypassed so the
  * page still renders — gating is a billing surface, not a security
  * boundary, and server actions inside the page remain RBAC-protected
  * regardless.
@@ -71,9 +70,8 @@ export async function gateCabinetForCurrentOrg(
   cabinetSlug: string,
 ): Promise<string | null> {
   try {
-    const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-    if (!org) return null;
-    return gateCabinet(org.id, cabinetSlug);
+    const orgId = await requireOrgId();
+    return gateCabinet(orgId, cabinetSlug);
   } catch {
     // DB unreachable / org-resolver error — let the page render. The
     // gate is best-effort billing UX, not a security check.

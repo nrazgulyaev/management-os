@@ -237,7 +237,10 @@ async function dispatchOnce(
 
   if (args.rule.channel !== "email" && args.rule.channel !== "in_app") {
     // WhatsApp / SMS — log queued, no dispatch.
+    // TENANT-1: rule row carries the org; propagate it onto the
+    // delivery-log entry so the new NOT NULL column is satisfied.
     await db.insert(devNotificationDeliveryLog).values({
+      organizationId: args.rule.organizationId,
       ruleId: args.rule.id,
       triggerEntityType: args.entityType,
       triggerEntityId: args.entityId,
@@ -255,6 +258,7 @@ async function dispatchOnce(
 
   if (args.rule.channel === "in_app") {
     await db.insert(devNotificationDeliveryLog).values({
+      organizationId: args.rule.organizationId,
       ruleId: args.rule.id,
       triggerEntityType: args.entityType,
       triggerEntityId: args.entityId,

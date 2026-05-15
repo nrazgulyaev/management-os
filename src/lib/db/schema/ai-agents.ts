@@ -25,11 +25,16 @@ import {
 } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const projectAiMemory = pgTable(
   "project_ai_memory",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id),
@@ -78,6 +83,10 @@ export const agentInvocationLog = pgTable(
   "agent_invocation_log",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072. Declared
+    // nullable in TS to avoid breaking out-of-scope insert callsites
+    // (e.g. agent-runner.ts) not yet migrated to pass it.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     agentKey: text("agent_key").notNull(),
     agentVersion: text("agent_version").notNull().default("v1.0"),
     invocationType: text("invocation_type").notNull(),
@@ -192,6 +201,10 @@ export const agentOutputs = pgTable(
   "agent_outputs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072. Declared
+    // nullable in TS to avoid breaking out-of-scope insert callsites
+    // (e.g. agent-runner.ts, run-agent-action.ts) not yet migrated.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     outputCode: text("output_code").notNull().unique(),
     agentKey: text("agent_key").notNull(),
     invocationLogId: uuid("invocation_log_id").references(

@@ -23,11 +23,16 @@ import { projects, villas } from "./projects";
 import { vendors } from "./site-operations";
 import { workPackages } from "./work-packages";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const projectDecisions = pgTable(
   "project_decisions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     decisionCode: text("decision_code").notNull().unique(),
     title: text("title").notNull(),
     projectId: uuid("project_id")
@@ -80,6 +85,10 @@ export const projectRisks = pgTable(
   "project_risks",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     riskCode: text("risk_code").notNull().unique(),
     title: text("title").notNull(),
     projectId: uuid("project_id")
@@ -143,6 +152,10 @@ export const changeOrders = pgTable(
   "change_orders",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     changeOrderCode: text("change_order_code").notNull().unique(),
     title: text("title").notNull(),
     projectId: uuid("project_id")

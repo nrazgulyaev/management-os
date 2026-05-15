@@ -6,6 +6,7 @@ import { requireDb } from "@/lib/db/client";
 import { taxTypes, taxPeriodReports } from "@/lib/db/schema/tax";
 import { devTransactions } from "@/lib/db/schema/dev-finance";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Tax module actions. Tax types are operator-configurable (NOT
@@ -109,6 +110,8 @@ export async function classifyTransactionTax(
   const parsed = classifyTxnSchema.parse(input);
   await requireInternalUser();
   const db = requireDb();
+  // HF-5: scope UPDATE of multi-tenant dev_transactions by organization_id.
+  const organizationId = await requireOrgId();
   await db
     .update(devTransactions)
     .set({
@@ -122,7 +125,12 @@ export async function classifyTransactionTax(
       taxDocumentId: parsed.taxDocumentId ?? null,
       updatedAt: new Date(),
     })
-    .where(eq(devTransactions.id, parsed.transactionId));
+    .where(
+      and(
+        eq(devTransactions.id, parsed.transactionId),
+        eq(devTransactions.organizationId, organizationId),
+      ),
+    );
   return { ok: true };
 }
 
@@ -143,6 +151,8 @@ export async function generateTaxPeriodReport(
   const parsed = generateReportSchema.parse(input);
   await requireInternalUser();
   const db = requireDb();
+  // HF-5: tax_period_reports is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
   const [agg] = await db.execute<{
     txn_count: number;
     unclass_count: number;
@@ -162,6 +172,7 @@ export async function generateTaxPeriodReport(
   const [row] = await db
     .insert(taxPeriodReports)
     .values({
+      organizationId,
       taxTypeId: parsed.taxTypeId,
       periodStart: parsed.periodStart,
       periodEnd: parsed.periodEnd,

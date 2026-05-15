@@ -2,6 +2,7 @@ import "server-only";
 
 import { getDb } from "@/lib/db/client";
 import { executiveMetricsSnapshots } from "@/lib/db/schema/executive";
+import { getOrganizationByCode } from "../organizations/organization-queries";
 import {
   composeExecutiveSnapshot,
   type ComposeSnapshotInput,
@@ -23,11 +24,18 @@ export async function persistExecutiveSnapshot(args: {
   if (!db) return { ok: false, error: "DB not configured" };
 
   const c = composeExecutiveSnapshot(args.composed);
+  // TENANT-1: cron caller has no auth session; fall back to ARCONIQUE_DEFAULT
+  // until cron is refactored to iterate per-org and pass organizationId.
+  const defaultOrg = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  if (!defaultOrg) {
+    return { ok: false, error: "ARCONIQUE_DEFAULT organization missing" };
+  }
 
   try {
     const inserted = await db
       .insert(executiveMetricsSnapshots)
       .values({
+        organizationId: defaultOrg.id,
         snapshotType: args.snapshotType,
         scope: c.scope,
         projectId: c.projectId,

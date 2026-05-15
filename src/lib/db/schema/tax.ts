@@ -20,6 +20,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const taxTypes = pgTable(
   "tax_types",
@@ -83,6 +84,10 @@ export const taxPeriodReports = pgTable(
   "tax_period_reports",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     taxTypeId: uuid("tax_type_id")
       .notNull()
       .references(() => taxTypes.id),

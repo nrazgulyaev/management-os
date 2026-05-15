@@ -277,7 +277,7 @@ test("permission matrix gates inventory + procurement + attachments correctly", 
   const { hasPermission } = await import("../src/features/auth/permission-matrix");
   const baseUser = {
     mode: "live" as const,
-    appUser: { id: "u", email: "x@x", fullName: "X", status: "active" },
+    appUser: { id: "u", email: "x@x", fullName: "X", status: "active", organizationId: "00000000-0000-0000-0000-000000000000" },
     roles: [] as ("housekeeper" | "technician" | "procurement_manager" | "concierge")[],
     isInternal: true,
     isSuperAdmin: false,

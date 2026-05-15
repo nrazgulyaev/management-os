@@ -1,10 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { specifications } from "@/lib/db/schema/specifications";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const SPEC_CATEGORIES = [
   "wall_finish",
@@ -51,11 +52,13 @@ export async function createSpecification(
   input: z.input<typeof createSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(specifications)
     .values({
+      organizationId,
       specCode: parsed.specCode,
       specName: parsed.specName,
       description: parsed.description,
@@ -85,6 +88,7 @@ export async function supersedeSpecification(
   input: z.input<typeof supersedeSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = supersedeSchema.parse(input);
   const db = requireDb();
   return db.transaction(async (tx) => {
@@ -92,18 +96,29 @@ export async function supersedeSpecification(
     await tx
       .update(specifications)
       .set({ isActive: false, supersededBy: newRow.id })
-      .where(eq(specifications.id, parsed.oldSpecificationId));
+      .where(
+        and(
+          eq(specifications.id, parsed.oldSpecificationId),
+          eq(specifications.organizationId, organizationId),
+        ),
+      );
     return newRow;
   });
 }
 
 export async function deactivateSpecification(input: { id: string }) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [row] = await db
     .update(specifications)
     .set({ isActive: false })
-    .where(eq(specifications.id, input.id))
+    .where(
+      and(
+        eq(specifications.id, input.id),
+        eq(specifications.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

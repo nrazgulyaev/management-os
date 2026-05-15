@@ -9,6 +9,7 @@ import {
   investorWallets,
 } from "@/lib/db/schema/investor-capital";
 import { SUPPORTED_CURRENCIES } from "@/lib/development/constants/investor-constants";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { CreateCommitmentInput } from "@/lib/development/types/investors";
 
 const createCommitmentSchema = z.object({
@@ -59,6 +60,7 @@ export async function createCommitment(input: CreateCommitmentInput): Promise<{
 }> {
   const parsed = createCommitmentSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
 
   const committedAmountMinor = toBig(parsed.committedAmountMinor);
   const fxRate = Number(parsed.fxRateAtCommitment);
@@ -117,7 +119,7 @@ export async function createCommitment(input: CreateCommitmentInput): Promise<{
 
     const [w] = await tx
       .insert(investorWallets)
-      .values({ commitmentId: c.id })
+      .values({ organizationId, commitmentId: c.id })
       .returning({ id: investorWallets.id });
 
     return {

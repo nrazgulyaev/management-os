@@ -22,9 +22,8 @@
  * On unknown packaging / missing Stripe price:
  *   { ok: false, reason: 'packaging_not_purchasable' }  (HTTP 400)
  *
- * Auth: requires the operator to be signed in. The org is resolved via
- * the same ARCONIQUE_DEFAULT fallback the rest of dev-os uses (Stage
- * 7.E tenant subdomain wiring TBD).
+ * Auth: requires the operator to be signed in. The org is resolved
+ * from the authenticated session via `requireOrgId()` (TENANT-1).
  *
  * The completed session fires `checkout.session.completed` → bridge
  * (`stripe-subscription-bridge.ts`), which sets
@@ -43,7 +42,7 @@ import {
   planPackaging,
 } from "@/lib/db/schema/subscriptions";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { StripeClient } from "@/lib/payment-processors/providers/stripe/client";
 import { env } from "@/lib/env";
 
@@ -120,8 +119,10 @@ export async function POST(
     );
   }
 
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
     return NextResponse.json(
       { ok: false, reason: "no_org_context" },
       { status: 500 },
@@ -175,7 +176,7 @@ export async function POST(
       stripeCustomerId: orgSubscriptions.stripeCustomerId,
     })
     .from(orgSubscriptions)
-    .where(eq(orgSubscriptions.organizationId, org.id))
+    .where(eq(orgSubscriptions.organizationId, orgId))
     .limit(1)
     .then((rows) => rows[0]);
 
@@ -203,7 +204,7 @@ export async function POST(
     "line_items[0][quantity]": 1,
     success_url: successUrl,
     cancel_url: cancelUrl,
-    "metadata[organization_id]": org.id,
+    "metadata[organization_id]": orgId,
     "metadata[packaging_key]": packaging.packagingKey,
     "metadata[plan_kind]": packaging.planKind,
     "metadata[tier_key]": packaging.tierKey,
@@ -215,7 +216,7 @@ export async function POST(
     "subscription_data[metadata][plan_code]": packaging.planCode,
     "subscription_data[metadata][products_enabled]":
       packaging.productsEnabled.join(","),
-    client_reference_id: org.id,
+    client_reference_id: orgId,
     allow_promotion_codes: "true",
   };
   if (activeSub?.stripeCustomerId) {

@@ -1,11 +1,12 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireDb } from "@/lib/db/client";
 import { siteReportPhotos } from "@/lib/db/schema/site-operations";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { checkBudget } from "@/lib/ai/budget";
 import {
   analyzePhoto,
@@ -50,6 +51,8 @@ export async function reanalyzePhoto(
 
   // Clear analysis fields so the analyzer doesn't return 'skipped'.
   const db = requireDb();
+  // HF-5: scope UPDATE by organization_id.
+  const organizationId = await requireOrgId();
   await db
     .update(siteReportPhotos)
     .set({
@@ -59,7 +62,12 @@ export async function reanalyzePhoto(
       aiSafetyConcerns: null,
       aiQualityConcerns: null,
     })
-    .where(eq(siteReportPhotos.id, parsed.photoId));
+    .where(
+      and(
+        eq(siteReportPhotos.id, parsed.photoId),
+        eq(siteReportPhotos.organizationId, organizationId),
+      ),
+    );
 
   const result = await analyzePhoto(parsed.photoId);
   if (parsed.reportId) {

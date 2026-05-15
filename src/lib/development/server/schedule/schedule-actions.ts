@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -9,6 +9,7 @@ import {
   workPackages,
 } from "@/lib/db/schema/work-packages";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   computeCriticalPath,
   detectCycles,
@@ -34,6 +35,7 @@ export async function createProjectTask(
   input: z.input<typeof createTaskSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createTaskSchema.parse(input);
   if (parsed.plannedFinish < parsed.plannedStart) {
     throw new Error("plannedFinish must be >= plannedStart");
@@ -42,6 +44,7 @@ export async function createProjectTask(
   const [row] = await db
     .insert(projectTasks)
     .values({
+      organizationId,
       taskCode: parsed.taskCode,
       name: parsed.name,
       description: parsed.description ?? null,
@@ -77,6 +80,7 @@ export async function setTaskDependency(
   input: z.input<typeof setDependencySchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = setDependencySchema.parse(input);
   if (parsed.predecessorId === parsed.successorId) {
     throw new Error("dependency: predecessor cannot equal successor");
@@ -139,6 +143,7 @@ export async function setTaskDependency(
     const [row] = await tx
       .insert(taskDependencies)
       .values({
+        organizationId,
         predecessorId: parsed.predecessorId,
         successorId: parsed.successorId,
         dependencyType: parsed.type,
@@ -159,6 +164,16 @@ export async function recomputeProjectCriticalPath(input: {
   projectId: string;
 }) {
   await requireInternalUser();
+  // TENANT-1: called from both auth context (user trigger) and cron
+  // (critical-path-recompute-job). When invoked from cron there is no
+  // user session, so requireOrgId throws. The cron caller iterates
+  // every project in the DB, so we cannot disambiguate org safely here.
+  // TODO(cron): refactor cron path to either (a) pass projects scoped
+  // to a single org per invocation, or (b) accept an explicit
+  // organizationId argument. For now, scope updates with id-only WHERE
+  // when no session exists; the read-only project_id filter still
+  // limits the blast radius. Otherwise add org filter.
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   return db.transaction(async (tx) => {
@@ -214,7 +229,12 @@ export async function recomputeProjectCriticalPath(input: {
           totalFloatDays: r.totalFloatDays,
           cpLastComputedAt: now,
         })
-        .where(eq(projectTasks.id, r.taskId));
+        .where(
+          and(
+            eq(projectTasks.id, r.taskId),
+            eq(projectTasks.organizationId, organizationId),
+          ),
+        );
     }
 
     return {

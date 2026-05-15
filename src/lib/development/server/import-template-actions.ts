@@ -20,7 +20,7 @@ import {
   importTemplates,
   type ImportTemplate,
 } from "@/lib/db/schema/import-templates";
-import { getOrganizationByCode } from "./organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import {
   columnMappingSchema,
@@ -78,12 +78,7 @@ export async function saveImportTemplate(
 ): Promise<SavedImportTemplate> {
   const parsed = saveSchema.parse(input);
   const db = requireDb();
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
-    throw new Error(
-      "ARCONIQUE_DEFAULT organization missing — apply migration 0071 first.",
-    );
-  }
+  const orgId = await requireOrgId();
   const me = await getCurrentAppUser();
 
   const [highest] = await db
@@ -91,7 +86,7 @@ export async function saveImportTemplate(
     .from(importTemplates)
     .where(
       and(
-        eq(importTemplates.organizationId, org.id),
+        eq(importTemplates.organizationId, orgId),
         eq(importTemplates.name, parsed.name),
       ),
     );
@@ -100,7 +95,7 @@ export async function saveImportTemplate(
   const [row] = await db
     .insert(importTemplates)
     .values({
-      organizationId: org.id,
+      organizationId: orgId,
       name: parsed.name,
       version: nextVersion,
       sourceKind: parsed.sourceKind,
@@ -123,8 +118,7 @@ export async function listImportTemplates(): Promise<
   SavedImportTemplate[]
 > {
   const db = requireDb();
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) return [];
+  const orgId = await requireOrgId();
 
   // SQL window function to pick the highest version per name without
   // a sub-select join — Postgres-native, faster than two round-trips.
@@ -145,7 +139,7 @@ export async function listImportTemplates(): Promise<
       SELECT *,
         ROW_NUMBER() OVER (PARTITION BY name ORDER BY version DESC) AS rn
         FROM import_templates
-       WHERE organization_id = ${org.id}
+       WHERE organization_id = ${orgId}
          AND is_active = true
     )
     SELECT id, name, version, source_kind, destination_kind,

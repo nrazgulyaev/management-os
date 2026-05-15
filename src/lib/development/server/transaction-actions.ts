@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -9,6 +9,7 @@ import {
   devTransactions,
 } from "@/lib/db/schema/dev-finance";
 import { SUPPORTED_CURRENCIES } from "@/lib/development/constants/investor-constants";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const recordTransactionSchema = z.object({
   bankAccountId: z.string().uuid(),
@@ -75,6 +76,7 @@ export async function recordTransaction(
   newAccountBalanceMinor: string;
 }> {
   const parsed = recordTransactionSchema.parse(input);
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   const amount = toBig(parsed.amountMinor);
@@ -129,6 +131,7 @@ export async function recordTransaction(
     const [row] = await tx
       .insert(devTransactions)
       .values({
+        organizationId,
         transactionCode,
         bankAccountId: parsed.bankAccountId,
         direction: parsed.direction,
@@ -178,7 +181,12 @@ export async function recordTransaction(
         lastFxRate: parsed.fxRateAtTransaction,
         updatedAt: new Date(),
       })
-      .where(eq(devBankAccounts.id, account.id));
+      .where(
+        and(
+          eq(devBankAccounts.id, account.id),
+          eq(devBankAccounts.organizationId, organizationId),
+        ),
+      );
 
     // If linked to a commitments-ledger row, recompute its status.
     if (parsed.relatedCommitmentId && parsed.direction === "outflow") {
@@ -200,7 +208,12 @@ export async function recordTransaction(
       await tx
         .update(devCommitmentsLedger)
         .set({ status: newStatus, updatedAt: new Date() })
-        .where(eq(devCommitmentsLedger.id, parsed.relatedCommitmentId));
+        .where(
+          and(
+            eq(devCommitmentsLedger.id, parsed.relatedCommitmentId),
+            eq(devCommitmentsLedger.organizationId, organizationId),
+          ),
+        );
     }
 
     return {
@@ -219,6 +232,7 @@ export async function reconcileTransaction(
   if (!statementLineRef || statementLineRef.trim().length === 0) {
     throw new Error("statementLineRef is required");
   }
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(devTransactions)
@@ -227,7 +241,12 @@ export async function reconcileTransaction(
       bankStatementLineRef: statementLineRef,
       updatedAt: new Date(),
     })
-    .where(eq(devTransactions.id, id));
+    .where(
+      and(
+        eq(devTransactions.id, id),
+        eq(devTransactions.organizationId, organizationId),
+      ),
+    );
 }
 
 const splitAllocationSchema = z.object({
@@ -248,6 +267,7 @@ export async function splitTransactionAllocation(
       `Allocation ratios must sum to 1.0 (got ${ratioSum.toFixed(4)})`,
     );
   }
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(devTransactions)
@@ -256,13 +276,19 @@ export async function splitTransactionAllocation(
       allocationMetadata: parsed.allocationMap,
       updatedAt: new Date(),
     })
-    .where(eq(devTransactions.id, parsed.transactionId));
+    .where(
+      and(
+        eq(devTransactions.id, parsed.transactionId),
+        eq(devTransactions.organizationId, organizationId),
+      ),
+    );
 }
 
 export async function linkTransactionToCommitmentLedger(
   transactionId: string,
   commitmentLedgerId: string,
 ): Promise<void> {
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(devTransactions)
@@ -270,5 +296,10 @@ export async function linkTransactionToCommitmentLedger(
       relatedCommitmentId: commitmentLedgerId,
       updatedAt: new Date(),
     })
-    .where(eq(devTransactions.id, transactionId));
+    .where(
+      and(
+        eq(devTransactions.id, transactionId),
+        eq(devTransactions.organizationId, organizationId),
+      ),
+    );
 }

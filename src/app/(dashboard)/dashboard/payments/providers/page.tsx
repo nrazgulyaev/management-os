@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { listPaymentProviderAccounts } from "@/features/direct-booking/deposits";
 import { getDb } from "@/lib/db/client";
 import { paymentProcessorConnections } from "@/lib/db/schema/payment-processors";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { safeQuery } from "@/lib/development/safe-query";
 import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
 import { NoItemsYet } from "@/components/ui/primitives";
@@ -32,19 +32,20 @@ export default async function ProvidersPage() {
     [] as Awaited<ReturnType<typeof listPaymentProviderAccounts>>,
   );
   const db = getDb();
-  const org = await safeQuery(
-    "payments-providers.getOrganizationByCode",
-    getOrganizationByCode("ARCONIQUE_DEFAULT"),
-    null,
-  );
+  let orgId: string | null = null;
+  try {
+    orgId = await requireOrgId();
+  } catch {
+    orgId = null;
+  }
   const connections =
-    db && org
+    db && orgId
       ? await safeQuery(
           "payments-providers.paymentProcessorConnections",
           db
             .select()
             .from(paymentProcessorConnections)
-            .where(eq(paymentProcessorConnections.organizationId, org.id)),
+            .where(eq(paymentProcessorConnections.organizationId, orgId)),
           [] as Array<typeof paymentProcessorConnections.$inferSelect>,
         )
       : [];

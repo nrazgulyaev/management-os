@@ -23,11 +23,16 @@ import {
 } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const executiveMetricsSnapshots = pgTable(
   "executive_metrics_snapshots",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
 
     snapshotDate: date("snapshot_date").notNull().defaultNow(),
     snapshotType: text("snapshot_type").notNull(),
@@ -155,6 +160,10 @@ export const riskRadarAlerts = pgTable(
   "risk_radar_alerts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     alertCode: text("alert_code").notNull().unique(),
 
     detectedAt: timestamp("detected_at", { withTimezone: true })
@@ -209,6 +218,10 @@ export const executiveDigests = pgTable(
   "executive_digests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     digestCode: text("digest_code").notNull().unique(),
 
     periodLabel: text("period_label").notNull(),

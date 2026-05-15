@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -9,6 +9,7 @@ import {
   materialDeliveries,
 } from "@/lib/db/schema/site-operations";
 import { devTransactions, devBankAccounts } from "@/lib/db/schema/dev-finance";
+import { requireOrgId } from "@/features/auth/require-org";
 import { getFXAtDate } from "./fx";
 
 /**
@@ -44,6 +45,7 @@ export async function convertSiteReportLaborToTransaction(
 ): Promise<{ transactionId: string; transactionCode: string; usdAmount: string }> {
   const parsed = reportBridgeSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
 
   return await db.transaction(async (tx) => {
     const [report] = await tx
@@ -166,6 +168,7 @@ export async function convertSiteReportLaborToTransaction(
     const [txRow] = await tx
       .insert(devTransactions)
       .values({
+        organizationId,
         transactionCode,
         bankAccountId: parsed.bankAccountId,
         direction: "outflow",
@@ -196,7 +199,12 @@ export async function convertSiteReportLaborToTransaction(
         lastBalanceAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(devBankAccounts.id, parsed.bankAccountId));
+      .where(
+        and(
+          eq(devBankAccounts.id, parsed.bankAccountId),
+          eq(devBankAccounts.organizationId, organizationId),
+        ),
+      );
 
     return {
       transactionId: txRow.id,
@@ -217,6 +225,7 @@ export async function convertMaterialDeliveryToTransaction(
 ): Promise<{ transactionId: string; transactionCode: string; usdAmount: string }> {
   const parsed = deliveryBridgeSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
 
   return await db.transaction(async (tx) => {
     const [delivery] = await tx
@@ -293,6 +302,7 @@ export async function convertMaterialDeliveryToTransaction(
     const [txRow] = await tx
       .insert(devTransactions)
       .values({
+        organizationId,
         transactionCode,
         bankAccountId: parsed.bankAccountId,
         direction: "outflow",
@@ -322,7 +332,12 @@ export async function convertMaterialDeliveryToTransaction(
         lastBalanceAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(devBankAccounts.id, parsed.bankAccountId));
+      .where(
+        and(
+          eq(devBankAccounts.id, parsed.bankAccountId),
+          eq(devBankAccounts.organizationId, organizationId),
+        ),
+      );
 
     return {
       transactionId: txRow.id,

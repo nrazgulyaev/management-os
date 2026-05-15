@@ -1,7 +1,7 @@
 "use server";
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { projectAiMemory } from "@/lib/db/schema/ai-agents";
@@ -11,6 +11,7 @@ import {
   type MemoryType,
 } from "./memory-helpers";
 import { bumpMemoryObservation } from "./memory-loader";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const createSchema = z.object({
   projectId: z.string().uuid(),
@@ -41,6 +42,7 @@ export async function ingestMemoryItem(input: z.input<typeof createSchema>) {
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
 
   // Pull existing same-type items for conflict check.
   const existingRows = await db
@@ -84,6 +86,7 @@ export async function ingestMemoryItem(input: z.input<typeof createSchema>) {
     const inserted = await db
       .insert(projectAiMemory)
       .values({
+        organizationId,
         projectId: parsed.data.projectId,
         memoryType: parsed.data.type,
         title: parsed.data.title,
@@ -103,7 +106,12 @@ export async function ingestMemoryItem(input: z.input<typeof createSchema>) {
         archivedAt: new Date(),
         archiveReason: "superseded by newer observation",
       })
-      .where(eq(projectAiMemory.id, verdict.conflictsWith[0]));
+      .where(
+        and(
+          eq(projectAiMemory.id, verdict.conflictsWith[0]),
+          eq(projectAiMemory.organizationId, organizationId),
+        ),
+      );
     return {
       ok: true as const,
       verdict: verdict.suggestion,
@@ -115,6 +123,7 @@ export async function ingestMemoryItem(input: z.input<typeof createSchema>) {
   const inserted = await db
     .insert(projectAiMemory)
     .values({
+      organizationId,
       projectId: parsed.data.projectId,
       memoryType: parsed.data.type,
       title: parsed.data.title,
@@ -139,6 +148,7 @@ export async function archiveMemoryItem(args: {
 }) {
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   await db
     .update(projectAiMemory)
     .set({
@@ -146,6 +156,11 @@ export async function archiveMemoryItem(args: {
       archivedAt: new Date(),
       archiveReason: args.reason,
     })
-    .where(eq(projectAiMemory.id, args.memoryId));
+    .where(
+      and(
+        eq(projectAiMemory.id, args.memoryId),
+        eq(projectAiMemory.organizationId, organizationId),
+      ),
+    );
   return { ok: true as const };
 }

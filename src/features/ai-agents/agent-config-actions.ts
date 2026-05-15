@@ -24,7 +24,7 @@ import { orgAiAgentConfig } from "@/lib/db/schema/org-ai-agent-config";
 import { auditEvents } from "@/lib/db/schema/audit";
 import { requirePermission } from "@/features/auth/permissions";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { getFeatureForOrg } from "@/lib/billing/gating";
 import { agentCodeToTier } from "@/lib/ai/router/tier-rules";
 import {
@@ -120,8 +120,12 @@ export async function setAgentEnabledAction(
     };
   }
 
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) return { ok: false, error: "No organization context available." };
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
+    return { ok: false, error: "No organization context available." };
+  }
 
   const db = requireDb();
   const now = new Date();
@@ -129,7 +133,7 @@ export async function setAgentEnabledAction(
   await db
     .insert(orgAiAgentConfig)
     .values({
-      organizationId: org.id,
+      organizationId: orgId,
       agentKey: parsed.data.agentKey,
       isEnabled: parsed.data.enabled,
       updatedBy: me.id,
@@ -151,7 +155,7 @@ export async function setAgentEnabledAction(
     entityType: "org_ai_agent_config",
     entityId: null,
     after: {
-      organization_id: org.id,
+      organization_id: orgId,
       agent_key: parsed.data.agentKey,
       is_enabled: parsed.data.enabled,
     },
@@ -199,15 +203,19 @@ export async function setAgentCustomPromptAction(
       ? parsed.data.customPrompt.trim()
       : null;
 
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) return { ok: false, error: "No organization context available." };
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
+    return { ok: false, error: "No organization context available." };
+  }
 
   const db = requireDb();
   const now = new Date();
   await db
     .insert(orgAiAgentConfig)
     .values({
-      organizationId: org.id,
+      organizationId: orgId,
       agentKey: parsed.data.agentKey,
       isEnabled: true,
       customPrompt: trimmed,
@@ -230,7 +238,7 @@ export async function setAgentCustomPromptAction(
     entityType: "org_ai_agent_config",
     entityId: null,
     after: {
-      organization_id: org.id,
+      organization_id: orgId,
       agent_key: parsed.data.agentKey,
       has_override: trimmed !== null,
     },

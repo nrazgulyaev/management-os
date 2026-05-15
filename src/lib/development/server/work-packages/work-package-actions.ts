@@ -1,10 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { workPackages } from "@/lib/db/schema/work-packages";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const STATUSES = [
   "planned",
@@ -36,9 +37,12 @@ export async function createWorkPackage(input: z.input<typeof createSchema>) {
   await requireInternalUser();
   const parsed = createSchema.parse(input);
   const db = requireDb();
+  // HF-5: work_packages is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
   const [row] = await db
     .insert(workPackages)
     .values({
+      organizationId,
       packageCode: parsed.packageCode,
       name: parsed.name,
       description: parsed.description ?? null,
@@ -78,10 +82,17 @@ export async function transitionWorkPackage(
   await requireInternalUser();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
+  // HF-5: scope SELECT + UPDATE by organization_id.
+  const organizationId = await requireOrgId();
   const [current] = await db
     .select()
     .from(workPackages)
-    .where(eq(workPackages.id, parsed.workPackageId))
+    .where(
+      and(
+        eq(workPackages.id, parsed.workPackageId),
+        eq(workPackages.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!current) throw new Error("work_package not found");
   if (!VALID_NEXT[current.status].includes(parsed.to)) {
@@ -92,7 +103,12 @@ export async function transitionWorkPackage(
   const [row] = await db
     .update(workPackages)
     .set({ status: parsed.to })
-    .where(eq(workPackages.id, parsed.workPackageId))
+    .where(
+      and(
+        eq(workPackages.id, parsed.workPackageId),
+        eq(workPackages.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

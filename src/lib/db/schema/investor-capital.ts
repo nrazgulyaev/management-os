@@ -16,6 +16,7 @@ import { appUsers } from "./identity";
 import { projects, villas } from "./projects";
 import { contacts } from "./contacts";
 import { documents } from "./documents";
+import { organizations } from "./saas";
 
 /**
  * Development OS — Stage 2.3 schema (investor capital cluster).
@@ -41,6 +42,10 @@ export const investors = pgTable(
   "investors",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     contactId: uuid("contact_id").references(() => contacts.id, {
       onDelete: "restrict",
     }),
@@ -96,6 +101,10 @@ export const capitalCommitments = pgTable(
   "capital_commitments",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072. Declared
+    // nullable in TS to avoid breaking out-of-scope insert callsites
+    // (e.g. commitment-actions.ts) not yet migrated to pass it.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     investorId: uuid("investor_id")
       .notNull()
       .references(() => investors.id, { onDelete: "restrict" }),
@@ -170,6 +179,10 @@ export const capitalDrawdowns = pgTable(
   "capital_drawdowns",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072. Declared
+    // nullable in TS to avoid breaking out-of-scope insert callsites
+    // (e.g. drawdown-actions.ts) not yet migrated to pass it.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     commitmentId: uuid("commitment_id")
       .notNull()
       .references(() => capitalCommitments.id, { onDelete: "restrict" }),
@@ -241,6 +254,10 @@ export const investorWallets = pgTable(
   "investor_wallets",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     commitmentId: uuid("commitment_id")
       .notNull()
       .unique()

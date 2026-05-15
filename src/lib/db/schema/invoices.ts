@@ -29,11 +29,16 @@ import { devCostCategories } from "./dev-finance";
 import { taxTypes } from "./tax";
 import { landPaymentInstallments } from "./land";
 import { projectPermits } from "./permits";
+import { organizations } from "./saas";
 
 export const devInvoices = pgTable(
   "dev_invoices",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: migration 0072 added organization_id NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
 
     invoiceNumber: text("invoice_number").notNull(),
     externalReference: text("external_reference"),
@@ -137,6 +142,10 @@ export const devInvoiceLines = pgTable(
   "dev_invoice_lines",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: migration 0072 added organization_id NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     invoiceId: uuid("invoice_id")
       .notNull()
       .references(() => devInvoices.id, { onDelete: "cascade" }),

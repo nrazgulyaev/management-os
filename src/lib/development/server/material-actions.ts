@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -9,6 +9,7 @@ import {
   materialDeliveries,
   materialDeliveryLines,
 } from "@/lib/db/schema/site-operations";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Material PO + delivery flow. Both `createMaterialPO` and
@@ -58,6 +59,7 @@ export async function createMaterialPO(
 ): Promise<{ id: string; poCode: string; lineCount: number }> {
   const parsed = poCreateSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const fx = Number(parsed.fxRateAtOrder);
   if (!(fx > 0)) throw new Error("fxRateAtOrder must be > 0");
 
@@ -77,6 +79,7 @@ export async function createMaterialPO(
     const [po] = await tx
       .insert(materialPurchaseOrders)
       .values({
+        organizationId,
         poCode: parsed.poCode,
         projectId: parsed.projectId,
         vendorId: parsed.vendorId,
@@ -96,6 +99,7 @@ export async function createMaterialPO(
 
     for (const l of parsed.lines) {
       await tx.insert(materialPoLines).values({
+        organizationId,
         poId: po.id,
         lineNumber: l.lineNumber,
         materialName: l.materialName,
@@ -124,6 +128,7 @@ export async function cancelMaterialPO(
     throw new Error("cancelMaterialPO: reason required (≥3 chars)");
   }
   const db = requireDb();
+  const organizationId = await requireOrgId();
   await db
     .update(materialPurchaseOrders)
     .set({
@@ -131,7 +136,12 @@ export async function cancelMaterialPO(
       notes: reason,
       updatedAt: new Date(),
     })
-    .where(eq(materialPurchaseOrders.id, id));
+    .where(
+      and(
+        eq(materialPurchaseOrders.id, id),
+        eq(materialPurchaseOrders.organizationId, organizationId),
+      ),
+    );
 }
 
 const deliveryLineSchema = z.object({
@@ -175,6 +185,7 @@ export async function recordMaterialDelivery(
 }> {
   const parsed = deliveryCreateSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
 
   return await db.transaction(async (tx) => {
     // Verify all PO lines belong to the PO.
@@ -214,6 +225,7 @@ export async function recordMaterialDelivery(
     const [d] = await tx
       .insert(materialDeliveries)
       .values({
+        organizationId,
         deliveryCode: parsed.deliveryCode,
         poId: parsed.poId,
         deliveryDate: parsed.deliveryDate,
@@ -231,6 +243,7 @@ export async function recordMaterialDelivery(
     // Insert delivery lines + bump po_lines.quantity_delivered
     for (const l of parsed.lines) {
       await tx.insert(materialDeliveryLines).values({
+        organizationId,
         deliveryId: d.id,
         poLineId: l.poLineId,
         quantityReceived: l.quantityReceived.toFixed(4),
@@ -243,7 +256,12 @@ export async function recordMaterialDelivery(
       await tx
         .update(materialPoLines)
         .set({ quantityDelivered: newDelivered.toFixed(4) })
-        .where(eq(materialPoLines.id, l.poLineId));
+        .where(
+          and(
+            eq(materialPoLines.id, l.poLineId),
+            eq(materialPoLines.organizationId, organizationId),
+          ),
+        );
     }
 
     // Recompute PO status from aggregated line totals.
@@ -266,7 +284,12 @@ export async function recordMaterialDelivery(
     await tx
       .update(materialPurchaseOrders)
       .set({ status: newStatus, updatedAt: new Date() })
-      .where(eq(materialPurchaseOrders.id, parsed.poId));
+      .where(
+        and(
+          eq(materialPurchaseOrders.id, parsed.poId),
+          eq(materialPurchaseOrders.organizationId, organizationId),
+        ),
+      );
 
     return {
       id: d.id,
@@ -288,6 +311,7 @@ export async function markDeliveryQualityChecked(
 ): Promise<void> {
   const parsed = qualitySchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   await db
     .update(materialDeliveries)
     .set({
@@ -295,5 +319,10 @@ export async function markDeliveryQualityChecked(
       qualityNotes: parsed.notes ?? null,
       updatedAt: new Date(),
     })
-    .where(eq(materialDeliveries.id, parsed.deliveryId));
+    .where(
+      and(
+        eq(materialDeliveries.id, parsed.deliveryId),
+        eq(materialDeliveries.organizationId, organizationId),
+      ),
+    );
 }

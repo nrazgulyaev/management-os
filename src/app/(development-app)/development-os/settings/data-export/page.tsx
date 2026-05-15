@@ -4,7 +4,7 @@ import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { listExportRequestsForOrg } from "@/lib/development/server/data-export/data-export-actions";
 import { safeQuery } from "@/lib/development/safe-query";
 
@@ -19,18 +19,12 @@ const STATUS_TONES: Record<string, "success" | "warning" | "danger" | "neutral">
 };
 
 export default async function DataExportPage() {
-  const org = await safeQuery(
-    "settings-data-export.getOrganizationByCode",
-    getOrganizationByCode("ARCONIQUE_DEFAULT"),
-    null,
+  const orgId = await requireOrgId();
+  const requests = await safeQuery(
+    "settings-data-export.listExportRequestsForOrg",
+    listExportRequestsForOrg(orgId),
+    [] as Awaited<ReturnType<typeof listExportRequestsForOrg>>,
   );
-  const requests = org
-    ? await safeQuery(
-        "settings-data-export.listExportRequestsForOrg",
-        listExportRequestsForOrg(org.id),
-        [] as Awaited<ReturnType<typeof listExportRequestsForOrg>>,
-      )
-    : [];
 
   return (
     <DevelopmentShell>

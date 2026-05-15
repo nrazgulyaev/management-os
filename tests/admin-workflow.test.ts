@@ -118,14 +118,14 @@ test("hasPermission grants super_admin everything; matrix gates others", async (
   const { hasPermission } = await import("../src/features/auth/permission-matrix");
   const adminCtx = {
     mode: "live" as const,
-    appUser: { id: "u", email: "a@b", fullName: "A", status: "active" },
+    appUser: { id: "u", email: "a@b", fullName: "A", status: "active", organizationId: "00000000-0000-0000-0000-000000000000" },
     roles: ["super_admin" as const],
     isInternal: true,
     isSuperAdmin: true,
   };
   const accountantCtx = {
     mode: "live" as const,
-    appUser: { id: "u", email: "a@b", fullName: "A", status: "active" },
+    appUser: { id: "u", email: "a@b", fullName: "A", status: "active", organizationId: "00000000-0000-0000-0000-000000000000" },
     roles: ["accountant" as const],
     isInternal: true,
     isSuperAdmin: false,

@@ -1,12 +1,17 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { investorPortalRequests } from "@/lib/db/schema/investor-portal-requests";
-import { investorWallets, capitalCommitments } from "@/lib/db/schema/investor-capital";
+import {
+  investorWallets,
+  capitalCommitments,
+  investors,
+} from "@/lib/db/schema/investor-capital";
 import { walletMovements } from "@/lib/db/schema/wallet-movements";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const REQUEST_TYPES = [
   "withdrawal",
@@ -41,6 +46,20 @@ export async function submitInvestorPortalRequest(
   const parsed = submitSchema.parse(input);
   const db = requireDb();
 
+  // TENANT-1: portal (investor) caller — `requireOrgId` is keyed on
+  // internal `appUser`, which is absent for portal sessions. Resolve
+  // the org via the investor record (RLS still scopes which investor
+  // rows are visible to the caller, so this can't escape the tenant).
+  const [investor] = await db
+    .select({ organizationId: investors.organizationId })
+    .from(investors)
+    .where(eq(investors.id, parsed.investorId))
+    .limit(1);
+  if (!investor) {
+    throw new Error(`investor ${parsed.investorId} not found`);
+  }
+  const organizationId = investor.organizationId;
+
   const [{ count }] = await db
     .select({ count: sql<string>`COUNT(*)::text` })
     .from(investorPortalRequests);
@@ -51,6 +70,7 @@ export async function submitInvestorPortalRequest(
   const [row] = await db
     .insert(investorPortalRequests)
     .values({
+      organizationId,
       investorId: parsed.investorId,
       requestCode,
       requestType: parsed.requestType,
@@ -79,13 +99,19 @@ export async function reviewInvestorPortalRequest(
   input: z.input<typeof reviewSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = reviewSchema.parse(input);
   const db = requireDb();
 
   const [current] = await db
     .select()
     .from(investorPortalRequests)
-    .where(eq(investorPortalRequests.id, parsed.requestId))
+    .where(
+      and(
+        eq(investorPortalRequests.id, parsed.requestId),
+        eq(investorPortalRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!current) throw new Error(`request ${parsed.requestId} not found`);
 
@@ -112,7 +138,12 @@ export async function reviewInvestorPortalRequest(
       approvalNotes: parsed.approvalNotes ?? null,
       rejectionReason: parsed.rejectionReason ?? null,
     })
-    .where(eq(investorPortalRequests.id, parsed.requestId))
+    .where(
+      and(
+        eq(investorPortalRequests.id, parsed.requestId),
+        eq(investorPortalRequests.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }
@@ -130,6 +161,7 @@ export async function executeInvestorPortalRequest(
   input: z.input<typeof executeSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = executeSchema.parse(input);
   const db = requireDb();
 
@@ -137,7 +169,12 @@ export async function executeInvestorPortalRequest(
     const [request] = await tx
       .select()
       .from(investorPortalRequests)
-      .where(eq(investorPortalRequests.id, parsed.requestId))
+      .where(
+        and(
+          eq(investorPortalRequests.id, parsed.requestId),
+          eq(investorPortalRequests.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!request) throw new Error(`request ${parsed.requestId} not found`);
     if (request.status !== "approved") {
@@ -189,6 +226,7 @@ export async function executeInvestorPortalRequest(
     const [movement] = await tx
       .insert(walletMovements)
       .values({
+        organizationId,
         walletId,
         investorId: request.investorId,
         movementType,
@@ -211,7 +249,12 @@ export async function executeInvestorPortalRequest(
         cashBalanceMinor: sql`${investorWallets.cashBalanceMinor} - ${request.requestedAmountMinor}`,
         lastActivityAt: new Date(),
       })
-      .where(eq(investorWallets.id, walletId));
+      .where(
+        and(
+          eq(investorWallets.id, walletId),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     const [executed] = await tx
       .update(investorPortalRequests)
@@ -220,7 +263,12 @@ export async function executeInvestorPortalRequest(
         executedAt: new Date(),
         relatedWalletMovementId: movement.id,
       })
-      .where(eq(investorPortalRequests.id, parsed.requestId))
+      .where(
+        and(
+          eq(investorPortalRequests.id, parsed.requestId),
+          eq(investorPortalRequests.organizationId, organizationId),
+        ),
+      )
       .returning();
     return { request: executed, movement };
   });
@@ -230,6 +278,10 @@ export async function cancelInvestorPortalRequest(input: {
   requestId: string;
 }) {
   const db = requireDb();
+  // TENANT-1: no auth gate in the original — callable from both portal
+  // and operator surfaces. Scope by the row's own organizationId so the
+  // cancel can't bleed across tenants. RLS still enforces caller→row
+  // visibility per Stage 4.B.3.
   const [current] = await db
     .select()
     .from(investorPortalRequests)
@@ -242,7 +294,12 @@ export async function cancelInvestorPortalRequest(input: {
   const [row] = await db
     .update(investorPortalRequests)
     .set({ status: "cancelled" })
-    .where(eq(investorPortalRequests.id, input.requestId))
+    .where(
+      and(
+        eq(investorPortalRequests.id, input.requestId),
+        eq(investorPortalRequests.organizationId, current.organizationId),
+      ),
+    )
     .returning();
   return row;
 }

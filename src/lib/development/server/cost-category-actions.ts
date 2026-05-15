@@ -4,17 +4,11 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { devCostCategories } from "@/lib/db/schema/dev-finance";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 
 // HF-5: same multi-tenant fix pattern as bank-account-actions.ts.
 async function requireDefaultOrgId(): Promise<string> {
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
-    throw new Error(
-      "ARCONIQUE_DEFAULT organization missing — apply migration 0071",
-    );
-  }
-  return org.id;
+  return requireOrgId();
 }
 
 const createSchema = z.object({

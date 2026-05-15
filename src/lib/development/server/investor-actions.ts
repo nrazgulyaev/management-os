@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { investors } from "@/lib/db/schema/investor-capital";
@@ -13,6 +13,7 @@ import {
   type InvestorStatus,
 } from "@/lib/development/constants/investor-constants";
 import type { CreateInvestorInput } from "@/lib/development/types/investors";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const createInvestorSchema = z.object({
   investorCode: z
@@ -36,12 +37,14 @@ export async function createInvestor(input: CreateInvestorInput): Promise<{
   id: string;
   investorCode: string;
 }> {
+  const organizationId = await requireOrgId();
   const parsed = createInvestorSchema.parse(input);
   const db = requireDb();
 
   const [row] = await db
     .insert(investors)
     .values({
+      organizationId,
       investorCode: parsed.investorCode,
       investorType: parsed.investorType,
       legalName: parsed.legalName,
@@ -72,6 +75,7 @@ export async function updateInvestor(
   id: string,
   patch: Partial<CreateInvestorInput>,
 ): Promise<void> {
+  const organizationId = await requireOrgId();
   const parsed = updateInvestorSchema.parse(patch);
   const db = requireDb();
   await db
@@ -106,13 +110,16 @@ export async function updateInvestor(
       ...(parsed.notes !== undefined && { notes: parsed.notes }),
       updatedAt: new Date(),
     })
-    .where(eq(investors.id, id));
+    .where(
+      and(eq(investors.id, id), eq(investors.organizationId, organizationId)),
+    );
 }
 
 export async function setInvestorStatus(
   id: string,
   status: InvestorStatus,
 ): Promise<void> {
+  const organizationId = await requireOrgId();
   const parsed = z.enum(INVESTOR_STATUSES).parse(status);
   const db = requireDb();
   await db
@@ -122,5 +129,7 @@ export async function setInvestorStatus(
       exitedAt: parsed === "exited" ? new Date() : null,
       updatedAt: new Date(),
     })
-    .where(eq(investors.id, id));
+    .where(
+      and(eq(investors.id, id), eq(investors.organizationId, organizationId)),
+    );
 }

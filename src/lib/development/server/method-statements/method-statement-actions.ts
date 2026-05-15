@@ -1,10 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { methodStatements } from "@/lib/db/schema/method-quality";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const CATEGORIES = [
   "structural",
@@ -77,9 +78,12 @@ export async function createMethodStatement(
   const ctx = await requireInternalUser();
   const parsed = createSchema.parse(input);
   const db = requireDb();
+  // HF-5: method_statements is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
   const [row] = await db
     .insert(methodStatements)
     .values({
+      organizationId,
       methodCode: parsed.methodCode,
       title: parsed.title,
       description: parsed.description ?? null,
@@ -115,10 +119,17 @@ export async function transitionMethodStatement(
   const ctx = await requireInternalUser();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
+  // HF-5: scope SELECT + UPDATE by organization_id.
+  const organizationId = await requireOrgId();
   const [current] = await db
     .select()
     .from(methodStatements)
-    .where(eq(methodStatements.id, parsed.methodId))
+    .where(
+      and(
+        eq(methodStatements.id, parsed.methodId),
+        eq(methodStatements.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!current) throw new Error("method_statement not found");
   if (!VALID_NEXT[current.status].includes(parsed.to)) {
@@ -134,7 +145,12 @@ export async function transitionMethodStatement(
   const [row] = await db
     .update(methodStatements)
     .set(updates)
-    .where(eq(methodStatements.id, parsed.methodId))
+    .where(
+      and(
+        eq(methodStatements.id, parsed.methodId),
+        eq(methodStatements.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

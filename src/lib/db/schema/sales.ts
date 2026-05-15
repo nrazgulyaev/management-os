@@ -16,6 +16,7 @@ import { appUsers } from "./identity";
 import { projects, villas } from "./projects";
 import { contacts, contactRoles } from "./contacts";
 import { documents } from "./documents";
+import { organizations } from "./saas";
 
 /**
  * Development OS — Stage 2.2.B schema (sales lifecycle).
@@ -654,6 +655,10 @@ export const devNotificationRules = pgTable(
   "dev_notification_rules",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     ruleName: text("rule_name").notNull(),
     description: text("description"),
     /** trigger event — see migration check */
@@ -684,6 +689,10 @@ export const devNotificationRules = pgTable(
 
 export const devNotificationTemplates = pgTable("dev_notification_templates", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // TENANT-1: added by migration 0072 (multi-tenant propagation).
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id),
   templateName: text("template_name").notNull().unique(),
   subject: text("subject").notNull(),
   bodyHtml: text("body_html").notNull(),
@@ -698,6 +707,10 @@ export const devNotificationDeliveryLog = pgTable(
   "dev_notification_delivery_log",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     ruleId: uuid("rule_id").references(() => devNotificationRules.id, {
       onDelete: "set null",
     }),

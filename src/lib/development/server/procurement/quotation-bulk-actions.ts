@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   devOsPurchaseRequests,
   procurementQuotations,
@@ -75,6 +76,7 @@ export async function bulkInsertQuotationLines(
   input: z.input<typeof bulkInputSchema>,
 ): Promise<BulkQuotationResult> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = bulkInputSchema.parse(input);
   const db = requireDb();
 
@@ -200,6 +202,7 @@ export async function bulkInsertQuotationLines(
         const [created] = await db
           .insert(procurementQuotations)
           .values({
+            organizationId,
             purchaseRequestId: parsed.prId,
             vendorId: group.vendorId,
             totalAmountMinor: totalMinorBig,
@@ -230,6 +233,7 @@ export async function bulkInsertQuotationLines(
           const [inserted] = await db
             .insert(procurementQuotationLines)
             .values({
+              organizationId,
               quotationId,
               lineNumber: nextLineNumber,
               description: r.itemDescription.trim(),

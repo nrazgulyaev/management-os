@@ -33,6 +33,7 @@ import { documents } from "./documents";
 import { contacts } from "./contacts";
 import { agentOutputs } from "./ai-agents";
 import { devTransactions } from "./dev-finance";
+import { organizations } from "./saas";
 
 export const marketingLeadSources = pgTable(
   "marketing_lead_sources",
@@ -68,6 +69,10 @@ export const campaigns = pgTable(
   "campaigns",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     campaignCode: text("campaign_code").notNull().unique(),
     name: text("name").notNull(),
     description: text("description"),
@@ -120,6 +125,10 @@ export const campaignCosts = pgTable(
   "campaign_costs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     campaignId: uuid("campaign_id")
       .notNull()
       .references(() => campaigns.id, { onDelete: "cascade" }),
@@ -199,6 +208,10 @@ export const contentPieces = pgTable(
   "content_pieces",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     contentCode: text("content_code").notNull().unique(),
     title: text("title").notNull(),
     description: text("description"),
@@ -271,6 +284,10 @@ export const contentVariants = pgTable(
   "content_variants",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     parentContentId: uuid("parent_content_id")
       .notNull()
       .references(() => contentPieces.id, { onDelete: "cascade" }),
@@ -301,6 +318,10 @@ export const salesConversationThreads = pgTable(
   "sales_conversation_threads",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     threadCode: text("thread_code").notNull().unique(),
     leadId: uuid("lead_id").references(() => leads.id),
     buyerId: uuid("buyer_id"),
@@ -341,6 +362,10 @@ export const managerPerformanceMetrics = pgTable(
   "manager_performance_metrics",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     managerId: uuid("manager_id")
       .notNull()
       .references(() => appUsers.id),

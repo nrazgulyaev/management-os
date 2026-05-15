@@ -12,6 +12,7 @@ import { documents } from "@/lib/db/schema/documents";
 import { projects } from "@/lib/db/schema/projects";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Site report photo upload pipeline.
@@ -77,6 +78,7 @@ export async function uploadSiteReportPhoto(
 
   // 1. Permission.
   await requireInternalUser();
+  const organizationId = await requireOrgId();
 
   // 2. Validate MIME + size.
   if (!ALLOWED_MIME.has(parsed.mimeType)) {
@@ -191,6 +193,7 @@ export async function uploadSiteReportPhoto(
     const [photo] = await tx
       .insert(siteReportPhotos)
       .values({
+        organizationId,
         siteReportId: parsed.reportId,
         zoneId: parsed.zoneId ?? null,
         documentId: doc.id,

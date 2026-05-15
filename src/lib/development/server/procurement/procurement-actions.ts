@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/schema/procurement";
 import { materialPurchaseOrders, materialPoLines } from "@/lib/db/schema/site-operations";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   lookupRequiredApproval,
   isRoleSufficient,
@@ -46,11 +47,13 @@ export async function createPurchaseRequest(
   const me = await requireInternalUser();
   const meId = me.appUser?.id;
   if (!meId) throw new Error("Internal user must be authenticated");
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const requestCode = `PR-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
   const [row] = await db
     .insert(devOsPurchaseRequests)
     .values({
+      organizationId,
       requestCode,
       requestedBy: meId,
       projectId: parsed.projectId,
@@ -98,6 +101,7 @@ export async function transitionPurchaseRequest(
   const parsed = transitionSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
   return await db.transaction(async (tx) => {
     const [pr] = await tx
@@ -146,7 +150,12 @@ export async function transitionPurchaseRequest(
           parsed.newStatus === "submitted" ? new Date() : pr.submittedAt,
         updatedAt: new Date(),
       })
-      .where(eq(devOsPurchaseRequests.id, parsed.requestId));
+      .where(
+        and(
+          eq(devOsPurchaseRequests.id, parsed.requestId),
+          eq(devOsPurchaseRequests.organizationId, organizationId),
+        ),
+      );
     return { ok: true as const };
   });
 }
@@ -179,11 +188,13 @@ export async function addQuotation(
 ): Promise<{ id: string }> {
   const parsed = addQuotationSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   return await db.transaction(async (tx) => {
     const [q] = await tx
       .insert(procurementQuotations)
       .values({
+        organizationId,
         purchaseRequestId: parsed.purchaseRequestId,
         vendorId: parsed.vendorId,
         totalAmountMinor: toBig(parsed.totalAmountMinor),
@@ -198,6 +209,7 @@ export async function addQuotation(
     if (parsed.lines) {
       for (const l of parsed.lines) {
         await tx.insert(procurementQuotationLines).values({
+          organizationId,
           quotationId: q.id,
           lineNumber: l.lineNumber,
           description: l.description,
@@ -215,6 +227,7 @@ export async function addQuotation(
         and(
           eq(devOsPurchaseRequests.id, parsed.purchaseRequestId),
           eq(devOsPurchaseRequests.status, "approved"),
+          eq(devOsPurchaseRequests.organizationId, organizationId),
         ),
       );
     return { id: q.id };
@@ -242,6 +255,7 @@ export async function selectQuotation(
   const parsed = selectQuotationSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
   return await db.transaction(async (tx) => {
     const [q] = await tx
@@ -275,6 +289,7 @@ export async function selectQuotation(
           eq(procurementQuotations.purchaseRequestId, q.purchaseRequestId),
           sql`${procurementQuotations.id} != ${q.id}`,
           sql`${procurementQuotations.status} IN ('received','under_review')`,
+          eq(procurementQuotations.organizationId, organizationId),
         ),
       );
 
@@ -288,7 +303,12 @@ export async function selectQuotation(
         selectionReason: parsed.selectionReason ?? null,
         updatedAt: new Date(),
       })
-      .where(eq(procurementQuotations.id, q.id));
+      .where(
+        and(
+          eq(procurementQuotations.id, q.id),
+          eq(procurementQuotations.organizationId, organizationId),
+        ),
+      );
 
     // Create PO. The existing material_purchase_orders schema requires
     // total amounts denormalised in both USD and original currency, plus
@@ -299,6 +319,7 @@ export async function selectQuotation(
     const [po] = await tx
       .insert(materialPurchaseOrders)
       .values({
+        organizationId,
         poCode,
         projectId: pr.projectId,
         vendorId: q.vendorId,
@@ -316,6 +337,7 @@ export async function selectQuotation(
     // Insert a single PO line summarising the request — operator can
     // expand into multiple lines later via the existing materials surface.
     await tx.insert(materialPoLines).values({
+      organizationId,
       poId: po.id,
       lineNumber: 1,
       materialName: pr.materialName,
@@ -334,7 +356,12 @@ export async function selectQuotation(
         generatedPoId: po.id,
         updatedAt: new Date(),
       })
-      .where(eq(devOsPurchaseRequests.id, pr.id));
+      .where(
+        and(
+          eq(devOsPurchaseRequests.id, pr.id),
+          eq(devOsPurchaseRequests.organizationId, organizationId),
+        ),
+      );
 
     return { ok: true as const, poId: po.id, poCode };
   });
@@ -526,6 +553,7 @@ export async function generatePurchaseRequestsFromBoqAction(
       error: parsed.error.issues[0]?.message ?? "Invalid input",
     };
   }
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   // Pull every BOQ item + section + document in one round-trip so we can
@@ -561,6 +589,7 @@ export async function generatePurchaseRequestsFromBoqAction(
         ? BigInt(r.item.totalMinor)
         : BigInt(Math.round(Number(r.item.unitRateMinor)));
     await db.insert(devOsPurchaseRequests).values({
+      organizationId,
       requestCode,
       requestedBy: meId,
       projectId: r.document.projectId,

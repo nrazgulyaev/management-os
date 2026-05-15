@@ -1,10 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { qualityStandards } from "@/lib/db/schema/method-quality";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const createSchema = z.object({
   standardCode: z.string().min(1),
@@ -33,9 +34,12 @@ export async function createQualityStandard(
   const ctx = await requireInternalUser();
   const parsed = createSchema.parse(input);
   const db = requireDb();
+  // HF-5: quality_standards is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
   const [row] = await db
     .insert(qualityStandards)
     .values({
+      organizationId,
       standardCode: parsed.standardCode,
       title: parsed.title,
       description: parsed.description ?? null,
@@ -56,10 +60,17 @@ export async function createQualityStandard(
 export async function deactivateQualityStandard(input: { id: string }) {
   await requireInternalUser();
   const db = requireDb();
+  // HF-5: scope UPDATE by organization_id.
+  const organizationId = await requireOrgId();
   const [row] = await db
     .update(qualityStandards)
     .set({ isActive: false })
-    .where(eq(qualityStandards.id, input.id))
+    .where(
+      and(
+        eq(qualityStandards.id, input.id),
+        eq(qualityStandards.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

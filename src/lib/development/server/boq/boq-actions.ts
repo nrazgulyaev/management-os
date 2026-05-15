@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -9,6 +9,7 @@ import {
   boqItems,
 } from "@/lib/db/schema/boq";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { rollupBoqTotals } from "./boq-helpers";
 import {
   parseBoqCsv,
@@ -44,11 +45,13 @@ export async function createBoqDocument(
   input: z.input<typeof createDocSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createDocSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(boqDocuments)
     .values({
+      organizationId,
       boqCode: parsed.boqCode,
       title: parsed.title,
       description: parsed.description ?? null,
@@ -77,11 +80,13 @@ const addSectionSchema = z.object({
 
 export async function addBoqSection(input: z.input<typeof addSectionSchema>) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = addSectionSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(boqSections)
     .values({
+      organizationId,
       boqDocumentId: parsed.boqDocumentId,
       parentSectionId: parsed.parentSectionId ?? null,
       sectionCode: parsed.sectionCode,
@@ -117,6 +122,7 @@ const addItemSchema = z.object({
  */
 export async function addBoqItem(input: z.input<typeof addItemSchema>) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = addItemSchema.parse(input);
   const db = requireDb();
 
@@ -124,6 +130,7 @@ export async function addBoqItem(input: z.input<typeof addItemSchema>) {
     const [item] = await tx
       .insert(boqItems)
       .values({
+        organizationId,
         sectionId: parsed.sectionId,
         itemCode: parsed.itemCode,
         description: parsed.description,
@@ -150,7 +157,7 @@ export async function addBoqItem(input: z.input<typeof addItemSchema>) {
       .where(eq(boqSections.id, parsed.sectionId))
       .limit(1);
     if (section) {
-      await recomputeBoqTotalsTx(tx, section.docId);
+      await recomputeBoqTotalsTx(tx, section.docId, organizationId);
     }
     return item;
   });
@@ -160,6 +167,7 @@ export async function addBoqItem(input: z.input<typeof addItemSchema>) {
 async function recomputeBoqTotalsTx(
   tx: Parameters<Parameters<ReturnType<typeof requireDb>["transaction"]>[0]>[0],
   documentId: string,
+  organizationId: string,
 ) {
   const sections = await tx
     .select({
@@ -192,20 +200,31 @@ async function recomputeBoqTotalsTx(
     await tx
       .update(boqSections)
       .set({ subtotalMinor: BigInt(subtotal) })
-      .where(eq(boqSections.id, sectionId));
+      .where(
+        and(
+          eq(boqSections.id, sectionId),
+          eq(boqSections.organizationId, organizationId),
+        ),
+      );
   }
   await tx
     .update(boqDocuments)
     .set({ totalAmountMinor: BigInt(result.documentTotal) })
-    .where(eq(boqDocuments.id, documentId));
+    .where(
+      and(
+        eq(boqDocuments.id, documentId),
+        eq(boqDocuments.organizationId, organizationId),
+      ),
+    );
 }
 
 /** Manual recompute trigger (also runs after every addBoqItem). */
 export async function recomputeBoqTotals(input: { boqDocumentId: string }) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   return db.transaction(async (tx) => {
-    await recomputeBoqTotalsTx(tx, input.boqDocumentId);
+    await recomputeBoqTotalsTx(tx, input.boqDocumentId, organizationId);
   });
 }
 
@@ -223,6 +242,7 @@ export async function importBoqFromCsv(
   input: z.input<typeof importCsvSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = importCsvSchema.parse(input);
   const db = requireDb();
   const csvData = parseBoqCsv(parsed.csv);
@@ -231,7 +251,12 @@ export async function importBoqFromCsv(
     // Clear existing sections (cascades to items via ON DELETE CASCADE).
     await tx
       .delete(boqSections)
-      .where(eq(boqSections.boqDocumentId, parsed.boqDocumentId));
+      .where(
+        and(
+          eq(boqSections.boqDocumentId, parsed.boqDocumentId),
+          eq(boqSections.organizationId, organizationId),
+        ),
+      );
 
     // Insert sections, capturing their IDs by section_code.
     const sectionIdByCode = new Map<string, string>();
@@ -239,6 +264,7 @@ export async function importBoqFromCsv(
       const [row] = await tx
         .insert(boqSections)
         .values({
+          organizationId,
           boqDocumentId: parsed.boqDocumentId,
           sectionCode: s.sectionCode,
           sectionName: s.sectionName,
@@ -257,6 +283,7 @@ export async function importBoqFromCsv(
         );
       }
       await tx.insert(boqItems).values({
+        organizationId,
         sectionId,
         itemCode: it.itemCode,
         description: it.description,
@@ -267,7 +294,7 @@ export async function importBoqFromCsv(
       });
     }
 
-    await recomputeBoqTotalsTx(tx, parsed.boqDocumentId);
+    await recomputeBoqTotalsTx(tx, parsed.boqDocumentId, organizationId);
     return {
       sectionCount: csvData.sections.length,
       itemCount: csvData.items.length,
@@ -317,6 +344,7 @@ export async function transitionBoqStatus(
   input: z.input<typeof transitionSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
   const updates: Record<string, unknown> = { status: parsed.to };
@@ -327,7 +355,12 @@ export async function transitionBoqStatus(
   const [row] = await db
     .update(boqDocuments)
     .set(updates)
-    .where(eq(boqDocuments.id, parsed.boqDocumentId))
+    .where(
+      and(
+        eq(boqDocuments.id, parsed.boqDocumentId),
+        eq(boqDocuments.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

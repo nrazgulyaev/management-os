@@ -1,9 +1,10 @@
 "use server";
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { salesConversationThreads } from "@/lib/db/schema/marketing";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export async function recordConsent(args: {
   threadCode: string;
@@ -12,6 +13,7 @@ export async function recordConsent(args: {
 }) {
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   await db
     .update(salesConversationThreads)
     .set({
@@ -19,7 +21,12 @@ export async function recordConsent(args: {
       consentRecordedAt: args.consent ? new Date() : null,
       consentRecordedBy: args.consent ? args.userId : null,
     })
-    .where(eq(salesConversationThreads.threadCode, args.threadCode));
+    .where(
+      and(
+        eq(salesConversationThreads.threadCode, args.threadCode),
+        eq(salesConversationThreads.organizationId, organizationId),
+      ),
+    );
   return { ok: true as const };
 }
 
@@ -31,10 +38,16 @@ export async function triggerConversationAnalysis(args: {
 }): Promise<{ ok: boolean; error?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(salesConversationThreads)
-    .where(eq(salesConversationThreads.threadCode, args.threadCode))
+    .where(
+      and(
+        eq(salesConversationThreads.threadCode, args.threadCode),
+        eq(salesConversationThreads.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   const thread = rows[0];
   if (!thread) return { ok: false, error: "Thread not found" };
@@ -47,12 +60,22 @@ export async function triggerConversationAnalysis(args: {
   await db
     .update(salesConversationThreads)
     .set({ aiAnalysisStatus: "analyzing" })
-    .where(eq(salesConversationThreads.id, thread.id));
+    .where(
+      and(
+        eq(salesConversationThreads.id, thread.id),
+        eq(salesConversationThreads.organizationId, organizationId),
+      ),
+    );
   // Actual provider call would happen here; in dry-run we just mark analyzed
   // and rely on the Stage 5.D Marketing Assistant agent for any text gen.
   await db
     .update(salesConversationThreads)
     .set({ aiAnalysisStatus: "analyzed" })
-    .where(eq(salesConversationThreads.id, thread.id));
+    .where(
+      and(
+        eq(salesConversationThreads.id, thread.id),
+        eq(salesConversationThreads.organizationId, organizationId),
+      ),
+    );
   return { ok: true };
 }

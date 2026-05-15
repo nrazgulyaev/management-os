@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { projects, villas } from "./projects";
+import { organizations } from "./saas";
 
 /**
  * Development OS — Stage 2.1 schema.
@@ -70,6 +71,10 @@ export const projectPhases = pgTable(
   "project_phases",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),

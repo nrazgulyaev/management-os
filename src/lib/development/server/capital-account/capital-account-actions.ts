@@ -1,11 +1,12 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { investorWallets, investors } from "@/lib/db/schema/investor-capital";
 import { walletMovements } from "@/lib/db/schema/wallet-movements";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const MOVEMENT_TYPES = [
   "capital_contribution",
@@ -64,6 +65,7 @@ export async function recordWalletMovement(
   input: z.input<typeof recordMovementSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = recordMovementSchema.parse(input);
   const db = requireDb();
 
@@ -72,6 +74,7 @@ export async function recordWalletMovement(
     const [movement] = await tx
       .insert(walletMovements)
       .values({
+        organizationId,
         walletId: parsed.walletId,
         investorId: parsed.investorId,
         movementType: parsed.movementType,
@@ -100,7 +103,12 @@ export async function recordWalletMovement(
         [column]: sql`${investorWallets[column]} + ${parsed.amountMinor}`,
         lastActivityAt: new Date(),
       })
-      .where(eq(investorWallets.id, parsed.walletId));
+      .where(
+        and(
+          eq(investorWallets.id, parsed.walletId),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     return movement;
   });
@@ -128,6 +136,7 @@ export async function recordCrossProjectMovement(
   input: z.input<typeof crossProjectMovementSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = crossProjectMovementSchema.parse(input);
   const db = requireDb();
 
@@ -135,6 +144,7 @@ export async function recordCrossProjectMovement(
     const [out] = await tx
       .insert(walletMovements)
       .values({
+        organizationId,
         walletId: parsed.sourceWalletId,
         investorId: parsed.investorId,
         movementType: "reinvestment_out",
@@ -152,6 +162,7 @@ export async function recordCrossProjectMovement(
     const [into] = await tx
       .insert(walletMovements)
       .values({
+        organizationId,
         walletId: parsed.targetWalletId,
         investorId: parsed.investorId,
         movementType: "reinvestment_in",
@@ -172,7 +183,12 @@ export async function recordCrossProjectMovement(
         cashBalanceMinor: sql`${investorWallets.cashBalanceMinor} - ${parsed.amountMinor}`,
         lastActivityAt: new Date(),
       })
-      .where(eq(investorWallets.id, parsed.sourceWalletId));
+      .where(
+        and(
+          eq(investorWallets.id, parsed.sourceWalletId),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     await tx
       .update(investorWallets)
@@ -180,7 +196,12 @@ export async function recordCrossProjectMovement(
         committedBalanceMinor: sql`${investorWallets.committedBalanceMinor} + ${parsed.amountMinor}`,
         lastActivityAt: new Date(),
       })
-      .where(eq(investorWallets.id, parsed.targetWalletId));
+      .where(
+        and(
+          eq(investorWallets.id, parsed.targetWalletId),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     return { out, into };
   });
@@ -191,13 +212,19 @@ export async function reverseWalletMovement(input: {
   reason: string;
 }) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   return db.transaction(async (tx) => {
     const [original] = await tx
       .select()
       .from(walletMovements)
-      .where(eq(walletMovements.id, input.movementId))
+      .where(
+        and(
+          eq(walletMovements.id, input.movementId),
+          eq(walletMovements.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!original) throw new Error(`movement ${input.movementId} not found`);
     if (original.status !== "recorded") {
@@ -210,12 +237,18 @@ export async function reverseWalletMovement(input: {
     await tx
       .update(walletMovements)
       .set({ status: "reversed" })
-      .where(eq(walletMovements.id, input.movementId));
+      .where(
+        and(
+          eq(walletMovements.id, input.movementId),
+          eq(walletMovements.organizationId, organizationId),
+        ),
+      );
 
     // Write a compensating entry.
     const [reversal] = await tx
       .insert(walletMovements)
       .values({
+        organizationId,
         walletId: original.walletId,
         investorId: original.investorId,
         movementType: "manual_adjustment",
@@ -241,7 +274,12 @@ export async function reverseWalletMovement(input: {
         [column]: sql`${investorWallets[column]} - ${original.amountMinor}`,
         lastActivityAt: new Date(),
       })
-      .where(eq(investorWallets.id, original.walletId));
+      .where(
+        and(
+          eq(investorWallets.id, original.walletId),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     return reversal;
   });

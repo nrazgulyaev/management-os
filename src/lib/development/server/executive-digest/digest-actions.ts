@@ -1,10 +1,11 @@
 "use server";
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { executiveDigests } from "@/lib/db/schema/executive";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   buildDigestSkeleton,
   nextDigestCode,
@@ -20,6 +21,10 @@ export async function generateDigest(args: {
 }): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
+  // TENANT-1: generateDigest is called from both user actions and from
+  // the monthly cron job. The cron path has no session and will throw.
+  // TODO(cron): refactor cron caller to pass organizationId per digest.
+  const organizationId = await requireOrgId();
 
   const skeleton = buildDigestSkeleton(args.context);
   const code = nextDigestCode(args.context.periodStart);
@@ -30,6 +35,7 @@ export async function generateDigest(args: {
     await db
       .insert(executiveDigests)
       .values({
+        organizationId,
         digestCode: code,
         periodLabel: args.context.periodLabel,
         periodStart: args.context.periodStart.toISOString().slice(0, 10),
@@ -68,6 +74,7 @@ export async function approveDigest(args: {
   const code = codeSchema.parse(args.digestCode);
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   try {
     await db
       .update(executiveDigests)
@@ -76,7 +83,12 @@ export async function approveDigest(args: {
         approvedBy: args.userId,
         approvedAt: new Date(),
       })
-      .where(eq(executiveDigests.digestCode, code));
+      .where(
+        and(
+          eq(executiveDigests.digestCode, code),
+          eq(executiveDigests.organizationId, organizationId),
+        ),
+      );
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
@@ -90,6 +102,7 @@ export async function distributeDigest(args: {
   const code = codeSchema.parse(args.digestCode);
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   try {
     const distributedAt = new Date().toISOString();
     const distributedTo = args.recipients.map((r) => ({
@@ -102,7 +115,12 @@ export async function distributeDigest(args: {
         status: "distributed",
         distributedTo,
       })
-      .where(eq(executiveDigests.digestCode, code));
+      .where(
+        and(
+          eq(executiveDigests.digestCode, code),
+          eq(executiveDigests.organizationId, organizationId),
+        ),
+      );
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };
@@ -135,11 +153,17 @@ export async function editDigestSection(args: {
   };
   const col = map[args.section];
   if (!col) return { ok: false, error: "Invalid section" };
+  const organizationId = await requireOrgId();
   try {
     await db
       .update(executiveDigests)
       .set({ [col]: args.content })
-      .where(eq(executiveDigests.digestCode, code));
+      .where(
+        and(
+          eq(executiveDigests.digestCode, code),
+          eq(executiveDigests.organizationId, organizationId),
+        ),
+      );
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "unknown" };

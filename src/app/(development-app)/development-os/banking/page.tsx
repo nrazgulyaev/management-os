@@ -11,7 +11,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { bankConnections } from "@/lib/db/schema/banking";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = {
@@ -39,21 +39,15 @@ export default async function BankingPage() {
       </DevelopmentShell>
     );
   }
-  const org = await safeQuery(
-    "banking.getOrganizationByCode",
-    getOrganizationByCode("ARCONIQUE_DEFAULT"),
-    null,
+  const orgId = await requireOrgId();
+  const rows = await safeQuery(
+    "banking.bankConnections",
+    db
+      .select()
+      .from(bankConnections)
+      .where(eq(bankConnections.organizationId, orgId)),
+    [] as Array<typeof bankConnections.$inferSelect>,
   );
-  const rows = org
-    ? await safeQuery(
-        "banking.bankConnections",
-        db
-          .select()
-          .from(bankConnections)
-          .where(eq(bankConnections.organizationId, org.id)),
-        [] as Array<typeof bankConnections.$inferSelect>,
-      )
-    : [];
 
   return (
     <DevelopmentShell>

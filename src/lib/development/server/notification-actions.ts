@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { contacts } from "@/lib/db/schema/contacts";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/schema/sales";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
 import { env, isResendConfigured } from "@/lib/env";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   getNotificationTemplateByName,
   interpolateTemplate,
@@ -165,6 +166,7 @@ async function upsertNotificationRule(
 
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
 
   if (parsed.data.id) {
     await db
@@ -182,7 +184,12 @@ async function upsertNotificationRule(
         isActive: parsed.data.isActive,
         updatedAt: new Date(),
       })
-      .where(eq(devNotificationRules.id, parsed.data.id));
+      .where(
+        and(
+          eq(devNotificationRules.id, parsed.data.id),
+          eq(devNotificationRules.organizationId, organizationId),
+        ),
+      );
     revalidatePath(`${DEVELOPMENT_APP_PATH}/settings/notifications`);
     return { ok: true, ruleId: parsed.data.id };
   }
@@ -190,6 +197,7 @@ async function upsertNotificationRule(
   const inserted = await db
     .insert(devNotificationRules)
     .values({
+      organizationId,
       ruleName: parsed.data.ruleName,
       description: parsed.data.description ?? null,
       triggerEvent: parsed.data.triggerEvent,
@@ -244,11 +252,17 @@ export async function dispatchNotification(
       error: "Database is not configured.",
     };
   }
+  const organizationId = await requireOrgId();
 
   const ruleRows = await db
     .select()
     .from(devNotificationRules)
-    .where(eq(devNotificationRules.id, input.ruleId))
+    .where(
+      and(
+        eq(devNotificationRules.id, input.ruleId),
+        eq(devNotificationRules.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   const rule = ruleRows[0];
   if (!rule) {
@@ -292,6 +306,7 @@ export async function dispatchNotification(
   const [logRow] = await db
     .insert(devNotificationDeliveryLog)
     .values({
+      organizationId,
       ruleId: rule.id,
       triggerEntityType: input.triggerEntityType,
       triggerEntityId: input.triggerEntityId,
@@ -312,7 +327,12 @@ export async function dispatchNotification(
     await db
       .update(devNotificationDeliveryLog)
       .set({ status: "sent", sentAt: new Date() })
-      .where(eq(devNotificationDeliveryLog.id, deliveryId));
+      .where(
+        and(
+          eq(devNotificationDeliveryLog.id, deliveryId),
+          eq(devNotificationDeliveryLog.organizationId, organizationId),
+        ),
+      );
     return { ok: true, deliveryId, status: "sent" };
   }
 
@@ -323,7 +343,12 @@ export async function dispatchNotification(
         status: "failed",
         errorReason: "channel_not_yet_implemented",
       })
-      .where(eq(devNotificationDeliveryLog.id, deliveryId));
+      .where(
+        and(
+          eq(devNotificationDeliveryLog.id, deliveryId),
+          eq(devNotificationDeliveryLog.organizationId, organizationId),
+        ),
+      );
     return {
       ok: false,
       deliveryId,
@@ -337,7 +362,12 @@ export async function dispatchNotification(
     await db
       .update(devNotificationDeliveryLog)
       .set({ status: "failed", errorReason: "missing_recipient_address" })
-      .where(eq(devNotificationDeliveryLog.id, deliveryId));
+      .where(
+        and(
+          eq(devNotificationDeliveryLog.id, deliveryId),
+          eq(devNotificationDeliveryLog.organizationId, organizationId),
+        ),
+      );
     return {
       ok: false,
       deliveryId,
@@ -360,7 +390,12 @@ export async function dispatchNotification(
         status: "queued",
         errorReason: sendResult.errorMessage ?? "provider_skipped",
       })
-      .where(eq(devNotificationDeliveryLog.id, deliveryId));
+      .where(
+        and(
+          eq(devNotificationDeliveryLog.id, deliveryId),
+          eq(devNotificationDeliveryLog.organizationId, organizationId),
+        ),
+      );
     return {
       ok: false,
       deliveryId,
@@ -376,7 +411,12 @@ export async function dispatchNotification(
         sentAt: new Date(),
         externalMessageId: sendResult.externalMessageId ?? null,
       })
-      .where(eq(devNotificationDeliveryLog.id, deliveryId));
+      .where(
+        and(
+          eq(devNotificationDeliveryLog.id, deliveryId),
+          eq(devNotificationDeliveryLog.organizationId, organizationId),
+        ),
+      );
     return { ok: true, deliveryId, status: "sent" };
   }
   await db
@@ -385,7 +425,12 @@ export async function dispatchNotification(
       status: "failed",
       errorReason: sendResult.errorMessage ?? "provider_failure",
     })
-    .where(eq(devNotificationDeliveryLog.id, deliveryId));
+    .where(
+      and(
+        eq(devNotificationDeliveryLog.id, deliveryId),
+        eq(devNotificationDeliveryLog.organizationId, organizationId),
+      ),
+    );
   return {
     ok: false,
     deliveryId,

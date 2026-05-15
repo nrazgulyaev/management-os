@@ -290,7 +290,7 @@ test("v6 permissions gate the right roles", async () => {
   const { hasPermission } = await import("../src/features/auth/permission-matrix");
   const operationsManager = {
     mode: "live" as const,
-    appUser: { id: "u", email: "a@x", fullName: "Ops", status: "active" },
+    appUser: { id: "u", email: "a@x", fullName: "Ops", status: "active", organizationId: "00000000-0000-0000-0000-000000000000" },
     roles: ["operations_manager" as const],
     isInternal: true,
     isSuperAdmin: false,

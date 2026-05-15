@@ -4,6 +4,7 @@ import "server-only";
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { managerPerformanceMetrics } from "@/lib/db/schema/marketing";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   computeManagerMetrics,
   type ManagerConversationInput,
@@ -25,6 +26,8 @@ export async function persistManagerPerformanceSnapshot(args: {
 }) {
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  // HF-5: manager_performance_metrics is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
   const snapshot = computeManagerMetrics({
     totalLeadsAssigned: args.totalLeadsAssigned,
     conversations: args.conversations,
@@ -32,6 +35,7 @@ export async function persistManagerPerformanceSnapshot(args: {
   await db
     .insert(managerPerformanceMetrics)
     .values({
+      organizationId,
       managerId: args.managerId,
       periodStart: args.periodStart,
       periodEnd: args.periodEnd,

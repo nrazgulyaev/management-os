@@ -1,7 +1,7 @@
 "use server";
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import {
@@ -9,6 +9,7 @@ import {
   taskResourceAssignments,
   workingCalendars,
 } from "@/lib/db/schema/schedule-sophistication";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const createPoolSchema = z.object({
   resourceCode: z.string().min(2).max(80),
@@ -33,7 +34,9 @@ export async function createResourcePool(input: z.input<typeof createPoolSchema>
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   await db.insert(resourcePools).values({
+    organizationId,
     resourceCode: parsed.data.resourceCode,
     displayName: parsed.data.displayName,
     resourceType: parsed.data.resourceType,
@@ -66,7 +69,9 @@ export async function assignResourceToTask(input: z.input<typeof assignmentSchem
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   await db.insert(taskResourceAssignments).values({
+    organizationId,
     taskId: parsed.data.taskId,
     resourceId: parsed.data.resourceId,
     allocatedCapacityPerDay: parsed.data.allocatedCapacityPerDay.toString(),
@@ -125,10 +130,16 @@ export async function editResourcePool(input: z.input<typeof editPoolSchema>) {
   if (parsed.data.skills !== undefined) patch.skills = parsed.data.skills;
   if (parsed.data.notes !== undefined) patch.notes = parsed.data.notes;
 
+  const organizationId = await requireOrgId();
   await db
     .update(resourcePools)
     .set(patch)
-    .where(eq(resourcePools.id, parsed.data.id));
+    .where(
+      and(
+        eq(resourcePools.id, parsed.data.id),
+        eq(resourcePools.organizationId, organizationId),
+      ),
+    );
   return { ok: true as const };
 }
 
@@ -137,10 +148,16 @@ export async function archiveResourcePool(args: {
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   await db
     .update(resourcePools)
     .set({ isActive: false, updatedAt: new Date() })
-    .where(eq(resourcePools.id, args.id));
+    .where(
+      and(
+        eq(resourcePools.id, args.id),
+        eq(resourcePools.organizationId, organizationId),
+      ),
+    );
   return { ok: true };
 }
 

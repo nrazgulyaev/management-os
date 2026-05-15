@@ -1302,6 +1302,7 @@ export interface CurrentUserContext {
     email: string;
     fullName: string;
     status: string;
+    organizationId: string;
   } | null;
   roles: RoleKey[];
   isInternal: boolean;

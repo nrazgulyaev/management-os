@@ -28,7 +28,7 @@ import {
   CONFIGURABLE_AGENTS,
   type ConfigurableAgentKey,
 } from "@/features/ai-agents/agent-config-keys";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { getFeatureForOrg } from "@/lib/billing/gating";
 import { ToggleAgentButton } from "./toggle-agent-button";
 
@@ -59,14 +59,16 @@ export default async function AiAgentSettingsPage() {
     );
   }
 
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
     return (
       <div className="flex flex-col gap-8">
         <PageHeader title="AI agents" />
         <EmptyState
           title="No organization context"
-          description="ARCONIQUE_DEFAULT organization missing — apply migration 0071."
+          description="Sign in to manage AI agent configuration."
         />
       </div>
     );
@@ -79,7 +81,7 @@ export default async function AiAgentSettingsPage() {
       isEnabled: orgAiAgentConfig.isEnabled,
     })
     .from(orgAiAgentConfig)
-    .where(eq(orgAiAgentConfig.organizationId, org.id));
+    .where(eq(orgAiAgentConfig.organizationId, orgId));
   const overrideMap = new Map<string, boolean>(
     overrides.map((o) => [o.agentKey, o.isEnabled]),
   );
@@ -90,7 +92,7 @@ export default async function AiAgentSettingsPage() {
     CONFIGURABLE_AGENTS.map(async (key) => {
       const tier = AGENT_CATALOG[key].tier;
       const flag = tier === 3 ? "ai.agents_full" : "ai.agents_basic";
-      const result = await getFeatureForOrg(org.id, flag);
+      const result = await getFeatureForOrg(orgId, flag);
       return {
         key,
         planAllows: result.enabled,

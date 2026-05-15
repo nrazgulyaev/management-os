@@ -22,11 +22,16 @@ import { villas, projects } from "./projects";
 import { contacts } from "./contacts";
 import { reservations, contracts } from "./sales";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const buyers = pgTable(
   "buyers",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     buyerCode: text("buyer_code").notNull().unique(),
 
     contactId: uuid("contact_id").references(() => contacts.id),
@@ -72,6 +77,10 @@ export const buyerUnitAssignments = pgTable(
   "buyer_unit_assignments",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     buyerId: uuid("buyer_id")
       .notNull()
       .references(() => buyers.id, { onDelete: "cascade" }),
@@ -112,6 +121,10 @@ export const buyerProgressReports = pgTable(
   "buyer_progress_reports",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072. Declared
+    // nullable in TS to avoid breaking out-of-scope insert callsites
+    // (e.g. buyer-progress-actions.ts) not yet migrated to pass it.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     /** NULL = project-level report. */
     unitId: uuid("unit_id").references(() => villas.id),
     projectId: uuid("project_id")

@@ -18,7 +18,7 @@ import {
 import { requireDb } from "@/lib/db/client";
 import { conversationThreads, type MessagingChannel } from "@/lib/db/schema/messaging";
 import { eq } from "drizzle-orm";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Stage 6.P2.F — Server actions wired to the inbox UI.
@@ -79,11 +79,7 @@ export async function sendReplyAction(formData: FormData): Promise<void> {
     console.error("sendReplyAction validation:", parsed.error.issues[0]?.message);
     return;
   }
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
-    console.error("sendReplyAction: ARCONIQUE_DEFAULT org not found");
-    return;
-  }
+  const orgId = await requireOrgId();
 
   // Resolve credentials from the env bootstrap. P2.F doesn't yet
   // persist per-org messaging credentials in a connection table; the
@@ -94,7 +90,7 @@ export async function sendReplyAction(formData: FormData): Promise<void> {
     : null;
 
   const result = await svcSendOutbound({
-    organizationId: org.id,
+    organizationId: orgId,
     threadId: parsed.data.threadId,
     channel: parsed.data.channel as MessagingChannel,
     credentials,

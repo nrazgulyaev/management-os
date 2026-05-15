@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -12,6 +12,7 @@ import {
   VENDOR_STATUSES,
   VENDOR_TYPES,
 } from "@/lib/development/constants/vendor-constants";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const vendorCreateSchema = z.object({
   vendorCode: z
@@ -46,9 +47,11 @@ export async function createVendor(
 ): Promise<{ id: string; vendorCode: string }> {
   const parsed = vendorCreateSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .insert(vendors)
     .values({
+      organizationId,
       vendorCode: parsed.vendorCode,
       legalName: parsed.legalName,
       legalEntityType: parsed.legalEntityType ?? null,
@@ -76,12 +79,18 @@ export async function updateVendor(
   patch: Partial<z.input<typeof vendorCreateSchema>>,
 ): Promise<void> {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   // Pass-through known fields only
   for (const [k, v] of Object.entries(patch)) {
     if (v !== undefined) updates[k] = v;
   }
-  await db.update(vendors).set(updates).where(eq(vendors.id, id));
+  await db
+    .update(vendors)
+    .set(updates)
+    .where(
+      and(eq(vendors.id, id), eq(vendors.organizationId, organizationId)),
+    );
 }
 
 export async function setVendorStatus(
@@ -91,6 +100,7 @@ export async function setVendorStatus(
 ): Promise<void> {
   const parsed = z.enum(VENDOR_STATUSES).parse(status);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   await db
     .update(vendors)
     .set({
@@ -99,7 +109,9 @@ export async function setVendorStatus(
       blacklistedAt: parsed === "blacklisted" ? new Date() : null,
       updatedAt: new Date(),
     })
-    .where(eq(vendors.id, id));
+    .where(
+      and(eq(vendors.id, id), eq(vendors.organizationId, organizationId)),
+    );
 }
 
 const performanceSchema = z.object({
@@ -113,6 +125,7 @@ export async function recordVendorPerformance(
 ): Promise<void> {
   const parsed = performanceSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   await db
     .update(vendors)
     .set({
@@ -120,7 +133,12 @@ export async function recordVendorPerformance(
       qualityRating: parsed.qualityRating.toFixed(2),
       updatedAt: new Date(),
     })
-    .where(eq(vendors.id, parsed.vendorId));
+    .where(
+      and(
+        eq(vendors.id, parsed.vendorId),
+        eq(vendors.organizationId, organizationId),
+      ),
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -151,11 +169,13 @@ export async function createVendorEngagement(
 ): Promise<{ id: string; engagementCode: string }> {
   const parsed = engagementCreateSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
 
   return await db.transaction(async (tx) => {
     const [row] = await tx
       .insert(vendorEngagements)
       .values({
+        organizationId,
         vendorId: parsed.vendorId,
         projectId: parsed.projectId,
         engagementCode: parsed.engagementCode,
@@ -177,6 +197,7 @@ export async function createVendorEngagement(
              total_commitments_count = total_commitments_count + 1,
              updated_at = now()
        WHERE id = ${parsed.vendorId}
+         AND organization_id = ${organizationId}
     `);
 
     return row;
@@ -191,6 +212,7 @@ export async function terminateVendorEngagement(
     throw new Error("terminateVendorEngagement: reason required (≥3 chars)");
   }
   const db = requireDb();
+  const organizationId = await requireOrgId();
   await db
     .update(vendorEngagements)
     .set({
@@ -199,7 +221,12 @@ export async function terminateVendorEngagement(
       terminationReason: reason,
       updatedAt: new Date(),
     })
-    .where(eq(vendorEngagements.id, id));
+    .where(
+      and(
+        eq(vendorEngagements.id, id),
+        eq(vendorEngagements.organizationId, organizationId),
+      ),
+    );
 }
 
 export async function setEngagementStatus(
@@ -208,6 +235,7 @@ export async function setEngagementStatus(
 ): Promise<void> {
   const parsed = z.enum(ENGAGEMENT_STATUSES).parse(status);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const updates: Record<string, unknown> = {
     status: parsed,
     updatedAt: new Date(),
@@ -218,5 +246,10 @@ export async function setEngagementStatus(
   await db
     .update(vendorEngagements)
     .set(updates)
-    .where(eq(vendorEngagements.id, id));
+    .where(
+      and(
+        eq(vendorEngagements.id, id),
+        eq(vendorEngagements.organizationId, organizationId),
+      ),
+    );
 }

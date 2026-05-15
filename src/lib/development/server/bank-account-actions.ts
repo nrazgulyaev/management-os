@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { devBankAccounts } from "@/lib/db/schema/dev-finance";
 import { SUPPORTED_CURRENCIES } from "@/lib/development/constants/investor-constants";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 
 // HF-5: multi-tenant tables (added by migration 0072) require
 // organization_id on every INSERT and on the WHERE clause of every
@@ -13,13 +13,7 @@ import { getOrganizationByCode } from "@/lib/development/server/organizations/or
 // src/lib/banking/bookkeeper-actions.ts +
 // src/lib/messaging/inbox-actions.ts etc.
 async function requireDefaultOrgId(): Promise<string> {
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
-    throw new Error(
-      "ARCONIQUE_DEFAULT organization missing — apply migration 0071",
-    );
-  }
-  return org.id;
+  return requireOrgId();
 }
 
 const createSchema = z.object({

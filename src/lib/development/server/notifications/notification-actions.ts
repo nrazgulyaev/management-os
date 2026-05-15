@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { notificationDispatchLog } from "@/lib/db/schema/pwa";
+import { requireOrgId } from "@/features/auth/require-org";
 import { nextDispatchCode } from "../push/dispatch-helpers";
 
 const scheduleSchema = z.object({
@@ -29,6 +30,7 @@ export async function schedulePushNotification(
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   const yyyy = new Date().getUTCFullYear();
   const seqRow = await db.execute<{ n: string }>(sql`
     SELECT COUNT(*)::text AS n FROM notification_dispatch_log
@@ -39,6 +41,7 @@ export async function schedulePushNotification(
   );
   const code = nextDispatchCode(yyyy, seq);
   await db.insert(notificationDispatchLog).values({
+    organizationId,
     dispatchCode: code,
     notificationType: parsed.data.notificationType,
     title: parsed.data.title,

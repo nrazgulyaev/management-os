@@ -17,6 +17,7 @@ import {
   WORKFORCE_ROLES,
   ZONE_TYPES,
 } from "@/lib/development/constants/site-constants";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Site report write actions. The submission flow is **atomic** — the
@@ -85,12 +86,14 @@ export async function createSiteReport(
 ): Promise<{ id: string; reportDate: string; zoneCount: number; workforceCount: number }> {
   const parsed = createReportSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
 
   return await db.transaction(async (tx) => {
     // 1. Parent row. UNIQUE (project_id, report_date) — duplicate raises.
     const [report] = await tx
       .insert(siteReports)
       .values({
+        organizationId,
         projectId: parsed.projectId,
         reportDate: parsed.reportDate,
         weatherConditions: parsed.weatherConditions ?? null,
@@ -132,6 +135,7 @@ export async function createSiteReport(
       }
       for (const z of parsed.zones) {
         await tx.insert(siteReportZones).values({
+          organizationId,
           siteReportId: report.id,
           zoneId: z.zoneId,
           activitiesCompleted: z.activitiesCompleted ?? null,
@@ -162,6 +166,7 @@ export async function createSiteReport(
           ? ratePerHour * BigInt(w.workerCount) * BigInt(Math.trunc(w.hoursPerWorker))
           : null;
       await tx.insert(siteWorkforceLogs).values({
+        organizationId,
         siteReportId: report.id,
         vendorEngagementId: w.vendorEngagementId ?? null,
         roleCategory: w.roleCategory,
@@ -187,10 +192,16 @@ export async function createSiteReport(
 
 export async function submitSiteReport(reportId: string): Promise<void> {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [report] = await db
     .select({ status: siteReports.status })
     .from(siteReports)
-    .where(eq(siteReports.id, reportId))
+    .where(
+      and(
+        eq(siteReports.id, reportId),
+        eq(siteReports.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!report) throw new Error("Site report not found");
   if (report.status !== "draft") {
@@ -205,7 +216,12 @@ export async function submitSiteReport(reportId: string): Promise<void> {
       submittedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(siteReports.id, reportId));
+    .where(
+      and(
+        eq(siteReports.id, reportId),
+        eq(siteReports.organizationId, organizationId),
+      ),
+    );
 }
 
 const reviewSchema = z.object({
@@ -220,10 +236,16 @@ export async function reviewSiteReport(
 ): Promise<void> {
   const parsed = reviewSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [report] = await db
     .select({ status: siteReports.status })
     .from(siteReports)
-    .where(eq(siteReports.id, parsed.reportId))
+    .where(
+      and(
+        eq(siteReports.id, parsed.reportId),
+        eq(siteReports.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!report) throw new Error("Site report not found");
   if (report.status !== "submitted") {
@@ -240,7 +262,12 @@ export async function reviewSiteReport(
       reviewerNotes: parsed.notes ?? null,
       updatedAt: new Date(),
     })
-    .where(eq(siteReports.id, parsed.reportId));
+    .where(
+      and(
+        eq(siteReports.id, parsed.reportId),
+        eq(siteReports.organizationId, organizationId),
+      ),
+    );
 }
 
 const photoSchema = z.object({
@@ -258,9 +285,11 @@ export async function addPhotoToReport(
 ): Promise<{ id: string }> {
   const parsed = photoSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .insert(siteReportPhotos)
     .values({
+      organizationId,
       siteReportId: parsed.reportId,
       documentId: parsed.documentId,
       zoneId: parsed.zoneId ?? null,
@@ -292,6 +321,7 @@ export async function recordMaterialConsumption(
 ): Promise<{ id: string; newQuantityConsumed: string }> {
   const parsed = consumptionSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
 
   return await db.transaction(async (tx) => {
     const [poLine] = await tx
@@ -301,7 +331,12 @@ export async function recordMaterialConsumption(
         quantityConsumed: materialPoLines.quantityConsumed,
       })
       .from(materialPoLines)
-      .where(eq(materialPoLines.id, parsed.poLineId))
+      .where(
+        and(
+          eq(materialPoLines.id, parsed.poLineId),
+          eq(materialPoLines.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!poLine) throw new Error("PO line not found");
 
@@ -317,6 +352,7 @@ export async function recordMaterialConsumption(
     const [logRow] = await tx
       .insert(materialConsumptionLogs)
       .values({
+        organizationId,
         siteReportId: parsed.reportId,
         zoneId: parsed.zoneId,
         poLineId: parsed.poLineId,
@@ -328,7 +364,12 @@ export async function recordMaterialConsumption(
     await tx
       .update(materialPoLines)
       .set({ quantityConsumed: newConsumed.toFixed(4) })
-      .where(eq(materialPoLines.id, parsed.poLineId));
+      .where(
+        and(
+          eq(materialPoLines.id, parsed.poLineId),
+          eq(materialPoLines.organizationId, organizationId),
+        ),
+      );
 
     return {
       id: logRow.id,
@@ -370,9 +411,11 @@ export async function createSiteZone(
 ): Promise<{ id: string; zoneCode: string }> {
   const parsed = zoneCreateSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .insert(siteZones)
     .values({
+      organizationId,
       projectId: parsed.projectId,
       zoneCode: parsed.zoneCode,
       zoneName: parsed.zoneName,

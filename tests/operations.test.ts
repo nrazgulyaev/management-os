@@ -245,7 +245,7 @@ test("operations permissions map to the expected roles", async () => {
   );
   const housekeeper = {
     mode: "live" as const,
-    appUser: { id: "u", email: "x@x", fullName: "X", status: "active" },
+    appUser: { id: "u", email: "x@x", fullName: "X", status: "active", organizationId: "00000000-0000-0000-0000-000000000000" },
     roles: ["housekeeper" as const],
     isInternal: true,
     isSuperAdmin: false,

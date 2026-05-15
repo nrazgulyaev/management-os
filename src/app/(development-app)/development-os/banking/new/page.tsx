@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
-import { safeQuery } from "@/lib/development/safe-query";
+import { requireOrgId } from "@/features/auth/require-org";
 import { ConnectBankForm } from "@/components/banking/connect-bank-form";
 
 export const metadata: Metadata = {
@@ -26,12 +25,10 @@ export default async function NewBankConnectionPage() {
       </DevelopmentShell>
     );
   }
-  const org = await safeQuery(
-    "banking-new.getOrganizationByCode",
-    getOrganizationByCode("ARCONIQUE_DEFAULT"),
-    null,
-  );
-  if (!org) {
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
     return (
       <DevelopmentShell>
         <PageHeader title="Add bank connection" />
@@ -61,7 +58,7 @@ export default async function NewBankConnectionPage() {
       />
 
       <Section title="Provider + credentials">
-        <ConnectBankForm organizationId={org.id} />
+        <ConnectBankForm organizationId={orgId} />
       </Section>
     </DevelopmentShell>
   );

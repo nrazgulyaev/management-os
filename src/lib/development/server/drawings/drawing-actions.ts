@@ -9,6 +9,7 @@ import {
   drawingDistributionLog,
 } from "@/lib/db/schema/drawings";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const DRAWING_TYPES = [
   "architectural",
@@ -69,11 +70,13 @@ const createDrawingSchema = z.object({
 
 export async function createDrawing(input: z.input<typeof createDrawingSchema>) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createDrawingSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(drawings)
     .values({
+      organizationId,
       drawingCode: parsed.drawingCode,
       drawingNumber: parsed.drawingNumber,
       title: parsed.title,
@@ -104,11 +107,13 @@ export async function addDrawingRevision(
   input: z.input<typeof addRevisionSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = addRevisionSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(drawingRevisions)
     .values({
+      organizationId,
       drawingId: parsed.drawingId,
       revisionLabel: parsed.revisionLabel,
       revisionDate:
@@ -132,6 +137,7 @@ export async function transitionDrawingRevision(
   input: z.input<typeof transitionSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
 
@@ -139,7 +145,12 @@ export async function transitionDrawingRevision(
     const [current] = await tx
       .select()
       .from(drawingRevisions)
-      .where(eq(drawingRevisions.id, parsed.revisionId))
+      .where(
+        and(
+          eq(drawingRevisions.id, parsed.revisionId),
+          eq(drawingRevisions.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!current) throw new Error("revision not found");
     if (!VALID_NEXT[current.status].includes(parsed.to)) {
@@ -159,6 +170,7 @@ export async function transitionDrawingRevision(
           and(
             eq(drawingRevisions.drawingId, current.drawingId),
             eq(drawingRevisions.status, "issued_for_construction"),
+            eq(drawingRevisions.organizationId, organizationId),
           ),
         )
         .limit(1);
@@ -170,7 +182,12 @@ export async function transitionDrawingRevision(
             supersededAt: new Date(),
             supersededByRevisionId: current.id,
           })
-          .where(eq(drawingRevisions.id, existingIfc.id));
+          .where(
+            and(
+              eq(drawingRevisions.id, existingIfc.id),
+              eq(drawingRevisions.organizationId, organizationId),
+            ),
+          );
       }
     }
 
@@ -191,7 +208,12 @@ export async function transitionDrawingRevision(
     const [row] = await tx
       .update(drawingRevisions)
       .set(updates)
-      .where(eq(drawingRevisions.id, parsed.revisionId))
+      .where(
+        and(
+          eq(drawingRevisions.id, parsed.revisionId),
+          eq(drawingRevisions.organizationId, organizationId),
+        ),
+      )
       .returning();
     return row;
   });
@@ -214,6 +236,7 @@ export async function logDrawingDistribution(
   input: z.input<typeof distributionSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = distributionSchema.parse(input);
   if (!ctx.appUser?.id) {
     throw new Error("logDrawingDistribution: requires authenticated app user");
@@ -222,6 +245,7 @@ export async function logDrawingDistribution(
   const [row] = await db
     .insert(drawingDistributionLog)
     .values({
+      organizationId,
       revisionId: parsed.revisionId,
       vendorId: parsed.vendorId,
       distributedBy: ctx.appUser.id,

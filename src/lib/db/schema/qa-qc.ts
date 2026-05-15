@@ -30,6 +30,7 @@ import { projects, villas } from "./projects";
 import { vendors, siteReports } from "./site-operations";
 import { appUsers } from "./identity";
 import { documents } from "./documents";
+import { organizations } from "./saas";
 
 export const qaQcCategories = pgTable(
   "qa_qc_categories",
@@ -55,6 +56,10 @@ export const qaQcIssues = pgTable(
   "qa_qc_issues",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     issueCode: text("issue_code").notNull().unique(),
     title: text("title").notNull(),
     projectId: uuid("project_id")
@@ -126,6 +131,10 @@ export const qaQcInspections = pgTable(
   "qa_qc_inspections",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     issueId: uuid("issue_id")
       .notNull()
       .references(() => qaQcIssues.id, { onDelete: "cascade" }),
@@ -155,6 +164,10 @@ export const qaQcIssuePhotos = pgTable(
   "qa_qc_issue_photos",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     issueId: uuid("issue_id")
       .notNull()
       .references(() => qaQcIssues.id, { onDelete: "cascade" }),

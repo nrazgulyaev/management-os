@@ -1,10 +1,11 @@
 "use server";
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { pushSubscriptions } from "@/lib/db/schema/pwa";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const subscribeSchema = z.object({
   userId: z.string().uuid(),
@@ -24,9 +25,12 @@ export async function subscribePush(input: z.input<typeof subscribeSchema>) {
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  // HF-5: push_subscriptions is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
   await db
     .insert(pushSubscriptions)
     .values({
+      organizationId,
       userId: parsed.data.userId,
       endpoint: parsed.data.endpoint,
       p256dhKey: parsed.data.p256dhKey,
@@ -57,12 +61,19 @@ export async function subscribePush(input: z.input<typeof subscribeSchema>) {
 export async function unsubscribePush(args: { endpoint: string }) {
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  // HF-5: scope UPDATE by organization_id.
+  const organizationId = await requireOrgId();
   await db
     .update(pushSubscriptions)
     .set({
       isActive: false,
       unsubscribedAt: new Date(),
     })
-    .where(eq(pushSubscriptions.endpoint, args.endpoint));
+    .where(
+      and(
+        eq(pushSubscriptions.endpoint, args.endpoint),
+        eq(pushSubscriptions.organizationId, organizationId),
+      ),
+    );
   return { ok: true as const };
 }

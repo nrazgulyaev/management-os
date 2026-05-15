@@ -12,7 +12,7 @@ import {
   type ChannelConnectionStatus,
   type ChannelName,
 } from "@/lib/db/schema/channel-manager";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   encryptCredentials,
   isEncryptedBlob,
@@ -53,11 +53,7 @@ function resolveSecret(): string {
 }
 
 async function resolveActiveOrgId(): Promise<string> {
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
-    throw new Error("ARCONIQUE_DEFAULT organization not found — apply migration 0071");
-  }
-  return org.id;
+  return requireOrgId();
 }
 
 /**

@@ -4,7 +4,7 @@ import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { listWebhookSubscriptions } from "@/lib/development/server/webhooks/webhook-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -15,18 +15,12 @@ export const dynamic = "force-dynamic";
 
 export default async function WebhooksPage() {
   const me = await getCurrentAppUser();
-  const org = await safeQuery(
-    "settings-webhooks.getOrganizationByCode",
-    getOrganizationByCode("ARCONIQUE_DEFAULT"),
-    null,
+  const orgId = await requireOrgId();
+  const subs = await safeQuery(
+    "settings-webhooks.listWebhookSubscriptions",
+    listWebhookSubscriptions(orgId),
+    [] as Awaited<ReturnType<typeof listWebhookSubscriptions>>,
   );
-  const subs = org
-    ? await safeQuery(
-        "settings-webhooks.listWebhookSubscriptions",
-        listWebhookSubscriptions(org.id),
-        [] as Awaited<ReturnType<typeof listWebhookSubscriptions>>,
-      )
-    : [];
 
   return (
     <DevelopmentShell>
@@ -39,9 +33,7 @@ export default async function WebhooksPage() {
         ]}
         description="Outbound HTTP notifications. Each delivery is HMAC-SHA256 signed (Stripe-style header). Subscriptions auto-disable after 10 consecutive failures."
         actions={
-          org ? (
-            <WebhookModalForm organizationId={org.id} currentUserId={me?.id} />
-          ) : null
+          <WebhookModalForm organizationId={orgId} currentUserId={me?.id} />
         }
       />
 

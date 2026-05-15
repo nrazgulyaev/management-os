@@ -4,6 +4,7 @@ import "server-only";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { productivityLogs } from "@/lib/db/schema/schedule-sophistication";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const logSchema = z.object({
   projectId: z.string().uuid(),
@@ -34,7 +35,10 @@ export async function recordProductivityLog(input: z.input<typeof logSchema>) {
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  // HF-5: productivity_logs is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
   await db.insert(productivityLogs).values({
+    organizationId,
     projectId: parsed.data.projectId,
     taskId: parsed.data.taskId ?? null,
     resourceId: parsed.data.resourceId ?? null,

@@ -31,11 +31,14 @@ import {
 import { projects, villas } from "./projects";
 import { appUsers } from "./identity";
 import { vendors } from "./site-operations";
+import { organizations } from "./saas";
 
 export const workingCalendars = pgTable(
   "working_calendars",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: nullable per migration 0072 reference-table list.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     calendarCode: text("calendar_code").notNull().unique(),
     name: text("name").notNull(),
     description: text("description"),
@@ -108,6 +111,10 @@ export const scheduleBaselines = pgTable(
   "schedule_baselines",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     baselineCode: text("baseline_code").notNull().unique(),
     name: text("name").notNull(),
     description: text("description"),
@@ -144,6 +151,10 @@ export const scheduleVariances = pgTable(
   "schedule_variances",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     baselineId: uuid("baseline_id")
       .notNull()
       .references(() => scheduleBaselines.id, { onDelete: "cascade" }),
@@ -187,6 +198,10 @@ export const resourcePools = pgTable(
   "resource_pools",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     resourceCode: text("resource_code").notNull().unique(),
     displayName: text("display_name").notNull(),
     resourceType: text("resource_type").notNull(),
@@ -227,6 +242,10 @@ export const taskResourceAssignments = pgTable(
   "task_resource_assignments",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     taskId: uuid("task_id").notNull(),
     resourceId: uuid("resource_id")
       .notNull()
@@ -260,6 +279,10 @@ export const productivityLogs = pgTable(
   "productivity_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     taskId: uuid("task_id"),
     resourceId: uuid("resource_id").references(() => resourcePools.id),
     projectId: uuid("project_id")

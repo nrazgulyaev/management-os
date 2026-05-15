@@ -9,6 +9,7 @@ import {
   projectPhases,
 } from "@/lib/db/schema/development";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const createProjectSchema = z.object({
   name: z.string().min(2).max(120),
@@ -71,6 +72,9 @@ export async function createDevelopmentProject(
   }
 
   const slug = slugify(parsed.data.name);
+  // HF-5: scope inserts to caller's org so projectPhases (multi-tenant)
+  // gets a valid organization_id.
+  const organizationId = await requireOrgId();
 
   try {
     const inserted = await db
@@ -96,6 +100,7 @@ export async function createDevelopmentProject(
     });
 
     await db.insert(projectPhases).values({
+      organizationId,
       projectId: project.id,
       phaseType: "land_sourcing",
       status: "in_progress",

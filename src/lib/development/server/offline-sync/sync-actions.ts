@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { offlineActionQueue } from "@/lib/db/schema/pwa";
+import { requireOrgId } from "@/features/auth/require-org";
 import { nextOfflineActionCode } from "../push/dispatch-helpers";
 
 const ACTION_TYPES = z.enum([
@@ -52,6 +53,8 @@ export async function submitOfflineAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
+  // HF-5: offline_action_queue is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
 
   // Check duplicate via UNIQUE (user_id, client_action_id).
   const existing = await db.execute<{ action_code: string; sync_status: string }>(sql`
@@ -83,6 +86,7 @@ export async function submitOfflineAction(
   const code = nextOfflineActionCode(yyyy, seq);
 
   await db.insert(offlineActionQueue).values({
+    organizationId,
     actionCode: code,
     clientActionId: parsed.data.clientActionId,
     userId: parsed.data.userId,

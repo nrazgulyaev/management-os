@@ -25,11 +25,16 @@ import {
 import { investorWallets, investors, distributions, capitalCommitments, capitalDrawdowns } from "./investor-capital";
 import { projects } from "./projects";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const walletMovements = pgTable(
   "wallet_movements",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
 
     walletId: uuid("wallet_id")
       .notNull()

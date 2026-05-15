@@ -19,11 +19,16 @@ import {
 import { appUsers } from "./identity";
 import { projects } from "./projects";
 import { devTransactions } from "./dev-finance";
+import { organizations } from "./saas";
 
 export const sharedCostAllocations = pgTable(
   "shared_cost_allocations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
 
     sourceTransactionId: uuid("source_transaction_id")
       .notNull()
@@ -67,6 +72,10 @@ export const sharedCostAllocationLines = pgTable(
   "shared_cost_allocation_lines",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     allocationId: uuid("allocation_id")
       .notNull()
       .references(() => sharedCostAllocations.id, { onDelete: "cascade" }),

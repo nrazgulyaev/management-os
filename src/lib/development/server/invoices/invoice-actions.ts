@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { devInvoices, devInvoiceLines } from "@/lib/db/schema/invoices";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Invoice actions. Invoices live in PARALLEL with capital_commitments
@@ -58,6 +59,7 @@ export async function createInvoice(
 ): Promise<{ id: string; lineCount: number; totalMinor: string }> {
   const parsed = createSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   // Compute subtotal + tax_total from lines.
@@ -79,6 +81,7 @@ export async function createInvoice(
     const [inv] = await tx
       .insert(devInvoices)
       .values({
+        organizationId,
         invoiceNumber: parsed.invoiceNumber,
         invoiceType: parsed.invoiceType,
         vendorId: parsed.vendorId ?? null,
@@ -105,6 +108,7 @@ export async function createInvoice(
 
     for (const l of parsed.lines) {
       await tx.insert(devInvoiceLines).values({
+        organizationId,
         invoiceId: inv.id,
         lineNumber: l.lineNumber,
         description: l.description,
@@ -145,6 +149,7 @@ export async function recordInvoicePayment(
 ): Promise<{ ok: true; status: "partial_paid" | "paid" }> {
   const parsed = recordPaymentSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   return await db.transaction(async (tx) => {
     const [inv] = await tx
@@ -180,7 +185,12 @@ export async function recordInvoicePayment(
         statusChangedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(devInvoices.id, parsed.invoiceId));
+      .where(
+        and(
+          eq(devInvoices.id, parsed.invoiceId),
+          eq(devInvoices.organizationId, organizationId),
+        ),
+      );
     return { ok: true as const, status: newStatus };
   });
 }
@@ -195,6 +205,7 @@ export async function voidInvoice(
 ): Promise<{ ok: true }> {
   const parsed = voidSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(devInvoices)
@@ -204,7 +215,12 @@ export async function voidInvoice(
       internalNotes: sql`COALESCE(${devInvoices.internalNotes} || E'\n', '') || ${'[VOID] ' + parsed.reason}`,
       updatedAt: new Date(),
     })
-    .where(eq(devInvoices.id, parsed.invoiceId));
+    .where(
+      and(
+        eq(devInvoices.id, parsed.invoiceId),
+        eq(devInvoices.organizationId, organizationId),
+      ),
+    );
   return { ok: true };
 }
 

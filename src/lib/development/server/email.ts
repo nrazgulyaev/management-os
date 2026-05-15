@@ -2,10 +2,49 @@
 
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { devNotificationDeliveryLog } from "@/lib/db/schema/sales";
 import { env, isResendConfigured } from "@/lib/env";
+import { requireOrgId } from "@/features/auth/require-org";
+import { getOrganizationByCode } from "./organizations/organization-queries";
+
+/**
+ * TENANT-1 — `sendDevOsEmail` runs from BOTH authenticated server actions
+ * (team/actions, invoice-actions, investor-access-actions) AND from
+ * non-authenticated cron contexts (cron/notification-dispatch-job).
+ *
+ * Cron callers have no auth session, so `requireOrgId()` throws. To
+ * keep one dispatch surface working in both contexts the helper below
+ * resolves the organization in this priority order:
+ *
+ *   1. `metadata.organizationId` if explicitly passed by the caller
+ *      (cron callers should adopt this);
+ *   2. `requireOrgId()` if an auth session is present;
+ *   3. fallback to `ARCONIQUE_DEFAULT` organization (legacy single-tenant
+ *      behaviour — same fallback used by the original HF-5 helpers).
+ *
+ * TODO(cron): wire `cron/notification-dispatch-job.ts` to derive the
+ * org from `dev_notification_rules.organizationId` (rule rows already
+ * have the column) and pass it through `metadata.organizationId`,
+ * after which the ARCONIQUE_DEFAULT fallback can be removed.
+ */
+async function resolveEmailOrgId(
+  metadataOrgId: string | undefined,
+): Promise<string> {
+  if (metadataOrgId) return metadataOrgId;
+  try {
+    return await requireOrgId();
+  } catch {
+    const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+    if (!org) {
+      throw new Error(
+        "TENANT-1: cannot resolve organization for email (no session, no metadata.organizationId, no ARCONIQUE_DEFAULT)",
+      );
+    }
+    return org.id;
+  }
+}
 
 /**
  * Stage 2.2.B Cp2 — shared Dev OS email helper.
@@ -49,6 +88,12 @@ export interface DevOsEmailMessage {
     templateName?: string;
     recipientContactId?: string;
     recipientUserId?: string;
+    /**
+     * TENANT-1: optional explicit org id. Cron and webhook callers
+     * should populate this; user-action callers can omit and let
+     * `requireOrgId()` resolve from the session.
+     */
+    organizationId?: string;
   };
 }
 
@@ -160,10 +205,14 @@ export async function sendDevOsEmail(
 
   const triggerEntityType = message.metadata?.triggerEntityType ?? "ad_hoc";
   const triggerEntityId = message.metadata?.triggerEntityId ?? "00000000-0000-0000-0000-000000000000";
+  const organizationId = await resolveEmailOrgId(
+    message.metadata?.organizationId,
+  );
 
   const [logRow] = await db
     .insert(devNotificationDeliveryLog)
     .values({
+      organizationId,
       ruleId: message.metadata?.ruleId ?? null,
       triggerEntityType,
       triggerEntityId,
@@ -187,7 +236,12 @@ export async function sendDevOsEmail(
         status: "queued",
         errorReason: isEmailDryRun() ? "dry_run" : "resend_not_configured",
       })
-      .where(eq(devNotificationDeliveryLog.id, deliveryId));
+      .where(
+        and(
+          eq(devNotificationDeliveryLog.id, deliveryId),
+          eq(devNotificationDeliveryLog.organizationId, organizationId),
+        ),
+      );
     return { status: "dry_run", deliveryId };
   }
 
@@ -200,7 +254,12 @@ export async function sendDevOsEmail(
         sentAt: new Date(),
         externalMessageId: sent.externalMessageId ?? null,
       })
-      .where(eq(devNotificationDeliveryLog.id, deliveryId));
+      .where(
+        and(
+          eq(devNotificationDeliveryLog.id, deliveryId),
+          eq(devNotificationDeliveryLog.organizationId, organizationId),
+        ),
+      );
     return {
       status: "sent",
       deliveryId,
@@ -211,6 +270,11 @@ export async function sendDevOsEmail(
   await db
     .update(devNotificationDeliveryLog)
     .set({ status: "failed", errorReason: sent.errorReason })
-    .where(eq(devNotificationDeliveryLog.id, deliveryId));
+    .where(
+      and(
+        eq(devNotificationDeliveryLog.id, deliveryId),
+        eq(devNotificationDeliveryLog.organizationId, organizationId),
+      ),
+    );
   return { status: "failed", deliveryId, errorReason: sent.errorReason };
 }

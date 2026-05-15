@@ -1,10 +1,11 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { projectDecisions } from "@/lib/db/schema/project-memory";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const createSchema = z.object({
   title: z.string().min(1),
@@ -27,6 +28,7 @@ export async function createProjectDecision(
   input: z.input<typeof createSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createSchema.parse(input);
   const db = requireDb();
   if (!ctx.appUser?.id) {
@@ -43,6 +45,7 @@ export async function createProjectDecision(
   const [row] = await db
     .insert(projectDecisions)
     .values({
+      organizationId,
       decisionCode,
       title: parsed.title,
       projectId: parsed.projectId,
@@ -78,6 +81,7 @@ export async function supersedeProjectDecision(
   input: z.input<typeof supersedeSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = supersedeSchema.parse(input);
   const db = requireDb();
   if (!ctx.appUser?.id) {
@@ -88,7 +92,12 @@ export async function supersedeProjectDecision(
     const [old] = await tx
       .select()
       .from(projectDecisions)
-      .where(eq(projectDecisions.id, parsed.oldDecisionId))
+      .where(
+        and(
+          eq(projectDecisions.id, parsed.oldDecisionId),
+          eq(projectDecisions.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!old) throw new Error("decision not found");
     if (old.status !== "active") {
@@ -102,7 +111,12 @@ export async function supersedeProjectDecision(
     await tx
       .update(projectDecisions)
       .set({ status: "superseded", supersededBy: newDec.id })
-      .where(eq(projectDecisions.id, parsed.oldDecisionId));
+      .where(
+        and(
+          eq(projectDecisions.id, parsed.oldDecisionId),
+          eq(projectDecisions.organizationId, organizationId),
+        ),
+      );
 
     return { old, new: newDec };
   });
@@ -110,11 +124,17 @@ export async function supersedeProjectDecision(
 
 export async function reverseProjectDecision(input: { decisionId: string }) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [row] = await db
     .update(projectDecisions)
     .set({ status: "reversed" })
-    .where(eq(projectDecisions.id, input.decisionId))
+    .where(
+      and(
+        eq(projectDecisions.id, input.decisionId),
+        eq(projectDecisions.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

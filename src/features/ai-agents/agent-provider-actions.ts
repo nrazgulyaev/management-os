@@ -31,7 +31,7 @@ import { orgAiAgentConfig } from "@/lib/db/schema/org-ai-agent-config";
 import { auditEvents } from "@/lib/db/schema/audit";
 import { requirePermission } from "@/features/auth/permissions";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { stayLinkKmsSecret } from "@/lib/env";
 import {
   encryptCredentials,
@@ -109,8 +109,12 @@ export async function setAgentProviderConfigAction(
     }
   }
 
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) return { ok: false, error: "No organization context available." };
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
+    return { ok: false, error: "No organization context available." };
+  }
 
   const db = requireDb();
   const now = new Date();
@@ -120,7 +124,7 @@ export async function setAgentProviderConfigAction(
   await db
     .insert(orgAiAgentConfig)
     .values({
-      organizationId: org.id,
+      organizationId: orgId,
       agentKey,
       isEnabled: true,
       provider,
@@ -161,7 +165,7 @@ export async function setAgentProviderConfigAction(
     entityType: "org_ai_agent_config",
     entityId: null,
     after: {
-      organization_id: org.id,
+      organization_id: orgId,
       agent_key: agentKey,
       provider,
       model: trimmedModel,
@@ -203,8 +207,12 @@ export async function clearAgentApiKeyAction(
       error: parsed.error.issues[0]?.message ?? "Invalid input.",
     };
   }
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) return { ok: false, error: "No organization context available." };
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
+    return { ok: false, error: "No organization context available." };
+  }
 
   const db = requireDb();
   const now = new Date();
@@ -221,7 +229,7 @@ export async function clearAgentApiKeyAction(
     })
     .where(
       and(
-        eq(orgAiAgentConfig.organizationId, org.id),
+        eq(orgAiAgentConfig.organizationId, orgId),
         eq(orgAiAgentConfig.agentKey, parsed.data.agentKey),
       ),
     );
@@ -231,7 +239,7 @@ export async function clearAgentApiKeyAction(
     action: "ai.agent.api_key_cleared",
     entityType: "org_ai_agent_config",
     entityId: null,
-    after: { organization_id: org.id, agent_key: parsed.data.agentKey },
+    after: { organization_id: orgId, agent_key: parsed.data.agentKey },
   });
 
   revalidatePath(`/dashboard/settings/ai-agents/${parsed.data.agentKey}`);
@@ -283,8 +291,12 @@ export async function testAgentConnectionAction(
     };
   }
 
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) return { ok: false, error: "No organization context available." };
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
+    return { ok: false, error: "No organization context available." };
+  }
 
   const db = requireDb();
 
@@ -298,7 +310,7 @@ export async function testAgentConnectionAction(
       .from(orgAiAgentConfig)
       .where(
         and(
-          eq(orgAiAgentConfig.organizationId, org.id),
+          eq(orgAiAgentConfig.organizationId, orgId),
           eq(orgAiAgentConfig.agentKey, parsed.data.agentKey),
         ),
       )
@@ -369,7 +381,7 @@ export async function testAgentConnectionAction(
   await db
     .insert(orgAiAgentConfig)
     .values({
-      organizationId: org.id,
+      organizationId: orgId,
       agentKey: parsed.data.agentKey,
       isEnabled: true,
       provider: parsed.data.provider,
@@ -398,7 +410,7 @@ export async function testAgentConnectionAction(
     entityType: "org_ai_agent_config",
     entityId: null,
     after: {
-      organization_id: org.id,
+      organization_id: orgId,
       agent_key: parsed.data.agentKey,
       provider: parsed.data.provider,
     },

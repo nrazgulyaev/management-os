@@ -78,6 +78,7 @@ export const getCurrentUserContext = cache(
       email: user.email,
       fullName: user.fullName,
       status: user.status,
+      organizationId: user.organizationId,
     },
     roles: roleKeys,
     isInternal: roleKeys.some((r) => INTERNAL_ROLES.includes(r)),

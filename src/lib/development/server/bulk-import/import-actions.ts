@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { bulkImportJobs, BULK_IMPORT_ENTITY_TYPES, BULK_IMPORT_SOURCE_TYPES, type BulkImportEntityType, type BulkImportSourceType, type BulkImportJobStatus } from "@/lib/db/schema/bulk-import";
 import { requireInternalUser } from "@/features/auth/permissions";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { parseCsv } from "./csv-parser-helpers";
 import { parseXlsx } from "./xlsx-parser-helpers";
 import { applyMapping, type FieldMapping } from "./field-mapper-helpers";
@@ -97,13 +97,7 @@ async function nextJobCode(): Promise<string> {
 
 /** Resolve the active organization for the current user. */
 async function resolveActiveOrgId(): Promise<string> {
-  // P0.7 ships with single-tenant default-org behaviour; P1+ will route
-  // through the org-switcher cookie when multi-org becomes routine.
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
-    throw new Error("ARCONIQUE_DEFAULT organization not found — apply migration 0071");
-  }
-  return org.id;
+  return requireOrgId();
 }
 
 // ===========================================================================

@@ -1,10 +1,11 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { changeOrders } from "@/lib/db/schema/project-memory";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   lookupRequiredApproval,
   type ApprovalThresholdRow,
@@ -59,6 +60,8 @@ export async function createChangeOrder(input: z.input<typeof createSchema>) {
   const ctx = await requireInternalUser();
   const parsed = createSchema.parse(input);
   const db = requireDb();
+  // HF-5: change_orders is multi-tenant — scope insert by org.
+  const organizationId = await requireOrgId();
   const [{ count }] = await db
     .select({ count: sql<string>`COUNT(*)::text` })
     .from(changeOrders);
@@ -68,6 +71,7 @@ export async function createChangeOrder(input: z.input<typeof createSchema>) {
   const [row] = await db
     .insert(changeOrders)
     .values({
+      organizationId,
       changeOrderCode,
       title: parsed.title,
       projectId: parsed.projectId,
@@ -101,10 +105,17 @@ export async function transitionChangeOrder(
   const ctx = await requireInternalUser();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
+  // HF-5: scope SELECT + UPDATE by organization_id.
+  const organizationId = await requireOrgId();
   const [current] = await db
     .select()
     .from(changeOrders)
-    .where(eq(changeOrders.id, parsed.changeOrderId))
+    .where(
+      and(
+        eq(changeOrders.id, parsed.changeOrderId),
+        eq(changeOrders.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!current) throw new Error("change_order not found");
   if (!VALID_NEXT[current.status].includes(parsed.to)) {
@@ -127,7 +138,12 @@ export async function transitionChangeOrder(
   const [row] = await db
     .update(changeOrders)
     .set(updates)
-    .where(eq(changeOrders.id, parsed.changeOrderId))
+    .where(
+      and(
+        eq(changeOrders.id, parsed.changeOrderId),
+        eq(changeOrders.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

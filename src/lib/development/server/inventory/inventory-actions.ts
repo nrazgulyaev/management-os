@@ -10,6 +10,7 @@ import {
   devOsInventoryMovements,
 } from "@/lib/db/schema/dev-os-inventory";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   applyMovementToBalance,
   type InventoryMovementType,
@@ -47,11 +48,13 @@ export async function createInventoryItem(
   input: z.input<typeof createItemSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createItemSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(devOsInventoryItems)
     .values({
+      organizationId,
       sku: parsed.sku,
       displayName: parsed.displayName,
       description: parsed.description ?? null,
@@ -100,6 +103,7 @@ export async function recordInventoryMovement(
   input: z.input<typeof recordMovementSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = recordMovementSchema.parse(input);
   const db = requireDb();
   if (!ctx.appUser?.id) {
@@ -125,6 +129,7 @@ export async function recordInventoryMovement(
     const [movement] = await tx
       .insert(devOsInventoryMovements)
       .values({
+        organizationId,
         movementCode,
         itemId: parsed.itemId,
         quantity: String(parsed.quantity),
@@ -181,6 +186,7 @@ export async function recordInventoryMovement(
               devOsInventoryStockBalances.locationId,
               delta.debitLocationId,
             ),
+            eq(devOsInventoryStockBalances.organizationId, organizationId),
           ),
         );
     }
@@ -215,9 +221,15 @@ export async function recordInventoryMovement(
         await tx
           .update(devOsInventoryStockBalances)
           .set(updates)
-          .where(eq(devOsInventoryStockBalances.id, existing.id));
+          .where(
+            and(
+              eq(devOsInventoryStockBalances.id, existing.id),
+              eq(devOsInventoryStockBalances.organizationId, organizationId),
+            ),
+          );
       } else {
         await tx.insert(devOsInventoryStockBalances).values({
+          organizationId,
           itemId: parsed.itemId,
           locationId: delta.creditLocationId,
           quantityOnHand: String(delta.quantity),
@@ -276,11 +288,13 @@ export async function createInventoryLocation(
   input: z.input<typeof createLocationSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createLocationSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(devOsInventoryLocations)
     .values({
+      organizationId,
       locationCode: parsed.locationCode,
       displayName: parsed.displayName,
       locationType: parsed.locationType,

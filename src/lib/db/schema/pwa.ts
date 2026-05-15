@@ -20,11 +20,16 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const pushSubscriptions = pgTable(
   "push_subscriptions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     userId: uuid("user_id")
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
@@ -64,6 +69,10 @@ export const notificationDispatchLog = pgTable(
   "notification_dispatch_log",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: organization_id added by migration 0072.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     dispatchCode: text("dispatch_code").notNull().unique(),
     notificationType: text("notification_type").notNull(),
     title: text("title").notNull(),
@@ -108,6 +117,10 @@ export const offlineActionQueue = pgTable(
   "offline_action_queue",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     actionCode: text("action_code").notNull().unique(),
     clientActionId: text("client_action_id").notNull(),
     userId: uuid("user_id")

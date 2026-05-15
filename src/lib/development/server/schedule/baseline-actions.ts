@@ -8,6 +8,7 @@ import {
   scheduleBaselines,
   scheduleVariances,
 } from "@/lib/db/schema/schedule-sophistication";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const createBaselineSchema = z.object({
   projectId: z.string().uuid(),
@@ -30,6 +31,7 @@ export async function createBaseline(input: z.input<typeof createBaselineSchema>
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
 
   try {
     const result = await db.transaction(async (tx) => {
@@ -41,6 +43,7 @@ export async function createBaseline(input: z.input<typeof createBaselineSchema>
           and(
             eq(scheduleBaselines.projectId, parsed.data.projectId),
             eq(scheduleBaselines.isCurrentBaseline, true),
+            eq(scheduleBaselines.organizationId, organizationId),
           ),
         )
         .limit(1);
@@ -55,12 +58,18 @@ export async function createBaseline(input: z.input<typeof createBaselineSchema>
             isCurrentBaseline: false,
             supersededAt: new Date(),
           })
-          .where(eq(scheduleBaselines.id, prior.id));
+          .where(
+            and(
+              eq(scheduleBaselines.id, prior.id),
+              eq(scheduleBaselines.organizationId, organizationId),
+            ),
+          );
       }
 
       const inserted = await tx
         .insert(scheduleBaselines)
         .values({
+          organizationId,
           projectId: parsed.data.projectId,
           baselineCode: parsed.data.baselineCode,
           name: parsed.data.name,
@@ -78,7 +87,12 @@ export async function createBaseline(input: z.input<typeof createBaselineSchema>
         await tx
           .update(scheduleBaselines)
           .set({ supersededBy: inserted[0].id })
-          .where(eq(scheduleBaselines.id, prior.id));
+          .where(
+            and(
+              eq(scheduleBaselines.id, prior.id),
+              eq(scheduleBaselines.organizationId, organizationId),
+            ),
+          );
       }
 
       return inserted[0].id;
@@ -125,9 +139,11 @@ export async function upsertVariance(input: z.input<typeof upsertVarianceSchema>
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   await db
     .insert(scheduleVariances)
     .values({
+      organizationId,
       baselineId: parsed.data.baselineId,
       taskId: parsed.data.taskId,
       baselinePlannedStart: parsed.data.baselinePlannedStart,

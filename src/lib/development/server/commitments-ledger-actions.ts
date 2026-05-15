@@ -1,10 +1,11 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { devCommitmentsLedger } from "@/lib/db/schema/dev-finance";
 import { SUPPORTED_CURRENCIES } from "@/lib/development/constants/investor-constants";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const createSchema = z.object({
   projectId: z.string().uuid(),
@@ -48,6 +49,7 @@ export async function createCommitmentLedger(
 ): Promise<{ id: string; commitmentCode: string; amountUsdMinor: string }> {
   const parsed = createSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const amount = toBig(parsed.amountOriginalMinor);
   const fx = Number(parsed.fxRateAtCommit);
   if (!(fx > 0)) throw new Error("fxRateAtCommit must be > 0");
@@ -55,6 +57,7 @@ export async function createCommitmentLedger(
   const [row] = await db
     .insert(devCommitmentsLedger)
     .values({
+      organizationId,
       projectId: parsed.projectId,
       categoryId: parsed.categoryId,
       unitId: parsed.unitId ?? null,
@@ -82,10 +85,16 @@ export async function updateCommitmentLedgerStatus(
   newStatus: "open" | "partially_paid" | "completed" | "cancelled",
 ): Promise<void> {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   await db
     .update(devCommitmentsLedger)
     .set({ status: newStatus, updatedAt: new Date() })
-    .where(eq(devCommitmentsLedger.id, id));
+    .where(
+      and(
+        eq(devCommitmentsLedger.id, id),
+        eq(devCommitmentsLedger.organizationId, organizationId),
+      ),
+    );
 }
 
 export async function cancelCommitmentLedger(
@@ -96,6 +105,7 @@ export async function cancelCommitmentLedger(
     throw new Error("cancelCommitmentLedger: reason is required (min 3 chars)");
   }
   const db = requireDb();
+  const organizationId = await requireOrgId();
   await db
     .update(devCommitmentsLedger)
     .set({
@@ -103,5 +113,10 @@ export async function cancelCommitmentLedger(
       notes: reason,
       updatedAt: new Date(),
     })
-    .where(eq(devCommitmentsLedger.id, id));
+    .where(
+      and(
+        eq(devCommitmentsLedger.id, id),
+        eq(devCommitmentsLedger.organizationId, organizationId),
+      ),
+    );
 }

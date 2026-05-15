@@ -24,11 +24,18 @@ import { appUsers } from "./identity";
 import { projects, villas } from "./projects";
 import { vendors, materialPurchaseOrders } from "./site-operations";
 import { documents } from "./documents";
+import { organizations } from "./saas";
 
 export const devOsPurchaseRequests = pgTable(
   "dev_os_purchase_requests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation). The
+    // Drizzle TS schema was never updated, so INSERTs without
+    // organizationId crashed with PG 23502.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     requestCode: text("request_code").notNull().unique(),
 
     requestedBy: uuid("requested_by")
@@ -101,6 +108,10 @@ export const procurementQuotations = pgTable(
   "procurement_quotations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
 
     purchaseRequestId: uuid("purchase_request_id")
       .notNull()
@@ -163,6 +174,10 @@ export const procurementQuotationLines = pgTable(
   "procurement_quotation_lines",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     quotationId: uuid("quotation_id")
       .notNull()
       .references(() => procurementQuotations.id, { onDelete: "cascade" }),

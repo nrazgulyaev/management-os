@@ -22,11 +22,16 @@ import { sql } from "drizzle-orm";
 import { projects } from "./projects";
 import { vendors } from "./site-operations";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const workPackages = pgTable(
   "work_packages",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     packageCode: text("package_code").notNull().unique(),
     name: text("name").notNull(),
     description: text("description"),
@@ -77,6 +82,10 @@ export const projectTasks = pgTable(
   "project_tasks",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     taskCode: text("task_code").notNull().unique(),
     name: text("name").notNull(),
     description: text("description"),
@@ -128,6 +137,10 @@ export const taskDependencies = pgTable(
   "task_dependencies",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANT-1: column added by migration 0072 (NOT NULL).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     predecessorId: uuid("predecessor_id")
       .notNull()
       .references(() => projectTasks.id, { onDelete: "cascade" }),

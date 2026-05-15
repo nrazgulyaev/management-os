@@ -13,6 +13,7 @@ import {
   type ClassificationResult,
 } from "@/lib/development/ai/whatsapp-intent-classifier";
 import { getWhatsAppProvider } from "@/lib/whatsapp/providers";
+import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 
 /**
  * Inbound message processor — runs async after the webhook persists
@@ -231,9 +232,15 @@ async function createDraftSiteReport(args: {
     // a different date — but Stage 3.D defers that complexity.
     return null;
   }
+  // TENANT-1: cron-callable path (no auth context). Resolve org via
+  // ARCONIQUE_DEFAULT seed — projects don't carry org_id today, so the
+  // whatsapp inbound queue routes to the default tenant by design.
+  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  if (!org) return null;
   const [created] = await db
     .insert(siteReports)
     .values({
+      organizationId: org.id,
       projectId: proj.id,
       reportDate: today,
       summary: args.bodyForClassifier.slice(0, 4000),

@@ -25,7 +25,7 @@ import { eq } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
 import { orgSubscriptions } from "@/lib/db/schema/subscriptions";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { StripeClient } from "@/lib/payment-processors/providers/stripe/client";
 import { env } from "@/lib/env";
 
@@ -58,8 +58,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
     return NextResponse.json(
       { ok: false, reason: "no_org_context" },
       { status: 500 },
@@ -80,7 +82,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       stripeCustomerId: orgSubscriptions.stripeCustomerId,
     })
     .from(orgSubscriptions)
-    .where(eq(orgSubscriptions.organizationId, org.id))
+    .where(eq(orgSubscriptions.organizationId, orgId))
     .limit(1)
     .then((rows) => rows[0]);
   if (!sub?.stripeCustomerId) {

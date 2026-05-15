@@ -1,10 +1,11 @@
 "use server";
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { campaigns, campaignCosts } from "@/lib/db/schema/marketing";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const createCampaignSchema = z.object({
   campaignCode: z.string().min(2).max(80),
@@ -24,7 +25,9 @@ export async function createCampaign(input: z.input<typeof createCampaignSchema>
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   await db.insert(campaigns).values({
+    organizationId,
     campaignCode: parsed.data.campaignCode,
     name: parsed.data.name,
     campaignObjective: parsed.data.campaignObjective,
@@ -50,10 +53,16 @@ export async function transitionCampaignStatus(args: {
 }) {
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   await db
     .update(campaigns)
     .set({ status: args.newStatus })
-    .where(eq(campaigns.campaignCode, args.campaignCode));
+    .where(
+      and(
+        eq(campaigns.campaignCode, args.campaignCode),
+        eq(campaigns.organizationId, organizationId),
+      ),
+    );
   return { ok: true as const };
 }
 
@@ -83,7 +92,9 @@ export async function recordCampaignCost(input: z.input<typeof recordCostSchema>
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const organizationId = await requireOrgId();
   await db.insert(campaignCosts).values({
+    organizationId,
     campaignId: parsed.data.campaignId,
     periodStart: parsed.data.periodStart,
     periodEnd: parsed.data.periodEnd,
@@ -101,6 +112,11 @@ export async function recordCampaignCost(input: z.input<typeof recordCostSchema>
     .set({
       spentToDateMinor: sql`${campaigns.spentToDateMinor} + ${BigInt(parsed.data.costMinor)}`,
     })
-    .where(eq(campaigns.id, parsed.data.campaignId));
+    .where(
+      and(
+        eq(campaigns.id, parsed.data.campaignId),
+        eq(campaigns.organizationId, organizationId),
+      ),
+    );
   return { ok: true as const };
 }

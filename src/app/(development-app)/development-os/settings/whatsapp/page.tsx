@@ -15,7 +15,7 @@ import {
 } from "@/lib/development/server/whatsapp-actions";
 import { safeQuery } from "@/lib/development/safe-query";
 import { getWhatsAppProvider } from "@/lib/whatsapp/providers";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { oauthConnections } from "@/lib/db/schema/bulk-import";
 import { WhatsappCredentialForm } from "@/components/settings/whatsapp-credential-form";
 
@@ -38,7 +38,7 @@ export default async function WhatsappSetupPage() {
 
   let arconiquePhones: Array<{ id: string; phoneNumber: string }> = [];
   let templates: Array<{ id: string; approvalStatus: string }> = [];
-  let org: { id: string } | null = null;
+  let orgId: string | null = null;
   let hasSavedCreds = false;
   if (db) {
     const [phones, t] = await Promise.all([
@@ -52,12 +52,12 @@ export default async function WhatsappSetupPage() {
     ]);
     arconiquePhones = phones;
     templates = t;
-    org = await safeQuery(
-      "settings-whatsapp.getOrganizationByCode",
-      getOrganizationByCode("ARCONIQUE_DEFAULT"),
-      null,
-    );
-    if (org) {
+    try {
+      orgId = await requireOrgId();
+    } catch {
+      orgId = null;
+    }
+    if (orgId) {
       const existing = await safeQuery(
         "settings-whatsapp.oauthConnections",
         db
@@ -65,7 +65,7 @@ export default async function WhatsappSetupPage() {
           .from(oauthConnections)
           .where(
             and(
-              eq(oauthConnections.organizationId, org.id),
+              eq(oauthConnections.organizationId, orgId),
               eq(oauthConnections.provider, "twilio_whatsapp"),
               eq(oauthConnections.isActive, true),
             ),
@@ -168,7 +168,7 @@ export default async function WhatsappSetupPage() {
         </div>
       </Section>
 
-      {org && (
+      {orgId && (
         <Section
           eyebrow="Per-org credentials"
           title="Per-org credentials (in-app form)"
@@ -182,7 +182,7 @@ export default async function WhatsappSetupPage() {
             for now.
           </div>
           <WhatsappCredentialForm
-            organizationId={org.id}
+            organizationId={orgId}
             hasExistingConnection={hasSavedCreds}
           />
         </Section>

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 import { listApiKeysForOrg } from "@/lib/development/server/api/api-key-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { ApiKeyModalForm } from "@/components/development/platform/api-key-modal-form";
@@ -15,18 +15,12 @@ export const dynamic = "force-dynamic";
 
 export default async function ApiKeysPage() {
   const me = await getCurrentAppUser();
-  const org = await safeQuery(
-    "settings-api-keys.getOrganizationByCode",
-    getOrganizationByCode("ARCONIQUE_DEFAULT"),
-    null,
+  const orgId = await requireOrgId();
+  const keys = await safeQuery(
+    "settings-api-keys.listApiKeysForOrg",
+    listApiKeysForOrg(orgId),
+    [] as Awaited<ReturnType<typeof listApiKeysForOrg>>,
   );
-  const keys = org
-    ? await safeQuery(
-        "settings-api-keys.listApiKeysForOrg",
-        listApiKeysForOrg(org.id),
-        [] as Awaited<ReturnType<typeof listApiKeysForOrg>>,
-      )
-    : [];
 
   return (
     <DevelopmentShell>
@@ -39,8 +33,8 @@ export default async function ApiKeysPage() {
         ]}
         description="Per-organization keys for the public REST API. The plaintext key is shown only at creation time — the server stores a SHA-256 hash."
         actions={
-          me && org ? (
-            <ApiKeyModalForm organizationId={org.id} currentUserId={me.id} />
+          me ? (
+            <ApiKeyModalForm organizationId={orgId} currentUserId={me.id} />
           ) : null
         }
       />

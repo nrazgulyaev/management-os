@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema/shared-costs";
 import { devTransactions } from "@/lib/db/schema/dev-finance";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   computeAllocationAmounts,
   type AllocationMethod,
@@ -60,6 +61,7 @@ export async function proposeSharedCostAllocation(
 }> {
   const parsed = proposeSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   const [source] = await db
@@ -82,6 +84,7 @@ export async function proposeSharedCostAllocation(
     const [alloc] = await tx
       .insert(sharedCostAllocations)
       .values({
+        organizationId,
         sourceTransactionId: parsed.sourceTransactionId,
         allocationMethod: parsed.allocationMethod,
         allocationBasis:
@@ -93,6 +96,7 @@ export async function proposeSharedCostAllocation(
 
     for (const line of computed) {
       await tx.insert(sharedCostAllocationLines).values({
+        organizationId,
         allocationId: alloc.id,
         projectId: line.projectId,
         percentage: line.percentage.toFixed(4),
@@ -124,13 +128,19 @@ export async function approveSharedCostAllocation(
 ): Promise<{ ok: true; derivativeCount: number }> {
   const parsed = approveSchema.parse(input);
   const me = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const meId = me.appUser?.id ?? null;
   const db = requireDb();
   return await db.transaction(async (tx) => {
     const [alloc] = await tx
       .select()
       .from(sharedCostAllocations)
-      .where(eq(sharedCostAllocations.id, parsed.allocationId))
+      .where(
+        and(
+          eq(sharedCostAllocations.id, parsed.allocationId),
+          eq(sharedCostAllocations.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!alloc) throw new Error("Allocation not found");
     if (alloc.status !== "draft") {
@@ -147,7 +157,12 @@ export async function approveSharedCostAllocation(
     const lines = await tx
       .select()
       .from(sharedCostAllocationLines)
-      .where(eq(sharedCostAllocationLines.allocationId, alloc.id));
+      .where(
+        and(
+          eq(sharedCostAllocationLines.allocationId, alloc.id),
+          eq(sharedCostAllocationLines.organizationId, organizationId),
+        ),
+      );
 
     let derivativeCount = 0;
     for (const line of lines) {
@@ -159,6 +174,7 @@ export async function approveSharedCostAllocation(
       const [derived] = await tx
         .insert(devTransactions)
         .values({
+          organizationId,
           transactionCode: code,
           bankAccountId: source.bankAccountId,
           direction: source.direction,
@@ -179,7 +195,12 @@ export async function approveSharedCostAllocation(
       await tx
         .update(sharedCostAllocationLines)
         .set({ derivativeTransactionId: derived.id })
-        .where(eq(sharedCostAllocationLines.id, line.id));
+        .where(
+          and(
+            eq(sharedCostAllocationLines.id, line.id),
+            eq(sharedCostAllocationLines.organizationId, organizationId),
+          ),
+        );
       derivativeCount += 1;
     }
 
@@ -191,7 +212,12 @@ export async function approveSharedCostAllocation(
         approvedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(sharedCostAllocations.id, alloc.id));
+      .where(
+        and(
+          eq(sharedCostAllocations.id, alloc.id),
+          eq(sharedCostAllocations.organizationId, organizationId),
+        ),
+      );
 
     return { ok: true as const, derivativeCount };
   });
@@ -207,6 +233,7 @@ export async function reverseSharedCostAllocation(
 ): Promise<{ ok: true }> {
   const parsed = reverseSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(sharedCostAllocations)
@@ -215,7 +242,12 @@ export async function reverseSharedCostAllocation(
       notes: sql`COALESCE(${sharedCostAllocations.notes} || E'\n', '') || ${'[REVERSED] ' + parsed.reason}`,
       updatedAt: new Date(),
     })
-    .where(eq(sharedCostAllocations.id, parsed.allocationId));
+    .where(
+      and(
+        eq(sharedCostAllocations.id, parsed.allocationId),
+        eq(sharedCostAllocations.organizationId, organizationId),
+      ),
+    );
   return { ok: true };
 }
 

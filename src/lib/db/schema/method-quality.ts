@@ -15,11 +15,16 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const methodStatements = pgTable(
   "method_statements",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     methodCode: text("method_code").notNull().unique(),
     title: text("title").notNull(),
     description: text("description"),
@@ -76,6 +81,10 @@ export const qualityStandards = pgTable(
   "quality_standards",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // HF-5: added by migration 0072 (multi-tenant propagation).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     standardCode: text("standard_code").notNull().unique(),
     title: text("title").notNull(),
     description: text("description"),
