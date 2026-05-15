@@ -11,6 +11,12 @@ export interface CurrentUser {
   email: string;
   fullName: string;
   status: string;
+  /**
+   * STAB-4 — the current user's organization. Required for multi-tenant
+   * server actions (team invites, etc.) that previously hardcoded
+   * `ARCONIQUE_DEFAULT` and would have leaked across tenants.
+   */
+  organizationId: string;
 }
 
 /**
@@ -36,5 +42,6 @@ export async function getCurrentAppUser(): Promise<CurrentUser | null> {
     email: u.email,
     fullName: u.fullName,
     status: u.status,
+    organizationId: u.organizationId,
   };
 }

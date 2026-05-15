@@ -11,9 +11,11 @@
  *
  * Permission gate: every mutating action requires `users.write`.
  *
- * Org context: actions resolve the inviter's org via the
- * ARCONIQUE_DEFAULT fallback (same compromise as other Stage 7.E
- * surfaces until tenant subdomain resolution lands at runtime).
+ * Org context: STAB-4 — actions resolve the inviter's org from the
+ * authenticated session's app_users row (via getCurrentAppUser's
+ * organizationId). Previously this fell back to ARCONIQUE_DEFAULT
+ * which would have leaked invites across tenants (every customer's
+ * "Invite teammate" would have landed in the operator's org).
  */
 
 import { randomBytes } from "node:crypto";
@@ -22,12 +24,12 @@ import { and, eq, gt, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { teamInvitations } from "@/lib/db/schema/team-invitations";
+import { organizations } from "@/lib/db/schema/saas";
 import { appUsers } from "@/lib/db/schema/identity";
 import { appUserRoles } from "@/lib/db/schema/role-cabinets";
 import { auditEvents } from "@/lib/db/schema/audit";
 import { requirePermission } from "@/features/auth/permissions";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendDevOsEmail } from "@/lib/development/server/email";
 import { env } from "@/lib/env";
@@ -105,8 +107,19 @@ export async function inviteTeamMemberAction(
   }
 
   const db = requireDb();
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) return { ok: false, error: "No organization context available." };
+  // STAB-4 fix: scope the invite to the inviter's own organization.
+  // Previously hardcoded to ARCONIQUE_DEFAULT, which would have made
+  // every tenant's "Invite teammate" land in the operator's org.
+  const orgId = me.organizationId;
+  if (!orgId) return { ok: false, error: "No organization context available." };
+  const orgRow = await db
+    .select({ name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (!orgRow) return { ok: false, error: "Organization not found." };
+  const org = { id: orgId, name: orgRow.name };
 
   const now = new Date();
   const token = newToken();
@@ -375,10 +388,19 @@ export async function resendInvitationAction(
   if (!me) return { ok: false, error: "Not signed in." };
 
   const db = requireDb();
+  // STAB-4 fix: scope SELECT to the inviter's own organization so an
+  // admin in tenant A cannot resend an invitation that lives in tenant
+  // B's data. Previously this read was unscoped + the org lookup
+  // hardcoded ARCONIQUE_DEFAULT.
   const inv = await db
     .select()
     .from(teamInvitations)
-    .where(eq(teamInvitations.id, invitationId))
+    .where(
+      and(
+        eq(teamInvitations.id, invitationId),
+        eq(teamInvitations.organizationId, me.organizationId),
+      ),
+    )
     .limit(1)
     .then((rows) => rows[0]);
   if (!inv) return { ok: false, error: "Invitation not found." };
@@ -386,8 +408,13 @@ export async function resendInvitationAction(
     return { ok: false, error: `Cannot resend — status is ${inv.status}.` };
   }
 
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  const orgName = org?.name ?? "your team";
+  const orgRow = await db
+    .select({ name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, me.organizationId))
+    .limit(1)
+    .then((rows) => rows[0]);
+  const orgName = orgRow?.name ?? "your team";
   const url = inviteUrl(inv.token);
   const bodyText =
     `Hi,\n\nThis is a reminder of your invitation to join ${orgName} on Arconique.\n\n` +
