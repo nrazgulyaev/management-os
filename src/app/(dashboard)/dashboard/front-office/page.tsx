@@ -25,6 +25,8 @@ import {
   listCheckinCheckoutRequests,
 } from "@/features/front-office/services";
 import { loadFrontOfficeRoomBoard } from "@/features/front-office/room-board";
+import { loadFrontOfficeCopilotOutputs } from "@/lib/development/server/ai/front-office-copilot-queries";
+import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
 
 /**
  * Mega-Sprint / Phase 8 — Front Office (Mgmt OS) cabinet on Sprint-4
@@ -69,14 +71,23 @@ export default async function FrontOfficeTodayPage() {
   const me = await getCurrentAppUser();
   const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
 
-  const [arrivals, departures, inHouse, openRequests, board] =
-    await Promise.all([
-      listArrivals(today),
-      listDepartures(today),
-      listInHouseGuests(today),
-      listCheckinCheckoutRequests({ status: "requested", limit: 50 }),
-      loadFrontOfficeRoomBoard(today, 7),
-    ]);
+  const [
+    arrivals,
+    departures,
+    inHouse,
+    openRequests,
+    board,
+    copilotOutputs,
+    copilotEnabled,
+  ] = await Promise.all([
+    listArrivals(today),
+    listDepartures(today),
+    listInHouseGuests(today),
+    listCheckinCheckoutRequests({ status: "requested", limit: 50 }),
+    loadFrontOfficeRoomBoard(today, 7),
+    loadFrontOfficeCopilotOutputs({ limit: 3 }).catch(() => []),
+    isAgentEnabledForCurrentOrg("front_office_copilot").catch(() => false),
+  ]);
 
   const occupiedToday = inHouse.length + arrivals.length;
   const totalVillas = board.rows.length;
@@ -398,20 +409,66 @@ export default async function FrontOfficeTodayPage() {
           </Section>
 
           <Section eyebrow="AI" title="Front-office copilot">
-            <div className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3">
-              <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                Coming soon
-              </span>
-              <p className="text-sm leading-relaxed opacity-90">
-                A dedicated front-office-copilot agent will surface
-                arrival exceptions, SLA breaches, and overdue follow-
-                ups here. Until it ships, use the quick-action strip
-                above to triage requests + readiness manually.
-              </p>
-              <Badge tone="outline" className="self-start">
-                front-office-copilot — not yet shipped
-              </Badge>
-            </div>
+            {!copilotEnabled ? (
+              <Link
+                href="/dashboard/settings/ai-agents/front_office_copilot"
+                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+              >
+                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                  Coming soon · Configure key
+                </span>
+                <p className="text-sm leading-relaxed opacity-90">
+                  The front-office-copilot agent ships with a dry-run
+                  default. Wire a provider key to flip it live;
+                  outputs surface here as they land.
+                </p>
+                <Badge tone="outline" className="self-start">
+                  Configure provider →
+                </Badge>
+              </Link>
+            ) : copilotOutputs.length === 0 ? (
+              <Link
+                href="/dashboard/ai/jobs?agent=front_office_copilot"
+                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+              >
+                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                  No runs yet
+                </span>
+                <p className="text-sm leading-relaxed opacity-90">
+                  Trigger the front-office-copilot to surface today's
+                  exception list across arrivals, in-house guests,
+                  and open requests.
+                </p>
+                <Badge tone="outline" className="self-start">
+                  Run copilot →
+                </Badge>
+              </Link>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {copilotOutputs.map((o) => (
+                  <Link
+                    key={o.id}
+                    href={`/dashboard/ai/outputs/${o.outputCode}`}
+                    className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-5 md:p-6 flex flex-col gap-2 hover:opacity-95 transition-opacity"
+                  >
+                    <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                      {new Date(o.createdAt).toLocaleDateString("en-US", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "numeric",
+                        minute: "numeric",
+                      })}
+                    </span>
+                    <h4 className="text-sm font-medium line-clamp-2">
+                      {o.title}
+                    </h4>
+                    <p className="text-xs opacity-90 leading-relaxed line-clamp-3">
+                      {o.summary}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            )}
           </Section>
         </aside>
       </div>
