@@ -23,6 +23,8 @@ import { Section } from "@/components/ui/section";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { listOperationTasks } from "@/features/operations/services";
 import { loadOperationTaskPhotos } from "@/lib/development/server/operations/task-photo-queries";
+import { loadHousekeepingSchedulerOutputs } from "@/lib/development/server/ai/housekeeping-scheduler-queries";
+import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
 
 /**
  * Mega-Sprint / Phase 9 — Housekeeping cabinet apex at
@@ -205,6 +207,14 @@ export default async function HousekeepingCabinetPage() {
     todayTaskIds,
     12,
   ).catch(() => []);
+
+  // Sprint MD-5 Phase 5 — housekeeping_scheduler agent outputs.
+  const [schedulerEnabled, schedulerOutputs] = await Promise.all([
+    isAgentEnabledForCurrentOrg("housekeeping_scheduler").catch(
+      () => false,
+    ),
+    loadHousekeepingSchedulerOutputs({ limit: 3 }).catch(() => []),
+  ]);
 
   return (
     <div className="flex flex-col gap-8 md:gap-10">
@@ -401,20 +411,67 @@ export default async function HousekeepingCabinetPage() {
           </Section>
 
           <Section eyebrow="AI" title="Housekeeping scheduler">
-            <div className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3">
-              <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                Coming soon
-              </span>
-              <p className="text-sm leading-relaxed opacity-90">
-                A dedicated housekeeping-scheduler agent will surface
-                tomorrow's turnover plan, predicted late tasks, and
-                supply forecasts here. Until it ships, plan manually
-                from the full task board.
-              </p>
-              <Badge tone="outline" className="self-start">
-                housekeeping-scheduler — not yet shipped
-              </Badge>
-            </div>
+            {!schedulerEnabled ? (
+              <Link
+                href="/dashboard/settings/ai-agents/housekeeping_scheduler"
+                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+              >
+                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                  Coming soon · Configure key
+                </span>
+                <p className="text-sm leading-relaxed opacity-90">
+                  The housekeeping-scheduler agent ships with a dry-
+                  run default. Wire a provider key to flip it live;
+                  tomorrow's turnover plan + assignment matrix surface
+                  here once it runs.
+                </p>
+                <Badge tone="outline" className="self-start">
+                  Configure provider →
+                </Badge>
+              </Link>
+            ) : schedulerOutputs.length === 0 ? (
+              <Link
+                href="/dashboard/ai/jobs?agent=housekeeping_scheduler"
+                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+              >
+                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                  No runs yet
+                </span>
+                <p className="text-sm leading-relaxed opacity-90">
+                  Trigger the housekeeping-scheduler to draft
+                  tomorrow's assignment matrix from today's roster +
+                  expected turnovers.
+                </p>
+                <Badge tone="outline" className="self-start">
+                  Run scheduler →
+                </Badge>
+              </Link>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {schedulerOutputs.map((o) => (
+                  <Link
+                    key={o.id}
+                    href={`/dashboard/ai/outputs/${o.outputCode}`}
+                    className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-5 md:p-6 flex flex-col gap-2 hover:opacity-95 transition-opacity"
+                  >
+                    <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
+                      {new Date(o.createdAt).toLocaleDateString("en-US", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "numeric",
+                        minute: "numeric",
+                      })}
+                    </span>
+                    <h4 className="text-sm font-medium line-clamp-2">
+                      {o.title}
+                    </h4>
+                    <p className="text-xs opacity-90 leading-relaxed line-clamp-3">
+                      {o.summary}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            )}
           </Section>
         </aside>
       </div>
