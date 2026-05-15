@@ -12,7 +12,6 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
@@ -41,8 +40,33 @@ export default async function AiAgentDetailPage({
   params: Promise<{ agent_key: string }>;
 }) {
   const { agent_key: rawKey } = await params;
+  // Hotfix HF-3 — graceful unknown-key handling instead of a bare
+  // notFound(). New agent_configurations rows added in SQL without
+  // a matching CONFIGURABLE_AGENTS entry now render a helpful
+  // EmptyState pointing back at the list, rather than a 404.
   if (!CONFIGURABLE_AGENTS.includes(rawKey as ConfigurableAgentKey)) {
-    notFound();
+    return (
+      <div className="flex flex-col gap-8">
+        <PageHeader
+          breadcrumbs={[
+            { label: "Settings", href: "/dashboard/settings" },
+            { label: "AI agents", href: "/dashboard/settings/ai-agents" },
+            { label: "Unknown agent" },
+          ]}
+          title="Unknown agent"
+        />
+        <EmptyState
+          title={`No agent registered with key "${rawKey}"`}
+          description="This URL does not match any agent in the configurable-agents catalog. If you arrived here from a cabinet 'Configure key' CTA, the underlying agent may have been added in SQL without a matching entry in src/features/ai-agents/agent-config-keys.ts — open a ticket so the team can sync the catalog."
+        />
+        <Link
+          href="/dashboard/settings/ai-agents"
+          className="text-sm text-ink hover:underline self-start"
+        >
+          ← Back to AI agents
+        </Link>
+      </div>
+    );
   }
   const agentKey = rawKey as ConfigurableAgentKey;
   const desc = AGENT_CATALOG[agentKey];

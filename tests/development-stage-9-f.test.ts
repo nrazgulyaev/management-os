@@ -44,9 +44,17 @@ test("9.F migration 0090 ships org_ai_agent_config table + RLS policies", () => 
     src,
     /"agent_key"\s+text\s+NOT\s+NULL\s+CHECK\s+\(agent_key\s+IN\s+\(/i,
   );
-  // 9 agent keys in the CHECK list — exactly matches CONFIGURABLE_AGENTS.
+  // Every CONFIGURABLE_AGENTS key must appear in the latest agent_key
+  // CHECK constraint. Sprint MD-5 added 5 new agents via Hotfix HF-3
+  // migration 0103 (DROP + ADD CONSTRAINT), so union the SQL from
+  // 0090's initial CHECK with any later widening migrations.
+  const widening = "drizzle/0103_md_5_org_agent_config_widen_check.sql";
+  const combined = src + (exists(widening) ? "\n" + read(widening) : "");
   for (const k of CONFIGURABLE_AGENTS) {
-    assert.ok(src.includes(`'${k}'`), `CHECK list must include ${k}`);
+    assert.ok(
+      combined.includes(`'${k}'`),
+      `agent_key CHECK constraint (0090 + later wideners) must include ${k}`,
+    );
   }
   // Unique (org, agent_key).
   assert.match(src, /UNIQUE\s*\("organization_id",\s*"agent_key"\)/i);
@@ -72,12 +80,9 @@ test("9.F Drizzle schema mirrors the migration shape", () => {
 // Constants + catalog
 // ============================================================================
 
-test("9.F: CONFIGURABLE_AGENTS exports exactly 9 agent keys (matches migration CHECK)", () => {
-  assert.strictEqual(
-    CONFIGURABLE_AGENTS.length,
-    9,
-    `Expected 9 configurable agents, got ${CONFIGURABLE_AGENTS.length}`,
-  );
+test("9.F: CONFIGURABLE_AGENTS exports the expected agent keys (matches migration CHECK)", () => {
+  // 9 Stage-9.F originals + 5 Sprint MD-5 cabinet co-pilots
+  // (widened by Hotfix HF-3 migration 0103).
   const expected = [
     "qs_cost_analyst",
     "procurement_analyst",
@@ -88,7 +93,17 @@ test("9.F: CONFIGURABLE_AGENTS exports exactly 9 agent keys (matches migration C
     "weekly_plan",
     "inbox",
     "memory",
+    "investor_copilot",
+    "front_office_copilot",
+    "housekeeping_scheduler",
+    "concierge_handoff",
+    "security_copilot",
   ].sort();
+  assert.strictEqual(
+    CONFIGURABLE_AGENTS.length,
+    expected.length,
+    `Expected ${expected.length} configurable agents, got ${CONFIGURABLE_AGENTS.length}`,
+  );
   assert.deepStrictEqual([...CONFIGURABLE_AGENTS].sort(), expected);
 });
 
@@ -246,8 +261,10 @@ test("9.F: detail page surfaces canonical prompt + eligibility + run-link", () =
     "src/app/(dashboard)/dashboard/settings/ai-agents/[agent_key]/page.tsx",
   );
   assert.match(src, /Canonical prompt/);
-  // 404 on unknown agent_key.
-  assert.match(src, /notFound\(\)/);
+  // Hotfix HF-3 replaced the bare notFound() with a graceful
+  // EmptyState fallback for unknown agent_key values.
+  assert.match(src, /CONFIGURABLE_AGENTS\.includes/);
+  assert.match(src, /No agent registered with key/);
   // Pulls canonical prompt from RUN_NOW_AGENTS.
   assert.match(src, /RUN_NOW_AGENTS/);
   // Reads override row.
