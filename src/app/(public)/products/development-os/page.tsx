@@ -465,42 +465,42 @@ const DEV_FEATURES: DevFeature[] = [
     description:
       "Excel-paste import, hierarchical sections, revision control. AI-flagged anomalies before they ship.",
     icon: FileSpreadsheet,
-    href: "/features/boq",
+    href: "/features/development-os#boq-live-tracking",
   },
   {
     title: "AI cost analyst",
     description:
       "Catches outliers before they ship. Reads unit costs against historical baselines + flags drift.",
     icon: Sparkles,
-    href: "/features/qs-cost-analyst",
+    href: "/features/development-os#ai-cost-analyst",
   },
   {
     title: "Photo-evidence QA",
     description:
       "Every report cross-referenced. Geo-tagged, signed at completion, photo-tagged inspection trail.",
     icon: Camera,
-    href: "/features/qa-qc",
+    href: "/features/development-os#qa-qc",
   },
   {
     title: "Procurement RFQ matrix",
     description:
       "Compare 5 suppliers side-by-side. Price spread + selected-vendor highlighting baked in.",
     icon: ClipboardList,
-    href: "/features/procurement",
+    href: "/features/development-os#procurement-rfq",
   },
   {
     title: "Investor portal",
     description:
       "Distributions, NAV, bilingual reports. Self-service for LPs — no quarterly email cycle.",
     icon: Users,
-    href: "/features/investor-portal",
+    href: "/features/development-os#investor-portal",
   },
   {
     title: "Mobile site supervisor PWA",
     description:
       "Offline reports + voice notes auto-transcribed. Field-first capture, no 4G timeouts.",
     icon: Camera,
-    href: "/features/mobile-pwa",
+    href: "/features/development-os#site-supervisor-pwa",
   },
 ];
 

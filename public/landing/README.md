@@ -33,6 +33,18 @@ code change required. Filenames are referenced directly by the
 | `cabinet-preview-procurement.webp` | 320 × 480 | Cabinet rail card (Dev) | Procurement Manager cabinet apex screenshot |
 | `cabinet-preview-sitesupervisor.webp` | 320 × 480 | Cabinet rail card (Dev) | Site Supervisor cabinet apex screenshot |
 | `cabinet-preview-investor.webp` | 320 × 480 | Cabinet rail card (Dev) | Investor Portal dashboard screenshot |
+| `feature-channel-manager.webp` | 1200 × 800 | Mgmt feature page mockup | Booking + Airbnb inbox screenshot |
+| `feature-owner-statements.webp` | 1200 × 800 | Mgmt feature page mockup | Sample monthly owner statement PDF preview |
+| `feature-concierge-ai.webp` | 1200 × 800 | Mgmt feature page mockup | Guest WhatsApp thread with concierge AI |
+| `feature-cleaner-pwa.webp` | 1200 × 800 | Mgmt feature page mockup | Mobile PWA on a phone with photo upload state |
+| `feature-direct-booking.webp` | 1200 × 800 | Mgmt feature page mockup | Branded direct-booking site checkout view |
+| `feature-security.webp` | 1200 × 800 | Mgmt feature page mockup | Security patrol log + camera registry view |
+| `feature-boq-tracking.webp` | 1200 × 800 | Dev feature page mockup | BOQ spreadsheet with variance flag |
+| `feature-ai-cost-analyst.webp` | 1200 × 800 | Dev feature page mockup | qs-cost-analyst output card with anomaly call-out |
+| `feature-qa-qc.webp` | 1200 × 800 | Dev feature page mockup | Photo-evidence QA inspection thread |
+| `feature-procurement-rfq.webp` | 1200 × 800 | Dev feature page mockup | RFQ matrix with 5 supplier columns |
+| `feature-investor-portal.webp` | 1200 × 800 | Dev feature page mockup | Investor portal capital-flow waterfall screenshot |
+| `feature-site-supervisor-pwa.webp` | 1200 × 800 | Dev feature page mockup | Site supervisor PWA with voice-note + photo state |
 
 ## Format guidance
 

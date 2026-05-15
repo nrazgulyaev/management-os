@@ -32,3 +32,10 @@ export type {
   DotGridStreakProps,
   DotGridTone,
 } from "./dot-grid-streak";
+
+// Sprint LD-2 — feature deep-dive primitives.
+export { FeatureDeepDive } from "./feature-deep-dive";
+export type { FeatureDeepDiveProps } from "./feature-deep-dive";
+
+export { FeatureTOC } from "./feature-toc";
+export type { FeatureTOCProps, FeatureTOCItem } from "./feature-toc";

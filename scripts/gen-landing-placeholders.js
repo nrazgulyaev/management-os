@@ -28,6 +28,19 @@ const assets = [
   { name: "cabinet-preview-procurement.webp", w: 320, h: 480, from: "#e9a995", to: "#9e5a49", angle: 160 },
   { name: "cabinet-preview-sitesupervisor.webp", w: 320, h: 480, from: "#bfd5c4", to: "#6f9881", angle: 160 },
   { name: "cabinet-preview-investor.webp", w: 320, h: 480, from: "#3a3f47", to: "#0a0c10", angle: 160 },
+  // Sprint LD-2 — feature deep-dive mockups (1200×800 each).
+  { name: "feature-channel-manager.webp", w: 1200, h: 800, from: "#9dc6b3", to: "#2f6f56", angle: 145 },
+  { name: "feature-owner-statements.webp", w: 1200, h: 800, from: "#e8c884", to: "#b08438", angle: 145 },
+  { name: "feature-concierge-ai.webp", w: 1200, h: 800, from: "#e9a995", to: "#9e5a49", angle: 145 },
+  { name: "feature-cleaner-pwa.webp", w: 1200, h: 800, from: "#bfd5c4", to: "#6f9881", angle: 145 },
+  { name: "feature-direct-booking.webp", w: 1200, h: 800, from: "#3a3f47", to: "#10131a", angle: 145 },
+  { name: "feature-security.webp", w: 1200, h: 800, from: "#2a2f38", to: "#08090d", angle: 145 },
+  { name: "feature-boq-tracking.webp", w: 1200, h: 800, from: "#e8c884", to: "#b08438", angle: 145 },
+  { name: "feature-ai-cost-analyst.webp", w: 1200, h: 800, from: "#9dc6b3", to: "#2f6f56", angle: 145 },
+  { name: "feature-qa-qc.webp", w: 1200, h: 800, from: "#e9a995", to: "#9e5a49", angle: 145 },
+  { name: "feature-procurement-rfq.webp", w: 1200, h: 800, from: "#bfd5c4", to: "#6f9881", angle: 145 },
+  { name: "feature-investor-portal.webp", w: 1200, h: 800, from: "#3a3f47", to: "#0a0c10", angle: 145 },
+  { name: "feature-site-supervisor-pwa.webp", w: 1200, h: 800, from: "#d29078", to: "#5a3322", angle: 145 },
 ];
 
 function svgFor({ w, h, from, to, angle }) {

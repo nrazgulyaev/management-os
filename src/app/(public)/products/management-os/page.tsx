@@ -468,42 +468,42 @@ const MGMT_FEATURES: MgmtFeature[] = [
     description:
       "Booking.com, Airbnb, direct, and 4 more. Per-villa-per-channel sync with conflict detection.",
     icon: Globe,
-    href: "/features/channel-manager",
+    href: "/features/management-os#channel-manager",
   },
   {
     title: "Owner statements automation",
     description:
       "One click, sent to owner. Line-by-line audit trail backed by Stripe + bank reconciliation.",
     icon: HeartHandshake,
-    href: "/features/owner-statements",
+    href: "/features/management-os#owner-statements",
   },
   {
     title: "AI Concierge for guests",
     description:
       "Multilingual, 24/7. Escalates only what truly needs you. Every reply auditable.",
     icon: Sparkles,
-    href: "/features/concierge-ai",
+    href: "/features/management-os#concierge-ai",
   },
   {
     title: "Mobile cleaner PWA",
     description:
       "Offline-first photo upload, voice notes auto-transcribed, geo-tagged completion stamp.",
     icon: Camera,
-    href: "/features/mobile-pwa",
+    href: "/features/management-os#cleaner-pwa",
   },
   {
     title: "Direct booking website",
     description:
       "Your villa, your URL. Stripe-backed checkout. Channel-conflict-aware availability.",
     icon: Calendar,
-    href: "/features/direct-bookings",
+    href: "/features/management-os#direct-booking",
   },
   {
     title: "Security & access control",
     description:
       "Digital locks, patrol logs, auth-event timeline. Camera registry — never streams video.",
     icon: Wrench,
-    href: "/features/security",
+    href: "/features/management-os#security",
   },
 ];
 
