@@ -1,24 +1,29 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  CabinetGreetingBlock,
-  DashboardKpi,
-  NoItemsYet,
-  PageHeaderHero,
-} from "@/components/ui/primitives";
+import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
+import { HeroGreetingAI } from "@/components/award";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { loadOwnerCabinet } from "@/lib/development/server/cabinets/owner-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 
+function todayLabel(now: Date): string {
+  const day = now.getDate();
+  const weekday = now.toLocaleDateString("en-US", { weekday: "short" });
+  const month = now.toLocaleDateString("en-US", { month: "long" });
+  return `${day} · ${weekday}, ${month}`;
+}
+
 /**
  * Stage 10.5.A.1.1 — Owner dashboard (Mgmt OS).
  *
  * First of three "award-winning" cabinet dashboards in batch 10.5.A.1.
- * Pattern: <PageHeaderHero> + 4 <DashboardKpi> with trend deltas + a
- * portfolio grid + a side-column alerts feed. Establishes the layout
- * vocabulary the next two batches reuse.
+ * Hotfix HF-2 — Owner migrated off the legacy CabinetGreetingBlock +
+ * PageHeaderHero stack onto <HeroGreetingAI hideAiInput> so the
+ * cabinet matches every other Mgmt-OS apex. The page keeps 4
+ * <DashboardKpi> with trend deltas + a portfolio grid + a
+ * side-column alerts feed.
  *
  * The wrapping (dashboard) layout already enforces `mgmt` product
  * access; per-role authorization is intentionally absent here so that
@@ -69,31 +74,24 @@ export default async function OwnerDashboardPage() {
         ? "bad"
         : "warn";
 
-  return (
-    <div className="flex flex-col gap-10">
-      <CabinetGreetingBlock
-        firstName={firstName}
-        eyebrow="Owner overview"
-        subline={
-          data.villasCount === 0
-            ? "Welcome to Arconique. Your portfolio will appear here once shares are linked."
-            : `${data.villasCount} villa${data.villasCount === 1 ? "" : "s"} under your watch · ${data.alerts.length} ${data.alerts.length === 1 ? "alert" : "alerts"} this week`
-        }
-        badge={
-          data.alerts.length > 0 ? (
-            <Badge tone="warning">{data.alerts.length} pending</Badge>
-          ) : null
-        }
-      />
+  const greetingLine =
+    data.villasCount === 0
+      ? "Welcome to Arconique."
+      : `${data.villasCount} villa${data.villasCount === 1 ? "" : "s"} under your watch.`;
+  const subline =
+    data.villasCount === 0
+      ? "Your portfolio will appear here once shares are linked."
+      : `Portfolio health, reviews, and what needs your attention this week. ${data.alerts.length} ${data.alerts.length === 1 ? "alert" : "alerts"} on file.`;
 
-      <PageHeaderHero
-        eyebrow="This week"
-        title={
-          data.villasCount === 0
-            ? "Welcome to Arconique."
-            : `${data.villasCount} villa${data.villasCount === 1 ? "" : "s"} under your watch.`
-        }
-        description="Portfolio health, reviews, and what needs your attention this week."
+  return (
+    <div className="flex flex-col gap-8 md:gap-10">
+      <HeroGreetingAI
+        firstName={firstName}
+        role="Owner · Overview"
+        dateLabel={todayLabel(new Date())}
+        greetingOverride={greetingLine}
+        subline={subline}
+        hideAiInput
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

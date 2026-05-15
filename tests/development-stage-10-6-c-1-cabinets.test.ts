@@ -55,7 +55,13 @@ const CABINETS: CabinetSpec[] = [
   {
     name: "Owner",
     path: "src/app/(dashboard)/dashboard/owner/page.tsx",
+    // Hotfix HF-2 migrated the Owner cabinet off the legacy
+    // CabinetGreetingBlock + PageHeaderHero stack onto
+    // <HeroGreetingAI hideAiInput> so the Owner overview matches
+    // every other Mgmt-OS apex visually. The hero KPI (emerald-soft
+    // "Portfolio size") survives further down the page.
     expectedTone: "emerald-soft",
+    sprint4Hero: true,
   },
   {
     name: "Front Office",

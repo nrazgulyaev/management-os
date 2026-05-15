@@ -60,10 +60,14 @@ test("10.5.A.1.1 — owner cabinet page exists at /dashboard/owner", () => {
 });
 
 test("10.5.A.1.1 — owner page imports the cabinet primitives barrel", () => {
+  // Hotfix HF-2 migrated the Owner cabinet onto <HeroGreetingAI>,
+  // so the legacy <PageHeaderHero> import is gone. The header
+  // comment still mentions the migration; DashboardKpi + NoItemsYet
+  // remain on the page below the new greeting.
   const src = read(OWNER_PAGE);
   assert.match(src, /from "@\/components\/ui\/primitives"/);
   assert.match(src, /\bDashboardKpi\b/);
-  assert.match(src, /\bPageHeaderHero\b/);
+  assert.match(src, /\bHeroGreetingAI\b/);
   assert.match(src, /\bNoItemsYet\b/);
 });
 

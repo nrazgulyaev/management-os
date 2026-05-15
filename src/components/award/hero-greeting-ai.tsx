@@ -47,6 +47,25 @@ export interface HeroGreetingAIProps {
   showMyTasksHref?: string;
   /** Hide the microphone affordance (some surfaces don't want it). */
   hideMic?: boolean;
+  /**
+   * Hide the AI ask input + mic (read-mostly surfaces, e.g. the
+   * Owner overview where no agent input is wired). When set, the
+   * card still renders the greeting + date chip + role label so the
+   * Sprint-4 hero band silhouette matches every other Mgmt-OS apex.
+   */
+  hideAiInput?: boolean;
+  /**
+   * Override the auto-generated "Hey, {name}, need help?" greeting
+   * with a custom line. Useful for read-mostly surfaces where the
+   * "need help?" framing doesn't fit (e.g. Owner overview).
+   */
+  greetingOverride?: React.ReactNode;
+  /**
+   * Sub-line shown beneath the greeting. Renders as a sentence above
+   * the AI input slot when present; useful on read-mostly cabinets
+   * where the AI input is hidden.
+   */
+  subline?: React.ReactNode;
   className?: string;
 }
 
@@ -58,10 +77,15 @@ export function HeroGreetingAI({
   onAsk,
   showMyTasksHref,
   hideMic,
+  hideAiInput,
+  greetingOverride,
+  subline,
   className,
 }: HeroGreetingAIProps) {
   const name = firstName?.trim() || "there";
-  const greetingLine = `Hey, ${name === "there" ? "need help?" : `${name}, need help?`}`;
+  const greetingLine =
+    greetingOverride ??
+    `Hey, ${name === "there" ? "need help?" : `${name}, need help?`}`;
   return (
     <section
       className={cn(
@@ -105,18 +129,27 @@ export function HeroGreetingAI({
         <div className="flex-1 min-w-0">
           <h2 className="text-display text-[32px] md:text-[48px] lg:text-[56px] leading-[1.04] font-medium text-ink tracking-tight">
             {greetingLine}
-            <span aria-hidden className="inline-block ml-2">
-              👋
-            </span>
+            {!greetingOverride && (
+              <span aria-hidden className="inline-block ml-2">
+                👋
+              </span>
+            )}
           </h2>
-          <div className="mt-2">
-            <HeroAskInput
-              placeholder={aiPromptPlaceholder}
-              onAsk={onAsk}
-            />
-          </div>
+          {subline && (
+            <p className="mt-3 text-sm md:text-base text-ink-secondary leading-relaxed max-w-2xl">
+              {subline}
+            </p>
+          )}
+          {!hideAiInput && (
+            <div className="mt-2">
+              <HeroAskInput
+                placeholder={aiPromptPlaceholder}
+                onAsk={onAsk}
+              />
+            </div>
+          )}
         </div>
-        {!hideMic && (
+        {!hideAiInput && !hideMic && (
           <button
             type="button"
             className="hidden md:inline-flex shrink-0 w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-canvas border border-line-soft items-center justify-center hover:bg-muted transition-colors"

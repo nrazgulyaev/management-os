@@ -45,7 +45,7 @@ export function DevelopmentAppTopbar({
           className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-sm border border-line-soft bg-surface hover:bg-muted text-sm text-ink transition-colors"
         >
           <Sparkles className="w-4 h-4 text-gold" strokeWidth={1.75} />
-          <span>AI insight</span>
+          <span>Assistants</span>
         </Link>
         <button
           type="button"

@@ -102,11 +102,11 @@ export const dashboardNav: NavGroup[] = [
       { href: "/dashboard/guest-stays/security/events", label: "Security events" },
       { href: "/dashboard/guest-stays/security/verifications", label: "Verifications" },
       { href: "/dashboard/villa-guides/wifi/migrate", label: "Wi-Fi migration" },
-      { href: "/dashboard/guest-ai", label: "Concierge AI" },
-      { href: "/dashboard/guest-ai/sessions", label: "AI sessions" },
-      { href: "/dashboard/guest-ai/handoffs", label: "AI handoffs" },
-      { href: "/dashboard/guest-ai/handoffs/metrics", label: "Handoff SLA" },
-      { href: "/dashboard/guest-ai/storage", label: "Attachment storage" },
+      // Mega-Sprint Phase 10 merged the guest-ai / guest-services /
+      // guest-journey hubs into a single apex at /dashboard/concierge.
+      // Drill-downs (sessions, handoffs, SLA, storage) stay reachable
+      // via direct URL but no longer crowd the sidebar.
+      { href: "/dashboard/concierge", label: "Concierge" },
     ],
   },
   {
