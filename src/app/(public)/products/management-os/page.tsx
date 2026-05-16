@@ -1,702 +1,1993 @@
-import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  BellRing,
-  Calendar,
-  Camera,
-  Globe,
-  HeartHandshake,
-  Mic,
-  Sparkles,
-  Star,
-  Wrench,
-} from "lucide-react";
-import {
-  ActionPillButton,
-  ConcentricRings,
-  DotGridStreak,
-  PhotographicHero,
-} from "@/components/landing";
-import { PRICING_PLANS } from "@/lib/marketing/pricing-tiers";
-import { cn } from "@/lib/utils";
+import { RevealOnScroll } from "@/components/motion/reveal-on-scroll";
+import { CabinetPicker } from "./_components/cabinet-picker";
 
 /**
- * Sprint LD-1 — /products/management-os rebuild.
+ * Sprint _handoff/ Task 3 — Management OS landing.
  *
- * Award-winning landing inspired by three references:
- *  1. VaultX/Mineral — photographic hero with floating preview cards
- *  2. Financial Dashboard — "Hey, need help?" AI band + mic
- *  3. Donezo — emerald accent, mixed card sizes, dark accent cards
+ * 1:1 port of `_handoff/management.html` (landing.js + shared.js).
+ * Section order matches the prototype:
  *
- * Composition top → bottom: photographic hero · AI band · cabinet
- * rail · feature grid · phone mock band · social proof (dot grid +
- * concentric rings) · pricing teaser (read from pricing-tiers.ts) ·
- * coral CTA band.
+ *   MgmtNav → Hero (with HeroFrame floating tiles) → TrustStrip →
+ *   ThreeActs → CabinetsSection (interactive picker) → AISection →
+ *   OwnerSection → FeatureGrid → Testimonial → Pricing → CTABand →
+ *   MgmtFooter
+ *
+ * Hash-routing in the prototype becomes real Next routes:
+ *   go("signup") → /signup
+ *   go("login")  → /login
+ *   go("frontoffice") → /dashboard
+ *   go("owner")  → /owner
+ *   go("landing#anchor") → #anchor on this page
+ *
+ * The CabinetsSection picker keeps its useState — promoted into a
+ * tiny client island under `_components/cabinet-picker.tsx`.
+ * Everything else stays server-rendered.
+ *
+ * Typography + palette resolve via `<html data-product="management">`
+ * (RootLayout sets it from the middleware x-product header). For apex
+ * traffic hitting /products/management-os directly, we force the
+ * attribute via the `<div data-product="management">` wrapper so the
+ * Mgmt palette still resolves.
  */
 
 export const metadata = {
-  title: "Management OS · Arconique",
+  title: "Arconique Management OS · Run the villa portfolio quietly",
   description:
-    "Run the entire Bali villa portfolio from one place. Bookings, owner statements, concierge AI — three months to deploy, no villa managers at 2am.",
+    "The operating system for boutique villa and hotel companies — bookings, owner statements, concierge AI, housekeeping, all on one source of truth.",
 };
 
-const mgmtPlan = PRICING_PLANS.find((p) => p.key === "management-only")!;
-
-export default function ManagementOSPage() {
+export default function ManagementOsLandingPage() {
   return (
-    <>
-      {/* ──────────────────────────────────────────────────────────
-         Section 1 — Photographic hero
-         ────────────────────────────────────────────────────────── */}
-      <PhotographicHero
-        bgImageSrc="/landing/hero-villa-golden.webp"
-        headline={
-          <>
-            Run the entire Bali villa portfolio{" "}
-            <em className="not-italic text-gold/95 italic">
-              from one place.
-            </em>
-          </>
-        }
-        subhead="Bookings · Owner statements · AI concierge. Three months to deploy. Zero villa managers needed at 2am."
-        primaryCta={{ label: "Start 14-day trial", href: "/onboarding" }}
-        secondaryCta={{ label: "See live demo", href: "/demo" }}
-        floatingCards={[
-          {
-            title: "Tonight occupancy",
-            value: "23 / 28 villas",
-            subtitle: "82% — peak season",
-            tone: "emerald",
-          },
-          {
-            title: "Owner statement",
-            value: "Oct 2025 ready",
-            subtitle: "14 owners · auto-sent",
-            tone: "gold",
-          },
-          {
-            title: "Concierge AI",
-            value: "18 active sessions",
-            subtitle: "4 languages · 24/7",
-            tone: "coral",
-          },
-          {
-            title: "Today's arrivals",
-            value: "6 guests",
-            subtitle: "Readiness 100%",
-            tone: "sage",
-          },
-        ]}
-        rating={{
-          stars: 5,
-          count: 200,
-          label: "Bali villa portfolios trust Arconique",
+    <div data-product="management">
+      <RevealOnScroll />
+      <MgmtNav />
+      <main>
+        <Hero />
+        <TrustStrip />
+        <ThreeActs />
+        <CabinetsSection />
+        <AISection />
+        <OwnerSection />
+        <FeatureGrid />
+        <Testimonial />
+        <Pricing />
+        <CTABand />
+      </main>
+      <MgmtFooter />
+    </div>
+  );
+}
+
+// ============================================================
+// Icons — inline SVG line-set from prototype shared.js
+// ============================================================
+
+type IconProps = { width?: number | string; height?: number | string };
+
+const I = {
+  arrow: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  ),
+  check: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" {...p}>
+      <path d="M4 12l5 5L20 6" />
+    </svg>
+  ),
+  bed: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <path d="M3 18V8m0 6h18m0 0v4m0-4v-2a3 3 0 0 0-3-3h-5v5M3 8h6" />
+    </svg>
+  ),
+  receipt: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <path d="M5 3v18l3-2 3 2 3-2 3 2 3-2V3l-3 2-3-2-3 2-3-2-3 2zM9 9h6M9 13h6" />
+    </svg>
+  ),
+  spark: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6" />
+    </svg>
+  ),
+  globe: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </svg>
+  ),
+  shield: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3z" />
+    </svg>
+  ),
+  phone: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <rect x="7" y="3" width="10" height="18" rx="2" />
+      <path d="M11 18h2" />
+    </svg>
+  ),
+  calendar: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 9h18M8 3v4M16 3v4" />
+    </svg>
+  ),
+  msg: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <path d="M21 12a8 8 0 0 1-12.2 6.8L3 20l1.2-5.8A8 8 0 1 1 21 12z" />
+    </svg>
+  ),
+  bell: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <path d="M6 8a6 6 0 1 1 12 0c0 5 2 7 2 7H4s2-2 2-7zM10 19a2 2 0 0 0 4 0" />
+    </svg>
+  ),
+  download: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <path d="M12 4v12m0 0l-5-5m5 5l5-5M4 20h16" />
+    </svg>
+  ),
+  chart: (p: IconProps) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}>
+      <path d="M4 20V8M10 20V4M16 20v-8M22 20H2" />
+    </svg>
+  ),
+  logo: (p: IconProps) => (
+    <svg viewBox="0 0 32 32" fill="none" {...p}>
+      <path d="M16 4 L26 22 H6 Z" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M11 22 L16 13 L21 22" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  ),
+};
+
+function MgmtNav() {
+  return (
+    <header
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 60,
+        background: "rgba(244,239,230,0.78)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        borderBottom: "1px solid var(--line-soft)",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1320,
+          margin: "0 auto",
+          padding: "14px 28px",
+          display: "flex",
+          alignItems: "center",
+          gap: 24,
+        }}
+      >
+        <Link href="#top" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ color: "var(--forest)" }}>
+            <I.logo width={22} height={22} />
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-newsreader), serif",
+              fontSize: 20,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Arconique
+          </span>
+          <span
+            className="label"
+            style={{
+              marginLeft: 2,
+              padding: "2px 8px",
+              border: "1px solid var(--line)",
+              borderRadius: 999,
+              fontSize: 10,
+            }}
+          >
+            Management
+          </span>
+        </Link>
+        <nav
+          className="hide-mobile"
+          style={{ display: "flex", gap: 22, marginLeft: 18, fontSize: 14 }}
+        >
+          {[
+            ["Product", "#product"],
+            ["Cabinets", "#cabinets"],
+            ["Concierge AI", "#ai"],
+            ["Owners", "#owner"],
+            ["Pricing", "#pricing"],
+          ].map(([l, href]) => (
+            <Link key={l} href={href} style={{ color: "var(--ink-3)" }}>
+              {l}
+            </Link>
+          ))}
+        </nav>
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
+          <Link
+            href="/dashboard"
+            className="hide-mobile"
+            style={{ fontSize: 14, color: "var(--ink-3)" }}
+          >
+            Live demo →
+          </Link>
+          <Link href="/login" className="btn btn-ghost hide-mobile">
+            Sign in
+          </Link>
+          <Link href="/signup" className="btn btn-primary">
+            Start trial
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function Hero() {
+  return (
+    <section
+      id="product"
+      style={{ position: "relative", paddingTop: 48, paddingBottom: 80, overflow: "hidden" }}
+    >
+      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0 28px" }}>
+        <div
+          className="label"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 12px",
+            border: "1px solid var(--line)",
+            borderRadius: 999,
+            background: "var(--cream-warm)",
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 999,
+              background: "var(--terra)",
+            }}
+          />
+          The Arconique Management OS · v9
+        </div>
+
+        <h1
+          className="display"
+          data-reveal
+          style={{
+            fontSize: "clamp(56px, 9vw, 108px)",
+            marginTop: 24,
+            marginBottom: 24,
+            maxWidth: 1100,
+            fontWeight: 400,
+          }}
+        >
+          Run the entire villa portfolio
+          <br />
+          <em>quietly. profitably. transparently.</em>
+        </h1>
+
+        <p
+          style={{
+            fontSize: 20,
+            maxWidth: 680,
+            color: "var(--ink-2)",
+            lineHeight: 1.5,
+            marginTop: 0,
+          }}
+        >
+          Arconique is the operating system for boutique villa and hotel
+          companies on Airbnb, Booking.com and direct channels — bookings,
+          owner statements, concierge AI, housekeeping, all on one source of
+          truth.
+        </p>
+
+        <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
+          <Link href="/signup" className="btn btn-primary btn-lg">
+            Start 14-day trial <I.arrow width={16} height={16} />
+          </Link>
+          <Link href="/dashboard" className="btn btn-secondary btn-lg">
+            Tour live demo
+          </Link>
+        </div>
+
+        <div style={{ marginTop: 64, position: "relative" }}>
+          <HeroFrame />
+        </div>
+
+        <div
+          style={{
+            marginTop: 36,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 36,
+            alignItems: "center",
+            color: "var(--ink-3)",
+            fontSize: 13,
+          }}
+        >
+          {[
+            ["200+", "Bali villas live"],
+            ["$3.8M", "processed monthly"],
+            ["14", "portfolios since 2024"],
+            ["4", "languages, 24/7 concierge"],
+          ].map(([n, l]) => (
+            <div key={l} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                className="num"
+                style={{ fontSize: 22, color: "var(--ink)", fontWeight: 500 }}
+              >
+                {n}
+              </span>{" "}
+              {l}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HeroFrame() {
+  return (
+    <div
+      style={{
+        position: "relative",
+        borderRadius: 24,
+        overflow: "hidden",
+        border: "1px solid var(--line)",
+        boxShadow: "0 60px 80px -50px rgba(20,32,28,0.35)",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          aspectRatio: "16 / 8",
+          minHeight: 420,
+          background:
+            "radial-gradient(120% 80% at 50% 80%, rgba(31,58,51,0.45), transparent 60%), repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 24px), linear-gradient(180deg, #c89e6c 0%, #a17a4a 45%, #5e4628 100%)",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-end",
+            padding: 32,
+            color: "rgba(255,252,247,0.85)",
+          }}
+        >
+          <div
+            className="mono"
+            style={{
+              fontSize: 11,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              opacity: 0.7,
+            }}
+          >
+            Villa Eternal Sunset · Pererenan
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--font-newsreader), serif",
+              fontSize: 36,
+              fontStyle: "italic",
+              lineHeight: 1,
+              marginTop: 6,
+            }}
+          >
+            Tonight, 23 of 28 villas asleep
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          top: 28,
+          left: 28,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          maxWidth: 260,
+          zIndex: 2,
+        }}
+      >
+        <HeroTile>
+          <div className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span className="pulse-dot" /> Tonight occupancy
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
+            <span className="num" style={{ fontSize: 28, color: "var(--forest)" }}>
+              82%
+            </span>
+            <span className="num" style={{ fontSize: 13, color: "var(--ink-3)" }}>
+              23 / 28 villas
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 3, marginTop: 8 }}>
+            {Array.from({ length: 28 }).map((_, i) => (
+              <span
+                key={i}
+                style={{
+                  flex: 1,
+                  height: 6,
+                  borderRadius: 1,
+                  background: i < 23 ? "var(--terra)" : "var(--line)",
+                }}
+              />
+            ))}
+          </div>
+        </HeroTile>
+        <HeroTile>
+          <div className="label">Arrivals · today</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
+            <span className="num" style={{ fontSize: 24, color: "var(--ink)" }}>
+              6
+            </span>
+            <span style={{ fontSize: 13, color: "var(--ink-3)" }}>
+              guests · 100% ready
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            {["E.W", "K.T", "M.O", "J.R", "S.B", "L.D"].map((n) => (
+              <div
+                key={n}
+                className="mono"
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 999,
+                  background: "var(--cream-deep)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 10,
+                  color: "var(--ink-2)",
+                  border: "1px solid var(--line)",
+                }}
+              >
+                {n}
+              </div>
+            ))}
+          </div>
+        </HeroTile>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          top: 28,
+          right: 28,
+          maxWidth: 280,
+          zIndex: 2,
+        }}
+      >
+        <HeroTileDark>
+          <div className="label" style={{ color: "rgba(255,252,247,0.7)" }}>
+            Concierge AI · live
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
+            <span className="num" style={{ fontSize: 24 }}>
+              18
+            </span>
+            <span style={{ fontSize: 13, opacity: 0.78 }}>
+              active sessions · 4 languages
+            </span>
+          </div>
+          <div
+            style={{
+              marginTop: 10,
+              padding: "8px 10px",
+              background: "rgba(255,255,255,0.08)",
+              borderRadius: 8,
+              fontSize: 12,
+              lineHeight: 1.45,
+            }}
+          >
+            <span style={{ opacity: 0.7 }}>Sofia · Villa ES-S2:</span>
+            {' "Pool heater please by 6pm?" '}
+            <span style={{ color: "var(--gold-soft)" }}>→ task auto-created</span>
+          </div>
+        </HeroTileDark>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: 28,
+          right: 28,
+          maxWidth: 280,
+          zIndex: 2,
+        }}
+      >
+        <HeroTile>
+          <div className="label">Owner statement · ready</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
+            <span
+              style={{
+                fontFamily: "var(--font-newsreader), serif",
+                fontStyle: "italic",
+                fontSize: 22,
+                color: "var(--ink)",
+              }}
+            >
+              October
+            </span>
+            <span className="num" style={{ fontSize: 14, color: "var(--ink-3)" }}>
+              2026
+            </span>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 12, color: "var(--ink-3)" }}>
+            14 owners · auto-sent at 09:00 GMT+8
+          </div>
+          <Link
+            href="/owner"
+            className="btn btn-ghost"
+            style={{ padding: "6px 0", fontSize: 13, color: "var(--terra)" }}
+          >
+            Preview owner view <I.arrow width={13} height={13} />
+          </Link>
+        </HeroTile>
+      </div>
+
+      <div style={{ position: "absolute", bottom: 28, left: 28, zIndex: 2 }}>
+        <HeroTile style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ display: "flex" }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill="#BC9A5C">
+                <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
+              </svg>
+            ))}
+          </span>
+          <span style={{ fontSize: 13, color: "var(--ink-2)" }}>
+            Trusted by 200+ Bali villas
+          </span>
+        </HeroTile>
+      </div>
+    </div>
+  );
+}
+
+function HeroTile({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div
+      style={{
+        background: "rgba(255,252,247,0.92)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: "1px solid rgba(218,210,192,0.5)",
+        borderRadius: 14,
+        padding: "14px 16px",
+        boxShadow: "0 16px 40px -20px rgba(20,32,28,0.4)",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function HeroTileDark({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        background: "rgba(31,58,51,0.86)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        color: "var(--cream-warm)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 14,
+        padding: "14px 16px",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function TrustStrip() {
+  const names = [
+    "Eternal Estates",
+    "Enso Villas",
+    "Pererenan Collection",
+    "Ubud Atelier",
+    "Canggu Houses",
+    "Seminyak Group",
+    "Beachfront Bali",
+    "Tirta Villas",
+  ];
+  return (
+    <section
+      style={{
+        borderTop: "1px solid var(--line-soft)",
+        borderBottom: "1px solid var(--line-soft)",
+        background: "var(--cream-warm)",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1320,
+          margin: "0 auto",
+          padding: "24px 28px",
+          display: "flex",
+          alignItems: "center",
+          gap: 48,
+          flexWrap: "wrap",
+        }}
+      >
+        <span className="label">Operators on Arconique</span>
+        <div
+          style={{
+            display: "flex",
+            gap: 36,
+            flexWrap: "wrap",
+            flex: 1,
+            justifyContent: "space-between",
+          }}
+        >
+          {names.map((n, i) => (
+            <span
+              key={n}
+              style={{
+                fontFamily: "var(--font-newsreader), serif",
+                fontStyle: i % 2 ? "italic" : "normal",
+                fontSize: 16,
+                color: "var(--ink-3)",
+              }}
+            >
+              {n}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ThreeActs() {
+  const acts = [
+    {
+      time: "06:00",
+      title: "Arrivals before sunrise.",
+      body: "Today's six guests arrive at 14:00. By 06:00 housekeeping has its plan, every villa has a readiness state, and the AI has already nudged the late cleaner.",
+      stat: "100%",
+      statLabel: "arrival readiness this month",
+      icon: <I.bed />,
+      timeColor: "var(--terra)",
+    },
+    {
+      time: "12:30",
+      title: "Owners before sunset.",
+      body: "Statements drafted automatically from bookings, channel fees, ops costs, owner stays. Sent to fourteen owners at 09:00 GMT+8 with a line-by-line audit trail.",
+      stat: "14",
+      statLabel: "owners auto-statemented monthly",
+      icon: <I.receipt />,
+      timeColor: "var(--forest)",
+    },
+    {
+      time: "23:18",
+      title: "Concierge through the night.",
+      body: "It is 23:18 on Pererenan and Sofia in S2 wants a late check-out. Concierge AI replies in her language, books it, and only escalates the things that truly need you.",
+      stat: "94%",
+      statLabel: "guest replies handled by AI",
+      icon: <I.msg />,
+      timeColor: "var(--gold)",
+    },
+  ];
+  return (
+    <section id="cabinets" style={{ padding: "110px 0 30px" }}>
+      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0 28px" }}>
+        <div style={{ maxWidth: 780 }}>
+          <div className="label">A day on Arconique</div>
+          <h2
+            className="display"
+            data-reveal
+            style={{ fontSize: "clamp(40px, 5.5vw, 64px)", marginTop: 18, marginBottom: 18 }}
+          >
+            The shape of <em>your day</em>, redrawn around the operator.
+          </h2>
+          <p style={{ fontSize: 18, color: "var(--ink-3)", maxWidth: 640 }}>
+            Hospitality runs on twenty quiet decisions per villa, per day.
+            Arconique pre-makes most of them — and shows its work, so you can
+            intervene only when you actually need to.
+          </p>
+        </div>
+
+        <div
+          style={{
+            marginTop: 60,
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 24,
+          }}
+        >
+          {acts.map((a, i) => (
+            <article
+              key={a.time}
+              data-reveal
+              data-reveal-delay={i + 1}
+              style={{
+                position: "relative",
+                padding: "36px 32px",
+                border: "1px solid var(--line-soft)",
+                borderRadius: 18,
+                background: "var(--paper)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 18,
+                minHeight: 380,
+              }}
+            >
+              <div
+                className="mono"
+                style={{
+                  fontSize: 48,
+                  fontWeight: 300,
+                  color: a.timeColor,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {a.time}
+              </div>
+              <h3
+                className="display"
+                style={{ fontSize: 30, margin: 0, fontWeight: 400 }}
+              >
+                {a.title}
+              </h3>
+              <p style={{ color: "var(--ink-3)", margin: 0, fontSize: 15 }}>
+                {a.body}
+              </p>
+              <div
+                style={{
+                  marginTop: "auto",
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 10,
+                  paddingTop: 18,
+                  borderTop: "1px dashed var(--line)",
+                }}
+              >
+                <span className="num" style={{ fontSize: 30, color: "var(--ink)" }}>
+                  {a.stat}
+                </span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: "var(--ink-3)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.12em",
+                    fontFamily: "var(--font-jetbrains), monospace",
+                  }}
+                >
+                  {a.statLabel}
+                </span>
+              </div>
+              <span
+                style={{
+                  position: "absolute",
+                  top: 24,
+                  right: 24,
+                  color: "var(--line-strong)",
+                }}
+              >
+                {a.icon}
+              </span>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CabinetsSection() {
+  return (
+    <section
+      style={{
+        padding: "110px 0",
+        background: "var(--cream-warm)",
+        borderTop: "1px solid var(--line-soft)",
+        borderBottom: "1px solid var(--line-soft)",
+      }}
+    >
+      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0 28px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            gap: 48,
+            marginBottom: 48,
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <div className="label">Cabinets · five surfaces</div>
+            <h2
+              className="display"
+              data-reveal
+              style={{ fontSize: "clamp(40px, 5.5vw, 64px)", marginTop: 18, marginBottom: 18, maxWidth: 740 }}
+            >
+              One source of truth, <em>five</em> ways to see it.
+            </h2>
+          </div>
+          <p style={{ maxWidth: 380, color: "var(--ink-3)", margin: 0 }}>
+            Each role gets a cabinet built for their hour of the day. The data
+            is shared. The view is not.
+          </p>
+        </div>
+
+        <CabinetPicker />
+      </div>
+    </section>
+  );
+}
+
+function AISection() {
+  const agents = [
+    {
+      t: "Concierge AI",
+      live: true,
+      desc: "Multilingual guest replies on WhatsApp + email + chat. Routes 6% of edge cases to humans.",
+      icon: <I.msg />,
+    },
+    {
+      t: "Front-Office Copilot",
+      live: true,
+      desc: "Arrival exceptions, SLA breaches, overdue follow-ups. One AI watching the desk.",
+      icon: <I.bell />,
+    },
+    {
+      t: "Tax Assistant",
+      live: true,
+      desc: "Auto-categorises every transaction, splits VAT, drafts journal entries.",
+      icon: <I.receipt />,
+    },
+    {
+      t: "Housekeeping Scheduler",
+      live: false,
+      desc: "Tomorrow's turnovers, predicted late tasks, supply forecasts.",
+      icon: <I.spark />,
+    },
+    {
+      t: "Owner Reporter",
+      live: false,
+      desc: "Narrative paragraph drafted on top of every statement.",
+      icon: <I.chart />,
+    },
+    {
+      t: "Listing Optimizer",
+      live: false,
+      desc: "Per-villa Airbnb/Booking copy tuned weekly with revenue feedback.",
+      icon: <I.globe />,
+    },
+  ];
+  return (
+    <section
+      id="ai"
+      style={{
+        padding: "110px 0",
+        background: "var(--forest-deep)",
+        color: "var(--cream-warm)",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: 0.08,
+          background:
+            "radial-gradient(60% 60% at 80% 20%, var(--gold) 0%, transparent 60%), radial-gradient(60% 60% at 10% 80%, var(--terra) 0%, transparent 60%)",
         }}
       />
+      <div
+        style={{
+          maxWidth: 1320,
+          margin: "0 auto",
+          padding: "0 28px",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.2fr 1fr",
+            gap: 60,
+            alignItems: "end",
+            marginBottom: 56,
+          }}
+        >
+          <div>
+            <div className="label" style={{ color: "rgba(244,239,230,0.65)" }}>
+              AI-native, not AI-bolted-on
+            </div>
+            <h2
+              className="display"
+              data-reveal
+              style={{
+                fontSize: "clamp(48px, 7vw, 84px)",
+                marginTop: 18,
+                marginBottom: 18,
+                color: "var(--cream-warm)",
+              }}
+            >
+              Six agents.
+              <br />
+              <em style={{ color: "var(--gold-soft)" }}>One quiet team.</em>
+            </h2>
+            <p
+              style={{
+                fontSize: 18,
+                color: "rgba(244,239,230,0.78)",
+                maxWidth: 560,
+              }}
+            >
+              Every agent reads the same data, writes to the same audit log,
+              and gets cut off the same way at the same budget. No
+              prompt-engineering required.
+            </p>
+            <div style={{ display: "flex", gap: 12, marginTop: 30 }}>
+              <Link
+                href="/dashboard/ai"
+                className="btn"
+                style={{
+                  background: "var(--cream-warm)",
+                  color: "var(--ink)",
+                }}
+              >
+                Browse the AI hub →
+              </Link>
+            </div>
+          </div>
+          <ConciergeTranscript />
+        </div>
 
-      {/* ──────────────────────────────────────────────────────────
-         Section 2 — AI-native band (Hey, need help?)
-         ────────────────────────────────────────────────────────── */}
-      <section className="border-y border-line-soft bg-gradient-ink-deep text-ink-inverse py-20 md:py-28">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-10 md:gap-14 items-center">
-            <div className="flex flex-col gap-5">
-              <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                AI-native by default
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 14,
+          }}
+        >
+          {agents.map((a, i) => (
+            <div
+              key={a.t}
+              data-reveal
+              data-reveal-delay={(i % 3) + 1}
+              style={{
+                padding: "20px 22px",
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.10)",
+                background: "rgba(255,255,255,0.03)",
+                display: "flex",
+                gap: 14,
+              }}
+            >
+              <span
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 999,
+                  background: "rgba(255,255,255,0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--gold-soft)",
+                  flexShrink: 0,
+                }}
+              >
+                {a.icon}
               </span>
-              <h2 className="font-display text-[44px] md:text-[64px] lg:text-[80px] leading-[1.02] tracking-[-0.02em]">
-                Hey, need help?
-              </h2>
-              <p className="text-base md:text-lg opacity-85 leading-relaxed max-w-xl">
-                Just ask Concierge AI — in any language, any channel,
-                24/7. Guests get answers in seconds. You get the audit
-                trail.
-              </p>
-              <div className="mt-2 flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <ActionPillButton
-                  label="Start your trial"
-                  href="/onboarding"
-                  variant="primary"
-                  arrow
-                  className="!bg-white !text-ink hover:!bg-white/90"
-                />
-                <ActionPillButton
-                  label="Browse all agents"
-                  href="/products/management-os#ai"
-                  variant="ghost"
-                  icon={Sparkles}
-                  className="!text-ink-inverse hover:!opacity-80"
-                />
-              </div>
-            </div>
-            <div className="relative flex items-center justify-center">
-              <div className="relative w-[260px] h-[260px] md:w-[320px] md:h-[320px]">
-                <div className="absolute inset-0 rounded-full border border-white/15" />
-                <div className="absolute inset-6 rounded-full border border-white/15" />
-                <div className="absolute inset-12 rounded-full border border-white/15" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white text-ink inline-flex items-center justify-center shadow-elevated-card">
-                    <Mic className="w-8 h-8 md:w-10 md:h-10" strokeWidth={1.5} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            id="ai"
-            className="mt-12 md:mt-16 grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4"
-          >
-            {MGMT_AGENTS.map((a) => (
-              <AgentCard
-                key={a.title}
-                title={a.title}
-                description={a.description}
-                live={a.live}
-                icon={a.icon}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ──────────────────────────────────────────────────────────
-         Section 3 — Cabinet rail
-         ────────────────────────────────────────────────────────── */}
-      <section className="border-b border-line-soft py-20 md:py-28">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-8 flex flex-col gap-10 md:gap-14">
-          <div className="flex items-end justify-between gap-6">
-            <div className="max-w-2xl">
-              <span className="text-label">Cabinets</span>
-              <h2 className="mt-3 font-display text-3xl md:text-5xl tracking-[-0.02em] text-ink leading-[1.05]">
-                Every operator. Every cabinet.
-              </h2>
-              <p className="mt-4 text-base md:text-lg text-ink-secondary leading-relaxed">
-                Five Mgmt-OS cabinets, each tuned to one role. Tap any
-                card to walk through the live demo.
-              </p>
-            </div>
-          </div>
-          <div className="-mx-6 md:-mx-8 overflow-x-auto pb-4">
-            <ul className="px-6 md:px-8 flex gap-4 md:gap-5 snap-x snap-mandatory">
-              {MGMT_CABINETS.map((c) => (
-                <li
-                  key={c.name}
-                  className="snap-start shrink-0 w-[280px] md:w-[320px]"
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 6,
+                  }}
                 >
-                  <CabinetPreviewCard cabinet={c} />
-                </li>
-              ))}
-            </ul>
+                  <span style={{ fontSize: 15, fontWeight: 500 }}>{a.t}</span>
+                  <span
+                    className="mono"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: "0.1em",
+                      padding: "2px 7px",
+                      borderRadius: 999,
+                      background: a.live
+                        ? "rgba(120,180,140,0.18)"
+                        : "rgba(255,255,255,0.07)",
+                      color: a.live ? "#A8D6B5" : "rgba(255,255,255,0.6)",
+                    }}
+                  >
+                    {a.live ? "LIVE" : "Q1 '26"}
+                  </span>
+                </div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 13,
+                    color: "rgba(244,239,230,0.7)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {a.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ConciergeTranscript() {
+  const messages: { from: "guest" | "ai"; t: string }[] = [
+    {
+      from: "guest",
+      t: "Hi! Pool heater for tomorrow 6am pls? We'd like to swim before checkout 🙏",
+    },
+    {
+      from: "ai",
+      t: "Of course, Sofia. Pool heated to 28°C from 05:30 to 09:00. I've also moved your checkout to 12:00 — no charge. Anything else for the morning?",
+    },
+    {
+      from: "guest",
+      t: "Wow thanks. Could we maybe get breakfast at 7? Two croissants and fruit",
+    },
+    {
+      from: "ai",
+      t: "Done. Chef Ari is making a fruit bowl with mangosteen + a hot croissant for 07:00 on the deck. ☕ I've added $14 to your stay.",
+    },
+  ];
+  return (
+    <div
+      style={{
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 18,
+        padding: 20,
+        background: "rgba(0,0,0,0.18)",
+        backdropFilter: "blur(8px)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          paddingBottom: 14,
+          marginBottom: 14,
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <div
+          className="mono"
+          style={{
+            fontSize: 11,
+            color: "rgba(244,239,230,0.6)",
+            textTransform: "uppercase",
+            letterSpacing: "0.16em",
+          }}
+        >
+          WhatsApp · Villa ES-S2 · Sofia M.
+        </div>
+        <span className="pulse-dot" style={{ marginLeft: "auto" }} />
+        <span style={{ fontSize: 11, color: "rgba(244,239,230,0.6)" }}>23:18</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            style={{
+              alignSelf: m.from === "guest" ? "flex-start" : "flex-end",
+              maxWidth: "82%",
+              padding: "9px 13px",
+              borderRadius: 14,
+              fontSize: 13.5,
+              lineHeight: 1.45,
+              background:
+                m.from === "guest"
+                  ? "rgba(255,255,255,0.08)"
+                  : "var(--gold-soft)",
+              color: m.from === "guest" ? "var(--cream-warm)" : "var(--ink)",
+            }}
+          >
+            {m.t}
+          </div>
+        ))}
+      </div>
+      <div
+        className="mono"
+        style={{
+          marginTop: 14,
+          paddingTop: 12,
+          borderTop: "1px dashed rgba(255,255,255,0.12)",
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: 11,
+          color: "rgba(244,239,230,0.55)",
+        }}
+      >
+        <span>Tasks created: 2 · pool_heat · breakfast</span>
+        <span>Escalation: none</span>
+      </div>
+    </div>
+  );
+}
+
+function OwnerSection() {
+  return (
+    <section id="owner" style={{ padding: "110px 0" }}>
+      <div
+        style={{
+          maxWidth: 1320,
+          margin: "0 auto",
+          padding: "0 28px",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 80,
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <div className="label">Owners</div>
+          <h2
+            className="display"
+            data-reveal
+            style={{ fontSize: "clamp(48px, 6vw, 72px)", marginTop: 18, marginBottom: 18 }}
+          >
+            The statement <em>your owner</em> actually wanted.
+          </h2>
+          <p style={{ fontSize: 18, color: "var(--ink-3)", maxWidth: 540 }}>
+            Every booking, channel fee, ops cost and owner-stay night, in one
+            PDF. With the audit trail underneath. Signed, sealed, and delivered
+            by 9am on the 1st.
+          </p>
+          <ul
+            style={{
+              listStyle: "none",
+              padding: 0,
+              margin: "32px 0",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            {[
+              "Hash-signed PDFs · same statement, same numbers, every owner",
+              "Line-by-line drill-down to the booking, the channel, the receipt",
+              "Owner-stay quotas tracked automatically — no embarrassing conversations",
+              "Wire instructions + distributions out of the same page",
+            ].map((l) => (
+              <li key={l} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <span style={{ color: "var(--terra)", flexShrink: 0, marginTop: 4 }}>
+                  <I.check width={16} height={16} />
+                </span>
+                <span style={{ color: "var(--ink-2)" }}>{l}</span>
+              </li>
+            ))}
+          </ul>
+          <Link href="/owner" className="btn btn-primary">
+            Open owner-side preview <I.arrow width={15} height={15} />
+          </Link>
+        </div>
+        <OwnerStatementMock />
+      </div>
+    </section>
+  );
+}
+
+function OwnerStatementMock() {
+  return (
+    <div
+      className="card"
+      style={{
+        padding: 32,
+        position: "relative",
+        boxShadow: "0 30px 60px -30px rgba(20,32,28,0.25)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 24,
+        }}
+      >
+        <div>
+          <div className="label">Owner statement</div>
+          <div
+            style={{
+              fontFamily: "var(--font-newsreader), serif",
+              fontSize: 32,
+              marginTop: 4,
+            }}
+          >
+            Emma Whitmore ·{" "}
+            <em style={{ color: "var(--terra)" }}>October 2026</em>
+          </div>
+          <div
+            className="mono"
+            style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 6 }}
+          >
+            STMT-2026-10-EW · hash 4f2a…91c8
           </div>
         </div>
-      </section>
+        <span className="badge badge-ok">Sent · 01 Nov 09:00</span>
+      </div>
 
-      {/* ──────────────────────────────────────────────────────────
-         Section 4 — Feature grid (6)
-         ────────────────────────────────────────────────────────── */}
-      <section className="border-b border-line-soft py-20 md:py-28 bg-muted/20">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-8 flex flex-col gap-10 md:gap-14">
-          <div className="max-w-2xl">
-            <span className="text-label">What you get</span>
-            <h2 className="mt-3 font-display text-3xl md:text-5xl tracking-[-0.02em] text-ink leading-[1.05]">
-              Six workflows. Zero add-ons.
-            </h2>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <tbody>
+          {[
+            ["Gross rental revenue", "+$24,820", "var(--ink)"],
+            ["Channel fees (Airbnb · Booking · direct)", "−$3,724", "var(--ink-3)"],
+            ["Management fee · 20%", "−$4,219", "var(--ink-3)"],
+            ["Operational costs · pool, garden, internet", "−$1,840", "var(--ink-3)"],
+            ["Owner stay · 4 nights @ rate ‑ free", "−$1,200", "var(--ink-3)"],
+            ["Adjustments · damage refund", "+$180", "var(--ok)"],
+          ].map(([label, val, color]) => (
+            <tr key={label} style={{ borderBottom: "1px solid var(--line-soft)" }}>
+              <td style={{ padding: "10px 0", color: "var(--ink-3)" }}>{label}</td>
+              <td
+                className="num"
+                style={{ padding: "10px 0", textAlign: "right", color }}
+              >
+                {val}
+              </td>
+            </tr>
+          ))}
+          <tr>
+            <td
+              style={{
+                padding: "16px 0 4px",
+                fontFamily: "var(--font-newsreader), serif",
+                fontSize: 20,
+              }}
+            >
+              Net to owner
+            </td>
+            <td
+              className="num"
+              style={{
+                padding: "16px 0 4px",
+                textAlign: "right",
+                fontSize: 24,
+                color: "var(--terra)",
+              }}
+            >
+              $14,017
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div
+        style={{
+          marginTop: 24,
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            padding: "12px 14px",
+            border: "1px dashed var(--line)",
+            borderRadius: 10,
+          }}
+        >
+          <div className="label">Distribution wire</div>
+          <div className="mono" style={{ fontSize: 13, marginTop: 4 }}>
+            HSBC SG · ****8112
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-            {MGMT_FEATURES.map((f) => (
-              <FeatureCard key={f.title} feature={f} />
+        </div>
+        <div
+          style={{
+            padding: "12px 14px",
+            border: "1px dashed var(--line)",
+            borderRadius: 10,
+          }}
+        >
+          <div className="label">PDF · 6 pages</div>
+          <span
+            style={{
+              color: "var(--terra)",
+              fontSize: 13,
+              marginTop: 4,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            Download <I.download width={13} height={13} />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeatureGrid() {
+  const feats = [
+    {
+      t: "Multi-channel sync",
+      d: "Booking.com, Airbnb, direct + 4 more. Per-villa, per-channel, with conflict detection.",
+      icon: <I.globe />,
+      accent: "var(--terra)",
+    },
+    {
+      t: "Mobile cleaner PWA",
+      d: "Offline-first photo upload, voice notes transcribed, geo-tagged completion stamp.",
+      icon: <I.phone />,
+      accent: "var(--forest)",
+    },
+    {
+      t: "Direct-booking website",
+      d: "Your URL. Stripe checkout. Channel-conflict-aware availability. SEO baked in.",
+      icon: <I.calendar />,
+      accent: "var(--gold)",
+    },
+    {
+      t: "Maintenance intelligence",
+      d: "Preventive AC, pool, generator, pest — scheduled around guest stays, never around them.",
+      icon: <I.shield />,
+      accent: "var(--forest)",
+    },
+    {
+      t: "Owner-stay quota",
+      d: "Free nights tracked, peak-season rules, transparent compensation. Owners stop calling you.",
+      icon: <I.bed />,
+      accent: "var(--terra)",
+    },
+    {
+      t: "Dynamic pricing rails",
+      d: "Per-villa base rate, season multipliers, MLOS, stop-sell — applied per channel.",
+      icon: <I.chart />,
+      accent: "var(--gold)",
+    },
+  ];
+  return (
+    <section
+      style={{
+        padding: "110px 0",
+        background: "var(--cream-warm)",
+        borderTop: "1px solid var(--line-soft)",
+        borderBottom: "1px solid var(--line-soft)",
+      }}
+    >
+      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0 28px" }}>
+        <div style={{ maxWidth: 780, marginBottom: 48 }}>
+          <div className="label">What you get</div>
+          <h2 className="display" style={{ fontSize: "clamp(40px, 5.5vw, 64px)", marginTop: 18 }}>
+            Six workflows. <em>Zero add-ons.</em>
+          </h2>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 18,
+          }}
+        >
+          {feats.map((f, i) => (
+            <div
+              key={f.t}
+              className="card"
+              data-reveal
+              data-reveal-delay={(i % 3) + 1}
+              style={{
+                padding: 28,
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+              }}
+            >
+              <span
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: "var(--cream-deep)",
+                  color: f.accent,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {f.icon}
+              </span>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: 18,
+                  fontFamily: "var(--font-newsreader), serif",
+                  fontWeight: 500,
+                }}
+              >
+                {f.t}
+              </h3>
+              <p
+                style={{
+                  margin: 0,
+                  color: "var(--ink-3)",
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                }}
+              >
+                {f.d}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Testimonial() {
+  return (
+    <section style={{ padding: "110px 0" }}>
+      <div
+        style={{
+          maxWidth: 1100,
+          margin: "0 auto",
+          padding: "0 28px",
+          textAlign: "center",
+        }}
+      >
+        <div className="label">From the operator chair</div>
+        <p
+          style={{
+            fontFamily: "var(--font-newsreader), serif",
+            fontSize: "clamp(28px, 4vw, 48px)",
+            lineHeight: 1.18,
+            fontStyle: "italic",
+            marginTop: 30,
+            color: "var(--ink)",
+            fontWeight: 300,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          <span
+            style={{
+              color: "var(--terra)",
+              fontSize: 64,
+              lineHeight: 0,
+              verticalAlign: -12,
+              marginRight: 4,
+            }}
+          >
+            &ldquo;
+          </span>
+          Before Arconique, the eleven villas were running me. Now I close my
+          laptop at six and the system keeps going — owners get their PDFs,
+          guests get their answers, and I get my evenings back.
+        </p>
+        <div
+          style={{
+            marginTop: 36,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 14,
+          }}
+        >
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 999,
+              background: "linear-gradient(135deg,#bc9a5c,#c4583c)",
+            }}
+          />
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontWeight: 500 }}>Made Sutrisno</div>
+            <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>
+              GM · Eternal Estates · 11 villas · Pererenan
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Pricing() {
+  const tiers = [
+    {
+      name: "Starter",
+      price: "$190",
+      per: "villa/mo",
+      desc: "For independent owners running 1–5 villas. Direct + 3 channels included.",
+      feats: [
+        "Bookings + channels",
+        "Owner statements (1 owner)",
+        "Concierge AI · 200 msg/mo",
+        "Cleaner PWA, 5 users",
+        "Email support",
+      ],
+      highlight: false,
+    },
+    {
+      name: "Operator",
+      price: "$390",
+      per: "villa/mo",
+      desc: "For multi-owner managers running 5–25 villas. Audit + custom statements.",
+      feats: [
+        "Everything in Starter",
+        "Multi-owner statements + DPA",
+        "Concierge AI · unlimited",
+        "Maintenance intelligence",
+        "Direct-booking website",
+        "Slack-channel support",
+      ],
+      highlight: true,
+    },
+    {
+      name: "Estate",
+      price: "Custom",
+      per: "contracted",
+      desc: "Portfolios over 25 villas, branded portals, on-island onboarding.",
+      feats: [
+        "Dedicated success manager",
+        "On-island deployment week",
+        "Custom integrations (PMS, ERP)",
+        "White-label owner portal",
+        "99.9% SLA",
+      ],
+      highlight: false,
+    },
+  ];
+  return (
+    <section
+      id="pricing"
+      style={{
+        padding: "110px 0",
+        background: "var(--cream-warm)",
+        borderTop: "1px solid var(--line-soft)",
+      }}
+    >
+      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0 28px" }}>
+        <div style={{ textAlign: "center", maxWidth: 720, margin: "0 auto 56px" }}>
+          <div className="label">Pricing</div>
+          <h2 className="display" style={{ fontSize: "clamp(40px, 5.5vw, 64px)", marginTop: 18 }}>
+            From $190/villa · <em>14-day trial</em> · No card.
+          </h2>
+          <p style={{ fontSize: 17, color: "var(--ink-3)", marginTop: 14 }}>
+            Annual contracts get 20% off. All plans include the Bali ops
+            playbook + a 90-minute migration call.
+          </p>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 18,
+          }}
+        >
+          {tiers.map((t, i) => (
+            <div
+              key={t.name}
+              className="card"
+              data-reveal
+              data-reveal-delay={i + 1}
+              style={{
+                padding: 32,
+                display: "flex",
+                flexDirection: "column",
+                gap: 18,
+                border: t.highlight
+                  ? "1.5px solid var(--ink)"
+                  : "1px solid var(--line-soft)",
+                background: t.highlight ? "var(--paper)" : "var(--cream)",
+                position: "relative",
+              }}
+            >
+              {t.highlight && (
+                <span
+                  style={{ position: "absolute", top: -12, left: 32 }}
+                  className="badge badge-ink"
+                >
+                  Recommended
+                </span>
+              )}
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontFamily: "var(--font-newsreader), serif",
+                      fontSize: 24,
+                    }}
+                  >
+                    {t.name}
+                  </h3>
+                  <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                    {t.per}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 6,
+                    marginTop: 14,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "var(--font-newsreader), serif",
+                      fontSize: 48,
+                      lineHeight: 1,
+                      fontWeight: 400,
+                    }}
+                  >
+                    {t.price}
+                  </span>
+                </div>
+                <p
+                  style={{
+                    color: "var(--ink-3)",
+                    fontSize: 14,
+                    marginTop: 12,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {t.desc}
+                </p>
+              </div>
+              <ul
+                style={{
+                  listStyle: "none",
+                  padding: 0,
+                  margin: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  fontSize: 14,
+                }}
+              >
+                {t.feats.map((f) => (
+                  <li
+                    key={f}
+                    style={{ display: "flex", gap: 9, color: "var(--ink-2)" }}
+                  >
+                    <span
+                      style={{
+                        color: "var(--terra)",
+                        flexShrink: 0,
+                        marginTop: 2,
+                      }}
+                    >
+                      <I.check width={14} height={14} />
+                    </span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={t.price === "Custom" ? "/contact" : "/signup"}
+                className={"btn " + (t.highlight ? "btn-primary" : "btn-secondary")}
+                style={{ marginTop: "auto", justifyContent: "center" }}
+              >
+                {t.price === "Custom" ? "Talk to sales" : "Start trial"}{" "}
+                <I.arrow width={14} height={14} />
+              </Link>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CTABand() {
+  return (
+    <section style={{ padding: "100px 28px" }}>
+      <div style={{ maxWidth: 1320, margin: "0 auto" }}>
+        <div
+          style={{
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: 24,
+            background: "var(--forest-deep)",
+            color: "var(--cream-warm)",
+            padding: "80px 64px",
+            display: "grid",
+            gridTemplateColumns: "1.4fr 1fr",
+            gap: 48,
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              opacity: 0.15,
+              background:
+                "radial-gradient(60% 80% at 100% 0%, var(--gold) 0%, transparent 60%)",
+            }}
+          />
+          <div style={{ position: "relative" }}>
+            <div className="label" style={{ color: "rgba(244,239,230,0.6)" }}>
+              Try it
+            </div>
+            <h2
+              className="display"
+              data-reveal
+              style={{
+                fontSize: "clamp(48px, 6vw, 72px)",
+                marginTop: 18,
+                marginBottom: 18,
+                color: "var(--cream-warm)",
+              }}
+            >
+              Run tonight on Arconique.
+            </h2>
+            <p
+              style={{
+                maxWidth: 520,
+                fontSize: 17,
+                color: "rgba(244,239,230,0.78)",
+              }}
+            >
+              14 days. Every cabinet. No credit card. Cancel anytime — your
+              data exports as CSV/XLSX if you leave.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                marginTop: 30,
+                flexWrap: "wrap",
+              }}
+            >
+              <Link
+                href="/signup"
+                className="btn btn-lg"
+                style={{ background: "var(--cream-warm)", color: "var(--ink)" }}
+              >
+                Start your trial <I.arrow width={15} height={15} />
+              </Link>
+              <Link
+                href="/dashboard"
+                className="btn btn-lg"
+                style={{
+                  background: "transparent",
+                  color: "var(--cream-warm)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                }}
+              >
+                See live demo
+              </Link>
+            </div>
+          </div>
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            {[
+              "Set up your account in under a minute.",
+              "Import villas via CSV, Airbnb iCal, or PMS.",
+              "Invite your team — 20 roles ready.",
+              "Run your first owner statement on day three.",
+            ].map((s, i) => (
+              <div
+                key={s}
+                style={{
+                  display: "flex",
+                  gap: 14,
+                  padding: "14px 18px",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.04)",
+                }}
+              >
+                <span
+                  className="num"
+                  style={{
+                    color: "var(--gold-soft)",
+                    fontSize: 14,
+                    width: 22,
+                  }}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span style={{ fontSize: 14 }}>{s}</span>
+              </div>
             ))}
           </div>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      {/* ──────────────────────────────────────────────────────────
-         Section 5 — Phone preview band
-         ────────────────────────────────────────────────────────── */}
-      <section className="border-b border-line-soft py-20 md:py-28">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-8 flex flex-col gap-10 md:gap-14">
-          <div className="max-w-2xl mx-auto text-center">
-            <span className="text-label">Field-first</span>
-            <h2 className="mt-3 font-display text-3xl md:text-5xl tracking-[-0.02em] text-ink leading-[1.05]">
-              Built for the field. From the field.
-            </h2>
-            <p className="mt-5 text-base md:text-lg text-ink-secondary leading-relaxed">
-              Cleaners, security, supervisors get their own
-              offline-first PWA. No login friction. No 4G timeouts.
-            </p>
-          </div>
-          <div className="relative mx-auto w-full max-w-3xl flex items-center justify-center">
-            <div className="relative w-[280px] md:w-[340px] h-[572px] md:h-[700px] rounded-[44px] bg-ink shadow-elevated-card overflow-hidden border-8 border-ink">
-              <Image
-                src="/landing/phone-housekeeping.webp"
-                alt="Housekeeping mobile PWA preview"
-                fill
-                sizes="(min-width: 768px) 340px, 280px"
-                className="object-cover"
-              />
+function MgmtFooter() {
+  const cols: { h: string; items: [string, string][] }[] = [
+    {
+      h: "Product",
+      items: [
+        ["Tour", "#product"],
+        ["Cabinets", "#cabinets"],
+        ["Concierge AI", "#ai"],
+        ["Owners", "/owner"],
+        ["Pricing", "#pricing"],
+      ],
+    },
+    {
+      h: "Demo",
+      items: [
+        ["Front office", "/dashboard"],
+        ["Owner portal", "/owner"],
+        ["Sign in", "/login"],
+        ["Start trial", "/signup"],
+      ],
+    },
+    {
+      h: "Company",
+      items: [
+        ["About", "/contact"],
+        ["Customers", "/portfolio"],
+        ["Contact", "/contact"],
+        ["Careers", "/contact"],
+      ],
+    },
+    {
+      h: "Legal",
+      items: [
+        ["Terms", "/legal/terms"],
+        ["Privacy", "/legal/privacy"],
+        ["DPA", "/legal/dpa"],
+        ["Status", "/contact"],
+      ],
+    },
+  ];
+  return (
+    <footer
+      style={{
+        borderTop: "1px solid var(--line-soft)",
+        marginTop: 0,
+        background: "var(--cream)",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1320,
+          margin: "0 auto",
+          padding: "56px 28px 36px",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.5fr 1fr 1fr 1fr 1fr",
+            gap: 32,
+          }}
+        >
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+              }}
+            >
+              <span style={{ color: "var(--forest)" }}>
+                <I.logo width={22} height={22} />
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-newsreader), serif",
+                  fontSize: 20,
+                }}
+              >
+                Arconique
+              </span>
             </div>
-            <FloatingFieldCard
-              className="hidden md:flex left-[6%] top-[18%]"
-              title="Today"
-              value="6 / 8 tasks ✓"
-              tone="emerald"
-            />
-            <FloatingFieldCard
-              className="hidden md:flex right-[8%] top-[14%]"
-              title="Photo synced"
-              value="18:42"
-              tone="sage"
-            />
-            <FloatingFieldCard
-              className="hidden md:flex left-[8%] bottom-[18%]"
-              title="Voice note"
-              value="AI transcribed"
-              tone="coral"
-            />
-            <FloatingFieldCard
-              className="hidden md:flex right-[6%] bottom-[14%]"
-              title="Tomorrow"
-              value="4 turnovers ready"
-              tone="gold"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ──────────────────────────────────────────────────────────
-         Section 6 — Social proof (dot grid + concentric rings)
-         ────────────────────────────────────────────────────────── */}
-      <section className="border-b border-line-soft py-20 md:py-28 bg-muted/20">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-stretch">
-          <DotGridStreak
-            totalDots={200}
-            filledDots={200}
-            label="Bali villas under management"
-            sublabel="across 14 owner accounts on Arconique"
-            tone="emerald"
-          />
-          <ConcentricRings
-            rings={[
-              { label: "$14K", value: "MTD revenue", fill: "ink-deep" },
-              { label: "$9K", value: "Net to owner", fill: "emerald" },
-              { label: "$6K", value: "Direct bookings", fill: "gold" },
-              { label: "$4K", value: "Repeat guests", fill: "coral" },
-            ]}
-            heading="Average villa, after migration"
-            subline="Composite of 200+ Bali villas. Direct bookings + repeat-guest share grow once the concierge AI is on."
-          />
-        </div>
-      </section>
-
-      {/* ──────────────────────────────────────────────────────────
-         Section 7 — Pricing teaser (from pricing-tiers.ts)
-         ────────────────────────────────────────────────────────── */}
-      <section className="border-b border-line-soft py-20 md:py-28">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-8 flex flex-col gap-10 md:gap-14">
-          <div className="max-w-2xl mx-auto text-center">
-            <span className="text-label">Pricing</span>
-            <h2 className="mt-3 font-display text-3xl md:text-5xl tracking-[-0.02em] text-ink leading-[1.05]">
-              From ${mgmtPlan.tiers[0].monthlyUsd}/mo · 14-day trial · No
-              credit card.
-            </h2>
-            <p className="mt-5 text-base md:text-lg text-ink-secondary leading-relaxed">
-              {mgmtPlan.tagline}
+            <p
+              style={{
+                color: "var(--ink-3)",
+                fontSize: 14,
+                maxWidth: 320,
+                margin: 0,
+              }}
+            >
+              The operating system for premium hospitality. Built in Bali for
+              villa and boutique-hotel operators worldwide.
+            </p>
+            <p
+              className="mono"
+              style={{ marginTop: 18, fontSize: 12, color: "var(--ink-4)" }}
+            >
+              management.arconique.com
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-            {mgmtPlan.tiers
-              .filter((t) => t.key !== "enterprise")
-              .map((t) => (
-                <PricingTeaserCard
-                  key={t.key}
-                  name={t.name}
-                  monthlyUsd={t.monthlyUsd}
-                  pitch={t.pitch}
-                  highlight={t.highlight}
-                  features={t.features.slice(0, 4)}
-                />
-              ))}
-          </div>
-          <div className="flex justify-center">
-            <ActionPillButton
-              label="See full pricing"
-              href="/pricing"
-              variant="secondary"
-              arrow
-              size="lg"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ──────────────────────────────────────────────────────────
-         Section 8 — Trial CTA band (coral)
-         ────────────────────────────────────────────────────────── */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-8">
-          <div className="rounded-3xl bg-gradient-coral-soft shadow-elevated-card p-10 md:p-16 flex flex-col items-center text-center gap-6">
-            <span className="text-label">Get started</span>
-            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl tracking-[-0.02em] text-ink leading-[1.05] max-w-3xl">
-              14 days. Every cabinet. No credit card.
-            </h2>
-            <p className="text-base md:text-lg text-ink-secondary leading-relaxed max-w-xl">
-              Cancel anytime. Your data exports as CSV/XLSX if you
-              leave — no lock-in, no penalty.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <ActionPillButton
-                label="Start your trial"
-                href="/onboarding"
-                variant="primary"
-                arrow
-                size="lg"
-              />
-              <ActionPillButton
-                label="See live demo"
-                href="/demo"
-                variant="secondary"
-                size="lg"
-              />
+          {cols.map((col) => (
+            <div key={col.h}>
+              <div className="label" style={{ marginBottom: 14 }}>
+                {col.h}
+              </div>
+              <ul
+                style={{
+                  listStyle: "none",
+                  padding: 0,
+                  margin: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 9,
+                }}
+              >
+                {col.items.map(([l, href]) => (
+                  <li key={l}>
+                    <Link
+                      href={href}
+                      style={{ color: "var(--ink-3)", fontSize: 14 }}
+                    >
+                      {l}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
+          ))}
         </div>
-      </section>
-    </>
-  );
-}
-
-// ===========================================================================
-// Data
-// ===========================================================================
-
-interface MgmtAgent {
-  title: string;
-  description: string;
-  live: boolean;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-}
-
-const MGMT_AGENTS: MgmtAgent[] = [
-  {
-    title: "Concierge AI",
-    description:
-      "Guest-facing. Multilingual. WhatsApp + email + chat. Routes to humans on the edge cases.",
-    live: true,
-    icon: HeartHandshake,
-  },
-  {
-    title: "Tax Assistant",
-    description:
-      "Auto-categorises every transaction, splits VAT, drafts journal entries the bookkeeper just approves.",
-    live: true,
-    icon: Sparkles,
-  },
-  {
-    title: "Front-Office Copilot",
-    description:
-      "Arrival exceptions, SLA breaches, overdue follow-ups. One AI watching the front desk for you.",
-    live: false,
-    icon: BellRing,
-  },
-  {
-    title: "Housekeeping Scheduler",
-    description:
-      "Tomorrow's turnovers, predicted late tasks, supply forecasts. Plans the day before you wake up.",
-    live: false,
-    icon: Calendar,
-  },
-];
-
-interface MgmtCabinet {
-  name: string;
-  description: string;
-  href: string;
-  asset: string;
-  tone: "emerald" | "coral" | "gold" | "sage" | "ink";
-}
-
-const MGMT_CABINETS: MgmtCabinet[] = [
-  {
-    name: "Front Office",
-    description: "Tonight's occupancy + arrivals + readiness board.",
-    href: "/dashboard/front-office",
-    asset: "/landing/cabinet-preview-frontoffice.webp",
-    tone: "emerald",
-  },
-  {
-    name: "Concierge",
-    description: "Active sessions, handoffs, service-order revenue.",
-    href: "/dashboard/concierge",
-    asset: "/landing/cabinet-preview-concierge.webp",
-    tone: "coral",
-  },
-  {
-    name: "Owner Portal",
-    description: "Statements, distributions, owner-stay bookings.",
-    href: "/owner",
-    asset: "/landing/cabinet-preview-owner.webp",
-    tone: "gold",
-  },
-  {
-    name: "Housekeeping",
-    description: "Today's turnovers, photos, supply runs.",
-    href: "/dashboard/housekeeping",
-    asset: "/landing/cabinet-preview-housekeeping.webp",
-    tone: "sage",
-  },
-  {
-    name: "Security",
-    description: "Camera health, patrols, auth-event timeline.",
-    href: "/dashboard/security",
-    asset: "/landing/cabinet-preview-security.webp",
-    tone: "ink",
-  },
-];
-
-interface MgmtFeature {
-  title: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  href?: string;
-}
-
-const MGMT_FEATURES: MgmtFeature[] = [
-  {
-    title: "Multi-channel sync",
-    description:
-      "Booking.com, Airbnb, direct, and 4 more. Per-villa-per-channel sync with conflict detection.",
-    icon: Globe,
-    href: "/features/management-os#channel-manager",
-  },
-  {
-    title: "Owner statements automation",
-    description:
-      "One click, sent to owner. Line-by-line audit trail backed by Stripe + bank reconciliation.",
-    icon: HeartHandshake,
-    href: "/features/management-os#owner-statements",
-  },
-  {
-    title: "AI Concierge for guests",
-    description:
-      "Multilingual, 24/7. Escalates only what truly needs you. Every reply auditable.",
-    icon: Sparkles,
-    href: "/features/management-os#concierge-ai",
-  },
-  {
-    title: "Mobile cleaner PWA",
-    description:
-      "Offline-first photo upload, voice notes auto-transcribed, geo-tagged completion stamp.",
-    icon: Camera,
-    href: "/features/management-os#cleaner-pwa",
-  },
-  {
-    title: "Direct booking website",
-    description:
-      "Your villa, your URL. Stripe-backed checkout. Channel-conflict-aware availability.",
-    icon: Calendar,
-    href: "/features/management-os#direct-booking",
-  },
-  {
-    title: "Security & access control",
-    description:
-      "Digital locks, patrol logs, auth-event timeline. Camera registry — never streams video.",
-    icon: Wrench,
-    href: "/features/management-os#security",
-  },
-];
-
-// ===========================================================================
-// Local components
-// ===========================================================================
-
-function AgentCard({
-  title,
-  description,
-  live,
-  icon: Icon,
-}: MgmtAgent) {
-  return (
-    <div className="rounded-3xl border border-white/15 bg-white/5 backdrop-blur-md p-5 md:p-6 flex items-start gap-4 hover:bg-white/10 transition-colors">
-      <span className="shrink-0 w-10 h-10 rounded-full bg-white/15 inline-flex items-center justify-center">
-        <Icon className="w-4 h-4 text-ink-inverse" strokeWidth={1.75} />
-      </span>
-      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm md:text-base font-medium">{title}</h3>
-          <span
-            className={cn(
-              "text-[10px] font-mono uppercase tracking-[0.12em] px-2 py-0.5 rounded-full",
-              live
-                ? "bg-success/30 text-success"
-                : "bg-white/15 opacity-80",
-            )}
-          >
-            {live ? "Live" : "Coming soon"}
+        <div
+          style={{
+            marginTop: 48,
+            paddingTop: 20,
+            borderTop: "1px solid var(--line-soft)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: 12,
+            color: "var(--ink-4)",
+          }}
+        >
+          <span className="mono">
+            © 2026 Arconique OS · Made between Bali and Berlin
           </span>
+          <span className="mono">v9I · uptime 99.98%</span>
         </div>
-        <p className="text-xs md:text-sm opacity-80 leading-relaxed">
-          {description}
-        </p>
       </div>
-    </div>
-  );
-}
-
-function CabinetPreviewCard({ cabinet }: { cabinet: MgmtCabinet }) {
-  return (
-    <Link
-      href={cabinet.href}
-      className="group block w-full h-full rounded-3xl border border-line-soft bg-surface shadow-soft-card hover:shadow-elevated-card transition-all duration-200 hover:-translate-y-0.5 overflow-hidden"
-    >
-      <div className="relative h-[360px] md:h-[400px] w-full">
-        <Image
-          src={cabinet.asset}
-          alt={`${cabinet.name} cabinet preview`}
-          fill
-          sizes="(min-width: 768px) 320px, 280px"
-          className="object-cover"
-        />
-      </div>
-      <div className="p-5 md:p-6 flex flex-col gap-2">
-        <h3 className="text-base font-medium text-ink">{cabinet.name}</h3>
-        <p className="text-xs md:text-sm text-ink-secondary leading-relaxed line-clamp-2">
-          {cabinet.description}
-        </p>
-        <span className="mt-2 inline-flex items-center gap-1 text-xs text-ink-tertiary group-hover:text-ink transition-colors">
-          Tour the cabinet
-          <ArrowRight
-            className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5"
-            strokeWidth={1.75}
-          />
-        </span>
-      </div>
-    </Link>
-  );
-}
-
-function FeatureCard({ feature }: { feature: MgmtFeature }) {
-  const Icon = feature.icon;
-  const body = (
-    <>
-      <span className="w-10 h-10 rounded-full bg-gradient-emerald-soft border border-line-soft inline-flex items-center justify-center">
-        <Icon className="w-4 h-4 text-ink" strokeWidth={1.75} />
-      </span>
-      <h3 className="font-medium text-base text-ink">{feature.title}</h3>
-      <p className="text-sm text-ink-secondary leading-relaxed">
-        {feature.description}
-      </p>
-      {feature.href && (
-        <span className="mt-auto inline-flex items-center gap-1 text-xs text-ink-tertiary">
-          Learn more
-          <ArrowRight className="w-3 h-3" strokeWidth={1.75} />
-        </span>
-      )}
-    </>
-  );
-  const cls =
-    "rounded-3xl border border-line-soft bg-surface p-7 flex flex-col gap-3 h-full shadow-soft-card hover:shadow-elevated-card transition-shadow";
-  return feature.href ? (
-    <Link href={feature.href} className={cn(cls, "hover:border-line-strong")}>
-      {body}
-    </Link>
-  ) : (
-    <div className={cls}>{body}</div>
-  );
-}
-
-function FloatingFieldCard({
-  title,
-  value,
-  tone,
-  className,
-}: {
-  title: string;
-  value: string;
-  tone: "emerald" | "gold" | "coral" | "sage";
-  className?: string;
-}) {
-  const dot =
-    tone === "emerald"
-      ? "bg-success"
-      : tone === "gold"
-        ? "bg-gold"
-        : tone === "coral"
-          ? "bg-warning"
-          : "bg-info";
-  return (
-    <div
-      className={cn(
-        "absolute w-[180px] rounded-2xl bg-white/95 backdrop-blur-md border border-line-soft shadow-elevated-card p-4 flex-col gap-1.5",
-        className,
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <span className={cn("w-2 h-2 rounded-full", dot)} aria-hidden />
-        <span className="text-[10px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
-          {title}
-        </span>
-      </div>
-      <p className="text-sm font-mono tabular-nums text-ink leading-tight">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function PricingTeaserCard({
-  name,
-  monthlyUsd,
-  pitch,
-  highlight,
-  features,
-}: {
-  name: string;
-  monthlyUsd: number | null;
-  pitch: string;
-  highlight?: boolean;
-  features: string[];
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-3xl border bg-surface p-7 flex flex-col gap-4 h-full shadow-soft-card",
-        highlight
-          ? "border-ink ring-1 ring-ink"
-          : "border-line-soft hover:shadow-elevated-card transition-shadow",
-      )}
-    >
-      <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-base font-medium text-ink">{name}</h3>
-        {highlight && (
-          <span className="text-[10px] uppercase tracking-[0.12em] px-2 py-0.5 rounded-full bg-ink text-ink-inverse">
-            Recommended
-          </span>
-        )}
-      </div>
-      <p className="text-[28px] md:text-[36px] leading-none font-mono tabular-nums text-ink">
-        {monthlyUsd === null ? (
-          "Custom"
-        ) : (
-          <>
-            ${monthlyUsd}
-            <span className="text-sm text-ink-tertiary"> /mo</span>
-          </>
-        )}
-      </p>
-      <p className="text-xs text-ink-secondary leading-relaxed">{pitch}</p>
-      <ul className="flex flex-col gap-1.5 text-xs text-ink-secondary mt-2">
-        {features.map((f) => (
-          <li key={f} className="flex items-start gap-2">
-            <Star
-              className="w-3 h-3 mt-0.5 fill-current text-gold shrink-0"
-              strokeWidth={0}
-            />
-            {f}
-          </li>
-        ))}
-      </ul>
-    </div>
+    </footer>
   );
 }
