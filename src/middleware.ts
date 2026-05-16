@@ -60,7 +60,10 @@ export const PRODUCT_SUBDOMAINS = {
       "/owner",
       "/field",
       "/stay",
-      "/landing/management-os",
+      // HF-13 — canonical Mgmt landing on this subdomain. `/` rewrites
+      // here; direct hits at `/products/management-os` must pass the
+      // allow-list without bouncing to defaultLanding.
+      "/products/management-os",
       "/login",
       "/setup",
       "/sign-up",
@@ -76,7 +79,7 @@ export const PRODUCT_SUBDOMAINS = {
       "/investor-portal",
       "/buyer-portal",
       "/vendor",
-      "/landing/development-os",
+      "/products/development-os",
       "/login",
       "/setup",
       "/sign-up",
@@ -248,20 +251,50 @@ export function extractTenantSlug(hostname: string): string | null {
   return null;
 }
 
-/** ARCH-1 — rewrite target for `/` on a product subdomain. Returns null
- *  when `/` should pass through (subscription keeps the umbrella sales
- *  home; localhost / preview keeps current behaviour). */
+/** ARCH-1 + HF-13 — rewrite target for `/` on a product subdomain.
+ *  Returns null when `/` should pass through (subscription keeps the
+ *  umbrella sales home; localhost / preview keeps current behaviour).
+ *
+ *  HF-13: `/` on the mgmt/dev subdomains rewrites to the canonical
+ *  `_handoff/` landing (Tasks 3+4) under `/products/<slug>` instead
+ *  of the original `/landing/<slug>` placeholders. The placeholder
+ *  routes were retired in this hotfix. */
 function rootRewriteTarget(product: ProductSubdomain): string | null {
   switch (product) {
     case "management":
-      return "/landing/management-os";
+      return "/products/management-os";
     case "development":
-      return "/landing/development-os";
+      return "/products/development-os";
     case "platform":
       return "/platform";
     case "subscription":
       return null;
   }
+}
+
+/** HF-13 — direct cross-product landing redirects. Sending the user
+ *  who lands on `management.arconique.com/products/development-os` to
+ *  `development.arconique.com/` (canonical root) is cleaner than
+ *  bouncing to `subscription.arconique.com/products/development-os`,
+ *  which is where the generic unique-prefix routing would otherwise
+ *  send them (since `/products` is a subscription-owned prefix).
+ *
+ *  Checked BEFORE the generic `detectPathProduct` so it wins for
+ *  these two specific paths. */
+const PRODUCT_LANDING_TO_SUBDOMAIN: Record<string, ProductSubdomain> = {
+  "/products/management-os": "management",
+  "/products/development-os": "development",
+};
+
+function landingTargetForPath(
+  pathname: string,
+): ProductSubdomain | null {
+  for (const [prefix, product] of Object.entries(PRODUCT_LANDING_TO_SUBDOMAIN)) {
+    if (pathname === prefix || pathname.startsWith(prefix + "/")) {
+      return product;
+    }
+  }
+  return null;
 }
 
 // ============================================================================
@@ -305,10 +338,50 @@ export function middleware(request: NextRequest) {
       return withProductHeaders(NextResponse.next(), product, hostname);
     }
 
+    // HF-13 — `/products/<slug>` is authoritative routing. Three cases:
+    //
+    //   1. current product matches the slug         → pass through,
+    //      this is the canonical landing on its own subdomain.
+    //   2. current product is subscription          → pass through,
+    //      subscription serves /products/* as the marketing umbrella
+    //      (don't bounce deep-linked customer URLs).
+    //   3. current product is anything else (mgmt, dev, platform)
+    //      on a different slug                      → 307 to the
+    //      canonical subdomain ROOT (not the /products path), in
+    //      production only (skip on localhost / preview).
+    //
+    // Runs BEFORE the generic unique-prefix sweep AND short-circuits
+    // it for these paths — otherwise the generic sweep would see
+    // `/products/management-os` as uniquely management-owned (after
+    // adding it to management.allowedPrefixes for HF-13) and bounce
+    // subscription's umbrella surface away.
+    const landingProduct = landingTargetForPath(pathname);
+    if (landingProduct) {
+      if (landingProduct === product || product === "subscription") {
+        // Fall through to the allow-list check below.
+      } else if (!isLocalOrPreviewHost(hostname)) {
+        const canonical = new URL(request.nextUrl.toString());
+        canonical.protocol = "https:";
+        canonical.host = `${landingProduct}.arconique.com`;
+        canonical.port = "";
+        canonical.pathname = "/";
+        canonical.search = "";
+        return NextResponse.redirect(canonical, { status: 307 });
+      }
+      // On localhost / preview: pass through (render the path as-is).
+      // Fall through to the allow-list check.
+    }
+
     // Cross-product canonicalisation — only in production. Localhost +
     // *.vercel.app render the path as-is so devs/previews never need DNS
     // for sibling subdomains.
-    if (!isLocalOrPreviewHost(hostname)) {
+    //
+    // HF-13: skip this entire block when the path is `/products/<slug>`
+    // — it was already handled definitively above. Without this guard
+    // the generic sweep would treat `/products/management-os` as
+    // uniquely management-owned (after the HF-13 allowedPrefixes
+    // addition) and bounce subscription's umbrella surface to mgmt.
+    if (!isLocalOrPreviewHost(hostname) && landingProduct === null) {
       const pathProduct = detectPathProduct(pathname);
       if (pathProduct && pathProduct !== product) {
         const canonical = new URL(request.nextUrl.toString());

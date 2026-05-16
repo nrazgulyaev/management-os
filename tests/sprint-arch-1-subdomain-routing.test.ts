@@ -96,14 +96,17 @@ test("arch-1 — isLocalOrPreviewHost rejects production hosts", async () => {
 // Source-inspect invariants — middleware shape
 // ============================================================================
 
-test("arch-1 — middleware rewrites `/` on management to /landing/management-os", () => {
+test("arch-1 + hf-13 — middleware rewrites `/` on management to /products/management-os", () => {
   const src = read("src/middleware.ts");
-  assert.match(src, /case "management":\s*return "\/landing\/management-os"/);
+  // HF-13 retargets root rewrites from the ARCH-1 placeholders
+  // (/landing/<slug>) onto the full Tasks 3+4 landings at
+  // /products/<slug>.
+  assert.match(src, /case "management":\s*return "\/products\/management-os"/);
 });
 
-test("arch-1 — middleware rewrites `/` on development to /landing/development-os", () => {
+test("arch-1 + hf-13 — middleware rewrites `/` on development to /products/development-os", () => {
   const src = read("src/middleware.ts");
-  assert.match(src, /case "development":\s*return "\/landing\/development-os"/);
+  assert.match(src, /case "development":\s*return "\/products\/development-os"/);
 });
 
 test("arch-1 — middleware rewrites `/` on platform to /platform (layout enforces super_admin)", () => {
@@ -142,29 +145,84 @@ test("arch-1 — middleware preserves /api/* pass-through before any rewrite/red
 });
 
 // ============================================================================
-// Placeholder landing pages exist
+// Canonical landing routes — HF-13
 // ============================================================================
 
-test("arch-1 — placeholder landing pages exist for mgmt + dev OS", () => {
+test("hf-13 — canonical /products/<slug> landings exist (Tasks 3+4 ports)", () => {
   assert.ok(
-    existsSync(resolve(ROOT, "src/app/landing/management-os/page.tsx")),
-    "missing src/app/landing/management-os/page.tsx",
+    existsSync(
+      resolve(ROOT, "src/app/(public)/products/management-os/page.tsx"),
+    ),
+    "missing /products/management-os page (Tasks 3 port)",
   );
   assert.ok(
-    existsSync(resolve(ROOT, "src/app/landing/development-os/page.tsx")),
-    "missing src/app/landing/development-os/page.tsx",
+    existsSync(
+      resolve(ROOT, "src/app/(public)/products/development-os/page.tsx"),
+    ),
+    "missing /products/development-os page (Tasks 4 port)",
   );
 });
 
-test("arch-1 — landing routes added to management+development allowedPrefixes (so the rewrite target passes the allow-list)", () => {
+test("hf-13 — ARCH-1 /landing/<slug> placeholder pages retired", () => {
+  // Confirm the placeholder directories are gone — they're no longer
+  // reachable now that `/` rewrites land on /products/<slug>.
+  assert.ok(
+    !existsSync(resolve(ROOT, "src/app/landing/management-os/page.tsx")),
+    "stale /landing/management-os placeholder still present",
+  );
+  assert.ok(
+    !existsSync(resolve(ROOT, "src/app/landing/development-os/page.tsx")),
+    "stale /landing/development-os placeholder still present",
+  );
+});
+
+test("hf-13 — /products/<slug> added to management + development allowedPrefixes", () => {
   const src = read("src/middleware.ts");
-  // The rewrite target route must itself be allowed on the matching
-  // product, or a follow-up direct hit on /landing/management-os from
-  // the management subdomain would 307 to /.
+  // The rewrite target must itself be allowed on the matching product,
+  // or a direct hit at /products/management-os from the management
+  // subdomain would 307 back to /.
   const mgmtBlock = src.match(/management:\s*\{[\s\S]+?defaultLanding/)?.[0] ?? "";
   const devBlock = src.match(/development:\s*\{[\s\S]+?defaultLanding/)?.[0] ?? "";
-  assert.match(mgmtBlock, /\/landing\/management-os/);
-  assert.match(devBlock, /\/landing\/development-os/);
+  assert.match(mgmtBlock, /\/products\/management-os/);
+  assert.match(devBlock, /\/products\/development-os/);
+});
+
+test("hf-13 — cross-product /products/<slug> redirect map + canonical-root target", () => {
+  const src = read("src/middleware.ts");
+  // The PRODUCT_LANDING_TO_SUBDOMAIN map drives the redirect; verify
+  // both entries exist and the entrypoint sets `canonical.pathname =
+  // "/"` (redirect target is the canonical subdomain root, not the
+  // /products/<slug> path itself).
+  assert.match(
+    src,
+    /"\/products\/management-os":\s*"management"/,
+  );
+  assert.match(
+    src,
+    /"\/products\/development-os":\s*"development"/,
+  );
+  assert.match(src, /canonical\.pathname\s*=\s*"\/"/);
+});
+
+test("hf-13 — subscription falls through on /products/<slug> (umbrella stays)", () => {
+  const src = read("src/middleware.ts");
+  // The HF-13 block branches: `landingProduct === product` OR
+  // `product === "subscription"` → fall through to the allow-list
+  // (which lets /products/* serve on subscription). Otherwise
+  // redirect.
+  assert.match(
+    src,
+    /landingProduct === product \|\| product === "subscription"/,
+  );
+});
+
+test("hf-13 — generic cross-product sweep skipped for /products/<slug> paths", () => {
+  const src = read("src/middleware.ts");
+  // Without this guard the generic sweep would treat
+  // /products/management-os as uniquely management-owned (after the
+  // HF-13 allowedPrefixes addition) and bounce subscription's
+  // umbrella away.
+  assert.match(src, /landingProduct === null/);
 });
 
 // ============================================================================
