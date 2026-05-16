@@ -178,7 +178,7 @@ convention. Naming kept distinct so `git grep "task-6-data"` vs
 
 **Sprint estimate:** 1.5 days.
 
-### Cabinet 7.3 — CFO / Accountant
+### Cabinet 7.3 — CFO / Accountant — ✅ DONE (TASK-7-DATA-PART-1)
 
 **File:** `src/app/(development-app)/development-os/cabinets/cfo-accountant/page.tsx`
 
@@ -190,15 +190,23 @@ SectionHeading.actions slot. **Do not move those widgets into this
 file** without explicit operator decision; the existing routes ship
 HF-7/HF-8/AI-ACTIVATION-1 fixes.
 
-| Mock array | Target | Service | Notes |
+| Mock array | Target | Service | Status |
 |---|---|---|---|
-| `KPIS` (cash · AR · AP · spend · burn) | `getCfoKpis()` | ⚡ new in `features/finance/services.ts` (or extend) | Aggregations over journal lines + invoices + bank-account snapshots. **Med.** |
-| `PNL_ROWS` (3 projects · 4 cols) | `getPnlByProject({ period: "ytd" })` | ✅ exists at `cfoCabinetSnapshot` query (likely shape match) | Reshape the existing query result. **Low.** |
-| `CASH_BARS` (8 weeks) | `getCashStrip6w()` | ⚡ new | Forecast + actuals strip. **Med.** |
-| `TAX_TYPES` (4 rows) | `listTaxTypes()` | ✅ exists at `src/features/finance/tax-types` | Already routed as `/finance/tax-types`. **Low.** |
-| `SHARED_COSTS` (3 rows) | `listSharedCostAllocations({ period })` | ✅ exists at `features/finance/shared-costs` | Already routed. **Low.** |
+| `KPIS` (cash · AR · AP · spend · burn) | `getCfoKpis()` | ✅ shipped in `cfo-cabinet-queries.ts` | Live |
+| `PNL_ROWS` (per project · 4 cols) | `getPnlByProject()` | ✅ shipped | Live · groups dev_transactions by project_id + cost_category type |
+| `CASH_BARS` (8 weeks net) | `getCashStrip6Week()` | ✅ shipped | Live · trailing 8 weeks of inflow−outflow |
+| `TAX_TYPES` (active list) | `getActiveTaxTypes()` | ✅ shipped | Live · `tax_types WHERE is_active AND not expired` |
+| `SHARED_COSTS` (overhead categories) | `getSharedCostsBreakdown()` | ✅ shipped | Live · `cost_categories WHERE category_type = 'corporate_event'` |
 
-**Sprint estimate:** 1 day — most reads exist.
+**Empty-state UX:** KPIs show "—" when no snapshot. P&L / cash-strip /
+tax / shared cost tables collapse to a single empty-state row instead
+of alarming zeros.
+
+**Deferred to TASK-7-DATA-PART-2:**
+- Real cash *forecast* (currently trailing actuals only).
+- Allocation rule engine for shared costs (currently shows "pending
+  rule engine" + "—" per project).
+- Tax MTD / YTD columns + status badges per filing.
 
 ### Cabinet 7.4 — QS / Cost Analyst (BOQ Desk)
 
@@ -213,18 +221,27 @@ HF-7/HF-8/AI-ACTIVATION-1 fixes.
 
 **Sprint estimate:** 1 day.
 
-### Cabinet 7.5 — Procurement Manager
+### Cabinet 7.5 — Procurement Manager — ✅ DONE (TASK-7-DATA-PART-1)
 
 **File:** `src/app/(development-app)/development-os/cabinets/procurement-manager/page.tsx`
 
-| Mock array | Target | Service | Notes |
+| Mock array | Target | Service | Status |
 |---|---|---|---|
-| `OPEN_PRS` (5 rows) | `listOpenPRs()` | ✅ exists at `features/procurement/services.ts` | Already shaped. **Low.** |
-| `POS_IN_TRANSIT` (4 rows) | `listPOsInTransit()` | ✅ exists | **Low.** |
-| `INVOICES` (3 rows) | `listAwaitingInvoices()` | ✅ exists at `features/finance/invoices` | **Low.** |
-| 5-up KPIs | `getProcurementKpis()` | ⚡ new aggregation | **Low-Med.** |
+| `OPEN_PRS` | `listOpenPurchaseRequests()` | ✅ shipped in `procurement-cabinet-queries.ts` | Live · `dev_os_purchase_requests` org-scoped |
+| `POS_IN_TRANSIT` | `listPosInTransit()` | ✅ shipped | Live · `material_purchase_orders` org-scoped |
+| `INVOICES` | `listInvoicesAwaitingApproval()` | ✅ shipped | Live · `dev_invoices WHERE invoice_type = 'payable'` org-scoped |
+| 5-up KPIs | derived from above | ✅ inline | Live · computed from PR + PO + invoice arrays |
 
-**Sprint estimate:** 0.5 day — almost everything exists.
+**Empty-state UX:** DEMO-1 didn't seed procurement data → all three
+queries return [] for the Arconique org. Cabinet renders friendly
+empty-state cards with "Create first PR →" CTA on the PRs section,
+and explanatory hints on the others. KPI strip shows "—" instead of
+alarming "0".
+
+**Deferred to TASK-7-DATA-PART-2:**
+- Active RFQs KPI (quotation flow).
+- Avg PR → PO cycle-time KPI (analytics aggregation).
+- DEMO-2 seed for procurement data once schedule allows.
 
 ### Cabinet 7.6 — Site Supervisor
 
@@ -253,16 +270,16 @@ HF-7/HF-8/AI-ACTIVATION-1 fixes.
 
 ## Dev rollup
 
-| Cabinet | New services | Existing services | Sprint |
-|---|---|---|---|
-| Dev Overview | 4 | 2 | 1 day |
-| Project Manager | 5 | 0 | 1.5 days |
-| CFO / Accountant | 3 | 3 | 1 day |
-| QS / BOQ Desk | 3 | 1 | 1 day |
-| Procurement Mgr | 1 | 3 | 0.5 day |
-| Site Supervisor | 3 | 1 | 1.5 days |
-| AI Agents | 3 | 0 | 1 day |
-| **Total** | **22** | **10** | **~7.5 days** |
+| Cabinet | New services | Existing services | Sprint | Status |
+|---|---|---|---|---|
+| Dev Overview | 4 | 2 | 1 day | pending |
+| Project Manager | 5 | 0 | 1.5 days | pending |
+| CFO / Accountant | 3 | 3 | 1 day | ✅ TASK-7-DATA-PART-1 |
+| QS / BOQ Desk | 3 | 1 | 1 day | pending |
+| Procurement Mgr | 1 | 3 | 0.5 day | ✅ TASK-7-DATA-PART-1 |
+| Site Supervisor | 3 | 1 | 1.5 days | pending |
+| AI Agents | 3 | 0 | 1 day | pending |
+| **Total** | **22** | **10** | **~7.5 days** | **2 / 7 done** |
 
 ## Combined rollup (Tasks 6 + 7 data wiring)
 

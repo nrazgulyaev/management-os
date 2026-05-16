@@ -5,73 +5,91 @@ import {
   Card,
   Badge,
 } from "@/components/dashboard/primitives";
+import {
+  getCfoKpis,
+  getPnlByProject,
+  getCashStrip6Week,
+  getActiveTaxTypes,
+  getSharedCostsBreakdown,
+  type CashStripPoint,
+  type PnlByProjectRow,
+} from "@/lib/development/server/cabinets/cfo-cabinet-queries";
 
 /**
- * Sprint _handoff/ Task 7 (visual port) — Dev OS CFO / Accountant cabinet.
+ * Sprint _handoff/ Task 7 → TASK-7-DATA-PART-1 — Dev OS CFO / Accountant.
  *
- * 1:1 visual port of `_handoff/development/cfo.html` (app.js block).
- * Mock data preserved verbatim — live wiring deferred to TASK-7-DATA
- * per docs/audits/task-6-7-data-wiring-todo.md.
+ * Visual port from `_handoff/development/cfo.html` (TASK-7-VISUAL,
+ * commit `316dc65`); this commit wires the five mock arrays to live
+ * org-scoped reads added in
+ * `src/lib/development/server/cabinets/cfo-cabinet-queries.ts`:
  *
- * CRITICAL — operator's daily bookkeeper flow protection:
- *   The functional widgets (snap-a-receipt with OCR / SpreadsheetView
- *   quick-entry / Transactions list with delete) live on dedicated
- *   routes under `/development-os/finance/transactions/*`. They are
- *   NOT embedded in this cabinet page (prototype doesn't include them
- *   either). To keep them reachable from the daily flow, this port
- *   adds three prominent CTAs in the SectionHeading actions slot that
- *   link directly into those routes:
- *     - "Snap receipt" → /development-os/finance/transactions/quick-entry
- *       (HF-7 duplicate fix · HF-8 body-size + compression ·
- *        AI-ACTIVATION-1 OCR live)
- *     - "Quick entry"  → same route, opens straight into spreadsheet
- *     - "All transactions" → /development-os/finance/transactions
- *       (HF-7 delete button)
+ *   - mockKPIS              → getCfoKpis()
+ *   - mockPNL_ROWS          → getPnlByProject()
+ *   - mockCASH_BARS         → getCashStrip6Week()
+ *   - mockTAX_TYPES         → getActiveTaxTypes()
+ *   - mockSHARED_COSTS      → getSharedCostsBreakdown()
  *
- * Sections: SectionHeading → 5-up KPIs → 2-up (P&L by project + Cash
- * position 6-week strip) → Tax types AI-categorised table → Shared
- * costs allocation table.
+ * Empty-state contract: every section degrades gracefully when its
+ * query returns []. The KPI strip shows "—" for missing values
+ * instead of alarming zeros. Tables collapse to one empty-state row.
+ *
+ * CRITICAL — operator's bookkeeper daily flow is unchanged:
+ *   - "📸 Snap receipt", "Quick entry", "All transactions" CTAs in
+ *     the SectionHeading actions slot still link to the dedicated
+ *     `/development-os/finance/transactions/*` routes that own the
+ *     HF-7 duplicate fix, HF-8 receipt body-size + compression, and
+ *     AI-ACTIVATION-1 OCR. The cabinet page is dashboard-only — does
+ *     not embed those widgets.
  */
 
 export const metadata = { title: "CFO · Accountant" };
 export const dynamic = "force-dynamic";
 
-// TODO(task-7-data): wire to features/finance/services.getCfoKpis().
-const KPIS = {
-  cashOnHand: { v: "$684K", sub: "across 3 SPV banks" },
-  arOpen: { v: "$184K", sub: "6 invoices · 2 past due" },
-  apOpen: { v: "$248K", sub: "14 invoices · 4 this week" },
-  spendMtd: { v: "$182K", sub: "hard cost 86%" },
-  burn30d: { v: "$220K", sub: "vs $240K budget" },
-};
+const USD_MINOR_PER_K = 100_000;
+const USD_MINOR_PER_M = 100_000_000;
 
-// TODO(task-7-data): wire to features/development/services.getPnlByProject().
-const PNL_ROWS: { code: string; hard: string; soft: string; fin: string; total: string }[] = [
-  { code: "EP02", hard: "$1,840K", soft: "$420K", fin: "$84K", total: "$2,344K" },
-  { code: "ES10", hard: "$680K", soft: "$220K", fin: "$42K", total: "$942K" },
-  { code: "AHP3", hard: "$0", soft: "$180K", fin: "$24K", total: "$204K" },
-];
+/** USD-minor → "$1.2M" / "$184K" / "$612" (compact). */
+function usdCompact(minor: number | null | undefined): string {
+  if (minor == null || !Number.isFinite(minor)) return "—";
+  const abs = Math.abs(minor);
+  if (abs >= USD_MINOR_PER_M) return `$${(minor / USD_MINOR_PER_M).toFixed(1)}M`;
+  if (abs >= USD_MINOR_PER_K) return `$${Math.round(minor / USD_MINOR_PER_K)}K`;
+  if (abs === 0) return "$0";
+  return `$${Math.round(minor / 100).toLocaleString()}`;
+}
 
-// TODO(task-7-data): wire to features/development/services.getCashStrip6w().
-const CASH_BARS: number[] = [760, 720, 684, 624, 580, 540, 510, 480];
-const WEEK_LABELS = ["W34", "W35", "W36", "W37", "W38", "W39", "W40", "W41"];
+function pnlTotalsLabel(rows: PnlByProjectRow[]) {
+  const sum = (key: "hardCostMinor" | "softCostMinor" | "financingMinor") =>
+    rows.reduce((s, r) => s + r[key], 0);
+  return {
+    hard: usdCompact(sum("hardCostMinor")),
+    soft: usdCompact(sum("softCostMinor")),
+    fin: usdCompact(sum("financingMinor")),
+    total: usdCompact(rows.reduce((s, r) => s + r.totalMinor, 0)),
+  };
+}
 
-// TODO(task-7-data): wire to features/finance/services.listTaxTypes().
-const TAX_TYPES: { name: string; rate: string; mtd: string; ytd: string; status: "ok" | "warn"; statusLabel: string }[] = [
-  { name: "PPN (Indonesia VAT)", rate: "11%", mtd: "$18,420", ytd: "$84,210", status: "ok", statusLabel: "Filed Q1" },
-  { name: "PPh 21 (Income tax · staff)", rate: "5–30%", mtd: "$4,840", ytd: "$24,180", status: "ok", statusLabel: "On schedule" },
-  { name: "PPh 23 (Withholding · vendors)", rate: "2%", mtd: "$1,820", ytd: "$8,420", status: "warn", statusLabel: "Awaiting filing · 4d" },
-  { name: "PBB (Property tax)", rate: "0.5%", mtd: "—", ytd: "$12,400", status: "ok", statusLabel: "Paid annually" },
-];
+/** Cash-strip render helper: pick a sensible per-bar scale from the
+ *  largest absolute net. */
+function cashBarScale(points: CashStripPoint[]): number {
+  if (points.length === 0) return 1;
+  const max = Math.max(...points.map((p) => Math.abs(p.netMinor)));
+  return max === 0 ? 1 : max;
+}
 
-// TODO(task-7-data): wire to features/finance/services.listSharedCostAllocations().
-const SHARED_COSTS: { category: string; total: string; rule: string; ep02: string; es10: string; ahp3: string }[] = [
-  { category: "Director salary", total: "$8,400", rule: "By revenue weight", ep02: "$3,920", es10: "$2,940", ahp3: "$1,540" },
-  { category: "Office rent", total: "$2,800", rule: "Equal split", ep02: "$933", es10: "$933", ahp3: "$933" },
-  { category: "Software licenses", total: "$1,400", rule: "Per-user weight", ep02: "$580", es10: "$520", ahp3: "$300" },
-];
+export default async function CfoAccountantPage() {
+  const [kpis, pnl, cashStrip, taxTypes, shared] = await Promise.all([
+    getCfoKpis().catch(() => null),
+    getPnlByProject().catch(() => []),
+    getCashStrip6Week().catch(() => []),
+    getActiveTaxTypes().catch(() => []),
+    getSharedCostsBreakdown().catch(() => []),
+  ]);
 
-export default function CfoAccountantPage() {
+  const pnlTotals = pnlTotalsLabel(pnl);
+  const cashScale = cashBarScale(cashStrip);
+  const sharedColCount = pnl.length;
+
   return (
     <>
       <SectionHeading
@@ -86,8 +104,7 @@ export default function CfoAccountantPage() {
         actions={
           <>
             {/* Daily-flow CTAs — preserved bookkeeper widgets live on
-                dedicated routes (HF-7/HF-8/AI-ACTIVATION-1). Keeping
-                these prominent in the cabinet action slot. */}
+                dedicated routes (HF-7/HF-8/AI-ACTIVATION-1). */}
             <Link
               href="/development-os/finance/transactions/quick-entry"
               className="btn btn-amber btn-sm"
@@ -113,11 +130,34 @@ export default function CfoAccountantPage() {
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
-        <Kpi label="Cash on hand" value={KPIS.cashOnHand.v} sub={KPIS.cashOnHand.sub} tone="success" />
-        <Kpi label="AR · open" value={KPIS.arOpen.v} sub={KPIS.arOpen.sub} tone="accent" />
-        <Kpi label="AP · open" value={KPIS.apOpen.v} sub={KPIS.apOpen.sub} />
-        <Kpi label="MTD spend" value={KPIS.spendMtd.v} sub={KPIS.spendMtd.sub} />
-        <Kpi label="Forecast burn · 30d" value={KPIS.burn30d.v} sub={KPIS.burn30d.sub} tone="success" />
+        <Kpi
+          label="Cash on hand"
+          value={usdCompact(kpis?.cashOnHandMinor)}
+          sub={kpis ? "across all bank accounts" : "no snapshot yet"}
+          tone={kpis && kpis.cashOnHandMinor > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="AR · open"
+          value={usdCompact(kpis?.receivablesMinor)}
+          sub={kpis ? "from buyer + investor invoices" : "—"}
+          tone="accent"
+        />
+        <Kpi
+          label="AP · open"
+          value={usdCompact(kpis?.payablesNext30Minor)}
+          sub={kpis ? "due in next 30 days" : "—"}
+        />
+        <Kpi
+          label="MTD spend"
+          value={usdCompact(kpis?.spendMtdMinor)}
+          sub={kpis ? "month-to-date outflow" : "—"}
+        />
+        <Kpi
+          label="Trailing 30d burn"
+          value={usdCompact(kpis?.forecastBurn30dMinor)}
+          sub={kpis ? "outflow last 30 days" : "—"}
+          tone={kpis && kpis.forecastBurn30dMinor > 0 ? "success" : undefined}
+        />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 18 }}>
@@ -126,94 +166,141 @@ export default function CfoAccountantPage() {
             P&L · YTD by project
           </h3>
           <div className="label" style={{ marginTop: 4 }}>USD · cost basis</div>
-          <table className="data" style={{ marginTop: 14 }}>
-            <thead>
-              <tr>
-                <th>Project</th>
-                <th className="num">Hard cost</th>
-                <th className="num">Soft cost</th>
-                <th className="num">Financing</th>
-                <th className="num">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {PNL_ROWS.map((r) => (
-                <tr key={r.code}>
-                  <td className="mono">{r.code}</td>
-                  <td className="num">{r.hard}</td>
-                  <td className="num">{r.soft}</td>
-                  <td className="num">{r.fin}</td>
-                  <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>
-                    {r.total}
-                  </td>
+          {pnl.length === 0 ? (
+            <p
+              style={{
+                marginTop: 16,
+                fontSize: 13,
+                color: "var(--ink-3)",
+                fontStyle: "italic",
+              }}
+            >
+              No project transactions yet — categorise expenses against a
+              project to see this roll up.
+            </p>
+          ) : (
+            <table className="data" style={{ marginTop: 14 }}>
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th className="num">Hard cost</th>
+                  <th className="num">Soft cost</th>
+                  <th className="num">Financing</th>
+                  <th className="num">Total</th>
                 </tr>
-              ))}
-              <tr style={{ background: "var(--bg-2)", fontWeight: 500 }}>
-                <td>Portfolio</td>
-                <td className="num">$2,520K</td>
-                <td className="num">$820K</td>
-                <td className="num">$150K</td>
-                <td className="num" style={{ color: "var(--amber)" }}>$3,490K</td>
-              </tr>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {pnl.map((r) => (
+                  <tr key={r.projectId}>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span className="mono" style={{ fontSize: 12 }}>{r.projectCode}</span>
+                        <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{r.projectName}</span>
+                      </div>
+                    </td>
+                    <td className="num">{usdCompact(r.hardCostMinor)}</td>
+                    <td className="num">{usdCompact(r.softCostMinor)}</td>
+                    <td className="num">{usdCompact(r.financingMinor)}</td>
+                    <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>
+                      {usdCompact(r.totalMinor)}
+                    </td>
+                  </tr>
+                ))}
+                <tr style={{ background: "var(--bg-2)", fontWeight: 500 }}>
+                  <td>Portfolio</td>
+                  <td className="num">{pnlTotals.hard}</td>
+                  <td className="num">{pnlTotals.soft}</td>
+                  <td className="num">{pnlTotals.fin}</td>
+                  <td className="num" style={{ color: "var(--amber)" }}>{pnlTotals.total}</td>
+                </tr>
+              </tbody>
+            </table>
+          )}
         </Card>
 
         <Card style={{ padding: 20 }}>
           <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
-            Cash position · 6 weeks
+            Cash position · 8 weeks
           </h3>
-          <div
-            style={{
-              marginTop: 14,
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 6,
-              height: 140,
-            }}
-          >
-            {CASH_BARS.map((v, i) => (
+          {cashStrip.length === 0 ? (
+            <p
+              style={{
+                marginTop: 16,
+                fontSize: 13,
+                color: "var(--ink-3)",
+                fontStyle: "italic",
+              }}
+            >
+              No transactions in the trailing 8-week window yet — quick-entry
+              one to populate this strip.
+            </p>
+          ) : (
+            <>
               <div
-                key={WEEK_LABELS[i]}
                 style={{
-                  flex: 1,
+                  marginTop: 14,
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 5,
+                  alignItems: "flex-end",
+                  gap: 6,
+                  height: 140,
                 }}
               >
-                <span className="num" style={{ fontSize: 9, color: "var(--ink-3)" }}>{v}</span>
-                <div
-                  style={{
-                    width: "100%",
-                    height: `${v / 8}px`,
-                    background: i < 3 ? "var(--steel)" : "var(--amber)",
-                    borderRadius: "3px 3px 0 0",
-                    opacity: i < 3 ? 1 : 0.7,
-                  }}
-                />
-                <span className="mono" style={{ fontSize: 8, color: "var(--ink-4)" }}>
-                  {WEEK_LABELS[i]}
-                </span>
+                {cashStrip.map((p) => {
+                  const heightPx = Math.max(
+                    4,
+                    Math.round((Math.abs(p.netMinor) / cashScale) * 120),
+                  );
+                  const negative = p.netMinor < 0;
+                  return (
+                    <div
+                      key={p.weekIso}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      <span className="num" style={{ fontSize: 9, color: "var(--ink-3)" }}>
+                        {usdCompact(p.netMinor)}
+                      </span>
+                      <div
+                        style={{
+                          width: "100%",
+                          height: `${heightPx}px`,
+                          background: negative
+                            ? "var(--danger, var(--amber))"
+                            : p.isFuture
+                              ? "var(--amber)"
+                              : "var(--steel)",
+                          borderRadius: "3px 3px 0 0",
+                          opacity: p.isFuture ? 0.7 : 1,
+                        }}
+                      />
+                      <span className="mono" style={{ fontSize: 8, color: "var(--ink-4)" }}>
+                        {p.weekLabel}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-          <div
-            style={{
-              marginTop: 12,
-              padding: 12,
-              background: "var(--bg-3)",
-              border: "1px solid var(--line)",
-              borderRadius: 10,
-              fontSize: 12,
-              color: "var(--ink-2)",
-            }}
-          >
-            Forecast crosses{" "}
-            <strong style={{ color: "var(--amber)" }}>$500K minimum reserve</strong> in
-            week 41. Capital call 05 likely needed by 15 May.
-          </div>
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: 12,
+                  background: "var(--bg-3)",
+                  border: "1px solid var(--line)",
+                  borderRadius: 10,
+                  fontSize: 12,
+                  color: "var(--ink-2)",
+                }}
+              >
+                Bars show net (inflow − outflow) USD by ISO week. Steel = past,
+                amber = recent. Cash forecasting wires in TASK-7-DATA-PART-2.
+              </div>
+            </>
+          )}
         </Card>
       </div>
 
@@ -225,34 +312,44 @@ export default function CfoAccountantPage() {
         Tax types · auto-categorised by AI
       </h2>
       <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Rate</th>
-              <th>MTD</th>
-              <th>YTD</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {TAX_TYPES.map((t) => (
-              <tr key={t.name}>
-                <td>{t.name}</td>
-                <td className="mono">{t.rate}</td>
-                <td className="num">{t.mtd}</td>
-                <td className="num">{t.ytd}</td>
-                <td>
-                  {t.status === "ok" ? (
-                    <Badge tone="ok">{t.statusLabel}</Badge>
-                  ) : (
-                    <Badge tone="warn">{t.statusLabel}</Badge>
-                  )}
-                </td>
+        {taxTypes.length === 0 ? (
+          <p
+            style={{
+              padding: 20,
+              fontSize: 13,
+              color: "var(--ink-3)",
+              fontStyle: "italic",
+            }}
+          >
+            No active tax types configured. Seed PPN / PPh 21 / PPh 23 / PBB
+            via the tax-types admin route.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Rate</th>
+                <th>Country</th>
+                <th>Reporting</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {taxTypes.map((t) => (
+                <tr key={t.typeKey}>
+                  <td>{t.displayName}</td>
+                  <td className="mono">{Number(t.ratePercentage).toFixed(2)}%</td>
+                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                    {t.countryCode ?? "—"}
+                  </td>
+                  <td>
+                    <Badge>{t.reportingPeriod}</Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
 
       <h2
@@ -263,30 +360,60 @@ export default function CfoAccountantPage() {
         Shared costs · allocation
       </h2>
       <Card style={{ padding: 20 }}>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Cost category</th>
-              <th>Total · MTD</th>
-              <th>Allocation rule</th>
-              <th>EP02</th>
-              <th>ES10</th>
-              <th>AHP3</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SHARED_COSTS.map((s) => (
-              <tr key={s.category}>
-                <td>{s.category}</td>
-                <td className="num">{s.total}</td>
-                <td>{s.rule}</td>
-                <td className="num">{s.ep02}</td>
-                <td className="num">{s.es10}</td>
-                <td className="num">{s.ahp3}</td>
+        {shared.length === 0 ? (
+          <p
+            style={{
+              fontSize: 13,
+              color: "var(--ink-3)",
+              fontStyle: "italic",
+              margin: 0,
+            }}
+          >
+            No company-overhead cost categories yet — flag a category with
+            type <span className="mono">corporate_event</span> to surface it
+            here.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Cost category</th>
+                <th className="num">MTD spend</th>
+                <th>Allocation rule</th>
+                {pnl.map((p) => (
+                  <th key={p.projectId}>{p.projectCode}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {shared.map((s) => (
+                <tr key={s.categoryId}>
+                  <td>{s.displayName}</td>
+                  <td className="num">{usdCompact(s.mtdMinor)}</td>
+                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                    pending rule engine
+                  </td>
+                  {Array.from({ length: sharedColCount }).map((_, i) => (
+                    <td key={i} className="num" style={{ color: "var(--ink-4)" }}>
+                      —
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <p
+          className="mono"
+          style={{
+            marginTop: 12,
+            fontSize: 10,
+            color: "var(--ink-4)",
+            letterSpacing: "0.08em",
+          }}
+        >
+          ALLOCATION RULES SHIP IN TASK-7-DATA-PART-2
+        </p>
       </Card>
     </>
   );

@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Stage 10.5.A.1.2 — CFO/Accountant cabinet data aggregator.
@@ -230,4 +231,298 @@ export async function loadCfoCabinet(): Promise<CfoCabinetData> {
       (invRow as unknown as { rows: Array<{ n: string }> }).rows?.[0]?.n ?? "0",
     ),
   };
+}
+
+// =============================================================================
+// Sprint TASK-7-DATA-PART-1 — _handoff/ cabinet aggregations.
+//
+// The prototype CFO cabinet (`src/app/(development-app)/development-os/
+// cabinets/cfo-accountant/page.tsx`) needs five live aggregations the
+// older `loadCfoCabinet()` doesn't surface. New functions live here so
+// the cabinet stays in line with the rest of the cabinet-query module.
+//
+// All queries are org-scoped via `requireOrgId()` (TENANT-1). Reads
+// over reference data (`tax_types`) intentionally aren't filtered by
+// org — tax types are country-scoped reference data, not tenant-owned.
+// =============================================================================
+
+export interface CfoKpis {
+  cashOnHandMinor: number;
+  receivablesMinor: number;
+  payablesNext30Minor: number;
+  spendMtdMinor: number;
+  /** Forward-looking 30-day burn = avg daily outflow × 30. */
+  forecastBurn30dMinor: number;
+  baseCurrency: string;
+}
+
+export async function getCfoKpis(): Promise<CfoKpis | null> {
+  const db = getDb();
+  if (!db) return null;
+  const orgId = await requireOrgId();
+
+  // Snapshot for cash / AR / AP (already aggregated by the daily cron).
+  const snapRow = await db.execute<{
+    cash: string;
+    receivables: string;
+    pay30: string;
+    currency: string;
+  }>(sql`
+    SELECT total_cash_on_hand_minor::text       AS cash,
+           total_receivables_minor::text        AS receivables,
+           COALESCE(payables_due_next_30_days_minor, 0)::text AS pay30,
+           base_currency                         AS currency
+      FROM executive_metrics_snapshots
+     WHERE scope = 'company_wide'
+       AND project_id IS NULL
+       AND organization_id = ${orgId}
+     ORDER BY snapshot_date DESC LIMIT 1
+  `);
+  const snap =
+    (snapRow as unknown as { rows: Array<{
+      cash: string;
+      receivables: string;
+      pay30: string;
+      currency: string;
+    }> }).rows?.[0] ?? null;
+
+  // MTD outflow direct from dev_transactions — snapshot doesn't carry it.
+  const mtdRow = await db.execute<{ spend: string; currency: string | null }>(sql`
+    SELECT COALESCE(SUM(amount_usd_minor), 0)::text AS spend,
+           MIN(currency)                            AS currency
+      FROM dev_transactions
+     WHERE organization_id = ${orgId}
+       AND direction = 'outflow'
+       AND transaction_date >= date_trunc('month', CURRENT_DATE)
+  `);
+  const spendMtdMinor = Number(
+    (mtdRow as unknown as { rows: Array<{ spend: string }> }).rows?.[0]?.spend ?? "0",
+  );
+
+  // Forecast burn = trailing 30-day outflow average × 30. Simple and
+  // good enough until the cashflow_forecasts service surfaces a real
+  // projection.
+  const burnRow = await db.execute<{ avg30: string }>(sql`
+    SELECT COALESCE(SUM(amount_usd_minor), 0)::text AS avg30
+      FROM dev_transactions
+     WHERE organization_id = ${orgId}
+       AND direction = 'outflow'
+       AND transaction_date >= CURRENT_DATE - INTERVAL '30 days'
+  `);
+  const trailing30 = Number(
+    (burnRow as unknown as { rows: Array<{ avg30: string }> }).rows?.[0]?.avg30 ?? "0",
+  );
+
+  return {
+    cashOnHandMinor: snap ? Number(snap.cash) : 0,
+    receivablesMinor: snap ? Number(snap.receivables) : 0,
+    payablesNext30Minor: snap ? Number(snap.pay30) : 0,
+    spendMtdMinor,
+    forecastBurn30dMinor: trailing30, // already a 30-day window
+    baseCurrency: snap?.currency ?? "USD",
+  };
+}
+
+export interface PnlByProjectRow {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  /** Sum of outflow USD-minor where category_type = 'capex' (proxy for hard cost). */
+  hardCostMinor: number;
+  /** Sum of outflow USD-minor where category_type IN ('opex','cogs') (soft + ops). */
+  softCostMinor: number;
+  /** Sum of outflow USD-minor where category_type = 'corporate_event' (financing). */
+  financingMinor: number;
+  totalMinor: number;
+}
+
+export async function getPnlByProject(): Promise<PnlByProjectRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    project_id: string;
+    project_code: string;
+    project_name: string;
+    hard: string;
+    soft: string;
+    fin: string;
+  }>(sql`
+    SELECT p.id::text                                        AS project_id,
+           p.project_code                                     AS project_code,
+           p.name                                             AS project_name,
+           COALESCE(SUM(CASE WHEN cc.category_type = 'capex'
+                        THEN t.amount_usd_minor ELSE 0 END), 0)::text AS hard,
+           COALESCE(SUM(CASE WHEN cc.category_type IN ('opex','cogs')
+                        THEN t.amount_usd_minor ELSE 0 END), 0)::text AS soft,
+           COALESCE(SUM(CASE WHEN cc.category_type = 'corporate_event'
+                        THEN t.amount_usd_minor ELSE 0 END), 0)::text AS fin
+      FROM projects p
+      LEFT JOIN dev_transactions t
+             ON t.project_id = p.id
+            AND t.organization_id = ${orgId}
+            AND t.direction = 'outflow'
+            AND t.transaction_date >= date_trunc('year', CURRENT_DATE)
+      LEFT JOIN dev_cost_categories cc
+             ON cc.id = t.category_id
+     WHERE p.organization_id = ${orgId}
+     GROUP BY p.id, p.project_code, p.name
+     ORDER BY p.project_code
+  `);
+  const out: PnlByProjectRow[] = (
+    (rows as unknown as { rows: Array<{
+      project_id: string;
+      project_code: string;
+      project_name: string;
+      hard: string;
+      soft: string;
+      fin: string;
+    }> }).rows ?? []
+  ).map((r) => {
+    const hard = Number(r.hard);
+    const soft = Number(r.soft);
+    const fin = Number(r.fin);
+    return {
+      projectId: r.project_id,
+      projectCode: r.project_code,
+      projectName: r.project_name,
+      hardCostMinor: hard,
+      softCostMinor: soft,
+      financingMinor: fin,
+      totalMinor: hard + soft + fin,
+    };
+  });
+  return out;
+}
+
+export interface CashStripPoint {
+  weekIso: string; // YYYY-WW
+  weekLabel: string; // "W34"
+  netMinor: number; // (inflow - outflow) for the week, USD minor
+  isFuture: boolean;
+}
+
+export async function getCashStrip6Week(): Promise<CashStripPoint[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  // Trailing 8 weeks of actuals — frontend visually distinguishes
+  // the 3 most-recent as past and the rest as forecast-shaded.
+  const rows = await db.execute<{ wk: string; week_label: string; net: string }>(sql`
+    SELECT to_char(date_trunc('week', transaction_date), 'IYYY-IW') AS wk,
+           'W' || to_char(date_trunc('week', transaction_date), 'IW') AS week_label,
+           COALESCE(SUM(
+             CASE WHEN direction = 'inflow' THEN amount_usd_minor
+                  WHEN direction = 'outflow' THEN -amount_usd_minor
+                  ELSE 0 END
+           ), 0)::text AS net
+      FROM dev_transactions
+     WHERE organization_id = ${orgId}
+       AND transaction_date >= CURRENT_DATE - INTERVAL '8 weeks'
+     GROUP BY 1, 2
+     ORDER BY 1
+  `);
+  return (
+    (rows as unknown as { rows: Array<{ wk: string; week_label: string; net: string }> })
+      .rows ?? []
+  ).map((r, i, arr) => ({
+    weekIso: r.wk,
+    weekLabel: r.week_label,
+    netMinor: Number(r.net),
+    isFuture: i >= arr.length - 5, // last 5 weeks tinted as forecast in UI
+  }));
+}
+
+export interface TaxTypeRow {
+  typeKey: string;
+  displayName: string;
+  ratePercentage: string; // numeric → string for tabular display
+  reportingPeriod: string;
+  countryCode: string | null;
+}
+
+export async function getActiveTaxTypes(): Promise<TaxTypeRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  // tax_types is country-scoped reference data; no org_id filter.
+  const rows = await db.execute<{
+    type_key: string;
+    display_name: string;
+    rate_percentage: string;
+    reporting_period: string;
+    country_code: string | null;
+  }>(sql`
+    SELECT type_key, display_name, rate_percentage::text AS rate_percentage,
+           reporting_period, country_code
+      FROM tax_types
+     WHERE is_active = true
+       AND (effective_until IS NULL OR effective_until >= CURRENT_DATE)
+     ORDER BY country_code NULLS LAST, display_name
+     LIMIT 12
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      type_key: string;
+      display_name: string;
+      rate_percentage: string;
+      reporting_period: string;
+      country_code: string | null;
+    }> }).rows ?? []
+  ).map((r) => ({
+    typeKey: r.type_key,
+    displayName: r.display_name,
+    ratePercentage: r.rate_percentage,
+    reportingPeriod: r.reporting_period,
+    countryCode: r.country_code,
+  }));
+}
+
+export interface SharedCostRow {
+  categoryId: string;
+  categoryCode: string;
+  displayName: string;
+  /** MTD outflow on this overhead category (USD minor). */
+  mtdMinor: number;
+}
+
+export async function getSharedCostsBreakdown(): Promise<SharedCostRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  // Overhead categories — anything explicitly tagged `corporate_event`
+  // (the schema's shared-cost type) or with category_code prefixed
+  // 'overhead-' etc. Conservative: trust the enum value.
+  const rows = await db.execute<{
+    id: string;
+    code: string;
+    name: string;
+    mtd: string;
+  }>(sql`
+    SELECT cc.id::text                                    AS id,
+           cc.category_code                                AS code,
+           cc.display_name                                 AS name,
+           COALESCE(SUM(t.amount_usd_minor), 0)::text      AS mtd
+      FROM dev_cost_categories cc
+      LEFT JOIN dev_transactions t
+             ON t.category_id = cc.id
+            AND t.organization_id = ${orgId}
+            AND t.direction = 'outflow'
+            AND t.transaction_date >= date_trunc('month', CURRENT_DATE)
+     WHERE cc.organization_id = ${orgId}
+       AND cc.is_active = true
+       AND cc.category_type = 'corporate_event'
+     GROUP BY cc.id, cc.category_code, cc.display_name
+     ORDER BY cc.display_order, cc.display_name
+     LIMIT 8
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      id: string; code: string; name: string; mtd: string;
+    }> }).rows ?? []
+  ).map((r) => ({
+    categoryId: r.id,
+    categoryCode: r.code,
+    displayName: r.name,
+    mtdMinor: Number(r.mtd),
+  }));
 }

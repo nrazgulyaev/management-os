@@ -4,56 +4,137 @@ import {
   Card,
   Badge,
 } from "@/components/dashboard/primitives";
+import {
+  listOpenPurchaseRequests,
+  listPosInTransit,
+  listInvoicesAwaitingApproval,
+  type ProcurementPrRow,
+  type ProcurementPoRow,
+  type ProcurementInvoiceRow,
+} from "@/lib/development/server/cabinets/procurement-cabinet-queries";
 
 /**
- * Sprint _handoff/ Task 7 (visual port) — Dev OS Procurement Manager.
+ * Sprint _handoff/ Task 7 → TASK-7-DATA-PART-1 — Procurement Manager.
  *
- * 1:1 visual port of `_handoff/development/procurement.html` (app.js).
- * Mock data preserved — live wiring deferred to TASK-7-DATA per
- * docs/audits/task-6-7-data-wiring-todo.md.
+ * Visual port from `_handoff/development/procurement.html` (commit
+ * `316dc65`); this commit wires three view-shaped reads added in
+ * `src/lib/development/server/cabinets/procurement-cabinet-queries.ts`:
  *
- * Sections: SectionHeading → 5-up KPIs → Open PRs table → POs in
- * transit table → Invoices awaiting payment table.
+ *   - mockOPEN_PRS         → listOpenPurchaseRequests()
+ *   - mockPOS_IN_TRANSIT   → listPosInTransit()
+ *   - mockINVOICES         → listInvoicesAwaitingApproval()
+ *   - mockKPIs             → computed live from the three reads
+ *
+ * Per DEMO-1: purchase_requests / POs / invoices were not seeded for
+ * the Arconique org. All three queries return [] in production today.
+ * Per TASK-7-DATA-PART-1 §3, the cabinet renders friendly empty
+ * states + first-action CTAs instead of "0% / $0 / 0" alarms.
  */
 
 export const metadata = { title: "Procurement Manager" };
 export const dynamic = "force-dynamic";
 
-// TODO(task-7-data): wire to features/development/services.listOpenPRs().
-const OPEN_PRS: {
-  pr: string;
-  items: string;
-  project: string;
-  by: string;
-  total: string;
-  approvalLabel: string;
-  approvalTone?: "ok" | "warn";
-  stageLabel: string;
-  stageTone?: "ok" | "warn";
-}[] = [
-  { pr: "PR-8821", items: "Hand towels · 80 pcs", project: "EP02", by: "Made S.", total: "$310", approvalLabel: "Auto", stageLabel: "Ordered", stageTone: "ok" },
-  { pr: "PR-8820", items: "Marble Hindari (re-issue)", project: "EP02", by: "Wayan T.", total: "$23,808", approvalLabel: "Director", approvalTone: "warn", stageLabel: "RFQ open", stageTone: "warn" },
-  { pr: "PR-8819", items: "Pool filter cartridge", project: "EP02", by: "Komang Y.", total: "$420", approvalLabel: "Approved", approvalTone: "ok", stageLabel: "RFQ open", stageTone: "warn" },
-  { pr: "PR-8818", items: "Cabling YDA 4mm · 2.4km", project: "ES10", by: "Ari P.", total: "$5,040", approvalLabel: "Director", approvalTone: "warn", stageLabel: "Draft" },
-  { pr: "PR-8815", items: "Stainless balustrade 304", project: "EP02", by: "Wayan T.", total: "$7,560", approvalLabel: "Approved", approvalTone: "ok", stageLabel: "PO issued", stageTone: "ok" },
-];
+const USD_MINOR_PER_K = 100_000;
+const USD_MINOR_PER_M = 100_000_000;
+const IDR_MINOR_PER_M = 10_000_000_000;
 
-// TODO(task-7-data): wire to features/development/services.listPOsInTransit().
-const POS_IN_TRANSIT: { po: string; vendor: string; items: string; total: string; eta: string; statusLabel: string; statusTone?: "warn" | "info" }[] = [
-  { po: "PO-8814", vendor: "Linen Mart Denpasar", items: "Hand towels · 40 pcs (partial)", total: "$310", eta: "today", statusLabel: "Partial", statusTone: "warn" },
-  { po: "PO-8813", vendor: "BaliSteel", items: "Stainless balustrade · 180m", total: "$7,560", eta: "24 Apr", statusLabel: "In transit", statusTone: "info" },
-  { po: "PO-8812", vendor: "CoolAir", items: "AC units · 6 pcs", total: "$18,420", eta: "26 Apr", statusLabel: "Scheduled" },
-  { po: "PO-8810", vendor: "Krakatau Steel", items: "Rebar Ø12/16 · 84.6t", total: "$118,200", eta: "02 May", statusLabel: "Scheduled" },
-];
+function fmtMinor(minor: number | null | undefined, currency: string | null | undefined): string {
+  if (minor == null || !Number.isFinite(minor)) return "—";
+  const abs = Math.abs(minor);
+  const cur = currency ?? "USD";
+  if (cur === "IDR") {
+    if (abs >= IDR_MINOR_PER_M) return `IDR ${(minor / IDR_MINOR_PER_M).toFixed(1)}M`;
+    return `IDR ${Math.round(minor / 100_000).toLocaleString()}K`;
+  }
+  if (abs >= USD_MINOR_PER_M) return `${cur} ${(minor / USD_MINOR_PER_M).toFixed(1)}M`;
+  if (abs >= USD_MINOR_PER_K) return `${cur} ${Math.round(minor / USD_MINOR_PER_K)}K`;
+  return `${cur} ${Math.round(minor / 100).toLocaleString()}`;
+}
 
-// TODO(task-7-data): wire to features/finance/services.listAwaitingInvoices().
-const INVOICES: { inv: string; vendor: string; po: string; amount: string; due: string; statusLabel: string; statusTone?: "warn" | "danger" }[] = [
-  { inv: "INV-2418", vendor: "Holcim Beton", po: "PO-8807", amount: "$28,440", due: "22 Apr", statusLabel: "Due tomorrow", statusTone: "warn" },
-  { inv: "INV-2417", vendor: "BaliPlywood", po: "PO-8806", amount: "$8,640", due: "15 Apr", statusLabel: "Past due 6d", statusTone: "danger" },
-  { inv: "INV-2416", vendor: "CoolAir", po: "PO-8805", amount: "$3,840", due: "28 Apr", statusLabel: "On schedule" },
-];
+const URGENCY_TONE: Record<string, "danger" | "warn" | "ok" | undefined> = {
+  critical: "danger",
+  high: "warn",
+  normal: undefined,
+  low: undefined,
+};
 
-export default function ProcurementManagerPage() {
+const STATUS_TONE: Record<string, "ok" | "warn" | "danger" | "info" | undefined> = {
+  // PRs
+  draft: undefined,
+  submitted: "warn",
+  awaiting_approval: "warn",
+  approved: "ok",
+  rejected: "danger",
+  // POs
+  ordered: "info",
+  partially_delivered: "warn",
+  fully_delivered: "ok",
+  cancelled: undefined,
+  // Invoices
+  issued: "warn",
+  sent: "warn",
+  overdue: "danger",
+};
+
+function urgencyBadge(u: string) {
+  const tone = URGENCY_TONE[u];
+  return tone ? <Badge tone={tone}>{u}</Badge> : <Badge>{u}</Badge>;
+}
+function statusBadge(s: string) {
+  const tone = STATUS_TONE[s];
+  return tone ? <Badge tone={tone}>{s.replace(/_/g, " ")}</Badge> : <Badge>{s.replace(/_/g, " ")}</Badge>;
+}
+
+interface EmptyStateProps {
+  title: string;
+  hint: string;
+  cta?: { href: string; label: string };
+}
+function EmptyState({ title, hint, cta }: EmptyStateProps) {
+  return (
+    <div
+      style={{
+        padding: "32px 20px",
+        textAlign: "center",
+        color: "var(--ink-3)",
+        background: "var(--bg-3, var(--cream-warm))",
+        border: "1px dashed var(--line, var(--line-soft))",
+        borderRadius: 10,
+      }}
+    >
+      <div className="display" style={{ fontSize: 16, fontWeight: 500, color: "var(--ink-2)" }}>
+        {title}
+      </div>
+      <p style={{ margin: "6px 0 0", fontSize: 13 }}>{hint}</p>
+      {cta && (
+        <a href={cta.href} className="btn btn-amber btn-sm" style={{ marginTop: 16 }}>
+          {cta.label}
+        </a>
+      )}
+    </div>
+  );
+}
+
+export default async function ProcurementManagerPage() {
+  const [prs, pos, invoices] = await Promise.all([
+    listOpenPurchaseRequests().catch(() => []),
+    listPosInTransit().catch(() => []),
+    listInvoicesAwaitingApproval().catch(() => []),
+  ]);
+
+  // Computed KPIs — derive directly from the three reads.
+  const pendingApprovalCount = prs.filter((r) =>
+    ["submitted", "awaiting_approval"].includes(r.status),
+  ).length;
+  const posCommittedMinor = pos.reduce(
+    (s, p) => s + (p.totalMinor ?? 0),
+    0,
+  );
+  const pastDueCount = invoices.filter(
+    (i) => i.daysToDue !== null && i.daysToDue < 0,
+  ).length;
+  const overdueValueMinor = invoices.reduce((s, i) => s + i.totalMinor, 0);
+
   return (
     <>
       <SectionHeading
@@ -74,59 +155,82 @@ export default function ProcurementManagerPage() {
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
-        <Kpi label="Open PRs" value="14" sub="4 pending approval" tone="accent" />
-        <Kpi label="Active RFQs" value="6" sub="22 quotations received" />
-        <Kpi label="POs in transit" value="9" sub="$184K committed" />
-        <Kpi label="Invoices · awaiting" value="11" sub="$84K · 4 past due" tone="accent" />
-        <Kpi label="Avg PR → PO" value="6.2 days" sub="−2d vs Q1" tone="success" />
+        <Kpi
+          label="Open PRs"
+          value={prs.length === 0 ? "—" : String(prs.length)}
+          sub={
+            prs.length === 0
+              ? "no PRs yet"
+              : `${pendingApprovalCount} pending approval`
+          }
+          tone={prs.length > 0 ? "accent" : undefined}
+        />
+        <Kpi
+          label="Active RFQs"
+          value="—"
+          sub="quotation flow lands in PART-2"
+        />
+        <Kpi
+          label="POs in transit"
+          value={pos.length === 0 ? "—" : String(pos.length)}
+          sub={pos.length === 0 ? "no POs yet" : fmtMinor(posCommittedMinor, "USD") + " committed"}
+        />
+        <Kpi
+          label="Invoices · awaiting"
+          value={invoices.length === 0 ? "—" : String(invoices.length)}
+          sub={
+            invoices.length === 0
+              ? "no invoices yet"
+              : `${fmtMinor(overdueValueMinor, invoices[0]?.currency ?? "USD")} · ${pastDueCount} past due`
+          }
+          tone={invoices.length > 0 ? "accent" : undefined}
+        />
+        <Kpi label="Avg PR → PO" value="—" sub="cycle-time analytics in PART-2" />
       </div>
 
       <h2 className="display" style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}>
         Open purchase requests
       </h2>
       <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>PR</th>
-              <th>Items</th>
-              <th>Project</th>
-              <th>By</th>
-              <th className="num">Total</th>
-              <th>Approval</th>
-              <th>Stage</th>
-            </tr>
-          </thead>
-          <tbody>
-            {OPEN_PRS.map((r) => (
-              <tr key={r.pr}>
-                <td className="mono" style={{ fontSize: 11 }}>{r.pr}</td>
-                <td>{r.items}</td>
-                <td className="mono">{r.project}</td>
-                <td>{r.by}</td>
-                <td className="num">{r.total}</td>
-                <td>
-                  {r.approvalTone === "ok" ? (
-                    <Badge tone="ok">{r.approvalLabel}</Badge>
-                  ) : r.approvalTone === "warn" ? (
-                    <Badge tone="warn">{r.approvalLabel}</Badge>
-                  ) : (
-                    <Badge>{r.approvalLabel}</Badge>
-                  )}
-                </td>
-                <td>
-                  {r.stageTone === "ok" ? (
-                    <Badge tone="ok">{r.stageLabel}</Badge>
-                  ) : r.stageTone === "warn" ? (
-                    <Badge tone="warn">{r.stageLabel}</Badge>
-                  ) : (
-                    <Badge>{r.stageLabel}</Badge>
-                  )}
-                </td>
+        {prs.length === 0 ? (
+          <div style={{ padding: 20 }}>
+            <EmptyState
+              title="No open purchase requests"
+              hint="DEMO-1 didn't seed procurement data for this org. Create your first PR to start the procure-to-pay flow."
+              cta={{
+                href: "/development-os/procurement/requests/new",
+                label: "Create first PR →",
+              }}
+            />
+          </div>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>PR</th>
+                <th>Material</th>
+                <th>Project</th>
+                <th>Requester</th>
+                <th className="num">Estimated</th>
+                <th>Urgency</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {prs.map((r: ProcurementPrRow) => (
+                <tr key={r.id}>
+                  <td className="mono" style={{ fontSize: 11 }}>{r.requestCode}</td>
+                  <td>{r.materialName}</td>
+                  <td className="mono">{r.projectCode ?? "—"}</td>
+                  <td>{r.requesterName ?? "—"}</td>
+                  <td className="num">{fmtMinor(r.estimatedMinor, r.currency)}</td>
+                  <td>{urgencyBadge(r.urgency)}</td>
+                  <td>{statusBadge(r.status)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
 
       <h2
@@ -136,38 +240,39 @@ export default function ProcurementManagerPage() {
         POs in transit
       </h2>
       <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>PO</th>
-              <th>Vendor</th>
-              <th>Items</th>
-              <th className="num">Total</th>
-              <th>ETA</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {POS_IN_TRANSIT.map((r) => (
-              <tr key={r.po}>
-                <td className="mono" style={{ fontSize: 11 }}>{r.po}</td>
-                <td>{r.vendor}</td>
-                <td>{r.items}</td>
-                <td className="num">{r.total}</td>
-                <td className="mono">{r.eta}</td>
-                <td>
-                  {r.statusTone === "warn" ? (
-                    <Badge tone="warn">{r.statusLabel}</Badge>
-                  ) : r.statusTone === "info" ? (
-                    <Badge tone="info">{r.statusLabel}</Badge>
-                  ) : (
-                    <Badge>{r.statusLabel}</Badge>
-                  )}
-                </td>
+        {pos.length === 0 ? (
+          <div style={{ padding: 20 }}>
+            <EmptyState
+              title="No POs in transit"
+              hint="Approve a purchase request to generate a PO and surface delivery tracking here."
+            />
+          </div>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>PO</th>
+                <th>Vendor</th>
+                <th>Project</th>
+                <th>Expected delivery</th>
+                <th className="num">Total</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {pos.map((r: ProcurementPoRow) => (
+                <tr key={r.id}>
+                  <td className="mono" style={{ fontSize: 11 }}>{r.poCode}</td>
+                  <td>{r.vendorName ?? "—"}</td>
+                  <td className="mono">{r.projectCode ?? "—"}</td>
+                  <td className="mono">{r.expectedDelivery ?? "—"}</td>
+                  <td className="num">{fmtMinor(r.totalMinor, r.currency)}</td>
+                  <td>{statusBadge(r.status)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
 
       <h2
@@ -177,38 +282,46 @@ export default function ProcurementManagerPage() {
         Invoices · awaiting payment
       </h2>
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Invoice</th>
-              <th>Vendor</th>
-              <th>PO</th>
-              <th className="num">Amount</th>
-              <th>Due</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {INVOICES.map((r) => (
-              <tr key={r.inv}>
-                <td className="mono" style={{ fontSize: 11 }}>{r.inv}</td>
-                <td>{r.vendor}</td>
-                <td className="mono">{r.po}</td>
-                <td className="num">{r.amount}</td>
-                <td className="mono">{r.due}</td>
-                <td>
-                  {r.statusTone === "warn" ? (
-                    <Badge tone="warn">{r.statusLabel}</Badge>
-                  ) : r.statusTone === "danger" ? (
-                    <Badge tone="danger">{r.statusLabel}</Badge>
-                  ) : (
-                    <Badge>{r.statusLabel}</Badge>
-                  )}
-                </td>
+        {invoices.length === 0 ? (
+          <div style={{ padding: 20 }}>
+            <EmptyState
+              title="No invoices awaiting"
+              hint="Vendor invoices linked to POs show up here once received."
+            />
+          </div>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Vendor</th>
+                <th>PO</th>
+                <th className="num">Amount</th>
+                <th>Due</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {invoices.map((r: ProcurementInvoiceRow) => (
+                <tr key={r.id}>
+                  <td className="mono" style={{ fontSize: 11 }}>{r.invoiceNumber}</td>
+                  <td>{r.vendorName ?? "—"}</td>
+                  <td className="mono">{r.poCode ?? "—"}</td>
+                  <td className="num">{fmtMinor(r.totalMinor, r.currency)}</td>
+                  <td className="mono">
+                    {r.dueDate ?? "—"}
+                    {r.daysToDue !== null && r.daysToDue < 0 && (
+                      <span style={{ color: "var(--danger, var(--amber))", marginLeft: 6 }}>
+                        ({-r.daysToDue}d late)
+                      </span>
+                    )}
+                  </td>
+                  <td>{statusBadge(r.status)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
     </>
   );
