@@ -1,100 +1,109 @@
+import Link from "next/link";
 import {
   Kpi,
   SectionHeading,
   Card,
   Badge,
 } from "@/components/dashboard/primitives";
+import {
+  getActiveProjectsRollup,
+  getTeamRoster,
+  getLatestQsAnomaly,
+} from "@/lib/development/server/cabinets/dev-overview-queries";
 
 /**
- * Sprint _handoff/ Task 7 (visual port) — Dev OS Overview / Command center.
+ * Sprint TASK-7-DATA-PART-2 — Dev OS Overview / Command Center live wiring.
  *
- * 1:1 visual port of `_handoff/development/index.html` (app.js block).
- * Mock data preserved as-is — live wiring deferred to TASK-7-DATA per
- * docs/audits/task-6-7-data-wiring-todo.md.
+ * Visual port from `_handoff/development/index.html` (TASK-7-VISUAL,
+ * commit `316dc65`); this commit replaces the four mock arrays with
+ * live, org-scoped reads in
+ * `src/lib/development/server/cabinets/dev-overview-queries.ts`:
  *
- * Lives under the Task 5 development shell (DevelopmentAppShell). Body
- * content only — sidebar / topbar / trial banner / MobileTabbar all
- * preserved.
- *
- * Section order: SectionHeading → 5-up KPIs → qs-cost-analyst AI band
- * (amber corner-marks panel) → Projects roll-up table → 2-up (Risk
- * radar + Site activity today) → Team grid (8 staff cards).
+ *   - mockPROJECTS       → getActiveProjectsRollup()  (projects + villa count)
+ *   - mockSTAFF          → getTeamRoster()            (org's active app_users)
+ *   - qs-cost AI band    → getLatestQsAnomaly()       (last agent_outputs run)
+ *   - mockRISK_RADAR     → empty state (no risk model schema yet)
+ *   - mockSITE_ACTIVITY  → empty state (site events schema in PART-3)
  */
 
 export const metadata = { title: "Development OS · Command center" };
 export const dynamic = "force-dynamic";
 
-// TODO(task-7-data): wire to features/development/services.listActiveProjects().
-const PROJECTS = [
-  { code: "EP02", name: "Eternal Phase 02", units: 12, gdvM: 5.4, stage: "construction", prog: 58, ontrack: true, irr: 23.4 },
-  { code: "ES10", name: "Enso 10 Pool", units: 8, gdvM: 7.4, stage: "construction", prog: 34, ontrack: true, irr: 21.8 },
-  { code: "AHP3", name: "Ahau Phase 3", units: 5, gdvM: 6.8, stage: "permit", prog: 14, ontrack: false, irr: 18.2 },
-];
+const STAGE_BADGE: Record<string, string> = {
+  active: "active",
+  planning: "planning",
+  under_construction: "construction",
+  managed: "managed",
+};
 
-// TODO(task-7-data): wire to features/development/services.listRiskRadar().
-const RISK_RADAR: { color: string; label: string; tone: "danger" | "warn" | "info"; badge: string }[] = [
-  { color: "var(--danger)", label: "AHP3 permit stalled · 12 days", tone: "danger", badge: "Critical" },
-  { color: "var(--amber)", label: "EP02 marble PO over baseline", tone: "warn", badge: "High" },
-  { color: "var(--warn)", label: "ES10 rebar lead-time +4 days", tone: "warn", badge: "Medium" },
-  { color: "var(--steel)", label: "Heavy rain forecast 23–25 Apr", tone: "info", badge: "Weather" },
-];
+const ROLE_DISPLAY: Record<string, string> = {
+  super_admin: "Super admin",
+  operator: "Operator",
+  director: "Director",
+  finance_manager: "Finance Manager",
+  project_manager: "Project Manager",
+  site_supervisor: "Site Supervisor",
+  qs: "QS / Cost Analyst",
+  procurement_manager: "Procurement",
+  marketing_staff: "Marketing",
+  sales_manager: "Sales Manager",
+};
 
-// TODO(task-7-data): wire to features/development/services.listSiteActivityToday().
-const SITE_ACTIVITY: { at: string; text: string; tone?: "warn" | "info" | undefined; badge: string }[] = [
-  { at: "04:30", text: "EP02 · Block B concrete pour · 1,420 m³", tone: "warn", badge: "In progress" },
-  { at: "08:00", text: "ES10 · MEP rough-in inspection", badge: "Scheduled" },
-  { at: "10:00", text: "AHP3 · permit office meeting", tone: "warn", badge: "Critical" },
-  { at: "14:00", text: "EP02 · marble samples vendor visit", badge: "Scheduled" },
-];
+export default async function DevelopmentOverviewPage() {
+  const [projects, team, latestAnomaly] = await Promise.all([
+    getActiveProjectsRollup().catch(() => []),
+    getTeamRoster().catch(() => []),
+    getLatestQsAnomaly().catch(() => null),
+  ]);
 
-// TODO(task-7-data): wire to features/development/services.listTeamRoster().
-const STAFF = [
-  { name: "Nikita R.", role: "Director", init: "NR" },
-  { name: "Made S.", role: "Project Manager", init: "MS" },
-  { name: "Komang Y.", role: "Site Supervisor", init: "KY" },
-  { name: "Dewi S.", role: "CFO / Accountant", init: "DS" },
-  { name: "Wayan T.", role: "QS / Cost Analyst", init: "WT" },
-  { name: "Ari P.", role: "Procurement", init: "AP" },
-  { name: "Putu L.", role: "Marketing", init: "PL" },
-  { name: "Inka R.", role: "Sales Manager", init: "IR" },
-];
+  const totalVillas = projects.reduce((s, p) => s + p.villaCount, 0);
+  const projectCount = projects.length;
 
-export default function DevelopmentOverviewPage() {
   return (
     <>
       <SectionHeading
-        eyebrow="Tuesday · 21 April 2026 · WK36"
+        eyebrow="Command center"
         title={
           <>
-            Three projects in motion.{" "}
-            <span style={{ color: "var(--amber)" }}>One demands your eyes.</span>
+            {projectCount === 0 ? "No projects yet." : `${projectCount} project${projectCount === 1 ? "" : "s"} in motion.`}{" "}
+            {projectCount > 0 && (
+              <span style={{ color: "var(--amber)" }}>
+                Real portfolio rollup below.
+              </span>
+            )}
           </>
         }
-        subtitle="Eternal Phase 02 on track at 58% complete · Enso 10 Pool ahead of schedule · Ahau Phase 3 stalled in permit (12-day delay)."
+        subtitle="Live counts from the active projects table. Risk radar + site activity feeds wire in TASK-7-DATA-PART-3 once their schemas + seed land."
         actions={
           <>
             <button className="btn btn-dark btn-sm">Daily digest PDF ↓</button>
-            <button className="btn btn-amber btn-sm">New project +</button>
+            <Link
+              href="/development-os/projects/new"
+              className="btn btn-amber btn-sm"
+            >
+              New project +
+            </Link>
           </>
         }
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 24 }}>
-        <Kpi label="Active projects" value="3" sub="1 watch · 2 on track" tone="accent" />
-        <Kpi label="Total commitment" value="$24M" sub="across 14 LPs" />
-        <Kpi label="Avg progress" value="35%" sub="weighted by GDV" />
-        <Kpi label="Cost variance · agg" value="+1.4%" sub="EAC +2.1%" tone="accent" />
-        <Kpi label="Portfolio IRR · YTD" value="23.4%" sub="vs PPM 18.0%" tone="success" />
+        <Kpi
+          label="Active projects"
+          value={projectCount === 0 ? "—" : String(projectCount)}
+          sub={projectCount === 0 ? "create your first" : `${totalVillas} villas in portfolio`}
+          tone={projectCount > 0 ? "accent" : undefined}
+        />
+        <Kpi label="Total commitment" value="—" sub="capital ledger lands in PART-3" />
+        <Kpi label="Avg progress" value="—" sub="WP rollup lands in PART-3" />
+        <Kpi label="Cost variance · agg" value="—" sub="baseline-vs-actual in PART-3" />
+        <Kpi label="Portfolio IRR · YTD" value="—" sub="distribution model in PART-3" />
       </div>
 
-      {/* AI band — qs-cost-analyst run */}
+      {/* AI band — live qs-cost-analyst output or friendly empty state */}
       <Card
         className="corner-marks"
-        style={{
-          padding: 24,
-          marginBottom: 18,
-          borderColor: "var(--amber)",
-        }}
+        style={{ padding: 24, marginBottom: 18, borderColor: "var(--amber)" }}
       >
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
           <span
@@ -114,33 +123,58 @@ export default function DevelopmentOverviewPage() {
             ✦
           </span>
           <div style={{ flex: 1 }}>
-            <div className="label label-amber">qs-cost-analyst · 06:14 · run 4af2</div>
-            <p
-              style={{
-                margin: "8px 0 14px",
-                fontSize: 15,
-                lineHeight: 1.55,
-                color: "var(--ink)",
-              }}
-            >
-              Line{" "}
-              <span className="mono" style={{ color: "var(--amber)" }}>
-                EP02.WP-04.18.b · Marble Hindari 60×60
-              </span>{" "}
-              is <strong>+18.4%</strong> vs 6-month rolling baseline for comparable lots
-              from supplier <span className="mono">BatuJaya</span>. Median across 4
-              reference projects is $42/m²; we are quoted $49.6/m². Suggest re-RFQ to 2
-              backup vendors before approving PO.
-            </p>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn btn-amber btn-sm">Reissue RFQ →</button>
-              <button className="btn btn-dark btn-sm">Mark accepted</button>
-            </div>
+            {latestAnomaly ? (
+              <>
+                <div className="label label-amber">
+                  qs-cost-analyst · {latestAnomaly.outputCode} ·{" "}
+                  {new Date(latestAnomaly.createdAt).toLocaleString()}
+                </div>
+                <p
+                  style={{
+                    margin: "8px 0 14px",
+                    fontSize: 15,
+                    lineHeight: 1.55,
+                    color: "var(--ink)",
+                  }}
+                >
+                  <strong>{latestAnomaly.title}</strong>
+                  <br />
+                  <span style={{ color: "var(--ink-2)" }}>{latestAnomaly.summary}</span>
+                </p>
+                <Link
+                  href={`/development-os/ai-agents/qs-cost-analyst`}
+                  className="btn btn-amber btn-sm"
+                >
+                  Open run →
+                </Link>
+              </>
+            ) : (
+              <>
+                <div className="label label-amber">qs-cost-analyst</div>
+                <p
+                  style={{
+                    margin: "8px 0 14px",
+                    fontSize: 15,
+                    lineHeight: 1.55,
+                    color: "var(--ink)",
+                  }}
+                >
+                  No anomaly runs yet — the qs-cost-analyst agent surfaces here
+                  the first time it catches a BOQ line outside its baseline.
+                </p>
+                <Link
+                  href="/development-os/ai-agents"
+                  className="btn btn-dark btn-sm"
+                >
+                  Configure agent
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </Card>
 
-      {/* Projects roll-up */}
+      {/* Projects roll-up — live `projects` rows */}
       <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
         <div
           style={{
@@ -151,173 +185,156 @@ export default function DevelopmentOverviewPage() {
           }}
         >
           <h2 className="display" style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>
-            Projects · 3 active
+            Projects · {projectCount} active
           </h2>
-          <span
-            className="mono"
-            style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}
-          >
-            $24M GDV · 25 UNITS
-          </span>
+          {projectCount > 0 && (
+            <span
+              className="mono"
+              style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}
+            >
+              {totalVillas} VILLAS · {projectCount} {projectCount === 1 ? "PROJECT" : "PROJECTS"}
+            </span>
+          )}
         </div>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Project</th>
-              <th>Units</th>
-              <th>GDV</th>
-              <th>Stage</th>
-              <th>Progress</th>
-              <th>State</th>
-              <th>IRR</th>
-            </tr>
-          </thead>
-          <tbody>
-            {PROJECTS.map((p) => (
-              <tr key={p.code}>
-                <td>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span
-                      className="mono"
-                      style={{
-                        padding: "2px 6px",
-                        border: "1px solid var(--line-2)",
-                        borderRadius: 6,
-                        background: "var(--bg-2)",
-                        fontSize: 10,
-                      }}
-                    >
-                      {p.code}
-                    </span>
-                    <span className="display" style={{ fontSize: 14, fontWeight: 500 }}>
-                      {p.name}
-                    </span>
-                  </div>
-                </td>
-                <td className="num">{p.units}</td>
-                <td className="num">${p.gdvM}M</td>
-                <td><Badge>{p.stage}</Badge></td>
-                <td>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 140 }}>
-                    <div
-                      style={{
-                        flex: 1,
-                        height: 6,
-                        background: "var(--bg-2)",
-                        borderRadius: 999,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: "100%",
-                          width: `${p.prog}%`,
-                          background: p.ontrack ? "var(--amber)" : "var(--warn)",
-                          borderRadius: 999,
-                        }}
-                      />
-                    </div>
-                    <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)", width: 32 }}>
-                      {p.prog}%
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  {p.ontrack ? <Badge tone="ok">On track</Badge> : <Badge tone="warn">Watch</Badge>}
-                </td>
-                <td className="num" style={{ color: "var(--amber)", fontWeight: 500 }}>
-                  {p.irr}%
-                </td>
+        {projectCount === 0 ? (
+          <p
+            style={{
+              padding: 20,
+              fontSize: 13,
+              color: "var(--ink-3)",
+              fontStyle: "italic",
+            }}
+          >
+            No active projects. Create one to start the portfolio rollup.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Code</th>
+                <th>Villas</th>
+                <th>Stage</th>
+                <th>Mgmt status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {projects.map((p) => (
+                <tr key={p.projectId}>
+                  <td style={{ fontFamily: "var(--font-space), sans-serif", fontWeight: 500 }}>
+                    {p.name}
+                  </td>
+                  <td className="mono">{p.projectCode}</td>
+                  <td className="num">{p.villaCount}</td>
+                  <td>
+                    <Badge>{STAGE_BADGE[p.status] ?? p.status}</Badge>
+                  </td>
+                  <td>
+                    <Badge>{p.managementStatus}</Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
 
-      {/* Risk radar + Site activity */}
+      {/* Risk radar + Site activity — empty states */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
         <Card style={{ padding: 20 }}>
           <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
             Risk radar
           </h3>
-          <ul className="clean" style={{ marginTop: 14 }}>
-            {RISK_RADAR.map((r) => (
-              <li key={r.label}>
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: r.color }} />
-                <span style={{ flex: 1, fontSize: 13 }}>{r.label}</span>
-                <Badge tone={r.tone}>{r.badge}</Badge>
-              </li>
-            ))}
-          </ul>
+          <p
+            style={{
+              marginTop: 14,
+              fontSize: 13,
+              color: "var(--ink-3)",
+              fontStyle: "italic",
+            }}
+          >
+            Cross-project risk model lands in TASK-7-DATA-PART-3. Until then
+            risks surface in the project-manager cabinet&apos;s at-risk view.
+          </p>
         </Card>
         <Card style={{ padding: 20 }}>
           <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
             Site activity · today
           </h3>
-          <ul className="clean" style={{ marginTop: 14, fontSize: 13 }}>
-            {SITE_ACTIVITY.map((a) => (
-              <li key={a.at}>
-                <span
-                  className="mono"
-                  style={{ fontSize: 11, color: "var(--ink-3)", minWidth: 48 }}
-                >
-                  {a.at}
-                </span>
-                <span style={{ flex: 1 }}>{a.text}</span>
-                {a.tone ? <Badge tone={a.tone}>{a.badge}</Badge> : <Badge>{a.badge}</Badge>}
-              </li>
-            ))}
-          </ul>
+          <p
+            style={{
+              marginTop: 14,
+              fontSize: 13,
+              color: "var(--ink-3)",
+              fontStyle: "italic",
+            }}
+          >
+            Today&apos;s scheduled work surfaces here once the schedule + daily
+            digest agent feeds are wired.
+          </p>
         </Card>
       </div>
 
-      {/* Team grid */}
+      {/* Team grid — live app_users */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "14px 22px", borderBottom: "1px solid var(--line)" }}>
           <h2 className="display" style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>
-            Team · 8 cabinets
+            Team · {team.length} {team.length === 1 ? "member" : "members"}
           </h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, padding: 20 }}>
-          {STAFF.map((p) => (
-            <div
-              key={p.name}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "10px 12px",
-                border: "1px solid var(--line)",
-                borderRadius: 12,
-                background: "var(--bg-3)",
-              }}
-            >
+        {team.length === 0 ? (
+          <p
+            style={{
+              padding: 20,
+              fontSize: 13,
+              color: "var(--ink-3)",
+              fontStyle: "italic",
+            }}
+          >
+            No active team members. Invite users to populate the roster.
+          </p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, padding: 20 }}>
+            {team.map((p) => (
               <div
+                key={p.userId}
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 999,
-                  background: "var(--amber)",
-                  color: "var(--carbon)",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  fontFamily: "var(--font-space), sans-serif",
+                  gap: 10,
+                  padding: "10px 12px",
+                  border: "1px solid var(--line)",
+                  borderRadius: 12,
+                  background: "var(--bg-3)",
                 }}
               >
-                {p.init}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{p.name}</div>
-                <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
-                  {p.role}
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 999,
+                    background: "var(--amber)",
+                    color: "var(--carbon)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: "var(--font-space), sans-serif",
+                  }}
+                >
+                  {p.initials}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{p.fullName}</div>
+                  <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                    {p.primaryRole ? ROLE_DISPLAY[p.primaryRole] ?? p.primaryRole : p.email}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
     </>
   );

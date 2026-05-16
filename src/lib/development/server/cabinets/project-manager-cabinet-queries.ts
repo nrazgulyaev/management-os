@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Stage 10.5.A.1.3 — PM cabinet data aggregator (extended).
@@ -257,4 +258,227 @@ export async function loadProjectManagerCabinet(): Promise<ProjectManagerCabinet
         createdAt: r.created_at,
       })) ?? [],
   };
+}
+
+// =============================================================================
+// Sprint TASK-7-DATA-PART-2 — PM cabinet view readers for the prototype.
+//
+// The _handoff/ PM cabinet (`/development-os/cabinets/project-manager/
+// page.tsx`) needs three list-shaped reads:
+//
+//   - listWorkPackagesByStatus()  → kanban-shaped grouping
+//   - listAtRiskPackages()        → portfolio-at-risk side rail
+//   - getLatestDailyDigest()      → daily digest narrative body
+//
+// All org-scoped via requireOrgId() (TENANT-1). DEMO-1 didn't seed
+// work_packages or daily-digest agent_outputs, so the kanban + digest
+// reads are expected to return empty for the Arconique org today —
+// the cabinet renders friendly empty states.
+// =============================================================================
+
+export type WpStatus =
+  | "planned"
+  | "ready_to_start"
+  | "in_progress"
+  | "completed"
+  | "on_hold"
+  | "cancelled";
+
+export interface WorkPackageRow {
+  id: string;
+  packageCode: string;
+  name: string;
+  projectId: string;
+  projectCode: string | null;
+  status: WpStatus;
+  progressPercentage: number;
+  responsibleUserName: string | null;
+  primaryVendorName: string | null;
+  budgetMinor: number | null;
+  actualMinor: number | null;
+  plannedFinish: string | null;
+}
+
+export async function listWorkPackagesByStatus(): Promise<
+  Record<WpStatus, WorkPackageRow[]>
+> {
+  const empty = {
+    planned: [],
+    ready_to_start: [],
+    in_progress: [],
+    completed: [],
+    on_hold: [],
+    cancelled: [],
+  } satisfies Record<WpStatus, WorkPackageRow[]>;
+  const db = getDb();
+  if (!db) return empty;
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    id: string;
+    package_code: string;
+    name: string;
+    project_id: string;
+    project_code: string | null;
+    status: string;
+    progress_percentage: string;
+    responsible_name: string | null;
+    vendor_name: string | null;
+    budget_minor: string | null;
+    actual_minor: string | null;
+    planned_finish: string | null;
+  }>(sql`
+    SELECT w.id::text                                  AS id,
+           w.package_code                                AS package_code,
+           w.name                                        AS name,
+           w.project_id::text                            AS project_id,
+           p.project_code                                AS project_code,
+           w.status                                      AS status,
+           w.progress_percentage::text                   AS progress_percentage,
+           u.full_name                                   AS responsible_name,
+           v.legal_name                                  AS vendor_name,
+           w.budget_amount_minor::text                   AS budget_minor,
+           w.actual_amount_minor::text                   AS actual_minor,
+           w.planned_finish::text                        AS planned_finish
+      FROM work_packages w
+      LEFT JOIN projects p ON p.id = w.project_id
+      LEFT JOIN app_users u ON u.id = w.responsible_user_id
+      LEFT JOIN vendors v   ON v.id = w.primary_vendor_id
+     WHERE w.organization_id = ${orgId}
+     ORDER BY w.display_order, w.package_code
+     LIMIT 60
+  `);
+  const result: Record<WpStatus, WorkPackageRow[]> = {
+    planned: [],
+    ready_to_start: [],
+    in_progress: [],
+    completed: [],
+    on_hold: [],
+    cancelled: [],
+  };
+  for (const r of (rows as unknown as { rows: Array<{
+    id: string;
+    package_code: string;
+    name: string;
+    project_id: string;
+    project_code: string | null;
+    status: string;
+    progress_percentage: string;
+    responsible_name: string | null;
+    vendor_name: string | null;
+    budget_minor: string | null;
+    actual_minor: string | null;
+    planned_finish: string | null;
+  }> }).rows ?? []) {
+    const status = (r.status as WpStatus) ?? "planned";
+    if (!(status in result)) continue;
+    result[status].push({
+      id: r.id,
+      packageCode: r.package_code,
+      name: r.name,
+      projectId: r.project_id,
+      projectCode: r.project_code,
+      status,
+      progressPercentage: Number(r.progress_percentage),
+      responsibleUserName: r.responsible_name,
+      primaryVendorName: r.vendor_name,
+      budgetMinor: r.budget_minor !== null ? Number(r.budget_minor) : null,
+      actualMinor: r.actual_minor !== null ? Number(r.actual_minor) : null,
+      plannedFinish: r.planned_finish,
+    });
+  }
+  return result;
+}
+
+export interface AtRiskRow {
+  id: string;
+  packageCode: string;
+  name: string;
+  projectCode: string | null;
+  daysOverdue: number;
+  responsibleUserName: string | null;
+}
+
+/** WPs where planned_finish < CURRENT_DATE and status ≠ completed. */
+export async function listAtRiskPackages(limit = 5): Promise<AtRiskRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    id: string;
+    package_code: string;
+    name: string;
+    project_code: string | null;
+    days_overdue: string;
+    responsible_name: string | null;
+  }>(sql`
+    SELECT w.id::text                                                 AS id,
+           w.package_code                                              AS package_code,
+           w.name                                                      AS name,
+           p.project_code                                              AS project_code,
+           (CURRENT_DATE - w.planned_finish)::text                     AS days_overdue,
+           u.full_name                                                 AS responsible_name
+      FROM work_packages w
+      LEFT JOIN projects p ON p.id = w.project_id
+      LEFT JOIN app_users u ON u.id = w.responsible_user_id
+     WHERE w.organization_id = ${orgId}
+       AND w.planned_finish IS NOT NULL
+       AND w.planned_finish < CURRENT_DATE
+       AND w.status NOT IN ('completed','cancelled')
+     ORDER BY w.planned_finish ASC
+     LIMIT ${limit}
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      id: string;
+      package_code: string;
+      name: string;
+      project_code: string | null;
+      days_overdue: string;
+      responsible_name: string | null;
+    }> }).rows ?? []
+  ).map((r) => ({
+    id: r.id,
+    packageCode: r.package_code,
+    name: r.name,
+    projectCode: r.project_code,
+    daysOverdue: Number(r.days_overdue),
+    responsibleUserName: r.responsible_name,
+  }));
+}
+
+export interface DailyDigestRow {
+  outputCode: string;
+  title: string;
+  summary: string;
+  createdAt: string;
+}
+
+export async function getLatestDailyDigest(): Promise<DailyDigestRow | null> {
+  const db = getDb();
+  if (!db) return null;
+  const rows = await db.execute<{
+    output_code: string;
+    title: string;
+    summary: string;
+    created_at: string;
+  }>(sql`
+    SELECT output_code, title, summary, created_at::text
+      FROM agent_outputs
+     WHERE agent_key = 'daily_digest'
+     ORDER BY created_at DESC LIMIT 1
+  `);
+  const r = (rows as unknown as { rows: Array<{
+    output_code: string;
+    title: string;
+    summary: string;
+    created_at: string;
+  }> }).rows?.[0];
+  return r
+    ? {
+        outputCode: r.output_code,
+        title: r.title,
+        summary: r.summary,
+        createdAt: r.created_at,
+      }
+    : null;
 }

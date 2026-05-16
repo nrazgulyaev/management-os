@@ -149,34 +149,36 @@ Operator can sprint these one cabinet at a time. Recommended order:
 convention. Naming kept distinct so `git grep "task-6-data"` vs
 `task-7-data` triages quickly.
 
-### Cabinet 7.1 — Dev Overview / Command Center
+### Cabinet 7.1 — Dev Overview / Command Center — 🟡 PARTIAL (TASK-7-DATA-PART-2)
 
 **File:** `src/app/(development-app)/development-os/page.tsx`
 
-| Mock array | Target | Service | Notes |
+| Mock array | Target | Service | Status |
 |---|---|---|---|
-| `PROJECTS` (3 rows) | `listActiveProjects({ status })` | ✅ exists at `src/lib/development/server/projects/*` | Shape: code/name/units/gdvM/stage/prog/ontrack/irr. **Low.** |
-| `RISK_RADAR` (4 rows) | `listRiskRadar()` | ⚡ new in `features/development/services.ts` | Cross-project risk aggregation — permit holds, cost-baseline drift, schedule slips, weather. **Med.** |
-| `SITE_ACTIVITY` (4 rows for today) | `listSiteActivityToday()` | ⚡ new service needed | Source: daily reports + schedule + meetings calendar. **Med.** |
-| `STAFF` (8 cards) | `listTeamRoster()` | ✅ derivable from `getCurrentUserContext()` + org membership query | Trim to display roles. **Low.** |
-| 5-up KPIs | `getDevPortfolioKpis()` | ⚡ new service | Active count · total commitment · weighted avg progress · aggregate cost variance · IRR. **Med.** |
-| qs-cost-analyst AI band copy | Derived from `listRecentAgentRuns({ agentId: "qs-cost-analyst" })` | ⚡ new | **Med** (AI infra). |
+| `PROJECTS` (3 rows) | `getActiveProjectsRollup()` | ✅ shipped in `dev-overview-queries.ts` | Live · projects + villa count, org-scoped |
+| `STAFF` (8 cards) | `getTeamRoster()` | ✅ shipped | Live · org's active `app_users` + primary role |
+| qs-cost-analyst AI band copy | `getLatestQsAnomaly()` | ✅ shipped | Live · last `agent_outputs` run, or friendly empty state |
+| `RISK_RADAR` (4 rows) | `listRiskRadar()` | ⚡ deferred | Cross-project risk model · no schema yet → empty state copy |
+| `SITE_ACTIVITY` (4 rows for today) | `listSiteActivityToday()` | ⚡ deferred | DEMO-1 didn't seed site_reports → empty state copy |
+| 5-up KPIs | `getDevPortfolioKpis()` | ⚡ deferred | Active project count + total villas wired; commitment/progress/variance/IRR show "—" |
 
-**Sprint estimate:** 1 day.
+**Deferred to TASK-7-DATA-PART-3:** Risk radar service · site activity feed · cross-project KPI rollup (commitment / weighted progress / cost variance / portfolio IRR).
 
-### Cabinet 7.2 — Project Manager
+### Cabinet 7.2 — Project Manager — 🟡 PARTIAL (TASK-7-DATA-PART-2)
 
 **File:** `src/app/(development-app)/development-os/cabinets/project-manager/page.tsx`
 
-| Mock array | Target | Service | Notes |
+| Mock array | Target | Service | Status |
 |---|---|---|---|
-| `KANBAN` (4 columns × 2-3 cards) | `listWorkPackagesByStatus(projectId)` | ⚡ new in `features/development/services.ts` | WP entity needed if not present. **Med.** |
-| `AT_RISK` (3 rows) | Filtered view of `listRiskRadar()` | ⚡ same as Overview | Reuse. |
-| Daily digest body (3 paragraphs) | `getDailyDigest(projectId, dateISO)` | ⚡ new | AI-generated narrative. **High** (LLM call infra). |
-| `SCHEDULE_BARS` (6 bars · weekly gantt) | `getConstructionScheduleStrip(projectId, weekISO)` | ⚡ new | Read from `schedule` / `tasks` schema. **Med-High.** |
-| 5-up KPIs | `getPmKpis(projectId)` | ⚡ new | WPs · sched variance · open tickets · pending decisions · crew count. **Med.** |
+| `KANBAN` (4 columns) | `listWorkPackagesByStatus()` | ✅ shipped in `project-manager-cabinet-queries.ts` | Live · `work_packages` grouped by status, org-scoped |
+| `AT_RISK` (3 rows) | `listAtRiskPackages(5)` | ✅ shipped | Live · WPs with `planned_finish < CURRENT_DATE` |
+| Daily digest body | `getLatestDailyDigest()` | ✅ shipped | Live · latest `agent_outputs` daily_digest run, or empty state |
+| `SCHEDULE_BARS` (6 bars · weekly gantt) | `getConstructionScheduleStrip()` | ⚡ deferred | No `schedule_tasks` schema yet → block removed from page |
+| 5-up KPIs | `getPmKpis()` | ⚡ deferred | In-progress + overdue counts wired; variance/decisions/crew show "—" |
 
-**Sprint estimate:** 1.5 days.
+**Empty-state UX:** DEMO-1 didn't seed `work_packages` or daily-digest runs → kanban shows "Empty" per column with neutral copy; at-risk shows friendly "no overdue WPs" message; digest panel shows "NO DIGEST YET" placeholder. Schedule strip block dropped this sprint.
+
+**Deferred to TASK-7-DATA-PART-3:** construction schedule strip (requires `schedule_tasks` schema) · schedule variance KPI · decisions-awaiting-me feed · crew-on-site rollup (depends on site_reports).
 
 ### Cabinet 7.3 — CFO / Accountant — ✅ DONE (TASK-7-DATA-PART-1)
 
@@ -208,18 +210,18 @@ of alarming zeros.
   rule engine" + "—" per project).
 - Tax MTD / YTD columns + status badges per filing.
 
-### Cabinet 7.4 — QS / Cost Analyst (BOQ Desk)
+### Cabinet 7.4 — QS / Cost Analyst (BOQ Desk) — ✅ DONE (TASK-7-DATA-PART-2)
 
 **File:** `src/app/(development-app)/development-os/cabinets/qs/page.tsx`
 
-| Mock array | Target | Service | Notes |
+| Mock array | Target | Service | Status |
 |---|---|---|---|
-| `BOQ` (1 section + 6 lines) | `listBoqLines({ wp, rev, filter: "anomalies+parents" })` | ✅ exists at `features/boq/services.ts` (likely) | Existing `/development-os/boq` route has full pagination. The cabinet table mirrors the prototype's "top 7 shown" slice + a CTA into the full list. **Low.** |
-| `WP_STATS` (6-up strip) | `getBoqWpRollup(wpCode)` | ⚡ new aggregation | Budget · committed · actual · variance · open POs · anomaly count. **Low-Med.** |
-| `RFQ_MATRIX` (4 vendors) | `getRfqMatrix(rfqId)` | ⚡ new | Per-vendor scorecard rollup. **Med.** |
-| AI anomaly band | Latest `qs-cost-analyst` run | ⚡ Reuse Overview hook | **Low** once that exists. |
+| `BOQ` (top-7 lines) | `getBoqTopLines(7)` | ✅ shipped in `qs-cabinet-queries.ts` | Live · top-N `boq_items` ORDER BY total_minor DESC |
+| `WP_STATS` (6-up strip) | `getBoqWpRollup()` | ✅ shipped | Live · top-level `boq_sections` w/ baseline (sum of item totals) |
+| `RFQ_MATRIX` (4 vendors) | `getRfqMatrix()` | ✅ shipped | Live · active `procurement_quotations` + vendor + PR joins |
+| AI anomaly band | Empty state until `agent_outputs` seeded | 🟡 deferred to PART-3 | Renders "No anomalies detected" + "Configure agent" CTA |
 
-**Sprint estimate:** 1 day.
+**Empty-state UX:** Each block collapses to italic friendly copy when its source table is empty for the org. "Filter / full BOQ" CTA preserved from TASK-7-VISUAL — links to the existing paginated `/development-os/boq` route.
 
 ### Cabinet 7.5 — Procurement Manager — ✅ DONE (TASK-7-DATA-PART-1)
 
@@ -243,43 +245,47 @@ alarming "0".
 - Avg PR → PO cycle-time KPI (analytics aggregation).
 - DEMO-2 seed for procurement data once schedule allows.
 
-### Cabinet 7.6 — Site Supervisor
+### Cabinet 7.6 — Site Supervisor — 🟡 PARTIAL (TASK-7-DATA-PART-2)
 
 **File:** `src/app/(development-app)/development-os/cabinets/site-supervisor/page.tsx`
 
-| Mock array | Target | Service | Notes |
+| Mock array | Target | Service | Status |
 |---|---|---|---|
-| `DIARY` (5 timeline rows) | `getDailyReportSchedule(projectId, dateISO)` | ⚡ new — schedule + assignments | **Med.** |
-| `PHOTOS` (10 thumbs) | `listSitePhotosForDate(projectId, dateISO)` | ✅ exists at `features/site-reports` (likely) | Need to expose geo-tag + caption fields. **Low.** |
-| Voice-note transcribed panel | `getLatestVoiceNote(projectId)` | ⚡ new | Pulls from transcription queue. **Med.** |
-| 5-up KPIs | `getSiteSupervisorKpis(projectId, dateISO)` | ⚡ new | Crew count · activities · photos · QA · safety streak. **Med.** |
+| `DIARY` (5 timeline rows) | `listRecentSiteReports(5)` | ✅ shipped in `site-supervisor-cabinet-queries.ts` | Live · `site_reports` JOIN projects + reporter, org-scoped |
+| `PHOTOS` (10 thumbs) | `listRecentSitePhotos(10)` | ✅ shipped | Live · `site_report_photos` JOIN reports + projects, org-scoped |
+| Voice-note transcribed panel | `getLatestVoiceNote()` | ⚡ deferred | No `voice_notes` schema yet → placeholder copy |
+| 5-up KPIs | `getSiteSupervisorKpis()` | 🟡 partial | Reports/today + photos/today wired from live arrays; QA + safety + activities show "—" |
 
-**Sprint estimate:** 1.5 days.
+**Empty-state UX:** DEMO-1 didn't seed `site_reports`/`site_report_photos` → timeline collapses to "No site reports filed yet"; photo grid collapses to neutral copy. KPI strip shows "—" instead of zeros where empty. Voice-note panel kept as dashed-border placeholder mentioning DEMO-2 dependency.
 
-### Cabinet 7.7 — AI Agents
+**Deferred to TASK-7-DATA-PART-3:** `voice_notes` schema + transcription queue · `qa_qc_issues` rollup for "QA checks done" KPI · `safety_incidents` schema for safety streak.
+
+### Cabinet 7.7 — AI Agents — ✅ DONE (TASK-7-DATA-PART-2)
 
 **File:** `src/app/(development-app)/development-os/ai-agents/page.tsx`
 
-| Mock array | Target | Service | Notes |
+| Mock array | Target | Service | Status |
 |---|---|---|---|
-| `AGENTS` (10 cards) | `listDevAgents()` | ⚡ new in `features/ai/services.ts` (or share with Mgmt) | Decision: per-tenant agent registry vs static config. **Low** (static) or **Med** (registry). |
-| `INBOX` (5 rows) | `listDevInbox()` | ⚡ new — same shape as Mgmt AI inbox | Share service with Mgmt cabinet. **Low-Med.** |
-| 5-up KPIs | `getDevAiKpis({ period: "30d" })` | ⚡ new aggregation over `ai_runs` table | **Low.** |
+| `AGENTS` (10 cards) | `getDevAgentConfigs()` | ✅ shipped in `ai-agents-cabinet-queries.ts` | Live · `org_ai_agent_config` over canonical agent_key set; missing rows render as "Not configured" |
+| `INBOX` (5 rows) | `getRecentAgentOutputs(8)` | ✅ shipped | Live · `agent_outputs` filtered by dev-side agent_key set |
+| 5-up KPIs | `getDevAiKpis({ period: "30d" })` | 🟡 partial | Live count + inbox count wired; runs/latency/tokens show "—" |
 
-**Sprint estimate:** 1 day.
+**Empty-state UX:** Cards always render (canonical 9-agent set); enabled agents show "LIVE" badge, configured but disabled show "PAUSED", missing config rows show "Not configured". Inbox table collapses to friendly empty-state copy when no `agent_outputs` rows exist.
+
+**Deferred to TASK-7-DATA-PART-3:** Runs / avg-latency / token-spend KPI aggregations (depend on telemetry table).
 
 ## Dev rollup
 
 | Cabinet | New services | Existing services | Sprint | Status |
 |---|---|---|---|---|
-| Dev Overview | 4 | 2 | 1 day | pending |
-| Project Manager | 5 | 0 | 1.5 days | pending |
+| Dev Overview | 4 | 2 | 1 day | 🟡 PART-2 (projects+team+AI band live · risk/activity/KPI-rollup → PART-3) |
+| Project Manager | 5 | 0 | 1.5 days | 🟡 PART-2 (kanban+at-risk+digest live · schedule strip → PART-3) |
 | CFO / Accountant | 3 | 3 | 1 day | ✅ TASK-7-DATA-PART-1 |
-| QS / BOQ Desk | 3 | 1 | 1 day | pending |
+| QS / BOQ Desk | 3 | 1 | 1 day | ✅ TASK-7-DATA-PART-2 |
 | Procurement Mgr | 1 | 3 | 0.5 day | ✅ TASK-7-DATA-PART-1 |
-| Site Supervisor | 3 | 1 | 1.5 days | pending |
-| AI Agents | 3 | 0 | 1 day | pending |
-| **Total** | **22** | **10** | **~7.5 days** | **2 / 7 done** |
+| Site Supervisor | 3 | 1 | 1.5 days | 🟡 PART-2 (reports+photos live · voice-note/QA/safety → PART-3) |
+| AI Agents | 3 | 0 | 1 day | ✅ TASK-7-DATA-PART-2 |
+| **Total** | **22** | **10** | **~7.5 days** | **4 ✅ · 3 🟡 / 7 cabinets** |
 
 ## Combined rollup (Tasks 6 + 7 data wiring)
 

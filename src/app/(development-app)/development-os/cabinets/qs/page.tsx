@@ -4,98 +4,71 @@ import {
   Card,
   Badge,
 } from "@/components/dashboard/primitives";
+import {
+  getBoqWpRollup,
+  getBoqTopLines,
+  getRfqMatrix,
+  type WpRollupRow,
+  type BoqLineRow,
+  type RfqMatrixRow,
+} from "@/lib/development/server/cabinets/qs-cabinet-queries";
 
 /**
- * Sprint _handoff/ Task 7 (visual port) — Dev OS QS / Cost Analyst cabinet (BOQ desk).
+ * Sprint TASK-7-DATA-PART-2 — Dev OS QS / Cost Analyst (BOQ desk) live wiring.
  *
- * 1:1 visual port of `_handoff/development/qs.html` (app.js block).
- * Mock data preserved verbatim — live wiring deferred to TASK-7-DATA
- * per docs/audits/task-6-7-data-wiring-todo.md.
+ * Visual port from `_handoff/development/qs.html` (TASK-7-VISUAL, commit
+ * `316dc65`); this commit replaces three mock arrays with live, org-
+ * scoped reads added in
+ * `src/lib/development/server/cabinets/qs-cabinet-queries.ts`:
  *
- * Per spec: prototype's BOQ table shows top 7 rows (1 section + 6
- * lines) for visual richness. When the live `listBoqLines()` call
- * lands in TASK-7-DATA, existing pagination/filter UI from
- * `/development-os/boq/*` routes should be linked in via the "Filter"
- * CTA — they remain reachable but aren't embedded here.
+ *   - mockWP_STATS    → getBoqWpRollup()   (top-level boq_sections rollup)
+ *   - mockBOQ         → getBoqTopLines(7)  (top-7 by total_minor)
+ *   - mockRFQ_MATRIX  → getRfqMatrix()     (procurement_quotations active)
  *
- * Sections: SectionHeading → 6-up KPI strip → qs-cost-analyst AI
- * anomaly band → BOQ table (1 section header + 6 lines) → RFQ matrix
- * table (4 vendors with AI-pick highlighted).
+ * The "Filter" CTA links to /development-os/boq for the existing full
+ * paginated list (preserved per Task 7 visual closure note).
  */
 
 export const metadata = { title: "QS · Cost Analyst" };
 export const dynamic = "force-dynamic";
 
-type BoqRow =
-  | { sec: true; c: string; t: string }
-  | {
-      sec?: false;
-      c: string;
-      t: string;
-      q: string;
-      u: string;
-      r: string;
-      b: string;
-      a: string;
-      v: string;
-      f: "ok" | "warn" | "danger";
-    };
+const IDR_M = 10_000_000_000; // IDR minor per million
+const IDR_K = 1_000_000;
+const USD_M = 100_000_000;
+const USD_K = 100_000;
 
-// TODO(task-7-data): wire to features/development/services.listBoqLines({ wp, rev, filter }).
-// Prototype top-7 rows; live service ships pagination + section tree.
-const BOQ: BoqRow[] = [
-  { sec: true, c: "WP-04", t: "STRUCTURAL · Block B" },
-  { c: "WP-04.01", t: "Excavation 0-3m · clay", q: "1,820", u: "m³", r: "$14.20", b: "$25,844", a: "$24,920", v: "−3.6%", f: "ok" },
-  { c: "WP-04.03", t: "Ready-mix concrete C25/30", q: "1,420", u: "m³", r: "$128.40", b: "$182,328", a: "$183,448", v: "+0.6%", f: "ok" },
-  { c: "WP-04.04", t: "Steel rebar Ø12 — main", q: "42.4", u: "t", r: "$1,420", b: "$60,208", a: "$59,640", v: "−0.9%", f: "ok" },
-  { c: "WP-04.06", t: "Formwork plywood 18mm", q: "3,200", u: "m²", r: "$8.90", b: "$28,480", a: "$29,280", v: "+2.8%", f: "warn" },
-  { c: "WP-04.18.b", t: "Marble Hindari 60×60 cm", q: "480", u: "m²", r: "$49.60", b: "$20,160", a: "$23,808", v: "+18.4%", f: "danger" },
-  { c: "WP-04.24", t: "PEX-Al-PEX water pipe Ø20", q: "640", u: "m", r: "$6.40", b: "$4,096", a: "$4,840", v: "+18.2%", f: "danger" },
-];
-
-// TODO(task-7-data): wire to features/development/services.getBoqWpRollup(wp).
-const WP_STATS: { label: string; value: string; sub: string | null; tone?: "amber" }[] = [
-  { label: "Budget · WP-04", value: "$1,840,200", sub: null },
-  { label: "Committed", value: "$1,592,400", sub: "86.5%" },
-  { label: "Actual · MTD", value: "$1,468,720", sub: "$182K Oct" },
-  { label: "Variance", value: "+1.4%", sub: "vs baseline", tone: "amber" },
-  { label: "Open POs", value: "14", sub: "$84.2K" },
-  { label: "Anomalies", value: "03", sub: "AI-detected", tone: "amber" },
-];
-
-// TODO(task-7-data): wire to features/development/services.getRfqMatrix(rfqId).
-const RFQ_MATRIX: {
-  vendor: string;
-  tag: "current" | "ai-pick" | null;
-  price: string;
-  priceTone?: "amber";
-  lead: string;
-  qa: string;
-  drift: string;
-  driftTone: "ok" | "warn" | "danger";
-  cta: "primary" | "secondary";
-}[] = [
-  { vendor: "BatuJaya", tag: "current", price: "$49.60", priceTone: "amber", lead: "21d", qa: "88", drift: "+18.4%", driftTone: "danger", cta: "secondary" },
-  { vendor: "NusaMarmer", tag: "ai-pick", price: "$43.20", lead: "18d", qa: "92", drift: "+3.0%", driftTone: "warn", cta: "primary" },
-  { vendor: "StoneEra", tag: null, price: "$41.80", lead: "25d", qa: "90", drift: "−0.5%", driftTone: "ok", cta: "secondary" },
-  { vendor: "GraniMega", tag: null, price: "$42.00", lead: "14d", qa: "86", drift: "+0.2%", driftTone: "ok", cta: "secondary" },
-];
-
-function flagBadge(f: "ok" | "warn" | "danger") {
-  if (f === "ok") return <Badge tone="ok">OK</Badge>;
-  if (f === "warn") return <Badge tone="warn">Watch</Badge>;
-  return <Badge tone="danger">Alert</Badge>;
+function fmtMinor(minor: number, currency: string): string {
+  const abs = Math.abs(minor);
+  if (currency === "IDR") {
+    if (abs >= IDR_M) return `IDR ${(minor / IDR_M).toFixed(1)}M`;
+    if (abs >= IDR_K) return `IDR ${Math.round(minor / IDR_K)}K`;
+    return `IDR ${Math.round(minor / 100).toLocaleString()}`;
+  }
+  if (abs >= USD_M) return `${currency} ${(minor / USD_M).toFixed(1)}M`;
+  if (abs >= USD_K) return `${currency} ${Math.round(minor / USD_K)}K`;
+  return `${currency} ${Math.round(minor / 100).toLocaleString()}`;
 }
 
-export default function QsPage() {
+function fmtQuantity(q: number): string {
+  if (Number.isInteger(q)) return q.toLocaleString();
+  return q.toFixed(2);
+}
+
+export default async function QsPage() {
+  const [wpRollup, boqLines, rfqMatrix] = await Promise.all([
+    getBoqWpRollup().catch(() => [] as WpRollupRow[]),
+    getBoqTopLines(7).catch(() => [] as BoqLineRow[]),
+    getRfqMatrix().catch(() => [] as RfqMatrixRow[]),
+  ]);
+
   return (
     <>
       <SectionHeading
-        eyebrow="BOQ · REV 14 · stamped 04 Nov 2026"
+        eyebrow="BOQ · live"
         title={
           <>
-            WP-04 Structural ·{" "}
-            <span style={{ color: "var(--amber)" }}>1,420 m³ live.</span>
+            WP-led ·{" "}
+            <span style={{ color: "var(--amber)" }}>variance from baseline.</span>
           </>
         }
         subtitle="Per-line baseline vs actual, AI-flagged anomalies, full revision history, side-by-side RFQ resolution."
@@ -108,53 +81,67 @@ export default function QsPage() {
               Quick entry
             </Link>
             <button className="btn btn-dark btn-sm">Export XLSX ↓</button>
-            <button className="btn btn-dark btn-sm">Compare REV 13</button>
+            <button className="btn btn-dark btn-sm">Compare REV</button>
             <button className="btn btn-amber btn-sm">+ Change order</button>
           </>
         }
       />
 
-      {/* WP rollup strip */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(6, 1fr)",
-          gap: 0,
-          border: "1px solid var(--line)",
-          borderRadius: 14,
-          overflow: "hidden",
-          marginBottom: 18,
-        }}
-      >
-        {WP_STATS.map((s, i, arr) => (
-          <div
-            key={s.label}
-            style={{
-              padding: "16px 18px",
-              borderRight: i < arr.length - 1 ? "1px solid var(--line)" : 0,
-              background: s.tone === "amber" ? "rgba(255,107,53,0.04)" : "var(--panel)",
-            }}
+      {/* WP rollup strip — live boq_sections subtotal_minor */}
+      {wpRollup.length === 0 ? (
+        <Card style={{ padding: 20, marginBottom: 18 }}>
+          <p
+            style={{ fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}
           >
-            <div className="label" style={{ fontSize: 10 }}>{s.label}</div>
+            No work-package sections yet. Create or import a BOQ to see the
+            rollup strip here.
+          </p>
+        </Card>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${Math.min(wpRollup.length, 6)}, 1fr)`,
+            gap: 0,
+            border: "1px solid var(--line)",
+            borderRadius: 14,
+            overflow: "hidden",
+            marginBottom: 18,
+          }}
+        >
+          {wpRollup.slice(0, 6).map((wp, i, arr) => (
             <div
-              className="num"
+              key={wp.wpCode}
               style={{
-                fontSize: 22,
-                marginTop: 4,
-                color: s.tone === "amber" ? "var(--amber)" : "var(--ink)",
-                fontWeight: 500,
+                padding: "16px 18px",
+                borderRight: i < arr.length - 1 ? "1px solid var(--line)" : 0,
+                background: "var(--panel)",
               }}
             >
-              {s.value}
+              <div className="label" style={{ fontSize: 10 }}>
+                {wp.wpCode} · {wp.wpTitle}
+              </div>
+              <div
+                className="num"
+                style={{
+                  fontSize: 22,
+                  marginTop: 4,
+                  color: "var(--ink)",
+                  fontWeight: 500,
+                }}
+              >
+                {fmtMinor(wp.budgetMinor || wp.baselineMinor, wp.currency)}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>
+                {wp.itemCount} {wp.itemCount === 1 ? "line" : "lines"} · baseline
+                {" "}{fmtMinor(wp.baselineMinor, wp.currency)}
+              </div>
             </div>
-            {s.sub && (
-              <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>{s.sub}</div>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* AI anomaly band */}
+      {/* AI anomaly band — empty state until agent_outputs seeded */}
       <Card
         className="corner-marks"
         style={{ padding: 20, marginBottom: 18, borderColor: "var(--amber)" }}
@@ -176,7 +163,7 @@ export default function QsPage() {
             ✦
           </span>
           <div style={{ flex: 1 }}>
-            <div className="label label-amber">qs-cost-analyst · run 4af2</div>
+            <div className="label label-amber">qs-cost-analyst</div>
             <p
               style={{
                 margin: "6px 0 12px",
@@ -186,25 +173,23 @@ export default function QsPage() {
                 maxWidth: 780,
               }}
             >
-              Line{" "}
-              <span className="mono" style={{ color: "var(--amber)" }}>
-                WP-04.18.b · Marble Hindari 60×60
-              </span>{" "}
-              is <strong>+18.4%</strong> vs 6-month rolling baseline. Median across 4
-              reference projects: $42/m². Suggested: re-issue RFQ to{" "}
-              <strong>StoneEra</strong> ($41.80) and <strong>GraniMega</strong> ($42.00) —
-              saves <strong>$3,744</strong> across 480 m².
+              No cost anomalies detected in the active BOQ. Anomaly runs will
+              surface here once the qs-cost-analyst agent files them against
+              your baseline.
             </p>
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn btn-amber btn-sm">Reissue RFQ →</button>
-              <button className="btn btn-dark btn-sm">Mark accepted</button>
-              <button className="btn btn-ghost btn-sm">Show reasoning</button>
+              <Link
+                href="/development-os/ai-agents"
+                className="btn btn-dark btn-sm"
+              >
+                Configure agent
+              </Link>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* BOQ table */}
+      {/* BOQ top-7 table — live boq_items */}
       <Card id="boq" style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
         <div
           style={{
@@ -215,163 +200,117 @@ export default function QsPage() {
           }}
         >
           <h2 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
-            BOQ · WP-04 lines
+            BOQ · top {boqLines.length === 0 ? "7" : boqLines.length} lines by total
           </h2>
-          <span className="mono" style={{ marginLeft: 14, fontSize: 11, color: "var(--ink-3)" }}>
-            7 of 142 shown · filter: anomalies + parents
-          </span>
           <Link
             href="/development-os/boq"
             className="btn btn-dark btn-sm"
             style={{ marginLeft: "auto" }}
           >
-            Filter
+            Filter / full BOQ
           </Link>
         </div>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Description</th>
-              <th className="num">Qty</th>
-              <th>Unit</th>
-              <th className="num">Rate</th>
-              <th className="num">Budget</th>
-              <th className="num">Actual</th>
-              <th className="num">Var.</th>
-              <th>Flag</th>
-            </tr>
-          </thead>
-          <tbody>
-            {BOQ.map((r, i) =>
-              r.sec ? (
-                <tr key={i} style={{ background: "var(--bg-2)" }}>
-                  <td
-                    className="mono"
-                    style={{ fontSize: 11, color: "var(--amber)", letterSpacing: "0.08em" }}
-                  >
-                    {r.c}
+        {boqLines.length === 0 ? (
+          <p
+            style={{
+              padding: 20,
+              fontSize: 13,
+              color: "var(--ink-3)",
+              fontStyle: "italic",
+            }}
+          >
+            No BOQ items yet for this org. Import a BOQ XLSX to populate.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Description</th>
+                <th className="num">Qty</th>
+                <th>Unit</th>
+                <th className="num">Rate</th>
+                <th className="num">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {boqLines.map((r) => (
+                <tr key={`${r.sectionCode}.${r.itemCode}`}>
+                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                    {r.sectionCode}.{r.itemCode}
                   </td>
-                  <td
-                    colSpan={8}
-                    className="mono"
-                    style={{
-                      fontSize: 11,
-                      color: "var(--amber)",
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {r.t}
+                  <td style={{ fontSize: 13 }}>{r.description}</td>
+                  <td className="num">{fmtQuantity(r.quantity)}</td>
+                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                    {r.unitOfMeasure}
+                  </td>
+                  <td className="num">{fmtMinor(r.unitRateMinor, r.currency)}</td>
+                  <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>
+                    {fmtMinor(r.totalMinor, r.currency)}
                   </td>
                 </tr>
-              ) : (
-                <tr
-                  key={i}
-                  style={{
-                    background: r.f === "danger" ? "rgba(194,71,78,0.04)" : "transparent",
-                  }}
-                >
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>{r.c}</td>
-                  <td style={{ fontSize: 13 }}>{r.t}</td>
-                  <td className="num">{r.q}</td>
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>{r.u}</td>
-                  <td className="num">{r.r}</td>
-                  <td className="num">{r.b}</td>
-                  <td
-                    className="num"
-                    style={{ color: r.f === "danger" ? "var(--amber)" : "var(--ink)" }}
-                  >
-                    {r.a}
-                  </td>
-                  <td
-                    className="num"
-                    style={{
-                      color:
-                        r.v.startsWith("+") && parseFloat(r.v.slice(1)) > 5
-                          ? "var(--amber)"
-                          : r.v.startsWith("−")
-                            ? "var(--ok)"
-                            : "var(--ink)",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {r.v}
-                  </td>
-                  <td>{flagBadge(r.f)}</td>
-                </tr>
-              ),
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
 
-      {/* RFQ matrix */}
+      {/* RFQ matrix — live procurement_quotations */}
       <h2
         className="display"
         style={{ fontSize: 24, marginBottom: 14, fontWeight: 500 }}
       >
-        RFQ-082 · Marble Hindari 60×60
+        RFQ matrix
       </h2>
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Vendor</th>
-              <th className="num">$/m²</th>
-              <th className="num">Lead</th>
-              <th className="num">QA</th>
-              <th>Drift</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {RFQ_MATRIX.map((v) => (
-              <tr
-                key={v.vendor}
-                style={{
-                  background:
-                    v.tag === "current"
-                      ? "rgba(194,71,78,0.04)"
-                      : v.tag === "ai-pick"
-                        ? "rgba(255,107,53,0.04)"
-                        : "transparent",
-                }}
-              >
-                <td>
-                  <span className="mono">{v.vendor}</span>
-                  {v.tag === "current" && (
-                    <span style={{ marginLeft: 8 }}>
-                      <Badge tone="danger">Current</Badge>
-                    </span>
-                  )}
-                  {v.tag === "ai-pick" && (
-                    <span style={{ marginLeft: 8 }}>
-                      <Badge tone="warn">AI pick</Badge>
-                    </span>
-                  )}
-                </td>
-                <td className="num" style={{ color: v.priceTone === "amber" ? "var(--amber)" : undefined }}>
-                  {v.price}
-                </td>
-                <td className="num">{v.lead}</td>
-                <td className="num">{v.qa}</td>
-                <td>
-                  {v.driftTone === "ok" && <Badge tone="ok">{v.drift}</Badge>}
-                  {v.driftTone === "warn" && <Badge tone="warn">{v.drift}</Badge>}
-                  {v.driftTone === "danger" && <Badge tone="danger">{v.drift}</Badge>}
-                </td>
-                <td>
-                  <button
-                    className={"btn " + (v.cta === "primary" ? "btn-amber" : "btn-dark") + " btn-sm"}
-                  >
-                    Select
-                  </button>
-                </td>
+        {rfqMatrix.length === 0 ? (
+          <p
+            style={{
+              padding: 20,
+              fontSize: 13,
+              color: "var(--ink-3)",
+              fontStyle: "italic",
+            }}
+          >
+            No active RFQs. Quotations land here when vendors respond to an open
+            purchase request.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>PR</th>
+                <th>Material</th>
+                <th>Vendor</th>
+                <th className="num">Quoted</th>
+                <th>ETA</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rfqMatrix.map((v) => (
+                <tr key={v.quotationId}>
+                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                    {v.prCode ?? "—"}
+                  </td>
+                  <td>{v.materialName ?? "—"}</td>
+                  <td>{v.vendorName ?? "—"}</td>
+                  <td className="num">{fmtMinor(v.totalAmountMinor, v.currency)}</td>
+                  <td className="mono" style={{ fontSize: 12 }}>{v.deliveryEta ?? "—"}</td>
+                  <td>
+                    {v.status === "selected" ? (
+                      <Badge tone="ok">Selected</Badge>
+                    ) : v.status === "under_review" ? (
+                      <Badge tone="warn">Under review</Badge>
+                    ) : (
+                      <Badge>{v.status.replace(/_/g, " ")}</Badge>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
     </>
   );

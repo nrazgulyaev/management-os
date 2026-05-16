@@ -1,52 +1,57 @@
+import Link from "next/link";
 import {
   Kpi,
   SectionHeading,
   Card,
   Badge,
 } from "@/components/dashboard/primitives";
+import {
+  getDevAgentConfigs,
+  getRecentAgentOutputs,
+} from "@/lib/development/server/cabinets/ai-agents-cabinet-queries";
 
 /**
- * Sprint _handoff/ Task 7 (visual port) — Dev OS AI Agents Hub.
+ * Sprint TASK-7-DATA-PART-2 — Dev OS AI Agents hub live wiring.
  *
- * 1:1 visual port of `_handoff/development/ai-agents.html` (app.js
- * block). Mock data preserved verbatim — live wiring deferred to
- * TASK-7-DATA per docs/audits/task-6-7-data-wiring-todo.md.
+ * Visual port from `_handoff/development/ai-agents.html` (TASK-7-VISUAL,
+ * commit `316dc65`); this commit replaces two mock arrays with live,
+ * org-scoped reads in
+ * `src/lib/development/server/cabinets/ai-agents-cabinet-queries.ts`:
  *
- * Sections: SectionHeading → 5-up KPIs → 5-column agent grid (10
- * agents, 5 live) → AI inbox cross-agent table.
+ *   - mockAGENTS → getDevAgentConfigs() (org_ai_agent_config join over
+ *     canonical agent_key set; missing rows render as "Not configured")
+ *   - mockINBOX  → getRecentAgentOutputs(8) (cross-agent inbox, gated by
+ *     dev-side agent_key set)
+ *
+ * KPI strip remains static placeholders — agent telemetry table lands in
+ * TASK-7-DATA-PART-3 (runs / latency / token aggregation).
  */
 
 export const metadata = { title: "Development OS · AI agents" };
 export const dynamic = "force-dynamic";
 
-// TODO(task-7-data): wire to features/ai/services.listDevAgents().
-const AGENTS = [
-  { id: "qs-cost", name: "QS Cost Analyst", live: true, desc: "Catches unit-cost outliers before they ship to PO. Reads against historical baselines + flags drift." },
-  { id: "proc", name: "Procurement Analyst", live: true, desc: "Compares quotations side-by-side, picks the right vendor, flags price drifts." },
-  { id: "daily", name: "Daily Construction Digest", live: true, desc: "Yesterday's exceptions, today's plan. Filed at 06:00 to your PM inbox." },
-  { id: "weekly", name: "Weekly Plan Generator", live: true, desc: "Forward-looking week plan with resource calls, risk callouts, schedule pivots." },
-  { id: "tax", name: "Tax Assistant", live: true, desc: "Auto-categorises every transaction, splits VAT, drafts journal entries." },
-  { id: "mkt", name: "Marketing Assistant", live: false, desc: "Per-villa launch copy, channel briefs, agent decks — tuned weekly." },
-  { id: "exec", name: "Executive Business", live: false, desc: "Board-ready snapshot. Multi-project. Owner-stay forecast included." },
-  { id: "buyer", name: "Buyer CRM Assistant", live: false, desc: "Draft replies, classify leads, match units to prospect briefs. Never auto-sends." },
-  { id: "memory", name: "Project Memory", live: true, desc: "Shared semantic memory. Every fact written once, recalled by everyone." },
-  { id: "site", name: "Site Photo Verifier", live: false, desc: "Reads geo-tagged photos against checklist items, flags discrepancies." },
-];
+const STATUS_TONE: Record<string, "ok" | "warn" | "danger" | undefined> = {
+  delivered: "ok",
+  reviewed: "ok",
+  actioned: "ok",
+  pending: "warn",
+  flagged: "warn",
+  failed: "danger",
+};
 
-// TODO(task-7-data): wire to features/ai-runs/services.listDevInbox().
-const INBOX = [
-  { id: "run-4af2", agent: "QS Cost Analyst", subj: "Marble Hindari · +18.4% vs baseline · reissue RFQ", when: "06:14", sev: "warn" as const },
-  { id: "run-4af1", agent: "Procurement Analyst", subj: "BaliSteel scored best for stainless balustrade", when: "05:48", sev: "info" as const },
-  { id: "run-4af0", agent: "Daily Construction Digest", subj: "EP02 · Block B pour at 04:30 · 3 anomalies caught", when: "06:00", sev: "info" as const },
-  { id: "run-4aef", agent: "Tax Assistant", subj: "PPh 23 withholding · 4 vendor payments need filing in 4d", when: "yesterday", sev: "warn" as const },
-  { id: "run-4aee", agent: "Project Memory", subj: "Wrote: 'Beton Nusantara prefers 04:30 dispatch'", when: "yesterday", sev: "info" as const },
-];
+export default async function AiAgentsPage() {
+  const [agents, inbox] = await Promise.all([
+    getDevAgentConfigs().catch(() => []),
+    getRecentAgentOutputs(8).catch(() => []),
+  ]);
 
-export default function AiAgentsPage() {
+  const liveCount = agents.filter((a) => a.isEnabled).length;
+  const totalCount = agents.length;
+
   return (
     <>
       <SectionHeading
-        eyebrow="AI agents · 10 specialists · 5 live"
+        eyebrow={`AI agents · ${totalCount} specialists · ${liveCount} live`}
         title={
           <>
             One quiet team for the{" "}
@@ -64,49 +69,79 @@ export default function AiAgentsPage() {
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
-        <Kpi label="Agents · live" value="5" sub="vs 10 in roadmap" tone="success" />
-        <Kpi label="Runs · 30d" value="1,840" sub="98.4% completed" />
-        <Kpi label="Avg latency" value="2.4s" sub="p95: 7.1s" />
-        <Kpi label="Tokens · MTD" value="$24.20" sub="Budget: $180" tone="accent" />
-        <Kpi label="Anomalies caught" value="142" sub="saved est. $84K" />
+        <Kpi
+          label="Agents · live"
+          value={String(liveCount)}
+          sub={`of ${totalCount} in roadmap`}
+          tone={liveCount > 0 ? "success" : undefined}
+        />
+        <Kpi label="Runs · 30d" value="—" sub="telemetry lands in PART-3" />
+        <Kpi label="Avg latency" value="—" sub="telemetry lands in PART-3" />
+        <Kpi label="Tokens · MTD" value="—" sub="cost rollup in PART-3" />
+        <Kpi
+          label="Inbox · recent"
+          value={inbox.length === 0 ? "—" : String(inbox.length)}
+          sub={inbox.length === 0 ? "no outputs yet" : "across all agents"}
+        />
       </div>
 
-      {/* Agent grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 24 }}>
-        {AGENTS.map((a) => (
-          <Card
-            key={a.id}
-            style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, minHeight: 180 }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  background: a.live ? "var(--amber)" : "var(--bg-2)",
-                  color: a.live ? "var(--carbon)" : "var(--ink-3)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 14,
-                }}
-              >
-                ✦
-              </span>
-              <span style={{ marginLeft: "auto" }}>
-                <Badge>{a.live ? "LIVE" : "PLAN"}</Badge>
-              </span>
-            </div>
-            <div className="display" style={{ fontSize: 14, fontWeight: 500 }}>
-              {a.name}
-            </div>
-            <p style={{ margin: 0, fontSize: 12, color: "var(--ink-3)", lineHeight: 1.45 }}>
-              {a.desc}
-            </p>
-          </Card>
-        ))}
-      </div>
+      {/* Agent grid — live org_ai_agent_config */}
+      {agents.length === 0 ? (
+        <Card style={{ padding: 20, marginBottom: 24 }}>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            No agent configuration available. Configure your first agent to populate this grid.
+          </p>
+        </Card>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 24 }}>
+          {agents.map((a) => (
+            <Card
+              key={a.agentKey}
+              style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, minHeight: 180 }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: a.isEnabled ? "var(--amber)" : "var(--bg-2)",
+                    color: a.isEnabled ? "var(--carbon)" : "var(--ink-3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 14,
+                  }}
+                >
+                  ✦
+                </span>
+                <span style={{ marginLeft: "auto" }}>
+                  {a.notConfigured ? (
+                    <Badge>Not configured</Badge>
+                  ) : a.isEnabled ? (
+                    <Badge tone="ok">LIVE</Badge>
+                  ) : (
+                    <Badge>PAUSED</Badge>
+                  )}
+                </span>
+              </div>
+              <div className="display" style={{ fontSize: 14, fontWeight: 500 }}>
+                {a.displayName}
+              </div>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--ink-3)", lineHeight: 1.45 }}>
+                {a.description}
+              </p>
+              {!a.notConfigured && (a.provider || a.model) && (
+                <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)", marginTop: "auto" }}>
+                  {a.provider ?? "—"}
+                  {a.model ? ` · ${a.model}` : ""}
+                  {a.hasKey ? " · KEY SET" : ""}
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
 
       <h2
         id="inbox"
@@ -116,32 +151,67 @@ export default function AiAgentsPage() {
         AI inbox · cross-agent
       </h2>
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Run</th>
-              <th>Agent</th>
-              <th>Subject</th>
-              <th>Severity</th>
-              <th>When</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {INBOX.map((m) => (
-              <tr key={m.id}>
-                <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>{m.id}</td>
-                <td><Badge>{m.agent}</Badge></td>
-                <td style={{ fontSize: 13, maxWidth: 520 }}>{m.subj}</td>
-                <td>
-                  {m.sev === "warn" ? <Badge tone="warn">Warn</Badge> : <Badge>Info</Badge>}
-                </td>
-                <td className="mono" style={{ fontSize: 11 }}>{m.when}</td>
-                <td><button className="btn btn-ghost btn-sm">Open →</button></td>
+        {inbox.length === 0 ? (
+          <p
+            style={{
+              padding: 20,
+              fontSize: 13,
+              color: "var(--ink-3)",
+              fontStyle: "italic",
+            }}
+          >
+            No agent outputs yet. The inbox populates the first time any
+            dev-side agent files a run — anomalies, digests, weekly plans
+            all surface here.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Run</th>
+                <th>Agent</th>
+                <th>Subject</th>
+                <th>Status</th>
+                <th>When</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {inbox.map((m) => {
+                const tone = STATUS_TONE[m.status];
+                return (
+                  <tr key={m.outputCode}>
+                    <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                      {m.outputCode}
+                    </td>
+                    <td>
+                      <Badge>{m.agentKey.replace(/_/g, " ")}</Badge>
+                    </td>
+                    <td style={{ fontSize: 13, maxWidth: 520 }}>{m.title}</td>
+                    <td>
+                      {tone ? (
+                        <Badge tone={tone}>{m.status.replace(/_/g, " ")}</Badge>
+                      ) : (
+                        <Badge>{m.status.replace(/_/g, " ")}</Badge>
+                      )}
+                    </td>
+                    <td className="mono" style={{ fontSize: 11 }}>
+                      {new Date(m.createdAt).toLocaleString()}
+                    </td>
+                    <td>
+                      <Link
+                        href={`/development-os/ai-agents/${m.agentKey.replace(/_/g, "-")}`}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        Open →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </Card>
     </>
   );

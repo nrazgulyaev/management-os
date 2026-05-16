@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export interface QsCabinetData {
   activeBoqCount: number;
@@ -148,4 +149,204 @@ export async function loadQsCabinet(): Promise<QsCabinetData> {
         createdAt: r.created_at,
       })) ?? [],
   };
+}
+
+// =============================================================================
+// Sprint TASK-7-DATA-PART-2 — QS BOQ Desk view readers.
+//
+// The _handoff/ QS cabinet needs three list/rollup reads against the
+// BOQ schema. Existing `loadQsCabinet()` returns summary counts only.
+// All queries org-scoped via requireOrgId() (TENANT-1).
+// =============================================================================
+
+export interface WpRollupRow {
+  /** Work-package title from boq_sections (top-level section). */
+  wpTitle: string;
+  /** Section code (e.g. "WP-04"). */
+  wpCode: string;
+  /** Sum of section subtotal_minor (IDR minor). */
+  budgetMinor: number;
+  /** Sum of computed boq_items.total_minor across items in this WP. */
+  baselineMinor: number;
+  /** Count of items in this WP. */
+  itemCount: number;
+  currency: string;
+}
+
+/** Rollup totals per top-level WP (boq_sections without parent). */
+export async function getBoqWpRollup(): Promise<WpRollupRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    wp_code: string;
+    wp_title: string;
+    budget: string;
+    baseline: string;
+    item_count: string;
+    currency: string;
+  }>(sql`
+    SELECT s.section_code                                      AS wp_code,
+           s.section_name                                       AS wp_title,
+           COALESCE(s.subtotal_minor, 0)::text                  AS budget,
+           COALESCE(SUM(i.total_minor), 0)::text                AS baseline,
+           COUNT(i.id)::text                                    AS item_count,
+           COALESCE(MAX(i.rate_currency), MAX(d.currency))      AS currency
+      FROM boq_sections s
+      JOIN boq_documents d ON d.id = s.boq_document_id
+      LEFT JOIN boq_items i ON i.section_id = s.id
+                            AND i.organization_id = ${orgId}
+     WHERE s.organization_id = ${orgId}
+       AND s.parent_section_id IS NULL
+       AND d.status IN ('draft','under_review','approved','tender','awarded')
+     GROUP BY s.id, s.section_code, s.section_name, s.subtotal_minor
+     ORDER BY s.section_code
+     LIMIT 6
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      wp_code: string;
+      wp_title: string;
+      budget: string;
+      baseline: string;
+      item_count: string;
+      currency: string;
+    }> }).rows ?? []
+  ).map((r) => ({
+    wpCode: r.wp_code,
+    wpTitle: r.wp_title,
+    budgetMinor: Number(r.budget),
+    baselineMinor: Number(r.baseline),
+    itemCount: Number(r.item_count),
+    currency: r.currency ?? "IDR",
+  }));
+}
+
+export interface BoqLineRow {
+  itemCode: string;
+  sectionCode: string;
+  description: string;
+  quantity: number;
+  unitOfMeasure: string;
+  unitRateMinor: number;
+  totalMinor: number;
+  currency: string;
+}
+
+/** Top-N highest-total BOQ items across all docs for this org. */
+export async function getBoqTopLines(limit = 7): Promise<BoqLineRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    item_code: string;
+    section_code: string;
+    description: string;
+    quantity: string;
+    unit_of_measure: string;
+    unit_rate_minor: string;
+    total_minor: string;
+    currency: string;
+  }>(sql`
+    SELECT i.item_code,
+           s.section_code,
+           i.description,
+           i.quantity::text,
+           i.unit_of_measure,
+           i.unit_rate_minor::text,
+           COALESCE(i.total_minor, 0)::text AS total_minor,
+           i.rate_currency                   AS currency
+      FROM boq_items i
+      JOIN boq_sections s ON s.id = i.section_id
+     WHERE i.organization_id = ${orgId}
+     ORDER BY i.total_minor DESC NULLS LAST
+     LIMIT ${limit}
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      item_code: string;
+      section_code: string;
+      description: string;
+      quantity: string;
+      unit_of_measure: string;
+      unit_rate_minor: string;
+      total_minor: string;
+      currency: string;
+    }> }).rows ?? []
+  ).map((r) => ({
+    itemCode: r.item_code,
+    sectionCode: r.section_code,
+    description: r.description,
+    quantity: Number(r.quantity),
+    unitOfMeasure: r.unit_of_measure,
+    unitRateMinor: Number(r.unit_rate_minor),
+    totalMinor: Number(r.total_minor),
+    currency: r.currency ?? "IDR",
+  }));
+}
+
+export interface RfqMatrixRow {
+  quotationId: string;
+  vendorName: string | null;
+  prCode: string | null;
+  materialName: string | null;
+  totalAmountMinor: number;
+  currency: string;
+  deliveryEta: string | null;
+  status: string;
+}
+
+/** Active RFQs / quotations. May be empty when DEMO-1 hasn't seeded
+ *  procurement_quotations rows. */
+export async function getRfqMatrix(): Promise<RfqMatrixRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    id: string;
+    vendor_name: string | null;
+    pr_code: string | null;
+    material_name: string | null;
+    total_amount_minor: string;
+    currency: string;
+    delivery_eta: string | null;
+    status: string;
+  }>(sql`
+    SELECT q.id::text                                             AS id,
+           v.legal_name                                            AS vendor_name,
+           pr.request_code                                         AS pr_code,
+           pr.material_name                                        AS material_name,
+           q.total_amount_minor::text                              AS total_amount_minor,
+           q.currency                                              AS currency,
+           q.delivery_estimated_date::text                         AS delivery_eta,
+           q.status                                                AS status
+      FROM procurement_quotations q
+      LEFT JOIN vendors v               ON v.id = q.vendor_id
+      LEFT JOIN dev_os_purchase_requests pr ON pr.id = q.purchase_request_id
+     WHERE q.organization_id = ${orgId}
+       AND q.status IN ('received','under_review','selected')
+     ORDER BY pr.request_code, q.total_amount_minor ASC NULLS LAST
+     LIMIT 12
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      id: string;
+      vendor_name: string | null;
+      pr_code: string | null;
+      material_name: string | null;
+      total_amount_minor: string;
+      currency: string;
+      delivery_eta: string | null;
+      status: string;
+    }> }).rows ?? []
+  ).map((r) => ({
+    quotationId: r.id,
+    vendorName: r.vendor_name,
+    prCode: r.pr_code,
+    materialName: r.material_name,
+    totalAmountMinor: Number(r.total_amount_minor),
+    currency: r.currency,
+    deliveryEta: r.delivery_eta,
+    status: r.status,
+  }));
 }
