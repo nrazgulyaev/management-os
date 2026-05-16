@@ -1,416 +1,215 @@
-import type { Metadata } from "next";
-import Link from "next/link";
 import {
-  ArrowUpRight,
-  ClipboardList,
-  FileSpreadsheet,
-  Sparkles,
-} from "lucide-react";
-import { DashboardKpi } from "@/components/ui/primitives";
-import {
-  HalfDonutGauge,
-  HatchedBarChart,
-  HeroGreetingAI,
-  KpiRowMixed,
-  type HatchedBarDatum,
-  type KpiItem,
-} from "@/components/award";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { DevelopmentShell } from "@/components/development/development-shell";
-import { loadProcurementCabinet } from "@/lib/development/server/cabinets/procurement-cabinet-queries";
-import { safeQuery } from "@/lib/development/safe-query";
-import { getCurrentAppUser } from "@/features/auth/current-user";
-import { redirect } from "next/navigation";
-import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
+  Kpi,
+  SectionHeading,
+  Card,
+  Badge,
+} from "@/components/dashboard/primitives";
 
 /**
- * Mega-Sprint / Phase 3 — Procurement Manager cabinet on Sprint-4 gold
- * standard. Replaces the Stage-10.5.A.2.3 CabinetGreetingBlock +
- * PageHeaderHero stack with <HeroGreetingAI>, swaps the headline KPI
- * grid for <KpiRowMixed> with a coral-solid hero (PRs awaiting
- * quotation), adds a Today's-pulse row (HatchedBarChart of 7-day PR
- * submissions + HalfDonutGauge for delivered vs ordered), and renders
- * a real inline 3-card grid of recent procurement-analyst outputs.
+ * Sprint _handoff/ Task 7 (visual port) — Dev OS Procurement Manager.
+ *
+ * 1:1 visual port of `_handoff/development/procurement.html` (app.js).
+ * Mock data preserved — live wiring deferred to TASK-7-DATA per
+ * docs/audits/task-6-7-data-wiring-todo.md.
+ *
+ * Sections: SectionHeading → 5-up KPIs → Open PRs table → POs in
+ * transit table → Invoices awaiting payment table.
  */
 
-export const metadata: Metadata = { title: "Procurement manager · Cabinet" };
+export const metadata = { title: "Procurement Manager" };
 export const dynamic = "force-dynamic";
 
-function todayLabel(now: Date): string {
-  const day = now.getDate();
-  const weekday = now.toLocaleDateString("en-US", { weekday: "short" });
-  const month = now.toLocaleDateString("en-US", { month: "long" });
-  return `${day} · ${weekday}, ${month}`;
-}
+// TODO(task-7-data): wire to features/development/services.listOpenPRs().
+const OPEN_PRS: {
+  pr: string;
+  items: string;
+  project: string;
+  by: string;
+  total: string;
+  approvalLabel: string;
+  approvalTone?: "ok" | "warn";
+  stageLabel: string;
+  stageTone?: "ok" | "warn";
+}[] = [
+  { pr: "PR-8821", items: "Hand towels · 80 pcs", project: "EP02", by: "Made S.", total: "$310", approvalLabel: "Auto", stageLabel: "Ordered", stageTone: "ok" },
+  { pr: "PR-8820", items: "Marble Hindari (re-issue)", project: "EP02", by: "Wayan T.", total: "$23,808", approvalLabel: "Director", approvalTone: "warn", stageLabel: "RFQ open", stageTone: "warn" },
+  { pr: "PR-8819", items: "Pool filter cartridge", project: "EP02", by: "Komang Y.", total: "$420", approvalLabel: "Approved", approvalTone: "ok", stageLabel: "RFQ open", stageTone: "warn" },
+  { pr: "PR-8818", items: "Cabling YDA 4mm · 2.4km", project: "ES10", by: "Ari P.", total: "$5,040", approvalLabel: "Director", approvalTone: "warn", stageLabel: "Draft" },
+  { pr: "PR-8815", items: "Stainless balustrade 304", project: "EP02", by: "Wayan T.", total: "$7,560", approvalLabel: "Approved", approvalTone: "ok", stageLabel: "PO issued", stageTone: "ok" },
+];
 
-function bucketLast7Days(
-  rows: Array<{ isoDate: string; count: number }>,
-  today: Date,
-): HatchedBarDatum[] {
-  const counts = new Map<string, number>();
-  for (const r of rows) counts.set(r.isoDate, r.count);
-  const out: HatchedBarDatum[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setUTCDate(d.getUTCDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    const n = counts.get(iso) ?? 0;
-    out.push({
-      label: d.toLocaleDateString("en-US", { weekday: "narrow" }),
-      value: Math.max(n, 1),
-      status: n > 0 ? "active" : "inactive",
-      caption: n > 0 ? String(n) : undefined,
-    });
-  }
-  return out;
-}
+// TODO(task-7-data): wire to features/development/services.listPOsInTransit().
+const POS_IN_TRANSIT: { po: string; vendor: string; items: string; total: string; eta: string; statusLabel: string; statusTone?: "warn" | "info" }[] = [
+  { po: "PO-8814", vendor: "Linen Mart Denpasar", items: "Hand towels · 40 pcs (partial)", total: "$310", eta: "today", statusLabel: "Partial", statusTone: "warn" },
+  { po: "PO-8813", vendor: "BaliSteel", items: "Stainless balustrade · 180m", total: "$7,560", eta: "24 Apr", statusLabel: "In transit", statusTone: "info" },
+  { po: "PO-8812", vendor: "CoolAir", items: "AC units · 6 pcs", total: "$18,420", eta: "26 Apr", statusLabel: "Scheduled" },
+  { po: "PO-8810", vendor: "Krakatau Steel", items: "Rebar Ø12/16 · 84.6t", total: "$118,200", eta: "02 May", statusLabel: "Scheduled" },
+];
 
-function formatSpend(value: number | null): string {
-  if (value === null) return "—";
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(1)}k`;
-  }
-  return `$${value.toFixed(0)}`;
-}
+// TODO(task-7-data): wire to features/finance/services.listAwaitingInvoices().
+const INVOICES: { inv: string; vendor: string; po: string; amount: string; due: string; statusLabel: string; statusTone?: "warn" | "danger" }[] = [
+  { inv: "INV-2418", vendor: "Holcim Beton", po: "PO-8807", amount: "$28,440", due: "22 Apr", statusLabel: "Due tomorrow", statusTone: "warn" },
+  { inv: "INV-2417", vendor: "BaliPlywood", po: "PO-8806", amount: "$8,640", due: "15 Apr", statusLabel: "Past due 6d", statusTone: "danger" },
+  { inv: "INV-2416", vendor: "CoolAir", po: "PO-8805", amount: "$3,840", due: "28 Apr", statusLabel: "On schedule" },
+];
 
-export default async function ProcurementCabinetPage() {
-  const __gateRedirect = await gateCabinetForCurrentOrg("procurement-manager");
-  if (__gateRedirect) redirect(__gateRedirect);
-
-  const me = await getCurrentAppUser();
-  const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
-
-  const data = await safeQuery("procurementCabinet", loadProcurementCabinet(), {
-    pendingApprovalsCount: 0,
-    quotationsAwaitingComparisonCount: 0,
-    posAwaitingDeliveryCount: 0,
-    recentDeliveriesCount: 0,
-    latestProcurementAnalystOutputCode: null,
-    prsLast7Days: [],
-    topPendingPrs: [],
-    spendMtd: null,
-    recentProcurementAnalystOutputs: [],
-  });
-
-  const now = new Date();
-  const dailyPrs = bucketLast7Days(data.prsLast7Days, now);
-
-  const kpis: KpiItem[] = [
-    {
-      label: "PRs awaiting quotation",
-      value: String(data.pendingApprovalsCount),
-      delta:
-        data.pendingApprovalsCount === 0
-          ? "Inbox clear"
-          : `${data.pendingApprovalsCount} need action`,
-      href: "/development-os/procurement/purchase-requests",
-    },
-    {
-      label: "RFQs to compare",
-      value: String(data.quotationsAwaitingComparisonCount),
-      delta:
-        data.quotationsAwaitingComparisonCount === 0
-          ? "Comparisons complete"
-          : `${data.quotationsAwaitingComparisonCount} sets`,
-      href: "/development-os/procurement/quotation-comparison",
-    },
-    {
-      label: "Open POs",
-      value: String(data.posAwaitingDeliveryCount),
-      delta:
-        data.posAwaitingDeliveryCount === 0
-          ? "No POs in flight"
-          : "In transit",
-      href: "/development-os/procurement/purchase-orders",
-    },
-    {
-      label: "Spend (MTD)",
-      value: formatSpend(data.spendMtd),
-      delta:
-        data.spendMtd === null
-          ? "No POs this month"
-          : "PO totals (USD)",
-      href: "/development-os/procurement/purchase-orders",
-    },
-  ];
-
-  // Health gauge: deliveries received in the last 7 days vs the number
-  // of POs that should have delivered (open POs + recent deliveries).
-  // Pure heuristic — exact KPI lives on the inventory cabinet.
-  const deliveryTarget = Math.max(
-    1,
-    data.posAwaitingDeliveryCount + data.recentDeliveriesCount,
-  );
-  const deliveryPct = Math.min(
-    100,
-    Math.round((data.recentDeliveriesCount / deliveryTarget) * 100),
-  );
-
+export default function ProcurementManagerPage() {
   return (
-    <DevelopmentShell>
-      <div className="flex flex-col gap-8 md:gap-10">
-        <HeroGreetingAI
-          firstName={firstName}
-          role="Procurement Manager · Cabinet"
-          dateLabel={todayLabel(now)}
-          aiPromptPlaceholder="Compare quotations on a PR or flag a price anomaly."
-          showMyTasksHref="/development-os/procurement/purchase-requests"
-        />
+    <>
+      <SectionHeading
+        eyebrow="Procurement · 4-stage flow"
+        title={
+          <>
+            PR → RFQ → PO →{" "}
+            <span style={{ color: "var(--amber)" }}>delivered.</span>
+          </>
+        }
+        subtitle="Auto-PR from BOQ deviations. Side-by-side vendor comparison with AI scoring. Approval thresholds per role. Per-line receipts at warehouse."
+        actions={
+          <>
+            <button className="btn btn-dark btn-sm">Vendor scorecards</button>
+            <button className="btn btn-amber btn-sm">+ Purchase request</button>
+          </>
+        }
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-          {[
-            {
-              href: "/development-os/procurement/quotations/import",
-              icon: ClipboardList,
-              label: "Import quotations",
-              caption: "Paste · XLSX · per-vendor split",
-            },
-            {
-              href: "/development-os/procurement/quotation-comparison",
-              icon: FileSpreadsheet,
-              label: "Compare quotations",
-              caption:
-                data.quotationsAwaitingComparisonCount > 0
-                  ? `${data.quotationsAwaitingComparisonCount} pending`
-                  : "All compared",
-            },
-            {
-              href: "/development-os/ai-agents/procurement-analyst",
-              icon: Sparkles,
-              label: "AI procurement analyst",
-              caption: "Price anomalies · vendor picks",
-            },
-          ].map(({ href, icon: Icon, label, caption }) => (
-            <Link
-              key={href}
-              href={href}
-              className="rounded-3xl border border-line-soft bg-surface shadow-soft-card px-5 py-4 flex items-center gap-4 hover:bg-muted/40 transition-colors"
-            >
-              <span className="shrink-0 w-10 h-10 rounded-full bg-gradient-coral-soft border border-line-soft inline-flex items-center justify-center">
-                <Icon className="w-4 h-4 text-ink" strokeWidth={1.75} />
-              </span>
-              <span className="flex flex-col min-w-0 flex-1">
-                <span className="text-sm font-medium text-ink truncate">
-                  {label}
-                </span>
-                <span className="text-xs text-ink-tertiary truncate">
-                  {caption}
-                </span>
-              </span>
-              <ArrowUpRight
-                className="w-4 h-4 text-ink-tertiary shrink-0"
-                strokeWidth={1.75}
-              />
-            </Link>
-          ))}
-        </div>
-
-        <KpiRowMixed kpis={kpis} heroTone="coral-solid" />
-
-        <Section
-          eyebrow="Today's pulse"
-          title="PR cadence + delivery health"
-          description="Daily purchase-request submissions over the last 7 days, alongside the share of recent deliveries against open POs."
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
-            <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
-                  Last 7 days
-                </span>
-                <span className="text-xs text-ink-tertiary tabular-nums">
-                  {data.recentDeliveriesCount} deliveries
-                </span>
-              </div>
-              <HatchedBarChart
-                data={dailyPrs}
-                tone="terracotta"
-                height={200}
-              />
-            </div>
-            <HalfDonutGauge
-              variant="gold"
-              value={deliveryPct}
-              max={100}
-              label={
-                <>
-                  <p className="text-display text-[28px] md:text-[36px] leading-none font-medium text-ink tabular-nums">
-                    {deliveryPct}%
-                  </p>
-                  <p className="text-xs text-ink-tertiary mt-1">
-                    Delivered vs in-flight
-                  </p>
-                </>
-              }
-              legend={[
-                { label: `${data.recentDeliveriesCount} delivered` },
-                {
-                  label: `${data.posAwaitingDeliveryCount} in flight`,
-                  color: "var(--line-strong)",
-                },
-              ]}
-            />
-          </div>
-        </Section>
-
-        <Section
-          eyebrow="AI"
-          title="Procurement analyst — recent outputs"
-          description="Latest price-anomaly + vendor-pick suggestions from the procurement-analyst agent."
-          action={
-            <Link
-              href="/development-os/ai-agents/procurement-analyst"
-              className="text-xs text-ink-tertiary hover:underline"
-            >
-              Open agent →
-            </Link>
-          }
-        >
-          {data.recentProcurementAnalystOutputs.length === 0 ? (
-            <div className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3">
-              <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                Recent runs
-              </span>
-              <p className="text-sm leading-relaxed opacity-90">
-                No outputs yet. Trigger the procurement-analyst agent
-                from Jobs or via the AI prompt above to surface price-
-                anomaly flags + recommended vendor picks here.
-              </p>
-              <Badge tone="outline" className="self-start">
-                Run the agent to populate
-              </Badge>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-              {data.recentProcurementAnalystOutputs.map((o) => (
-                <Link
-                  key={o.outputCode}
-                  href={`/development-os/ai-agents/procurement-analyst/outputs/${o.outputCode}`}
-                  className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3 hover:bg-muted/40 transition-colors min-h-[180px]"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-tertiary">
-                      {o.outputCode}
-                    </span>
-                    <ArrowUpRight
-                      className="w-4 h-4 text-ink-tertiary"
-                      strokeWidth={1.75}
-                    />
-                  </div>
-                  <h4 className="text-sm font-medium text-ink line-clamp-2">
-                    {o.title}
-                  </h4>
-                  <p className="text-xs text-ink-secondary leading-relaxed line-clamp-4">
-                    {o.summary}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )}
-        </Section>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Section
-              eyebrow="Pipeline"
-              title="Pending purchase requests"
-              description="Most-recent PRs awaiting approval or quotation."
-            >
-              {data.topPendingPrs.length === 0 ? (
-                <div className="rounded-md border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
-                  No pending PRs. New requests will appear here as they
-                  arrive.
-                </div>
-              ) : (
-                <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
-                  {data.topPendingPrs.map((pr) => (
-                    <li key={pr.id}>
-                      <Link
-                        href={`/development-os/procurement/purchase-requests/${pr.id}`}
-                        className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface-hover"
-                      >
-                        <span className="flex flex-col min-w-0">
-                          <span className="font-mono text-xs text-ink-tertiary">
-                            {pr.prCode ?? pr.id.slice(0, 8)}
-                          </span>
-                          <span className="text-sm text-ink truncate">
-                            {pr.title ?? "—"}
-                          </span>
-                        </span>
-                        <Badge
-                          tone={
-                            pr.status === "awaiting_approval"
-                              ? "warning"
-                              : "neutral"
-                          }
-                        >
-                          {pr.status}
-                        </Badge>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Section>
-          </div>
-
-          <aside>
-            <Section
-              eyebrow="Pipeline"
-              title="Jump to"
-              description="Cross-link to the surfaces you visit daily."
-            >
-              <ul className="grid grid-cols-1 gap-2">
-                {[
-                  {
-                    href: "/development-os/procurement/quotation-comparison",
-                    label: "Quotation comparison",
-                  },
-                  {
-                    href: "/development-os/procurement/purchase-orders",
-                    label: "Purchase orders",
-                  },
-                  {
-                    href: "/development-os/inventory",
-                    label: "Inventory & deliveries",
-                  },
-                  {
-                    href: "/development-os/vendors",
-                    label: "Vendor directory",
-                  },
-                ].map((l) => (
-                  <li key={l.href}>
-                    <Link
-                      href={l.href}
-                      className="block rounded-md border border-line-soft bg-surface px-4 py-3 text-sm text-ink hover:border-line-strong transition-colors"
-                    >
-                      {l.label} <span aria-hidden>→</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <DashboardKpi
-                label="Latest analyst output"
-                value={
-                  data.latestProcurementAnalystOutputCode ?? "—"
-                }
-                status="neutral"
-                drillHref={
-                  data.latestProcurementAnalystOutputCode
-                    ? `/development-os/ai-agents/procurement-analyst/outputs/${data.latestProcurementAnalystOutputCode}`
-                    : "/development-os/ai-agents/procurement-analyst"
-                }
-                hint="Procurement analyst agent"
-                className="mt-3"
-              />
-            </Section>
-          </aside>
-        </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+        <Kpi label="Open PRs" value="14" sub="4 pending approval" tone="accent" />
+        <Kpi label="Active RFQs" value="6" sub="22 quotations received" />
+        <Kpi label="POs in transit" value="9" sub="$184K committed" />
+        <Kpi label="Invoices · awaiting" value="11" sub="$84K · 4 past due" tone="accent" />
+        <Kpi label="Avg PR → PO" value="6.2 days" sub="−2d vs Q1" tone="success" />
       </div>
-    </DevelopmentShell>
+
+      <h2 className="display" style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}>
+        Open purchase requests
+      </h2>
+      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+        <table className="data">
+          <thead>
+            <tr>
+              <th>PR</th>
+              <th>Items</th>
+              <th>Project</th>
+              <th>By</th>
+              <th className="num">Total</th>
+              <th>Approval</th>
+              <th>Stage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {OPEN_PRS.map((r) => (
+              <tr key={r.pr}>
+                <td className="mono" style={{ fontSize: 11 }}>{r.pr}</td>
+                <td>{r.items}</td>
+                <td className="mono">{r.project}</td>
+                <td>{r.by}</td>
+                <td className="num">{r.total}</td>
+                <td>
+                  {r.approvalTone === "ok" ? (
+                    <Badge tone="ok">{r.approvalLabel}</Badge>
+                  ) : r.approvalTone === "warn" ? (
+                    <Badge tone="warn">{r.approvalLabel}</Badge>
+                  ) : (
+                    <Badge>{r.approvalLabel}</Badge>
+                  )}
+                </td>
+                <td>
+                  {r.stageTone === "ok" ? (
+                    <Badge tone="ok">{r.stageLabel}</Badge>
+                  ) : r.stageTone === "warn" ? (
+                    <Badge tone="warn">{r.stageLabel}</Badge>
+                  ) : (
+                    <Badge>{r.stageLabel}</Badge>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      <h2
+        className="display"
+        style={{ fontSize: 22, marginBottom: 14, fontWeight: 500, marginTop: 24 }}
+      >
+        POs in transit
+      </h2>
+      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+        <table className="data">
+          <thead>
+            <tr>
+              <th>PO</th>
+              <th>Vendor</th>
+              <th>Items</th>
+              <th className="num">Total</th>
+              <th>ETA</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {POS_IN_TRANSIT.map((r) => (
+              <tr key={r.po}>
+                <td className="mono" style={{ fontSize: 11 }}>{r.po}</td>
+                <td>{r.vendor}</td>
+                <td>{r.items}</td>
+                <td className="num">{r.total}</td>
+                <td className="mono">{r.eta}</td>
+                <td>
+                  {r.statusTone === "warn" ? (
+                    <Badge tone="warn">{r.statusLabel}</Badge>
+                  ) : r.statusTone === "info" ? (
+                    <Badge tone="info">{r.statusLabel}</Badge>
+                  ) : (
+                    <Badge>{r.statusLabel}</Badge>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      <h2
+        className="display"
+        style={{ fontSize: 22, marginBottom: 14, fontWeight: 500, marginTop: 24 }}
+      >
+        Invoices · awaiting payment
+      </h2>
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Vendor</th>
+              <th>PO</th>
+              <th className="num">Amount</th>
+              <th>Due</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {INVOICES.map((r) => (
+              <tr key={r.inv}>
+                <td className="mono" style={{ fontSize: 11 }}>{r.inv}</td>
+                <td>{r.vendor}</td>
+                <td className="mono">{r.po}</td>
+                <td className="num">{r.amount}</td>
+                <td className="mono">{r.due}</td>
+                <td>
+                  {r.statusTone === "warn" ? (
+                    <Badge tone="warn">{r.statusLabel}</Badge>
+                  ) : r.statusTone === "danger" ? (
+                    <Badge tone="danger">{r.statusLabel}</Badge>
+                  ) : (
+                    <Badge>{r.statusLabel}</Badge>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </>
   );
 }

@@ -1,501 +1,328 @@
-import type { Metadata } from "next";
-import Link from "next/link";
 import {
-  AlertTriangle,
-  ArrowUpRight,
-  GitBranch,
-  Sparkles,
-} from "lucide-react";
-import {
-  DashboardKpi,
-  DonutRatioCard,
-  NoItemsYet,
-} from "@/components/ui/primitives";
-import {
-  HalfDonutGauge,
-  HatchedBarChart,
-  HeroGreetingAI,
-  KpiRowMixed,
-  TeamRowList,
-  type HatchedBarDatum,
-  type KpiItem,
-  type TeamRowItem,
-} from "@/components/award";
-import { ProjectPipelineKanban } from "./_project-pipeline-kanban";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { DevelopmentShell } from "@/components/development/development-shell";
-import { loadProjectManagerCabinet } from "@/lib/development/server/cabinets/project-manager-cabinet-queries";
-import {
-  loadActiveSubcontractors,
-  loadProjectCompletion,
-} from "@/lib/development/server/pm/pm-subcontractor-queries";
-import { safeQuery } from "@/lib/development/safe-query";
-import { formatMinorAsCurrency } from "@/lib/development/server/executive/widgets-helpers";
-import { getCurrentAppUser } from "@/features/auth/current-user";
-import { redirect } from "next/navigation";
-import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
+  Kpi,
+  SectionHeading,
+  Card,
+  Badge,
+} from "@/components/dashboard/primitives";
 
 /**
- * Mega-Sprint / Phase 6 — Project Manager cabinet on Sprint-4 gold
- * standard. Replaces the Stage-10.5.A.1.3 CabinetGreetingBlock +
- * PageHeaderHero stack with <HeroGreetingAI>, swaps the headline KPI
- * grid for <KpiRowMixed> with an emerald-solid hero (Active
- * projects), adds a Today's-pulse hatched-bar of daily QA/QC + CO
- * cadence + a portfolio-health half-donut, surfaces an inline 3-card
- * grid of recent PM-relevant agent outputs, and wraps the existing
- * project list in <KanbanBoard> as the portfolio-pipeline view. The
- * "Critical path" side panel is preserved.
+ * Sprint _handoff/ Task 7 (visual port) — Dev OS Project Manager cabinet.
+ *
+ * 1:1 visual port of `_handoff/development/project-manager.html`
+ * (app.js block). Mock data preserved verbatim — live wiring deferred
+ * to TASK-7-DATA per docs/audits/task-6-7-data-wiring-todo.md.
+ *
+ * Section order: SectionHeading → 5-up KPIs → 4-column WP kanban board
+ * → 2-up (Portfolio at-risk + Today's daily digest) → Construction
+ * schedule timeline (weekly gantt strip).
  */
 
-export const metadata: Metadata = { title: "Project manager · Cabinet" };
+export const metadata = { title: "Project Manager · Cabinet" };
 export const dynamic = "force-dynamic";
 
-function todayLabel(now: Date): string {
-  const day = now.getDate();
-  const weekday = now.toLocaleDateString("en-US", { weekday: "short" });
-  const month = now.toLocaleDateString("en-US", { month: "long" });
-  return `${day} · ${weekday}, ${month}`;
+type Pri = "P1" | "P2" | "P3";
+interface KanbanCard {
+  id: string;
+  t: string;
+  who: string;
+  pri: Pri;
 }
 
-function bucketLast7Days(
-  rows: Array<{ isoDate: string; count: number }>,
-  today: Date,
-): HatchedBarDatum[] {
-  const counts = new Map<string, number>();
-  for (const r of rows) counts.set(r.isoDate, r.count);
-  const out: HatchedBarDatum[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setUTCDate(d.getUTCDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    const n = counts.get(iso) ?? 0;
-    out.push({
-      label: d.toLocaleDateString("en-US", { weekday: "narrow" }),
-      value: Math.max(n, 1),
-      status: n > 0 ? "active" : "inactive",
-      caption: n > 0 ? String(n) : undefined,
-    });
-  }
-  return out;
-}
-
-const AGENT_HREF: Record<string, string> = {
-  daily_construction_digest:
-    "/development-os/ai-agents/daily-construction-digest/outputs",
-  daily_digest: "/development-os/ai-agents/daily-digest/outputs",
-  weekly_construction_plan:
-    "/development-os/ai-agents/weekly-construction-plan/outputs",
-  weekly_plan: "/development-os/ai-agents/weekly-plan/outputs",
-  executive_business: "/development-os/ai-agents/executive-business/outputs",
+// TODO(task-7-data): wire to features/development/services.listWorkPackagesByStatus(projectId).
+const KANBAN: Record<string, KanbanCard[]> = {
+  Backlog: [
+    { id: "WP-051", t: "Pool tile selection · ES10", who: "WT", pri: "P3" },
+    { id: "WP-049", t: "Smart-lock specification", who: "MS", pri: "P3" },
+  ],
+  "This week": [
+    { id: "WP-046", t: "Block B / column pour", who: "KY", pri: "P1" },
+    { id: "WP-047", t: "MEP rough-in inspection", who: "KY", pri: "P2" },
+    { id: "WP-048", t: "Vendor reselection · marble", who: "AP", pri: "P2" },
+  ],
+  "In progress": [
+    { id: "WP-042", t: "Foundations · Block A", who: "KY", pri: "P1" },
+    { id: "WP-043", t: "Roofing · Block A", who: "KY", pri: "P2" },
+  ],
+  "Done · this week": [
+    { id: "WP-038", t: "Substructure Block B", who: "KY", pri: "P1" },
+    { id: "WP-039", t: "Drawings rev 14 issue", who: "MS", pri: "P2" },
+    { id: "WP-040", t: "BoQ rebaseline", who: "WT", pri: "P2" },
+  ],
 };
 
-const AGENT_LABEL: Record<string, string> = {
-  daily_construction_digest: "Daily digest",
-  daily_digest: "Daily digest",
-  weekly_construction_plan: "Weekly plan",
-  weekly_plan: "Weekly plan",
-  executive_business: "Executive",
+const PRI_COLOR: Record<Pri, string> = {
+  P1: "var(--danger)",
+  P2: "var(--warn)",
+  P3: "var(--ink-4)",
 };
 
-export default async function ProjectManagerCabinetPage() {
-  const __gateRedirect = await gateCabinetForCurrentOrg("project-manager");
-  if (__gateRedirect) redirect(__gateRedirect);
+// TODO(task-7-data): wire to features/development/services.listPortfolioAtRisk().
+const AT_RISK: { color: string; tone: "danger" | "warn"; badge: string; title: string; note: string }[] = [
+  { color: "var(--danger)", tone: "danger", badge: "Critical", title: "AHP3 · permit hold · 12 days", note: "Building permit revision required · cost: $24K opportunity" },
+  { color: "var(--amber)", tone: "warn", badge: "High", title: "EP02 · marble PO over baseline", note: "+$3,744 vs reference · re-RFQ flagged by qs-cost" },
+  { color: "var(--warn)", tone: "warn", badge: "Medium", title: "ES10 · rebar lead-time +4 days", note: "Critical path delay risk · backup supplier qualified" },
+];
 
-  const me = await getCurrentAppUser();
-  const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
+// TODO(task-7-data): wire to features/development/services.getConstructionScheduleStrip(projectId, weekIso).
+const SCHEDULE_BARS = [
+  { l: "Foundations · Block B", w: 90, left: 0, c: "var(--ok)" },
+  { l: "Concrete · Block B/L2", w: 55, left: 25, c: "var(--amber)" },
+  { l: "MEP rough-in · Block A", w: 45, left: 10, c: "var(--steel)" },
+  { l: "Roofing · Block A", w: 30, left: 55, c: "var(--ink-3)" },
+  { l: "Finishes · Phase 1", w: 20, left: 75, c: "var(--ink-3)" },
+  { l: "Pool deck · Block B", w: 18, left: 62, c: "var(--ink-3)" },
+];
 
-  const data = await safeQuery("pmCabinet", loadProjectManagerCabinet(), {
-    projects: [],
-    projectsAtRisk: [],
-    totals: {
-      activeProjectsCount: 0,
-      openQaQcCount: 0,
-      openRisksCount: 0,
-      pendingChangeOrdersCount: 0,
-    },
-    latestDailyDigestCode: null,
-    latestWeeklyPlanCode: null,
-    recentMemoryItemsCount: 0,
-    activityLast7Days: [],
-    recentPmAgentOutputs: [],
-  });
-
-  const t = data.totals;
-  const now = new Date();
-  const dailyActivity = bucketLast7Days(data.activityLast7Days, now);
-
-  // Sprint MD-4 Phase 1 — subcontractor + completion aggregators.
-  const projectIds = data.projects.map((p) => p.id);
-  const [subcontractors, completionRows] = await Promise.all([
-    safeQuery(
-      "pmSubcontractors",
-      loadActiveSubcontractors(projectIds, 8),
-      [] as Awaited<ReturnType<typeof loadActiveSubcontractors>>,
-    ),
-    safeQuery(
-      "pmCompletion",
-      loadProjectCompletion(projectIds),
-      [] as Awaited<ReturnType<typeof loadProjectCompletion>>,
-    ),
-  ]);
-  const completionNumerator = completionRows.reduce(
-    (acc, r) => acc + r.actualPercent,
-    0,
-  );
-  const completionDenominator =
-    completionRows.length === 0 ? 100 : completionRows.length * 100;
-  const subcontractorTeamItems: TeamRowItem[] = subcontractors.map((s) => ({
-    name: s.name,
-    workingOn: s.projectName
-      ? `${s.workingOn} · ${s.projectName}`
-      : s.workingOn,
-    status:
-      s.status === "active"
-        ? "in_progress"
-        : s.status === "blocked"
-          ? "blocked"
-          : "pending",
-    statusLabel: s.statusLabel,
-    href: s.href,
-  }));
-
-  const kpis: KpiItem[] = [
-    {
-      label: "Active projects",
-      value: String(t.activeProjectsCount),
-      delta:
-        t.activeProjectsCount === 0
-          ? "No active portfolio"
-          : `${data.projectsAtRisk.length} on watch`,
-      href: "/development-os/projects",
-    },
-    {
-      label: "Open QA / QC",
-      value: String(t.openQaQcCount),
-      delta:
-        t.openQaQcCount === 0
-          ? "Queue clear"
-          : "Need triage",
-      href: "/development-os/qa-qc",
-    },
-    {
-      label: "Open risks",
-      value: String(t.openRisksCount),
-      delta:
-        t.openRisksCount === 0
-          ? "Register clean"
-          : "Need mitigation",
-      href: "/development-os/risk-register",
-    },
-    {
-      label: "Pending change orders",
-      value: String(t.pendingChangeOrdersCount),
-      delta:
-        t.pendingChangeOrdersCount === 0
-          ? "No variations"
-          : "Awaiting decision",
-      href: "/development-os/change-orders",
-    },
-  ];
-
-  const portfolioRisky = data.projectsAtRisk.length;
-  const portfolioHealthy = Math.max(
-    0,
-    t.activeProjectsCount - portfolioRisky,
-  );
-  const healthPct =
-    t.activeProjectsCount > 0
-      ? Math.round((portfolioHealthy / t.activeProjectsCount) * 100)
-      : 0;
-
+export default function ProjectManagerPage() {
   return (
-    <DevelopmentShell>
-      <div className="flex flex-col gap-8 md:gap-10">
-        <HeroGreetingAI
-          firstName={firstName}
-          role="Project Manager · Cabinet"
-          dateLabel={todayLabel(now)}
-          aiPromptPlaceholder="Brief me on today — daily-construction-digest."
-          showMyTasksHref="/development-os/projects"
-        />
+    <>
+      <SectionHeading
+        eyebrow="My cabinet · Made S. · Project manager"
+        title={
+          <>
+            Three projects.{" "}
+            <span style={{ color: "var(--amber)" }}>Twelve WPs in flight.</span>
+          </>
+        }
+        subtitle="Portfolio at-risk view, kanban-style WP board, integrated daily digest + weekly plan from AI. One screen the PM lives in."
+        actions={
+          <>
+            <button className="btn btn-dark btn-sm">Weekly plan PDF ↓</button>
+            <button className="btn btn-amber btn-sm">+ Work package</button>
+          </>
+        }
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-          {[
-            {
-              href: "/development-os/qa-qc",
-              icon: AlertTriangle,
-              label: "Triage QA / QC",
-              caption:
-                t.openQaQcCount > 0
-                  ? `${t.openQaQcCount} open`
-                  : "Queue clear",
-            },
-            {
-              href: "/development-os/change-orders",
-              icon: GitBranch,
-              label: "Decide change orders",
-              caption:
-                t.pendingChangeOrdersCount > 0
-                  ? `${t.pendingChangeOrdersCount} pending`
-                  : "No variations",
-            },
-            {
-              href: "/development-os/ai-agents/daily-construction-digest",
-              icon: Sparkles,
-              label: "AI daily digest",
-              caption: "Yesterday's exceptions",
-            },
-          ].map(({ href, icon: Icon, label, caption }) => (
-            <Link
-              key={href}
-              href={href}
-              className="rounded-3xl border border-line-soft bg-surface shadow-soft-card px-5 py-4 flex items-center gap-4 hover:bg-muted/40 transition-colors"
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+        <Kpi label="WPs · in progress" value="12" sub="across 3 projects" />
+        <Kpi label="Schedule variance" value="−0.4d" sub="vs critical path" tone="success" />
+        <Kpi label="Open tickets" value="14" sub="3 P1 · 7 P2 · 4 P3" />
+        <Kpi label="Decisions awaiting me" value="4" sub="vendor · spec · variance" tone="accent" />
+        <Kpi label="Crew on site · today" value="42" sub="across 3 projects" />
+      </div>
+
+      {/* Kanban */}
+      <Card style={{ padding: 18, marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 14 }}>
+          <h2 className="display" style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>
+            Work package board · EP02
+          </h2>
+          <span
+            className="mono"
+            style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}
+          >
+            WK 36 · 12 OPEN
+          </span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+          {Object.entries(KANBAN).map(([col, items]) => (
+            <div
+              key={col}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                padding: 14,
+                background: "var(--bg-3)",
+                borderRadius: 14,
+                minHeight: 280,
+                border: "1px solid var(--line)",
+              }}
             >
-              <span className="shrink-0 w-10 h-10 rounded-full bg-gradient-emerald-soft border border-line-soft inline-flex items-center justify-center">
-                <Icon className="w-4 h-4 text-ink" strokeWidth={1.75} />
-              </span>
-              <span className="flex flex-col min-w-0 flex-1">
-                <span className="text-sm font-medium text-ink truncate">
-                  {label}
-                </span>
-                <span className="text-xs text-ink-tertiary truncate">
-                  {caption}
-                </span>
-              </span>
-              <ArrowUpRight
-                className="w-4 h-4 text-ink-tertiary shrink-0"
-                strokeWidth={1.75}
-              />
-            </Link>
+              <div className="label">
+                {col} · {items.length}
+              </div>
+              {items.map((c) => (
+                <div
+                  key={c.id}
+                  style={{
+                    padding: "10px 12px",
+                    background: "var(--panel)",
+                    border: "1px solid var(--line)",
+                    borderRadius: 10,
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                      {c.id}
+                    </span>
+                    <span
+                      className="mono"
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: 9,
+                        color: PRI_COLOR[c.pri],
+                      }}
+                    >
+                      {c.pri}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13 }}>{c.t}</div>
+                  <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                    <div
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 999,
+                        background: "var(--amber)",
+                        color: "var(--carbon)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 9,
+                        fontWeight: 600,
+                        fontFamily: "var(--font-space), sans-serif",
+                      }}
+                    >
+                      {c.who}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ))}
         </div>
+      </Card>
 
-        <KpiRowMixed kpis={kpis} heroTone="emerald-solid" />
-
-        <Section
-          eyebrow="Today's pulse"
-          title="QA/QC + change-order cadence"
-          description="Daily QA/QC issue creations + change-order requests across the portfolio for the last 7 days, alongside the share of projects in good standing."
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
-            <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
-                  Last 7 days
-                </span>
-                <span className="text-xs text-ink-tertiary tabular-nums">
-                  {data.activityLast7Days.reduce(
-                    (s, r) => s + r.count,
-                    0,
-                  )}{" "}
-                  events
-                </span>
-              </div>
-              <HatchedBarChart
-                data={dailyActivity}
-                tone="emerald"
-                height={200}
-              />
-            </div>
-            <HalfDonutGauge
-              variant="emerald"
-              value={healthPct}
-              max={100}
-              label={
-                <>
-                  <p className="text-display text-[28px] md:text-[36px] leading-none font-medium text-ink tabular-nums">
-                    {healthPct}%
-                  </p>
-                  <p className="text-xs text-ink-tertiary mt-1">
-                    Projects in good standing
-                  </p>
-                </>
-              }
-              legend={[
-                { label: `${portfolioHealthy} healthy` },
-                {
-                  label: `${portfolioRisky} at risk`,
-                  color: "var(--line-strong)",
-                },
-              ]}
-            />
-          </div>
-        </Section>
-
-        <Section
-          eyebrow="AI"
-          title="Daily digest + weekly plan + executive brief"
-          description="Latest outputs from the agents PMs check daily. Each card opens the agent's review screen."
-        >
-          {data.recentPmAgentOutputs.length === 0 ? (
-            <div className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3">
-              <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                Recent runs
-              </span>
-              <p className="text-sm leading-relaxed opacity-90">
-                No outputs yet. Trigger the daily-construction-digest,
-                weekly-construction-plan, or executive-business agents
-                from Jobs to see them surface here.
-              </p>
-              <Badge tone="outline" className="self-start">
-                Run an agent to populate
-              </Badge>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-              {data.recentPmAgentOutputs.map((o) => {
-                const base =
-                  AGENT_HREF[o.agentKey] ??
-                  "/development-os/ai-agents";
-                return (
-                  <Link
-                    key={o.outputCode}
-                    href={`${base}/${o.outputCode}`}
-                    className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3 hover:bg-muted/40 transition-colors min-h-[180px]"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-tertiary">
-                        {AGENT_LABEL[o.agentKey] ?? o.agentKey} · {o.outputCode}
-                      </span>
-                      <ArrowUpRight
-                        className="w-4 h-4 text-ink-tertiary"
-                        strokeWidth={1.75}
-                      />
-                    </div>
-                    <h4 className="text-sm font-medium text-ink line-clamp-2">
-                      {o.title}
-                    </h4>
-                    <p className="text-xs text-ink-secondary leading-relaxed line-clamp-4">
-                      {o.summary}
-                    </p>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </Section>
-
-        <Section
-          eyebrow="Team"
-          title="Active subcontractors + completion"
-          description="Subcontractors currently delivering on a work package alongside the portfolio's actual-completion roll-up."
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
-            <TeamRowList
-              items={subcontractorTeamItems}
-              heading="Subcontractors on site"
-              emptyMessage="No active subcontractor assignments. Assign a primary vendor to a work package to surface them here."
-            />
-            <DonutRatioCard
-              title="Portfolio completion"
-              numerator={completionNumerator}
-              denominator={completionDenominator}
-              tone="emerald"
-              caption={
-                completionRows.length === 0
-                  ? "No work packages tracked yet"
-                  : `Across ${completionRows.length} project${completionRows.length === 1 ? "" : "s"}`
-              }
-            />
-          </div>
-        </Section>
-
-        <Section
-          eyebrow="Portfolio"
-          title="Project pipeline"
-          description="Active projects bucketed by lifecycle status. Click a card to open the project."
-          action={
-            <Link
-              href="/development-os/projects"
-              className="text-xs text-ink-tertiary hover:underline"
-            >
-              All projects →
-            </Link>
-          }
-        >
-          {data.projects.length === 0 ? (
-            <NoItemsYet
-              entityLabel="projects"
-              description="Create a project from /development-os/projects to start tracking."
-            />
-          ) : (
-            <ProjectPipelineKanban projects={data.projects} />
-          )}
-        </Section>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Section
-              eyebrow="Memory"
-              title="Knowledge captured"
-              description="Project AI memory items observed in the last 14 days."
-            >
-              <DashboardKpi
-                label="Memory items (14d)"
-                value={String(data.recentMemoryItemsCount)}
-                status="neutral"
-                drillHref="/development-os/projects"
-                hint="Active project_ai_memory rows"
-              />
-            </Section>
-          </div>
-
-          <aside>
-            <Section
-              eyebrow="Critical path"
-              title="Projects at risk"
-              description="Top 5 by open QA/QC + risks + change orders."
-            >
-              {data.projectsAtRisk.length === 0 ? (
-                <div className="rounded-md border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
-                  No risky projects right now. Open QA/QC, risks, and
-                  change orders surface here as they pile up.
+      {/* Portfolio at-risk + daily digest */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
+        <Card style={{ padding: 20 }}>
+          <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+            Portfolio at-risk · this week
+          </h3>
+          <ul className="clean" style={{ marginTop: 14 }}>
+            {AT_RISK.map((r) => (
+              <li key={r.title}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: r.color }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{r.title}</div>
+                  <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                    {r.note}
+                  </div>
                 </div>
-              ) : (
-                <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
-                  {data.projectsAtRisk.map((p) => (
-                    <li key={p.id} className="px-4 py-3">
-                      <Link
-                        href={`/development-os/projects/${p.id}`}
-                        className="block group"
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-1">
-                          <span className="font-medium text-sm truncate group-hover:underline">
-                            {p.name}
-                          </span>
-                          <Badge
-                            tone={
-                              p.riskScore >= 10
-                                ? "danger"
-                                : p.riskScore >= 4
-                                  ? "warning"
-                                  : "neutral"
-                            }
-                          >
-                            score {p.riskScore}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-ink-tertiary">
-                          {p.openQaQcCount} QA/QC · {p.openRisksCount} risks ·{" "}
-                          {p.pendingChangeOrdersCount} COs
-                          {p.budgetUsdMinor !== null && (
-                            <>
-                              {" · "}
-                              {formatMinorAsCurrency(p.budgetUsdMinor, "USD")}{" "}
-                              budgeted
-                            </>
-                          )}
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Section>
-          </aside>
-        </div>
+                <Badge tone={r.tone}>{r.badge}</Badge>
+              </li>
+            ))}
+          </ul>
+        </Card>
+
+        <Card style={{ padding: 20 }}>
+          <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+            Today · daily digest
+          </h3>
+          <div className="label label-amber" style={{ marginTop: 4 }}>
+            FILED 06:00 BY AI
+          </div>
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 13.5,
+              lineHeight: 1.6,
+              color: "var(--ink-2)",
+            }}
+          >
+            <p style={{ margin: "0 0 10px" }}>
+              <strong style={{ color: "var(--ink)" }}>EP02</strong> · Block B pour starts
+              04:30 — 14 vehicles, 3 pumps. Method statement signed by KY at 22:14
+              yesterday.
+            </p>
+            <p style={{ margin: "0 0 10px" }}>
+              <strong style={{ color: "var(--ink)" }}>ES10</strong> · MEP rough-in
+              inspection 08:00. Sub-trade arrives 07:30.
+            </p>
+            <p style={{ margin: "0 0 10px" }}>
+              <strong style={{ color: "var(--amber)" }}>AHP3</strong> · Permit office
+              meeting 10:00 — required documents listed in attached folder.
+            </p>
+            <p
+              style={{
+                margin: 0,
+                paddingTop: 8,
+                borderTop: "1px dashed var(--line-2)",
+                fontSize: 12,
+                color: "var(--ink-3)",
+              }}
+            >
+              3 anomalies caught overnight · 1 critical · 2 medium. All addressed in this
+              digest.
+            </p>
+          </div>
+        </Card>
       </div>
-    </DevelopmentShell>
+
+      {/* Construction schedule */}
+      <Card style={{ padding: 20 }}>
+        <h2 className="display" style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>
+          Construction schedule · this week
+        </h2>
+        <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+          {SCHEDULE_BARS.map((b) => (
+            <div
+              key={b.l}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "180px 1fr",
+                alignItems: "center",
+                gap: 14,
+              }}
+            >
+              <span style={{ fontSize: 13 }}>{b.l}</span>
+              <div
+                style={{
+                  position: "relative",
+                  height: 18,
+                  background: "var(--bg-3)",
+                  borderRadius: 6,
+                  border: "1px solid var(--line)",
+                }}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "grid",
+                    gridTemplateColumns: "repeat(7, 1fr)",
+                  }}
+                >
+                  {Array.from({ length: 6 }).map((_, k) => (
+                    <div key={k} style={{ borderRight: "1px dashed var(--line)" }} />
+                  ))}
+                </div>
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    bottom: 2,
+                    left: `${b.left}%`,
+                    width: `${b.w}%`,
+                    background: b.c,
+                    borderRadius: 4,
+                    opacity: b.c === "var(--ink-3)" ? 0.4 : 1,
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div
+          style={{
+            marginTop: 14,
+            display: "flex",
+            justifyContent: "space-between",
+            fontSize: 11,
+            color: "var(--ink-3)",
+          }}
+        >
+          <span>MON 21</span>
+          <span>TUE</span>
+          <span>WED</span>
+          <span>THU</span>
+          <span>FRI</span>
+          <span>SAT</span>
+          <span>SUN 27</span>
+        </div>
+      </Card>
+    </>
   );
 }

@@ -1,133 +1,148 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { sql } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
-import { DevelopmentShell } from "@/components/development/development-shell";
-import { getDb } from "@/lib/db/client";
-import { agentConfigurations } from "@/lib/db/schema/ai-agents";
-import { safeQuery } from "@/lib/development/safe-query";
+import {
+  Kpi,
+  SectionHeading,
+  Card,
+  Badge,
+} from "@/components/dashboard/primitives";
 
-export const metadata: Metadata = { title: "AI agents · Development OS" };
+/**
+ * Sprint _handoff/ Task 7 (visual port) — Dev OS AI Agents Hub.
+ *
+ * 1:1 visual port of `_handoff/development/ai-agents.html` (app.js
+ * block). Mock data preserved verbatim — live wiring deferred to
+ * TASK-7-DATA per docs/audits/task-6-7-data-wiring-todo.md.
+ *
+ * Sections: SectionHeading → 5-up KPIs → 5-column agent grid (10
+ * agents, 5 live) → AI inbox cross-agent table.
+ */
+
+export const metadata = { title: "Development OS · AI agents" };
 export const dynamic = "force-dynamic";
 
-const AGENT_HREF: Record<string, string | null> = {
-  qs_cost_analyst: "/development-os/ai-agents/qs-cost-analyst",
-  procurement_analyst: "/development-os/ai-agents/procurement-analyst",
-  tax_assistant: "/development-os/ai-agents/tax-assistant",
-  marketing_assistant: "/development-os/ai-agents/marketing-assistant",
-  executive_business: "/development-os/ai-agents/executive-business",
-  daily_digest: "/development-os/ai-agents/daily-digest",
-  weekly_plan: "/development-os/ai-agents/weekly-plan",
-};
+// TODO(task-7-data): wire to features/ai/services.listDevAgents().
+const AGENTS = [
+  { id: "qs-cost", name: "QS Cost Analyst", live: true, desc: "Catches unit-cost outliers before they ship to PO. Reads against historical baselines + flags drift." },
+  { id: "proc", name: "Procurement Analyst", live: true, desc: "Compares quotations side-by-side, picks the right vendor, flags price drifts." },
+  { id: "daily", name: "Daily Construction Digest", live: true, desc: "Yesterday's exceptions, today's plan. Filed at 06:00 to your PM inbox." },
+  { id: "weekly", name: "Weekly Plan Generator", live: true, desc: "Forward-looking week plan with resource calls, risk callouts, schedule pivots." },
+  { id: "tax", name: "Tax Assistant", live: true, desc: "Auto-categorises every transaction, splits VAT, drafts journal entries." },
+  { id: "mkt", name: "Marketing Assistant", live: false, desc: "Per-villa launch copy, channel briefs, agent decks — tuned weekly." },
+  { id: "exec", name: "Executive Business", live: false, desc: "Board-ready snapshot. Multi-project. Owner-stay forecast included." },
+  { id: "buyer", name: "Buyer CRM Assistant", live: false, desc: "Draft replies, classify leads, match units to prospect briefs. Never auto-sends." },
+  { id: "memory", name: "Project Memory", live: true, desc: "Shared semantic memory. Every fact written once, recalled by everyone." },
+  { id: "site", name: "Site Photo Verifier", live: false, desc: "Reads geo-tagged photos against checklist items, flags discrepancies." },
+];
 
-export default async function AiAgentsHubPage() {
-  const db = getDb();
-  if (!db) {
-    return (
-      <DevelopmentShell>
-        <PageHeader title="AI agents" />
-        <EmptyState title="Database not configured" description="Set DATABASE_URL." />
-      </DevelopmentShell>
-    );
-  }
+// TODO(task-7-data): wire to features/ai-runs/services.listDevInbox().
+const INBOX = [
+  { id: "run-4af2", agent: "QS Cost Analyst", subj: "Marble Hindari · +18.4% vs baseline · reissue RFQ", when: "06:14", sev: "warn" as const },
+  { id: "run-4af1", agent: "Procurement Analyst", subj: "BaliSteel scored best for stainless balustrade", when: "05:48", sev: "info" as const },
+  { id: "run-4af0", agent: "Daily Construction Digest", subj: "EP02 · Block B pour at 04:30 · 3 anomalies caught", when: "06:00", sev: "info" as const },
+  { id: "run-4aef", agent: "Tax Assistant", subj: "PPh 23 withholding · 4 vendor payments need filing in 4d", when: "yesterday", sev: "warn" as const },
+  { id: "run-4aee", agent: "Project Memory", subj: "Wrote: 'Beton Nusantara prefers 04:30 dispatch'", when: "yesterday", sev: "info" as const },
+];
 
-  const configs = await safeQuery(
-    "agentConfigurations",
-    db.select().from(agentConfigurations).orderBy(agentConfigurations.displayName),
-    [],
-  );
-
-  const monthlyCostResult = await safeQuery(
-    "monthlyCost",
-    db.execute<{ agent_key: string; spent: string; n: string }>(sql`
-      SELECT agent_key,
-             COALESCE(SUM(cost_minor), 0)::text AS spent,
-             COUNT(*)::text AS n
-        FROM agent_invocation_log
-       WHERE invoked_at >= date_trunc('month', now())
-       GROUP BY agent_key
-    `),
-    null as unknown as Awaited<ReturnType<typeof db.execute>>,
-  );
-  const usageRows =
-    (monthlyCostResult as unknown as { rows?: Array<{ agent_key: string; spent: string; n: string }> })
-      ?.rows ?? [];
-  const usageByAgent: Record<string, { spent: number; count: number }> = {};
-  for (const r of usageRows) {
-    usageByAgent[r.agent_key] = { spent: Number(r.spent), count: Number(r.n) };
-  }
-
+export default function AiAgentsPage() {
   return (
-    <DevelopmentShell>
-      <PageHeader
-        title="AI agents"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "AI agents" },
-        ]}
-        description={`${configs.length} agent(s) configured. All operate in dry-run unless ANTHROPIC_API_KEY is set.`}
+    <>
+      <SectionHeading
+        eyebrow="AI agents · 10 specialists · 5 live"
+        title={
+          <>
+            One quiet team for the{" "}
+            <span style={{ color: "var(--amber)" }}>jobsite.</span>
+          </>
+        }
+        subtitle="Read-only allowlists. Refuses to act on closed periods or beyond scope. Every reply tied to a run id and an audit row."
+        actions={
+          <>
+            <button className="btn btn-dark btn-sm">Token usage</button>
+            <button className="btn btn-dark btn-sm">Memory editor</button>
+            <button className="btn btn-amber btn-sm">+ Conversation</button>
+          </>
+        }
       />
-      <Section title="All agents">
-        <table className="w-full text-sm border-collapse">
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+        <Kpi label="Agents · live" value="5" sub="vs 10 in roadmap" tone="success" />
+        <Kpi label="Runs · 30d" value="1,840" sub="98.4% completed" />
+        <Kpi label="Avg latency" value="2.4s" sub="p95: 7.1s" />
+        <Kpi label="Tokens · MTD" value="$24.20" sub="Budget: $180" tone="accent" />
+        <Kpi label="Anomalies caught" value="142" sub="saved est. $84K" />
+      </div>
+
+      {/* Agent grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 24 }}>
+        {AGENTS.map((a) => (
+          <Card
+            key={a.id}
+            style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, minHeight: 180 }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  background: a.live ? "var(--amber)" : "var(--bg-2)",
+                  color: a.live ? "var(--carbon)" : "var(--ink-3)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                }}
+              >
+                ✦
+              </span>
+              <span style={{ marginLeft: "auto" }}>
+                <Badge>{a.live ? "LIVE" : "PLAN"}</Badge>
+              </span>
+            </div>
+            <div className="display" style={{ fontSize: 14, fontWeight: 500 }}>
+              {a.name}
+            </div>
+            <p style={{ margin: 0, fontSize: 12, color: "var(--ink-3)", lineHeight: 1.45 }}>
+              {a.desc}
+            </p>
+          </Card>
+        ))}
+      </div>
+
+      <h2
+        id="inbox"
+        className="display"
+        style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}
+      >
+        AI inbox · cross-agent
+      </h2>
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        <table className="data">
           <thead>
-            <tr className="text-left text-ink-tertiary border-b border-line-soft">
-              <th className="py-2">Agent</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Daily cap</th>
-              <th>This month (count / spent)</th>
-              <th>Memory</th>
-              <th />
+            <tr>
+              <th>Run</th>
+              <th>Agent</th>
+              <th>Subject</th>
+              <th>Severity</th>
+              <th>When</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {configs.map((c) => {
-              const usage = usageByAgent[c.agentKey] ?? { spent: 0, count: 0 };
-              const href = AGENT_HREF[c.agentKey] ?? null;
-              return (
-                <tr key={c.id} className="border-b border-line-soft hover:bg-muted/30">
-                  <td className="py-2">
-                    {href ? (
-                      <Link href={href} className="hover:underline">
-                        {c.displayName}
-                      </Link>
-                    ) : (
-                      c.displayName
-                    )}
-                  </td>
-                  <td className="text-xs">{c.agentType}</td>
-                  <td>
-                    <Badge tone={c.isActive ? "success" : "neutral"}>
-                      {c.isActive ? "active" : "disabled"}
-                    </Badge>
-                  </td>
-                  <td className="font-mono tabular-nums text-xs">
-                    {Number(c.dailyBudgetMinor) > 0
-                      ? `${(Number(c.dailyBudgetMinor) / 100).toLocaleString()} ${c.budgetCurrency}`
-                      : "—"}
-                  </td>
-                  <td className="font-mono tabular-nums text-xs">
-                    {usage.count} / {(usage.spent / 100).toLocaleString()}
-                  </td>
-                  <td className="text-xs">
-                    {c.usesMemory ? `${c.maxMemoryItemsLoaded} items` : "off"}
-                  </td>
-                  <td className="text-xs">
-                    {href && (
-                      <Link href={href} className="text-info hover:underline">
-                        View →
-                      </Link>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {INBOX.map((m) => (
+              <tr key={m.id}>
+                <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>{m.id}</td>
+                <td><Badge>{m.agent}</Badge></td>
+                <td style={{ fontSize: 13, maxWidth: 520 }}>{m.subj}</td>
+                <td>
+                  {m.sev === "warn" ? <Badge tone="warn">Warn</Badge> : <Badge>Info</Badge>}
+                </td>
+                <td className="mono" style={{ fontSize: 11 }}>{m.when}</td>
+                <td><button className="btn btn-ghost btn-sm">Open →</button></td>
+              </tr>
+            ))}
           </tbody>
         </table>
-      </Section>
-    </DevelopmentShell>
+      </Card>
+    </>
   );
 }

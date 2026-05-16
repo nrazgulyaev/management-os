@@ -1,432 +1,183 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import * as React from "react";
 import {
-  AlertTriangle,
-  ArrowUpRight,
-  Camera,
-  Sparkles,
-} from "lucide-react";
-import {
-  DashboardKpi,
-  NoItemsYet,
-} from "@/components/ui/primitives";
-import {
-  HatchedBarChart,
-  HalfDonutGauge,
-  HeroGreetingAI,
-  KpiRowMixed,
-  PatrolTimeline,
-  type HatchedBarDatum,
-  type KpiItem,
-  type PatrolEvent,
-} from "@/components/award";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { DevelopmentShell } from "@/components/development/development-shell";
-import { getCurrentAppUser } from "@/features/auth/current-user";
-import { loadSiteSupervisorCabinet } from "@/lib/development/server/cabinets/site-supervisor-cabinet-queries";
-import {
-  loadDailyDigestOutputs,
-  type DailyDigestOutput,
-} from "@/lib/development/server/ai/daily-digest-queries";
-import { safeQuery } from "@/lib/development/safe-query";
-import { redirect } from "next/navigation";
-import { gateCabinetForCurrentOrg } from "@/lib/billing/cabinet-gating";
+  Kpi,
+  SectionHeading,
+  Card,
+  Badge,
+} from "@/components/dashboard/primitives";
 
 /**
- * Mega-Sprint / Phase 1 — Site Supervisor cabinet on Sprint-4 gold
- * standard. Replaces the Stage-10.5.A.2.1 CabinetGreetingBlock +
- * PageHeaderHero stack with <HeroGreetingAI>, adds a KpiRowMixed
- * row above the existing snapshot KPIs, adds a Today's-pulse row
- * (HatchedBarChart for 7-day report cadence + HalfDonutGauge for
- * today's checklist completion), and surfaces the new
- * <PatrolTimeline> primitive for ground-level activity (site
- * reports + incidents). Existing recent-reports aside preserved as
- * fallback content.
+ * Sprint _handoff/ Task 7 (visual port) — Dev OS Site Supervisor cabinet.
+ *
+ * 1:1 visual port of `_handoff/development/site-supervisor.html`
+ * (app.js block). Mock data preserved verbatim — live wiring deferred
+ * to TASK-7-DATA per docs/audits/task-6-7-data-wiring-todo.md.
+ *
+ * Sections: SectionHeading → 5-up KPIs → Daily report timeline (5
+ * rows w/ time + status badge) → Photo evidence grid (10 thumbs,
+ * geo-tagged) → transcribed voice-note panel.
  */
 
-export const metadata: Metadata = { title: "Site supervisor · Cabinet" };
+export const metadata = { title: "Site Supervisor · Daily report" };
 export const dynamic = "force-dynamic";
 
-function todayLabel(now: Date): string {
-  const day = now.getDate();
-  const weekday = now.toLocaleDateString("en-US", { weekday: "short" });
-  const month = now.toLocaleDateString("en-US", { month: "long" });
-  return `${day} · ${weekday}, ${month}`;
-}
+// TODO(task-7-data): wire to features/development/services.getDailyReportSchedule(projectId, date).
+const DIARY: { t: string; a: string; q: string; who: string; st: "in_progress" | "queued" | "done" }[] = [
+  { t: "04:30 → 09:00", a: "Block B / Level 2 concrete pour · C25/30", q: "1,420 m³ delivered", who: "Beton Nusantara · 14 trucks · 3 pumps", st: "in_progress" },
+  { t: "08:00 → 12:00", a: "MEP rough-in · Block A · Level 1 reinforcing tie", q: "180 m run completed", who: "Elek Bali · 6 crew", st: "in_progress" },
+  { t: "10:30 → 11:30", a: "QS inspection — Wayan T.", q: "Sign-off on column reinforcement", who: "Internal", st: "queued" },
+  { t: "13:00 → 17:00", a: "Marble vendor visit · BatuJaya samples", q: "3 samples requested", who: "Wayan T. + Ari P.", st: "queued" },
+  { t: "15:00 → 16:30", a: "Toolbox talk · weather + scaffold", q: "42 crew", who: "Komang Y.", st: "queued" },
+];
 
-/**
- * Phase 1 — bucket recent report dates into the 7 calendar-day grid
- * the HatchedBarChart consumes. Days with at least one report ship
- * as solid bars; empty days as hatched (track-only).
- */
-function reportsLast7Days(
-  recentReports: { reportDate: string }[],
-  today: Date,
-): HatchedBarDatum[] {
-  const counts = new Map<string, number>();
-  for (const r of recentReports) {
-    counts.set(r.reportDate, (counts.get(r.reportDate) ?? 0) + 1);
-  }
-  const out: HatchedBarDatum[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setUTCDate(d.getUTCDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    const n = counts.get(iso) ?? 0;
-    out.push({
-      label: d.toLocaleDateString("en-US", { weekday: "narrow" }),
-      value: Math.max(n, 1),
-      status: n > 0 ? "active" : "inactive",
-      caption: n > 0 ? String(n) : undefined,
-    });
-  }
-  return out;
-}
+// TODO(task-7-data): wire to features/development/services.listSitePhotosForDate(projectId, date).
+const PHOTOS: { t: string; c: string; g: string }[] = [
+  { t: "05:14", c: "Concrete pour start", g: "linear-gradient(135deg, #3a4250 0%, #1a1d22 100%)" },
+  { t: "06:48", c: "Pump #2 alignment", g: "linear-gradient(135deg, #463826 0%, #1c1812 100%)" },
+  { t: "07:12", c: "L2 slab progress", g: "linear-gradient(135deg, #5a6e7a 0%, #1c1812 100%)" },
+  { t: "07:58", c: "Block A · MEP cabling", g: "linear-gradient(135deg, #2c3848 0%, #15191e 100%)" },
+  { t: "08:30", c: "Marble samples laid out", g: "linear-gradient(135deg, #ddc4ab 0%, #806244 100%)" },
+  { t: "09:02", c: "Slab vibration check", g: "linear-gradient(135deg, #3a4250 0%, #1a1d22 100%)" },
+  { t: "09:30", c: "Site cleanup · Block B", g: "linear-gradient(135deg, #463826 0%, #1c1812 100%)" },
+  { t: "10:14", c: "Toolbox briefing", g: "linear-gradient(135deg, #2c3848 0%, #15191e 100%)" },
+  { t: "10:48", c: "Reinforcement detail", g: "linear-gradient(135deg, #5a6e7a 0%, #1c1812 100%)" },
+  { t: "11:02", c: "Drain rough-in", g: "linear-gradient(135deg, #3a4250 0%, #1a1d22 100%)" },
+];
 
-export default async function SiteSupervisorCabinetPage() {
-  const __gateRedirect = await gateCabinetForCurrentOrg("site-supervisor");
-  if (__gateRedirect) redirect(__gateRedirect);
-
-  const me = await getCurrentAppUser();
-  const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
-  const data = me
-    ? await safeQuery(
-        "siteSupervisorCabinet",
-        loadSiteSupervisorCabinet(me.id),
-        {
-          todaysSiteReportCount: 0,
-          openQaQcAssignedToMe: 0,
-          materialsExpectedToday: 0,
-          yesterdayPhotoCount: 0,
-          yesterdayWorkforceRecorded: 0,
-          recentReports: [],
-        },
-      )
-    : null;
-
-  // Sprint MD-3.A — Load the 3 most-recent daily-construction-digest
-  // outputs for the inline AI grid that replaces the Phase-1 placeholder.
-  const digests = me
-    ? await safeQuery(
-        "siteSupervisorDailyDigest",
-        loadDailyDigestOutputs({ limit: 3 }),
-        [] as DailyDigestOutput[],
-      )
-    : [];
-
-  const now = new Date();
-  const dailyCounts = data ? reportsLast7Days(data.recentReports, now) : [];
-
-  const kpis: KpiItem[] = data
-    ? [
-        {
-          label: "Reports today",
-          value: String(data.todaysSiteReportCount),
-          delta:
-            data.todaysSiteReportCount === 0
-              ? "None yet — file the first"
-              : `${data.todaysSiteReportCount} filed`,
-          href: "/development-os/site-reports",
-        },
-        {
-          label: "Open QA / QC (mine)",
-          value: String(data.openQaQcAssignedToMe),
-          delta:
-            data.openQaQcAssignedToMe === 0
-              ? "All clear"
-              : `${data.openQaQcAssignedToMe} assigned`,
-          href: "/development-os/qa-qc",
-        },
-        {
-          label: "Workforce yesterday",
-          value: String(data.yesterdayWorkforceRecorded),
-          delta: "Logged entries",
-          href: "/development-os/site-reports",
-        },
-        {
-          label: "Photos yesterday",
-          value: String(data.yesterdayPhotoCount),
-          delta:
-            data.yesterdayPhotoCount === 0
-              ? "Capture today's progress"
-              : "Daily progress capture",
-          href: "/development-os/site-reports",
-        },
-      ]
-    : [];
-
-  // Today's checklist completion is approximated from open QA/QC vs
-  // an assumed daily target of 5 items. Real target would come from
-  // a cron-populated snapshot in a future polish pass.
-  const dailyTarget = 5;
-  const completedToday = Math.max(
-    0,
-    dailyTarget - (data?.openQaQcAssignedToMe ?? 0),
-  );
-  const completionPct =
-    dailyTarget > 0
-      ? Math.round((completedToday / dailyTarget) * 100)
-      : 0;
-
-  // Translate recent reports into PatrolTimeline events. The Phase-1
-  // version uses the report's `reportDate` as the timestamp and the
-  // ID prefix as the title; richer event metadata (workforce-on-site
-  // count + photo count per report) is a future polish task.
-  const timelineEvents: PatrolEvent[] = (data?.recentReports ?? [])
-    .slice(0, 8)
-    .map((r) => ({
-      id: r.id,
-      timestamp: r.reportDate,
-      status: "info",
-      title: `Site report · ${r.id.slice(0, 8)}`,
-      body: `Filed ${r.reportDate}`,
-      kind: "check",
-      href: `/development-os/site-reports/${r.id}`,
-      statusLabel: "Filed",
-    }));
-
+export default function SiteSupervisorPage() {
   return (
-    <DevelopmentShell>
-      <div className="flex flex-col gap-8 md:gap-10">
-        <HeroGreetingAI
-          firstName={firstName}
-          role="Site Supervisor · Cabinet"
-          dateLabel={todayLabel(now)}
-          aiPromptPlaceholder="Ask the daily-construction-digest anything."
-          showMyTasksHref="/development-os/site-reports"
-        />
+    <>
+      <SectionHeading
+        eyebrow="Site supervisor · Komang Y. · EP02"
+        title={
+          <>
+            Today's{" "}
+            <span style={{ color: "var(--amber)" }}>jobsite log.</span>
+          </>
+        }
+        subtitle="Daily report drafted at 06:00, photo-evidence trail, voice notes auto-transcribed, geo-tagged completion stamps. Offline-first PWA."
+        actions={
+          <>
+            <button className="btn btn-dark btn-sm">Submit for sign-off</button>
+            <button className="btn btn-amber btn-sm">+ Photo</button>
+          </>
+        }
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-          {[
-            {
-              href: "/development-os/site-reports/new",
-              icon: Camera,
-              label: "Quick photo · file report",
-              caption: "Daily progress capture",
-            },
-            {
-              href: "/development-os/qa-qc",
-              icon: AlertTriangle,
-              label: "Raise QA/QC issue",
-              caption: data
-                ? `${data.openQaQcAssignedToMe} assigned to me`
-                : "—",
-            },
-            {
-              href: "/development-os/ai-agents/daily-construction-digest",
-              icon: Sparkles,
-              label: "AI daily digest",
-              caption: "Yesterday's exceptions",
-            },
-          ].map(({ href, icon: Icon, label, caption }) => (
-            <Link
-              key={href}
-              href={href}
-              className="rounded-3xl border border-line-soft bg-surface shadow-soft-card px-5 py-4 flex items-center gap-4 hover:bg-muted/40 transition-colors"
-            >
-              <span className="shrink-0 w-10 h-10 rounded-full bg-gradient-emerald-soft border border-line-soft inline-flex items-center justify-center">
-                <Icon className="w-4 h-4 text-ink" strokeWidth={1.75} />
-              </span>
-              <span className="flex flex-col min-w-0 flex-1">
-                <span className="text-sm font-medium text-ink truncate">
-                  {label}
-                </span>
-                <span className="text-xs text-ink-tertiary truncate">
-                  {caption}
-                </span>
-              </span>
-              <ArrowUpRight
-                className="w-4 h-4 text-ink-tertiary shrink-0"
-                strokeWidth={1.75}
-              />
-            </Link>
-          ))}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+        <Kpi label="Crew on site" value="42" sub="6 trades · 4 sub-contractors" />
+        <Kpi label="Activities today" value="8" sub="3 critical path" />
+        <Kpi label="Photos · today" value="38" sub="all geo-tagged" tone="success" />
+        <Kpi label="QA checks done" value="14 / 16" sub="2 awaiting" />
+        <Kpi label="Safety incidents" value="0" sub="14 days streak" tone="success" />
+      </div>
+
+      {/* Daily report timeline */}
+      <Card style={{ padding: 24, marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "baseline" }}>
+          <h2 className="display" style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>
+            Daily report · 21 April 2026
+          </h2>
+          <span
+            className="mono"
+            style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}
+          >
+            EP02 · WK36 · DAY 3
+          </span>
         </div>
 
-        {!data ? (
-          <NoItemsYet
-            entityLabel="data"
-            description="Sign in to see your site activity."
-          />
-        ) : (
-          <>
-            <KpiRowMixed kpis={kpis} heroTone="emerald-solid" />
-
-            {/* Inventory + materials row (preserved from Stage 10.5.A) */}
-            <Section
-              eyebrow="Inventory"
-              title="Materials expected today"
-            >
-              <DashboardKpi
-                label="Deliveries on schedule"
-                value={String(data.materialsExpectedToday)}
-                status={
-                  data.materialsExpectedToday === 0 ? "neutral" : "good"
-                }
-                drillHref="/development-os/inventory"
-                hint="Material orders due today"
-              />
-            </Section>
-
-            <Section
-              eyebrow="Today's pulse"
-              title="Field cadence"
-              description="Days with site-report activity over the last 7 calendar days, plus today's QA/QC completion."
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
-                <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
-                      Last 7 days
-                    </span>
-                    <span className="text-xs text-ink-tertiary tabular-nums">
-                      {data.recentReports.length} recent reports
-                    </span>
-                  </div>
-                  <HatchedBarChart
-                    data={dailyCounts}
-                    tone="emerald"
-                    height={200}
-                  />
-                </div>
-                <HalfDonutGauge
-                  variant="emerald"
-                  value={completionPct}
-                  max={100}
-                  label={
-                    <>
-                      <p className="text-display text-[28px] md:text-[36px] leading-none font-medium text-ink tabular-nums">
-                        {completionPct}%
-                      </p>
-                      <p className="text-xs text-ink-tertiary mt-1">
-                        Today's checklist
-                      </p>
-                    </>
-                  }
-                  legend={[
-                    { label: `${completedToday} cleared` },
-                    {
-                      label: `${data.openQaQcAssignedToMe} open`,
-                      color: "var(--line-strong)",
-                    },
-                  ]}
-                />
+        <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "160px 1fr", gap: 14 }}>
+          {DIARY.map((r) => (
+            <React.Fragment key={r.t + r.a}>
+              <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", paddingTop: 4 }}>
+                {r.t}
               </div>
-            </Section>
-
-            <Section
-              eyebrow="Activity"
-              title="Recent on-site events"
-              description="Site reports filed and photos captured. Click to open."
-              action={
-                <Link
-                  href="/development-os/site-reports"
-                  className="text-xs text-ink-tertiary hover:underline"
-                >
-                  All reports →
-                </Link>
-              }
-            >
-              {timelineEvents.length === 0 ? (
-                <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm text-ink-tertiary">
-                  No reports filed yet. Use the "Quick photo" action
-                  above to file the first one.
+              <div
+                style={{
+                  padding: "10px 14px",
+                  border: "1px solid var(--line)",
+                  borderRadius: 10,
+                  background: "var(--bg-3)",
+                }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 500 }}>{r.a}</div>
+                <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
+                  {r.q} · <span className="mono">{r.who}</span>
                 </div>
-              ) : (
-                <PatrolTimeline
-                  events={timelineEvents}
-                  maxVisible={6}
-                  moreHref="/development-os/site-reports"
-                />
-              )}
-            </Section>
-
-            {/* Sprint MD-3.A — Inline 3-card grid of recent
-                daily-construction-digest outputs. Replaces the
-                Phase-1 placeholder. */}
-            <Section
-              eyebrow="AI"
-              title="Daily construction digest"
-              description="Yesterday's exceptions + today's plan from the daily-construction-digest agent."
-              action={
-                <Link
-                  href="/development-os/ai-agents/daily-construction-digest"
-                  className="text-xs text-ink-tertiary hover:underline"
-                >
-                  Open agent →
-                </Link>
-              }
-            >
-              {digests.length === 0 ? (
-                <Link
-                  href="/development-os/ai-agents/daily-construction-digest"
-                  className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
-                >
-                  <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                    No runs yet
-                  </span>
-                  <p className="text-sm leading-relaxed opacity-90">
-                    The daily-construction-digest agent runs nightly and
-                    files an executive summary of yesterday's exceptions
-                    + a plan for today. Trigger a run from the agent
-                    surface to populate this grid.
-                  </p>
-                  <Badge tone="outline" className="self-start">
-                    Run digest →
-                  </Badge>
-                </Link>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-                  {digests.map((d) => (
-                    <Link
-                      key={d.id}
-                      href={`/development-os/ai-agents/daily-construction-digest/outputs/${d.outputCode}`}
-                      className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                          {new Date(d.createdAt).toLocaleDateString(
-                            "en-US",
-                            { day: "numeric", month: "short" },
-                          )}
-                          {d.projectName ? ` · ${d.projectName}` : ""}
-                        </span>
-                        <ArrowUpRight
-                          className="w-3.5 h-3.5 opacity-80"
-                          strokeWidth={1.75}
-                        />
-                      </div>
-                      <p className="text-sm font-medium leading-snug line-clamp-2">
-                        {d.title}
-                      </p>
-                      {d.latestExceptions.length > 0 && (
-                        <ul className="flex flex-col gap-1.5 text-xs opacity-90 leading-relaxed">
-                          {d.latestExceptions.slice(0, 3).map((ex, i) => (
-                            <li
-                              key={`${d.id}-ex-${i}`}
-                              className="flex items-start gap-2"
-                            >
-                              <span
-                                aria-hidden
-                                className="inline-block w-1 h-1 mt-1.5 rounded-full bg-white/60 shrink-0"
-                              />
-                              <span className="line-clamp-2">{ex}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <span className="mt-auto inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.12em] opacity-80">
-                        View digest
-                      </span>
-                    </Link>
-                  ))}
+                <div style={{ marginTop: 8 }}>
+                  {r.st === "in_progress" && <Badge tone="warn">In progress</Badge>}
+                  {r.st === "queued" && <Badge>Queued</Badge>}
+                  {r.st === "done" && <Badge tone="ok">Done</Badge>}
                 </div>
-              )}
-            </Section>
-          </>
-        )}
-      </div>
-    </DevelopmentShell>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+      </Card>
+
+      {/* Photo evidence */}
+      <Card style={{ padding: 20, marginBottom: 18 }}>
+        <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+          Photo evidence · today
+        </h3>
+        <div className="label" style={{ marginTop: 4 }}>
+          Auto-uploaded · geo-tagged · linked to checklist items
+        </div>
+        <div
+          style={{
+            marginTop: 14,
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: 10,
+          }}
+        >
+          {PHOTOS.map((p) => (
+            <div
+              key={p.t + p.c}
+              style={{
+                aspectRatio: "4 / 3",
+                background: p.g,
+                padding: 10,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                border: "1px solid var(--line)",
+                borderRadius: 10,
+              }}
+            >
+              <span
+                className="mono"
+                style={{
+                  fontSize: 9,
+                  color: "rgba(255,255,255,0.55)",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                {p.t}
+              </span>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.85)" }}>{p.c}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Voice note */}
+      <Card style={{ padding: 18, border: "1px dashed var(--line-2)" }}>
+        <div className="label label-amber">VOICE NOTE · transcribed · 11:42</div>
+        <p
+          style={{
+            margin: "8px 0 0",
+            fontFamily: "var(--font-space), sans-serif",
+            fontStyle: "italic",
+            fontSize: 15,
+            color: "var(--ink)",
+          }}
+        >
+          &quot;Slump test on truck 8 came out at 14cm, that&apos;s higher than spec —
+          flagged with batch and sent driver back for adjustment. Lab sample sent. Pour
+          resumed 11:48.&quot;
+        </p>
+      </Card>
+    </>
   );
 }

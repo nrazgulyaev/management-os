@@ -1,18 +1,23 @@
-# Task-6-DATA — Live data wiring for the 5 Mgmt cabinet visual ports
+# Task-6-DATA + Task-7-DATA — Live data wiring for the 5 Mgmt + 7 Dev cabinet visual ports
 
 ## Context
 
-Sprint `_handoff/` Task 6 split into two phases on operator decision:
+Sprints `_handoff/` Task 6 + Task 7 split into two phases on operator
+decision:
 
-- **TASK-6-VISUAL** (shipped — commit pending in this branch) — 1:1 visual
-  ports of `_handoff/management/{bookings,concierge,finance,operations,
-  ai-hub}.html` into the live Next.js app. Each prototype's hard-coded
-  demo arrays were preserved verbatim and flagged with
-  `// TODO(task-6-data): wire to <fn>` comments at the point of use.
-- **TASK-6-DATA** (this document) — replace those mock arrays with
-  server-fetched data from the existing `features/*` services, or
-  introduce a single new service per cabinet where the existing surface
-  isn't authoritative yet.
+- **TASK-6-VISUAL** + **TASK-7-VISUAL** (shipped) — 1:1 visual ports
+  of all 12 cabinets:
+  - Mgmt: `_handoff/management/{bookings,concierge,finance,operations,
+    ai-hub}.html` (+ Overview wired live in commit `95501b1`)
+  - Dev: `_handoff/development/{index,project-manager,cfo,qs,
+    procurement,site-supervisor,ai-agents}.html`
+  Each prototype's hard-coded demo arrays preserved verbatim and
+  flagged with `// TODO(task-6-data):` (Mgmt) or `// TODO(task-7-data):`
+  (Dev) comments at the point of use.
+- **TASK-6-DATA + TASK-7-DATA** (this document) — replace those
+  mock arrays with server-fetched data from the existing `features/*`
+  services, or introduce a single new service per cabinet where the
+  existing surface isn't authoritative yet.
 
 The Overview cabinet (`src/app/(dashboard)/dashboard/page.tsx`) was
 already wired in commit `95501b1` and is **not** in this TODO — it
@@ -138,13 +143,160 @@ Operator can sprint these one cabinet at a time. Recommended order:
 5. **Concierge** — most green-field; postpone until WhatsApp adapter
    is settled.
 
-## Hard constraints carried from TASK-6-VISUAL
+## Dev OS cabinets (TASK-7-DATA)
 
-- `// TODO(task-6-data):` comments mark every replacement site. When
-  wiring, search the file for that marker and ensure 0 remain after
-  the swap.
+7 cabinets ported in this sprint. Same `// TODO(task-7-data):` marker
+convention. Naming kept distinct so `git grep "task-6-data"` vs
+`task-7-data` triages quickly.
+
+### Cabinet 7.1 — Dev Overview / Command Center
+
+**File:** `src/app/(development-app)/development-os/page.tsx`
+
+| Mock array | Target | Service | Notes |
+|---|---|---|---|
+| `PROJECTS` (3 rows) | `listActiveProjects({ status })` | ✅ exists at `src/lib/development/server/projects/*` | Shape: code/name/units/gdvM/stage/prog/ontrack/irr. **Low.** |
+| `RISK_RADAR` (4 rows) | `listRiskRadar()` | ⚡ new in `features/development/services.ts` | Cross-project risk aggregation — permit holds, cost-baseline drift, schedule slips, weather. **Med.** |
+| `SITE_ACTIVITY` (4 rows for today) | `listSiteActivityToday()` | ⚡ new service needed | Source: daily reports + schedule + meetings calendar. **Med.** |
+| `STAFF` (8 cards) | `listTeamRoster()` | ✅ derivable from `getCurrentUserContext()` + org membership query | Trim to display roles. **Low.** |
+| 5-up KPIs | `getDevPortfolioKpis()` | ⚡ new service | Active count · total commitment · weighted avg progress · aggregate cost variance · IRR. **Med.** |
+| qs-cost-analyst AI band copy | Derived from `listRecentAgentRuns({ agentId: "qs-cost-analyst" })` | ⚡ new | **Med** (AI infra). |
+
+**Sprint estimate:** 1 day.
+
+### Cabinet 7.2 — Project Manager
+
+**File:** `src/app/(development-app)/development-os/cabinets/project-manager/page.tsx`
+
+| Mock array | Target | Service | Notes |
+|---|---|---|---|
+| `KANBAN` (4 columns × 2-3 cards) | `listWorkPackagesByStatus(projectId)` | ⚡ new in `features/development/services.ts` | WP entity needed if not present. **Med.** |
+| `AT_RISK` (3 rows) | Filtered view of `listRiskRadar()` | ⚡ same as Overview | Reuse. |
+| Daily digest body (3 paragraphs) | `getDailyDigest(projectId, dateISO)` | ⚡ new | AI-generated narrative. **High** (LLM call infra). |
+| `SCHEDULE_BARS` (6 bars · weekly gantt) | `getConstructionScheduleStrip(projectId, weekISO)` | ⚡ new | Read from `schedule` / `tasks` schema. **Med-High.** |
+| 5-up KPIs | `getPmKpis(projectId)` | ⚡ new | WPs · sched variance · open tickets · pending decisions · crew count. **Med.** |
+
+**Sprint estimate:** 1.5 days.
+
+### Cabinet 7.3 — CFO / Accountant
+
+**File:** `src/app/(development-app)/development-os/cabinets/cfo-accountant/page.tsx`
+
+⚠️ **Bookkeeper widgets protection** — the snap-receipt /
+SpreadsheetView quick-entry / transactions-with-delete widgets live on
+**separate routes** under `/development-os/finance/transactions/*`.
+This cabinet only links to them via three CTAs in the
+SectionHeading.actions slot. **Do not move those widgets into this
+file** without explicit operator decision; the existing routes ship
+HF-7/HF-8/AI-ACTIVATION-1 fixes.
+
+| Mock array | Target | Service | Notes |
+|---|---|---|---|
+| `KPIS` (cash · AR · AP · spend · burn) | `getCfoKpis()` | ⚡ new in `features/finance/services.ts` (or extend) | Aggregations over journal lines + invoices + bank-account snapshots. **Med.** |
+| `PNL_ROWS` (3 projects · 4 cols) | `getPnlByProject({ period: "ytd" })` | ✅ exists at `cfoCabinetSnapshot` query (likely shape match) | Reshape the existing query result. **Low.** |
+| `CASH_BARS` (8 weeks) | `getCashStrip6w()` | ⚡ new | Forecast + actuals strip. **Med.** |
+| `TAX_TYPES` (4 rows) | `listTaxTypes()` | ✅ exists at `src/features/finance/tax-types` | Already routed as `/finance/tax-types`. **Low.** |
+| `SHARED_COSTS` (3 rows) | `listSharedCostAllocations({ period })` | ✅ exists at `features/finance/shared-costs` | Already routed. **Low.** |
+
+**Sprint estimate:** 1 day — most reads exist.
+
+### Cabinet 7.4 — QS / Cost Analyst (BOQ Desk)
+
+**File:** `src/app/(development-app)/development-os/cabinets/qs/page.tsx`
+
+| Mock array | Target | Service | Notes |
+|---|---|---|---|
+| `BOQ` (1 section + 6 lines) | `listBoqLines({ wp, rev, filter: "anomalies+parents" })` | ✅ exists at `features/boq/services.ts` (likely) | Existing `/development-os/boq` route has full pagination. The cabinet table mirrors the prototype's "top 7 shown" slice + a CTA into the full list. **Low.** |
+| `WP_STATS` (6-up strip) | `getBoqWpRollup(wpCode)` | ⚡ new aggregation | Budget · committed · actual · variance · open POs · anomaly count. **Low-Med.** |
+| `RFQ_MATRIX` (4 vendors) | `getRfqMatrix(rfqId)` | ⚡ new | Per-vendor scorecard rollup. **Med.** |
+| AI anomaly band | Latest `qs-cost-analyst` run | ⚡ Reuse Overview hook | **Low** once that exists. |
+
+**Sprint estimate:** 1 day.
+
+### Cabinet 7.5 — Procurement Manager
+
+**File:** `src/app/(development-app)/development-os/cabinets/procurement-manager/page.tsx`
+
+| Mock array | Target | Service | Notes |
+|---|---|---|---|
+| `OPEN_PRS` (5 rows) | `listOpenPRs()` | ✅ exists at `features/procurement/services.ts` | Already shaped. **Low.** |
+| `POS_IN_TRANSIT` (4 rows) | `listPOsInTransit()` | ✅ exists | **Low.** |
+| `INVOICES` (3 rows) | `listAwaitingInvoices()` | ✅ exists at `features/finance/invoices` | **Low.** |
+| 5-up KPIs | `getProcurementKpis()` | ⚡ new aggregation | **Low-Med.** |
+
+**Sprint estimate:** 0.5 day — almost everything exists.
+
+### Cabinet 7.6 — Site Supervisor
+
+**File:** `src/app/(development-app)/development-os/cabinets/site-supervisor/page.tsx`
+
+| Mock array | Target | Service | Notes |
+|---|---|---|---|
+| `DIARY` (5 timeline rows) | `getDailyReportSchedule(projectId, dateISO)` | ⚡ new — schedule + assignments | **Med.** |
+| `PHOTOS` (10 thumbs) | `listSitePhotosForDate(projectId, dateISO)` | ✅ exists at `features/site-reports` (likely) | Need to expose geo-tag + caption fields. **Low.** |
+| Voice-note transcribed panel | `getLatestVoiceNote(projectId)` | ⚡ new | Pulls from transcription queue. **Med.** |
+| 5-up KPIs | `getSiteSupervisorKpis(projectId, dateISO)` | ⚡ new | Crew count · activities · photos · QA · safety streak. **Med.** |
+
+**Sprint estimate:** 1.5 days.
+
+### Cabinet 7.7 — AI Agents
+
+**File:** `src/app/(development-app)/development-os/ai-agents/page.tsx`
+
+| Mock array | Target | Service | Notes |
+|---|---|---|---|
+| `AGENTS` (10 cards) | `listDevAgents()` | ⚡ new in `features/ai/services.ts` (or share with Mgmt) | Decision: per-tenant agent registry vs static config. **Low** (static) or **Med** (registry). |
+| `INBOX` (5 rows) | `listDevInbox()` | ⚡ new — same shape as Mgmt AI inbox | Share service with Mgmt cabinet. **Low-Med.** |
+| 5-up KPIs | `getDevAiKpis({ period: "30d" })` | ⚡ new aggregation over `ai_runs` table | **Low.** |
+
+**Sprint estimate:** 1 day.
+
+## Dev rollup
+
+| Cabinet | New services | Existing services | Sprint |
+|---|---|---|---|
+| Dev Overview | 4 | 2 | 1 day |
+| Project Manager | 5 | 0 | 1.5 days |
+| CFO / Accountant | 3 | 3 | 1 day |
+| QS / BOQ Desk | 3 | 1 | 1 day |
+| Procurement Mgr | 1 | 3 | 0.5 day |
+| Site Supervisor | 3 | 1 | 1.5 days |
+| AI Agents | 3 | 0 | 1 day |
+| **Total** | **22** | **10** | **~7.5 days** |
+
+## Combined rollup (Tasks 6 + 7 data wiring)
+
+| Sprint | New services | Existing | Days |
+|---|---|---|---|
+| Task-6-DATA (5 Mgmt) | 24 | 7 | ~8 |
+| Task-7-DATA (7 Dev) | 22 | 10 | ~7.5 |
+| **Total** | **46** | **17** | **~15.5 senior-eng days** |
+
+## Recommended TASK-7-DATA prompt sequence
+
+1. **Procurement Manager** — smallest delta, almost everything exists.
+2. **CFO / Accountant** — mostly existing services; ⚠️ preserve the
+   `/finance/transactions/*` bookkeeper routes intact (HF-7/HF-8/
+   AI-ACTIVATION-1 fixes live there, not in the cabinet page).
+3. **QS / BOQ Desk** — leverages existing BOQ + RFQ services.
+4. **Dev Overview** — risk radar + activity rollups.
+5. **AI Agents** — schema decisions on `ai_runs` + agent registry.
+6. **Project Manager** — kanban + schedule strip schema-heavy.
+7. **Site Supervisor** — transcription + photo geo-tag pipeline.
+
+## Hard constraints carried from TASK-6-VISUAL + TASK-7-VISUAL
+
+- `// TODO(task-6-data):` / `// TODO(task-7-data):` comments mark every
+  replacement site. When wiring, search the file for that marker and
+  ensure 0 remain after the swap.
 - HF-12 RSC pattern: never pass a forwardRef component (lucide) across
   a server→client prop. Use the existing `DashboardIcon` registry if
   icons need to flow through service results.
 - Task 5 shell wraps every cabinet; don't bypass it.
 - ARCH-1 cookie SSO and HF-13 routing untouched.
+- **CFO bookkeeper widgets** (snap-receipt OCR · SpreadsheetView
+  quick-entry · transactions list with delete) live on dedicated
+  routes under `/development-os/finance/transactions/*` — do NOT move
+  them into the cabinet page without explicit operator decision.
+  Existing HF-7/HF-8/HF-9/HF-11/AI-ACTIVATION-1 fixes are anchored to
+  those routes.
