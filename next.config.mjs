@@ -107,6 +107,17 @@ const nextConfig = {
   reactStrictMode: true,
   // Pin tracing root to this package so Next doesn't walk up to parent lockfiles.
   outputFileTracingRoot: __dirname,
+  // HF-8 — Receipt OCR ships the receipt image inline (base64 in
+  // FormData) to extractReceipt(). Default Next.js 15 Server Action
+  // body limit is 1 MB; modern phone JPEGs are 2–5 MB and were
+  // crashing with `Body exceeded 1 MB limit` (413, digest 4033951084).
+  // Bumping to 10 MB covers compressed phone uploads with headroom.
+  // Direct-to-storage (presigned URL) is a follow-up sprint.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
   async redirects() {
     return STAGE_10_C_REDIRECTS.map((r) => ({
       source: r.source,

@@ -207,8 +207,18 @@ export function AreaChartCard({
           Not enough data to render a trend yet.
         </div>
       ) : (
-        <div className="relative" style={{ height: chartHeight }}>
-          <ResponsiveContainer width="100%" height="100%">
+        // HF-8 Task 5: explicit `width: "100%"` on the wrapper +
+        // `minWidth={0}` on ResponsiveContainer silences the recurring
+        // "width(-1) and height(-1) of chart should be greater than 0"
+        // recharts warning that fires when the container measures
+        // before parent flex/grid layout has settled. Functionally
+        // harmless before (chart re-renders correctly after layout)
+        // but fills Vercel logs with noise.
+        <div
+          className="relative w-full"
+          style={{ height: chartHeight, minWidth: 0 }}
+        >
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <AreaChart
               data={data}
               margin={{ top: 8, right: 8, bottom: 0, left: 0 }}

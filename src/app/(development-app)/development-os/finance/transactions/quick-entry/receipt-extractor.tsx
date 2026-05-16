@@ -22,6 +22,7 @@
 
 import * as React from "react";
 import { useTransition } from "react";
+import imageCompression from "browser-image-compression";
 import {
   Camera,
   CheckCircle2,
@@ -32,6 +33,40 @@ import {
 import { extractReceipt } from "@/lib/development/server/receipt-ocr-actions";
 import type { ExtractedReceipt } from "@/lib/development/server/receipt-ocr-actions";
 import { cn } from "@/lib/utils";
+
+// HF-8 — Next.js Server Action bodySizeLimit was bumped from the
+// 1 MB default to 10 MB to accept phone JPEGs (3–5 MB typical). We
+// keep a 9 MB pre-submit guard (margin below server limit) and
+// compress anything above 500 KB to ~1 MB JPEG before sending. The
+// inline-base64-in-FormData architecture survives; direct-to-storage
+// presigned URLs are a follow-up sprint.
+const SERVER_BODY_LIMIT_BYTES = 9 * 1024 * 1024; // 9 MB safety margin
+const COMPRESS_ABOVE_BYTES = 500 * 1024; // 500 KB — skip if already small
+
+async function compressReceipt(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  if (file.size < COMPRESS_ABOVE_BYTES) return file;
+  try {
+    return await imageCompression(file, {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1600,
+      useWebWorker: true,
+      fileType: "image/jpeg",
+      initialQuality: 0.85,
+    });
+  } catch {
+    // Compression failure shouldn't block the upload — fall back to
+    // the original file. If it's too big, the size guard rejects it
+    // with a clear error.
+    return file;
+  }
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export interface ReceiptDraftRow {
   date: string;
@@ -58,16 +93,43 @@ export function ReceiptExtractor({
   const [extracted, setExtracted] = React.useState<ExtractedReceipt | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [photoDataUrl, setPhotoDataUrl] = React.useState<string | null>(null);
+  const [compressionStatus, setCompressionStatus] = React.useState<string | null>(null);
 
   function reset(): void {
     setExtracted(null);
     setError(null);
     setPhotoDataUrl(null);
+    setCompressionStatus(null);
   }
 
-  async function handleFile(file: File): Promise<void> {
+  async function handleFile(rawFile: File): Promise<void> {
     setError(null);
     setExtracted(null);
+    setCompressionStatus(null);
+
+    // HF-8 — compress phone-camera JPEGs before sending so Server
+    // Actions don't reject with `Body exceeded 1 MB limit` (we bumped
+    // server to 10 MB, but compression keeps the round-trip fast).
+    let file = rawFile;
+    if (rawFile.size > COMPRESS_ABOVE_BYTES) {
+      setCompressionStatus(`Compressing ${formatBytes(rawFile.size)}…`);
+      file = await compressReceipt(rawFile);
+      setCompressionStatus(
+        `Compressed ${formatBytes(rawFile.size)} → ${formatBytes(file.size)}`,
+      );
+    }
+
+    // HF-8 — pre-submit size guard. Final body size ≈ base64 of file
+    // (~1.37× raw bytes). Reject before submit so the operator gets
+    // a clear error instead of a silent 5xx.
+    const projectedBodyBytes = Math.ceil(file.size * 1.37);
+    if (projectedBodyBytes > SERVER_BODY_LIMIT_BYTES) {
+      setError(
+        `Image is too large even after compression (${formatBytes(file.size)} raw → ~${formatBytes(projectedBodyBytes)} encoded). Use a smaller photo (under 7 MB raw) or take a new one closer up.`,
+      );
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = String(reader.result ?? "");
@@ -200,6 +262,17 @@ export function ReceiptExtractor({
             className="sr-only"
           />
         </label>
+      )}
+
+      {compressionStatus && (
+        <p className="inline-flex items-center gap-2 text-xs text-ink-tertiary">
+          {compressionStatus.startsWith("Compressing") ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <CheckCircle2 className="w-3 h-3 text-success" strokeWidth={1.75} />
+          )}
+          {compressionStatus}
+        </p>
       )}
 
       {pending && (
