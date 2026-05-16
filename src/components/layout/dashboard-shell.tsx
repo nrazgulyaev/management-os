@@ -1,22 +1,43 @@
 import * as React from "react";
-import { DashboardSidebar } from "./dashboard-sidebar";
-import { DashboardTopbar } from "./dashboard-topbar";
+import { DashboardSidebar } from "@/components/dashboard/sidebar";
+import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { countUnreadForCurrentUser } from "@/features/notifications/services";
-import { getProductsEnabledForCurrentUser } from "@/features/auth/products-access";
+import { getCurrentUserContext } from "@/features/auth/permissions";
 import { getCurrentOrgTrial } from "@/features/billing/trial-services";
 import { TrialBanner } from "@/components/billing/trial-banner";
 import { MobileTabbar } from "@/components/ui/primitives/mobile-tabbar";
 import { MGMT_TABBAR_ITEMS } from "./mobile-tabbar-configs";
+import { AppSwitcher } from "./app-switcher";
 
+/**
+ * Sprint _handoff/ Task 5 — Mgmt OS dashboard shell.
+ *
+ * Wires the new _handoff/-style Sidebar + Topbar
+ * (`src/components/dashboard/*`) around every `(dashboard)/*` page.
+ * All existing server data fetching is preserved:
+ *
+ *   - getCurrentUserContext()        → name/role/initials in topbar
+ *   - countUnreadForCurrentUser()    → bell badge
+ *   - getCurrentOrgTrial()           → TrialBanner above topbar
+ *
+ * Cross-product navigation lives in `AppSwitcher` (Mgmt ↔ Dev),
+ * mounted in the topbar's `actions` slot. Product gating is enforced
+ * upstream by `enforceProductAccess("mgmt")` in the layout.
+ *
+ * HF-12 MobileTabbar stays mounted unchanged — desktop sidebar hides
+ * at ≤ 900px (CSS in globals.css) and MobileTabbar takes over.
+ *
+ * The wrapper element sets `data-product="management"` so the new
+ * product-scoped CSS variables + classes (`.sidebar`, `.sb-item`,
+ * `.topbar`, `.kpi`, …) resolve correctly even for apex traffic that
+ * hits /dashboard/* directly without going through the middleware
+ * x-product header.
+ */
 export async function DashboardShell({
   children,
-  topbarTitle,
 }: {
   children: React.ReactNode;
-  topbarTitle?: string;
 }) {
-  // Best-effort unread count for the topbar bell. Falls back to 0 when DB
-  // or auth isn't wired up.
   let unreadCount = 0;
   try {
     unreadCount = await countUnreadForCurrentUser();
@@ -24,21 +45,6 @@ export async function DashboardShell({
     unreadCount = 0;
   }
 
-  // Stage 10.H — fetch the org's product slugs server-side so the
-  // cross-product switcher only lists what this user can reach.
-  // null when no signed-in user / no DB — switcher then renders all 4
-  // (legacy / demo behaviour).
-  let enabledProducts: Awaited<
-    ReturnType<typeof getProductsEnabledForCurrentUser>
-  > = null;
-  try {
-    enabledProducts = await getProductsEnabledForCurrentUser();
-  } catch {
-    enabledProducts = null;
-  }
-
-  // Stage 10.I.6 — fetch trial state for the persistent banner. Returns
-  // null for anonymous visitors (banner hidden) or DB outages.
   let trial: Awaited<ReturnType<typeof getCurrentOrgTrial>> = null;
   try {
     trial = await getCurrentOrgTrial();
@@ -46,23 +52,65 @@ export async function DashboardShell({
     trial = null;
   }
 
+  // Stage 10 — pull a display name + role for the topbar user chip.
+  // Always safe; falls back to demo values when DB / auth isn't wired.
+  let userName = "Operator";
+  let userRole = "Manager";
+  let userInitials = "AR";
+  try {
+    const ctx = await getCurrentUserContext();
+    if (ctx.appUser?.fullName) {
+      userName = ctx.appUser.fullName;
+      userInitials = computeInitials(ctx.appUser.fullName);
+    }
+    if (ctx.roles.length > 0) {
+      userRole = humaniseRole(ctx.roles[0]);
+    }
+  } catch {
+    // keep fallbacks
+  }
+
   return (
-    <div className="min-h-screen flex bg-bg">
+    <div
+      data-product="management"
+      style={{ display: "flex", minHeight: "100vh", background: "var(--cream, var(--bg))" }}
+    >
       <DashboardSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         {trial && <TrialBanner state={trial.state} />}
         <DashboardTopbar
-          title={topbarTitle}
           unreadCount={unreadCount}
-          enabledProducts={enabledProducts}
+          userName={userName}
+          userRole={userRole}
+          userInitials={userInitials}
+          actions={<AppSwitcher />}
         />
-        {/* Bottom padding leaves room above the fixed MobileTabbar
-            so content's last row doesn't sit under the tabbar. */}
-        <main className="flex-1 px-4 md:px-8 py-6 md:py-8 pb-24 md:pb-8">
+        <main
+          style={{
+            flex: 1,
+            padding: "24px 28px 96px",
+            maxWidth: 1480,
+            width: "100%",
+          }}
+        >
           {children}
         </main>
       </div>
+      {/* HF-12 — desktop sidebar hides ≤ 900px, MobileTabbar takes over.
+          Untouched per Task 5 hard constraint. */}
       <MobileTabbar items={MGMT_TABBAR_ITEMS} />
     </div>
   );
+}
+
+function computeInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "AR";
+}
+
+function humaniseRole(roleKey: string): string {
+  return roleKey
+    .split("_")
+    .map((word) => (word.length ? word[0].toUpperCase() + word.slice(1) : word))
+    .join(" ");
 }

@@ -780,6 +780,207 @@
 [data-product="subscription"] .tex-sand  { background: linear-gradient(160deg, var(--paper-2) 0%, var(--gold-soft) 100%); }
 [data-product="subscription"] .tex-ink   { background: linear-gradient(160deg, var(--ink) 0%, #1e2c30 100%); }
 
+/* ============================================================
+   _handoff/ Task 5 — dashboard shell (sidebar + topbar + KPI).
+
+   Ported from `_handoff/_shared/{mgmt,dev}-shell.html`. Sidebar is a
+   server component; topbar is a client component (pathname-driven
+   breadcrumbs). Both products use the same class names but resolve
+   to different palettes via the [data-product] scope.
+   ============================================================ */
+
+[data-product="management"] .sidebar,
+[data-product="development"] .sidebar {
+  width: 264px;
+  border-right: 1px solid var(--line-soft, var(--line));
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+[data-product="management"] .sidebar { background: var(--paper); }
+[data-product="development"] .sidebar { background: var(--panel); }
+[data-product] .sidebar::-webkit-scrollbar { width: 6px; }
+[data-product] .sidebar::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+}
+
+[data-product] .sb-group {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .sb-group:last-child { border-bottom: 0; }
+[data-product] .sb-group-title {
+  font-family: var(--mono-font), monospace;
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 10px 18px 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+[data-product] .sb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 18px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  border-left: 2px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease;
+  text-decoration: none;
+}
+[data-product="management"] .sb-item:hover { background: var(--cream-warm); }
+[data-product="development"] .sb-item:hover { background: var(--bg-2); }
+[data-product] .sb-item.on {
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product="management"] .sb-item.on {
+  background: var(--cream-warm);
+  border-left-color: var(--terra);
+}
+[data-product="development"] .sb-item.on {
+  background: var(--bg-2);
+  border-left-color: var(--amber);
+}
+[data-product] .sb-item .sb-badge {
+  margin-left: auto;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+[data-product="management"] .sb-item .sb-badge {
+  background: var(--cream-deep);
+  color: var(--ink-3);
+}
+[data-product="development"] .sb-item .sb-badge {
+  background: var(--bg-3);
+  color: var(--ink-3);
+}
+[data-product="management"] .sb-item.on .sb-badge {
+  background: var(--terra);
+  color: var(--cream-warm);
+}
+[data-product="development"] .sb-item.on .sb-badge {
+  background: var(--amber);
+  color: var(--carbon);
+}
+[data-product] .sb-sub {
+  padding-left: 32px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  font-size: 12.5px;
+}
+
+/* Topbar */
+[data-product="management"] .topbar,
+[data-product="development"] .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+[data-product="management"] .topbar { background: rgba(244,239,230,0.92); }
+[data-product="development"] .topbar { background: rgba(248,244,234,0.92); }
+[data-product] .topbar .crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  font-family: var(--mono-font), monospace;
+}
+[data-product] .topbar .crumb b {
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product] .topbar-search {
+  position: relative;
+  width: 320px;
+}
+[data-product] .topbar-search input {
+  width: 100%;
+  padding: 7px 12px 7px 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  outline: none;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--ink);
+}
+[data-product="management"] .topbar-search input { background: var(--paper); }
+[data-product="development"] .topbar-search input { background: var(--panel); }
+[data-product] .topbar-search .sx {
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  color: var(--ink-4);
+}
+[data-product] .kbd {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-3);
+}
+
+/* KPI tiles */
+[data-product="management"] .kpi,
+[data-product="development"] .kpi {
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+[data-product="management"] .kpi { background: var(--paper); }
+[data-product="development"] .kpi { background: var(--panel); }
+[data-product] .kpi .label { font-size: 10.5px; }
+[data-product] .kpi .v {
+  font-family: var(--mono-font), monospace;
+  font-size: 26px;
+  margin-top: 4px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] .kpi .sub {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+[data-product="management"] .kpi.accent .v { color: var(--terra); }
+[data-product="development"] .kpi.accent .v { color: var(--amber); }
+[data-product] .kpi.success .v { color: var(--ok); }
+[data-product="management"] .kpi.gold .v { color: var(--gold); }
+
+/* Mobile — hide desktop sidebar (HF-12 MobileTabbar takes over) */
+@media (max-width: 900px) {
+  [data-product] .sidebar { display: none; }
+  [data-product] .topbar {
+    padding: 10px 16px;
+    flex-wrap: wrap;
+  }
+  [data-product] .topbar-search { width: 100%; order: 99; }
+}
+
 /* Mgmt guests table */
 [data-product="management"] table.guests { width: 100%; border-collapse: collapse; }
 [data-product="management"] table.guests th,
