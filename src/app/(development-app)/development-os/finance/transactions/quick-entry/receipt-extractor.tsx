@@ -91,7 +91,16 @@ export function ReceiptExtractor({
               | "image/gif",
           });
           if (!out.ok) {
-            setError(out.reason);
+            // HF-7: friendlier surface for the well-known
+            // `ai_not_configured` reason so the operator sees a
+            // human-readable hint instead of the raw code.
+            if (out.reason.startsWith("ai_not_configured")) {
+              setError(
+                "Receipt OCR needs an AI key. Ask the platform admin to set ANTHROPIC_API_KEY (or OPENAI_API_KEY / GEMINI_API_KEY) in the deployment environment.",
+              );
+            } else {
+              setError(out.reason);
+            }
             return;
           }
           setExtracted(out.extracted);

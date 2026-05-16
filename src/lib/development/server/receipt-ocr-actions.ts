@@ -31,6 +31,7 @@
 import "server-only";
 import { z } from "zod";
 import { getAIProvider } from "@/lib/ai/providers";
+import { isAiConfigured, isAiDryRun } from "@/lib/env";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 
 const ACCEPTED_MEDIA_TYPES = [
@@ -109,6 +110,20 @@ export async function extractReceipt(
 
   const me = await getCurrentAppUser();
   if (!me) return { ok: false, reason: "not_signed_in" };
+
+  // HF-7 fix: when no AI key is configured (or AI_DRY_RUN=1), the
+  // dry-run provider returns a synthetic `{acknowledged:true}` blob
+  // that has no date/amount/vendor fields. The action would otherwise
+  // "succeed" with an all-null extraction, leaving the operator
+  // staring at empty fields with no idea why. Surface the real
+  // cause: the AI key is missing in this environment.
+  if (isAiDryRun() || !isAiConfigured()) {
+    return {
+      ok: false,
+      reason:
+        "ai_not_configured: set ANTHROPIC_API_KEY (or OPENAI_API_KEY / GEMINI_API_KEY) in the deployment environment to enable receipt OCR. Without it, the request runs against the dry-run stub which can't read receipts.",
+    };
+  }
 
   const provider = getAIProvider();
   let response;

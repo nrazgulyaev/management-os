@@ -303,3 +303,104 @@ export async function linkTransactionToCommitmentLedger(
       ),
     );
 }
+
+/**
+ * HF-7 — operator-facing hard delete from the transactions list.
+ *
+ * No soft-delete column exists today, so this is a hard delete. The
+ * action:
+ *   1. Scopes by orgId (TENANT-1 pattern).
+ *   2. Loads the row first so we can reverse the bank-account balance
+ *      delta the original recordTransaction applied.
+ *   3. Refuses if the transaction is reconciled OR linked to a
+ *      capital drawdown / distribution (data-integrity guard).
+ *   4. Removes the row.
+ *
+ * Audit trail: the existing audit_events insert in recordTransaction
+ * isn't matched by a delete-side audit, so we add one here.
+ */
+export async function deleteTransaction(
+  transactionId: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const organizationId = await requireOrgId();
+  const db = requireDb();
+  return await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(devTransactions)
+      .where(
+        and(
+          eq(devTransactions.id, transactionId),
+          eq(devTransactions.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!row) return { ok: false, reason: "Transaction not found." };
+    if (row.reconciledAt) {
+      return {
+        ok: false,
+        reason:
+          "Reconciled transactions cannot be deleted. Un-reconcile first if you really need to remove this row.",
+      };
+    }
+    if (row.relatedDrawdownId || row.relatedDistributionId) {
+      return {
+        ok: false,
+        reason:
+          "Transaction is linked to a capital event. Unlink it before deleting.",
+      };
+    }
+
+    // Reverse the bank-account balance delta.
+    const amount = BigInt(row.amountMinor);
+    const usd = BigInt(row.amountUsdMinor);
+    const reverseDelta =
+      row.direction === "inflow"
+        ? -amount
+        : row.direction === "outflow"
+          ? amount
+          : 0n;
+    const reverseUsd =
+      row.direction === "inflow"
+        ? -usd
+        : row.direction === "outflow"
+          ? usd
+          : 0n;
+    const [account] = await tx
+      .select()
+      .from(devBankAccounts)
+      .where(
+        and(
+          eq(devBankAccounts.id, row.bankAccountId),
+          eq(devBankAccounts.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (account) {
+      await tx
+        .update(devBankAccounts)
+        .set({
+          currentBalanceMinor: BigInt(account.currentBalanceMinor) + reverseDelta,
+          currentBalanceUsdMinor:
+            BigInt(account.currentBalanceUsdMinor) + reverseUsd,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(devBankAccounts.id, row.bankAccountId),
+            eq(devBankAccounts.organizationId, organizationId),
+          ),
+        );
+    }
+
+    await tx
+      .delete(devTransactions)
+      .where(
+        and(
+          eq(devTransactions.id, transactionId),
+          eq(devTransactions.organizationId, organizationId),
+        ),
+      );
+    return { ok: true } as const;
+  });
+}

@@ -20,6 +20,7 @@ import {
 import { safeQuery } from "@/lib/development/safe-query";
 import { FinanceTabs } from "@/components/development/finance/finance-tabs";
 import { TransactionModalForm } from "@/components/development/finance/transaction-modal-form";
+import { TransactionDeleteButton } from "@/components/development/finance/transaction-delete-button";
 import { ExportButton } from "@/components/development/bulk-import/export-button";
 
 export const metadata: Metadata = { title: "Transactions · Development OS" };
@@ -204,6 +205,7 @@ export default async function TransactionsPage({
                 <TH>USD</TH>
                 <TH>Reconciled</TH>
                 <TH>Tax</TH>
+                <TH></TH>
               </TR>
             </THead>
             <TBody>
@@ -273,6 +275,12 @@ export default async function TransactionsPage({
                                   : "🔴";
                         return <Badge tone={tone}>{label}</Badge>;
                       })()}
+                    </TD>
+                    <TD>
+                      <TransactionDeleteButton
+                        transactionId={t.id}
+                        transactionCode={t.transactionCode}
+                      />
                     </TD>
                   </TR>
                 );

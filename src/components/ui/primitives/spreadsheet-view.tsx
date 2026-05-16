@@ -148,14 +148,34 @@ export function SpreadsheetView<R extends Record<string, CellValue>>({
     });
   }
 
+  // HF-7 fix: guard against concurrent commits. The bug was a double
+  // INSERT on every save: Ctrl/Cmd-S fired commit() once, then the
+  // keystroke caused the input to blur which fired commit() AGAIN
+  // via the onBlur handler. We removed the onBlur trigger (commit
+  // now happens only on the explicit Ctrl/Cmd-S keystroke) and added
+  // an in-flight guard so any future re-introduction of an auto-
+  // commit path (e.g. a Save button) doesn't recreate the bug.
+  const committing = React.useRef(false);
   function commit() {
-    const validRows = rows
-      .filter((r) => Object.values(r.errors).every((e) => !e))
-      .map((r) => r.data)
-      .filter((d) =>
-        Object.values(d as Record<string, CellValue>).some((v) => v != null && v !== ""),
-      );
-    onCommit?.(validRows);
+    if (committing.current) return;
+    committing.current = true;
+    try {
+      const validRows = rows
+        .filter((r) => Object.values(r.errors).every((e) => !e))
+        .map((r) => r.data)
+        .filter((d) =>
+          Object.values(d as Record<string, CellValue>).some(
+            (v) => v != null && v !== "",
+          ),
+        );
+      onCommit?.(validRows);
+    } finally {
+      // Re-allow commit on the next tick so the next explicit save
+      // (after operator edits more rows) works.
+      setTimeout(() => {
+        committing.current = false;
+      }, 500);
+    }
   }
 
   return (
@@ -218,7 +238,11 @@ export function SpreadsheetView<R extends Record<string, CellValue>>({
                           value={v == null ? "" : String(v)}
                           onChange={(e) => setCell(rowIdx, col, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(e, rowIdx, colIdx)}
-                          onBlur={() => commit()}
+                          // HF-7: removed onBlur={() => commit()}.
+                          // It was firing in addition to Ctrl/Cmd-S
+                          // and caused every quick-entry save to
+                          // insert the row twice. Commit is now
+                          // explicit (Ctrl/Cmd-S only).
                           aria-invalid={Boolean(err)}
                           aria-describedby={err ? `${id}-err` : undefined}
                           list={col.suggestions ? `${id}-sug` : undefined}
