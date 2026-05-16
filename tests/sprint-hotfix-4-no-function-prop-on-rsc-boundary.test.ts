@@ -1,34 +1,38 @@
 /**
- * Hotfix HF-4 — RSC boundary function-prop scanner.
+ * Hotfix HF-4 + HF-12 — RSC boundary scanner.
  *
- * Generalisation of the HF-1 string-grep scanner. Walks the whole
- * src/app/ tree, parses every server component (file that doesn't
- * start with `"use client"`), and flags any JSX attribute whose
- * value is an inline arrow/function expression OR an identifier
- * pointing to a locally-defined function, when the JSX tag is the
- * name of a "use client" component declared anywhere under src/.
+ * Walks the whole src/ tree, parses every server component (file
+ * that doesn't start with `"use client"`), and flags any JSX
+ * attribute on a known `"use client"` component whose value is one
+ * of:
  *
- * Why: passing a function across the server→client boundary causes
- * "functions cannot be passed as Server Component → Client Component
- * props" — the same RSC crash class that HF-1 fixed for AreaChartCard.
+ *   - an inline arrow / function expression          (HF-1 / HF-4)
+ *   - a locally-defined function identifier          (HF-4)
+ *   - an imported PascalCase identifier (forwardRef) (HF-12 direct)
+ *   - an imported identifier whose source module     (HF-12 indirect)
+ *     bakes `{ icon: ComponentRef }` into its export
+ *
+ * Why: these values can't cross the Server Component → Client
+ * Component boundary — RSC serialization throws "functions cannot
+ * be passed…" (HF-1) or "Cannot serialize a forwardRef…" (HF-12).
  *
  * Known-safe attribute names (props the RSC runtime supports
- * crossing the boundary) are whitelisted: `children`, `key`, `ref`.
+ * crossing the boundary) are whitelisted: children, key, ref,
+ * action, formAction.
  *
- * Server-action-style props are also whitelisted: any prop name
- * matching /^(action|formAction)$/ — Next.js handles these via the
- * "use server" reference protocol.
- *
- * Identifiers are flagged only when the local declaration is a
- * regular function (FunctionDeclaration, VariableDeclaration where
- * initializer is ArrowFunctionExpression or FunctionExpression).
- * Constants, primitives, imported async server actions, etc. are
- * not flagged.
+ * This test imports the scanner from scripts/audit-rsc.ts indirectly
+ * — they share inlined logic. Whenever you update the scanner there,
+ * mirror the change here.
  */
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
@@ -47,6 +51,14 @@ const SAFE_ATTR_NAMES = new Set([
   "action",
   "formAction",
 ]);
+const SUSPICIOUS_DATA_KEYS = new Set([
+  "icon",
+  "Icon",
+  "component",
+  "Component",
+  "render",
+]);
+const PASCAL_CASE = /^[A-Z][a-z]/;
 
 function walk(dir: string, out: string[]): void {
   for (const entry of readdirSync(dir)) {
@@ -55,28 +67,27 @@ function walk(dir: string, out: string[]): void {
     }
     const full = join(dir, entry);
     const stat = statSync(full);
-    if (stat.isDirectory()) {
-      walk(full, out);
-    } else if (entry.endsWith(".tsx")) {
-      out.push(full);
-    }
+    if (stat.isDirectory()) walk(full, out);
+    else if (entry.endsWith(".tsx") || entry.endsWith(".ts")) out.push(full);
   }
 }
 
 function startsWithUseClient(src: string): boolean {
-  // Strip leading whitespace + comments + the opening directive line.
-  // Matches `"use client";`, `'use client';`, with or without semicolon
-  // or trailing whitespace, as the first statement.
   return /^\s*(\/\*[\s\S]*?\*\/\s*|\/\/[^\n]*\n\s*)*["']use client["']/.test(
     src,
   );
 }
 
-function buildClientComponentRegistry(): Map<string, string> {
-  const all: string[] = [];
-  walk(SRC, all);
+function hasExport(
+  node: ts.FunctionDeclaration | ts.VariableStatement,
+): boolean {
+  return !!node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+}
+
+function buildClientRegistry(files: string[]): Map<string, string> {
   const map = new Map<string, string>();
-  for (const file of all) {
+  for (const file of files) {
+    if (!file.endsWith(".tsx")) continue;
     const src = readFileSync(file, "utf8");
     if (!startsWithUseClient(src)) continue;
     const sf = ts.createSourceFile(
@@ -91,9 +102,7 @@ function buildClientComponentRegistry(): Map<string, string> {
         map.set(node.name.text, file);
       } else if (ts.isVariableStatement(node) && hasExport(node)) {
         for (const d of node.declarationList.declarations) {
-          if (ts.isIdentifier(d.name)) {
-            map.set(d.name.text, file);
-          }
+          if (ts.isIdentifier(d.name)) map.set(d.name.text, file);
         }
       } else if (
         ts.isExportDeclaration(node) &&
@@ -110,28 +119,11 @@ function buildClientComponentRegistry(): Map<string, string> {
   return map;
 }
 
-function hasExport(
-  node: ts.FunctionDeclaration | ts.VariableStatement,
-): boolean {
-  return !!node.modifiers?.some(
-    (m) => m.kind === ts.SyntaxKind.ExportKeyword,
-  );
-}
-
-interface Violation {
-  file: string;
-  line: number;
-  tag: string;
-  attr: string;
-  kind: "arrow" | "function" | "local-function-ref";
-}
-
 function collectLocalFunctionNames(sf: ts.SourceFile): Set<string> {
   const names = new Set<string>();
   ts.forEachChild(sf, function visit(node) {
-    if (ts.isFunctionDeclaration(node) && node.name) {
-      names.add(node.name.text);
-    } else if (ts.isVariableStatement(node)) {
+    if (ts.isFunctionDeclaration(node) && node.name) names.add(node.name.text);
+    else if (ts.isVariableStatement(node)) {
       for (const d of node.declarationList.declarations) {
         if (
           ts.isIdentifier(d.name) &&
@@ -148,7 +140,177 @@ function collectLocalFunctionNames(sf: ts.SourceFile): Set<string> {
   return names;
 }
 
-function scanFile(
+interface ImportInfo {
+  name: string;
+  source: string;
+}
+
+function collectImports(sf: ts.SourceFile): Map<string, ImportInfo> {
+  const out = new Map<string, ImportInfo>();
+  ts.forEachChild(sf, (node) => {
+    if (!ts.isImportDeclaration(node) || !node.importClause) return;
+    const clause = node.importClause;
+    if (clause.isTypeOnly) return;
+    const source =
+      ts.isStringLiteral(node.moduleSpecifier) && node.moduleSpecifier.text;
+    if (!source) return;
+    if (clause.name)
+      out.set(clause.name.text, { name: clause.name.text, source });
+    if (clause.namedBindings) {
+      if (ts.isNamespaceImport(clause.namedBindings)) {
+        out.set(clause.namedBindings.name.text, {
+          name: clause.namedBindings.name.text,
+          source,
+        });
+      } else {
+        for (const el of clause.namedBindings.elements) {
+          if (el.isTypeOnly) continue;
+          out.set(el.name.text, { name: el.name.text, source });
+        }
+      }
+    }
+  });
+  return out;
+}
+
+interface Violation {
+  file: string;
+  line: number;
+  tag: string;
+  attr: string;
+  kind:
+    | "arrow"
+    | "function"
+    | "local-function-ref"
+    | "component-ref"
+    | "component-via-config";
+  identifier?: string;
+  via?: string;
+}
+
+function findComponentRefs(
+  expr: ts.Expression,
+  imported: Map<string, ImportInfo>,
+  localFns: Set<string>,
+): { name: string; line: number }[] {
+  const out: { name: string; line: number }[] = [];
+  function visit(node: ts.Node): void {
+    if (
+      ts.isIdentifier(node) &&
+      PASCAL_CASE.test(node.text) &&
+      imported.has(node.text) &&
+      !localFns.has(node.text)
+    ) {
+      const parent = node.parent;
+      if (parent && ts.isPropertyAssignment(parent) && parent.name === node) {
+        return;
+      }
+      if (
+        parent &&
+        (ts.isJsxOpeningElement(parent) ||
+          ts.isJsxSelfClosingElement(parent) ||
+          ts.isJsxClosingElement(parent)) &&
+        parent.tagName === node
+      ) {
+        return;
+      }
+      const sf = node.getSourceFile();
+      const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+      out.push({ name: node.text, line: line + 1 });
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(expr);
+  return out;
+}
+
+function resolveLocalModule(
+  fromFile: string,
+  specifier: string,
+): string | null {
+  let base: string;
+  if (specifier.startsWith("@/")) {
+    base = join(SRC, specifier.slice(2));
+  } else if (specifier.startsWith("./") || specifier.startsWith("../")) {
+    base = join(dirname(fromFile), specifier);
+  } else {
+    return null;
+  }
+  for (const ext of [".ts", ".tsx", "/index.ts", "/index.tsx"]) {
+    const candidate = base.endsWith(ext) ? base : base + ext;
+    if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+  }
+  if (existsSync(base) && statSync(base).isFile()) return base;
+  return null;
+}
+
+interface BakedComponent {
+  identifier: string;
+  line: number;
+  exportName: string | null;
+}
+
+function scanModuleForBakedComponents(file: string): BakedComponent[] {
+  const src = readFileSync(file, "utf8");
+  if (startsWithUseClient(src)) return [];
+  const sf = ts.createSourceFile(
+    file,
+    src,
+    ts.ScriptTarget.Latest,
+    true,
+    file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const imports = collectImports(sf);
+  if (imports.size === 0) return [];
+  const out: BakedComponent[] = [];
+  function nearestExportName(node: ts.Node): string | null {
+    let cur: ts.Node | undefined = node;
+    while (cur) {
+      if (ts.isVariableStatement(cur) && hasExport(cur)) {
+        for (const d of cur.declarationList.declarations) {
+          if (ts.isIdentifier(d.name)) return d.name.text;
+        }
+      }
+      if (ts.isFunctionDeclaration(cur) && hasExport(cur) && cur.name) {
+        return cur.name.text;
+      }
+      cur = cur.parent;
+    }
+    return null;
+  }
+  function visit(node: ts.Node): void {
+    if (
+      ts.isPropertyAssignment(node) &&
+      ts.isIdentifier(node.name) &&
+      SUSPICIOUS_DATA_KEYS.has(node.name.text) &&
+      ts.isIdentifier(node.initializer) &&
+      PASCAL_CASE.test(node.initializer.text) &&
+      imports.has(node.initializer.text)
+    ) {
+      const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+      out.push({
+        identifier: node.initializer.text,
+        line: line + 1,
+        exportName: nearestExportName(node),
+      });
+    }
+    ts.forEachChild(node, visit);
+  }
+  ts.forEachChild(sf, visit);
+  return out;
+}
+
+const configScanCache = new Map<string, BakedComponent[]>();
+function getConfigBaked(file: string): BakedComponent[] {
+  let v = configScanCache.get(file);
+  if (v === undefined) {
+    v = scanModuleForBakedComponents(file);
+    configScanCache.set(file, v);
+  }
+  return v;
+}
+
+function scanServerTsx(
   file: string,
   src: string,
   clients: Map<string, string>,
@@ -161,106 +323,172 @@ function scanFile(
     ts.ScriptKind.TSX,
   );
   const localFns = collectLocalFunctionNames(sf);
-  const violations: Violation[] = [];
+  const imports = collectImports(sf);
+  const out: Violation[] = [];
 
-  function inspectJsx(
+  function checkIndirectConfig(
+    expr: ts.Expression,
+    line: number,
+    tag: string,
+    attr: string,
+  ): void {
+    if (!ts.isIdentifier(expr)) return;
+    const imp = imports.get(expr.text);
+    if (!imp) return;
+    const resolved = resolveLocalModule(file, imp.source);
+    if (!resolved) return;
+    const baked = getConfigBaked(resolved);
+    if (baked.length === 0) return;
+    const matching = baked.filter(
+      (b) => b.exportName === null || b.exportName === expr.text,
+    );
+    for (const b of matching) {
+      out.push({
+        file,
+        line,
+        tag,
+        attr,
+        kind: "component-via-config",
+        identifier: b.identifier,
+        via: `${resolved.replace(ROOT + "/", "")}:${b.line}`,
+      });
+    }
+  }
+
+  function inspect(
     opening: ts.JsxOpeningElement | ts.JsxSelfClosingElement,
   ): void {
     if (!ts.isIdentifier(opening.tagName)) return;
-    const tagName = opening.tagName.text;
-    if (!clients.has(tagName)) return;
-
+    const tag = opening.tagName.text;
+    if (!clients.has(tag)) return;
     for (const attr of opening.attributes.properties) {
       if (!ts.isJsxAttribute(attr)) continue;
       if (!attr.name || !ts.isIdentifier(attr.name)) continue;
-      const attrName = attr.name.text;
-      if (SAFE_ATTR_NAMES.has(attrName)) continue;
+      if (SAFE_ATTR_NAMES.has(attr.name.text)) continue;
       const init = attr.initializer;
-      if (!init) continue;
-      if (!ts.isJsxExpression(init)) continue;
-      const expr = init.expression;
-      if (!expr) continue;
+      if (!init || !ts.isJsxExpression(init) || !init.expression) continue;
+      const e = init.expression;
+      const { line } = sf.getLineAndCharacterOfPosition(opening.getStart(sf));
+      const attrName = attr.name.text;
 
-      let kind: Violation["kind"] | null = null;
-      if (ts.isArrowFunction(expr)) {
-        kind = "arrow";
-      } else if (ts.isFunctionExpression(expr)) {
-        kind = "function";
-      } else if (ts.isIdentifier(expr) && localFns.has(expr.text)) {
-        kind = "local-function-ref";
+      if (ts.isArrowFunction(e)) {
+        out.push({ file, line: line + 1, tag, attr: attrName, kind: "arrow" });
+        continue;
       }
-
-      if (kind) {
-        const { line } = sf.getLineAndCharacterOfPosition(opening.getStart(sf));
-        violations.push({
+      if (ts.isFunctionExpression(e)) {
+        out.push({
           file,
           line: line + 1,
-          tag: tagName,
+          tag,
           attr: attrName,
-          kind,
+          kind: "function",
+        });
+        continue;
+      }
+      if (ts.isIdentifier(e) && localFns.has(e.text)) {
+        out.push({
+          file,
+          line: line + 1,
+          tag,
+          attr: attrName,
+          kind: "local-function-ref",
+        });
+        continue;
+      }
+      const refs = findComponentRefs(e, imports, localFns);
+      for (const r of refs) {
+        out.push({
+          file,
+          line: r.line,
+          tag,
+          attr: attrName,
+          kind: "component-ref",
+          identifier: r.name,
         });
       }
+      checkIndirectConfig(e, line + 1, tag, attrName);
     }
   }
 
   ts.forEachChild(sf, function visit(node) {
     if (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) {
-      inspectJsx(node);
+      inspect(node);
     }
     ts.forEachChild(node, visit);
   });
-
-  return violations;
+  return out;
 }
 
-const clientRegistry = buildClientComponentRegistry();
-
-// Scan ALL .tsx files that aren't "use client" — not just src/app/.
-// A server component anywhere (e.g. src/components/dashboard/...) can
-// render a client component and pass a function across the boundary
-// just as readily as a page.tsx can.
-const allTsxFiles: string[] = [];
-walk(SRC, allTsxFiles);
-const serverPagesWithoutUseClient = allTsxFiles.filter((f) => {
-  const src = readFileSync(f, "utf8");
-  return !startsWithUseClient(src);
-});
+// === Run the audit against src/ ===
+const allFiles: string[] = [];
+walk(SRC, allFiles);
+const tsxFiles = allFiles.filter((f) => f.endsWith(".tsx"));
+const clientRegistry = buildClientRegistry(tsxFiles);
+const serverPages = tsxFiles.filter(
+  (f) => !startsWithUseClient(readFileSync(f, "utf8")),
+);
 
 const allViolations: Violation[] = [];
-for (const file of serverPagesWithoutUseClient) {
+for (const file of serverPages) {
   const src = readFileSync(file, "utf8");
-  const violations = scanFile(file, src, clientRegistry);
-  allViolations.push(...violations);
+  allViolations.push(...scanServerTsx(file, src, clientRegistry));
 }
 
-test("HF-4: no function-valued props passed from server pages to use-client components", () => {
+test("HF-4 + HF-12: no function/component-ref/config-baked props cross the RSC boundary", () => {
   if (allViolations.length > 0) {
     const summary = allViolations
-      .map(
-        (v) =>
-          `  ${v.file.replace(ROOT + "/", "")}:${v.line} — <${v.tag} ${v.attr}={${v.kind}}>`,
-      )
+      .map((v) => {
+        const id = v.identifier ? `=${v.identifier}` : "";
+        const via = v.via ? ` (via ${v.via})` : "";
+        return `  ${v.file.replace(ROOT + "/", "")}:${v.line} — <${v.tag} ${v.attr}={${v.kind}${id}}>${via}`;
+      })
       .join("\n");
     assert.fail(
-      `Found ${allViolations.length} function-as-prop violation(s) crossing the RSC boundary:\n${summary}\n\n` +
-        `Functions cannot be serialized as Server Component → Client Component props. ` +
-        `Fix patterns: (1) move the function to the client component itself, (2) replace with a ` +
-        `format-spec string union resolved client-side, or (3) accept a ReactNode slot instead.`,
+      `Found ${allViolations.length} RSC-boundary violation(s):\n${summary}\n\n` +
+        `Functions, forwardRef component refs, and configs that bake icons into ` +
+        `exports cannot serialize as Server Component → Client Component props. ` +
+        `Fix patterns: format-spec string union, ReactNode slot, string-key + ` +
+        `client-side registry lookup, or move the call site into the client component.`,
     );
   }
 });
 
-test("HF-4: client component registry populated (sanity)", () => {
-  // Spot-check a few known client components are registered. If this
-  // fails, the scanner itself is broken and the main test is meaningless.
+test("HF-4 + HF-12: client component registry populated (sanity)", () => {
   for (const name of [
     "BankAccountModalForm",
     "EntityModal",
     "AreaChartCard",
+    "MobileTabbar",
   ]) {
     assert.ok(
       clientRegistry.has(name),
       `client registry missing ${name} — scanner may not be working`,
     );
   }
+});
+
+test("HF-12: scanner catches direct component-ref fixture", () => {
+  const fixture = resolve(
+    HERE,
+    "fixtures/rsc-violations/icon-as-prop.tsx",
+  );
+  if (!existsSync(fixture)) {
+    assert.fail(`fixture missing: ${fixture}`);
+  }
+  // Inject a synthetic "use client" component named FixtureClient into a
+  // throwaway registry so the scanner has something to flag against.
+  const fixtureClients = new Map(clientRegistry);
+  fixtureClients.set("FixtureClient", "(fixture)");
+  const src = readFileSync(fixture, "utf8");
+  const found = scanServerTsx(fixture, src, fixtureClients);
+  const componentRefs = found.filter((v) => v.kind === "component-ref");
+  const viaConfig = found.filter((v) => v.kind === "component-via-config");
+  assert.ok(
+    componentRefs.length > 0,
+    `expected ≥1 component-ref violation in fixture, got: ${JSON.stringify(found)}`,
+  );
+  assert.ok(
+    viaConfig.length > 0,
+    `expected ≥1 component-via-config violation in fixture, got: ${JSON.stringify(found)}`,
+  );
 });

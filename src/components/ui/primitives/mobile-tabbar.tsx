@@ -19,14 +19,62 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  Banknote,
+  Bell,
+  Briefcase,
+  CalendarDays,
+  Hammer,
+  Home,
+  KanbanSquare,
+  LayoutDashboard,
+  PackageOpen,
+  Settings,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/**
+ * HF-12 — icon registry lives inside the client component.
+ *
+ * Step-3 callers used to pass a `ComponentType` directly in each
+ * item (`icon: Home`). The shell config module is a pure `.ts`
+ * imported by the server-rendered `DashboardShell`; the resulting
+ * array crossed the RSC boundary into the `"use client"` MobileTabbar
+ * carrying a forwardRef component reference, which Next.js can't
+ * serialize. Production digest 1715506935.
+ *
+ * Fix: items now carry a string icon key; the registry below maps
+ * the key to its lucide component, and the lookup happens client-
+ * side. Add a new icon to the registry to expose it to the configs.
+ */
+const ICON_REGISTRY = {
+  banknote: Banknote,
+  bell: Bell,
+  briefcase: Briefcase,
+  "calendar-days": CalendarDays,
+  hammer: Hammer,
+  home: Home,
+  "kanban-square": KanbanSquare,
+  "layout-dashboard": LayoutDashboard,
+  "package-open": PackageOpen,
+  settings: Settings,
+  sparkles: Sparkles,
+  users: Users,
+} as const;
+
+export type MobileTabbarIconKey = keyof typeof ICON_REGISTRY;
 
 export interface MobileTabbarItem {
   /** Destination path; the tabbar marks the item active when the
    *  pathname starts with this prefix. */
   href: string;
-  /** Icon component (lucide-react, etc.). */
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  /** Icon name — key into the client-side ICON_REGISTRY. HF-12
+   *  switched this from a forwardRef ComponentType (uncrossable)
+   *  to a string identifier so the items array can cross the RSC
+   *  boundary cleanly. */
+  icon: MobileTabbarIconKey;
   /** Accessible label / sr-only text. */
   label: string;
 }
@@ -65,7 +113,7 @@ export function MobileTabbar({ items, className }: MobileTabbarProps) {
         )}
       >
         {items.map((item) => {
-          const Icon = item.icon;
+          const Icon = ICON_REGISTRY[item.icon] ?? Home;
           const active = isActive(pathname, item.href);
           return (
             <li key={item.href} className="flex-1">

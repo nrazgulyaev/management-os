@@ -1,42 +1,35 @@
 /**
  * Arconique OS redesign — MobileTabbar configurations.
  *
- * Static, server-safe nav-item arrays for the two shells. Lives
- * outside any "use client" file so server-rendered shells can import
- * them without dragging Mobile-tabbar's client hooks across the
- * RSC boundary. Each shell imports the matching `MGMT_TABBAR_ITEMS`
- * / `DEV_TABBAR_ITEMS` and passes them to `<MobileTabbar items>`.
+ * Pure-data nav-item arrays for the two shells. Server-safe by
+ * construction — no lucide-react imports, no component refs, no
+ * functions; the icon field is a string key that `MobileTabbar`'s
+ * client-side `ICON_REGISTRY` resolves at render time.
+ *
+ * HF-12 fix — the original config imported lucide forwardRef
+ * components directly into `icon: Home` etc. and that array crossed
+ * the RSC boundary inside the server-rendered shell → `Cannot
+ * serialize a forwardRef`. Production digest 1715506935.
  *
  * 5–6 icons per the handoff (COMPONENTS.md §12): Home / Bookings /
- * Ops / Copilot for Mgmt; Command / Projects / Procure / Agents for
- * Dev. We round each list up to a clean 5 destinations.
+ * Ops / Concierge / Copilot for Mgmt; Command / Projects /
+ * Procurement / Finance / Agents for Dev.
  */
 
-import {
-  Banknote,
-  CalendarDays,
-  Hammer,
-  Home,
-  KanbanSquare,
-  LayoutDashboard,
-  PackageOpen,
-  Sparkles,
-  Users,
-} from "lucide-react";
 import type { MobileTabbarItem } from "@/components/ui/primitives/mobile-tabbar";
 
 export const MGMT_TABBAR_ITEMS: MobileTabbarItem[] = [
-  { href: "/dashboard", icon: Home, label: "Overview" },
-  { href: "/dashboard/bookings", icon: CalendarDays, label: "Bookings" },
-  { href: "/dashboard/operations", icon: KanbanSquare, label: "Operations" },
-  { href: "/dashboard/concierge", icon: Users, label: "Concierge" },
-  { href: "/dashboard/ai", icon: Sparkles, label: "Copilot" },
+  { href: "/dashboard", icon: "home", label: "Overview" },
+  { href: "/dashboard/bookings", icon: "calendar-days", label: "Bookings" },
+  { href: "/dashboard/operations", icon: "kanban-square", label: "Operations" },
+  { href: "/dashboard/concierge", icon: "users", label: "Concierge" },
+  { href: "/dashboard/ai", icon: "sparkles", label: "Copilot" },
 ];
 
 export const DEV_TABBAR_ITEMS: MobileTabbarItem[] = [
-  { href: "/development-os", icon: LayoutDashboard, label: "Command" },
-  { href: "/development-os/projects", icon: Hammer, label: "Projects" },
-  { href: "/development-os/procurement", icon: PackageOpen, label: "Procurement" },
-  { href: "/development-os/finance", icon: Banknote, label: "Finance" },
-  { href: "/development-os/ai-agents", icon: Sparkles, label: "Agents" },
+  { href: "/development-os", icon: "layout-dashboard", label: "Command" },
+  { href: "/development-os/projects", icon: "hammer", label: "Projects" },
+  { href: "/development-os/procurement", icon: "package-open", label: "Procurement" },
+  { href: "/development-os/finance", icon: "banknote", label: "Finance" },
+  { href: "/development-os/ai-agents", icon: "sparkles", label: "Agents" },
 ];
