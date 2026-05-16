@@ -206,25 +206,26 @@ export default async function DashboardHome({
       {/* Sprint 3c — soft toast when redirected from a now-inaccessible
           product (e.g. just lost access to Dev OS via plan change). */}
       <ProductAccessChangedBanner from={sp.from} reason={sp.reason} />
-      {/* Row 1 — greeting */}
+      {/* Row 1 — Arconique OS redesign hero greeting (handoff §2).
+          Italic-accent word per page is the operator's first name on
+          this overview. CTA routes to the daily-tasks surface. */}
       <CabinetGreetingBlock
+        variant="hero"
         firstName={firstName}
-        eyebrow="Portfolio overview"
-        subline={`${villaCount} villas across three projects · ${upcomingCheckIns} check-ins on the 14-day horizon`}
-        badge={
-          maintenanceTickets.some((t) => t.sla === "warn") ? (
-            <Badge tone="warning">SLA attention</Badge>
-          ) : (
-            <Badge tone="outline">All clear</Badge>
-          )
-        }
+        greetingAccent={firstName ?? "there"}
+        ctaLabel="Show my tasks"
+        ctaHref="/dashboard/operations"
+        aiPromptPlaceholder={`${villaCount} villas · ${upcomingCheckIns} check-ins on the 14-day horizon`}
       />
 
-      {/* Row 2 — hero KPI · revenue area · profile rail */}
+      {/* Row 2 — hero KPI · revenue area · profile rail.
+          Redesign tones: hero card flips to ink-warm (the new dark
+          slot), the area chart uses terra as the canonical primary
+          line per DESIGN_TOKENS.md §Color usage. */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
         <DashboardKpi
           variant="hero"
-          tone="ink-deep"
+          tone="ink-warm"
           label="Villas under management"
           value={String(villaCount)}
           hint={`${activeBookings} occupied tonight`}
@@ -247,7 +248,7 @@ export default async function DashboardHome({
           className="lg:col-span-2"
           title="Revenue · last 6 months"
           period="Monthly · IDR"
-          tone="emerald"
+          tone="terra"
           data={revenueSeries}
           chartHeight={220}
           formatSpec="number-2dp"
@@ -276,31 +277,34 @@ export default async function DashboardHome({
         />
       </div>
 
-      {/* Row 3 — small tonal KPIs */}
+      {/* Row 3 — small tonal KPIs (redesign tones).
+          olive = success/active, sand = financial, warm = default,
+          terra = attention. One tonal card per row max per handoff
+          rule of thumb. */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <DashboardKpi
-          tone="emerald-soft"
+          tone="olive"
           label="Active bookings"
           value={String(activeBookings)}
           status="good"
           drillHref="/dashboard/bookings"
         />
         <DashboardKpi
-          tone="gold-soft"
+          tone="sand"
           label="MTD revenue"
           value={rupiahShort(portfolioMetrics.grossRevenueMTD.value)}
           delta={{ value: portfolioMetrics.grossRevenueMTD.deltaYoY, label: "YoY" }}
           drillHref="/dashboard/finance/revenue"
         />
         <DashboardKpi
-          tone="surface"
+          tone="warm"
           label="Upcoming check-ins · 14d"
           value={String(upcomingCheckIns)}
           hint={`${portfolioMetrics.upcomingCheckins.today} today`}
           drillHref="/dashboard/front-office/arrivals"
         />
         <DashboardKpi
-          tone="coral-soft"
+          tone="terra"
           label="Open tickets"
           value={String(openTickets)}
           status={
@@ -369,11 +373,14 @@ export default async function DashboardHome({
         />
       </div>
 
-      {/* Row 5 — donuts + operations copilot */}
+      {/* Row 5 — donuts + operations copilot.
+          Donut tones flip to sand (occupancy) + olive (on-time);
+          Copilot card flips to ink-warm dark feature per handoff
+          §17 ("AI panel — dark ink-deep card"). */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <DonutRatioCard
           title="Occupancy this month"
-          tone="gold"
+          tone="sand"
           numerator={bookedNights}
           denominator={totalNights}
           changePercent={portfolioMetrics.occupancyYTD.deltaYoY}
@@ -381,46 +388,46 @@ export default async function DashboardHome({
         />
         <DonutRatioCard
           title="On-time turnover"
-          tone="emerald"
+          tone="olive"
           numerator={onTimeTurnover}
           denominator={totalTurnover}
           caption="Housekeeping completing on schedule today"
         />
 
-        {/* Operations Copilot — preserved from Stage 10.5.A but
-            re-rounded onto the new soft-card geometry. */}
+        {/* Operations Copilot — dark feature card per handoff §17. */}
         <section
-          className="rounded-3xl border border-line-soft bg-gradient-emerald-soft shadow-soft-card p-6 flex flex-col gap-4"
+          className="rounded-[var(--radius-card-hero)] bg-ink-warm text-white shadow-redesign-soft p-6 flex flex-col gap-4"
           data-stage10="dashboard-ops-copilot"
         >
           <header className="flex items-center gap-2">
-            <span className="w-9 h-9 rounded-full bg-ink text-ink-inverse inline-flex items-center justify-center shrink-0">
+            <span className="w-9 h-9 rounded-full bg-terra text-white inline-flex items-center justify-center shrink-0">
               <Sparkles className="w-4 h-4" strokeWidth={1.75} />
             </span>
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-medium text-ink truncate">
+              <span className="text-sm font-medium text-white truncate">
                 Operations Copilot
               </span>
-              <span className="text-[11px] text-ink-tertiary">
+              <span className="text-[11px] text-white/60">
                 AM briefing · modelled
               </span>
             </div>
-            <Badge tone="outline" className="ml-auto">
+            <span className="ml-auto text-[10.5px] uppercase tracking-[0.10em] text-white/70 px-2 py-1 rounded-full bg-white/10">
               Preview
-            </Badge>
+            </span>
           </header>
-          <p className="text-sm text-ink leading-relaxed">
+          <p className="text-sm text-white/90 leading-relaxed">
             Three arrivals on the books, all on track except{" "}
-            <strong>EV-07</strong>, where the supervisor approval has not yet
-            cleared. Enso S6 remains blocked on pool parts; vendor ETA Friday.
+            <strong className="text-white">EV-07</strong>, where the supervisor
+            approval has not yet cleared. Enso S6 remains blocked on pool
+            parts; vendor ETA Friday.
           </p>
-          <ul className="flex flex-col gap-1.5 text-xs text-ink-secondary">
+          <ul className="flex flex-col gap-1.5 text-xs text-white/70">
             <li className="flex items-center gap-2">
-              <span className="w-1 h-1 rounded-full bg-ink-tertiary" />
+              <span className="w-1 h-1 rounded-full bg-white/50" />
               Clear EV-07 supervisor review to hold 15:00 check-in.
             </li>
             <li className="flex items-center gap-2">
-              <span className="w-1 h-1 rounded-full bg-ink-tertiary" />
+              <span className="w-1 h-1 rounded-full bg-white/50" />
               Move ES-S6 ticket to Day 2; reassign tech to ES-S2.
             </li>
           </ul>
@@ -431,7 +438,7 @@ export default async function DashboardHome({
                 <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
               </Link>
             </Button>
-            <span className="text-[11px] text-ink-tertiary">
+            <span className="text-[11px] text-white/55">
               Briefing not yet wired. AI runtime arrives in Version 4.
             </span>
           </div>

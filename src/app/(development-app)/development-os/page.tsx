@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, Building2, Compass } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +11,8 @@ import { ModuleCard } from "@/components/development/module-card";
 import { ProjectHealthCard } from "@/components/development/project-health-card";
 import { AIInsightPanel } from "@/components/development/ai-insight-panel";
 import { SnapshotPanel } from "@/components/development/snapshot-panel";
+import { HeroGreet } from "@/components/ui/primitives/hero-greet";
+import { getCurrentAppUser } from "@/features/auth/current-user";
 import {
   mockAIAgents,
   mockExecutiveInsight,
@@ -39,34 +40,44 @@ export default async function DevelopmentCommandCenterPage({
   searchParams?: Promise<{ from?: string; reason?: string }>;
 }) {
   const sp = (await searchParams) ?? {};
-  const nextModules = getModulesByStatus("next");
-  const roadmapModules = getModulesByStatus("roadmap");
-  const projects = await getDevelopmentProjects();
+  const [me, nextModules, roadmapModules, projects] = await Promise.all([
+    getCurrentAppUser(),
+    Promise.resolve(getModulesByStatus("next")),
+    Promise.resolve(getModulesByStatus("roadmap")),
+    getDevelopmentProjects(),
+  ]);
+  const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
 
   return (
     <DevelopmentShell>
       <ProductAccessChangedBanner from={sp.from} reason={sp.reason} />
-      <PageHeader
-        eyebrow="Thursday · 30 April 2026"
-        title="Development command center."
-        description="Three active projects, 29 units in flight, $1.82M deployed across the build cycle. One AI insight needs your read this morning."
-        actions={
-          <div className="flex gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/development">
-                <Compass className="w-4 h-4" strokeWidth={1.75} />
-                Public preview
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/development-os/projects">
-                <Building2 className="w-4 h-4" strokeWidth={1.75} />
-                Projects
-              </Link>
-            </Button>
-          </div>
-        }
+      {/* Arconique OS redesign hero greeting. Italic-accent word per
+          page = "command center." (handoff §2 — Dev OS landing). */}
+      <HeroGreet
+        firstName={firstName}
+        greetingPrefix="Today's "
+        greetingAccent="command center"
+        greetingSuffix="."
+        aiPromptPlaceholder={`${projects.length} active projects · ${nextModules.length} modules in flight`}
+        ctaLabel="Open projects"
+        ctaHref="/development-os/projects"
       />
+      {/* Secondary actions strip — the public preview + projects
+          links from the prior PageHeader now sit under the hero. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button asChild variant="secondary">
+          <Link href="/development">
+            <Compass className="w-4 h-4" strokeWidth={1.75} />
+            Public preview
+          </Link>
+        </Button>
+        <Button asChild variant="secondary">
+          <Link href="/development-os/projects">
+            <Building2 className="w-4 h-4" strokeWidth={1.75} />
+            All projects
+          </Link>
+        </Button>
+      </div>
 
       <Section
         eyebrow="Top of mind"
