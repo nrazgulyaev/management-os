@@ -31,12 +31,13 @@
  */
 
 import { eq, sql, like } from "drizzle-orm";
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as XLSX from "xlsx";
-import { getDb } from "../src/lib/db/client";
+// HF-9: use the script-friendly DB client. The src/lib/db/client
+// path has `import "server-only"` which throws when run via raw tsx.
+import { getDb, closeDb } from "./lib/db-script";
 import { organizations } from "../src/lib/db/schema/saas";
-import { projects, villas } from "../src/lib/db/schema/projects";
+import { projects } from "../src/lib/db/schema/projects";
 import { vendors } from "../src/lib/db/schema/site-operations";
 import {
   devBankAccounts,
@@ -144,7 +145,7 @@ function parseArgs(argv: string[]): SeedOptions {
 }
 
 async function resolveOrgId(
-  db: NonNullable<ReturnType<typeof getDb>>,
+  db: ReturnType<typeof getDb>,
   explicit: string | null,
 ): Promise<string> {
   if (explicit) return explicit;
@@ -162,7 +163,7 @@ async function resolveOrgId(
 }
 
 async function wipe(
-  db: NonNullable<ReturnType<typeof getDb>>,
+  db: ReturnType<typeof getDb>,
   organizationId: string,
 ): Promise<void> {
   console.log("wiping DEMO- prefixed rows for org", organizationId, "...");
@@ -200,7 +201,7 @@ async function wipe(
 }
 
 async function seed(
-  db: NonNullable<ReturnType<typeof getDb>>,
+  db: ReturnType<typeof getDb>,
   organizationId: string,
 ): Promise<void> {
   // 1) Projects
@@ -405,20 +406,20 @@ async function seed(
 
 async function main(): Promise<void> {
   const opts = parseArgs(process.argv);
-  const db = getDb();
-  if (!db) {
-    console.error("DATABASE_URL not set — cannot connect to the database.");
-    process.exit(1);
-  }
-  const organizationId = await resolveOrgId(db, opts.organizationId);
-  console.log(`target org: ${organizationId}`);
+  const db = getDb(); // HF-9: throws on missing DATABASE_URL.
+  try {
+    const organizationId = await resolveOrgId(db, opts.organizationId);
+    console.log(`target org: ${organizationId}`);
 
-  if (opts.wipe) {
-    await wipe(db, organizationId);
-  } else {
-    await seed(db, organizationId);
+    if (opts.wipe) {
+      await wipe(db, organizationId);
+    } else {
+      await seed(db, organizationId);
+    }
+    console.log("done.");
+  } finally {
+    await closeDb();
   }
-  console.log("done.");
 }
 
 main().catch((err) => {
