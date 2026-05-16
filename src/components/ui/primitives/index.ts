@@ -154,3 +154,39 @@ export type {
 
 export { CommsPanel } from "./comms-panel";
 export type { CommsPanelProps, CommsHeader, CommsItem } from "./comms-panel";
+
+// ============================================================
+// Arconique OS redesign — primitives from
+// design_handoff_arconique_os/COMPONENTS.md. 8 new files; the
+// 4 augmented primitives (DashboardKpi, AreaChartCard,
+// DonutRatioCard, CabinetGreetingBlock) re-export with their
+// existing names from the same files via their original blocks
+// above — the new tones / variants on those types pick up the
+// redesign visuals.
+// ============================================================
+export { CtaPill } from "./cta-pill";
+export type { CtaPillProps, CtaPillVariant } from "./cta-pill";
+
+export { ScoreChip } from "./score-chip";
+export type { ScoreChipProps, ScoreChipTone } from "./score-chip";
+
+export { BigStat } from "./big-stat";
+export type { BigStatProps } from "./big-stat";
+
+export { DomeDonut } from "./dome-donut";
+export type { DomeDonutProps } from "./dome-donut";
+
+export { ConcentricBubbles } from "./concentric-bubbles";
+export type {
+  ConcentricBubblesProps,
+  ConcentricBubblesRing,
+} from "./concentric-bubbles";
+
+export { HeroGreet } from "./hero-greet";
+export type { HeroGreetProps } from "./hero-greet";
+
+export { FilterBar } from "./filter-bar";
+export type { FilterBarProps, FilterBarOption } from "./filter-bar";
+
+export { MobileTabbar } from "./mobile-tabbar";
+export type { MobileTabbarProps, MobileTabbarItem } from "./mobile-tabbar";

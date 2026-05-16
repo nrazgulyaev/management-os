@@ -32,11 +32,24 @@ export type KpiStatus = "good" | "warn" | "bad" | "neutral";
  */
 export type KpiVariant = "default" | "hero";
 export type KpiTone =
+  // Legacy 10.6.C.1 tones — kept for backwards compatibility with the
+  // existing 28 consumer files. Render via the legacy emerald/gold/
+  // coral/ink-deep gradients.
   | "surface"
   | "emerald-soft"
   | "gold-soft"
   | "coral-soft"
-  | "ink-deep";
+  | "ink-deep"
+  // Arconique OS redesign tones (additive). Source: COMPONENTS.md §3.
+  // These map to the new brand axes — terra / olive / sea / sand /
+  // ink-warm. Use these on freshly-built pages; legacy pages migrate
+  // over time.
+  | "terra"
+  | "olive"
+  | "sea"
+  | "sand"
+  | "warm"
+  | "ink-warm";
 
 export interface DashboardKpiProps {
   label: string;
@@ -57,11 +70,22 @@ export interface DashboardKpiProps {
 }
 
 const TONE_CLS: Record<KpiTone, string> = {
+  // Legacy
   "surface": "bg-surface",
   "emerald-soft": "bg-gradient-emerald-soft",
   "gold-soft": "bg-gradient-gold-soft",
   "coral-soft": "bg-gradient-coral-soft",
   "ink-deep": "bg-gradient-ink-deep text-ink-inverse",
+  // Redesign (additive). Tonal soft-fill cards from the handoff —
+  // each pairs a `-tint` background with a `-deep` accent for the
+  // sparkline / icon. The dark `ink-warm` is the "hero KPI" slot
+  // (one per row).
+  "terra": "bg-terra-tint",
+  "olive": "bg-olive-tint",
+  "sea": "bg-sea-tint",
+  "sand": "bg-sand-soft",
+  "warm": "bg-surface-warm",
+  "ink-warm": "bg-ink-warm text-white",
 };
 
 const STATUS_RING: Record<KpiStatus, string> = {
@@ -88,7 +112,9 @@ export function DashboardKpi(props: DashboardKpiProps) {
     tone = "surface",
   } = props;
   const isHero = variant === "hero";
-  const isDarkTone = tone === "ink-deep";
+  // Redesign: `ink-warm` is also a dark-bg tone that needs inverse
+  // foregrounds, same as the legacy `ink-deep`.
+  const isDarkTone = tone === "ink-deep" || tone === "ink-warm";
 
   const trend = delta
     ? delta.value > 0

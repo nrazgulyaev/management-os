@@ -9,10 +9,16 @@
  * server-side and passes the first name in).
  *
  * Server-safe — no client hooks.
+ *
+ * Arconique OS redesign (additive): pass `variant="hero"` to render
+ * the new HeroGreet layout (date badge + CTA pill + serif italic-
+ * accented greeting + mic button) per COMPONENTS.md §2. Legacy
+ * default preserves the existing 15 call sites unchanged.
  */
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { HeroGreet } from "./hero-greet";
 
 export interface CabinetGreetingBlockProps {
   /** First name of the logged-in user. If absent, greeting falls back to "there". */
@@ -29,6 +35,19 @@ export interface CabinetGreetingBlockProps {
   badge?: React.ReactNode;
   /** Override "now" for deterministic SSR / tests. */
   now?: Date;
+  /**
+   * Arconique OS redesign — when "hero", render the HeroGreet
+   * layout instead of the legacy avatar/wave layout. Legacy default
+   * keeps every existing call site rendering unchanged.
+   */
+  variant?: "default" | "hero";
+  /** Hero-only: italic accent word (defaults to firstName). */
+  greetingAccent?: React.ReactNode;
+  /** Hero-only: primary CTA label + destination. */
+  ctaLabel?: string;
+  ctaHref?: string;
+  /** Hero-only: prompt placeholder under the greeting. */
+  aiPromptPlaceholder?: string;
   className?: string;
 }
 
@@ -48,8 +67,28 @@ export function CabinetGreetingBlock({
   avatar,
   badge,
   now,
+  variant = "default",
+  greetingAccent,
+  ctaLabel,
+  ctaHref,
+  aiPromptPlaceholder,
   className,
 }: CabinetGreetingBlockProps) {
+  if (variant === "hero") {
+    // Redesign path — delegate to the new HeroGreet primitive.
+    return (
+      <HeroGreet
+        date={now}
+        firstName={firstName}
+        greetingAccent={greetingAccent ?? firstName ?? "there"}
+        ctaLabel={ctaLabel}
+        ctaHref={ctaHref}
+        aiPromptPlaceholder={aiPromptPlaceholder ?? "Just ask me anything!"}
+        className={className}
+      />
+    );
+  }
+
   const name = firstName?.trim() || "there";
   const greeting = computeGreeting(now ?? new Date());
   const computedTitle = title ?? `${greeting}, ${name}!`;

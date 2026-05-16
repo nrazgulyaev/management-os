@@ -33,29 +33,54 @@ import {
 } from "@/components/award/format-specs";
 
 export type AreaChartTone =
+  // Legacy 10.6.C.1 tones (7 existing consumer files)
   | "emerald"
   | "gold"
   | "coral"
   | "sage"
   | "terracotta"
-  | "ink";
+  | "ink"
+  // Arconique OS redesign tones (additive). The terra default
+  // matches the handoff's "primary chart line is terra" rule
+  // (DESIGN_TOKENS.md §Color usage).
+  | "terra"
+  | "olive"
+  | "sea"
+  | "sand"
+  | "warm";
 
 const TONE_BG: Record<AreaChartTone, string> = {
+  // Legacy gradients
   emerald: "bg-gradient-emerald-soft",
   gold: "bg-gradient-gold-soft",
   coral: "bg-gradient-coral-soft",
   sage: "bg-gradient-emerald-soft",
   terracotta: "bg-gradient-coral-soft",
   ink: "bg-gradient-ink-deep text-ink-inverse",
+  // Redesign — tonal soft fills against warm surfaces. Each pairs
+  // with a stroke from the same axis (see TONE_STROKE).
+  terra: "bg-terra-tint",
+  olive: "bg-olive-tint",
+  sea: "bg-sea-tint",
+  sand: "bg-sand-soft",
+  warm: "bg-surface-warm",
 };
 
 const TONE_STROKE: Record<AreaChartTone, string> = {
+  // Legacy data-* palette
   emerald: "var(--data-emerald)",
   gold: "var(--data-gold)",
   coral: "var(--data-terracotta)",
   sage: "var(--data-sage)",
   terracotta: "var(--data-terracotta)",
   ink: "var(--ink-inverse)",
+  // Redesign — strokes use the brand axis directly. The handoff
+  // calls out `terra` as the canonical primary chart line.
+  terra: "var(--color-terra)",
+  olive: "var(--color-olive)",
+  sea: "var(--color-sea)",
+  sand: "var(--color-terra)",
+  warm: "var(--color-terra)",
 };
 
 export interface AreaChartPoint {

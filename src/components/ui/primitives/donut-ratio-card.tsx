@@ -17,22 +17,45 @@ import * as React from "react";
 import { Pie, PieChart, Cell, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
 
-export type DonutTone = "emerald" | "gold" | "coral" | "sage" | "terracotta";
+export type DonutTone =
+  // Legacy (5 existing consumer files)
+  | "emerald"
+  | "gold"
+  | "coral"
+  | "sage"
+  | "terracotta"
+  // Arconique OS redesign tones (additive)
+  | "terra"
+  | "olive"
+  | "sea"
+  | "sand";
 
 const TONE_BG: Record<DonutTone, string> = {
+  // Legacy gradients
   emerald: "bg-gradient-emerald-soft",
   gold: "bg-gradient-gold-soft",
   coral: "bg-gradient-coral-soft",
   sage: "bg-gradient-emerald-soft",
   terracotta: "bg-gradient-coral-soft",
+  // Redesign tinted backgrounds
+  terra: "bg-terra-tint",
+  olive: "bg-olive-tint",
+  sea: "bg-sea-tint",
+  sand: "bg-sand-soft",
 };
 
 const TONE_FILL: Record<DonutTone, string> = {
+  // Legacy data-* palette
   emerald: "var(--data-emerald)",
   gold: "var(--data-gold)",
   coral: "var(--data-terracotta)",
   sage: "var(--data-sage)",
   terracotta: "var(--data-terracotta)",
+  // Redesign brand-axis fills
+  terra: "var(--color-terra)",
+  olive: "var(--color-olive)",
+  sea: "var(--color-sea)",
+  sand: "var(--color-terra)",
 };
 
 export interface DonutRatioCardProps {
