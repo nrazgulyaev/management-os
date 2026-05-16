@@ -1,37 +1,45 @@
 /**
- * Sprint 2 — per-product subdomain routing + per-tenant slug routing.
+ * Sprint ARCH-1 — host-aware subdomain routing.
  *
- * Three concerns, layered:
+ * Layered on top of Sprint 2's per-product subdomain table.
  *
- *  1. Per-product subdomain (this sprint, new)
+ * Four concerns, layered top → bottom:
+ *
+ *  0. Cross-product canonicalisation (ARCH-1, new)
+ *     If the visitor lands on `management.arconique.com/development-os/…`
+ *     (i.e. a path that uniquely belongs to a different product), we
+ *     307-redirect to the right product subdomain preserving the
+ *     pathname + search. Skipped on localhost / *.vercel.app preview
+ *     hosts so dev convenience stays intact.
+ *
+ *  1. Per-product subdomain (Sprint 2, extended)
  *     `<product>.arconique.com` routes the user into one of four
  *     product surfaces (management / development / subscription /
  *     platform). The middleware:
  *       - parses the host
  *       - matches against the PRODUCT_SUBDOMAINS table
+ *       - rewrites `/` to a product-specific landing (mgmt + dev get
+ *         placeholder pages under `src/app/landing/*`; subscription
+ *         keeps the existing umbrella sales home; platform rewrites
+ *         to `/platform` where the layout gates super_admin)
  *       - if the pathname is allowed on that product → stamps an
  *         `x-product: <name>` header and passes through
- *       - if the pathname is NOT allowed → 307-redirects to the
- *         product's default landing `/`
+ *       - if NOT allowed → 307-redirects to the product's defaultLanding
  *       - `/api/*` is always allowed (data plane, not UI)
  *
- *  2. Per-tenant slug (Stage 7.E, existing — preserved verbatim)
- *     `<tenant>.arconique.com` (or `<tenant>.localhost` in dev) stamps
- *     an `x-tenant-slug: <slug>` header. The server components do the
- *     DB lookup. Only applies to subdomains that AREN'T product names
- *     and aren't on the reserved pass-through list.
+ *  2. Per-tenant slug (Stage 7.E)
+ *     `<tenant>.arconique.com` stamps an `x-tenant-slug: <slug>` header.
  *
- *  3. Reserved subdomains (Stage 7.E, existing — `admin` removed)
- *     `app, www, api, marketing, status, docs, public, investors`
- *     pass through with no tenant context. Stamps `x-reserved: true`.
- *     `admin` was removed since Sprint 2 introduces `platform` for
- *     the platform-admin workspace.
+ *  3. Reserved subdomains (Stage 7.E)
+ *     `app, www, api, marketing, status, docs, public, investors` pass
+ *     through with `x-reserved: true`.
  *
- * Apex `arconique.com` itself should normally be served by the
- * `capital/` Vercel project (the institutional-investor site), not by
- * this app. During the transition, this app still renders `(public)/*`
- * marketing pages as a fallback when the host is the apex — we'll
- * remove that fallback once `capital/` is fully wired (Sprint 5).
+ * Platform admin role gate: enforced server-side in
+ * `src/app/(platform-app)/layout.tsx` via `getCurrentUserContext()`.
+ * Middleware doesn't resolve Supabase sessions (Edge runtime + DB-free)
+ * — we only restrict which paths the platform subdomain serves; the
+ * layout handles the anonymous→/login and non-admin→/no-product-access
+ * redirects on render.
  */
 
 import { type NextRequest, NextResponse } from "next/server";
@@ -41,16 +49,7 @@ import { type NextRequest, NextResponse } from "next/server";
 // ============================================================================
 
 export interface ProductSubdomainConfig {
-  /**
-   * Allowed top-level path prefixes on this subdomain. The pathname
-   * must start with one of these (or equal `/`) for the request to
-   * pass through. Anything else redirects to `defaultLanding`.
-   *
-   * Pure data-plane (`/api`) and static (`/_next`) are NEVER gated by
-   * this list — they're handled separately.
-   */
   allowedPrefixes: readonly string[];
-  /** Where to send the user when the path is disallowed. */
   defaultLanding: string;
 }
 
@@ -61,6 +60,7 @@ export const PRODUCT_SUBDOMAINS = {
       "/owner",
       "/field",
       "/stay",
+      "/landing/management-os",
       "/login",
       "/setup",
       "/sign-up",
@@ -76,6 +76,7 @@ export const PRODUCT_SUBDOMAINS = {
       "/investor-portal",
       "/buyer-portal",
       "/vendor",
+      "/landing/development-os",
       "/login",
       "/setup",
       "/sign-up",
@@ -86,14 +87,8 @@ export const PRODUCT_SUBDOMAINS = {
     defaultLanding: "/",
   },
   subscription: {
-    // Public sales surface. Sprint 3a aligns this list with the
-    // routes that actually exist in `src/app/(public)/` — see the
-    // content inventory at docs/audits/2026-05-13-sprint-3a-content-
-    // inventory.md for the audit. The spec's `/management-os` and
-    // `/development-os` URLs aren't here because (a) the Mgmt-OS
-    // sales detail already lives at `/products/management-os`, and
-    // (b) `/development-os` is owned by the Dev OS app — a top-level
-    // `(public)/development-os/page.tsx` would collide at build.
+    // Public sales surface — content inventory at docs/audits/
+    // 2026-05-13-sprint-3a-content-inventory.md.
     allowedPrefixes: [
       "/pricing",
       "/signup",
@@ -106,6 +101,7 @@ export const PRODUCT_SUBDOMAINS = {
       "/investor-reporting",
       "/owner-portal",
       "/book",
+      "/features",
       "/login",
       "/accept-invitation",
       "/no-product-access",
@@ -141,8 +137,6 @@ const RESERVED_SUBDOMAINS = new Set([
   "docs",
   "public",
   "investors",
-  // `admin` removed Sprint 2 — `platform` is the canonical platform-
-  // admin subdomain now.
 ]);
 
 const APEX_DOMAINS = new Set([
@@ -152,16 +146,23 @@ const APEX_DOMAINS = new Set([
   "vercel.app",
 ]);
 
+/** Hosts that get the cross-product redirect skip — we want `localhost:3000`
+ *  and preview deploys to render whatever path the dev typed without bouncing
+ *  to a real subdomain (which probably isn't even reachable from their
+ *  laptop). Product subdomain detection on these hosts still works for the
+ *  `<product>.localhost` dev pattern. */
+export function isLocalOrPreviewHost(hostname: string): boolean {
+  const lower = hostname.toLowerCase().split(":")[0];
+  if (lower === "localhost" || lower === "127.0.0.1") return true;
+  if (lower.endsWith(".localhost")) return true;
+  if (lower.endsWith(".vercel.app")) return true;
+  return false;
+}
+
 // ============================================================================
 // Pure helpers — exported for tests
 // ============================================================================
 
-/**
- * Parses the host and returns the first sub-label if it's a known
- * product subdomain (e.g. `management.arconique.com` → `"management"`).
- * Returns null otherwise. Handles both production hosts and the
- * `<product>.localhost` dev pattern.
- */
 export function detectProductSubdomain(
   host: string,
 ): ProductSubdomain | null {
@@ -174,15 +175,6 @@ export function detectProductSubdomain(
   return null;
 }
 
-/**
- * Returns true if `pathname` is allowed on the given product subdomain.
- * Allowed if:
- *   - pathname === "/"
- *   - pathname starts with one of the product's allowedPrefixes
- *     (with a "/"-boundary or end-of-string after the prefix)
- * Data-plane (`/api/*`) is always allowed; the caller handles that
- * before calling this helper.
- */
 export function isPathAllowedOnProduct(
   product: ProductSubdomain,
   pathname: string,
@@ -196,14 +188,44 @@ export function isPathAllowedOnProduct(
   return false;
 }
 
-/**
- * Existing Stage 7.E helper — preserved verbatim except for one new
- * guard: hosts whose first label IS a known product subdomain return
- * null (those are routed by the product layer, not the tenant layer).
+/** ARCH-1 — every prefix that appears under exactly one product. Used
+ *  to cross-redirect: a request to `management.arconique.com/dashboard`
+ *  matches `/dashboard` uniquely under `management`, so a hit at
+ *  `/dashboard` from the `development` subdomain bounces to
+ *  `management.arconique.com/dashboard`.
  *
- * Parses the host and returns the tenant slug, or null if the host is
- * apex / reserved / a known product subdomain.
- */
+ *  Computed once at module load — the PRODUCT_SUBDOMAINS table is a
+ *  `const`, so this set is effectively static. */
+function buildUniquePrefixMap(): Map<string, ProductSubdomain> {
+  const counts = new Map<string, ProductSubdomain[]>();
+  for (const product of Object.keys(PRODUCT_SUBDOMAINS) as ProductSubdomain[]) {
+    for (const prefix of PRODUCT_SUBDOMAINS[product].allowedPrefixes) {
+      const list = counts.get(prefix) ?? [];
+      list.push(product);
+      counts.set(prefix, list);
+    }
+  }
+  const unique = new Map<string, ProductSubdomain>();
+  for (const [prefix, products] of counts) {
+    if (products.length === 1) unique.set(prefix, products[0]);
+  }
+  return unique;
+}
+
+const UNIQUE_PREFIX_TO_PRODUCT = buildUniquePrefixMap();
+
+/** Find the product that uniquely owns this pathname's prefix, or null
+ *  if the path is shared (`/login`, `/legal`, etc.) or not recognised. */
+export function detectPathProduct(
+  pathname: string,
+): ProductSubdomain | null {
+  for (const [prefix, product] of UNIQUE_PREFIX_TO_PRODUCT) {
+    if (pathname === prefix) return product;
+    if (pathname.startsWith(prefix + "/")) return product;
+  }
+  return null;
+}
+
 export function extractTenantSlug(hostname: string): string | null {
   const lower = hostname.toLowerCase().split(":")[0];
   if (APEX_DOMAINS.has(lower)) return null;
@@ -226,32 +248,90 @@ export function extractTenantSlug(hostname: string): string | null {
   return null;
 }
 
+/** ARCH-1 — rewrite target for `/` on a product subdomain. Returns null
+ *  when `/` should pass through (subscription keeps the umbrella sales
+ *  home; localhost / preview keeps current behaviour). */
+function rootRewriteTarget(product: ProductSubdomain): string | null {
+  switch (product) {
+    case "management":
+      return "/landing/management-os";
+    case "development":
+      return "/landing/development-os";
+    case "platform":
+      return "/platform";
+    case "subscription":
+      return null;
+  }
+}
+
 // ============================================================================
 // Middleware entrypoint
 // ============================================================================
+
+function withProductHeaders(
+  response: NextResponse,
+  product: ProductSubdomain,
+  hostname: string,
+): NextResponse {
+  response.headers.set("x-product", product);
+  response.headers.set("x-tenant-host", hostname);
+  return response;
+}
 
 export function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") ?? "";
   const pathname = request.nextUrl.pathname;
 
-  // Data plane + static — never gated by product allow-lists. Same
-  // matcher excludes _next, but /api/* must reach its route handlers
-  // from every subdomain.
   const isApiRoute = pathname === "/api" || pathname.startsWith("/api/");
 
   // ---- Layer 1: product subdomain ----
   const product = detectProductSubdomain(hostname);
   if (product) {
-    const response =
-      !isApiRoute && !isPathAllowedOnProduct(product, pathname)
-        ? NextResponse.redirect(
-            new URL(PRODUCT_SUBDOMAINS[product].defaultLanding, request.url),
-            { status: 307 },
-          )
-        : NextResponse.next();
-    response.headers.set("x-product", product);
-    response.headers.set("x-tenant-host", hostname);
-    return response;
+    // /api/* — always pass through, before any rewrite or redirect.
+    if (isApiRoute) {
+      return withProductHeaders(NextResponse.next(), product, hostname);
+    }
+
+    // Root path → product-specific landing rewrite.
+    if (pathname === "/") {
+      const target = rootRewriteTarget(product);
+      if (target) {
+        return withProductHeaders(
+          NextResponse.rewrite(new URL(target, request.url)),
+          product,
+          hostname,
+        );
+      }
+      return withProductHeaders(NextResponse.next(), product, hostname);
+    }
+
+    // Cross-product canonicalisation — only in production. Localhost +
+    // *.vercel.app render the path as-is so devs/previews never need DNS
+    // for sibling subdomains.
+    if (!isLocalOrPreviewHost(hostname)) {
+      const pathProduct = detectPathProduct(pathname);
+      if (pathProduct && pathProduct !== product) {
+        const canonical = new URL(request.nextUrl.toString());
+        canonical.protocol = "https:";
+        canonical.host = `${pathProduct}.arconique.com`;
+        canonical.port = "";
+        return NextResponse.redirect(canonical, { status: 307 });
+      }
+    }
+
+    // Allowed on this product? If not, bounce to its defaultLanding.
+    if (!isPathAllowedOnProduct(product, pathname)) {
+      return withProductHeaders(
+        NextResponse.redirect(
+          new URL(PRODUCT_SUBDOMAINS[product].defaultLanding, request.url),
+          { status: 307 },
+        ),
+        product,
+        hostname,
+      );
+    }
+
+    return withProductHeaders(NextResponse.next(), product, hostname);
   }
 
   // ---- Layer 2: reserved pass-through (no tenant context) ----
