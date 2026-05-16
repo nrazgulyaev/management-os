@@ -1,529 +1,771 @@
-/**
- * Sprint 1 / Task 4 — Mgmt OS dashboard apex.
- *
- * Rebuilt on the Stage 10.6.C.1 hero tokens + Sprint 1 chart
- * primitives (AreaChartCard, DonutRatioCard, ProfileRailCard,
- * CommsPanel, SparklineChart). Score target vs the doctor-dashboard
- * reference: 2/5 → ≥4/5.
- *
- * Composition (top → bottom):
- *   Row 1 — CabinetGreetingBlock with time-of-day greeting
- *   Row 2 — hero KPI (villas) + AreaChartCard (revenue 6mo) + ProfileRailCard
- *   Row 3 — 4 tonal mini KPIs (bookings · MTD revenue · check-ins · tickets)
- *   Row 4 — today's schedule (2/3) + CommsPanel notifications (1/3)
- *   Row 5 — donut occupancy + donut on-time turnover + Operations Copilot
- *
- * Data: reuses `getLiveDashboardCounts()` + existing mock catalogues
- * (mockVillas, housekeepingTasks, maintenanceTickets, portfolioMetrics,
- * monthlyRevenueStrip). Falls back gracefully when the DB is absent so
- * demo mode keeps working.
- *
- * Constraints honoured (Sprint 1 spec):
- *   - No new tokens
- *   - No middleware changes
- *   - DashboardShell (layout.tsx) untouched
- *   - Other /dashboard/* routes untouched
- */
-
 import Link from "next/link";
 import {
-  ArrowUpRight,
-  Building2,
-  CalendarCheck2,
-  KeyRound,
-  Sparkles,
-  Wallet,
-  Wrench,
-} from "lucide-react";
-import {
-  AreaChartCard,
-  CabinetGreetingBlock,
-  CommsPanel,
-  DashboardKpi,
-  DonutRatioCard,
-  ProfileRailCard,
-  SparklineChart,
-  type AreaChartPoint,
-  type CommsItem,
-  type ProfileRailItem,
-} from "@/components/ui/primitives";
-import { ProductAccessChangedBanner } from "@/components/layout/product-access-changed-banner";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { StatusPill } from "@/components/ui/status-pill";
+  Kpi,
+  SectionHeading,
+  Card,
+  Badge,
+} from "@/components/dashboard/primitives";
+import { DashboardIcon } from "@/components/dashboard/icons";
 import { getLiveDashboardCounts } from "@/features/dashboard/live-counts";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { mockVillas } from "@/lib/mock/villas";
+import { mockProjects } from "@/lib/mock/projects";
+import { mockOwners } from "@/lib/mock/owners";
 import {
-  housekeepingTasks,
-  maintenanceTickets,
-} from "@/lib/mock/operations";
-import {
-  monthlyRevenueStrip,
   portfolioMetrics,
+  revenueByChannel,
+  monthlyRevenueStrip,
 } from "@/lib/mock/metrics";
-import { synthSparklineSeries } from "@/lib/sparkline-series";
+
+/**
+ * Sprint _handoff/ Task 6 — Mgmt OS Overview cabinet.
+ *
+ * 1:1 port of `_handoff/management/index.html` (`app.js` block) into a
+ * Next.js server component. Replaces the prior Sprint 1 / Task 4
+ * composition (DashboardKpi / AreaChartCard / DonutRatioCard hero — all
+ * primitives from the superseded `design_handoff_arconique_os` package).
+ *
+ * Section order matches the prototype:
+ *   Greeting (time-aware) → 5-up KPI strip → Today schedule + AI
+ *   Operations Copilot card → Channels + Monthly revenue + Owners glance
+ *   → 4-up operational health KPIs → Portfolio table → Owner statement
+ *   nudge band.
+ *
+ * Data sources (live → mock fallback in that order):
+ *   getLiveDashboardCounts()   → villa/booking/check-in counts (DB)
+ *   getCurrentAppUser()        → first-name in greeting
+ *   portfolioMetrics           → occ YTD / ADR / RevPAR / MTD revenue
+ *                                + open maintenance / upcoming check-ins
+ *                                / housekeeping (mock; no live equivalent
+ *                                ships in this commit — wire-up tracked
+ *                                under Task 6 follow-up)
+ *   revenueByChannel           → channel mix bars (mock)
+ *   monthlyRevenueStrip        → six-month chart (mock)
+ *   mockProjects               → portfolio table (mock)
+ *   mockOwners                 → top-3 owners YTD payouts (mock)
+ *
+ * Hard-coded prototype demo (turnovers, AI advisory text, EV-07 Emma
+ * Whitmore statement nudge) — preserved as-is for visual fidelity until
+ * the live services land (operations service / AI runs service /
+ * statement-detail server query).
+ */
 
 export const metadata = { title: "Portfolio overview" };
 export const dynamic = "force-dynamic";
 
-function rupiahShort(minor: number): string {
-  // Display IDR in billions for headline KPIs; metrics mock uses
-  // minor-units, so 10^11 = 1B IDR.
-  if (minor >= 1_000_000_000_000) {
-    return `Rp ${(minor / 100_000_000_000).toFixed(1)}B`;
-  }
-  if (minor >= 1_000_000_000) {
-    return `Rp ${(minor / 100_000_000).toFixed(1)}M`;
-  }
-  return `Rp ${(minor / 1_000_000).toFixed(0)}K`;
+const IDR_TRILLION = 1_000_000_000_000;
+const IDR_BILLION = 1_000_000_000;
+const IDR_MILLION = 1_000_000;
+const USD_PER_IDR = 1 / 16_000;
+
+function rupiahMillions(minor: number): string {
+  return `${(minor / IDR_BILLION).toFixed(1)}M`;
+}
+function rupiahBillions(minor: number): string {
+  return `${(minor / IDR_TRILLION).toFixed(2)}B`;
+}
+function idrToUsdK(minor: number): string {
+  const usd = (minor / IDR_MILLION) * USD_PER_IDR;
+  return `$${Math.round(usd).toLocaleString()}K`;
 }
 
-export default async function DashboardHome({
-  searchParams,
-}: {
-  // Sprint 3c — `?from=<product>&reason=<…>` is set when
-  // enforceProductAccess() redirects a user here after losing access
-  // to another product. The banner below surfaces the explanation.
-  searchParams?: Promise<{ from?: string; reason?: string }>;
-}) {
-  const sp = (await searchParams) ?? {};
-  const [liveCounts, me] = await Promise.all([
-    getLiveDashboardCounts(),
-    getCurrentAppUser(),
+const CHANNEL_COLOR: Record<string, string> = {
+  emerald: "var(--ok)",
+  gold: "var(--gold)",
+  sage: "var(--sage, var(--ok))",
+  stone: "var(--ink-3)",
+  terracotta: "var(--terra)",
+};
+
+function timeOfDayGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function todayBrief(): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+}
+
+export default async function DashboardOverviewPage() {
+  const [live, currentUser] = await Promise.all([
+    getLiveDashboardCounts().catch(() => null),
+    getCurrentAppUser().catch(() => null),
   ]);
-  const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
 
-  // ---------- derived datasets ----------
+  const firstName =
+    currentUser?.fullName?.split(/\s+/)[0] ?? "operator";
+  const m = portfolioMetrics;
 
-  const villaCount = liveCounts?.villas ?? mockVillas.length;
+  // Live counts override mock equivalents where present.
+  const villaCount = live?.villas ?? 19;
+  const projectCount = live?.projects ?? mockProjects.length;
+  const bedrooms = mockProjects.reduce((s, p) => s + p.bedrooms, 0);
   const upcomingCheckIns =
-    liveCounts?.upcomingCheckIns ?? portfolioMetrics.upcomingCheckins.value;
-  const activeBookings =
-    liveCounts?.activeBookings ?? mockVillas.filter((v) => v.status === "occupied").length;
-  const openTickets = maintenanceTickets.length;
+    live?.upcomingCheckIns ?? m.upcomingCheckins.value;
 
-  // Revenue area-chart series, last 6 months. Source values arrive
-  // in millions (1_364 → 1.364B IDR); scale to billions upstream so
-  // the AreaChartCard's serialisable format spec ("number-2dp" with
-  // "Rp " prefix + "B" suffix) renders the right magnitude. The
-  // previous function-prop formatter triggered the RSC
-  // "Functions cannot be passed directly to Client Components"
-  // crash on /dashboard.
-  const revenueSeries: AreaChartPoint[] = monthlyRevenueStrip.map((m) => ({
-    date: m.month,
-    value: m.revenue / 1000,
-  }));
-  // Peak month for the pinned tooltip.
-  const peakMonth = revenueSeries.reduce((best, p) =>
-    p.value > best.value ? p : best,
-  );
-  const peakMonthLabel = `Rp ${peakMonth.value.toFixed(2)}B`;
-
-  // Profile rail — top 5 occupancy villas as "active" items.
-  const topVillas: ProfileRailItem[] = [...mockVillas]
-    .sort((a, b) => b.occupancyYTD - a.occupancyYTD)
-    .slice(0, 5)
-    .map((v) => ({
-      label: `${v.code} · ${v.name}`,
-      sublabel: `${v.occupancyYTD.toFixed(1)}% YTD · ${v.project}`,
-      href: `/dashboard/villas/${v.id}`,
-    }));
-
-  // Notifications — derived from current ops state. No mock-notification
-  // fixture exists yet; this composes from real operations data so the
-  // panel is always populated (production-ready: the same shape consumes
-  // a real notifications query when one ships).
-  const notifications: CommsItem[] = [
-    ...maintenanceTickets.slice(0, 2).map<CommsItem>((t) => ({
-      from: `Maintenance · ${t.villaCode}`,
-      body: t.title,
-      timestamp: t.openedAgo,
-    })),
-    ...housekeepingTasks
-      .filter((t) => t.status === "awaiting_approval")
-      .slice(0, 2)
-      .map<CommsItem>((t) => ({
-        from: `Housekeeping · ${t.villaCode}`,
-        body: `${t.checklistDone}/${t.checklistTotal} items · ${t.assignee}`,
-        timestamp: t.scheduledAt,
-      })),
-    {
-      from: "Finance",
-      body: `7 owner payouts queued · ${rupiahShort(742_100_000_000)}`,
-      timestamp: "now",
-    },
-  ].slice(0, 5);
-
-  // Schedule rows (housekeeping + maintenance, sorted by best-effort time).
-  const scheduleRows = [
-    ...housekeepingTasks.map((t) => ({
-      key: `hk-${t.id}`,
-      time: t.scheduledAt,
-      title: `${t.villa} · turnover`,
-      meta: `${t.assignee} · ${t.checklistDone}/${t.checklistTotal} items`,
-      badgeTone:
-        t.status === "awaiting_approval"
-          ? ("warning" as const)
-          : t.status === "in_progress"
-            ? ("info" as const)
-            : ("neutral" as const),
-      badgeLabel:
-        t.status === "awaiting_approval"
-          ? "Awaiting approval"
-          : t.status === "in_progress"
-            ? "In progress"
-            : "Queued",
-    })),
-    ...maintenanceTickets.slice(0, 3).map((t) => ({
-      key: `mt-${t.id}`,
-      time: t.openedAgo,
-      title: `${t.villaCode} · ${t.title}`,
-      meta: `${t.category} · ${t.assignee ?? "Unassigned"}`,
-      badgeTone:
-        t.priority === "p1"
-          ? ("danger" as const)
-          : t.priority === "p2"
-            ? ("warning" as const)
-            : ("neutral" as const),
-      badgeLabel: t.priority.toUpperCase(),
-    })),
-  ];
-
-  // Occupancy + on-time turnover donut inputs.
-  const bookedNights = Math.round(
-    villaCount * 30 * (portfolioMetrics.occupancyYTD.value / 100),
-  );
-  const totalNights = villaCount * 30;
-  const onTimeTurnover = housekeepingTasks.filter(
-    (t) => t.status === "approved" || t.status === "in_progress",
-  ).length;
-  const totalTurnover = housekeepingTasks.length || 1;
+  // Pull a stable 6-month max for the bar-chart scale (max + 20% headroom).
+  const monthlyMax = Math.max(...monthlyRevenueStrip.map((r) => r.revenue));
+  const sixMonthTotal =
+    monthlyRevenueStrip.reduce((s, r) => s + r.revenue, 0) / 1000; // → B IDR
 
   return (
-    <div className="flex flex-col gap-8">
-      {/* Sprint 3c — soft toast when redirected from a now-inaccessible
-          product (e.g. just lost access to Dev OS via plan change). */}
-      <ProductAccessChangedBanner from={sp.from} reason={sp.reason} />
-      {/* Row 1 — Arconique OS redesign hero greeting (handoff §2).
-          Italic-accent word per page is the operator's first name on
-          this overview. CTA routes to the daily-tasks surface. */}
-      <CabinetGreetingBlock
-        variant="hero"
-        firstName={firstName}
-        greetingAccent={firstName ?? "there"}
-        ctaLabel="Show my tasks"
-        ctaHref="/dashboard/operations"
-        aiPromptPlaceholder={`${villaCount} villas · ${upcomingCheckIns} check-ins on the 14-day horizon`}
+    <>
+      <SectionHeading
+        eyebrow={`${todayBrief()} · GMT+8`}
+        title={
+          <>
+            {timeOfDayGreeting()},{" "}
+            <em style={{ color: "var(--terra)", fontStyle: "italic" }}>
+              {firstName}.
+            </em>
+          </>
+        }
+        subtitle={`${m.upcomingCheckins.today} arrivals before sunset, ${m.openMaintenance.value} maintenance tickets open (${m.openMaintenance.sla} within SLA), ${m.housekeepingOpen.value} housekeeping tasks active.`}
+        actions={
+          <>
+            <button className="btn btn-secondary btn-sm">
+              Export brief <DashboardIcon name="logo" width={13} height={13} />
+            </button>
+            <Link href="/dashboard/bookings" className="btn btn-primary btn-sm">
+              New booking +
+            </Link>
+          </>
+        }
       />
 
-      {/* Row 2 — hero KPI · revenue area · profile rail.
-          Redesign tones: hero card flips to ink-warm (the new dark
-          slot), the area chart uses terra as the canonical primary
-          line per DESIGN_TOKENS.md §Color usage. */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
-        <DashboardKpi
-          variant="hero"
-          tone="ink-warm"
-          label="Villas under management"
-          value={String(villaCount)}
-          hint={`${activeBookings} occupied tonight`}
-          delta={{ value: portfolioMetrics.occupancyYTD.deltaYoY, label: "occupancy YoY" }}
-          drillHref="/dashboard/villas"
-          className="lg:col-span-1"
-          sparkline={
-            <SparklineChart
-              tone="emerald"
-              height={40}
-              data={synthSparklineSeries(
-                villaCount,
-                portfolioMetrics.occupancyYTD.deltaYoY,
-              )}
-            />
-          }
+      {/* KPI strip — 5-up */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(5, 1fr)",
+          gap: 12,
+          marginBottom: 24,
+        }}
+      >
+        <Kpi
+          label="Occupancy YTD"
+          value={`${m.occupancyYTD.value}%`}
+          sub={`+${m.occupancyYTD.deltaYoY}pp YoY`}
+          tone="success"
         />
-
-        <AreaChartCard
-          className="lg:col-span-2"
-          title="Revenue · last 6 months"
-          period="Monthly · IDR"
-          tone="terra"
-          data={revenueSeries}
-          chartHeight={220}
-          formatSpec="number-2dp"
-          valuePrefix="Rp "
-          valueSuffix="B"
-          pinnedTooltip={{
-            value: peakMonthLabel,
-            label: `${peakMonth.date} · peak`,
-          }}
-          accessory={
-            <span className="inline-flex items-center gap-1 rounded-full bg-success-weak text-success px-2.5 py-1 text-xs font-medium tabular-nums">
-              ▲ {portfolioMetrics.grossRevenueMTD.deltaYoY.toFixed(1)}% YoY
-            </span>
-          }
+        <Kpi
+          label="ADR"
+          value={`IDR ${rupiahMillions(m.adr.value)}`}
+          sub={`+${m.adr.deltaYoY}% YoY`}
+          tone="accent"
         />
-
-        <ProfileRailCard
-          className="lg:col-span-1"
-          user={{
-            name: me?.fullName ?? "Welcome to Arconique",
-            role: me ? "Operator" : "Demo mode",
-          }}
-          org={{ name: "Arconique", code: "ARC" }}
-          itemsHeading="Top-occupancy villas"
-          items={topVillas}
+        <Kpi
+          label="RevPAR"
+          value={`IDR ${rupiahMillions(m.revpar.value)}`}
+          sub={`+${m.revpar.deltaYoY}% YoY`}
+        />
+        <Kpi
+          label="Gross MTD"
+          value={`IDR ${rupiahBillions(m.grossRevenueMTD.value)}`}
+          sub={`+${m.grossRevenueMTD.deltaYoY}% MoM`}
+          tone="gold"
+        />
+        <Kpi
+          label="Net to owners MTD"
+          value={`IDR ${rupiahBillions(m.netOwnerPayoutsMTD.value)}`}
+          sub={`+${m.netOwnerPayoutsMTD.deltaYoY}% MoM`}
         />
       </div>
 
-      {/* Row 3 — small tonal KPIs (redesign tones).
-          olive = success/active, sand = financial, warm = default,
-          terra = attention. One tonal card per row max per handoff
-          rule of thumb. */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <DashboardKpi
-          tone="olive"
-          label="Active bookings"
-          value={String(activeBookings)}
-          status="good"
-          drillHref="/dashboard/bookings"
-        />
-        <DashboardKpi
-          tone="sand"
-          label="MTD revenue"
-          value={rupiahShort(portfolioMetrics.grossRevenueMTD.value)}
-          delta={{ value: portfolioMetrics.grossRevenueMTD.deltaYoY, label: "YoY" }}
-          drillHref="/dashboard/finance/revenue"
-        />
-        <DashboardKpi
-          tone="warm"
-          label="Upcoming check-ins · 14d"
-          value={String(upcomingCheckIns)}
-          hint={`${portfolioMetrics.upcomingCheckins.today} today`}
-          drillHref="/dashboard/front-office/arrivals"
-        />
-        <DashboardKpi
-          tone="terra"
-          label="Open tickets"
-          value={String(openTickets)}
-          status={
-            maintenanceTickets.some((t) => t.sla === "warn")
-              ? "warn"
-              : "neutral"
-          }
-          drillHref="/dashboard/operations"
-        />
-      </div>
-
-      {/* Row 4 — schedule + notifications */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <Section
-          eyebrow="Today"
-          title="Today's schedule"
-          description="Housekeeping turnovers and open maintenance, ordered by time."
-          action={
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard/operations">
-                Open ops board
-                <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
-              </Link>
-            </Button>
-          }
-          className="lg:col-span-2"
-        >
-          {scheduleRows.length === 0 ? (
-            <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card px-6 py-10 text-center text-sm text-ink-tertiary">
-              Nothing scheduled today.
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {scheduleRows.map((row) => (
-                <li
-                  key={row.key}
-                  className="rounded-3xl border border-line-soft bg-surface shadow-soft-card px-5 py-4 flex items-center gap-4"
-                >
-                  <span className="font-mono tabular-nums text-xs text-ink-tertiary w-16 shrink-0">
-                    {row.time}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-ink truncate">
-                      {row.title}
-                    </div>
-                    <div className="text-[11px] text-ink-tertiary truncate">
-                      {row.meta}
-                    </div>
-                  </div>
-                  <Badge tone={row.badgeTone}>{row.badgeLabel}</Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
-
-        <CommsPanel
-          variant="notifications"
-          header={{
-            title: "Notifications",
-            subtitle: `Latest ${notifications.length}`,
-          }}
-          items={notifications}
-          emptyMessage="No notifications right now — quiet day."
-          className="lg:col-span-1"
-        />
-      </div>
-
-      {/* Row 5 — donuts + operations copilot.
-          Donut tones flip to sand (occupancy) + olive (on-time);
-          Copilot card flips to ink-warm dark feature per handoff
-          §17 ("AI panel — dark ink-deep card"). */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <DonutRatioCard
-          title="Occupancy this month"
-          tone="sand"
-          numerator={bookedNights}
-          denominator={totalNights}
-          changePercent={portfolioMetrics.occupancyYTD.deltaYoY}
-          caption={`${villaCount} villas · 30-night window`}
-        />
-        <DonutRatioCard
-          title="On-time turnover"
-          tone="olive"
-          numerator={onTimeTurnover}
-          denominator={totalTurnover}
-          caption="Housekeeping completing on schedule today"
-        />
-
-        {/* Operations Copilot — dark feature card per handoff §17. */}
-        <section
-          className="rounded-[var(--radius-card-hero)] bg-ink-warm text-white shadow-redesign-soft p-6 flex flex-col gap-4"
-          data-stage10="dashboard-ops-copilot"
-        >
-          <header className="flex items-center gap-2">
-            <span className="w-9 h-9 rounded-full bg-terra text-white inline-flex items-center justify-center shrink-0">
-              <Sparkles className="w-4 h-4" strokeWidth={1.75} />
-            </span>
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-medium text-white truncate">
-                Operations Copilot
-              </span>
-              <span className="text-[11px] text-white/60">
-                AM briefing · modelled
-              </span>
-            </div>
-            <span className="ml-auto text-[10.5px] uppercase tracking-[0.10em] text-white/70 px-2 py-1 rounded-full bg-white/10">
-              Preview
-            </span>
-          </header>
-          <p className="text-sm text-white/90 leading-relaxed">
-            Three arrivals on the books, all on track except{" "}
-            <strong className="text-white">EV-07</strong>, where the supervisor
-            approval has not yet cleared. Enso S6 remains blocked on pool
-            parts; vendor ETA Friday.
-          </p>
-          <ul className="flex flex-col gap-1.5 text-xs text-white/70">
-            <li className="flex items-center gap-2">
-              <span className="w-1 h-1 rounded-full bg-white/50" />
-              Clear EV-07 supervisor review to hold 15:00 check-in.
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="w-1 h-1 rounded-full bg-white/50" />
-              Move ES-S6 ticket to Day 2; reassign tech to ES-S2.
-            </li>
-          </ul>
-          <div className="mt-auto flex items-center gap-3 flex-wrap pt-2">
-            <Button asChild size="sm" variant="secondary">
-              <Link href="/dashboard/ai">
-                Open Operations Copilot
-                <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
-              </Link>
-            </Button>
-            <span className="text-[11px] text-white/55">
-              Briefing not yet wired. AI runtime arrives in Version 4.
+      {/* Today + AI Copilot */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1.5fr 1fr",
+          gap: 14,
+          marginBottom: 14,
+        }}
+      >
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          <div
+            style={{
+              padding: "16px 20px",
+              display: "flex",
+              alignItems: "center",
+              borderBottom: "1px solid var(--line-soft)",
+            }}
+          >
+            <h2
+              style={{
+                margin: 0,
+                fontFamily: "var(--font-newsreader), serif",
+                fontSize: 22,
+                fontWeight: 400,
+              }}
+            >
+              Today
+            </h2>
+            <span
+              className="mono"
+              style={{
+                marginLeft: "auto",
+                fontSize: 11,
+                color: "var(--ink-3)",
+              }}
+            >
+              ARRIVALS · DEPARTURES · TURNOVERS
             </span>
           </div>
-        </section>
-      </div>
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Type</th>
+                <th>Villa</th>
+                <th>Guest / Notes</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TODAY_SCHEDULE.map((row) => (
+                <tr key={`${row.time}-${row.villa}-${row.type}`}>
+                  <td className="mono">{row.time}</td>
+                  <td>{row.type}</td>
+                  <td>{row.villa}</td>
+                  <td>{row.notes}</td>
+                  <td>
+                    <Badge tone={row.state.tone}>{row.state.label}</Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
 
-      {/* Quick-actions strip — preserved drill links from the previous
-          apex so muscle-memory survives the rebuild. */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { href: "/dashboard/finance", label: "Finance", icon: Wallet },
-          { href: "/dashboard/operations", label: "Operations", icon: Wrench },
-          {
-            href: "/dashboard/front-office/arrivals",
-            label: "Arrivals",
-            icon: KeyRound,
-          },
-          {
-            href: "/dashboard/villas",
-            label: "Villas",
-            icon: Building2,
-          },
-        ].map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className="rounded-3xl border border-line-soft bg-surface shadow-soft-card px-5 py-4 flex items-center justify-between gap-3 hover:bg-muted transition-colors"
-          >
-            <span className="flex items-center gap-2.5 text-sm font-medium text-ink">
-              <Icon className="w-4 h-4 text-ink-tertiary" strokeWidth={1.75} />
-              {label}
-            </span>
-            <ArrowUpRight
-              className="w-4 h-4 text-ink-tertiary"
-              strokeWidth={1.75}
-            />
-          </Link>
-        ))}
-      </div>
-
-      {/* Tonight's villa pulse — keeps the existing villa-card grid as
-          a secondary glanceable surface below the hero rows. */}
-      <Section
-        eyebrow="Tonight"
-        title="Tonight's villa pulse"
-        description="Live from the status board. Tap to open."
-        action={
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/dashboard/villas">All villas</Link>
-          </Button>
-        }
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {mockVillas.slice(0, 8).map((v) => (
-            <Link
-              key={v.id}
-              href={`/dashboard/villas/${v.id}`}
-              className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-4 flex flex-col gap-3 hover:bg-muted transition-colors"
+        {/* AI Operations Copilot card — placeholder copy until AI runs
+            service is wired (Task 6 follow-up). */}
+        <Card
+          style={{
+            padding: 20,
+            background: "var(--forest)",
+            color: "var(--cream-warm)",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              opacity: 0.13,
+              background:
+                "radial-gradient(60% 60% at 100% 0%, var(--gold) 0%, transparent 60%)",
+            }}
+          />
+          <div style={{ position: "relative" }}>
+            <div className="label" style={{ color: "rgba(244,239,230,0.6)" }}>
+              AI · Operations Copilot · 06:18
+            </div>
+            <h3
+              style={{
+                margin: "8px 0 12px",
+                fontFamily: "var(--font-newsreader), serif",
+                fontSize: 22,
+                fontWeight: 400,
+                lineHeight: 1.25,
+              }}
             >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs text-ink-tertiary">
-                  {v.code}
-                </span>
-                <StatusPill status={v.status} />
-              </div>
-              <div>
-                <div className="text-ink text-sm font-medium">{v.name}</div>
-                <div className="text-xs text-ink-tertiary">{v.project}</div>
-              </div>
-              <div className="pt-3 mt-auto border-t border-line-soft flex items-center justify-between">
-                <span className="text-[11px] text-ink-tertiary inline-flex items-center gap-1">
-                  <CalendarCheck2
-                    className="w-3 h-3"
-                    strokeWidth={1.75}
+              <em
+                style={{
+                  color: "var(--gold-soft)",
+                  fontStyle: "italic",
+                }}
+              >
+                ES-S6
+              </em>{" "}
+              blocked since yesterday — pool filter on backorder. AC ticket
+              still in progress. Suggest extending block until 24 Apr and
+              notifying Emma Whitmore (her stay request is 27 Apr).
+            </h3>
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <Link
+                href="/dashboard/operations"
+                className="btn"
+                style={{
+                  background: "var(--cream-warm)",
+                  color: "var(--ink)",
+                  fontSize: 12,
+                  padding: "6px 12px",
+                }}
+              >
+                Apply block + notify
+              </Link>
+              <Link
+                href="/dashboard/ai"
+                className="btn"
+                style={{
+                  background: "transparent",
+                  color: "var(--cream-warm)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  fontSize: 12,
+                  padding: "6px 12px",
+                }}
+              >
+                Show reasoning
+              </Link>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Channels + Monthly revenue + Owners */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1.3fr 1fr",
+          gap: 14,
+          marginBottom: 14,
+        }}
+      >
+        <Card style={{ padding: 20 }}>
+          <h3
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-newsreader), serif",
+              fontSize: 18,
+              fontWeight: 400,
+            }}
+          >
+            Revenue by channel
+          </h3>
+          <div className="label" style={{ marginTop: 4 }}>
+            MTD share
+          </div>
+          <div
+            style={{
+              marginTop: 16,
+              display: "flex",
+              flexDirection: "column",
+              gap: 11,
+            }}
+          >
+            {revenueByChannel.map((c) => (
+              <div key={c.channel}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 12.5,
+                    marginBottom: 4,
+                  }}
+                >
+                  <span>{c.channel}</span>
+                  <span className="num">{c.share}%</span>
+                </div>
+                <div
+                  style={{
+                    height: 6,
+                    background: "var(--cream-deep)",
+                    borderRadius: 999,
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${c.share * 2}%`,
+                      background: CHANNEL_COLOR[c.tone] ?? "var(--ink-2)",
+                      borderRadius: 999,
+                    }}
                   />
-                  MTD
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card style={{ padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "baseline" }}>
+            <h3
+              style={{
+                margin: 0,
+                fontFamily: "var(--font-newsreader), serif",
+                fontSize: 18,
+                fontWeight: 400,
+              }}
+            >
+              Six-month gross
+            </h3>
+            <span
+              className="num"
+              style={{
+                marginLeft: "auto",
+                fontSize: 11,
+                color: "var(--ink-3)",
+              }}
+            >
+              IDR · billions
+            </span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              gap: 8,
+              marginTop: 18,
+              height: 140,
+            }}
+          >
+            {monthlyRevenueStrip.map((row, i) => (
+              <div
+                key={row.month}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span
+                  className="num"
+                  style={{ fontSize: 10, color: "var(--ink-3)" }}
+                >
+                  {(row.revenue / 1000).toFixed(1)}
                 </span>
-                <span className="font-mono tabular-nums text-sm text-ink">
-                  {rupiahShort(v.mtdRevenue)}
+                <div
+                  style={{
+                    width: "100%",
+                    height: `${(row.revenue / monthlyMax) * 120}px`,
+                    background:
+                      i === monthlyRevenueStrip.length - 1
+                        ? "var(--terra)"
+                        : "var(--forest)",
+                    borderRadius: "4px 4px 0 0",
+                  }}
+                />
+                <span
+                  className="mono"
+                  style={{ fontSize: 10, color: "var(--ink-4)" }}
+                >
+                  {row.month}
                 </span>
               </div>
-            </Link>
-          ))}
+            ))}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: 12,
+              fontSize: 11,
+              color: "var(--ink-3)",
+            }}
+          >
+            <span>
+              6-month total:{" "}
+              <span className="num" style={{ color: "var(--ink)" }}>
+                IDR {sixMonthTotal.toFixed(2)}B
+              </span>
+            </span>
+            <span>
+              Forecast next:{" "}
+              <span className="num" style={{ color: "var(--gold)" }}>
+                IDR {(monthlyMax / 1000).toFixed(2)}B
+              </span>
+            </span>
+          </div>
+        </Card>
+
+        <Card style={{ padding: 20 }}>
+          <h3
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-newsreader), serif",
+              fontSize: 18,
+              fontWeight: 400,
+            }}
+          >
+            Owners · YTD payouts
+          </h3>
+          <div className="label" style={{ marginTop: 4 }}>
+            USD-equivalent · top {Math.min(mockOwners.length, 3)}
+          </div>
+          <ul className="clean" style={{ marginTop: 14 }}>
+            {mockOwners.slice(0, 3).map((o) => (
+              <li key={o.id} style={{ padding: "10px 0" }}>
+                <span
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 999,
+                    background:
+                      "linear-gradient(135deg, var(--gold-soft), var(--terra))",
+                    color: "var(--cream-warm)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    fontWeight: 500,
+                  }}
+                >
+                  {o.initials}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>
+                    {o.displayName}
+                  </div>
+                  <div
+                    className="mono"
+                    style={{ fontSize: 10, color: "var(--ink-4)" }}
+                  >
+                    {o.scope}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div
+                    className="num"
+                    style={{ fontSize: 13, color: "var(--terra)" }}
+                  >
+                    {idrToUsdK(o.ytdPayouts)}
+                  </div>
+                  <div
+                    className="mono"
+                    style={{ fontSize: 10, color: "var(--ink-3)" }}
+                  >
+                    {o.annualizedYield}% yield
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
+
+      {/* Operational health — 4-up */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 12,
+          marginBottom: 14,
+        }}
+      >
+        <Kpi
+          label="Open maintenance"
+          value={m.openMaintenance.value}
+          sub={`${m.openMaintenance.sla} within SLA`}
+        />
+        <Kpi
+          label="Upcoming check-ins"
+          value={upcomingCheckIns}
+          sub={`${m.upcomingCheckins.today} today · next 14 days`}
+        />
+        <Kpi
+          label="Housekeeping"
+          value={m.housekeepingOpen.value}
+          sub={`${m.housekeepingOpen.onTrack} on track`}
+        />
+        <Kpi
+          label="Owner stay requests"
+          value="2"
+          sub="1 needs relocation · 1 approved"
+        />
+      </div>
+
+      {/* Portfolio table */}
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        <div
+          style={{
+            padding: "16px 20px",
+            display: "flex",
+            alignItems: "center",
+            borderBottom: "1px solid var(--line-soft)",
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-newsreader), serif",
+              fontSize: 22,
+              fontWeight: 400,
+            }}
+          >
+            Portfolio · {projectCount} projects
+          </h2>
+          <span
+            className="mono"
+            style={{
+              marginLeft: "auto",
+              fontSize: 11,
+              color: "var(--ink-3)",
+            }}
+          >
+            {villaCount} VILLAS · {bedrooms} BEDROOMS · {projectCount} PROJECTS
+          </span>
         </div>
-      </Section>
-    </div>
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>Area</th>
+              <th className="num">Villas</th>
+              <th>Model</th>
+              <th className="num">Occ. YTD</th>
+              <th className="num">ADR (IDR M)</th>
+              <th className="num">RevPAR</th>
+              <th className="num">YTD revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mockProjects.map((p) => (
+              <tr key={p.id}>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span
+                      className="mono"
+                      style={{
+                        padding: "2px 6px",
+                        border: "1px solid var(--line)",
+                        borderRadius: 6,
+                        background: "var(--cream-warm)",
+                        fontSize: 10,
+                      }}
+                    >
+                      {p.code}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-newsreader), serif",
+                        fontSize: 15,
+                      }}
+                    >
+                      {p.name}
+                    </span>
+                  </div>
+                </td>
+                <td style={{ color: "var(--ink-3)" }}>{p.area}</td>
+                <td className="num">{p.villas}</td>
+                <td>
+                  <Badge>{p.ownershipModel}</Badge>
+                </td>
+                <td className="num">{p.occupancy}%</td>
+                <td className="num">{rupiahMillions(p.adr)}</td>
+                <td className="num">{rupiahMillions(p.revpar)}</td>
+                <td
+                  className="num"
+                  style={{ color: "var(--ink)", fontWeight: 500 }}
+                >
+                  IDR {rupiahBillions(p.ytdRevenue)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      {/* Statement nudge */}
+      <div
+        style={{
+          marginTop: 24,
+          padding: "14px 20px",
+          border: "1px dashed var(--line)",
+          borderRadius: 12,
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          fontSize: 13,
+          color: "var(--ink-3)",
+        }}
+      >
+        <span className="badge badge-gold" style={{ fontSize: 9 }}>
+          NEXT
+        </span>
+        <span>
+          Owner statement for{" "}
+          <strong style={{ color: "var(--ink)" }}>
+            Emma Whitmore · EV-07 · March 2026
+          </strong>{" "}
+          awaits your sign-off before auto-sending on 1 May 09:00 GMT+8.
+        </span>
+        <Link
+          href="/dashboard/finance"
+          className="btn btn-terra btn-sm"
+          style={{ marginLeft: "auto" }}
+        >
+          Open statement →
+        </Link>
+      </div>
+    </>
   );
 }
+
+// ============================================================
+// Today's schedule — preserved from prototype until ops service wires
+// arrivals/departures/turnovers (Task 6 follow-up).
+// ============================================================
+
+interface BadgeTone {
+  label: string;
+  tone?: "ok" | "warn" | "info" | "gold";
+}
+interface ScheduleRow {
+  time: string;
+  type: string;
+  villa: string;
+  notes: string;
+  state: BadgeTone;
+}
+
+const TODAY_SCHEDULE: ScheduleRow[] = [
+  {
+    time: "11:00",
+    type: "Turnover",
+    villa: "ES-S2",
+    notes: "Sari W. · checklist 11/18",
+    state: { label: "In progress", tone: "info" },
+  },
+  {
+    time: "13:00",
+    type: "Inspection",
+    villa: "EV-07",
+    notes: "Ketut A. · awaiting Made S. sign-off",
+    state: { label: "Approval", tone: "gold" },
+  },
+  {
+    time: "14:00",
+    type: "Arrival",
+    villa: "EV-07",
+    notes: "H. Williams · 5 nights · BCN agent",
+    state: { label: "Ready 13:30", tone: "ok" },
+  },
+  {
+    time: "14:30",
+    type: "Turnover",
+    villa: "AH-02",
+    notes: "Made T. · checklist 0/24",
+    state: { label: "Queued" },
+  },
+  {
+    time: "15:30",
+    type: "Arrival",
+    villa: "ES-S2",
+    notes: "Family Nielsen · 6 nights · Direct",
+    state: { label: "Cleaning", tone: "info" },
+  },
+  {
+    time: "16:00",
+    type: "Arrival",
+    villa: "ES-S5",
+    notes: "A. Martin · 4 nights · Booking.com",
+    state: { label: "Ready", tone: "ok" },
+  },
+  {
+    time: "11:30",
+    type: "Departure",
+    villa: "AH-02",
+    notes: "S. Dubois · late checkout till 12:00",
+    state: { label: "Checkout", tone: "warn" },
+  },
+];
