@@ -119,6 +119,19 @@ export default async function TransactionsPage({
                 Finance
               </Link>
             </Button>
+            {/* HF-7-FINISH A4: surface the bookkeeper entry surfaces
+                directly from the list — mirror of the cabinet's
+                quick-action strip. */}
+            <Button asChild variant="secondary">
+              <Link href="/development-os/finance/transactions/quick-entry">
+                + Quick entry
+              </Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/development-os/finance/transactions/import">
+                Import CSV/XLSX
+              </Link>
+            </Button>
             <TransactionModalForm
               bankAccounts={accountOptions}
               costCategories={categoryOptions}

@@ -32,6 +32,7 @@
     "docs:route-map": "node --import tsx scripts/generate-route-map-doc.ts",
     "preflight:deploy": "node --import tsx scripts/preflight-deploy.ts",
     "seed:production:minimal": "node --env-file=.env.local --import tsx scripts/seed-production-minimal.ts",
+    "seed:arconique-demo": "node --env-file=.env.local --import tsx scripts/seed-arconique-demo.ts",
     "stripe:provision": "node --env-file=.env.local --import tsx scripts/stripe-provision.ts",
     "stripe:provision:apply": "node --env-file=.env.local --import tsx scripts/stripe-provision.ts --apply"
   },

@@ -106,3 +106,37 @@ chars of any non-public value.
 3. Add it to `.env.example` with a placeholder + comment.
 4. If it's optional with a default, add a getter to `src/lib/env.ts`.
 5. Run `npm run check:env` to verify the validator picks it up.
+
+## Registry-vs-source audit (RELIABILITY-1 Task 5)
+
+`npm run audit:env` scans every `.ts` / `.tsx` file under `src/` for
+`process.env.X` references and diffs the set against this registry.
+As of RELIABILITY-1's first run:
+
+- **62 env vars** referenced in source code
+- **32 entries** in the registry (`src/lib/env/registry.ts`)
+- **31 vars used in source but missing from the registry** — these
+  are blind spots for `check:env` (the validator can't warn when
+  they're misconfigured) and silent-degradation hazards
+- **1 retired entry** in the registry with no current source reference
+
+The 31 missing vars span several feature areas:
+
+| Area | Missing vars |
+|---|---|
+| AI providers | `OPENAI_API_KEY`, `OPENAI_MODEL`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_PROVIDER` |
+| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_BILLING_WEBHOOK_SECRET` |
+| WhatsApp / Twilio | `WHATSAPP_PROVIDER`, `WHATSAPP_REQUIRE_REAL_PROVIDER`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`, `TWILIO_WHATSAPP_FROM_NUMBER` |
+| Web push | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` |
+| Banking webhooks | `REVOLUT_WEBHOOK_SECRET`, `WISE_WEBHOOK_PUBLIC_KEY`, `WISE_PAYMENTS_WEBHOOK_PUBLIC_KEY` |
+| Google Workspace | `GOOGLE_WORKSPACE_OAUTH_CLIENT_ID`, `..._SECRET`, `..._REDIRECT_URI`, `GOOGLE_WORKSPACE_DRY_RUN` |
+| Meta webhooks | `INSTAGRAM_WEBHOOK_VERIFY_TOKEN`, `MESSENGER_WEBHOOK_VERIFY_TOKEN`, `META_PIXEL_WEBHOOK_VERIFY_TOKEN` |
+| Demo flags | `DEMO_MODE`, `ALLOW_DEMO_SECURITY_FALLBACKS`, `ALLOW_DEV_CRON_WITHOUT_SECRET`, `EMAIL_DRY_RUN` |
+| Investor portal | `NEXT_PUBLIC_INVESTOR_PORTAL_URL` |
+
+Recommended follow-up: a focused "env registry backfill" sprint to
+add each of these to `ENV_REGISTRY` with the correct category +
+required/optional level + redaction policy. Mechanical work, no
+behavior change to the running app, but every backfilled entry
+becomes a `check:env` gate that catches misconfiguration before
+the operator hits it in production.
