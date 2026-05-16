@@ -88,14 +88,18 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
+  /** Anchor target for in-page nav (e.g. `id="statements"` matches the
+   *  `#statements` href in the sidebar). */
+  id?: string;
   /** Optional tone-tinted background. `dark` = inverted dark card
    *  (Mgmt: forest-deep; Dev: ink), used for the editorial AI band
    *  cards. */
   tone?: "default" | "dark";
 }
-export function Card({ children, className, style, tone = "default" }: CardProps) {
+export function Card({ children, className, style, id, tone = "default" }: CardProps) {
   return (
     <div
+      id={id}
       className={"card" + (className ? ` ${className}` : "")}
       style={
         tone === "dark"

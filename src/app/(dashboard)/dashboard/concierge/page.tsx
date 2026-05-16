@@ -1,488 +1,372 @@
-import Link from "next/link";
 import {
-  ArrowUpRight,
-  Inbox,
-  Sparkles,
-  UserPlus,
-} from "lucide-react";
-import { DashboardKpi } from "@/components/ui/primitives";
-import {
-  GuestArrivalsList,
-  HalfDonutGauge,
-  HeroGreetingAI,
-  KpiRowMixed,
-  PatrolTimeline,
-  type GuestArrivalItem,
-  type KpiItem,
-  type PatrolEvent,
-} from "@/components/award";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
-import { getCurrentAppUser } from "@/features/auth/current-user";
-import {
-  countSessionsByStatus,
-  listAdminSessions,
-} from "@/features/guest-ai-concierge/services";
-import { countHandoffsByStatus } from "@/features/guest-ai-concierge/handoff-services";
-import { getOrderStats } from "@/features/guest-services/services";
-import { listArrivals } from "@/features/front-office/services";
-import { isAiConfigured, isAiDryRun } from "@/lib/env";
-import { loadConciergeHandoffOutputs } from "@/lib/development/server/ai/concierge-handoff-queries";
-import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
-import { safeQuery } from "@/lib/development/safe-query";
+  Kpi,
+  SectionHeading,
+  Card,
+  Badge,
+  Pulse,
+} from "@/components/dashboard/primitives";
 
 /**
- * Mega-Sprint / Phase 10 — Concierge cabinet apex consolidating
- * guest-ai + guest-services + guest-journey hubs into a single
- * `/dashboard/concierge` surface per the operator decision lock
- * ("merge 3 hubs into /dashboard/concierge"). The three legacy hubs
- * survive as sub-routes; the cabinet apex pulls their stats into one
- * Sprint-4 gold-standard view.
+ * Sprint _handoff/ Task 6 (visual port) — Mgmt OS Concierge cabinet.
  *
- * AI placeholder ships pointing at the future `concierge-handoff`
- * operator-facing agent (today's Concierge AI is guest-facing).
+ * 1:1 visual port of `_handoff/management/concierge.html` (app.js
+ * block). Live transcript wiring (`getActiveSession()` from
+ * `src/features/guest-ai/services`) is deferred to TASK-6-DATA per
+ * docs/audits/task-6-data-wiring-todo.md — SESSIONS / HANDOFFS /
+ * TRANSCRIPT / SAFETY mocks below are preserved verbatim from the
+ * prototype.
+ *
+ * Section order: SectionHeading → 5-up KPIs → 2-up (Sessions list +
+ * active Transcript chat panel) → Handoffs queue table → 2-up
+ * (Security events + AI Memory editor).
  */
 
-export const metadata = { title: "Concierge" };
+export const metadata = { title: "Concierge AI" };
 export const dynamic = "force-dynamic";
 
-function todayLabel(now: Date): string {
-  const day = now.getDate();
-  const weekday = now.toLocaleDateString("en-US", { weekday: "short" });
-  const month = now.toLocaleDateString("en-US", { month: "long" });
-  return `${day} · ${weekday}, ${month}`;
+// TODO(task-6-data): wire to features/guest-ai/services.listActiveSessions().
+const SESSIONS = [
+  { id: "sess-a14", guest: "Mr. Tanaka", villa: "ES-S1", lang: "JA", started: "23:18", msgs: 8, status: "active" as const, last: "Pool heater set 28°C from 05:30 ✓" },
+  { id: "sess-a13", guest: "S. Dubois", villa: "AH-02", lang: "FR", started: "08:14", msgs: 3, status: "active" as const, last: "Late checkout 12:00 confirmed" },
+  { id: "sess-a12", guest: "Family Nielsen", villa: "ES-S2", lang: "DA", started: "07:42", msgs: 6, status: "handoff" as const, last: "AC not cool → ESCALATED to Budi" },
+  { id: "sess-a11", guest: "L. Okonkwo", villa: "AH-01", lang: "EN", started: "yesterday", msgs: 11, status: "resolved" as const, last: "Dinner at Locavore booked · 19:30" },
+  { id: "sess-a10", guest: "H. Williams", villa: "EV-07", lang: "EN", started: "yesterday", msgs: 5, status: "resolved" as const, last: "Airport pickup confirmed · 14:00" },
+  { id: "sess-a09", guest: "K. Park", villa: "ES-S1", lang: "KO", started: "yesterday", msgs: 14, status: "resolved" as const, last: "Restaurant in Ubud booked" },
+];
+
+// TODO(task-6-data): wire to features/guest-ai/services.listHandoffs().
+const HANDOFFS = [
+  { id: "hand-1", from: "sess-a12", villa: "ES-S2", who: "Family Nielsen", text: "AC unit not cooling below 26°C. Family asking when fix expected — they have a 2 yr old child.", priority: "urgent" as const, assigned: "Budi W.", elapsed: "6m" },
+  { id: "hand-2", from: "sess-z08", villa: "ES-S6", who: "Anya P.", text: "Pool not opening tomorrow morning — known issue. Guest requests alternative.", priority: "warn" as const, assigned: "Made S.", elapsed: "22m" },
+];
+
+// TODO(task-6-data): wire to features/guest-ai/services.getActiveSession(id) for the right pane.
+const TRANSCRIPT: { from: "guest" | "ai"; t: string; at: string }[] = [
+  { from: "guest", t: "Hi! Pool heater for tomorrow 6am pls? We'd like to swim before checkout 🙏", at: "23:18" },
+  { from: "ai", t: "Of course, Mr. Tanaka. Pool heated to 28°C from 05:30 to 09:00. I've also moved your checkout to 12:00 — no charge. Anything else for the morning?", at: "23:18" },
+  { from: "guest", t: "Wow thanks. Could we maybe get breakfast at 7? Two croissants and fruit", at: "23:19" },
+  { from: "ai", t: "Done. Chef Ari is making a fruit bowl with mangosteen + hot croissants for 07:00 on the deck. ☕ I've added IDR 420K to your stay.", at: "23:19" },
+  { from: "guest", t: "Perfect. Sleep well 🙏", at: "23:20" },
+  { from: "ai", t: "Oyasumi nasai, Tanaka-san. The smart-lock code remains valid until checkout. Pool fence stays locked until 05:30.", at: "23:20" },
+];
+
+// TODO(task-6-data): wire to features/security/services.listGuestSafetyEvents() — last 24h.
+const SAFETY = [
+  { id: "sec-1", evt: "Repeated lock attempts", villa: "ES-S6", time: "14:22", risk: "low", note: "Anya P. — likely typo, 3 attempts" },
+  { id: "sec-2", evt: "WiFi credential reveal", villa: "AH-01", time: "11:08", risk: "info", note: "L. Okonkwo · normal viewer pattern" },
+  { id: "sec-3", evt: "Token URL reused", villa: "EV-07", time: "09:14", risk: "info", note: "H. Williams · second device" },
+];
+
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .filter((p) => p && /[A-Za-z]/.test(p[0]))
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
-function readinessFor(
-  readiness: string,
-): "ready" | "in_progress" | "blocked" | "unknown" {
-  switch (readiness) {
-    case "ready":
-      return "ready";
-    case "in_progress":
-    case "preparing":
-      return "in_progress";
-    case "blocked":
-    case "blocker":
-      return "blocked";
-    default:
-      return "unknown";
-  }
-}
-
-export default async function ConciergeCabinetPage() {
-  const today = new Date();
-  const me = await getCurrentAppUser();
-  const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
-
-  const [
-    sessionCounts,
-    handoffCounts,
-    orderStats,
-    recentSessions,
-    arrivals,
-    handoffOutputs,
-    handoffEnabled,
-  ] = await Promise.all([
-    // STAB-3 fix: wrap every concierge cabinet fetch in safeQuery
-    // (4s timeout). The `listAdminSessions` query joins
-    // guest_ai_concierge_sessions × guest_stay_tokens × bookings ×
-    // a CTE for message counts, and was timing out at the PG layer
-    // (statement-timeout 57014) under non-trivial data load. The
-    // unhandled rejection bubbled up and crashed the whole page
-    // with a 500. Same pattern as STAB-2's reservations fix.
-    safeQuery(
-      "concierge:countSessionsByStatus",
-      countSessionsByStatus(),
-      { active: 0, archived: 0, refused: 0 },
-      4000,
-    ),
-    safeQuery(
-      "concierge:countHandoffsByStatus",
-      countHandoffsByStatus(),
-      { created: 0, linked: 0, acknowledged: 0, resolved: 0, urgent: 0 },
-      4000,
-    ),
-    safeQuery(
-      "concierge:getOrderStats",
-      getOrderStats(),
-      {
-        total: 0,
-        active: 0,
-        fulfilled: 0,
-        cancelled: 0,
-        pendingFinanceBridge: 0,
-        bridgedRevenueMinor: 0n,
-        currency: null,
-      },
-      4000,
-    ),
-    safeQuery(
-      "concierge:listAdminSessions",
-      listAdminSessions({ limit: 8, status: "active" }),
-      [],
-      4000,
-    ),
-    safeQuery("concierge:listArrivals", listArrivals(today), [], 4000),
-    loadConciergeHandoffOutputs({ limit: 3 }).catch(() => []),
-    isAgentEnabledForCurrentOrg("concierge_handoff").catch(() => false),
-  ]);
-
-  const live = isAiConfigured() && !isAiDryRun();
-  const openHandoffs =
-    handoffCounts.created + handoffCounts.linked + handoffCounts.acknowledged;
-  const handoffHealth =
-    sessionCounts.active > 0
-      ? Math.round(
-          ((sessionCounts.active - openHandoffs) / sessionCounts.active) * 100,
-        )
-      : 100;
-
-  const kpis: KpiItem[] = [
-    {
-      label: "Active sessions",
-      value: String(sessionCounts.active),
-      delta:
-        sessionCounts.active === 0
-          ? "Inbox is quiet"
-          : `${sessionCounts.archived} archived · ${sessionCounts.refused} refused`,
-      href: "/dashboard/guest-ai/sessions",
-    },
-    {
-      label: "Awaiting human handoff",
-      value: String(openHandoffs),
-      delta:
-        handoffCounts.urgent > 0
-          ? `${handoffCounts.urgent} urgent`
-          : openHandoffs === 0
-            ? "No escalations"
-            : "Pending response",
-      href: "/dashboard/guest-ai/handoffs",
-    },
-    {
-      label: "Live service orders",
-      value: String(orderStats.active),
-      delta: `${orderStats.fulfilled} fulfilled · ${orderStats.cancelled} cancelled`,
-      href: "/dashboard/guest-services/orders",
-    },
-    {
-      label: "AI mode",
-      value: live ? "Live" : "Fallback",
-      delta: live
-        ? "ANTHROPIC_API_KEY set"
-        : "Deterministic answers",
-      href: "/dashboard/guest-ai",
-    },
-  ];
-
-  const arrivalItems: GuestArrivalItem[] = arrivals.slice(0, 6).map((a) => ({
-    id: a.bookingId,
-    guestDisplay: a.guestDisplay,
-    guestsCount: a.guestsCount,
-    villaCode: a.villaCode ?? "—",
-    villaSubtitle: a.projectName ?? undefined,
-    channelName: a.channelName,
-    timestamp: a.checkInDate,
-    readiness: readinessFor(a.readinessStatus),
-    hasOpenServiceRequest: a.hasOpenServiceRequest,
-    href: `/dashboard/bookings/${a.bookingId}`,
-  }));
-
-  const timelineEvents: PatrolEvent[] = recentSessions.map((s) => ({
-    id: s.id,
-    timestamp: s.lastMessageAt
-      ? new Date(s.lastMessageAt).toISOString().slice(11, 16)
-      : "—",
-    status: "info",
-    title: `Session ${s.tokenPrefix ?? "—"}`,
-    body: `${s.bookingCode ?? "no booking"} · ${s.messageCount} messages`,
-    kind: "check",
-    href: `/dashboard/guest-ai/sessions/${s.id}`,
-    statusLabel: "active",
-  }));
-
+export default function ConciergePage() {
   return (
-    <div className="flex flex-col gap-8 md:gap-10">
-      <HeroGreetingAI
-        firstName={firstName}
-        role="Concierge · Cabinet"
-        dateLabel={todayLabel(today)}
-        aiPromptPlaceholder="Concierge handoff agent — coming soon."
-        showMyTasksHref="/dashboard/guest-ai/handoffs"
+    <>
+      <SectionHeading
+        eyebrow="Concierge AI · 7 active villas · 4 languages"
+        title={
+          <>
+            Eighteen quiet decisions{" "}
+            <em style={{ color: "var(--terra)", fontStyle: "italic" }}>your guests</em> never had to ask twice for.
+          </>
+        }
+        subtitle="Multilingual replies on WhatsApp, in-stay portal and email. Escalates only what truly needs you. Audit log per reply."
+        actions={
+          <>
+            <button className="btn btn-secondary btn-sm">Templates</button>
+            <button className="btn btn-secondary btn-sm">Memory</button>
+            <button className="btn btn-primary btn-sm">Review handoffs · 2</button>
+          </>
+        }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-        {[
-          {
-            href: "/dashboard/guest-ai/handoffs",
-            icon: Inbox,
-            label: "Review handoffs",
-            caption:
-              openHandoffs > 0
-                ? `${openHandoffs} open · ${handoffCounts.urgent} urgent`
-                : "No escalations",
-          },
-          {
-            href: "/dashboard/guest-services/orders",
-            icon: UserPlus,
-            label: "Service orders",
-            caption: `${orderStats.active} live · ${orderStats.fulfilled} fulfilled`,
-          },
-          {
-            href: "/dashboard/guest-ai",
-            icon: Sparkles,
-            label: "Guest AI surface",
-            caption: live ? "Live mode" : "Fallback mode",
-          },
-        ].map(({ href, icon: Icon, label, caption }) => (
-          <Link
-            key={href}
-            href={href}
-            className="rounded-3xl border border-line-soft bg-surface shadow-soft-card px-5 py-4 flex items-center gap-4 hover:bg-muted/40 transition-colors"
-          >
-            <span className="shrink-0 w-10 h-10 rounded-full bg-gradient-coral-soft border border-line-soft inline-flex items-center justify-center">
-              <Icon className="w-4 h-4 text-ink" strokeWidth={1.75} />
-            </span>
-            <span className="flex flex-col min-w-0 flex-1">
-              <span className="text-sm font-medium text-ink truncate">
-                {label}
-              </span>
-              <span className="text-xs text-ink-tertiary truncate">
-                {caption}
-              </span>
-            </span>
-            <ArrowUpRight
-              className="w-4 h-4 text-ink-tertiary shrink-0"
-              strokeWidth={1.75}
-            />
-          </Link>
-        ))}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+        <Kpi label="Active sessions" value="3" sub="2 last hour · 1 since yesterday" tone="success" />
+        <Kpi label="Messages · today" value="142" sub="6.2 avg per session" />
+        <Kpi label="Auto-resolved" value="94%" sub="vs 88% Mar" tone="gold" />
+        <Kpi label="Handoffs queued" value="2" sub="1 urgent · 1 warn" tone="accent" />
+        <Kpi label="CSAT · 30d" value="4.86" sub="↑ 0.08 vs last 30d" />
       </div>
 
-      <KpiRowMixed kpis={kpis} heroTone="coral-solid" />
-
-      <Section
-        eyebrow="Today's pulse"
-        title="Handoff health"
-        description="Share of active concierge sessions that are not currently awaiting human handoff."
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
-          <HalfDonutGauge
-            variant="emerald"
-            value={handoffHealth}
-            max={100}
-            label={
-              <>
-                <p className="text-display text-[28px] md:text-[36px] leading-none font-medium text-ink tabular-nums">
-                  {handoffHealth}%
-                </p>
-                <p className="text-xs text-ink-tertiary mt-1">
-                  Sessions self-served
-                </p>
-              </>
-            }
-            legend={[
-              {
-                label: `${Math.max(0, sessionCounts.active - openHandoffs)} self-served`,
-              },
-              {
-                label: `${openHandoffs} need human`,
-                color: "var(--line-strong)",
-              },
-            ]}
-          />
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
-            <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
-              Service-order revenue
+      {/* 2-up: sessions list + active transcript */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 14, marginBottom: 18 }}>
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", borderBottom: "1px solid var(--line-soft)" }}>
+            <h3 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 18, fontWeight: 400 }}>
+              Sessions
+            </h3>
+            <span className="mono" style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}>
+              6 · ALL CHANNELS
             </span>
-            <p className="text-display text-[32px] leading-none font-medium font-mono tabular-nums text-ink">
-              {orderStats.bridgedRevenueMinor > 0
-                ? `${orderStats.currency ?? "USD"} ${(Number(orderStats.bridgedRevenueMinor) / 100).toLocaleString()}`
-                : "—"}
-            </p>
-            <p className="text-xs text-ink-secondary leading-relaxed">
-              {orderStats.pendingFinanceBridge > 0
-                ? `${orderStats.pendingFinanceBridge} fulfilled orders awaiting finance bridge.`
-                : "All fulfilled orders are bridged into the revenue ledger."}
-            </p>
-            <Link
-              href="/dashboard/guest-services/finance-bridge"
-              className="text-xs text-info hover:underline self-start"
-            >
-              Finance bridge →
-            </Link>
           </div>
-        </div>
-      </Section>
-
-      <Section
-        eyebrow="Arrivals"
-        title="Today's guest arrivals"
-        description="Use this list to anticipate concierge demand for the next 24 hours."
-        action={
-          <Link
-            href="/dashboard/front-office/arrivals"
-            className="text-xs text-ink-tertiary hover:underline"
-          >
-            Full arrivals board →
-          </Link>
-        }
-      >
-        <GuestArrivalsList
-          items={arrivalItems}
-          maxVisible={6}
-          moreHref="/dashboard/front-office/arrivals"
-          emptyMessage="No arrivals today."
-        />
-      </Section>
-
-      <Section
-        eyebrow="Activity"
-        title="Recent concierge sessions"
-        description="Most-recent active sessions across all stays."
-        action={
-          <Link
-            href="/dashboard/guest-ai/sessions"
-            className="text-xs text-ink-tertiary hover:underline"
-          >
-            All sessions →
-          </Link>
-        }
-      >
-        {timelineEvents.length === 0 ? (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm text-ink-tertiary">
-            No active sessions yet. Guests will appear here when they
-            engage the in-stay concierge.
-          </div>
-        ) : (
-          <PatrolTimeline
-            events={timelineEvents}
-            maxVisible={8}
-            moreHref="/dashboard/guest-ai/sessions"
-          />
-        )}
-      </Section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Section
-            eyebrow="Hubs"
-            title="Concierge surfaces"
-            description="The three previously-separate hubs survive as sub-routes under this cabinet."
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <HubCard
-                href="/dashboard/guest-ai"
-                title="Guest AI"
-                detail={`${sessionCounts.active} active sessions`}
-              />
-              <HubCard
-                href="/dashboard/guest-services"
-                title="Guest services"
-                detail={`${orderStats.active} live orders`}
-              />
-              <HubCard
-                href="/dashboard/guest-journey"
-                title="Guest journey"
-                detail="Lifecycle templates"
-              />
-            </div>
-          </Section>
-        </div>
-
-        <aside className="flex flex-col gap-4">
-          <Section eyebrow="Stats" title="Quick reference">
-            <DashboardKpi
-              label="Refusals (all-time)"
-              value={String(sessionCounts.refused)}
-              status={sessionCounts.refused > 0 ? "warn" : "neutral"}
-              drillHref="/dashboard/guest-ai/sessions"
-            />
-          </Section>
-
-          <Section eyebrow="AI" title="Concierge handoff agent">
-            {!handoffEnabled ? (
-              <Link
-                href="/dashboard/settings/ai-agents/concierge_handoff"
-                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
+          <ul className="clean" style={{ padding: 0 }}>
+            {SESSIONS.map((s, i) => (
+              <li
+                key={s.id}
+                style={{
+                  padding: "12px 18px",
+                  flexDirection: "column",
+                  alignItems: "stretch",
+                  gap: 6,
+                  borderLeft: i === 0 ? "3px solid var(--terra)" : "3px solid transparent",
+                  background: i === 0 ? "var(--cream-warm)" : "transparent",
+                  cursor: "pointer",
+                  display: "flex",
+                }}
               >
-                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                  Coming soon · Configure key
-                </span>
-                <p className="text-sm leading-relaxed opacity-90">
-                  The concierge-handoff agent ships with a dry-run
-                  default. Wire a provider key to flip it live;
-                  ranked attention list surfaces here.
-                </p>
-                <Badge tone="outline" className="self-start">
-                  Configure provider →
-                </Badge>
-              </Link>
-            ) : handoffOutputs.length === 0 ? (
-              <Link
-                href="/dashboard/ai/jobs?agent=concierge_handoff"
-                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
-              >
-                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                  No runs yet
-                </span>
-                <p className="text-sm leading-relaxed opacity-90">
-                  Trigger the concierge-handoff agent to rank active
-                  sessions by human-attention urgency.
-                </p>
-                <Badge tone="outline" className="self-start">
-                  Run agent →
-                </Badge>
-              </Link>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {handoffOutputs.map((o) => (
-                  <Link
-                    key={o.id}
-                    href={`/dashboard/ai/outputs/${o.outputCode}`}
-                    className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-5 md:p-6 flex flex-col gap-2 hover:opacity-95 transition-opacity"
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    style={{
+                      width: 28, height: 28, borderRadius: 999,
+                      background: "var(--cream-deep)", border: "1px solid var(--line)",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10,
+                    }}
                   >
-                    <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                      {new Date(o.createdAt).toLocaleDateString("en-US", {
-                        day: "numeric",
-                        month: "short",
-                        hour: "numeric",
-                        minute: "numeric",
-                      })}
-                    </span>
-                    <h4 className="text-sm font-medium line-clamp-2">
-                      {o.title}
-                    </h4>
-                    <p className="text-xs opacity-90 leading-relaxed line-clamp-3">
-                      {o.summary}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </Section>
-        </aside>
-      </div>
-    </div>
-  );
-}
+                    {initials(s.guest)}
+                  </span>
+                  <span style={{ fontWeight: 500, fontSize: 13.5 }}>{s.guest}</span>
+                  <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>
+                    {s.villa} · {s.lang}
+                  </span>
+                  <span className="mono" style={{ marginLeft: "auto", fontSize: 10, color: "var(--ink-4)" }}>
+                    {s.started}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-3)", paddingLeft: 36, lineHeight: 1.4 }}>{s.last}</div>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", paddingLeft: 36 }}>
+                  {s.status === "active" && (
+                    <Badge tone="ok">
+                      <Pulse /> Live
+                    </Badge>
+                  )}
+                  {s.status === "handoff" && <Badge tone="warn">Handoff</Badge>}
+                  {s.status === "resolved" && <Badge>Resolved</Badge>}
+                  <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>{s.msgs} msgs</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
 
-function HubCard({
-  href,
-  title,
-  detail,
-}: {
-  href: string;
-  title: string;
-  detail: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card hover:shadow-elevated-card hover:border-line-strong transition-all block"
-    >
-      <div className="text-ink font-medium text-base">{title}</div>
-      <div className="text-sm text-ink-secondary mt-1">{detail}</div>
-    </Link>
+        <Card style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", gap: 10 }}>
+            <span
+              style={{
+                width: 36, height: 36, borderRadius: 999,
+                background: "linear-gradient(135deg, var(--gold), var(--terra))",
+                color: "var(--cream-warm)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 11, fontWeight: 500,
+              }}
+            >
+              TA
+            </span>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 500 }}>Mr. Tanaka · Enso S1 · 6 nights stay</div>
+              <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                WhatsApp · sess-a14 · JA → translated EN
+              </div>
+            </div>
+            <span style={{ marginLeft: "auto" }}>
+              <Badge tone="ok"><Pulse /> Live</Badge>
+            </span>
+          </div>
+          <div
+            style={{
+              padding: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              flex: 1,
+              background: "var(--cream-warm)",
+              overflow: "auto",
+              maxHeight: 380,
+            }}
+          >
+            {TRANSCRIPT.map((m, i) => (
+              <div key={i} style={{ alignSelf: m.from === "guest" ? "flex-start" : "flex-end", maxWidth: "80%" }}>
+                <div
+                  style={{
+                    padding: "9px 13px",
+                    borderRadius: 14,
+                    fontSize: 13.5,
+                    lineHeight: 1.5,
+                    background: m.from === "guest" ? "var(--paper)" : "var(--forest)",
+                    color: m.from === "guest" ? "var(--ink)" : "var(--cream-warm)",
+                    border: m.from === "guest" ? "1px solid var(--line-soft)" : "0",
+                  }}
+                >
+                  {m.t}
+                </div>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: 10,
+                    color: "var(--ink-4)",
+                    marginTop: 3,
+                    textAlign: m.from === "guest" ? "left" : "right",
+                  }}
+                >
+                  {m.from === "ai" ? "Concierge AI" : "Mr. Tanaka"} · {m.at}
+                </div>
+              </div>
+            ))}
+            <div
+              className="mono"
+              style={{
+                alignSelf: "flex-end",
+                fontSize: 11,
+                color: "var(--ink-3)",
+                display: "flex",
+                gap: 6,
+                padding: "4px 6px",
+                alignItems: "center",
+              }}
+            >
+              <span className="pulse-dot" style={{ background: "var(--gold)" }} />
+              <span>AI typing...</span>
+            </div>
+          </div>
+          <div style={{ padding: 14, borderTop: "1px solid var(--line-soft)", display: "flex", gap: 8 }}>
+            <input
+              placeholder="Step in as human concierge…"
+              style={{
+                flex: 1,
+                padding: "9px 12px",
+                border: "1px solid var(--line)",
+                borderRadius: 999,
+                background: "var(--paper)",
+                fontSize: 13,
+                fontFamily: "inherit",
+                color: "var(--ink)",
+              }}
+            />
+            <button className="btn btn-ghost btn-sm">Suggest</button>
+            <button className="btn btn-primary btn-sm">Send</button>
+          </div>
+        </Card>
+      </div>
+
+      <h2
+        className="display"
+        style={{ fontSize: 30, marginTop: 32, marginBottom: 14, fontWeight: 400 }}
+      >
+        Handoffs needing{" "}
+        <em style={{ color: "var(--terra)", fontStyle: "italic" }}>your eyes</em>
+      </h2>
+      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Session</th>
+              <th>Villa</th>
+              <th>Guest</th>
+              <th>What</th>
+              <th>Priority</th>
+              <th>Assigned</th>
+              <th>Elapsed</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {HANDOFFS.map((h) => (
+              <tr
+                key={h.id}
+                style={{
+                  background: h.priority === "urgent" ? "rgba(196,88,60,0.04)" : "transparent",
+                }}
+              >
+                <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>{h.from}</td>
+                <td className="mono">{h.villa}</td>
+                <td>{h.who}</td>
+                <td style={{ maxWidth: 380, fontSize: 13 }}>{h.text}</td>
+                <td>
+                  {h.priority === "urgent"
+                    ? <Badge tone="danger">Urgent</Badge>
+                    : <Badge tone="warn">Warn</Badge>}
+                </td>
+                <td><Badge>{h.assigned}</Badge></td>
+                <td className="mono">{h.elapsed}</td>
+                <td>
+                  <button className="btn btn-secondary btn-sm">Open →</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14 }}>
+        <Card style={{ padding: 20 }}>
+          <h3 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 18, fontWeight: 400 }}>
+            Security events · last 24h
+          </h3>
+          <div className="label" style={{ marginTop: 4 }}>Token usage · WiFi reveal · lock attempts</div>
+          <ul className="clean" style={{ marginTop: 14 }}>
+            {SAFETY.map((s) => (
+              <li key={s.id} style={{ padding: "10px 0" }}>
+                <span
+                  style={{
+                    width: 8, height: 8, borderRadius: 999,
+                    background: s.risk === "low" ? "var(--warn)" : "var(--info)",
+                  }}
+                />
+                <span style={{ fontSize: 13, flex: 1 }}>
+                  <strong>{s.evt}</strong> ·{" "}
+                  <span className="mono" style={{ color: "var(--ink-3)" }}>{s.villa}</span> ·{" "}
+                  <span style={{ color: "var(--ink-3)" }}>{s.note}</span>
+                </span>
+                <span className="mono" style={{ fontSize: 11, color: "var(--ink-4)" }}>{s.time}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+
+        <Card style={{ padding: 20, background: "var(--cream-warm)", border: "1px dashed var(--line)" }}>
+          <div className="label">Memory · written by AI</div>
+          <h3
+            style={{
+              margin: "6px 0 12px",
+              fontFamily: "var(--font-newsreader), serif",
+              fontSize: 18,
+              fontWeight: 400,
+            }}
+          >
+            What the AI remembers across stays
+          </h3>
+          <ul
+            style={{
+              listStyle: "none",
+              padding: 0,
+              margin: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              fontSize: 13,
+              color: "var(--ink-2)",
+            }}
+          >
+            <li>· Tanaka family prefer <strong>Japanese-style breakfast</strong> · ¥-pricing comfort</li>
+            <li>· Nielsen kids (4, 6) — <strong>pool gates locked</strong> by default</li>
+            <li>· Williams — <strong>peanut allergy</strong>, kitchen briefed at every arrival</li>
+            <li>· Okonkwo — repeat visitor, <strong>complimentary spa hour</strong> approved</li>
+          </ul>
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ marginTop: 16, width: "100%", justifyContent: "center" }}
+          >
+            Open memory editor
+          </button>
+        </Card>
+      </div>
+    </>
   );
 }
