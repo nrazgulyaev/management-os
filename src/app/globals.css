@@ -720,19 +720,253 @@
   50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; }
 }
 
-/* Reveal on scroll — paired with <RevealOnScroll> in Task 2 */
+/* ============================================================
+   _handoff/ Task 9 — Motion + mobile layer.
+   Ported verbatim from `_handoff/_shared/motion-mobile.html`.
+   Paired with src/components/MotionLayer.tsx (client island
+   mounted once in src/app/layout.tsx).
+   ============================================================ */
+
+/* Custom cursor — pointer:fine only */
+@media (pointer: fine) {
+  .cursor-dot {
+    position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99999;
+    width: 8px; height: 8px; border-radius: 999px;
+    background: var(--terra, var(--amber, #C4583C));
+    transform: translate3d(-100px,-100px,0) translate(-50%,-50%);
+    transition: width .25s ease, height .25s ease, background .25s ease, opacity .25s ease;
+    mix-blend-mode: multiply;
+  }
+  .cursor-ring {
+    position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99998;
+    width: 36px; height: 36px; border-radius: 999px;
+    border: 1.5px solid var(--ink, #14130E);
+    transform: translate3d(-100px,-100px,0) translate(-50%,-50%);
+    transition: width .25s ease, height .25s ease, border-color .25s ease, background .25s ease, opacity .25s ease;
+  }
+  .cursor-dot.cursor-hover { width: 0; height: 0; opacity: 0; }
+  .cursor-ring.cursor-hover {
+    width: 72px; height: 72px;
+    background: var(--terra, var(--amber, #C4583C));
+    border-color: transparent;
+    mix-blend-mode: multiply;
+  }
+  .cursor-ring.cursor-text {
+    width: 4px; height: 28px; border-radius: 2px;
+    background: var(--ink, #14130E); border-color: transparent;
+  }
+  .cursor-label {
+    position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99999;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--ink, #14130E); color: #fff;
+    font-family: var(--font-plex), var(--font-jetbrains), monospace;
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    transform: translate3d(-200px,-200px,0) translate(-50%, calc(-50% + 40px));
+    opacity: 0; transition: opacity .2s ease;
+    white-space: nowrap;
+  }
+  .cursor-label.cursor-show { opacity: 1; }
+}
+@media (pointer: coarse) {
+  .cursor-dot, .cursor-ring, .cursor-label { display: none !important; }
+}
+
+/* Reveal-on-scroll */
 [data-reveal] {
   opacity: 0;
   transform: translateY(28px);
-  transition: opacity 0.9s cubic-bezier(0.22, 0.61, 0.36, 1),
-              transform 0.9s cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: opacity .9s cubic-bezier(.22,.61,.36,1), transform .9s cubic-bezier(.22,.61,.36,1);
+  will-change: opacity, transform;
 }
-[data-reveal].in { opacity: 1; transform: none; }
-[data-reveal-delay="1"] { transition-delay: 0.08s; }
-[data-reveal-delay="2"] { transition-delay: 0.16s; }
-[data-reveal-delay="3"] { transition-delay: 0.24s; }
+[data-reveal="left"]  { transform: translateX(-40px); }
+[data-reveal="right"] { transform: translateX(40px); }
+[data-reveal="scale"] { transform: scale(0.96); transform-origin: center; }
+[data-reveal="fade"]  { transform: none; }
+[data-reveal].in { opacity: 1; transform: none !important; }
+[data-reveal-delay="1"] { transition-delay: .06s; }
+[data-reveal-delay="2"] { transition-delay: .12s; }
+[data-reveal-delay="3"] { transition-delay: .18s; }
+[data-reveal-delay="4"] { transition-delay: .24s; }
+[data-reveal-delay="5"] { transition-delay: .30s; }
+[data-reveal-delay="6"] { transition-delay: .36s; }
+
+/* Mask reveal */
+[data-reveal-mask] {
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 1.1s cubic-bezier(.22,1,.36,1);
+  will-change: clip-path;
+}
+[data-reveal-mask].in { clip-path: inset(0 0 0 0); }
+
+/* Word-by-word text reveal */
+.word { display: inline-block; overflow: hidden; vertical-align: bottom; line-height: 1.05; padding-bottom: 0.06em; }
+.word > span {
+  display: inline-block;
+  transform: translateY(110%);
+  transition: transform 1.05s cubic-bezier(.22,1,.36,1);
+  will-change: transform;
+}
+[data-text-reveal].in .word > span { transform: translateY(0); }
+
+/* Char reveal */
+.char { display: inline-block; opacity: 0; transform: translateY(0.4em); transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1); }
+[data-text-reveal-char].in .char { opacity: 1; transform: none; }
+
 @media (prefers-reduced-motion: reduce) {
-  [data-reveal] { opacity: 1; transform: none; transition: none; }
+  [data-reveal], [data-reveal-mask], [data-text-reveal], [data-text-reveal-char] {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+    transition: none !important;
+  }
+  [data-reveal] .word > span { transform: none !important; }
+  [data-parallax] { transform: none !important; }
+  .float-y, .float-x, .marquee-track { animation: none !important; }
+}
+
+[data-parallax] { will-change: transform; }
+
+/* Subtle hover lift on card-like surfaces */
+.panel, .bento, .stat-card { transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .25s ease; }
+.panel:hover, .bento:hover, .stat-card:hover { transform: translateY(-4px); }
+/* `.card` deliberately excluded — it's shared with the Task 5
+   sidebar nav rows + dense cabinet panels where hover-lift would be
+   distracting. Apply `.bento` / `.panel` on hero / marketing cards. */
+
+/* Slow float on decorative cards */
+@keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes floatX { 0%,100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+.float-y { animation: floatY 6s ease-in-out infinite; }
+.float-x { animation: floatX 7s ease-in-out infinite; }
+
+/* Text shimmer for headline accents */
+@keyframes shimmer { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+.shimmer-text {
+  background: linear-gradient(90deg, currentColor 0%, currentColor 30%, rgba(0,0,0,0.18) 50%, currentColor 70%, currentColor 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: shimmer 4.5s ease-in-out infinite;
+}
+
+/* Marquee */
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee { overflow: hidden; }
+.marquee-track { display: inline-flex; gap: 36px; animation: marquee 40s linear infinite; white-space: nowrap; }
+
+/* Scroll progress bar */
+.scroll-progress {
+  position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+  background: var(--terra, var(--amber, #C4583C));
+  z-index: 999999; pointer-events: none; transition: width .08s linear;
+}
+
+/* Mobile / responsive overrides — `[style*=…]` selectors target the
+   inline grids the prototype JSX emits. The dashboard / dev-app
+   routes mostly use Tailwind classes (not inline grid styles) so
+   these rules are scoped to the ported cabinet/landing pages by
+   construction. */
+html, body { overflow-x: hidden; max-width: 100vw; }
+main { min-width: 0; }
+
+@media (max-width: 1100px) {
+  [style*="repeat(5, 1fr)"] { grid-template-columns: repeat(3, 1fr) !important; }
+  [style*="repeat(6, 1fr)"] { grid-template-columns: repeat(3, 1fr) !important; }
+}
+@media (max-width: 900px) {
+  .display { font-size: clamp(40px, 8.5vw, 72px) !important; line-height: 1.04 !important; }
+
+  [style*="repeat(3, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  [style*="repeat(4, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  [style*="repeat(5, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  [style*="repeat(6, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  [style*="1fr 1fr"] { grid-template-columns: 1fr !important; }
+  [style*="1.2fr 1fr"], [style*="1.4fr 1fr"], [style*="1.5fr 1fr"], [style*="1.6fr 1fr"], [style*="1.05fr 1fr"] { grid-template-columns: 1fr !important; }
+  [style*="1fr 1.05fr"], [style*="1fr 1.1fr"], [style*="1fr 1.2fr"], [style*="1fr 1.4fr"], [style*="1fr 1.6fr"] { grid-template-columns: 1fr !important; }
+  [style*="1.1fr 1fr"] { grid-template-columns: 1fr !important; }
+
+  [style*="240px 1fr"] { grid-template-columns: 1fr !important; }
+  /* Task 5 dashboard sidebar (`.sidebar` class, `position: sticky`)
+     stays visible on mid-size screens — only collapses at <=900px
+     via its own .sidebar rule (set elsewhere in this file).
+     We DO NOT add `aside[style*="position: sticky"]` here because
+     the Task 5 sidebar uses className, not inline style. */
+
+  .hide-mobile { display: none !important; }
+
+  nav[style*="display: flex"] { flex-wrap: wrap !important; gap: 12px !important; row-gap: 8px !important; margin-left: 0 !important; }
+  header[style*="position: sticky"] { padding: 12px 16px !important; flex-wrap: wrap !important; gap: 10px !important; }
+  header[style*="position: sticky"] > div[style*="margin-left: auto"] { margin-left: 0 !important; width: 100% !important; flex-wrap: wrap !important; }
+
+  .marquee-track { gap: 22px; animation-duration: 28s; }
+
+  [style*="padding: 110px"] { padding: 64px 0 !important; }
+  [style*="padding: 100px 28px"] { padding: 56px 18px !important; }
+  [style*="padding: 100px 0"] { padding: 60px 0 !important; }
+  [style*="padding: 72px 56px"], [style*="padding: 80px 64px"] { padding: 40px 24px !important; }
+
+  [data-parallax] { transform: none !important; }
+  .cursor-dot, .cursor-ring, .cursor-label, .scroll-progress { display: none !important; }
+  html, body, * { cursor: auto !important; }
+  input, textarea, select { cursor: text !important; }
+  button, a, [role="button"] { cursor: pointer !important; }
+
+  .card, .panel, .stat-card { min-width: 0 !important; }
+  .card:has(> table), .card:has(> *:not(style):not(script) table),
+  .panel:has(> table), .panel:has(> *:not(style):not(script) table) {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  table.data, table.guests {
+    display: table !important; width: max-content !important; max-width: none !important;
+  }
+  table.data thead, table.guests thead { display: table-header-group !important; }
+  table.data tbody, table.guests tbody { display: table-row-group !important; }
+  table.data tr, table.guests tr { display: table-row !important; }
+  table.data th, table.data td,
+  table.guests th, table.guests td { display: table-cell !important; white-space: nowrap !important; }
+
+  [style*="180px 1fr"] { grid-template-columns: 1fr !important; }
+  [style*="180px 1fr"] > *:first-child { min-height: 140px !important; height: 140px !important; }
+
+  [style*="max-width: 1320px"], [style*="max-width: 1360px"], [style*="max-width: 1400px"], [style*="max-width: 1480px"], [style*="max-width: 1280px"], [style*="max-width: 1100px"] {
+    max-width: 100% !important;
+  }
+
+  input[placeholder*="Search"] { width: 100% !important; min-width: 0 !important; }
+  div[style*="width: 280px"], div[style*="width: 300px"] { width: 100% !important; max-width: 100% !important; }
+
+  [style*="display: inline-flex"] { flex-wrap: wrap !important; }
+
+  [style*="margin-left: auto"][style*="display: flex"] { margin-left: 0 !important; flex-wrap: wrap !important; }
+}
+@media (max-width: 760px) {
+  [style*="position: absolute"][style*="top: 28px"],
+  [style*="position: absolute"][style*="bottom: 28px"] {
+    position: static !important;
+    transform: none !important;
+    max-width: 100% !important;
+    margin: 8px 0 !important;
+  }
+  .photo-villa, .photo-pool, .photo-suite, .photo-warm,
+  .photo-site, .photo-blueprint {
+    min-height: 220px !important;
+    aspect-ratio: auto !important;
+  }
+  .display.h1 { font-size: clamp(36px, 9.5vw, 56px) !important; }
+}
+@media (max-width: 600px) {
+  .display { font-size: clamp(32px, 11vw, 52px) !important; }
+  [style*="repeat(2, 1fr)"] { grid-template-columns: 1fr !important; }
+  [style*="repeat(3, 1fr)"], [style*="repeat(4, 1fr)"], [style*="repeat(5, 1fr)"], [style*="repeat(6, 1fr)"] { grid-template-columns: 1fr !important; }
+  [style*="padding: 0px 28px"], [style*="padding: 0px 32px"], [style*="padding: 24px 28px"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  [style*="padding: 48px"] { padding: 24px !important; }
+  [style*="padding: 56px 48px"] { padding: 28px 18px !important; }
+  header[style*="position: sticky"] { padding: 10px 16px !important; }
+  table.guests th, table.guests td, table.data th, table.data td { padding: 8px 10px !important; font-size: 12px !important; }
 }
 
 /* Data tables (dev OS technical style) */

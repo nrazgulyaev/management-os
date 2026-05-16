@@ -9,6 +9,7 @@ import {
 } from "next/font/google";
 import { headers } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
+import { MotionLayer } from "@/components/motion-layer";
 import "./globals.css";
 
 /**
@@ -156,6 +157,7 @@ export default async function RootLayout({
     >
       <body className="min-h-screen bg-canvas text-ink antialiased">
         {children}
+        <MotionLayer />
         <Analytics />
       </body>
     </html>
