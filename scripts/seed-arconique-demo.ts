@@ -111,21 +111,29 @@ const BANK_ACCOUNTS = [
 ];
 
 const VENDORS = [
-  { code: "TOKO_BANGUNAN_SEJAHTERA", name: "Toko Bangunan Sejahtera" },
-  { code: "PT_SEMEN_INDONESIA", name: "PT Semen Indonesia" },
-  { code: "CV_BESI_JAYA", name: "CV Besi Jaya (steel/rebar)" },
-  { code: "TOKO_LISTRIK_SENTOSA", name: "Toko Listrik Sentosa" },
-  { code: "INDOMARET_BALI", name: "Indomaret Bali" },
-  { code: "PERTAMINA", name: "Pertamina (fuel)" },
-  { code: "PLN", name: "PLN (electricity utility)" },
-  { code: "PDAM", name: "PDAM (water utility)" },
-  { code: "BANGUNAN_BALI_MULIA", name: "Bangunan Bali Mulia" },
-  { code: "TOKO_CAT_PRIMA", name: "Toko Cat Prima" },
-  { code: "CV_GRANIT_TILES", name: "CV Granit Tiles" },
-  { code: "MEGA_BANGUN_PERSADA", name: "Mega Bangun Persada" },
-  { code: "WARUNG_MAKAN_SEDAP", name: "Warung Makan Sedap (worker meals)" },
-  { code: "CARGO_BALI_EXPRESS", name: "Cargo Bali Express" },
-  { code: "SUMBER_ALAM_KAYU", name: "Sumber Alam Kayu (timber)" },
+  // HF-11: every entry now carries a vendor_type matching the
+  // migration 0040 CHECK constraint enum:
+  //   general_contractor / subcontractor_civil / subcontractor_mep /
+  //   subcontractor_finishing / subcontractor_landscaping /
+  //   architect_designer / engineer_consultant / permits_legal /
+  //   material_supplier / equipment_rental / logistics_transport /
+  //   security_services / cleaning_services / other
+  // The previous seed used "supplier" (not in the enum) → 23514.
+  { code: "TOKO_BANGUNAN_SEJAHTERA", name: "Toko Bangunan Sejahtera", type: "material_supplier" },
+  { code: "PT_SEMEN_INDONESIA", name: "PT Semen Indonesia", type: "material_supplier" },
+  { code: "CV_BESI_JAYA", name: "CV Besi Jaya (steel/rebar)", type: "material_supplier" },
+  { code: "TOKO_LISTRIK_SENTOSA", name: "Toko Listrik Sentosa", type: "material_supplier" },
+  { code: "INDOMARET_BALI", name: "Indomaret Bali", type: "other" },
+  { code: "PERTAMINA", name: "Pertamina (fuel)", type: "other" },
+  { code: "PLN", name: "PLN (electricity utility)", type: "other" },
+  { code: "PDAM", name: "PDAM (water utility)", type: "other" },
+  { code: "BANGUNAN_BALI_MULIA", name: "Bangunan Bali Mulia", type: "material_supplier" },
+  { code: "TOKO_CAT_PRIMA", name: "Toko Cat Prima", type: "material_supplier" },
+  { code: "CV_GRANIT_TILES", name: "CV Granit Tiles", type: "material_supplier" },
+  { code: "MEGA_BANGUN_PERSADA", name: "Mega Bangun Persada", type: "material_supplier" },
+  { code: "WARUNG_MAKAN_SEDAP", name: "Warung Makan Sedap (worker meals)", type: "other" },
+  { code: "CARGO_BALI_EXPRESS", name: "Cargo Bali Express", type: "logistics_transport" },
+  { code: "SUMBER_ALAM_KAYU", name: "Sumber Alam Kayu (timber)", type: "material_supplier" },
 ];
 
 interface SeedOptions {
@@ -304,7 +312,7 @@ async function seed(
       organizationId,
       vendorCode: code,
       legalName: `[DEMO] ${v.name}`,
-      vendorType: "supplier",
+      vendorType: v.type,
     });
     nVendors++;
   }
