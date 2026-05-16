@@ -187,6 +187,87 @@
   --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
 
   --default-font-family: var(--font-sans);
+
+  /* ===========================================================
+     Arconique OS redesign — new token system (additive).
+     Lives alongside the legacy tokens above so existing pages
+     keep rendering. New primitives in src/components/ui/primitives/*
+     reference these directly; legacy pages migrate over time.
+     Source of truth: design_handoff_arconique_os/DESIGN_TOKENS.md.
+     ============================================================ */
+
+  /* Surfaces & ink (warm off-white system) */
+  --color-bg:              oklch(0.962 0.014 80);
+  --color-bg-elevated:     oklch(0.985 0.008 82);
+  --color-surface-warm:    oklch(0.985 0.013 78);
+  --color-surface-sunken:  oklch(0.945 0.014 78);
+
+  --color-ink-2:           oklch(0.420 0.015 72);
+  --color-ink-3:           oklch(0.620 0.013 75);
+  --color-ink-4:           oklch(0.780 0.010 78);
+  --color-ink-deep:        oklch(0.180 0.012 65);
+  --color-ink-warm:        oklch(0.260 0.018 65);
+
+  --color-line:            oklch(0.905 0.010 78);
+  --color-line-2:          oklch(0.945 0.008 78);
+
+  /* Brand — terra (coral primary) */
+  --color-terra:           oklch(0.690 0.155 38);
+  --color-terra-deep:      oklch(0.560 0.155 36);
+  --color-terra-soft:      oklch(0.935 0.050 50);
+  --color-terra-tint:      oklch(0.970 0.022 50);
+
+  /* Olive (secondary, success-leaning) */
+  --color-olive:           oklch(0.580 0.075 120);
+  --color-olive-deep:      oklch(0.450 0.075 120);
+  --color-olive-soft:      oklch(0.930 0.038 120);
+  --color-olive-tint:      oklch(0.970 0.018 120);
+
+  /* Sea (tertiary, info-leaning) */
+  --color-sea:             oklch(0.580 0.065 215);
+  --color-sea-deep:        oklch(0.420 0.065 215);
+  --color-sea-soft:        oklch(0.930 0.030 215);
+  --color-sea-tint:        oklch(0.965 0.015 215);
+
+  /* Sand (neutral warm accent) */
+  --color-sand:            oklch(0.860 0.045 80);
+  --color-sand-soft:       oklch(0.940 0.030 80);
+
+  /* Semantic soft fills for the new system (the existing
+     `--color-success/warning/danger` map to the legacy emerald/
+     gold/clay palette and stay reachable as `text-success` etc.). */
+  --color-success-soft-2:  oklch(0.930 0.040 150);
+  --color-warning-soft-2:  oklch(0.940 0.060 80);
+  --color-danger-soft-2:   oklch(0.940 0.050 30);
+
+  /* Redesign radii — legacy --radius-xs..--radius-4xl stay valid.
+     These add the handoff's larger card radii without renaming. */
+  --radius-card:           18px;
+  --radius-card-lg:        24px;
+  --radius-card-hero:      32px;   /* default for KPI/feature cards */
+  --radius-card-hero-lg:   40px;   /* hero / wide feature cards */
+
+  /* Redesign shadows */
+  --shadow-redesign-card:  0 1px 3px rgba(60,50,35,0.05),
+                           0 4px 14px rgba(60,50,35,0.05),
+                           0 0 0 1px rgba(60,50,35,0.025);
+  --shadow-redesign-soft:  0 2px 8px rgba(60,50,35,0.045),
+                           0 16px 38px rgba(60,50,35,0.045);
+  --shadow-redesign-pop:   0 12px 36px rgba(60,50,35,0.12),
+                           0 2px 6px rgba(60,50,35,0.06);
+
+  /* Redesign text scale (additive — these don't collide with
+     Tailwind's text-* utilities since they're prefixed). */
+  --text-redesign-xs:   11px;
+  --text-redesign-sm:   12.5px;
+  --text-redesign-base: 14px;
+  --text-redesign-md:   15px;
+  --text-redesign-lg:   17px;
+  --text-redesign-xl:   20px;
+  --text-redesign-2xl:  26px;
+  --text-redesign-3xl:  34px;
+  --text-redesign-4xl:  48px;
+  --text-redesign-5xl:  68px;
 }
 
 /* -----------------------------------------------------------
@@ -300,5 +381,25 @@
   }
   .shadow-elevated-card {
     box-shadow: var(--shadow-elevated-card);
+  }
+
+  /* -----------------------------------------------------------
+     Arconique OS redesign — typographic utility classes.
+     Match the handoff's `.serif` / `.mono` / `.tnum` API exactly
+     so prototype JSX from design_handoff_arconique_os/source/
+     can be ported with minimal find-and-replace.
+     ----------------------------------------------------------- */
+  .serif {
+    font-family: var(--font-display), Georgia, "Iowan Old Style", serif;
+    letter-spacing: -0.01em;
+  }
+  .mono {
+    font-family: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+    font-feature-settings: "tnum", "zero";
+    letter-spacing: -0.01em;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
   }
 }

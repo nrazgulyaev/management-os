@@ -1,22 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Instrument_Serif, Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
-const display = Fraunces({
+// Arconique OS redesign — display / sans / mono per
+// design_handoff_arconique_os/DESIGN_TOKENS.md. CSS variable names
+// stay identical (--font-display / --font-sans / --font-mono) so
+// every existing `text-display`, `font-sans`, `font-mono` reference
+// keeps working — only the underlying typeface changes.
+const display = Instrument_Serif({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
-  axes: ["opsz", "SOFT"],
+  weight: ["400"],
+  style: ["normal", "italic"],
 });
 
-const sans = Inter({
+const sans = Geist({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const mono = JetBrains_Mono({
+const mono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
   display: "swap",

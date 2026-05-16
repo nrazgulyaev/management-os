@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Arconique · Management OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    /* Neutralize ResizeObserver entirely (we don't depend on it; some upstream
+       libraries instantiate one and Chrome surfaces a harmless "loop completed"
+       error). */
+    window.ResizeObserver = class {
+      constructor() {}
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  </script>
+  <script>
+    /* Suppress benign ResizeObserver loop warnings (browsers report them as errors). */
+    (function() {
+      const RX = /ResizeObserver loop/i;
+      window.addEventListener("error", function(e) {
+        if (e && (RX.test(e.message || "") || RX.test((e.error && e.error.message) || ""))) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          return true;
+        }
+      }, true);
+      const _err = console.error;
+      console.error = function() {
+        const a0 = arguments[0];
+        if (typeof a0 === "string" && RX.test(a0)) return;
+        return _err.apply(console, arguments);
+      };
+      /* Wrap ResizeObserver so callbacks fire in rAF — eliminates the loop warning entirely. */
+      const RO = window.ResizeObserver;
+      if (RO) {
+        window.ResizeObserver = class extends RO {
+          constructor(cb) {
+            super(function(entries, obs) {
+              window.requestAnimationFrame(function() {
+                try { cb(entries, obs); } catch (e) { /* swallow */ }
+              });
+            });
+          }
+        };
+      }
+    })();
+  </script>
+  <script>
+    /* Token-preserving CSS load. */
+    (function() {
+      const l = document.createElement("link");
+      l.rel = "stylesheet";
+      l.href = "styles.css" + (location.search || "");
+      document.head.appendChild(l);
+    })();
+  </script>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { background: #F5F1E9; font-family: ui-sans-serif, system-ui, -apple-system; }
+    #boot {
+      position: fixed; inset: 0; display: grid; place-items: center;
+      color: #6b5d4a; font-size: 13px; letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div id="boot">Loading Arconique OS…</div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script>
+    /* Fetch each JSX file (with auth token), Babel-transform, eval in order. */
+    (async function() {
+      const q = location.search || "";
+      const files = ["icons.jsx", "charts.jsx", "shell.jsx", "management.jsx", "development.jsx", "app.jsx"];
+      try {
+        for (const f of files) {
+          const res = await fetch(f + q);
+          if (!res.ok) throw new Error(f + " — HTTP " + res.status);
+          const src = await res.text();
+          const out = Babel.transform(src, { presets: ["react"], filename: f }).code;
+          // eslint-disable-next-line no-eval
+          (0, eval)(out);
+        }
+        const boot = document.getElementById("boot");
+        if (boot) boot.remove();
+      } catch (err) {
+        console.error("Boot failed:", err);
+        const boot = document.getElementById("boot");
+        if (boot) boot.textContent = "Boot failed: " + err.message;
+      }
+    })();
+  </script>
+</body>
+</html>
