@@ -44,6 +44,7 @@ import {
   devCostCategories,
   devTransactions,
 } from "../src/lib/db/schema/dev-finance";
+import { orgAiAgentConfig } from "../src/lib/db/schema/org-ai-agent-config";
 
 const ROOT = resolve(__dirname, "..");
 const XLSX_PATH = resolve(ROOT, "docs/reference/arconique-real-data-sample.xlsx");
@@ -203,10 +204,34 @@ async function wipe(
     .delete(projects)
     .where(like(projects.slug, DEMO_PREFIX.toLowerCase() + "%"))
     .returning({ id: projects.id });
+  // AI-ACTIVATION-1: also wipe the configurable-agent enable rows
+  // the seed inserts. org_ai_agent_config has a tight CHECK on
+  // agent_key so we can't use a DEMO- prefix; instead identify
+  // seed rows by the marker we write in `notes`.
+  const aDel = await db
+    .delete(orgAiAgentConfig)
+    .where(
+      sql`${orgAiAgentConfig.organizationId} = ${organizationId} AND ${orgAiAgentConfig.notes} LIKE ${"[DEMO]%"}`,
+    )
+    .returning({ id: orgAiAgentConfig.id });
   console.log(
-    `wiped: ${tDel.length} transactions, ${bDel.length} bank accounts, ${cDel.length} categories, ${vDel.length} vendors, ${pDel.length} projects`,
+    `wiped: ${tDel.length} transactions, ${bDel.length} bank accounts, ${cDel.length} categories, ${vDel.length} vendors, ${pDel.length} projects, ${aDel.length} ai-agent enable rows`,
   );
 }
+
+// AI-ACTIVATION-1: enable the configurable agents the operator
+// actually uses. Each row is no-encrypted-key on purpose — the
+// platform env's ANTHROPIC_API_KEY (or other provider key) is the
+// active credential. When the operator wants per-org BYO later,
+// they set the key via /dashboard/settings/ai-agents/<key> and
+// `org_ai_agent_config.api_key_encrypted` overrides the env.
+const AGENTS_TO_ENABLE = [
+  "tax_assistant",
+  "marketing_assistant",
+  "executive_business",
+  "daily_digest",
+  "weekly_plan",
+];
 
 async function seed(
   db: ReturnType<typeof getDb>,
@@ -410,6 +435,34 @@ async function seed(
     nTx++;
   }
   console.log(`  ${nTx} transactions inserted`);
+
+  // 6) AI agent enable rows — flip the configurable agents to
+  // `is_enabled=true` for the operator's org so cabinet UIs route
+  // through the live AI path (with the platform env key) instead of
+  // showing "agent not configured".
+  console.log("seeding ai agent enable rows...");
+  let nAgents = 0;
+  for (const agentKey of AGENTS_TO_ENABLE) {
+    const existing = await db
+      .select({ id: orgAiAgentConfig.id })
+      .from(orgAiAgentConfig)
+      .where(
+        sql`${orgAiAgentConfig.organizationId} = ${organizationId} AND ${orgAiAgentConfig.agentKey} = ${agentKey}`,
+      )
+      .limit(1);
+    if (existing[0]) continue;
+    await db.insert(orgAiAgentConfig).values({
+      organizationId,
+      agentKey,
+      isEnabled: true,
+      provider: "anthropic",
+      notes: "[DEMO] seeded by scripts/seed-arconique-demo.ts",
+    });
+    nAgents++;
+  }
+  console.log(
+    `  ${nAgents} agent enable rows inserted (${AGENTS_TO_ENABLE.length - nAgents} already existed)`,
+  );
 }
 
 async function main(): Promise<void> {

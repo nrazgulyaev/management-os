@@ -176,11 +176,21 @@ export function isTwilioConfigured(): boolean {
 // v8B — AI configuration helpers.
 
 export function isAiDryRun(): boolean {
-  // Default to dry-run when env is missing — production deployments must
-  // explicitly opt in to live Anthropic calls by setting AI_DRY_RUN=0.
   const flag = env.server.AI_DRY_RUN;
-  if (flag === undefined) return true;
-  return flag === "1" || flag.toLowerCase() === "true";
+  // Explicit values always win — operators can force dry-run for
+  // tests/CI even when keys are configured.
+  if (flag !== undefined) return flag === "1" || flag.toLowerCase() === "true";
+
+  // AI-ACTIVATION-1: when AI_DRY_RUN isn't set, infer mode from
+  // provider-key presence. If ANY provider key is configured,
+  // operators clearly intend live calls; defaulting to dry-run
+  // produces silent surprises (the "AI not configured" bug that
+  // shipped receipt OCR with full keys present on Vercel).
+  const hasAnyKey =
+    Boolean(env.server.ANTHROPIC_API_KEY) ||
+    Boolean(env.server.OPENAI_API_KEY) ||
+    Boolean(env.server.GEMINI_API_KEY);
+  return !hasAnyKey;
 }
 
 export function isAiConfigured(): boolean {
