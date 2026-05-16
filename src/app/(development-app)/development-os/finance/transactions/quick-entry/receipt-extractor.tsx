@@ -91,16 +91,29 @@ export function ReceiptExtractor({
               | "image/gif",
           });
           if (!out.ok) {
-            // HF-7: friendlier surface for the well-known
-            // `ai_not_configured` reason so the operator sees a
-            // human-readable hint instead of the raw code.
+            // MANUAL-1: graceful fallback when AI isn't configured.
+            // Instead of dead-ending with an error, surface an
+            // editable "manual fill" panel with the uploaded photo
+            // preview + empty fields so the operator can complete
+            // the entry by reading the receipt themselves. AI =
+            // enhancement, not dependency.
             if (out.reason.startsWith("ai_not_configured")) {
               setError(
-                "Receipt OCR needs an AI key. Ask the platform admin to set ANTHROPIC_API_KEY (or OPENAI_API_KEY / GEMINI_API_KEY) in the deployment environment.",
+                "AI receipt extraction isn't configured for this workspace. The photo is attached — fill the fields manually below.",
               );
-            } else {
-              setError(out.reason);
+              setExtracted({
+                date: null,
+                amountMajor: null,
+                currency: null,
+                vendor: null,
+                suggestedCategory: null,
+                description: null,
+                confidence: null,
+                rawJson: "",
+              });
+              return;
             }
+            setError(out.reason);
             return;
           }
           setExtracted(out.extracted);
@@ -213,31 +226,111 @@ export function ReceiptExtractor({
             />
           )}
           <div className="flex-1 flex flex-col gap-3">
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              {(
-                [
-                  ["Date", extracted.date],
-                  ["Amount", extracted.amountMajor !== null ? String(extracted.amountMajor) : null],
-                  ["Currency", extracted.currency],
-                  ["Vendor", extracted.vendor],
-                  ["Category", extracted.suggestedCategory],
-                  ["Confidence", extracted.confidence],
-                ] as const
-              ).map(([k, v]) => (
-                <React.Fragment key={k}>
-                  <dt className="text-ink-tertiary">{k}</dt>
-                  <dd className="text-ink font-medium tabular-nums">
-                    {v ?? <span className="text-ink-tertiary">—</span>}
-                  </dd>
-                </React.Fragment>
-              ))}
-            </dl>
-            {extracted.description && (
-              <p className="text-xs text-ink-secondary leading-relaxed">
-                <span className="text-ink-tertiary">Description:</span>{" "}
-                {extracted.description}
-              </p>
-            )}
+            {/* MANUAL-1: every extracted field is now editable so the
+                operator can (a) correct AI mistakes and (b) fill the
+                form by hand when AI isn't configured. Confidence is
+                read-only — it's diagnostic, not user-input. */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+              <label className="flex flex-col gap-1">
+                <span className="text-ink-tertiary">Date</span>
+                <input
+                  type="date"
+                  value={extracted.date ?? ""}
+                  onChange={(e) =>
+                    setExtracted({ ...extracted, date: e.target.value || null })
+                  }
+                  className="rounded-md border border-line-soft bg-canvas px-2 py-1 text-sm font-mono"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-ink-tertiary">Amount</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={
+                    extracted.amountMajor !== null
+                      ? String(extracted.amountMajor)
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const n = Number.parseFloat(e.target.value);
+                    setExtracted({
+                      ...extracted,
+                      amountMajor: Number.isFinite(n) ? n : null,
+                    });
+                  }}
+                  className="rounded-md border border-line-soft bg-canvas px-2 py-1 text-sm font-mono tabular-nums"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-ink-tertiary">Currency</span>
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={extracted.currency ?? ""}
+                  onChange={(e) =>
+                    setExtracted({
+                      ...extracted,
+                      currency: e.target.value.toUpperCase() || null,
+                    })
+                  }
+                  placeholder="USD"
+                  className="rounded-md border border-line-soft bg-canvas px-2 py-1 text-sm font-mono"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-ink-tertiary">Vendor</span>
+                <input
+                  type="text"
+                  value={extracted.vendor ?? ""}
+                  onChange={(e) =>
+                    setExtracted({
+                      ...extracted,
+                      vendor: e.target.value || null,
+                    })
+                  }
+                  className="rounded-md border border-line-soft bg-canvas px-2 py-1 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 col-span-2">
+                <span className="text-ink-tertiary">Category</span>
+                <input
+                  type="text"
+                  value={extracted.suggestedCategory ?? ""}
+                  onChange={(e) =>
+                    setExtracted({
+                      ...extracted,
+                      suggestedCategory: e.target.value || null,
+                    })
+                  }
+                  placeholder="e.g. Office supplies"
+                  className="rounded-md border border-line-soft bg-canvas px-2 py-1 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 col-span-2">
+                <span className="text-ink-tertiary">Description</span>
+                <input
+                  type="text"
+                  value={extracted.description ?? ""}
+                  onChange={(e) =>
+                    setExtracted({
+                      ...extracted,
+                      description: e.target.value || null,
+                    })
+                  }
+                  className="rounded-md border border-line-soft bg-canvas px-2 py-1 text-sm"
+                />
+              </label>
+              {extracted.confidence && (
+                <>
+                  <span className="text-ink-tertiary">AI confidence</span>
+                  <span className="text-ink-secondary font-mono text-xs">
+                    {extracted.confidence}
+                  </span>
+                </>
+              )}
+            </div>
             <button
               type="button"
               onClick={handleConfirm}

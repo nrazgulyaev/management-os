@@ -61,6 +61,16 @@ export interface IntegrationStatusCardProps {
   errorMessage?: string;
   /** Per-org vs platform-wide. */
   scope: "per-org" | "platform";
+  /**
+   * MANUAL-1 — honest fallback hint shown when the integration is
+   * unconfigured or unavailable. Tells the operator which manual
+   * workflow continues to work without this integration.
+   * Examples:
+   *   "Manual mode active — fill receipt fields by hand."
+   *   "Cash and bank transfer accepted; Stripe is for card payments."
+   *   "Manual booking entry works — sync is for OTA imports."
+   */
+  fallbackHint?: string;
   className?: string;
 }
 
@@ -73,6 +83,7 @@ export function IntegrationStatusCard({
   detail,
   errorMessage,
   scope,
+  fallbackHint,
   className,
 }: IntegrationStatusCardProps) {
   return (
@@ -111,6 +122,16 @@ export function IntegrationStatusCard({
           {errorMessage}
         </p>
       )}
+
+      {fallbackHint &&
+        (status === "needs-config" || status === "not-available") && (
+          <p className="text-xs text-ink-secondary bg-muted/40 rounded-md px-3 py-2">
+            <span className="text-ink-tertiary font-medium">
+              Works without this:
+            </span>{" "}
+            {fallbackHint}
+          </p>
+        )}
 
       {configureHref && (
         <Link

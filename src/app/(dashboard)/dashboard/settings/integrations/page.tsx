@@ -68,6 +68,8 @@ export default async function IntegrationsHubPage() {
       configureHref: "/dashboard/settings/ai-agents",
       detail:
         "Reference implementation. 9 agents configurable per-org via /settings/ai-agents/[agent_key].",
+      fallbackHint:
+        "Manual mode is the default for every AI surface. Receipt OCR, tax classification, daily digest etc. all have manual fallback paths that work without an AI key.",
     },
 
     // ── Customer launch priority (10.6.D.2 deep dives) ────────────────────
@@ -82,6 +84,8 @@ export default async function IntegrationsHubPage() {
       detail: stripeReady
         ? "STRIPE_SECRET_KEY set. Per-org Stripe customer IDs tracked in orgSubscriptions."
         : "Set STRIPE_SECRET_KEY env var to enable. Per-org connect UI ships soon.",
+      fallbackHint:
+        "Cash on arrival, bank transfer, and crypto (USDT) work without Stripe. Operator clicks 'Mark received' when funds land.",
     },
     {
       name: "Resend (transactional email)",
@@ -94,6 +98,8 @@ export default async function IntegrationsHubPage() {
       detail: resendReady
         ? "Platform API key set. Per-org from-email override ships soon."
         : "Set RESEND_API_KEY + RESEND_FROM_EMAIL env. Currently emails fall back to NOTIFICATIONS_DRY_RUN.",
+      fallbackHint:
+        "Emails queue for manual send (open mailto: from the activity log) when Resend isn't configured. No auto-send, but no data loss.",
     },
     {
       name: "WhatsApp / Twilio messaging",
@@ -106,6 +112,8 @@ export default async function IntegrationsHubPage() {
       detail: twilioReady
         ? "Twilio platform credentials set. Per-org override UI ships in /development-os/settings/whatsapp."
         : "Set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN to enable. Per-org Meta WhatsApp flow ships soon.",
+      fallbackHint:
+        "Concierge can copy composed messages to clipboard and paste into WhatsApp Web manually. Replies are recorded back into the conversation thread.",
     },
     {
       name: "Channel managers",
@@ -117,6 +125,8 @@ export default async function IntegrationsHubPage() {
       configureHref: "/dashboard/integrations/channels",
       detail:
         "OAuth flow exists in /integrations/channels. Operator-flagged: 'cannot add new channel' — shipping verification + UI fix soon.",
+      fallbackHint:
+        "Manual booking entry works end-to-end. Channel sync is for auto-importing reservations from Booking.com / Airbnb / Agoda; without it the operator pastes booking details into /dashboard/bookings/new.",
     },
     {
       name: "Maps (Google Maps API)",
@@ -126,6 +136,8 @@ export default async function IntegrationsHubPage() {
       status: "not-available",
       scope: "platform",
       detail: "No UI yet. A follow-up adds per-org Maps API key + villa coordinate editor.",
+      fallbackHint:
+        "Villa addresses still work as plain text. Without Maps, the public portfolio map shows a static fallback image and the coordinate editor is hidden.",
     },
 
     // ── Working today, settings UI exists ─────────────────────────────────
