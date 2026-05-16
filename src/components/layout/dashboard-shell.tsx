@@ -5,6 +5,8 @@ import { countUnreadForCurrentUser } from "@/features/notifications/services";
 import { getProductsEnabledForCurrentUser } from "@/features/auth/products-access";
 import { getCurrentOrgTrial } from "@/features/billing/trial-services";
 import { TrialBanner } from "@/components/billing/trial-banner";
+import { MobileTabbar } from "@/components/ui/primitives/mobile-tabbar";
+import { MGMT_TABBAR_ITEMS } from "./mobile-tabbar-configs";
 
 export async function DashboardShell({
   children,
@@ -45,7 +47,7 @@ export async function DashboardShell({
   }
 
   return (
-    <div className="min-h-screen flex bg-canvas">
+    <div className="min-h-screen flex bg-bg">
       <DashboardSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         {trial && <TrialBanner state={trial.state} />}
@@ -54,8 +56,13 @@ export async function DashboardShell({
           unreadCount={unreadCount}
           enabledProducts={enabledProducts}
         />
-        <main className="flex-1 px-4 md:px-8 py-8">{children}</main>
+        {/* Bottom padding leaves room above the fixed MobileTabbar
+            so content's last row doesn't sit under the tabbar. */}
+        <main className="flex-1 px-4 md:px-8 py-6 md:py-8 pb-24 md:pb-8">
+          {children}
+        </main>
       </div>
+      <MobileTabbar items={MGMT_TABBAR_ITEMS} />
     </div>
   );
 }
