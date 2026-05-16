@@ -1229,3 +1229,117 @@ main { min-width: 0; }
 }
 [data-product="management"] table.guests tbody tr:hover { background: var(--cream); }
 
+/* ============================================================
+   HF-14 — visual fidelity restoration. Three prototype utility
+   classes that the TASK-6/7-VISUAL ports use but globals.css
+   didn't yet ship:
+
+     1. `table.data` styling under [data-product="management"]
+        — was only scoped to development. Mgmt cabinets (Today
+        schedule, Portfolio table, Bookings, Concierge handoffs,
+        Finance statements, Operations housekeeping, AI Hub runs)
+        all use <table className="data"> and fell back to browser
+        defaults (auto width, no padding, no header chrome) →
+        operator-visible layout collapse.
+     2. `ul.clean` — utility for unordered lists with no list-
+        style + flex-row li children. Used in Owners YTD glance,
+        Concierge sessions, Operations preventive, etc. Without
+        it browsers render the default <ul> + bullet indent.
+     3. `.corner-marks` + `.hr-dashed` — decorative panels used
+        by Dev OS Overview/QS AI bands. Were not ported.
+
+   All three are product-agnostic (Mgmt + Dev both use them) so
+   declared without a [data-product] scope.
+   ============================================================ */
+
+/* `table.data` — base styling shared by both Mgmt and Dev */
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+table.data th,
+table.data td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  vertical-align: middle;
+}
+table.data th {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  background: var(--cream-warm, var(--bg-2));
+  border-bottom: 1px solid var(--line);
+}
+table.data tbody tr:hover {
+  background: var(--cream-warm, var(--bg-2));
+}
+table.data td.num,
+table.data th.num {
+  text-align: right;
+  font-family: var(--mono-font), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* `ul.clean` — bullet-less list with flex-row li, divider lines */
+ul.clean {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+ul.clean li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+ul.clean li:last-child {
+  border-bottom: 0;
+}
+
+/* `.corner-marks` — amber dot anchor in the top-left of a panel */
+.corner-marks {
+  position: relative;
+}
+.corner-marks::before,
+.corner-marks::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--amber, var(--terra));
+  opacity: 0.85;
+}
+.corner-marks::before {
+  top: 14px;
+  left: 14px;
+}
+.corner-marks::after {
+  display: none;
+}
+
+/* `.hr-dashed` — dashed divider line used by QS BOQ table footer */
+.hr-dashed {
+  background-image: linear-gradient(
+    90deg,
+    var(--line-2, var(--line)) 50%,
+    transparent 50%
+  );
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
+  height: 1px;
+}
+
+/* `.hr` — solid 1px divider, reused across both products */
+.hr {
+  height: 1px;
+  background: var(--line-soft, var(--line));
+  border: 0;
+}
+
