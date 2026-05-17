@@ -44,10 +44,13 @@ export type DocumentVisibility =
   | "investor_visible"
   | "public";
 
+// DEMO-3-SCHEMA-2: documents.visibility CHECK widened to accept the
+// broader spec vocabulary. Identity mapping now — legacy aliases
+// preserved at READ time elsewhere when filtering.
 const VISIBILITY_TO_DB: Record<DocumentVisibility, string> = {
-  operator_only: "internal",
-  owner_visible: "owner",
-  investor_visible: "owner", // legacy enum has no investor — alias to owner-tier
+  operator_only: "operator_only",
+  owner_visible: "owner_visible",
+  investor_visible: "investor_visible",
   public: "public",
 };
 
