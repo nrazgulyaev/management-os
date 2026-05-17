@@ -4,82 +4,98 @@ import {
   Card,
   Badge,
 } from "@/components/dashboard/primitives";
+import {
+  getOperationsKpis,
+  getVillaStatusBoard,
+  getMaintenanceTickets,
+  getPreventiveUpcoming,
+  getHousekeepingProgress,
+  getServiceRequestsForCabinet,
+  type VillaState,
+} from "@/features/operations/operations-cabinet-queries";
 
 /**
- * Sprint _handoff/ Task 6 (visual port) — Mgmt OS Operations cabinet.
+ * Sprint TASK-6-DATA-PART-1 — Mgmt OS Operations cabinet live wiring.
  *
- * 1:1 visual port of `_handoff/management/operations.html` (app.js
- * block). Mock data preserved verbatim — live wiring deferred to
- * TASK-6-DATA per docs/audits/task-6-data-wiring-todo.md. The HOUSEKEEPING /
- * MAINTENANCE / PREVENTIVE arrays below are inlined from the prototype's
- * shell `data.js` block since `MgmtData` doesn't exist in production.
+ * Visual port from `_handoff/management/operations.html`. This commit
+ * replaces five mock arrays with live reads in
+ * `src/features/operations/operations-cabinet-queries.ts`:
  *
- * Section order: SectionHeading → 6-up KPIs → Operations Copilot AI band
- * → 2-up (Housekeeping table + 19-villa status board) → 2-up
- * (Maintenance tickets table + Preventive upcoming list) → Service
- * requests table.
+ *   - HOUSEKEEPING     → getHousekeepingProgress() (empty until tasks seeded)
+ *   - MAINTENANCE      → getMaintenanceTickets()   (live · 8 seeded tickets)
+ *   - PREVENTIVE       → getPreventiveUpcoming()   (templates only — no schedule)
+ *   - SERVICE_REQUESTS → getServiceRequestsForCabinet() (empty until seeded)
+ *   - STATUS_TILES     → derived from getVillaStatusBoard()
+ *
+ * Operations Copilot AI band stays as a static empty-state copy until
+ * the daily-digest agent files a run.
  */
 
 export const metadata = { title: "Operations · Command center" };
 export const dynamic = "force-dynamic";
 
-// TODO(task-6-data): wire to features/operations/services.listHousekeepingForToday().
-const HOUSEKEEPING = [
-  { id: "hk-1", villa: "Enso S2", code: "ES-S2", at: "11:00", who: "Sari W.", prog: 62, status: "in_progress" as const, pri: "P2", checks: "11/18" },
-  { id: "hk-2", villa: "Eternal 07", code: "EV-07", at: "13:00", who: "Ketut A.", prog: 100, status: "awaiting_approval" as const, pri: "P3", checks: "22/22" },
-  { id: "hk-3", villa: "Ahau 02", code: "AH-02", at: "14:30", who: "Made T.", prog: 0, status: "queued" as const, pri: "P3", checks: "0/24" },
+const STATE_TILES: Array<{ key: VillaState; label: string; color: string }> = [
+  { key: "ready", label: "Ready", color: "var(--ok)" },
+  { key: "occupied", label: "Occupied", color: "var(--forest)" },
+  { key: "cleaning", label: "Cleaning", color: "var(--terra)" },
+  { key: "inspection", label: "Inspection", color: "var(--info)" },
+  { key: "checkout_pending", label: "Checkout", color: "var(--warn)" },
+  { key: "maintenance", label: "Maintenance", color: "var(--danger)" },
+  { key: "owner_stay", label: "Owner stay", color: "var(--gold)" },
+  { key: "ooo", label: "OOO", color: "var(--line-strong)" },
 ];
 
-// TODO(task-6-data): wire to features/operations/services.listOpenMaintenance().
-const MAINTENANCE = [
-  { id: "mt-1", villa: "Enso S6", code: "ES-S6", title: "Master bedroom AC not cooling below 26°C", cat: "AC", pri: "P2", status: "in_progress" as const, ago: "6h", who: "Budi W.", sla: "ok" as const },
-  { id: "mt-2", villa: "Enso S6", code: "ES-S6", title: "Pool filter pressure alarm", cat: "Pool", pri: "P2", status: "waiting_parts" as const, ago: "1d", who: "Budi W.", sla: "warn" as const },
-  { id: "mt-3", villa: "Enso S2", code: "ES-S2", title: "Living room ceiling fan wobble", cat: "Electrical", pri: "P3", status: "triaged" as const, ago: "2h", who: "—", sla: "ok" as const },
-  { id: "mt-4", villa: "Ahau 01", code: "AH-01", title: "Garden irrigation leak near entrance", cat: "Landscaping", pri: "P3", status: "open" as const, ago: "30m", who: "—", sla: "ok" as const },
-];
+const SEVERITY_TONE: Record<string, "ok" | "info" | "gold" | "warn" | undefined> = {
+  low: undefined,
+  normal: "info",
+  high: "warn",
+  urgent: "warn",
+};
 
-// TODO(task-6-data): wire to features/operations/services.listPreventiveUpcoming().
-const PREVENTIVE = [
-  { id: "pv-1", scope: "Eternal Villas · all", task: "Quarterly AC deep clean", in: "4 days", cad: "Every 90 days", who: "External · CoolAir" },
-  { id: "pv-2", scope: "Enso Villas · S1–S8", task: "Monthly pest management", in: "2 days", cad: "Every 30 days", who: "External · BaliPest" },
-  { id: "pv-3", scope: "Ahau Gardens · common", task: "Fire extinguisher inspection", in: "18 days", cad: "Every 180 days", who: "Internal · Security" },
-];
+const STATUS_LABEL: Record<string, { tone?: "ok" | "info" | "gold" | "warn"; text: string }> = {
+  open: { text: "Open" },
+  triaged: { tone: "info", text: "Triaged" },
+  scheduled: { tone: "info", text: "Scheduled" },
+  in_progress: { tone: "gold", text: "In progress" },
+  waiting_parts: { tone: "warn", text: "Waiting parts" },
+  resolved: { tone: "ok", text: "Resolved" },
+};
 
-// TODO(task-6-data): wire to features/operations/services.listServiceRequests().
-const SERVICE_REQUESTS: [string, string, string, string, string, string, ServiceState][] = [
-  ["SR-2421", "ES-S1", "Mr. Tanaka", "Breakfast for 2 · tomorrow 07:00", "Chef Ari · in-villa", "Internal", "fulfilled"],
-  ["SR-2419", "AH-01", "L. Okonkwo", "Spa massage · two persons · couples", "Bali Body", "external", "scheduled"],
-  ["SR-2418", "EV-07", "H. Williams", "Airport pickup · Sat 14:00", "Bluebird premium", "external", "confirmed"],
-  ["SR-2417", "ES-S2", "Family Nielsen", "Babysitter Fri evening", "Local sitter network", "external", "pending"],
-  ["SR-2416", "ES-S5", "A. Martin", "Welcome flower bouquet", "Internal", "Internal", "fulfilled"],
-  ["SR-2414", "AH-02", "S. Dubois", "Private dinner · 6 people · Sat", "Chef Wayan", "external", "quote_required"],
-];
+export default async function OperationsPage() {
+  const [kpis, board, tickets, preventive, housekeeping, serviceRequests] = await Promise.all([
+    getOperationsKpis().catch(() => null),
+    getVillaStatusBoard().catch(() => []),
+    getMaintenanceTickets(12).catch(() => []),
+    getPreventiveUpcoming(6).catch(() => []),
+    getHousekeepingProgress().catch(() => []),
+    getServiceRequestsForCabinet().catch(() => []),
+  ]);
 
-type ServiceState = "fulfilled" | "scheduled" | "confirmed" | "pending" | "quote_required";
+  // Tile counts from the live board.
+  const tileCounts = new Map<VillaState, number>();
+  for (const v of board) {
+    tileCounts.set(v.state, (tileCounts.get(v.state) ?? 0) + 1);
+  }
+  const totalVillas = board.length;
+  const ticketsOpen = kpis?.ticketsOpen ?? tickets.length;
 
-const STATUS_TILES: { s: string; c: number; col: string }[] = [
-  { s: "Ready", c: 2, col: "var(--ok)" },
-  { s: "Occupied", c: 3, col: "var(--forest)" },
-  { s: "Cleaning", c: 1, col: "var(--terra)" },
-  { s: "Inspection", c: 1, col: "var(--info)" },
-  { s: "Checkout", c: 1, col: "var(--warn)" },
-  { s: "Maintenance", c: 1, col: "var(--danger)" },
-  { s: "Owner stay", c: 1, col: "var(--gold)" },
-  { s: "OOO", c: 0, col: "var(--line-strong)" },
-];
-
-export default function OperationsPage() {
   return (
     <>
       <SectionHeading
         eyebrow="Today · live command center"
         title={
           <>
-            Six arrivals before sunset,{" "}
-            <em style={{ color: "var(--terra)", fontStyle: "italic" }}>four open tickets</em>, three turnovers in motion.
+            {kpis && kpis.arrivalsToday > 0
+              ? `${kpis.arrivalsToday} arrivals today`
+              : "No arrivals today"}
+            {", "}
+            <em style={{ color: "var(--terra)", fontStyle: "italic" }}>
+              {ticketsOpen} open {ticketsOpen === 1 ? "ticket" : "tickets"}
+            </em>
+            {kpis && kpis.turnoversToday > 0 ? `, ${kpis.turnoversToday} turnovers in motion.` : "."}
           </>
         }
-        subtitle="Housekeeping, maintenance, preventive tasks and service requests in one inbox. Geo-tagged photos, voice notes auto-transcribed."
+        subtitle="Housekeeping, maintenance, preventive tasks and service requests in one inbox. Photos + voice notes land in DEMO-3."
         actions={
           <>
             <button className="btn btn-secondary btn-sm">Morning brief PDF ↓</button>
@@ -90,15 +106,32 @@ export default function OperationsPage() {
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 18 }}>
-        <Kpi label="Turnovers · today" value="6" sub="3 in progress · 3 queued" />
-        <Kpi label="Arrivals · today" value="6" sub="1 VIP · 100% ready" />
-        <Kpi label="Tickets open" value="4" sub="1 P2 awaiting parts" tone="accent" />
-        <Kpi label="Preventive due" value="3" sub="2 within 4 days" tone="gold" />
-        <Kpi label="Service requests" value="9" sub="6 pending guest reply" />
-        <Kpi label="Photo evidence" value="184" sub="last 24h · all geo-tagged" tone="success" />
+        <Kpi
+          label="Turnovers · today"
+          value={kpis && kpis.turnoversToday > 0 ? String(kpis.turnoversToday) : "—"}
+          sub="check-outs today"
+        />
+        <Kpi
+          label="Arrivals · today"
+          value={kpis && kpis.arrivalsToday > 0 ? String(kpis.arrivalsToday) : "—"}
+          sub="check-ins today"
+        />
+        <Kpi
+          label="Tickets open"
+          value={ticketsOpen > 0 ? String(ticketsOpen) : "—"}
+          sub="across portfolio"
+          tone={ticketsOpen > 0 ? "accent" : undefined}
+        />
+        <Kpi label="Preventive due" value="—" sub="schedule in DEMO-3" />
+        <Kpi
+          label="Service requests"
+          value={kpis && kpis.serviceRequestsOpen > 0 ? String(kpis.serviceRequestsOpen) : "—"}
+          sub={kpis && kpis.serviceRequestsOpen > 0 ? "open" : "none seeded"}
+        />
+        <Kpi label="Photo evidence" value="—" sub="documents pipeline in DEMO-3" />
       </div>
 
-      {/* AI Operations Copilot band */}
+      {/* AI Operations Copilot — empty state until daily-digest agent runs */}
       <Card
         style={{
           padding: 20,
@@ -135,7 +168,7 @@ export default function OperationsPage() {
           </span>
           <div style={{ flex: 1 }}>
             <div className="label" style={{ color: "rgba(244,239,230,0.65)" }}>
-              Operations Copilot · 06:18 · run 4a2f8e
+              Operations Copilot
             </div>
             <p
               style={{
@@ -146,51 +179,13 @@ export default function OperationsPage() {
                 fontWeight: 300,
               }}
             >
-              Today is calm on paper but{" "}
+              The Operations Copilot will surface ad-hoc scheduling suggestions
+              here the first time the{" "}
               <em style={{ color: "var(--gold-soft)", fontStyle: "italic" }}>
-                ES-S5 has a 3-hour gap
+                daily-digest agent
               </em>{" "}
-              between Tanaka's checkout and Martin's arrival. Suggest moving Ketut A.'s
-              inspection to 12:00 — Sari is already on premises after the S2 turnover.
+              files a run.
             </p>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                className="btn"
-                style={{
-                  background: "var(--cream-warm)",
-                  color: "var(--ink)",
-                  fontSize: 13,
-                  padding: "7px 14px",
-                }}
-              >
-                Apply · move inspection ✓
-              </button>
-              <button
-                className="btn"
-                style={{
-                  background: "transparent",
-                  color: "var(--cream-warm)",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  fontSize: 13,
-                  padding: "7px 14px",
-                }}
-              >
-                Show reasoning
-              </button>
-            </div>
-          </div>
-          <div
-            className="mono"
-            style={{
-              flexShrink: 0,
-              fontSize: 10,
-              color: "rgba(244,239,230,0.5)",
-              textAlign: "right",
-            }}
-          >
-            92 tok · 1.4s
-            <br />
-            Read-only
           </div>
         </div>
       </Card>
@@ -203,114 +198,77 @@ export default function OperationsPage() {
               Housekeeping · today
             </h2>
             <span className="mono" style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}>
-              3 ACTIVE · 8 ASSIGNED
+              NOT SEEDED
             </span>
           </div>
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Villa</th>
-                <th>Time</th>
-                <th>Assignee</th>
-                <th>Progress</th>
-                <th>Status</th>
-                <th>Priority</th>
-              </tr>
-            </thead>
-            <tbody>
-              {HOUSEKEEPING.map((t) => (
-                <tr key={t.id}>
-                  <td>
-                    <span className="mono" style={{ fontSize: 12 }}>{t.code}</span>
-                    <div style={{ fontSize: 11, color: "var(--ink-3)", fontFamily: "var(--font-newsreader), serif" }}>
-                      {t.villa}
-                    </div>
-                  </td>
-                  <td className="mono">{t.at}</td>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 999,
-                          background: "var(--cream-deep)",
-                          border: "1px solid var(--line)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 10,
-                        }}
-                      >
-                        {t.who.split(" ")[0][0]}
-                      </span>
-                      <span>{t.who}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 140 }}>
-                      <div
-                        style={{
-                          flex: 1,
-                          height: 6,
-                          background: "var(--cream-deep)",
-                          borderRadius: 999,
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${t.prog}%`,
-                            background: t.prog === 100 ? "var(--ok)" : "var(--terra)",
-                            borderRadius: 999,
-                          }}
-                        />
-                      </div>
-                      <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)", width: 46 }}>
-                        {t.checks}
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    {t.status === "in_progress" && <Badge tone="info">In progress</Badge>}
-                    {t.status === "awaiting_approval" && <Badge tone="gold">Approval</Badge>}
-                    {t.status === "queued" && <Badge>Queued</Badge>}
-                  </td>
-                  <td>
-                    <span className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>{t.pri}</span>
-                  </td>
+          {housekeeping.length === 0 ? (
+            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+              No housekeeping tasks scheduled. Seed `operation_tasks` rows or
+              wire the Mgmt OS scheduler to populate this board.
+            </p>
+          ) : (
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Villa</th>
+                  <th>Time</th>
+                  <th>Assignee</th>
+                  <th>Progress</th>
+                  <th>Status</th>
+                  <th>Pri.</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {housekeeping.map((t) => (
+                  <tr key={t.taskId}>
+                    <td className="mono">{t.villaCode}</td>
+                    <td className="mono">{t.scheduledAt}</td>
+                    <td>{t.assigneeName ?? "—"}</td>
+                    <td className="num">{t.progressPct}%</td>
+                    <td>
+                      <Badge>{t.status}</Badge>
+                    </td>
+                    <td className="mono">{t.priority}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </Card>
 
         <Card style={{ padding: 20 }}>
           <h3 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 18, fontWeight: 400 }}>
-            Status board · 19 villas
+            Status board · {totalVillas} {totalVillas === 1 ? "villa" : "villas"}
           </h3>
           <div className="label" style={{ marginTop: 4 }}>Live readiness</div>
-          <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {STATUS_TILES.map((s) => (
-              <div
-                key={s.s}
-                style={{
-                  padding: "10px 12px",
-                  border: "1px solid var(--line-soft)",
-                  borderRadius: 10,
-                  background: "var(--cream-warm)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: s.col }} />
-                <span style={{ fontSize: 13, flex: 1 }}>{s.s}</span>
-                <span className="num" style={{ fontSize: 14, fontWeight: 500 }}>{s.c}</span>
-              </div>
-            ))}
-          </div>
+          {totalVillas === 0 ? (
+            <p style={{ marginTop: 14, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+              No villas yet.
+            </p>
+          ) : (
+            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {STATE_TILES.map((s) => (
+                <div
+                  key={s.key}
+                  style={{
+                    padding: "10px 12px",
+                    border: "1px solid var(--line-soft)",
+                    borderRadius: 10,
+                    background: "var(--cream-warm)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: 999, background: s.color }} />
+                  <span style={{ fontSize: 13, flex: 1 }}>{s.label}</span>
+                  <span className="num" style={{ fontSize: 14, fontWeight: 500 }}>
+                    {tileCounts.get(s.key) ?? 0}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -322,48 +280,48 @@ export default function OperationsPage() {
               Maintenance tickets
             </h2>
             <span className="mono" style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}>
-              4 OPEN · 1 WAITING PARTS
+              {tickets.length} OPEN
             </span>
           </div>
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Villa</th>
-                <th>Issue</th>
-                <th>Cat.</th>
-                <th>Pri.</th>
-                <th>Status</th>
-                <th>Age</th>
-                <th>Assignee</th>
-                <th>SLA</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MAINTENANCE.map((t) => (
-                <tr key={t.id}>
-                  <td className="mono">{t.code}</td>
-                  <td style={{ maxWidth: 280, fontSize: 13 }}>{t.title}</td>
-                  <td><Badge>{t.cat}</Badge></td>
-                  <td className="mono">{t.pri}</td>
-                  <td>
-                    {t.status === "open" && <Badge>Open</Badge>}
-                    {t.status === "triaged" && <Badge tone="info">Triaged</Badge>}
-                    {t.status === "in_progress" && <Badge tone="gold">In progress</Badge>}
-                    {t.status === "waiting_parts" && <Badge tone="warn">Waiting parts</Badge>}
-                  </td>
-                  <td className="mono">{t.ago}</td>
-                  <td style={{ fontSize: 12, color: "var(--ink-3)" }}>{t.who}</td>
-                  <td>
-                    {t.sla === "ok" ? (
-                      <span style={{ color: "var(--ok)" }}>●</span>
-                    ) : (
-                      <span style={{ color: "var(--warn)" }}>●</span>
-                    )}
-                  </td>
+          {tickets.length === 0 ? (
+            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+              No open tickets. Maintenance tickets surface here once reported.
+            </p>
+          ) : (
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Villa</th>
+                  <th>Issue</th>
+                  <th>Cat.</th>
+                  <th>Severity</th>
+                  <th>Status</th>
+                  <th>Age</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {tickets.map((t) => {
+                  const status = STATUS_LABEL[t.status] ?? { text: t.status };
+                  return (
+                    <tr key={t.id}>
+                      <td className="mono">{t.villaCode ?? "—"}</td>
+                      <td style={{ maxWidth: 280, fontSize: 13 }}>{t.title}</td>
+                      <td>
+                        <Badge>{t.issueCategory}</Badge>
+                      </td>
+                      <td>
+                        <Badge tone={SEVERITY_TONE[t.severity]}>{t.severity}</Badge>
+                      </td>
+                      <td>
+                        <Badge tone={status.tone}>{status.text}</Badge>
+                      </td>
+                      <td className="mono">{t.daysOpen}d</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </Card>
 
         <Card style={{ padding: 0, overflow: "hidden" }}>
@@ -371,33 +329,40 @@ export default function OperationsPage() {
             <h2 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 22, fontWeight: 400 }}>
               Preventive · upcoming
             </h2>
-            <div className="label" style={{ marginTop: 4 }}>Scheduled around guest stays</div>
+            <div className="label" style={{ marginTop: 4 }}>
+              Templates · no schedule yet
+            </div>
           </div>
-          <ul className="clean" style={{ padding: "4px 0" }}>
-            {PREVENTIVE.map((p) => (
-              <li
-                key={p.id}
-                style={{
-                  padding: "12px 18px",
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: 6,
-                  display: "flex",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
-                  <span style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 15, flex: 1 }}>
-                    {p.task}
-                  </span>
-                  <Badge tone="gold">{p.in}</Badge>
-                </div>
-                <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>{p.scope}</div>
-                <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-3)" }}>
-                  {p.cad} · {p.who}
-                </div>
-              </li>
-            ))}
-          </ul>
+          {preventive.length === 0 ? (
+            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+              No preventive maintenance templates configured.
+            </p>
+          ) : (
+            <ul className="clean" style={{ padding: "4px 0" }}>
+              {preventive.map((p) => (
+                <li
+                  key={p.templateKey}
+                  style={{
+                    padding: "12px 18px",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: 6,
+                    display: "flex",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
+                    <span style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 15, flex: 1 }}>
+                      {p.templateName}
+                    </span>
+                    <Badge>{p.defaultFrequency}</Badge>
+                  </div>
+                  <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
+                    {p.category}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
 
@@ -411,40 +376,41 @@ export default function OperationsPage() {
         <em style={{ color: "var(--terra)", fontStyle: "italic" }}>guest-side</em>
       </h2>
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Villa</th>
-              <th>Guest</th>
-              <th>Request</th>
-              <th>Service</th>
-              <th>Vendor</th>
-              <th>State</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {SERVICE_REQUESTS.map((r) => (
-              <tr key={r[0]}>
-                <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>{r[0]}</td>
-                <td className="mono">{r[1]}</td>
-                <td>{r[2]}</td>
-                <td style={{ fontSize: 13, maxWidth: 240 }}>{r[3]}</td>
-                <td style={{ color: "var(--ink-3)" }}>{r[4]}</td>
-                <td><Badge>{r[5]}</Badge></td>
-                <td>
-                  {r[6] === "fulfilled" && <Badge tone="ok">Fulfilled</Badge>}
-                  {r[6] === "scheduled" && <Badge tone="info">Scheduled</Badge>}
-                  {r[6] === "confirmed" && <Badge tone="info">Confirmed</Badge>}
-                  {r[6] === "pending" && <Badge tone="warn">Pending</Badge>}
-                  {r[6] === "quote_required" && <Badge tone="gold">Quote</Badge>}
-                </td>
-                <td><button className="btn btn-ghost btn-sm">Open →</button></td>
+        {serviceRequests.length === 0 ? (
+          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            No service requests yet. Guest-initiated requests surface here once
+            the in-stay portal or concierge cabinet routes them through.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Villa</th>
+                <th>Guest</th>
+                <th>Request</th>
+                <th>Vendor</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {serviceRequests.map((r) => (
+                <tr key={r.id}>
+                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                    {r.code}
+                  </td>
+                  <td className="mono">{r.villaCode ?? "—"}</td>
+                  <td>{r.guestName ?? "—"}</td>
+                  <td style={{ fontSize: 13, maxWidth: 240 }}>{r.requestType}</td>
+                  <td style={{ color: "var(--ink-3)" }}>{r.vendorName ?? "—"}</td>
+                  <td>
+                    <Badge>{r.status}</Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
     </>
   );

@@ -38,7 +38,7 @@ For each cabinet I list:
 - **Complexity** — Low (1-3 read queries), Med (4-8 + light shape
   mapping), High (joins / aggregations / new schema needed)
 
-## Cabinet 1 — Bookings
+## Cabinet 1 — Bookings — ✅ DONE (TASK-6-DATA-PART-1)
 
 **File:** `src/app/(dashboard)/dashboard/bookings/page.tsx`
 
@@ -89,7 +89,7 @@ decision before wiring.
 **Sprint estimate:** 2-3 days. This is the load-bearing cabinet for
 owner trust — schema + service work is substantial.
 
-## Cabinet 4 — Operations
+## Cabinet 4 — Operations — ✅ DONE (TASK-6-DATA-PART-1)
 
 **File:** `src/app/(dashboard)/dashboard/operations/page.tsx`
 
@@ -123,14 +123,15 @@ authoritative. If not, schema work first.
 
 ## Cross-cabinet rollup
 
-| Cabinet | New services needed | Existing services to extend | Sprint estimate |
-|---|---|---|---|
-| Bookings | 5 | 2 | 1 day |
-| Concierge | 6 | 0 | 2 days |
-| Finance | 6 | 0 | 2-3 days |
-| Operations | 3 | 4 | 1.5 days |
-| AI Hub | 4 | 1 (mock → registry) | 1 day |
-| **Total** | **24** | **7** | **~8 days senior-eng** |
+| Cabinet | Status | Notes |
+|---|---|---|
+| Overview | ✅ TASK-6-DATA-PART-1 | live · 7 readers in `dashboard-cabinet-queries.ts` |
+| Bookings | ✅ TASK-6-DATA-PART-1 | live · 6 readers in `bookings-cabinet-queries.ts` (rate plans + sync deferred) |
+| Operations | ✅ TASK-6-DATA-PART-1 | live · 6 readers in `operations-cabinet-queries.ts` (housekeeping + service requests empty) |
+| Concierge | pending | most green-field; postpone until WhatsApp adapter is settled |
+| Finance | pending | schema-heavy; statement engine in STATEMENT-1 sprint |
+| AI Hub | pending | service work shares schema with future AI surfaces |
+| **Total Mgmt** | **3 ✅ / 5 cabinets** | concierge + finance deferred to PART-1B/2 |
 
 ## Recommended TASK-6-DATA prompt sequence
 

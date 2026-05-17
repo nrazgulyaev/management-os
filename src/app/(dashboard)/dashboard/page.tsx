@@ -8,72 +8,64 @@ import {
 import { DashboardIcon } from "@/components/dashboard/icons";
 import { getLiveDashboardCounts } from "@/features/dashboard/live-counts";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { mockProjects } from "@/lib/mock/projects";
-import { mockOwners } from "@/lib/mock/owners";
 import {
-  portfolioMetrics,
-  revenueByChannel,
-  monthlyRevenueStrip,
-} from "@/lib/mock/metrics";
+  getPortfolioMetrics,
+  getRevenueByChannel,
+  getMonthlyRevenueStrip,
+  getOwnersYtdPayouts,
+  getPortfolioProjects,
+  getTodaySchedule,
+  getCurrentStatementNudge,
+} from "@/features/dashboard/dashboard-cabinet-queries";
 
 /**
- * Sprint _handoff/ Task 6 — Mgmt OS Overview cabinet.
+ * Sprint TASK-6-DATA-PART-1 — Mgmt OS Overview live wiring.
  *
- * 1:1 port of `_handoff/management/index.html` (`app.js` block) into a
- * Next.js server component. Replaces the prior Sprint 1 / Task 4
- * composition (DashboardKpi / AreaChartCard / DonutRatioCard hero — all
- * primitives from the superseded `design_handoff_arconique_os` package).
+ * Visual port from `_handoff/management/index.html` (commit `9aaa68a`).
+ * This commit replaces the prototype's mock arrays with live reads in
+ * `src/features/dashboard/dashboard-cabinet-queries.ts`:
  *
- * Section order matches the prototype:
- *   Greeting (time-aware) → 5-up KPI strip → Today schedule + AI
- *   Operations Copilot card → Channels + Monthly revenue + Owners glance
- *   → 4-up operational health KPIs → Portfolio table → Owner statement
- *   nudge band.
+ *   - portfolioMetrics    → getPortfolioMetrics()
+ *   - revenueByChannel    → getRevenueByChannel()
+ *   - monthlyRevenueStrip → getMonthlyRevenueStrip(6)
+ *   - mockOwners (top 3)  → getOwnersYtdPayouts(3)
+ *   - mockProjects        → getPortfolioProjects()
+ *   - TODAY_SCHEDULE      → getTodaySchedule()
+ *   - EV-07 nudge band    → getCurrentStatementNudge() (empty until
+ *                           STATEMENT-1 ships the schema)
  *
- * Data sources (live → mock fallback in that order):
- *   getLiveDashboardCounts()   → villa/booking/check-in counts (DB)
- *   getCurrentAppUser()        → first-name in greeting
- *   portfolioMetrics           → occ YTD / ADR / RevPAR / MTD revenue
- *                                + open maintenance / upcoming check-ins
- *                                / housekeeping (mock; no live equivalent
- *                                ships in this commit — wire-up tracked
- *                                under Task 6 follow-up)
- *   revenueByChannel           → channel mix bars (mock)
- *   monthlyRevenueStrip        → six-month chart (mock)
- *   mockProjects               → portfolio table (mock)
- *   mockOwners                 → top-3 owners YTD payouts (mock)
- *
- * Hard-coded prototype demo (turnovers, AI advisory text, EV-07 Emma
- * Whitmore statement nudge) — preserved as-is for visual fidelity until
- * the live services land (operations service / AI runs service /
- * statement-detail server query).
+ * Bookings live above the multi-tenancy line in the schema (no
+ * `organization_id` column) — reads are tenant-wide, consistent with
+ * `getLiveDashboardCounts()` shipped in commit 95501b1. AI Copilot
+ * band kept as static empty-state copy until daily-digest agent runs
+ * land (TASK-6-DATA-PART-1B).
  */
 
 export const metadata = { title: "Portfolio overview" };
 export const dynamic = "force-dynamic";
 
-const IDR_TRILLION = 1_000_000_000_000;
-const IDR_BILLION = 1_000_000_000;
-const IDR_MILLION = 1_000_000;
-const USD_PER_IDR = 1 / 16_000;
+const IDR_BILLION_MINOR = 1_000_000_000_00; // 1B IDR in minor
+const IDR_MILLION_MINOR = 1_000_000_00; // 1M IDR in minor
 
-function rupiahMillions(minor: number): string {
-  return `${(minor / IDR_BILLION).toFixed(1)}M`;
+function fmtIdrM(minor: bigint): string {
+  const m = Number(minor) / IDR_MILLION_MINOR;
+  return `${m.toFixed(1)}M`;
 }
-function rupiahBillions(minor: number): string {
-  return `${(minor / IDR_TRILLION).toFixed(2)}B`;
+function fmtIdrB(minor: bigint): string {
+  const b = Number(minor) / IDR_BILLION_MINOR;
+  return `${b.toFixed(2)}B`;
 }
-function idrToUsdK(minor: number): string {
-  const usd = (minor / IDR_MILLION) * USD_PER_IDR;
-  return `$${Math.round(usd).toLocaleString()}K`;
+function fmtUsdK(usdMinor: bigint): string {
+  const k = Number(usdMinor) / 100_000;
+  return `$${Math.round(k).toLocaleString()}K`;
 }
 
 const CHANNEL_COLOR: Record<string, string> = {
-  emerald: "var(--ok)",
-  gold: "var(--gold)",
-  sage: "var(--sage, var(--ok))",
-  stone: "var(--ink-3)",
-  terracotta: "var(--terra)",
+  Airbnb: "var(--ok)",
+  "Booking.com": "var(--gold)",
+  Direct: "var(--sage, var(--ok))",
+  Agoda: "var(--ink-3)",
+  "Travel agent": "var(--terra)",
 };
 
 function timeOfDayGreeting(): string {
@@ -93,26 +85,27 @@ function todayBrief(): string {
 }
 
 export default async function DashboardOverviewPage() {
-  const [live, currentUser] = await Promise.all([
-    getLiveDashboardCounts().catch(() => null),
-    getCurrentAppUser().catch(() => null),
-  ]);
+  const [live, currentUser, metrics, channels, monthly, owners, portfolio, schedule, nudge] =
+    await Promise.all([
+      getLiveDashboardCounts().catch(() => null),
+      getCurrentAppUser().catch(() => null),
+      getPortfolioMetrics().catch(() => null),
+      getRevenueByChannel(1).catch(() => []),
+      getMonthlyRevenueStrip(6).catch(() => []),
+      getOwnersYtdPayouts(3).catch(() => []),
+      getPortfolioProjects().catch(() => []),
+      getTodaySchedule().catch(() => []),
+      getCurrentStatementNudge().catch(() => null),
+    ]);
 
-  const firstName =
-    currentUser?.fullName?.split(/\s+/)[0] ?? "operator";
-  const m = portfolioMetrics;
+  const firstName = currentUser?.fullName?.split(/\s+/)[0] ?? "operator";
+  const villaCount = live?.villas ?? 0;
+  const projectCount = portfolio.length;
+  const upcomingCheckIns = live?.upcomingCheckIns ?? 0;
+  const arrivalsToday = schedule.filter((s) => s.type === "arrival").length;
 
-  // Live counts override mock equivalents where present.
-  const villaCount = live?.villas ?? 19;
-  const projectCount = live?.projects ?? mockProjects.length;
-  const bedrooms = mockProjects.reduce((s, p) => s + p.bedrooms, 0);
-  const upcomingCheckIns =
-    live?.upcomingCheckIns ?? m.upcomingCheckins.value;
-
-  // Pull a stable 6-month max for the bar-chart scale (max + 20% headroom).
-  const monthlyMax = Math.max(...monthlyRevenueStrip.map((r) => r.revenue));
-  const sixMonthTotal =
-    monthlyRevenueStrip.reduce((s, r) => s + r.revenue, 0) / 1000; // → B IDR
+  const monthlyMax = Math.max(0, ...monthly.map((r) => Number(r.amountIdrMinor)));
+  const sixMonthTotalMinor = monthly.reduce((s, r) => s + r.amountIdrMinor, 0n);
 
   return (
     <>
@@ -126,7 +119,11 @@ export default async function DashboardOverviewPage() {
             </em>
           </>
         }
-        subtitle={`${m.upcomingCheckins.today} arrivals before sunset, ${m.openMaintenance.value} maintenance tickets open (${m.openMaintenance.sla} within SLA), ${m.housekeepingOpen.value} housekeeping tasks active.`}
+        subtitle={
+          arrivalsToday > 0
+            ? `${arrivalsToday} ${arrivalsToday === 1 ? "arrival" : "arrivals"} today, ${upcomingCheckIns} check-ins in the next 14 days.`
+            : `${upcomingCheckIns} check-ins in the next 14 days. No arrivals scheduled today.`
+        }
         actions={
           <>
             <button className="btn btn-secondary btn-sm">
@@ -139,7 +136,7 @@ export default async function DashboardOverviewPage() {
         }
       />
 
-      {/* KPI strip — 5-up */}
+      {/* KPI strip — live portfolio metrics */}
       <div
         style={{
           display: "grid",
@@ -150,31 +147,31 @@ export default async function DashboardOverviewPage() {
       >
         <Kpi
           label="Occupancy YTD"
-          value={`${m.occupancyYTD.value}%`}
-          sub={`+${m.occupancyYTD.deltaYoY}pp YoY`}
-          tone="success"
+          value={metrics ? `${metrics.occupancyYtd}%` : "—"}
+          sub={metrics && metrics.occupancyYtd > 0 ? "live · YTD" : "no bookings yet"}
+          tone={metrics && metrics.occupancyYtd > 0 ? "success" : undefined}
         />
         <Kpi
           label="ADR"
-          value={`IDR ${rupiahMillions(m.adr.value)}`}
-          sub={`+${m.adr.deltaYoY}% YoY`}
-          tone="accent"
+          value={metrics && metrics.adrIdrMinor > 0n ? `IDR ${fmtIdrM(metrics.adrIdrMinor)}` : "—"}
+          sub="live · YTD average"
+          tone={metrics && metrics.adrIdrMinor > 0n ? "accent" : undefined}
         />
         <Kpi
           label="RevPAR"
-          value={`IDR ${rupiahMillions(m.revpar.value)}`}
-          sub={`+${m.revpar.deltaYoY}% YoY`}
+          value={metrics && metrics.revparIdrMinor > 0n ? `IDR ${fmtIdrM(metrics.revparIdrMinor)}` : "—"}
+          sub="live · YTD"
         />
         <Kpi
           label="Gross MTD"
-          value={`IDR ${rupiahBillions(m.grossRevenueMTD.value)}`}
-          sub={`+${m.grossRevenueMTD.deltaYoY}% MoM`}
-          tone="gold"
+          value={metrics && metrics.grossMtdIdrMinor > 0n ? `IDR ${fmtIdrB(metrics.grossMtdIdrMinor)}` : "—"}
+          sub="live · this month"
+          tone={metrics && metrics.grossMtdIdrMinor > 0n ? "gold" : undefined}
         />
         <Kpi
           label="Net to owners MTD"
-          value={`IDR ${rupiahBillions(m.netOwnerPayoutsMTD.value)}`}
-          sub={`+${m.netOwnerPayoutsMTD.deltaYoY}% MoM`}
+          value={metrics && metrics.netToOwnersMtdIdrMinor > 0n ? `IDR ${fmtIdrB(metrics.netToOwnersMtdIdrMinor)}` : "—"}
+          sub="gross × (1 − commission)"
         />
       </div>
 
@@ -214,37 +211,44 @@ export default async function DashboardOverviewPage() {
                 color: "var(--ink-3)",
               }}
             >
-              ARRIVALS · DEPARTURES · TURNOVERS
+              ARRIVALS · DEPARTURES
             </span>
           </div>
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Type</th>
-                <th>Villa</th>
-                <th>Guest / Notes</th>
-                <th>State</th>
-              </tr>
-            </thead>
-            <tbody>
-              {TODAY_SCHEDULE.map((row) => (
-                <tr key={`${row.time}-${row.villa}-${row.type}`}>
-                  <td className="mono">{row.time}</td>
-                  <td>{row.type}</td>
-                  <td>{row.villa}</td>
-                  <td>{row.notes}</td>
-                  <td>
-                    <Badge tone={row.state.tone}>{row.state.label}</Badge>
-                  </td>
+          {schedule.length === 0 ? (
+            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+              No arrivals or departures scheduled for today.
+            </p>
+          ) : (
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>Villa</th>
+                  <th>Guest / Notes</th>
+                  <th>Nights</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {schedule.map((row) => (
+                  <tr key={`${row.villaCode}-${row.type}-${row.time}`}>
+                    <td className="mono">{row.time}</td>
+                    <td>{row.type === "arrival" ? "Arrival" : "Departure"}</td>
+                    <td>{row.villaCode}</td>
+                    <td>{row.guestName ?? "—"}</td>
+                    <td>
+                      <Badge tone={row.type === "arrival" ? "ok" : "warn"}>
+                        {row.nights}n
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </Card>
 
-        {/* AI Operations Copilot card — placeholder copy until AI runs
-            service is wired (Task 6 follow-up). */}
+        {/* AI Operations Copilot — empty state until daily-digest agent runs */}
         <Card
           style={{
             padding: 20,
@@ -265,32 +269,27 @@ export default async function DashboardOverviewPage() {
           />
           <div style={{ position: "relative" }}>
             <div className="label" style={{ color: "rgba(244,239,230,0.6)" }}>
-              AI · Operations Copilot · 06:18
+              AI · Operations Copilot
             </div>
             <h3
               style={{
                 margin: "8px 0 12px",
                 fontFamily: "var(--font-newsreader), serif",
-                fontSize: 22,
+                fontSize: 20,
                 fontWeight: 400,
-                lineHeight: 1.25,
+                lineHeight: 1.3,
               }}
             >
-              <em
-                style={{
-                  color: "var(--gold-soft)",
-                  fontStyle: "italic",
-                }}
-              >
-                ES-S6
-              </em>{" "}
-              blocked since yesterday — pool filter on backorder. AC ticket
-              still in progress. Suggest extending block until 24 Apr and
-              notifying Emma Whitmore (her stay request is 27 Apr).
+              The Operations Copilot surfaces here the first time the
+              daily-digest agent files a run.
             </h3>
+            <p style={{ margin: 0, fontSize: 13, color: "rgba(244,239,230,0.8)", lineHeight: 1.5 }}>
+              Configure the agent on the AI hub to start receiving
+              morning briefs with arrivals, turnovers, and exception flags.
+            </p>
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
               <Link
-                href="/dashboard/operations"
+                href="/dashboard/ai"
                 className="btn"
                 style={{
                   background: "var(--cream-warm)",
@@ -299,20 +298,7 @@ export default async function DashboardOverviewPage() {
                   padding: "6px 12px",
                 }}
               >
-                Apply block + notify
-              </Link>
-              <Link
-                href="/dashboard/ai"
-                className="btn"
-                style={{
-                  background: "transparent",
-                  color: "var(--cream-warm)",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  fontSize: 12,
-                  padding: "6px 12px",
-                }}
-              >
-                Show reasoning
+                Configure agent
               </Link>
             </div>
           </div>
@@ -342,47 +328,53 @@ export default async function DashboardOverviewPage() {
           <div className="label" style={{ marginTop: 4 }}>
             MTD share
           </div>
-          <div
-            style={{
-              marginTop: 16,
-              display: "flex",
-              flexDirection: "column",
-              gap: 11,
-            }}
-          >
-            {revenueByChannel.map((c) => (
-              <div key={c.channel}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontSize: 12.5,
-                    marginBottom: 4,
-                  }}
-                >
-                  <span>{c.channel}</span>
-                  <span className="num">{c.share}%</span>
-                </div>
-                <div
-                  style={{
-                    height: 6,
-                    background: "var(--cream-deep)",
-                    borderRadius: 999,
-                    overflow: "hidden",
-                  }}
-                >
+          {channels.length === 0 ? (
+            <p style={{ marginTop: 16, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+              No bookings this month yet.
+            </p>
+          ) : (
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                flexDirection: "column",
+                gap: 11,
+              }}
+            >
+              {channels.map((c) => (
+                <div key={c.channel}>
                   <div
                     style={{
-                      height: "100%",
-                      width: `${c.share * 2}%`,
-                      background: CHANNEL_COLOR[c.tone] ?? "var(--ink-2)",
-                      borderRadius: 999,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontSize: 12.5,
+                      marginBottom: 4,
                     }}
-                  />
+                  >
+                    <span>{c.channel}</span>
+                    <span className="num">{c.pctShare}%</span>
+                  </div>
+                  <div
+                    style={{
+                      height: 6,
+                      background: "var(--cream-deep)",
+                      borderRadius: 999,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${Math.min(c.pctShare * 2, 100)}%`,
+                        background: CHANNEL_COLOR[c.channel] ?? "var(--ink-2)",
+                        borderRadius: 999,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         <Card style={{ padding: 20 }}>
@@ -408,74 +400,79 @@ export default async function DashboardOverviewPage() {
               IDR · billions
             </span>
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 8,
-              marginTop: 18,
-              height: 140,
-            }}
-          >
-            {monthlyRevenueStrip.map((row, i) => (
+          {monthly.length === 0 ? (
+            <p style={{ marginTop: 18, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+              No booking history yet.
+            </p>
+          ) : (
+            <>
               <div
-                key={row.month}
                 style={{
-                  flex: 1,
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 6,
+                  alignItems: "flex-end",
+                  gap: 8,
+                  marginTop: 18,
+                  height: 140,
                 }}
               >
-                <span
-                  className="num"
-                  style={{ fontSize: 10, color: "var(--ink-3)" }}
-                >
-                  {(row.revenue / 1000).toFixed(1)}
-                </span>
-                <div
-                  style={{
-                    width: "100%",
-                    height: `${(row.revenue / monthlyMax) * 120}px`,
-                    background:
-                      i === monthlyRevenueStrip.length - 1
-                        ? "var(--terra)"
-                        : "var(--forest)",
-                    borderRadius: "4px 4px 0 0",
-                  }}
-                />
-                <span
-                  className="mono"
-                  style={{ fontSize: 10, color: "var(--ink-4)" }}
-                >
-                  {row.month}
+                {monthly.map((row, i) => {
+                  const h = monthlyMax > 0 ? (Number(row.amountIdrMinor) / monthlyMax) * 120 : 0;
+                  return (
+                    <div
+                      key={row.monthIso}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <span
+                        className="num"
+                        style={{ fontSize: 10, color: "var(--ink-3)" }}
+                      >
+                        {fmtIdrB(row.amountIdrMinor)}
+                      </span>
+                      <div
+                        style={{
+                          width: "100%",
+                          height: `${Math.max(h, 2)}px`,
+                          background:
+                            i === monthly.length - 1
+                              ? "var(--terra)"
+                              : "var(--forest)",
+                          borderRadius: "4px 4px 0 0",
+                        }}
+                      />
+                      <span
+                        className="mono"
+                        style={{ fontSize: 10, color: "var(--ink-4)" }}
+                      >
+                        {row.monthLabel}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: 12,
+                  fontSize: 11,
+                  color: "var(--ink-3)",
+                }}
+              >
+                <span>
+                  6-month total:{" "}
+                  <span className="num" style={{ color: "var(--ink)" }}>
+                    IDR {fmtIdrB(sixMonthTotalMinor)}
+                  </span>
                 </span>
               </div>
-            ))}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: 12,
-              fontSize: 11,
-              color: "var(--ink-3)",
-            }}
-          >
-            <span>
-              6-month total:{" "}
-              <span className="num" style={{ color: "var(--ink)" }}>
-                IDR {sixMonthTotal.toFixed(2)}B
-              </span>
-            </span>
-            <span>
-              Forecast next:{" "}
-              <span className="num" style={{ color: "var(--gold)" }}>
-                IDR {(monthlyMax / 1000).toFixed(2)}B
-              </span>
-            </span>
-          </div>
+            </>
+          )}
         </Card>
 
         <Card style={{ padding: 20 }}>
@@ -490,60 +487,74 @@ export default async function DashboardOverviewPage() {
             Owners · YTD payouts
           </h3>
           <div className="label" style={{ marginTop: 4 }}>
-            USD-equivalent · top {Math.min(mockOwners.length, 3)}
+            USD-equivalent · top {owners.length}
           </div>
-          <ul className="clean" style={{ marginTop: 14 }}>
-            {mockOwners.slice(0, 3).map((o) => (
-              <li key={o.id} style={{ padding: "10px 0" }}>
-                <span
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 999,
-                    background:
-                      "linear-gradient(135deg, var(--gold-soft), var(--terra))",
-                    color: "var(--cream-warm)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 11,
-                    fontWeight: 500,
-                  }}
-                >
-                  {o.initials}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>
-                    {o.displayName}
-                  </div>
-                  <div
-                    className="mono"
-                    style={{ fontSize: 10, color: "var(--ink-4)" }}
-                  >
-                    {o.scope}
-                  </div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div
-                    className="num"
-                    style={{ fontSize: 13, color: "var(--terra)" }}
-                  >
-                    {idrToUsdK(o.ytdPayouts)}
-                  </div>
-                  <div
-                    className="mono"
-                    style={{ fontSize: 10, color: "var(--ink-3)" }}
-                  >
-                    {o.annualizedYield}% yield
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {owners.length === 0 ? (
+            <p style={{ marginTop: 14, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+              No owner payouts yet.
+            </p>
+          ) : (
+            <ul className="clean" style={{ marginTop: 14 }}>
+              {owners.map((o) => {
+                const initials = o.name
+                  .split(/\s+/)
+                  .map((p) => p[0])
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase();
+                return (
+                  <li key={o.ownerId} style={{ padding: "10px 0" }}>
+                    <span
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 999,
+                        background:
+                          "linear-gradient(135deg, var(--gold-soft), var(--terra))",
+                        color: "var(--cream-warm)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 11,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {initials}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>{o.name}</div>
+                      <div
+                        className="mono"
+                        style={{ fontSize: 10, color: "var(--ink-4)" }}
+                      >
+                        {o.villasCount} {o.villasCount === 1 ? "villa" : "villas"}
+                        {o.projectName ? ` · ${o.projectName.replace(/^\[DEMO\] /, "")}` : ""}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div
+                        className="num"
+                        style={{ fontSize: 13, color: "var(--terra)" }}
+                      >
+                        {fmtUsdK(o.payoutUsdMinor)}
+                      </div>
+                      <div
+                        className="mono"
+                        style={{ fontSize: 10, color: "var(--ink-3)" }}
+                      >
+                        {o.yieldPct}% net
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Card>
       </div>
 
-      {/* Operational health — 4-up */}
+      {/* Operational health — 4-up KPIs */}
       <div
         style={{
           display: "grid",
@@ -552,29 +563,17 @@ export default async function DashboardOverviewPage() {
           marginBottom: 14,
         }}
       >
-        <Kpi
-          label="Open maintenance"
-          value={m.openMaintenance.value}
-          sub={`${m.openMaintenance.sla} within SLA`}
-        />
+        <Kpi label="Open maintenance" value="—" sub="ops cabinet · live" />
         <Kpi
           label="Upcoming check-ins"
-          value={upcomingCheckIns}
-          sub={`${m.upcomingCheckins.today} today · next 14 days`}
+          value={String(upcomingCheckIns)}
+          sub="next 14 days"
         />
-        <Kpi
-          label="Housekeeping"
-          value={m.housekeepingOpen.value}
-          sub={`${m.housekeepingOpen.onTrack} on track`}
-        />
-        <Kpi
-          label="Owner stay requests"
-          value="2"
-          sub="1 needs relocation · 1 approved"
-        />
+        <Kpi label="Housekeeping" value="—" sub="no tasks seeded" />
+        <Kpi label="Owner stay requests" value="—" sub="schema in DEMO-3" />
       </div>
 
-      {/* Portfolio table */}
+      {/* Portfolio table — live */}
       <Card style={{ padding: 0, overflow: "hidden" }}>
         <div
           style={{
@@ -592,180 +591,97 @@ export default async function DashboardOverviewPage() {
               fontWeight: 400,
             }}
           >
-            Portfolio · {projectCount} projects
+            Portfolio · {projectCount} {projectCount === 1 ? "project" : "projects"}
           </h2>
           <span
             className="mono"
-            style={{
-              marginLeft: "auto",
-              fontSize: 11,
-              color: "var(--ink-3)",
-            }}
+            style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}
           >
-            {villaCount} VILLAS · {bedrooms} BEDROOMS · {projectCount} PROJECTS
+            {villaCount} VILLAS · {projectCount}{" "}
+            {projectCount === 1 ? "PROJECT" : "PROJECTS"}
           </span>
         </div>
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Project</th>
-              <th>Area</th>
-              <th className="num">Villas</th>
-              <th>Model</th>
-              <th className="num">Occ. YTD</th>
-              <th className="num">ADR (IDR M)</th>
-              <th className="num">RevPAR</th>
-              <th className="num">YTD revenue</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mockProjects.map((p) => (
-              <tr key={p.id}>
-                <td>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span
-                      className="mono"
-                      style={{
-                        padding: "2px 6px",
-                        border: "1px solid var(--line)",
-                        borderRadius: 6,
-                        background: "var(--cream-warm)",
-                        fontSize: 10,
-                      }}
-                    >
-                      {p.code}
-                    </span>
+        {portfolio.length === 0 ? (
+          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            No villa-style projects yet. Seed a project + villas to populate.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Area</th>
+                <th className="num">Villas</th>
+                <th>Model</th>
+                <th className="num">Occ. YTD</th>
+                <th className="num">ADR (IDR M)</th>
+                <th className="num">YTD revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {portfolio.map((p) => (
+                <tr key={p.projectId}>
+                  <td>
                     <span
                       style={{
                         fontFamily: "var(--font-newsreader), serif",
                         fontSize: 15,
                       }}
                     >
-                      {p.name}
+                      {p.projectName.replace(/^\[DEMO\] /, "")}
                     </span>
-                  </div>
-                </td>
-                <td style={{ color: "var(--ink-3)" }}>{p.area}</td>
-                <td className="num">{p.villas}</td>
-                <td>
-                  <Badge>{p.ownershipModel}</Badge>
-                </td>
-                <td className="num">{p.occupancy}%</td>
-                <td className="num">{rupiahMillions(p.adr)}</td>
-                <td className="num">{rupiahMillions(p.revpar)}</td>
-                <td
-                  className="num"
-                  style={{ color: "var(--ink)", fontWeight: 500 }}
-                >
-                  IDR {rupiahBillions(p.ytdRevenue)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </td>
+                  <td style={{ color: "var(--ink-3)" }}>{p.location}</td>
+                  <td className="num">{p.villasCount}</td>
+                  <td>
+                    <Badge>{p.managementModel}</Badge>
+                  </td>
+                  <td className="num">{p.occYtdPct}%</td>
+                  <td className="num">{fmtIdrM(p.adrIdrMinor)}</td>
+                  <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>
+                    IDR {fmtIdrB(p.ytdRevenueIdrMinor)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
 
-      {/* Statement nudge */}
-      <div
-        style={{
-          marginTop: 24,
-          padding: "14px 20px",
-          border: "1px dashed var(--line)",
-          borderRadius: 12,
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          fontSize: 13,
-          color: "var(--ink-3)",
-        }}
-      >
-        <span className="badge badge-gold" style={{ fontSize: 9 }}>
-          NEXT
-        </span>
-        <span>
-          Owner statement for{" "}
-          <strong style={{ color: "var(--ink)" }}>
-            Emma Whitmore · EV-07 · March 2026
-          </strong>{" "}
-          awaits your sign-off before auto-sending on 1 May 09:00 GMT+8.
-        </span>
-        <Link
-          href="/dashboard/finance"
-          className="btn btn-terra btn-sm"
-          style={{ marginLeft: "auto" }}
+      {/* Statement nudge — empty state until STATEMENT-1 ships the schema */}
+      {nudge ? (
+        <div
+          style={{
+            marginTop: 24,
+            padding: "14px 20px",
+            border: "1px dashed var(--line)",
+            borderRadius: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            fontSize: 13,
+            color: "var(--ink-3)",
+          }}
         >
-          Open statement →
-        </Link>
-      </div>
+          <span className="badge badge-gold" style={{ fontSize: 9 }}>
+            NEXT
+          </span>
+          <span>
+            Owner statement for{" "}
+            <strong style={{ color: "var(--ink)" }}>
+              {nudge.ownerName} · {nudge.villaCode} · {nudge.monthLabel}
+            </strong>{" "}
+            awaits your sign-off before auto-sending on {nudge.autoSendAt}.
+          </span>
+          <Link
+            href={`/dashboard/finance/statements/${nudge.statementId}`}
+            className="btn btn-terra btn-sm"
+            style={{ marginLeft: "auto" }}
+          >
+            Open statement →
+          </Link>
+        </div>
+      ) : null}
     </>
   );
 }
-
-// ============================================================
-// Today's schedule — preserved from prototype until ops service wires
-// arrivals/departures/turnovers (Task 6 follow-up).
-// ============================================================
-
-interface BadgeTone {
-  label: string;
-  tone?: "ok" | "warn" | "info" | "gold";
-}
-interface ScheduleRow {
-  time: string;
-  type: string;
-  villa: string;
-  notes: string;
-  state: BadgeTone;
-}
-
-const TODAY_SCHEDULE: ScheduleRow[] = [
-  {
-    time: "11:00",
-    type: "Turnover",
-    villa: "ES-S2",
-    notes: "Sari W. · checklist 11/18",
-    state: { label: "In progress", tone: "info" },
-  },
-  {
-    time: "13:00",
-    type: "Inspection",
-    villa: "EV-07",
-    notes: "Ketut A. · awaiting Made S. sign-off",
-    state: { label: "Approval", tone: "gold" },
-  },
-  {
-    time: "14:00",
-    type: "Arrival",
-    villa: "EV-07",
-    notes: "H. Williams · 5 nights · BCN agent",
-    state: { label: "Ready 13:30", tone: "ok" },
-  },
-  {
-    time: "14:30",
-    type: "Turnover",
-    villa: "AH-02",
-    notes: "Made T. · checklist 0/24",
-    state: { label: "Queued" },
-  },
-  {
-    time: "15:30",
-    type: "Arrival",
-    villa: "ES-S2",
-    notes: "Family Nielsen · 6 nights · Direct",
-    state: { label: "Cleaning", tone: "info" },
-  },
-  {
-    time: "16:00",
-    type: "Arrival",
-    villa: "ES-S5",
-    notes: "A. Martin · 4 nights · Booking.com",
-    state: { label: "Ready", tone: "ok" },
-  },
-  {
-    time: "11:30",
-    type: "Departure",
-    villa: "AH-02",
-    notes: "S. Dubois · late checkout till 12:00",
-    state: { label: "Checkout", tone: "warn" },
-  },
-];
