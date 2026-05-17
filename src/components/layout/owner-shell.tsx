@@ -7,11 +7,62 @@ import { Logo } from "@/components/brand/logo";
 import { ownerNav } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { LogOut } from "lucide-react";
+import { stopImpersonating } from "@/features/owner-portal/impersonation-actions";
 
-export function OwnerShell({ children }: { children: React.ReactNode }) {
+export interface OwnerShellOwnerContext {
+  name: string;
+  initials: string;
+  villasCount: number;
+  isImpersonating: boolean;
+}
+
+export function OwnerShell({
+  children,
+  ownerContext,
+}: {
+  children: React.ReactNode;
+  ownerContext: OwnerShellOwnerContext;
+}) {
   const pathname = usePathname();
   return (
     <div className="min-h-screen bg-canvas">
+      {ownerContext.isImpersonating && (
+        <div
+          style={{
+            background: "var(--terra, #c4583c)",
+            color: "var(--cream-warm, #f8f3eb)",
+            fontSize: 12,
+            padding: "6px 24px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 16,
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+          }}
+        >
+          <span style={{ fontWeight: 600 }}>OWNER VIEW · DEMO</span>
+          <span style={{ opacity: 0.85 }}>Viewing as {ownerContext.name}</span>
+          <form action={stopImpersonating}>
+            <button
+              type="submit"
+              style={{
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.4)",
+                color: "inherit",
+                fontSize: 11,
+                padding: "2px 10px",
+                borderRadius: 999,
+                cursor: "pointer",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              Operator view →
+            </button>
+          </form>
+        </div>
+      )}
       <header className="sticky top-0 z-40 border-b border-line-soft bg-canvas/90 backdrop-blur">
         <div className="max-w-[1120px] mx-auto flex items-center justify-between px-6 md:px-8 h-16">
           <Logo />
@@ -39,13 +90,14 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="flex items-center gap-3">
             <div className="hidden md:flex flex-col text-right leading-tight">
-              <span className="text-sm text-ink">Emma Whitmore</span>
+              <span className="text-sm text-ink">{ownerContext.name}</span>
               <span className="text-[11px] text-ink-tertiary">
-                2 villas · Pool member
+                {ownerContext.villasCount}{" "}
+                {ownerContext.villasCount === 1 ? "villa" : "villas"}
               </span>
             </div>
             <div className="h-9 w-9 rounded-full bg-gold/90 text-ink-inverse text-sm font-medium inline-flex items-center justify-center">
-              EW
+              {ownerContext.initials}
             </div>
             <button
               aria-label="Sign out"

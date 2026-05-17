@@ -8,6 +8,8 @@ import { listOwners } from "@/features/owners/services";
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
 import { OwnerAddButton } from "@/components/owners/owner-add-button";
 import { ListTableCard, NoItemsYet } from "@/components/ui/primitives";
+import { getCurrentUserContext } from "@/features/auth/permissions";
+import { startImpersonatingOwner } from "@/features/owner-portal/impersonation-actions";
 
 export const metadata = { title: "Owners & investors" };
 export const dynamic = "force-dynamic";
@@ -18,9 +20,17 @@ const statusTone: Record<string, "success" | "gold" | "neutral"> = {
   archived: "neutral",
 };
 
+async function viewAsOwnerAction(formData: FormData) {
+  "use server";
+  const ownerId = (formData.get("ownerId") as string) ?? "";
+  if (!ownerId) return;
+  await startImpersonatingOwner(ownerId);
+}
+
 export default async function OwnersPage() {
-  const owners = await listOwners();
+  const [owners, ctx] = await Promise.all([listOwners(), getCurrentUserContext()]);
   const source = owners[0]?.source ?? "mock";
+  const canImpersonate = ctx.isSuperAdmin;
 
   return (
     <div className="flex flex-col gap-10">
@@ -92,24 +102,38 @@ export default async function OwnersPage() {
                   </Badge>
                 </TD>
                 <TD className="text-right">
-                  <OwnersRowActions
-                    kind="owner"
-                    row={{
-                      id: o.id,
-                      displayName: o.displayName,
-                      detailHref: `/dashboard/owners/${o.id}`,
-                      values: {
-                        type: o.type,
+                  <div className="flex items-center justify-end gap-2">
+                    {canImpersonate && (
+                      <form action={viewAsOwnerAction}>
+                        <input type="hidden" name="ownerId" value={o.id} />
+                        <button
+                          type="submit"
+                          className="text-xs text-ink-secondary hover:text-terra px-2 py-1 border border-line-soft rounded transition-colors"
+                          title="Open this owner's portal view"
+                        >
+                          View as owner →
+                        </button>
+                      </form>
+                    )}
+                    <OwnersRowActions
+                      kind="owner"
+                      row={{
+                        id: o.id,
                         displayName: o.displayName,
-                        legalName: o.legalName ?? "",
-                        email: o.email ?? "",
-                        phone: o.phone ?? "",
-                        nationality: o.nationality ?? "",
-                        taxResidency: o.taxResidency ?? "",
-                        status: o.status,
-                      },
-                    }}
-                  />
+                        detailHref: `/dashboard/owners/${o.id}`,
+                        values: {
+                          type: o.type,
+                          displayName: o.displayName,
+                          legalName: o.legalName ?? "",
+                          email: o.email ?? "",
+                          phone: o.phone ?? "",
+                          nationality: o.nationality ?? "",
+                          taxResidency: o.taxResidency ?? "",
+                          status: o.status,
+                        },
+                      }}
+                    />
+                  </div>
                 </TD>
               </TR>
             ))}
