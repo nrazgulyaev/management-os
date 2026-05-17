@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Overview live read aggregates.
@@ -268,6 +269,7 @@ export interface PortfolioProjectRow {
 export async function getPortfolioProjects(): Promise<PortfolioProjectRow[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId();
   const rows = await db.execute<{
     project_id: string;
     project_name: string;
@@ -302,6 +304,7 @@ export async function getPortfolioProjects(): Promise<PortfolioProjectRow[]> {
       FROM projects p
       LEFT JOIN villas v ON v.project_id = p.id
      WHERE p.status NOT IN ('completed','paused','archived')
+       AND p.organization_id = ${orgId}::uuid
      GROUP BY p.id, p.name, p.location
      HAVING COUNT(DISTINCT v.id) > 0
      ORDER BY revenue_ytd_usd DESC NULLS LAST
