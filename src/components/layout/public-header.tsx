@@ -25,6 +25,13 @@ export function PublicHeader() {
     setOpen(false);
   }, [pathname]);
 
+  // CHROME-CLEANUP-1 — Per-product landings render their own
+  // <MgmtNav> / <DevNav> headers inside the page body. Skip the
+  // global PublicHeader on those routes to avoid duplicate chrome.
+  if (pathname?.startsWith("/products/")) {
+    return null;
+  }
+
   return (
     <header
       className={cn(
