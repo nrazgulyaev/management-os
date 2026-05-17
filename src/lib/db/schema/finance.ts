@@ -18,6 +18,7 @@ import { owners, ownershipShares } from "./ownership";
 import { bookings } from "./bookings";
 import { documents } from "./documents";
 import { payoutMethods } from "./ownership";
+import { organizations } from "./saas";
 
 /**
  * Finance domain — investor-grade ledger.
@@ -335,6 +336,23 @@ export const ownerStatements = pgTable(
     issuedAt: timestamp("issued_at", { withTimezone: true }),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     createdBy: uuid("created_by").references(() => appUsers.id, { onDelete: "set null" }),
+    // STATEMENT-1: added by migration 0104. Org tenancy + period
+    // anchor + integrity hash + delivery telemetry.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
+    periodMonth: date("period_month"),
+    operatorCommissionPct: numeric("operator_commission_pct", {
+      precision: 6,
+      scale: 4,
+    }),
+    fxRateSnapshot: numeric("fx_rate_snapshot", { precision: 15, scale: 4 }),
+    netToOwnerUsdMinor: bigint("net_to_owner_usd_minor", { mode: "bigint" }),
+    contentHash: text("content_hash"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    sentToEmail: text("sent_to_email"),
+    pdfUrl: text("pdf_url"),
+    disputeNotes: text("dispute_notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -342,6 +360,8 @@ export const ownerStatements = pgTable(
     index("owner_statements_owner_period_idx").on(t.ownerId, t.periodId),
     index("owner_statements_period_idx").on(t.periodId),
     index("owner_statements_status_idx").on(t.status),
+    index("owner_statements_org_idx").on(t.organizationId),
+    index("owner_statements_period_month_idx").on(t.periodMonth),
   ],
 );
 
