@@ -311,7 +311,7 @@ export async function generateStatementForOwnerVilla(
     grossMinor += ownerGross;
     channelFeeMinor += ownerChannelFee;
     lines.push({
-      lineType: "revenue_booking",
+      lineType: "revenue",
       category: "revenue",
       description: `${b.bookingCode} · ${b.guestName ?? "Guest"} · ${b.nights}n from ${b.checkIn}`,
       amountMinor: ownerGross,
@@ -323,7 +323,7 @@ export async function generateStatementForOwnerVilla(
 
   if (channelFeeMinor > 0n) {
     lines.push({
-      lineType: "expense_other",
+      lineType: "fee",
       category: "fees",
       description: "Channel commission (OTA fees)",
       amountMinor: -channelFeeMinor,
@@ -338,7 +338,7 @@ export async function generateStatementForOwnerVilla(
     const ownerShare = BigInt(Math.round(Number(e.amountIdrMinor) * sharePctFactor));
     expenseMinor += ownerShare;
     lines.push({
-      lineType: "expense_other",
+      lineType: "expense",
       category: "expenses",
       description: `${e.categoryKey} · ${e.description}`,
       amountMinor: -ownerShare,
@@ -352,7 +352,7 @@ export async function generateStatementForOwnerVilla(
   const taxMinor = BigInt(Math.round(Number(grossMinor) * TAX_PCT));
   if (taxMinor > 0n) {
     lines.push({
-      lineType: "expense_other",
+      lineType: "tax",
       category: "taxes",
       description: `Indonesian PB1 + VAT (${(TAX_PCT * 100).toFixed(0)}%)`,
       amountMinor: -taxMinor,
@@ -366,7 +366,7 @@ export async function generateStatementForOwnerVilla(
   const reserveMinor = BigInt(Math.round(Number(grossMinor) * RESERVE_PCT));
   if (reserveMinor > 0n) {
     lines.push({
-      lineType: "adjustment",
+      lineType: "reserve",
       category: "reserves",
       description: `Renovation reserve (${(RESERVE_PCT * 100).toFixed(0)}%)`,
       amountMinor: -reserveMinor,
@@ -379,7 +379,7 @@ export async function generateStatementForOwnerVilla(
   // Operator management fee
   const operatorFeeMinor = BigInt(Math.round(Number(grossMinor) * commissionPct));
   lines.push({
-    lineType: "expense_management",
+    lineType: "management_fee",
     category: "fee_mgmt",
     description: `Operator management fee (${(commissionPct * 100).toFixed(0)}%)`,
     amountMinor: -operatorFeeMinor,

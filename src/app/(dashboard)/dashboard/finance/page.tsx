@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Kpi,
   SectionHeading,
@@ -6,33 +7,35 @@ import {
   Badge,
 } from "@/components/dashboard/primitives";
 import {
+  listOwnerStatementsLive,
+  getOwnerStatementDetail,
   getFinanceKpis,
-  getDemoStatementPreview,
-  listStatementsPreview,
   getPayoutsQueue,
-  buildWaterfall,
   getMaterialUsageBridgeNudge,
-  type StatementLineSection,
+  type RealStatementDetail,
 } from "@/features/finance/finance-cabinet-queries";
+import {
+  approveStatement,
+  markStatementSent,
+  generateAllForPeriod,
+} from "@/features/finance/statement-actions";
 
 /**
- * Sprint TASK-6-DATA-PART-2 — Mgmt OS Finance cabinet live wiring.
+ * STATEMENT-1 — Mgmt OS Finance cabinet upgraded to the real engine.
  *
- * Replaces five mock arrays with live reads in
- * `src/features/finance/finance-cabinet-queries.ts`:
+ * Reads from `owner_statements` + `statement_lines` (populated by
+ * `seed-statements.ts` for demo; populated in production by the
+ * monthly cron `/api/cron/statements-monthly`).
  *
- *   - STMT_LINES        → getDemoStatementPreview().lines
- *   - STMT_LIST         → listStatementsPreview()
- *   - PAYMENTS          → getPayoutsQueue() (empty — payouts generate from approved statements)
- *   - WATERFALL         → buildWaterfall(preview)
- *   - bridge nudge      → getMaterialUsageBridgeNudge() (empty — no consumption events)
+ * - Status badges reflect real workflow: draft → approved → sent
+ *   (+ disputed re-open path)
+ * - PDF download: GET /api/finance/statements/[id]/pdf (direct stream)
+ * - Approve / mark-sent: server-action buttons on each draft/approved row
+ * - Generate-all: server-action button per period
  *
- * The "Statement detail" Card renders a DECORATIVE computed preview
- * synthesized from real seeded bookings × ownership shares. Real
- * statement generation (PDF, hash, approval workflow, auto-send to
- * owner portal) is the STATEMENT-1 sprint. The cabinet flags this
- * with an explicit "PREVIEW" badge so the operator doesn't mistake
- * computed numbers for signed statements.
+ * Email send is intentionally manual this sprint (EMAIL-1 follow-up):
+ * operator downloads the PDF and sends from their own client, then
+ * clicks "Mark sent" so the system records the audit trail.
  */
 
 export const metadata = { title: "Finance · Owner statements" };
@@ -45,12 +48,8 @@ const IDR_K_MINOR = 1_000_00;
 function fmtIdr(minor: bigint): string {
   const abs = minor < 0n ? -minor : minor;
   const sign = minor < 0n ? "−" : "";
-  if (abs >= BigInt(IDR_BILLION_MINOR)) {
-    return `${sign}IDR ${(Number(abs) / IDR_BILLION_MINOR).toFixed(2)}B`;
-  }
-  if (abs >= BigInt(IDR_MILLION_MINOR)) {
-    return `${sign}IDR ${(Number(abs) / IDR_MILLION_MINOR).toFixed(1)}M`;
-  }
+  if (abs >= BigInt(IDR_BILLION_MINOR)) return `${sign}IDR ${(Number(abs) / IDR_BILLION_MINOR).toFixed(2)}B`;
+  if (abs >= BigInt(IDR_MILLION_MINOR)) return `${sign}IDR ${(Number(abs) / IDR_MILLION_MINOR).toFixed(1)}M`;
   return `${sign}IDR ${Math.round(Number(abs) / IDR_K_MINOR)}K`;
 }
 
@@ -62,258 +61,291 @@ function signedIdr(minor: bigint): string {
   return `${sign}IDR ${Math.round(Number(abs) / IDR_K_MINOR)}K`;
 }
 
-const SECTION_LABEL: Record<StatementLineSection, string> = {
-  revenue: "revenue",
-  fees: "fees",
-  taxes: "taxes",
-  expenses: "expenses",
-  net: "net",
+function fmtUsd(minor: bigint): string {
+  const usd = Number(minor) / 100;
+  return `USD ${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+const STATUS_TONE: Record<string, { tone?: "warn" | "ok" | "gold" | "danger"; label: string }> = {
+  draft: { tone: "warn", label: "Draft" },
+  pending_approval: { tone: "warn", label: "Pending" },
+  approved: { tone: "ok", label: "Approved" },
+  sent: { tone: "ok", label: "Sent" },
+  disputed: { tone: "danger", label: "Disputed" },
+  cancelled: { label: "Cancelled" },
+  issued: { tone: "gold", label: "Issued" },
 };
 
-export default async function FinancePage() {
-  const [kpis, preview, statementList, payouts, bridge] = await Promise.all([
+function StatementDetailCard({ detail }: { detail: RealStatementDetail }) {
+  const status = STATUS_TONE[detail.status] ?? { label: detail.status };
+  return (
+    <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+      <div
+        style={{
+          padding: "16px 22px",
+          display: "flex",
+          alignItems: "flex-start",
+          borderBottom: "1px solid var(--line-soft)",
+        }}
+      >
+        <div>
+          <div className="label">Statement</div>
+          <h2 style={{ margin: "6px 0 0", fontFamily: "var(--font-newsreader), serif", fontSize: 24 }}>
+            {detail.villaCode ?? "—"} · {detail.monthLabel}
+          </h2>
+          <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>
+            {detail.lines.length} lines · {detail.statementCode}
+            {detail.contentHash ? ` · hash ${detail.contentHash.slice(0, 8)}…` : ""}
+          </div>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+          <Badge tone={status.tone}>{status.label}</Badge>
+          {detail.approvedAt && (
+            <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>
+              Approved {new Date(detail.approvedAt).toLocaleDateString("en-GB")}
+            </span>
+          )}
+          {detail.sentAt && (
+            <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>
+              Sent {new Date(detail.sentAt).toLocaleDateString("en-GB")} → {detail.sentToEmail ?? "—"}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <table className="data">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Description</th>
+            <th className="num">Amount (IDR)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {detail.lines.map((l) => (
+            <tr key={l.id}>
+              <td>
+                <Badge>{l.lineType.replace(/_/g, " ")}</Badge>
+              </td>
+              <td style={{ fontWeight: 500 }}>{l.description}</td>
+              <td
+                className="num"
+                style={{ color: l.amountIdrMinor >= 0n ? "var(--ok)" : "var(--ink-2)" }}
+              >
+                {signedIdr(l.amountIdrMinor)}
+              </td>
+            </tr>
+          ))}
+          <tr style={{ borderTop: "2px solid var(--ink)", background: "var(--cream-warm)" }}>
+            <td colSpan={2} style={{ padding: "16px 14px", fontFamily: "var(--font-newsreader), serif", fontSize: 22, fontWeight: 400 }}>
+              Net to owner · {detail.monthLabel}
+            </td>
+            <td className="num" style={{ padding: "16px 14px", fontSize: 24, color: "var(--terra)" }}>
+              {fmtIdr(detail.netToOwnerIdrMinor)}
+              <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>
+                ≈ {fmtUsd(detail.netToOwnerUsdMinor)}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div
+        style={{
+          padding: "14px 22px",
+          borderTop: "1px solid var(--line-soft)",
+          display: "flex",
+          gap: 8,
+          background: "var(--cream-warm)",
+          flexWrap: "wrap",
+        }}
+      >
+        <Link
+          href={`/api/finance/statements/${detail.id}/pdf`}
+          className="btn btn-secondary btn-sm"
+          target="_blank"
+        >
+          Download PDF ↓
+        </Link>
+        {detail.status === "draft" && (
+          <form action={async () => {
+            "use server";
+            await approveStatement(detail.id);
+          }}>
+            <button className="btn btn-primary btn-sm" type="submit">Approve</button>
+          </form>
+        )}
+        {detail.status === "approved" && (
+          <form action={async (data: FormData) => {
+            "use server";
+            const email = (data.get("email") as string) ?? "";
+            await markStatementSent(detail.id, email || "owner@example.com");
+          }}>
+            <input
+              name="email"
+              type="email"
+              placeholder="owner@example.com"
+              defaultValue={detail.sentToEmail ?? ""}
+              style={{
+                padding: "4px 8px",
+                fontSize: 12,
+                border: "1px solid var(--line)",
+                borderRadius: 6,
+                marginRight: 6,
+              }}
+            />
+            <button className="btn btn-primary btn-sm" type="submit">Mark sent</button>
+          </form>
+        )}
+        <span className="mono" style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}>
+          {detail.commissionPct}% operator fee · FX 15,800 IDR/USD
+        </span>
+      </div>
+    </Card>
+  );
+}
+
+interface FinancePageProps {
+  searchParams: Promise<{ id?: string; period?: string }>;
+}
+
+export default async function FinancePage({ searchParams }: FinancePageProps) {
+  const sp = await searchParams;
+  const allStatements = await listOwnerStatementsLive({ limit: 20 }).catch(() => []);
+  const selectedId = sp.id ?? allStatements[0]?.id ?? null;
+  const [detail, kpis, payouts, bridge] = await Promise.all([
+    selectedId ? getOwnerStatementDetail(selectedId).catch(() => null) : Promise.resolve(null),
     getFinanceKpis().catch(() => null),
-    getDemoStatementPreview().catch(() => null),
-    listStatementsPreview(8).catch(() => []),
     getPayoutsQueue().catch(() => []),
     getMaterialUsageBridgeNudge().catch(() => null),
   ]);
 
-  const waterfall = buildWaterfall(preview);
-  const revenueLineCount = preview?.lines.filter((l) => l.section === "revenue").length ?? 0;
-  const feeLineCount = preview?.lines.filter((l) => l.section === "fees").length ?? 0;
-  const taxLineCount = preview?.lines.filter((l) => l.section === "taxes").length ?? 0;
-  const expenseLineCount = preview?.lines.filter((l) => l.section === "expenses").length ?? 0;
-  const grossTotal = preview?.lines
-    .filter((l) => l.section === "revenue")
-    .reduce((s, l) => s + l.amountIdrMinor, 0n) ?? 0n;
-  const feesTotal = preview?.lines
-    .filter((l) => l.section === "fees")
-    .reduce((s, l) => s + l.amountIdrMinor, 0n) ?? 0n;
-  const taxesTotal = preview?.lines
-    .filter((l) => l.section === "taxes")
-    .reduce((s, l) => s + l.amountIdrMinor, 0n) ?? 0n;
-  const expensesTotal = preview?.lines
-    .filter((l) => l.section === "expenses")
-    .reduce((s, l) => s + l.amountIdrMinor, 0n) ?? 0n;
+  // Period dropdown — unique period_month values from the list
+  const uniquePeriods = Array.from(
+    new Set(allStatements.map((s) => s.periodMonth).filter(Boolean)),
+  ).slice(0, 6);
+
+  const draftCount = allStatements.filter((s) => s.status === "draft").length;
+  const approvedCount = allStatements.filter((s) => s.status === "approved").length;
+  const sentCount = allStatements.filter((s) => s.status === "sent").length;
+
+  async function generateForPeriodAction(formData: FormData) {
+    "use server";
+    const period = (formData.get("period") as string) ?? null;
+    if (!period) return;
+    await generateAllForPeriod(period);
+    redirect(`/dashboard/finance?period=${period}`);
+  }
 
   return (
     <>
       <SectionHeading
         eyebrow={
-          preview
-            ? `Finance · ${preview.monthLabel} · PREVIEW (STATEMENT-1 will sign real statements)`
-            : "Finance · no statements yet"
+          allStatements.length === 0
+            ? "Finance · no statements yet"
+            : `Finance · ${allStatements.length} statements (${draftCount} draft · ${approvedCount} approved · ${sentCount} sent)`
         }
         title={
-          preview ? (
+          detail ? (
             <>
-              {preview.ownerName} ·{" "}
+              {detail.ownerName} ·{" "}
               <em style={{ color: "var(--terra)", fontStyle: "italic" }}>
-                {preview.villaCode}
+                {detail.villaCode ?? "—"}
               </em>{" "}
-              · {preview.monthLabel}
+              · {detail.monthLabel}
             </>
           ) : (
-            <>No statements yet.</>
+            <>Owner statements.</>
           )
         }
         subtitle={
-          preview
-            ? `Computed preview from ${preview.bookingsCount} ${preview.bookingsCount === 1 ? "booking" : "bookings"} · ${preview.totalNights} nights. Real statements (hash-signed, PDF, auto-send) land in the STATEMENT-1 sprint.`
-            : "Once bookings land for a given owner × villa × month, a statement preview surfaces here. Real generation, sign-off, and payout workflow are tracked under STATEMENT-1."
+          detail
+            ? `Real statement generated by the engine. Approve to allow sending; mark sent after delivering PDF.`
+            : "Generate statements for any month with bookings, then approve + send via PDF download. Auto-send via the monthly cron will land with EMAIL-1."
         }
         actions={
-          <>
-            <button className="btn btn-secondary btn-sm" disabled>Statement PDF ↓</button>
-            <button className="btn btn-secondary btn-sm" disabled>Sign + queue payout</button>
-          </>
+          <form action={generateForPeriodAction} style={{ display: "flex", gap: 8 }}>
+            <select
+              name="period"
+              defaultValue={sp.period ?? uniquePeriods[0] ?? ""}
+              style={{
+                padding: "6px 10px",
+                fontSize: 12,
+                border: "1px solid var(--line)",
+                borderRadius: 6,
+                background: "var(--paper)",
+              }}
+            >
+              {(uniquePeriods.length === 0
+                ? [new Date().toISOString().slice(0, 8) + "01"]
+                : uniquePeriods
+              ).map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+            <button className="btn btn-primary btn-sm" type="submit">
+              Generate all
+            </button>
+          </form>
         }
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
         <Kpi
-          label="Gross revenue"
-          value={preview ? fmtIdr(grossTotal) : "—"}
-          sub={preview ? `${revenueLineCount} line${revenueLineCount === 1 ? "" : "s"}` : "no bookings"}
+          label="Statements · total"
+          value={allStatements.length === 0 ? "—" : String(allStatements.length)}
+          sub={`${draftCount} draft · ${approvedCount} approved · ${sentCount} sent`}
         />
         <Kpi
-          label="Channel + mgmt fees"
-          value={preview ? fmtIdr(feesTotal) : "—"}
-          sub={preview ? `${feeLineCount} lines` : "—"}
+          label="Draft · this period"
+          value={draftCount === 0 ? "—" : String(draftCount)}
+          sub="awaiting approval"
+          tone={draftCount > 0 ? "gold" : undefined}
         />
         <Kpi
-          label="Taxes"
-          value={preview ? fmtIdr(taxesTotal) : "—"}
-          sub="PB1 + VAT (decorative %)"
+          label="Approved · awaiting send"
+          value={approvedCount === 0 ? "—" : String(approvedCount)}
+          sub="download PDF + mark sent"
+          tone={approvedCount > 0 ? "accent" : undefined}
         />
         <Kpi
-          label="Direct opex"
-          value={preview ? fmtIdr(expensesTotal) : "—"}
-          sub="proportional · STATEMENT-1 will split"
+          label="Sent · 30d"
+          value={sentCount === 0 ? "—" : String(sentCount)}
+          sub="delivered to owners"
+          tone={sentCount > 0 ? "success" : undefined}
         />
         <Kpi
-          label="Net to owner"
-          value={preview ? fmtIdr(preview.netToOwnerIdrMinor) : "—"}
-          sub={kpis ? `${kpis.statementsPendingCount} statements pending` : ""}
-          tone={preview ? "accent" : undefined}
+          label="Pending generation"
+          value={kpis && kpis.statementsPendingCount > 0 ? String(kpis.statementsPendingCount) : "—"}
+          sub="owner × villa × month with bookings"
         />
       </div>
 
-      {/* Statement detail — DECORATIVE preview */}
-      <Card id="statements" style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
-        <div style={{ padding: "16px 22px", display: "flex", alignItems: "flex-start", borderBottom: "1px solid var(--line-soft)" }}>
-          <div>
-            <div className="label">Statement preview</div>
-            <h2 style={{ margin: "6px 0 0", fontFamily: "var(--font-newsreader), serif", fontSize: 24 }}>
-              {preview ? `${preview.villaCode} · ${preview.monthLabel}` : "—"}
-            </h2>
-            <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>
-              {preview
-                ? `${preview.lines.length} lines · computed from bookings × commission · IDR`
-                : "no data — bookings + ownership_shares empty"}
-            </div>
-          </div>
-          <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-            <Badge tone="warn">PREVIEW · not signed</Badge>
-            <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>
-              Real signing flow → STATEMENT-1
-            </span>
-          </div>
-        </div>
-
-        {preview ? (
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Section</th>
-                <th>Line item</th>
-                <th>Notes</th>
-                <th className="num">Amount (IDR)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {preview.lines
-                .filter((l) => l.section !== "net")
-                .map((r, i) => (
-                  <tr key={`${r.section}-${i}`}>
-                    <td>
-                      <Badge>{SECTION_LABEL[r.section]}</Badge>
-                    </td>
-                    <td style={{ fontWeight: 500 }}>{r.label}</td>
-                    <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                      {r.hint}
-                    </td>
-                    <td
-                      className="num"
-                      style={{ color: r.amountIdrMinor >= 0n ? "var(--ok)" : "var(--ink-2)" }}
-                    >
-                      {signedIdr(r.amountIdrMinor)}
-                    </td>
-                  </tr>
-                ))}
-              <tr style={{ borderTop: "2px solid var(--ink)", background: "var(--cream-warm)" }}>
-                <td
-                  colSpan={2}
-                  style={{
-                    padding: "16px 14px",
-                    fontFamily: "var(--font-newsreader), serif",
-                    fontSize: 22,
-                    fontWeight: 400,
-                  }}
-                >
-                  Net to owner · {preview.monthLabel}
-                </td>
-                <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                  preview only
-                </td>
-                <td className="num" style={{ padding: "16px 14px", fontSize: 24, color: "var(--terra)" }}>
-                  {fmtIdr(preview.netToOwnerIdrMinor)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        ) : (
-          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
-            No bookings linked to an owner share yet. Seed bookings + ownership_shares to see a preview.
-          </p>
-        )}
-      </Card>
-
-      {/* Transparency + waterfall */}
-      <h2
-        id="transparency"
-        className="display"
-        style={{ fontSize: 30, marginTop: 32, marginBottom: 14, fontWeight: 400 }}
-      >
-        Distribution{" "}
-        <em style={{ color: "var(--terra)", fontStyle: "italic" }}>waterfall</em>
-      </h2>
-      <Card style={{ padding: 20, marginBottom: 18 }}>
-        {waterfall.length === 0 ? (
+      {/* Statement detail */}
+      {detail ? (
+        <StatementDetailCard detail={detail} />
+      ) : (
+        <Card style={{ padding: 20, marginBottom: 18 }}>
           <p style={{ fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
-            Waterfall renders once a statement preview is available.
+            No statement selected. Generate statements for a period above to populate this view.
           </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-            {waterfall.map((b, i) => {
-              const isNet = i === waterfall.length - 1;
-              return (
-                <div key={b.label}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 12,
-                      marginBottom: 4,
-                    }}
-                  >
-                    <span
-                      style={{
-                        color: isNet ? "var(--terra)" : "var(--ink-2)",
-                        fontWeight: isNet ? 500 : 400,
-                      }}
-                    >
-                      {b.label}
-                    </span>
-                    <span className="num">{b.pct.toFixed(1)}%</span>
-                  </div>
-                  <div
-                    style={{
-                      height: 6,
-                      background: "var(--cream-deep)",
-                      borderRadius: 999,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        width: `${Math.min(b.pct, 100)}%`,
-                        background: isNet ? "var(--terra)" : "var(--ink-2)",
-                        borderRadius: 999,
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Card>
+        </Card>
+      )}
 
       {/* All statements list */}
       <h2
         className="display"
         style={{ fontSize: 30, marginTop: 32, marginBottom: 14, fontWeight: 400 }}
       >
-        All statements ·{" "}
-        <em style={{ color: "var(--terra)", fontStyle: "italic" }}>last 6 months</em>
+        All statements
       </h2>
       <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
-        {statementList.length === 0 ? (
+        {allStatements.length === 0 ? (
           <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
-            No statements (real or preview) yet.
+            No statements yet. Use the &quot;Generate all&quot; button above to materialise statements
+            for any month with bookings.
           </p>
         ) : (
           <table className="data">
@@ -323,25 +355,41 @@ export default async function FinancePage() {
                 <th>Villa</th>
                 <th>Period</th>
                 <th className="num">Net (IDR)</th>
+                <th className="num">≈ USD</th>
                 <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
-              {statementList.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.ownerName}</td>
-                  <td className="mono" style={{ fontSize: 12 }}>{s.villaCode}</td>
-                  <td style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 14 }}>
-                    {s.monthLabel}
-                  </td>
-                  <td className="num" style={{ color: "var(--terra)", fontWeight: 500 }}>
-                    {fmtIdr(s.netIdrMinor)}
-                  </td>
-                  <td>
-                    <Badge tone="warn">PREVIEW</Badge>
-                  </td>
-                </tr>
-              ))}
+              {allStatements.map((s) => {
+                const status = STATUS_TONE[s.status] ?? { label: s.status };
+                return (
+                  <tr key={s.id} style={{ background: s.id === selectedId ? "var(--cream-warm)" : "transparent" }}>
+                    <td>{s.ownerName}</td>
+                    <td className="mono" style={{ fontSize: 12 }}>{s.villaCode ?? "—"}</td>
+                    <td style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 14 }}>
+                      {s.monthLabel}
+                    </td>
+                    <td className="num" style={{ color: "var(--terra)", fontWeight: 500 }}>
+                      {fmtIdr(s.netToOwnerIdrMinor)}
+                    </td>
+                    <td className="num" style={{ color: "var(--ink-3)", fontSize: 12 }}>
+                      {fmtUsd(s.netToOwnerUsdMinor)}
+                    </td>
+                    <td>
+                      <Badge tone={status.tone}>{status.label}</Badge>
+                    </td>
+                    <td>
+                      <Link
+                        href={`/dashboard/finance?id=${s.id}`}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        Open →
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -359,8 +407,8 @@ export default async function FinancePage() {
       <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
         {payouts.length === 0 ? (
           <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
-            No payouts queued. Payouts populate once statements are approved
-            (STATEMENT-1 sprint).
+            No payouts queued. Payouts generate from approved statements; payment-rails
+            integration lands in the PAYOUT-1 sprint.
           </p>
         ) : (
           <table className="data">
@@ -368,8 +416,6 @@ export default async function FinancePage() {
               <tr>
                 <th>Recipient</th>
                 <th className="num">Amount</th>
-                <th>Rail</th>
-                <th>Date</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -378,8 +424,6 @@ export default async function FinancePage() {
                 <tr key={p.id}>
                   <td>{p.ownerName}</td>
                   <td className="num">{fmtIdr(p.amountIdrMinor)}</td>
-                  <td style={{ color: "var(--ink-3)" }}>{p.method}</td>
-                  <td className="mono" style={{ fontSize: 12 }}>{p.scheduledFor}</td>
                   <td>
                     <Badge tone={p.status === "settled" ? "ok" : "gold"}>{p.status}</Badge>
                   </td>
@@ -390,7 +434,6 @@ export default async function FinancePage() {
         )}
       </Card>
 
-      {/* Material-usage bridge nudge */}
       {bridge ? (
         <Card
           id="bridge"
@@ -400,47 +443,8 @@ export default async function FinancePage() {
             border: "1px dashed var(--terra)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-            <span
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 999,
-                background: "rgba(196,88,60,0.12)",
-                color: "var(--terra)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              ⚡
-            </span>
-            <div style={{ flex: 1 }}>
-              <div className="label" style={{ color: "var(--terra)" }}>
-                Material usage bridge · {bridge.consumedBookingsCount} entries
-              </div>
-              <h3
-                style={{
-                  margin: "4px 0 8px",
-                  fontFamily: "var(--font-newsreader), serif",
-                  fontSize: 20,
-                  fontWeight: 400,
-                }}
-              >
-                Inventory consumption ready to post to statements
-              </h3>
-              <p style={{ margin: "0 0 12px", fontSize: 13, color: "var(--ink-2)" }}>
-                {bridge.consumedBookingsCount} items consumed totaling{" "}
-                <strong>{fmtIdr(bridge.pendingValueIdrMinor)}</strong>. Will materialise as
-                expense lines on next bridge run.
-              </p>
-              <div style={{ display: "flex", gap: 8 }}>
-                <Link href="/dashboard/operations" className="btn btn-terra btn-sm">
-                  Open operations →
-                </Link>
-              </div>
-            </div>
+          <div className="label" style={{ color: "var(--terra)" }}>
+            Material usage bridge · {bridge.consumedBookingsCount} entries
           </div>
         </Card>
       ) : null}

@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Sprint TASK-6-DATA-PART-2 — Mgmt OS Finance cabinet read aggregates.
@@ -348,4 +349,257 @@ export interface MaterialBridgeNudge {
 /** No `inventory_consumption_events` rows seeded — empty state. */
 export async function getMaterialUsageBridgeNudge(): Promise<MaterialBridgeNudge | null> {
   return null;
+}
+
+// =============================================================================
+// STATEMENT-1 — Live readers backed by the real owner_statements engine.
+// =============================================================================
+
+export interface RealStatementRow {
+  id: string;
+  statementCode: string;
+  ownerId: string;
+  ownerName: string;
+  villaId: string;
+  villaCode: string | null;
+  periodMonth: string;
+  monthLabel: string;
+  grossIdrMinor: bigint;
+  netToOwnerIdrMinor: bigint;
+  netToOwnerUsdMinor: bigint;
+  status: string;
+  contentHash: string | null;
+  approvedAt: string | null;
+  sentAt: string | null;
+  sentToEmail: string | null;
+}
+
+export async function listOwnerStatementsLive(opts?: {
+  limit?: number;
+}): Promise<RealStatementRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    id: string;
+    statement_code: string;
+    owner_id: string;
+    owner_name: string;
+    villa_id: string;
+    villa_code: string | null;
+    period_month: string;
+    gross_minor: string;
+    net_minor: string;
+    net_usd_minor: string | null;
+    status: string;
+    content_hash: string | null;
+    approved_at: string | null;
+    sent_at: string | null;
+    sent_to_email: string | null;
+  }>(sql`
+    SELECT s.id::text                AS id,
+           s.statement_code           AS statement_code,
+           s.owner_id::text           AS owner_id,
+           o.display_name             AS owner_name,
+           s.villa_id::text           AS villa_id,
+           v.unit_code                AS villa_code,
+           s.period_month::text       AS period_month,
+           s.gross_revenue_minor::text AS gross_minor,
+           s.net_payout_minor::text   AS net_minor,
+           s.net_to_owner_usd_minor::text AS net_usd_minor,
+           s.status                   AS status,
+           s.content_hash             AS content_hash,
+           s.approved_at::text        AS approved_at,
+           s.sent_at::text            AS sent_at,
+           s.sent_to_email            AS sent_to_email
+      FROM owner_statements s
+      LEFT JOIN owners o ON o.id = s.owner_id
+      LEFT JOIN villas v ON v.id = s.villa_id
+     WHERE s.organization_id = ${orgId}::uuid
+     ORDER BY s.period_month DESC NULLS LAST, s.created_at DESC
+     LIMIT ${opts?.limit ?? 25}
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      id: string;
+      statement_code: string;
+      owner_id: string;
+      owner_name: string;
+      villa_id: string;
+      villa_code: string | null;
+      period_month: string;
+      gross_minor: string;
+      net_minor: string;
+      net_usd_minor: string | null;
+      status: string;
+      content_hash: string | null;
+      approved_at: string | null;
+      sent_at: string | null;
+      sent_to_email: string | null;
+    }> }).rows ?? []
+  ).map((r) => {
+    const [y, m] = r.period_month.split("-").map(Number);
+    const monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en", {
+      month: "long",
+      year: "numeric",
+    });
+    return {
+      id: r.id,
+      statementCode: r.statement_code,
+      ownerId: r.owner_id,
+      ownerName: r.owner_name,
+      villaId: r.villa_id,
+      villaCode: r.villa_code,
+      periodMonth: r.period_month,
+      monthLabel,
+      grossIdrMinor: BigInt(r.gross_minor ?? "0"),
+      netToOwnerIdrMinor: BigInt(r.net_minor ?? "0"),
+      netToOwnerUsdMinor: BigInt(r.net_usd_minor ?? "0"),
+      status: r.status,
+      contentHash: r.content_hash,
+      approvedAt: r.approved_at,
+      sentAt: r.sent_at,
+      sentToEmail: r.sent_to_email,
+    };
+  });
+}
+
+export interface RealStatementDetailLine {
+  id: string;
+  lineType: string;
+  category: string;
+  description: string;
+  amountIdrMinor: bigint;
+}
+
+export interface RealStatementDetail extends RealStatementRow {
+  lines: RealStatementDetailLine[];
+  commissionPct: number;
+}
+
+export async function getOwnerStatementDetail(
+  statementId: string,
+): Promise<RealStatementDetail | null> {
+  const db = getDb();
+  if (!db) return null;
+  const orgId = await requireOrgId();
+  const sRows = await db.execute<{
+    id: string;
+    statement_code: string;
+    owner_id: string;
+    owner_name: string;
+    villa_id: string;
+    villa_code: string | null;
+    period_month: string;
+    gross_minor: string;
+    net_minor: string;
+    net_usd_minor: string | null;
+    status: string;
+    content_hash: string | null;
+    approved_at: string | null;
+    sent_at: string | null;
+    sent_to_email: string | null;
+    commission_pct: string | null;
+  }>(sql`
+    SELECT s.id::text                AS id,
+           s.statement_code           AS statement_code,
+           s.owner_id::text           AS owner_id,
+           o.display_name             AS owner_name,
+           s.villa_id::text           AS villa_id,
+           v.unit_code                AS villa_code,
+           s.period_month::text       AS period_month,
+           s.gross_revenue_minor::text AS gross_minor,
+           s.net_payout_minor::text   AS net_minor,
+           s.net_to_owner_usd_minor::text AS net_usd_minor,
+           s.status                   AS status,
+           s.content_hash             AS content_hash,
+           s.approved_at::text        AS approved_at,
+           s.sent_at::text            AS sent_at,
+           s.sent_to_email            AS sent_to_email,
+           s.operator_commission_pct::text AS commission_pct
+      FROM owner_statements s
+      LEFT JOIN owners o ON o.id = s.owner_id
+      LEFT JOIN villas v ON v.id = s.villa_id
+     WHERE s.id = ${statementId}::uuid
+       AND s.organization_id = ${orgId}::uuid
+     LIMIT 1
+  `);
+  const sr = (sRows as unknown as { rows: Array<{
+    id: string;
+    statement_code: string;
+    owner_id: string;
+    owner_name: string;
+    villa_id: string;
+    villa_code: string | null;
+    period_month: string;
+    gross_minor: string;
+    net_minor: string;
+    net_usd_minor: string | null;
+    status: string;
+    content_hash: string | null;
+    approved_at: string | null;
+    sent_at: string | null;
+    sent_to_email: string | null;
+    commission_pct: string | null;
+  }> }).rows?.[0];
+  if (!sr) return null;
+
+  const lRows = await db.execute<{
+    id: string;
+    line_type: string;
+    category: string;
+    description: string;
+    amount_minor: string;
+  }>(sql`
+    SELECT id::text          AS id,
+           line_type          AS line_type,
+           category           AS category,
+           description        AS description,
+           amount_minor::text AS amount_minor
+      FROM statement_lines
+     WHERE statement_id = ${statementId}::uuid
+     ORDER BY sort_order ASC
+  `);
+  const lines = (
+    (lRows as unknown as { rows: Array<{
+      id: string;
+      line_type: string;
+      category: string;
+      description: string;
+      amount_minor: string;
+    }> }).rows ?? []
+  ).map((l) => ({
+    id: l.id,
+    lineType: l.line_type,
+    category: l.category,
+    description: l.description,
+    amountIdrMinor: BigInt(l.amount_minor ?? "0"),
+  }));
+
+  const [y, m] = sr.period_month.split("-").map(Number);
+  const monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return {
+    id: sr.id,
+    statementCode: sr.statement_code,
+    ownerId: sr.owner_id,
+    ownerName: sr.owner_name,
+    villaId: sr.villa_id,
+    villaCode: sr.villa_code,
+    periodMonth: sr.period_month,
+    monthLabel,
+    grossIdrMinor: BigInt(sr.gross_minor ?? "0"),
+    netToOwnerIdrMinor: BigInt(sr.net_minor ?? "0"),
+    netToOwnerUsdMinor: BigInt(sr.net_usd_minor ?? "0"),
+    status: sr.status,
+    contentHash: sr.content_hash,
+    approvedAt: sr.approved_at,
+    sentAt: sr.sent_at,
+    sentToEmail: sr.sent_to_email,
+    commissionPct: Number(sr.commission_pct ?? "0.2") * 100,
+    lines,
+  };
 }
