@@ -3,8 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -32,12 +31,8 @@ export default async function TransactionDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Transactions", href: "/development-os/finance/transactions" },
-            { label: "Detail" },
-          ]}
+        <SectionHeading
+          eyebrow="Development OS · transactions"
           title="Transaction"
         />
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
@@ -85,15 +80,10 @@ export default async function TransactionDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Transactions", href: "/development-os/finance/transactions" },
-          { label: t.transactionCode },
-        ]}
+      <SectionHeading
         eyebrow={`${t.transactionCode} · ${t.transactionDate}`}
         title={t.description}
-        description={t.notes ?? undefined}
+        subtitle={t.notes ?? undefined}
         actions={
           <Button asChild variant="secondary">
             <Link href="/development-os/finance/transactions">
@@ -104,7 +94,11 @@ export default async function TransactionDetailPage({
         }
       />
 
-      <Section eyebrow="Details" title="Transaction record">
+      <section>
+        <div className="label">Details</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Transaction record
+        </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
           <Field label="Direction" value={t.direction} />
           <Field
@@ -143,17 +137,25 @@ export default async function TransactionDetailPage({
           <code>linkTransactionToCommitmentLedger</code> server actions; UI
           drawer for these is forthcoming.
         </div>
-      </Section>
+      </section>
 
       {t.allocationMetadata != null && (
-        <Section eyebrow="Allocation" title="Multi-project split">
+        <section>
+          <div className="label">Allocation</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+            Multi-project split
+          </h2>
           <pre className="rounded-md border border-line-soft bg-surface p-4 text-xs overflow-auto">
             {JSON.stringify(t.allocationMetadata, null, 2)}
           </pre>
-        </Section>
+        </section>
       )}
 
-      <Section eyebrow="Tax" title="Classification + audit">
+      <section>
+        <div className="label">Tax</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Classification + audit
+        </h2>
         <TransactionTaxClassifyCard
           transaction={{
             transactionId: t.id,
@@ -185,7 +187,7 @@ export default async function TransactionDetailPage({
             isIncludedInAmount: tt.isIncludedInAmount,
           }))}
         />
-      </Section>
+      </section>
     </DevelopmentShell>
   );
 }

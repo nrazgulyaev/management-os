@@ -12,7 +12,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,10 @@ export default async function QuickEntryPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Quick entry" />
+        <SectionHeading
+          eyebrow="Development OS · transactions · quick entry"
+          title="Quick entry"
+        />
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to use the Sheets-style bookkeeper entry."
@@ -67,16 +70,10 @@ export default async function QuickEntryPage() {
   return (
     <DevelopmentShell>
       <div className="flex flex-col gap-6">
-        <PageHeader
-          breadcrumbs={[
-            {
-              label: "Transactions",
-              href: "/development-os/finance/transactions",
-            },
-            { label: "Quick entry" },
-          ]}
+        <SectionHeading
+          eyebrow="Development OS · transactions · quick entry"
           title="Bookkeeper quick entry"
-          description="Type or paste rows from your spreadsheet. Tab/Enter to move across cells; Ctrl/Cmd-S to save."
+          subtitle="Type or paste rows from your spreadsheet. Tab/Enter to move across cells; Ctrl/Cmd-S to save."
           actions={
             <Button asChild variant="ghost" size="sm">
               <Link href="/development-os/finance/transactions">

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -42,12 +41,8 @@ export default async function TransactionsPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Finance", href: "/development-os/finance" },
-            { label: "Transactions" },
-          ]}
+        <SectionHeading
+          eyebrow="Development OS · finance · transactions"
           title="Transactions ledger"
         />
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
@@ -102,15 +97,10 @@ export default async function TransactionsPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Transactions" },
-        ]}
+      <SectionHeading
         eyebrow={`${txs.length} transactions · in ${formatUsdMinor(totalInflow)} · out ${formatUsdMinor(totalOutflow)}`}
         title="Transactions ledger"
-        description="Actual money movements — the third pillar of the cost ledger."
+        subtitle="Actual money movements — the third pillar of the cost ledger."
         actions={
           <div className="flex items-center gap-2">
             <Button asChild variant="secondary">
@@ -199,7 +189,11 @@ export default async function TransactionsPage({
         </div>
       </form>
 
-      <Section eyebrow="Ledger" title="Filtered transactions">
+      <section>
+        <div className="label">Ledger</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Filtered transactions
+        </h2>
         {txs.length === 0 ? (
           <EmptyState
             title="No transactions match"
@@ -301,7 +295,7 @@ export default async function TransactionsPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </section>
     </DevelopmentShell>
   );
 }
