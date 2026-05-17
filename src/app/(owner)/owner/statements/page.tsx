@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
@@ -70,75 +69,67 @@ export default async function OwnerStatementsPage({ searchParams }: Props) {
     : null;
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Portfolio", href: "/owner" },
-          { label: "Statements" },
-        ]}
+    <>
+      <SectionHeading
+        eyebrow="Portfolio · statements"
         title="Statements"
-        description={
+        subtitle={
           list.length === 0
             ? "No statements yet. Once your operator generates one, it will appear here."
             : `${list.length} statements across your villas. Click any row to view the full breakdown.`
         }
       />
 
-      {/* Detail card */}
       {detail && (
-        <Section
-          eyebrow={`${detail.monthLabel} · ${detail.villaCode ?? "—"}`}
-          title={`Net to you · ${fmtIdr(detail.netToOwnerIdrMinor)}`}
-          variant="panel"
-          action={
+        <>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+            <div>
+              <div className="label">{`${detail.monthLabel} · ${detail.villaCode ?? "—"}`}</div>
+              <h2 className="display" style={{ fontSize: 26, marginTop: 6, marginBottom: 0, fontWeight: 500 }}>
+                Net to you · {fmtIdr(detail.netToOwnerIdrMinor)}
+              </h2>
+            </div>
             <Button asChild size="sm">
-              <Link
-                href={`/api/finance/statements/${detail.statementId}/pdf`}
-                target="_blank"
-              >
+              <Link href={`/api/finance/statements/${detail.statementId}/pdf`} target="_blank">
                 Statement PDF ↓
               </Link>
             </Button>
-          }
-        >
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-line-soft">
+          </div>
+          <Card style={{ padding: 20, marginBottom: 24 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, paddingBottom: 14, borderBottom: "1px solid var(--line-soft, var(--line))" }}>
               <Cell label="Net (USD)" value={fmtUsd(detail.netToOwnerUsdMinor)} />
               <Cell label="Gross revenue" value={fmtIdr(detail.grossIdrMinor)} />
               <Cell label="Operator fee" value={`${detail.commissionPct.toFixed(0)}%`} />
-              <Cell
-                label="Status"
-                value={detail.status.replace(/_/g, " ")}
-              />
+              <Cell label="Status" value={detail.status.replace(/_/g, " ")} />
             </div>
-
-            <Table>
-              <THead>
-                <TR>
-                  <TH>Type</TH>
-                  <TH>Description</TH>
-                  <TH className="text-right">Amount</TH>
-                </TR>
-              </THead>
-              <TBody>
-                {detail.lines.map((l) => (
-                  <TR key={l.id}>
-                    <TD>
-                      <Badge tone="outline">{l.lineType.replace(/_/g, " ")}</Badge>
-                    </TD>
-                    <TD className="text-sm">{l.description}</TD>
-                    <TD
-                      className="text-right font-mono tabular-nums"
-                      style={{ color: l.amountIdrMinor >= 0n ? "var(--ok)" : "var(--ink-2)" }}
-                    >
-                      {signedIdr(l.amountIdrMinor)}
-                    </TD>
+            <div style={{ marginTop: 14 }}>
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Type</TH>
+                    <TH>Description</TH>
+                    <TH className="text-right">Amount</TH>
                   </TR>
-                ))}
-              </TBody>
-            </Table>
-
-            <p className="text-xs text-ink-tertiary">
+                </THead>
+                <TBody>
+                  {detail.lines.map((l) => (
+                    <TR key={l.id}>
+                      <TD>
+                        <Badge tone="outline">{l.lineType.replace(/_/g, " ")}</Badge>
+                      </TD>
+                      <TD className="text-sm">{l.description}</TD>
+                      <TD
+                        className="text-right font-mono tabular-nums"
+                        style={{ color: l.amountIdrMinor >= 0n ? "var(--ok)" : "var(--ink-2)" }}
+                      >
+                        {signedIdr(l.amountIdrMinor)}
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 14 }}>
               {detail.sentAt
                 ? `Delivered ${new Date(detail.sentAt).toLocaleDateString("en-GB")} to ${detail.sentToEmail ?? "—"}. Hash-signed · auditable.`
                 : detail.approvedAt
@@ -147,24 +138,25 @@ export default async function OwnerStatementsPage({ searchParams }: Props) {
               {detail.contentHash && (
                 <>
                   {" · hash "}
-                  <span className="font-mono">{detail.contentHash.slice(0, 16)}…</span>
+                  <span style={{ fontFamily: "ui-monospace, monospace" }}>{detail.contentHash.slice(0, 16)}…</span>
                 </>
               )}
             </p>
-          </div>
-        </Section>
+          </Card>
+        </>
       )}
 
-      {/* List */}
-      <Section
-        eyebrow="All statements"
-        title={`${list.length} ${list.length === 1 ? "statement" : "statements"}`}
-      >
-        {list.length === 0 ? (
-          <p className="text-sm text-ink-tertiary italic">
+      <h2 className="display" style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}>
+        All statements · {list.length} {list.length === 1 ? "statement" : "statements"}
+      </h2>
+      {list.length === 0 ? (
+        <Card style={{ padding: 24 }}>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
             No statements yet. Your operator will generate them at the start of each month.
           </p>
-        ) : (
+        </Card>
+      ) : (
+        <Card style={{ padding: 0, overflow: "hidden" }}>
           <Table>
             <THead>
               <TR>
@@ -204,9 +196,9 @@ export default async function OwnerStatementsPage({ searchParams }: Props) {
               ))}
             </TBody>
           </Table>
-        )}
-      </Section>
-    </div>
+        </Card>
+      )}
+    </>
   );
 }
 

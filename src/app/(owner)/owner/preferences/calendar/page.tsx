@@ -1,6 +1,5 @@
 import { inArray } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { getDb } from "@/lib/db/client";
 import { owners } from "@/lib/db/schema/ownership";
 import { ownerCalendarPreferences } from "@/lib/db/schema/owner-intelligence";
@@ -53,16 +52,19 @@ export default async function OwnerCalendarPreferencesPage() {
     });
   }
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Preferences" }, { label: "Calendar" }]}
+    <>
+      <SectionHeading
+        eyebrow="Preferences · calendar"
         title="Calendar preferences"
-        description="Choose how the owner portal renders your calendar — guest names, country, channel labels, maintenance details, density. Defaults are applied when no row exists."
+        subtitle="Choose how the owner portal renders your calendar — guest names, country, channel labels, maintenance details, density. Defaults are applied when no row exists."
       />
-      <Section eyebrow="Display" title="What you see in your calendar">
+      <h2 className="display" style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}>
+        Display · what you see in your calendar
+      </h2>
+      <Card style={{ padding: 20 }}>
         <OwnerPreferencesForm owners={rows} />
-      </Section>
-    </div>
+      </Card>
+    </>
   );
 }
 

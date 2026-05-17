@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import {
@@ -54,14 +54,10 @@ export default async function OwnerStatementDetail({
 
   return (
     <div className="flex flex-col gap-12">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Portfolio", href: "/owner" },
-          { label: "Statements", href: "/owner/statements" },
-          { label: statement.periodLabel },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · statements · ${statement.periodLabel}`}
         title={statement.periodLabel}
-        description={`${statement.villaCode ?? statement.projectName ?? "—"} · ${statement.managementModel}`}
+        subtitle={`${statement.villaCode ?? statement.projectName ?? "—"} · ${statement.managementModel}`}
         actions={
           <Button asChild variant="secondary">
             <a href={`/owner/statements/${id}/pdf`} target="_blank" rel="noopener noreferrer">
@@ -72,11 +68,13 @@ export default async function OwnerStatementDetail({
         }
       />
 
-      <div className="rounded-md border border-line-soft bg-canvas px-5 py-3 text-[11px] text-ink-secondary leading-relaxed">
-        Once issued and approved, this statement is the canonical accounting
-        record for this period. Use the Why-this-number section below if a
-        line looks unexpected.
-      </div>
+      <Card style={{ padding: "12px 20px" }}>
+        <p style={{ fontSize: 11, color: "var(--ink-3)", lineHeight: 1.5, margin: 0 }}>
+          Once issued and approved, this statement is the canonical accounting
+          record for this period. Use the Why-this-number section below if a
+          line looks unexpected.
+        </p>
+      </Card>
       <StatementDetail statement={statement} lines={lines} audience="owner" />
 
       <StatementExplanationCard
