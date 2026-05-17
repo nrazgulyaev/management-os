@@ -635,3 +635,87 @@ export async function getOwnerStayQuota(
     requestsCount,
   };
 }
+
+// =============================================================================
+// Sprint STORAGE-1-WIRE — owner-facing documents reader.
+// Pulls `documents` rows with visibility ∈ {'owner_visible','owner','public'}
+// scoped to the owner's villas/projects via entity_id chain.
+// =============================================================================
+
+export interface OwnerDocumentRow {
+  id: string;
+  title: string;
+  documentType: string;
+  fileName: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  createdAt: string;
+  visibility: string;
+}
+
+export async function listMyDocuments(ownerId: string): Promise<OwnerDocumentRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  // Owner-visible documents = documents directly attached to the
+  // owner OR to one of their villas/projects (entity_type+entity_id).
+  const rows = await db.execute<{
+    id: string;
+    title: string;
+    document_type: string;
+    file_name: string | null;
+    mime_type: string | null;
+    size_bytes: number | null;
+    created_at: string;
+    visibility: string;
+  }>(sql`
+    WITH owner_scope AS (
+      SELECT 'owner'::text AS entity_type, ${ownerId}::uuid AS entity_id
+      UNION ALL
+      SELECT 'villa'::text, os.villa_id::uuid
+        FROM ownership_shares os
+       WHERE os.owner_id = ${ownerId}::uuid AND os.status = 'active'
+      UNION ALL
+      SELECT 'project'::text, v.project_id::uuid
+        FROM ownership_shares os
+        JOIN villas v ON v.id = os.villa_id
+       WHERE os.owner_id = ${ownerId}::uuid AND os.status = 'active'
+         AND v.project_id IS NOT NULL
+    )
+    SELECT d.id::text                    AS id,
+           d.title                        AS title,
+           d.document_type                AS document_type,
+           d.file_name                    AS file_name,
+           d.mime_type                    AS mime_type,
+           d.size_bytes                   AS size_bytes,
+           d.created_at::text             AS created_at,
+           d.visibility                   AS visibility
+      FROM documents d
+      JOIN owner_scope os
+        ON os.entity_type = d.entity_type AND os.entity_id = d.entity_id
+     WHERE d.status = 'active'
+       AND d.visibility IN ('owner_visible','owner','public','investor_visible')
+     ORDER BY d.created_at DESC
+     LIMIT 100
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      id: string;
+      title: string;
+      document_type: string;
+      file_name: string | null;
+      mime_type: string | null;
+      size_bytes: number | null;
+      created_at: string;
+      visibility: string;
+    }> }).rows ?? []
+  ).map((r) => ({
+    id: r.id,
+    title: r.title,
+    documentType: r.document_type,
+    fileName: r.file_name,
+    mimeType: r.mime_type,
+    sizeBytes: r.size_bytes,
+    createdAt: r.created_at,
+    visibility: r.visibility,
+  }));
+}

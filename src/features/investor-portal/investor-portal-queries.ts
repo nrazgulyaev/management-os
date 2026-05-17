@@ -424,3 +424,79 @@ export async function getConstructionProgress(
     latestReportDate: r.latest_report,
   }));
 }
+
+// =============================================================================
+// STORAGE-1-WIRE — investor-facing documents reader.
+// Pulls documents with visibility ∈ {'investor_visible','public'} scoped to
+// project entities the investor has committed capital to.
+// =============================================================================
+
+export interface InvestorDocumentRow {
+  id: string;
+  title: string;
+  documentType: string;
+  fileName: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  createdAt: string;
+  visibility: string;
+}
+
+export async function listMyInvestorDocuments(
+  investorId: string,
+): Promise<InvestorDocumentRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db.execute<{
+    id: string;
+    title: string;
+    document_type: string;
+    file_name: string | null;
+    mime_type: string | null;
+    size_bytes: number | null;
+    created_at: string;
+    visibility: string;
+  }>(sql`
+    SELECT d.id::text                    AS id,
+           d.title                        AS title,
+           d.document_type                AS document_type,
+           d.file_name                    AS file_name,
+           d.mime_type                    AS mime_type,
+           d.size_bytes                   AS size_bytes,
+           d.created_at::text             AS created_at,
+           d.visibility                   AS visibility
+      FROM documents d
+     WHERE d.status = 'active'
+       AND d.visibility IN ('investor_visible','public')
+       AND d.entity_type = 'project'
+       AND d.entity_id IN (
+         SELECT DISTINCT project_id FROM capital_commitments
+          WHERE investor_id = ${investorId}::uuid
+            AND status = 'active'
+            AND project_id IS NOT NULL
+       )
+     ORDER BY d.created_at DESC
+     LIMIT 100
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      id: string;
+      title: string;
+      document_type: string;
+      file_name: string | null;
+      mime_type: string | null;
+      size_bytes: number | null;
+      created_at: string;
+      visibility: string;
+    }> }).rows ?? []
+  ).map((r) => ({
+    id: r.id,
+    title: r.title,
+    documentType: r.document_type,
+    fileName: r.file_name,
+    mimeType: r.mime_type,
+    sizeBytes: r.size_bytes,
+    createdAt: r.created_at,
+    visibility: r.visibility,
+  }));
+}
