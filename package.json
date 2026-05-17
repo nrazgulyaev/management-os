@@ -33,6 +33,7 @@
     "preflight:deploy": "node --import tsx scripts/preflight-deploy.ts",
     "seed:production:minimal": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-production-minimal.ts",
     "seed:arconique-demo": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-arconique-demo.ts",
+    "seed:arconique-demo-2": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-arconique-demo-2.ts",
     "stripe:provision": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/stripe-provision.ts",
     "stripe:provision:apply": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/stripe-provision.ts --apply"
   },
