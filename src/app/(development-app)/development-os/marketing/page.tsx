@@ -4,14 +4,15 @@ import {
   Card,
   Badge,
 } from "@/components/dashboard/primitives";
+import { safeQuery } from "@/lib/development/safe-query";
+import { loadMarketingCabinet } from "@/lib/development/server/cabinets/marketing-cabinet-queries";
 
 /**
- * TASK-8-MISSING-ROUTES 3/9 — Dev OS /marketing summary cabinet.
- * Ported from _handoff/development/marketing.html.
- *
- * Mock data verbatim. Live wiring to leads + campaigns tables is
- * TASK-7-DATA-PART-4 follow-up (leads table has 12 DEMO-2 seeds;
- * campaigns table has no DEMO-2 seed yet).
+ * Dev OS /marketing summary cabinet. KPI strip is live (active campaigns
+ * count + leads-this-week + funnel from loadMarketingCabinet).
+ * Per-source attribution + per-campaign detail tables are still mock —
+ * those need new queries against attribution + p4-marketing schemas in
+ * a follow-up sprint.
  */
 
 export const metadata = { title: "Development OS · Marketing" };
@@ -31,7 +32,34 @@ const CAMPAIGNS = [
   { name: "Investor outreach Q2", channel: "LinkedIn", spend: "$1,200", reach: "14K", leads: "8", status: "warn" as const, label: "Optimizing" },
 ];
 
-export default function DevMarketingPage() {
+export default async function DevMarketingPage() {
+  const data = await safeQuery("devMarketingCabinet", loadMarketingCabinet(), {
+    contentByStatus: {},
+    contentApprovalQueueCount: 0,
+    scheduledThisWeekCount: 0,
+    recentlyPublishedCount: 0,
+    activeCampaignsCount: 0,
+    leadsThisWeek: 0,
+    hotLeadsCount: 0,
+    latestMarketingAssistantOutputCode: null,
+    publishesLast7Days: [],
+    funnelByLifecycle: [],
+    recentMarketingAssistantOutputs: [],
+  });
+  const totalFunnel = data.funnelByLifecycle.reduce(
+    (s, r) => s + Number(r.count),
+    0,
+  );
+  const reservation = data.funnelByLifecycle.find(
+    (r) => r.lifecycleStatus === "reservation",
+  );
+  const conversionPct =
+    totalFunnel > 0 && reservation
+      ? ((Number(reservation.count) / totalFunnel) * 100).toFixed(1)
+      : null;
+  const contentBacklog =
+    (data.contentByStatus.draft ?? 0) + (data.contentByStatus.idea ?? 0);
+
   return (
     <>
       <SectionHeading
@@ -52,11 +80,34 @@ export default function DevMarketingPage() {
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
-        <Kpi label="MTD leads" value="84" sub="+18 vs Mar" tone="success" />
-        <Kpi label="Active campaigns" value="4" sub="2 paid · 2 organic" />
-        <Kpi label="Cost / lead" value="$48" sub="−$12 vs Q1" tone="accent" />
-        <Kpi label="Conversion · lead → reservation" value="12.4%" sub="+1.8pp" tone="accent" />
-        <Kpi label="Content backlog" value="14" sub="6 drafts · 8 ideas" />
+        <Kpi
+          label="Leads · this week"
+          value={String(data.leadsThisWeek)}
+          sub={`${data.hotLeadsCount} hot`}
+          tone={data.leadsThisWeek > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Active campaigns"
+          value={String(data.activeCampaignsCount)}
+          sub={data.scheduledThisWeekCount > 0 ? `${data.scheduledThisWeekCount} scheduled this week` : undefined}
+        />
+        <Kpi
+          label="Approval queue"
+          value={String(data.contentApprovalQueueCount)}
+          sub="awaiting review"
+          tone="accent"
+        />
+        <Kpi
+          label="Conversion · lead → reservation"
+          value={conversionPct ? `${conversionPct}%` : "—"}
+          sub={totalFunnel > 0 ? `${totalFunnel} in funnel` : "no funnel data"}
+          tone="accent"
+        />
+        <Kpi
+          label="Content backlog"
+          value={String(contentBacklog)}
+          sub={`${data.contentByStatus.draft ?? 0} drafts · ${data.contentByStatus.idea ?? 0} ideas`}
+        />
       </div>
 
       <h2
