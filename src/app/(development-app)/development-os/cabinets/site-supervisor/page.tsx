@@ -21,11 +21,13 @@ import {
  * live, org-scoped reads in
  * `src/lib/development/server/cabinets/site-supervisor-cabinet-queries.ts`:
  *
- *   - mockDIARY   → listRecentSiteReports(5)  (site_reports + reporter)
- *   - mockPHOTOS  → listRecentSitePhotos(10)  (geo-tagged photos)
+ *   - mockDIARY      → listRecentSiteReports(5)   (site_reports + reporter)
+ *   - mockPHOTOS     → listRecentSitePhotos(10)   (geo-tagged photos)
+ *   - mockVOICE      → listVoiceNotes(6)          (voice_notes — DEMO-3 seeded 30)
+ *   - mockQA         → listQaInspections(6)       (qa_qc_issues — DEMO-3 seeded 20)
+ *   - mockINCIDENTS  → listSafetyIncidents(5)     (safety_incidents — DEMO-3 seeded 7)
  *
- * Voice-note panel stays mock copy — no `voice_notes` schema yet
- * (DEMO-2 dependency).
+ * All 5 panels live as of TASK-7-DATA-PART-3 FINISH.
  */
 
 export const metadata = { title: "Site Supervisor · Daily report" };
