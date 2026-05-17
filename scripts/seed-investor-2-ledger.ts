@@ -383,6 +383,23 @@ async function main(): Promise<void> {
   }
   console.log(`  ${nTx} wallet_transactions inserted`);
 
+  // 3) Mirror the running available balance into cash_balance_minor so the
+  //    reinvest/withdraw UI surfaces (which key off cash_balance_minor per
+  //    Stage 4.B.2 "separated balance buckets") have something to work with.
+  //    Only update wallets where cash_balance is currently 0 — preserves any
+  //    operator-set values.
+  console.log("\nsetting cash_balance_minor from available_balance_usd_minor...");
+  const cashUpd = await db.execute(sql`
+    UPDATE investor_wallets
+       SET cash_balance_minor = available_balance_usd_minor
+     WHERE organization_id = ${args.orgId}::uuid
+       AND cash_balance_minor = 0
+       AND available_balance_usd_minor > 0
+  `);
+  console.log(
+    `  ${(cashUpd as unknown as { count?: number }).count ?? "?"} wallets updated`,
+  );
+
   console.log("\ndone.");
   await closeDb();
 }
