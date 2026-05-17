@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useActionState } from "react";
 import { Field, FormShell, selectCls, textareaCls } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
@@ -37,7 +39,7 @@ export function GrantForm({
         footer={
           <>
             <Button asChild variant="ghost">
-              <a href={cancelHref}>Cancel</a>
+              <Link href={cancelHref}>Cancel</Link>
             </Button>
             <SubmitButton>Grant access</SubmitButton>
           </>

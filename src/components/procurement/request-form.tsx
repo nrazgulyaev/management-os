@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Field, FormShell, inputCls, selectCls, textareaCls } from "@/components/admin/form-shell";
@@ -49,7 +51,7 @@ export function PurchaseRequestForm({
             {onCancel ? (
               <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
             ) : (
-              <Button asChild variant="ghost"><a href={cancelHref}>Cancel</a></Button>
+              <Button asChild variant="ghost"><Link href={cancelHref}>Cancel</Link></Button>
             )}
             <SubmitButton>Create request</SubmitButton>
           </>

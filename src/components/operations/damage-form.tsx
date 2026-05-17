@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Field, FormShell, inputCls, selectCls, textareaCls } from "@/components/admin/form-shell";
@@ -53,7 +55,7 @@ export function DamageReportForm({
               </Button>
             ) : (
               <Button asChild variant="ghost">
-                <a href={cancelHref}>Cancel</a>
+                <Link href={cancelHref}>Cancel</Link>
               </Button>
             )}
             <SubmitButton>Log damage</SubmitButton>

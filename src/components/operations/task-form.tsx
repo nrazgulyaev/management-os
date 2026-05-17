@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -59,7 +61,7 @@ export function TaskForm({
               </Button>
             ) : (
               <Button asChild variant="ghost">
-                <a href={cancelHref}>Cancel</a>
+                <Link href={cancelHref}>Cancel</Link>
               </Button>
             )}
             <SubmitButton>Create task</SubmitButton>

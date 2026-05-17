@@ -59,9 +59,9 @@ export default async function StatementDetailPage({
               </a>
             </Button>
             <Button asChild variant="secondary" size="sm">
-              <a href={`/dashboard/finance/transparency/statements/${id}`}>
+              <Link href={`/dashboard/finance/transparency/statements/${id}`}>
                 Open transparency
-              </a>
+              </Link>
             </Button>
             {transitions.map((t) => (
               <form

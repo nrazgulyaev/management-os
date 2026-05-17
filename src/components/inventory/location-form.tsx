@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Field, FormShell, inputCls, selectCls, textareaCls } from "@/components/admin/form-shell";
@@ -37,7 +39,7 @@ export function LocationForm({
         title="New storage location"
         footer={
           <>
-            <Button asChild variant="ghost"><a href={cancelHref}>Cancel</a></Button>
+            <Button asChild variant="ghost"><Link href={cancelHref}>Cancel</Link></Button>
             <SubmitButton>Create location</SubmitButton>
           </>
         }
