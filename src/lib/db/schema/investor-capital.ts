@@ -560,3 +560,45 @@ export type DistributionAllocation =
   typeof distributionAllocations.$inferSelect;
 export type DistributionAllocationInsert =
   typeof distributionAllocations.$inferInsert;
+
+// =============================================================================
+// DEMO-3 — investor_nav_snapshots (added by migration 0105).
+// =============================================================================
+
+export const investorNavSnapshots = pgTable(
+  "investor_nav_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "restrict" }),
+    quarterEndDate: date("quarter_end_date").notNull(),
+    navTotalMinor: bigint("nav_total_minor", { mode: "bigint" }).notNull(),
+    currency: text("currency").notNull().default("USD"),
+    snapshotNotes: text("snapshot_notes"),
+    createdBy: uuid("created_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("investor_nav_snapshots_org_idx").on(t.organizationId),
+    index("investor_nav_snapshots_project_idx").on(t.projectId),
+    index("investor_nav_snapshots_quarter_idx").on(t.quarterEndDate),
+    unique("investor_nav_snapshots_project_quarter_unique").on(
+      t.projectId,
+      t.quarterEndDate,
+    ),
+  ],
+);
+
+export type InvestorNavSnapshot = typeof investorNavSnapshots.$inferSelect;
+export type InvestorNavSnapshotInsert = typeof investorNavSnapshots.$inferInsert;

@@ -790,3 +790,51 @@ export const safetyIncidents = pgTable(
 
 export type SafetyIncident = typeof safetyIncidents.$inferSelect;
 export type SafetyIncidentInsert = typeof safetyIncidents.$inferInsert;
+
+// =============================================================================
+// DEMO-3 — voice_notes (added by migration 0105).
+// =============================================================================
+
+export const voiceNotes = pgTable(
+  "voice_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    siteReportId: uuid("site_report_id").references(() => siteReports.id, {
+      onDelete: "set null",
+    }),
+    villaId: uuid("villa_id").references(() => villas.id, {
+      onDelete: "set null",
+    }),
+    projectId: uuid("project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+    recordedBy: uuid("recorded_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    audioUrl: text("audio_url"),
+    durationSeconds: integer("duration_seconds"),
+    transcriptText: text("transcript_text"),
+    transcriptLanguage: text("transcript_language"),
+    transcribedByAi: boolean("transcribed_by_ai").notNull().default(false),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("voice_notes_org_idx").on(t.organizationId),
+    index("voice_notes_site_report_idx").on(t.siteReportId),
+    index("voice_notes_villa_idx").on(t.villaId),
+    index("voice_notes_recorded_by_idx").on(t.recordedBy),
+    index("voice_notes_created_idx").on(t.createdAt),
+  ],
+);
+
+export type VoiceNote = typeof voiceNotes.$inferSelect;
+export type VoiceNoteInsert = typeof voiceNotes.$inferInsert;

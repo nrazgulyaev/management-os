@@ -8,6 +8,9 @@ import {
 import {
   listRecentSiteReports,
   listRecentSitePhotos,
+  listVoiceNotes,
+  listQaInspections,
+  listSafetyIncidents,
 } from "@/lib/development/server/cabinets/site-supervisor-cabinet-queries";
 
 /**
@@ -47,9 +50,12 @@ function statusBadge(status: string) {
 }
 
 export default async function SiteSupervisorPage() {
-  const [reports, photos] = await Promise.all([
+  const [reports, photos, voiceNotes, inspections, incidents] = await Promise.all([
     listRecentSiteReports(5).catch(() => []),
     listRecentSitePhotos(10).catch(() => []),
+    listVoiceNotes(6).catch(() => []),
+    listQaInspections(6).catch(() => []),
+    listSafetyIncidents(5).catch(() => []),
   ]);
 
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -222,23 +228,126 @@ export default async function SiteSupervisorPage() {
         )}
       </Card>
 
-      {/* Voice note — placeholder, no schema yet */}
-      <Card style={{ padding: 18, border: "1px dashed var(--line-2)" }}>
-        <div className="label label-amber">VOICE NOTE · transcription deferred</div>
-        <p
-          style={{
-            margin: "8px 0 0",
-            fontFamily: "var(--font-space), sans-serif",
-            fontStyle: "italic",
-            fontSize: 14,
-            color: "var(--ink-3)",
-          }}
-        >
-          Voice-note capture + auto-transcription lands once the
-          <span className="mono"> voice_notes </span>
-          schema seeds in DEMO-2.
-        </p>
+      {/* Voice notes — live from voice_notes (DEMO-3) */}
+      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+        <div style={{ padding: "14px 22px", borderBottom: "1px solid var(--line)" }}>
+          <h2 className="display" style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>
+            Voice notes · transcribed
+          </h2>
+          <div className="label label-amber" style={{ marginTop: 4 }}>
+            FIELD AUDIO · AI-TRANSCRIBED
+          </div>
+        </div>
+        {voiceNotes.length === 0 ? (
+          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            No voice notes yet. Supervisors capture audio in the field and the
+            AI transcribes — entries appear here.
+          </p>
+        ) : (
+          <ul className="clean" style={{ padding: "4px 0", margin: 0 }}>
+            {voiceNotes.map((n) => (
+              <li key={n.id} style={{ padding: "12px 22px", display: "flex", flexDirection: "column", gap: 4, borderBottom: "1px solid var(--line)" }}>
+                <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)", display: "flex", gap: 8 }}>
+                  <span>{n.projectCode ?? "—"}</span>
+                  <span>·</span>
+                  <span>{n.reporterName ?? "field"}</span>
+                  {n.durationSeconds != null && <><span>·</span><span>{n.durationSeconds}s</span></>}
+                  {n.transcriptLanguage && <><span>·</span><span>{n.transcriptLanguage.toUpperCase()}</span></>}
+                  <span style={{ marginLeft: "auto" }}>
+                    {new Date(n.createdAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontFamily: "var(--font-space), sans-serif", fontStyle: "italic", fontSize: 13, color: "var(--ink)" }}>
+                  &quot;{n.transcriptText ?? "—"}&quot;
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
+
+      {/* QA inspections + Safety incidents — 2-up */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ padding: "14px 22px", borderBottom: "1px solid var(--line)" }}>
+            <h2 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+              QA · recent inspections
+            </h2>
+          </div>
+          {inspections.length === 0 ? (
+            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+              No QA inspections logged yet.
+            </p>
+          ) : (
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Issue</th>
+                  <th>Villa</th>
+                  <th>Date</th>
+                  <th>#</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {inspections.map((q) => (
+                  <tr key={q.id}>
+                    <td style={{ maxWidth: 220, fontSize: 12 }}>{q.issueTitle}</td>
+                    <td className="mono">{q.villaCode ?? "—"}</td>
+                    <td className="mono">{q.inspectionDate}</td>
+                    <td className="num">{q.inspectionNumber}</td>
+                    <td>
+                      <Badge tone={q.result === "passed" ? "ok" : q.result === "failed" ? "danger" : "warn"}>
+                        {q.result.replace(/_/g, " ")}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ padding: "14px 22px", borderBottom: "1px solid var(--line)" }}>
+            <h2 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+              Safety · recent incidents
+            </h2>
+          </div>
+          {incidents.length === 0 ? (
+            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+              No safety incidents recorded.
+            </p>
+          ) : (
+            <ul className="clean" style={{ padding: "4px 0", margin: 0 }}>
+              {incidents.map((s) => {
+                const sevTone: "warn" | "danger" | undefined =
+                  s.severity === "severe" || s.severity === "fatal"
+                    ? "danger"
+                    : s.severity === "moderate" || s.severity === "minor"
+                      ? "warn"
+                      : undefined;
+                return (
+                  <li key={s.id} style={{ padding: "12px 22px", borderBottom: "1px solid var(--line)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <Badge tone={sevTone}>{s.severity.replace(/_/g, " ")}</Badge>
+                      <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                        {s.category} · {s.incidentDate}
+                      </span>
+                      <span style={{ marginLeft: "auto" }}>
+                        <Badge>{s.status}</Badge>
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.4 }}>
+                      {s.description}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+      </div>
     </>
   );
 }

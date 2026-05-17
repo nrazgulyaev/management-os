@@ -35,6 +35,7 @@
     "seed:arconique-demo": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-arconique-demo.ts",
     "seed:arconique-demo-2": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-arconique-demo-2.ts",
     "seed:statements": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-statements.ts",
+    "seed:demo-3": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-arconique-demo-3.ts",
     "stripe:provision": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/stripe-provision.ts",
     "stripe:provision:apply": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/stripe-provision.ts --apply"
   },

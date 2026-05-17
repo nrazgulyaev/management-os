@@ -225,3 +225,191 @@ export async function listRecentSitePhotos(limit = 10): Promise<SitePhotoRow[]> 
     capturedAt: r.captured_at,
   }));
 }
+
+// =============================================================================
+// Sprint DEMO-3 — Site Supervisor cabinet PART-3 fills.
+// Voice notes + QA inspections + safety incidents (schemas + seeds now live).
+// =============================================================================
+
+export interface VoiceNoteRow {
+  id: string;
+  projectCode: string | null;
+  reporterName: string | null;
+  durationSeconds: number | null;
+  transcriptText: string | null;
+  transcriptLanguage: string | null;
+  createdAt: string;
+}
+
+export async function listVoiceNotes(limit = 8): Promise<VoiceNoteRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    id: string;
+    project_code: string | null;
+    reporter_name: string | null;
+    duration_seconds: number | null;
+    transcript_text: string | null;
+    transcript_language: string | null;
+    created_at: string;
+  }>(sql`
+    SELECT vn.id::text                            AS id,
+           p.project_code                          AS project_code,
+           u.full_name                             AS reporter_name,
+           vn.duration_seconds                     AS duration_seconds,
+           vn.transcript_text                      AS transcript_text,
+           vn.transcript_language                  AS transcript_language,
+           vn.created_at::text                     AS created_at
+      FROM voice_notes vn
+      LEFT JOIN projects p ON p.id = vn.project_id
+      LEFT JOIN app_users u ON u.id = vn.recorded_by
+     WHERE vn.organization_id = ${orgId}
+     ORDER BY vn.created_at DESC
+     LIMIT ${limit}
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      id: string;
+      project_code: string | null;
+      reporter_name: string | null;
+      duration_seconds: number | null;
+      transcript_text: string | null;
+      transcript_language: string | null;
+      created_at: string;
+    }> }).rows ?? []
+  ).map((r) => ({
+    id: r.id,
+    projectCode: r.project_code,
+    reporterName: r.reporter_name,
+    durationSeconds: r.duration_seconds,
+    transcriptText: r.transcript_text,
+    transcriptLanguage: r.transcript_language,
+    createdAt: r.created_at,
+  }));
+}
+
+export interface QaInspectionRow {
+  id: string;
+  issueCode: string;
+  issueTitle: string;
+  villaCode: string | null;
+  inspectionDate: string;
+  inspectionNumber: number;
+  result: string;
+  resultNotes: string | null;
+}
+
+export async function listQaInspections(limit = 8): Promise<QaInspectionRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    id: string;
+    issue_code: string;
+    issue_title: string;
+    villa_code: string | null;
+    inspection_date: string;
+    inspection_number: string;
+    result: string;
+    result_notes: string | null;
+  }>(sql`
+    SELECT qi.id::text                          AS id,
+           q.issue_code                          AS issue_code,
+           q.title                                AS issue_title,
+           v.unit_code                            AS villa_code,
+           qi.inspection_date::text              AS inspection_date,
+           qi.inspection_number::text            AS inspection_number,
+           qi.result                              AS result,
+           qi.result_notes                        AS result_notes
+      FROM qa_qc_inspections qi
+      JOIN qa_qc_issues q ON q.id = qi.issue_id
+      LEFT JOIN villas v ON v.id = q.villa_id
+     WHERE qi.organization_id = ${orgId}
+     ORDER BY qi.inspection_date DESC, qi.inspection_number DESC
+     LIMIT ${limit}
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      id: string;
+      issue_code: string;
+      issue_title: string;
+      villa_code: string | null;
+      inspection_date: string;
+      inspection_number: string;
+      result: string;
+      result_notes: string | null;
+    }> }).rows ?? []
+  ).map((r) => ({
+    id: r.id,
+    issueCode: r.issue_code,
+    issueTitle: r.issue_title,
+    villaCode: r.villa_code,
+    inspectionDate: r.inspection_date,
+    inspectionNumber: Number(r.inspection_number),
+    result: r.result,
+    resultNotes: r.result_notes,
+  }));
+}
+
+export interface SafetyIncidentRow {
+  id: string;
+  incidentCode: string;
+  projectCode: string | null;
+  incidentDate: string;
+  severity: string;
+  category: string;
+  description: string;
+  status: string;
+}
+
+export async function listSafetyIncidents(limit = 8): Promise<SafetyIncidentRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    id: string;
+    incident_code: string;
+    project_code: string | null;
+    incident_date: string;
+    severity: string;
+    category: string;
+    description: string;
+    status: string;
+  }>(sql`
+    SELECT si.id::text                AS id,
+           si.incident_code            AS incident_code,
+           p.project_code              AS project_code,
+           si.incident_date::text      AS incident_date,
+           si.severity                 AS severity,
+           si.category                 AS category,
+           si.description              AS description,
+           si.status                   AS status
+      FROM safety_incidents si
+      LEFT JOIN projects p ON p.id = si.project_id
+     WHERE si.organization_id = ${orgId}
+     ORDER BY si.incident_date DESC
+     LIMIT ${limit}
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      id: string;
+      incident_code: string;
+      project_code: string | null;
+      incident_date: string;
+      severity: string;
+      category: string;
+      description: string;
+      status: string;
+    }> }).rows ?? []
+  ).map((r) => ({
+    id: r.id,
+    incidentCode: r.incident_code,
+    projectCode: r.project_code,
+    incidentDate: r.incident_date,
+    severity: r.severity,
+    category: r.category,
+    description: r.description,
+    status: r.status,
+  }));
+}
