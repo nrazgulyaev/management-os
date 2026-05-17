@@ -88,7 +88,7 @@ export async function requestStatementChanges(
 export async function markStatementSent(
   statementId: string,
   sentToEmail: string,
-): Promise<ActionResult> {
+): Promise<ActionResult & { emailReason?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
   const statement = await loadStatementForOrg(statementId);
@@ -96,6 +96,38 @@ export async function markStatementSent(
   if (statement.status !== "approved" && statement.status !== "sent") {
     return { ok: false, error: "Statement must be approved before sending" };
   }
+
+  // EMAIL-1 — fire the notification email best-effort. Failure does
+  // not block the state transition; the operator can resend later.
+  const { sendEmail, isEmailConfigured } = await import("@/features/email/email-service");
+  const { statementReady } = await import("@/features/email/templates");
+  let emailReason: string | undefined;
+  if (isEmailConfigured() && sentToEmail && sentToEmail.includes("@")) {
+    const monthLabel = statement.periodMonth
+      ? new Date(statement.periodMonth + "T00:00:00Z").toLocaleString("en", {
+          month: "long",
+          year: "numeric",
+          timeZone: "UTC",
+        })
+      : "your statement";
+    const tpl = statementReady({
+      ownerFirstName: "there",
+      monthLabel,
+      villaCode: null,
+      netToOwnerUsdMinor: statement.netToOwnerUsdMinor ?? 0n,
+      portalUrl: "https://management.arconique.com/owner/statements",
+    });
+    const result = await sendEmail({
+      to: sentToEmail,
+      subject: tpl.subject,
+      html: tpl.html,
+      text: tpl.text,
+    });
+    if (!result.ok) emailReason = result.reason;
+  } else if (!isEmailConfigured()) {
+    emailReason = "no_api_key";
+  }
+
   await db
     .update(ownerStatements)
     .set({
@@ -106,7 +138,7 @@ export async function markStatementSent(
     })
     .where(eq(ownerStatements.id, statementId));
   revalidatePath("/dashboard/finance");
-  return { ok: true };
+  return { ok: true, emailReason };
 }
 
 export async function generateAllForPeriod(periodMonth: string): Promise<ActionResult & { count?: number }> {
