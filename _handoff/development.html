@@ -1,0 +1,2476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Arconique Development OS — build the next one</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Light canvas — cream/concrete base, dark ink */
+    --bg:         #F1ECE0;
+    --bg-2:       #F8F4EA;
+    --bg-3:       #FFFCF4;
+    --panel:      #FFFFFF;
+    --line:       #E5DECC;
+    --line-2:     #D8CFB7;
+    --line-3:     #BAAF92;
+    --concrete:   #2A2A26;
+    --concrete-2: #4A4A42;
+    --concrete-3: #6E6E64;
+    --ink:        #14130E;
+    --ink-2:      #3D3B33;
+    --ink-3:      #6E6B5E;
+    --ink-4:      #95917F;
+    --carbon:     #14130E;          /* dark text on amber/accent buttons */
+    --amber:      #FF6B35;
+    --amber-soft: #FFB088;
+    --steel:      #3D5A7A;
+    --steel-soft: #7E9DBF;
+    --lime:       #C9DC4A;
+    --warn:       #C58A2E;
+    --danger:     #C2474E;
+    --ok:         #4F8A5D;
+
+    /* Sticker / bento pastels */
+    --pastel-peach:  #F6D2BC;
+    --pastel-sky:    #C9DCEA;
+    --pastel-butter: #F0DE96;
+    --pastel-mint:   #CBDFC8;
+    --pastel-cream:  #ECE5D5;
+    --pastel-rose:   #EFC6BD;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif; font-size: 14.5px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; background: transparent; border: 0; color: inherit; }
+  html { scroll-behavior: smooth; }
+  ::selection { background: var(--amber); color: var(--carbon); }
+
+  body::-webkit-scrollbar { width: 10px; }
+  body::-webkit-scrollbar-track { background: var(--bg); }
+  body::-webkit-scrollbar-thumb { background: var(--line-3); border-radius: 999px; border: 2px solid var(--bg); }
+
+  .display { font-family: 'Space Grotesk', sans-serif; font-weight: 500; letter-spacing: -0.025em; line-height: 1.0; }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-feature-settings: "tnum"; }
+  .num { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .label { font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; font-size: 11px; letter-spacing: 0.18em; color: var(--ink-3); font-weight: 400; }
+  .label-amber { color: var(--amber); }
+  .hr { height: 1px; background: var(--line); }
+  .hr-dashed { background-image: linear-gradient(90deg, var(--line-2) 50%, transparent 50%); background-size: 6px 1px; background-repeat: repeat-x; height: 1px; }
+
+  /* Blueprint grid background */
+  .grid-paper {
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(rgba(20,19,14,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(20,19,14,0.05) 1px, transparent 1px),
+      linear-gradient(rgba(20,19,14,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(20,19,14,0.025) 1px, transparent 1px);
+    background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+    background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+  }
+  .grid-light {
+    background-color: var(--bg-2);
+    background-image:
+      linear-gradient(rgba(20,19,14,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(20,19,14,0.06) 1px, transparent 1px),
+      linear-gradient(rgba(20,19,14,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(20,19,14,0.03) 1px, transparent 1px),
+      linear-gradient(rgba(20,19,14,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(20,19,14,0.03) 1px, transparent 1px);
+    background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+  }
+
+  /* Construction site placeholder */
+  .photo-site {
+    background:
+      repeating-linear-gradient(135deg, rgba(20,19,14,0.04) 0 1px, transparent 1px 18px),
+      linear-gradient(160deg, var(--pastel-peach) 0%, #E2B095 100%);
+  }
+  .photo-blueprint {
+    background:
+      linear-gradient(rgba(61,90,122,0.18) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(61,90,122,0.18) 1px, transparent 1px),
+      linear-gradient(160deg, var(--pastel-sky) 0%, #A8BFD2 100%);
+    background-size: 40px 40px, 40px 40px, auto;
+  }
+
+  /* Cards */
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; }
+  .panel-2 { background: var(--bg-3); border: 1px solid var(--line); border-radius: 18px; }
+  .corner-marks { position: relative; }
+  .corner-marks::before, .corner-marks::after {
+    content: ""; position: absolute; width: 8px; height: 8px; border-radius: 999px; background: var(--amber); opacity: 0.85;
+  }
+  .corner-marks::before { top: 14px; left: 14px; }
+  .corner-marks::after  { display: none; }
+
+  /* Sticker pastel face — for selective cards on dark base */
+  .panel-peach  { background: var(--pastel-peach);  color: #2a1b13; border-color: rgba(0,0,0,0.05); }
+  .panel-sky    { background: var(--pastel-sky);    color: #14202c; border-color: rgba(0,0,0,0.05); }
+  .panel-butter { background: var(--pastel-butter); color: #2b240e; border-color: rgba(0,0,0,0.05); }
+  .panel-mint   { background: var(--pastel-mint);   color: #142318; border-color: rgba(0,0,0,0.05); }
+  .panel-cream  { background: var(--pastel-cream);  color: #1d1a14; border-color: rgba(0,0,0,0.05); }
+  .panel-amber  { background: var(--amber);         color: var(--carbon);  border-color: rgba(0,0,0,0.05); }
+  .panel-peach .label, .panel-sky .label, .panel-butter .label, .panel-mint .label, .panel-cream .label, .panel-amber .label { color: rgba(0,0,0,0.55); }
+  .panel-peach .label-amber, .panel-mint .label-amber, .panel-sky .label-amber, .panel-butter .label-amber, .panel-cream .label-amber, .panel-amber .label-amber { color: rgba(0,0,0,0.7); }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 999px; font-size: 13px; font-weight: 500; letter-spacing: 0.01em; transition: all .15s ease; white-space: nowrap; border: 1px solid transparent; }
+  .btn-amber { background: var(--amber); color: var(--carbon); }
+  .btn-amber:hover { background: var(--amber-soft); }
+  .btn-light { background: var(--ink); color: #fff; }
+  .btn-light:hover { background: var(--ink); }
+  .btn-dark { background: var(--bg-3); color: var(--ink); border-color: var(--line-2); }
+  .btn-dark:hover { background: var(--bg-2); border-color: var(--line-3); }
+  .btn-ghost { background: transparent; color: var(--ink-2); }
+  .btn-ghost:hover { color: var(--ink); }
+  .btn-lg { padding: 14px 22px; font-size: 14px; }
+
+  /* Round arrow button — sticker style */
+  .ra-btn { width:46px; height:46px; border-radius:999px; background:var(--amber); color:var(--carbon); display:inline-flex; align-items:center; justify-content:center; border:0; transition:transform .15s ease, background .15s ease; flex-shrink:0; }
+  .ra-btn:hover { transform: translateX(2px); background: var(--amber-soft); }
+  .ra-btn.dark { background: var(--bg-3); color: var(--ink); border:1px solid var(--line-2); }
+  .ra-btn.light { background: var(--panel); color: var(--ink); border:1px solid var(--line); }
+
+  /* Badge — pill / sticker */
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid; border-radius: 999px; }
+  .badge-ok    { color: var(--ok);     border-color: rgba(79,190,106,0.4);  background: rgba(79,190,106,0.10); }
+  .badge-amber { color: var(--amber);  border-color: rgba(255,107,53,0.4);  background: rgba(255,107,53,0.10); }
+  .badge-warn  { color: var(--warn);   border-color: rgba(230,162,60,0.4);  background: rgba(230,162,60,0.10); }
+  .badge-danger{ color: var(--danger); border-color: rgba(215,70,77,0.4);   background: rgba(215,70,77,0.10); }
+  .badge-steel { color: var(--steel-soft); border-color: rgba(125,157,191,0.4); background: rgba(125,157,191,0.10); }
+  .badge-soft  { color: var(--ink-2);  border-color: var(--line-2);         background: var(--bg-3); }
+
+  /* Sticker chip — pill with bullet (light face) */
+  .chip { display:inline-flex; align-items:center; gap:8px; padding: 7px 13px; background: var(--bg-2); border:1px solid var(--line-2); border-radius: 999px; font-size: 12.5px; color: var(--ink-2); }
+  .chip-dot::before { content:""; width:7px; height:7px; border-radius:999px; background: var(--amber); display:inline-block; }
+  .chip-light { background: var(--pastel-cream); color: #1d1a14; border-color: rgba(0,0,0,0.06); }
+  .chip-glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.1); color: var(--ink); }
+
+  /* Mini avatar stack */
+  .avstack { display:inline-flex; }
+  .avstack > * { width: 22px; height: 22px; border-radius:999px; border: 2px solid var(--bg); margin-left:-7px; background: var(--bg-3); }
+  .avstack > *:first-child { margin-left: 0; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field input, .field select, .field textarea {
+    background: var(--bg-2); border: 1px solid var(--line-2); color: var(--ink);
+    padding: 11px 14px; border-radius: 12px; font: inherit; outline: none; transition: border-color .15s ease;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--amber); }
+
+  /* Pulse dot */
+  .pulse-amber::before {
+    content:""; display:inline-block; width:6px; height:6px; border-radius:999px; background: var(--amber); margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(255,107,53,0.55); }
+    50%     { box-shadow: 0 0 0 5px rgba(255,107,53,0); }
+  }
+
+  /* Tables */
+  table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.data th, table.data td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.data th { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); background: var(--bg-2); border-bottom: 1px solid var(--line-2); }
+  table.data tbody tr:hover { background: var(--bg-2); }
+  table.data td.num, table.data th.num { text-align: right; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+
+  .stamp { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px dashed var(--line-2); border-radius: 999px; color: var(--ink-3); font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; }
+
+  /* Decorative crosshair */
+  .crosshair { position: relative; }
+  .crosshair::before, .crosshair::after { content: ""; position: absolute; background: var(--amber); }
+  .crosshair::before { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); }
+  .crosshair::after  { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); }
+
+  @media (max-width: 760px) { .hide-mobile { display: none !important; } }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Each section follows; bundled in one HTML for portability. -->
+<!-- Bootstrap is at the bottom; do not move it above the source blocks. -->
+
+<script type="text/jsx-source" data-file="shared.js">
+/* global React */
+const { useState, useEffect, useCallback } = React;
+
+// Icons (thin, technical)
+const I = {
+  arrow: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 12h14M13 6l6 6-6 6"/></svg>,
+  check: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" {...p}><path d="M4 12l5 5L20 6"/></svg>,
+  plus: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 5v14M5 12h14"/></svg>,
+  download: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 4v12m0 0l-5-5m5 5l5-5M4 20h16"/></svg>,
+  external: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M14 4h6v6M20 4l-9 9M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>,
+  spreadsheet: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M3 14h18M9 4v16M15 4v16"/></svg>,
+  hammer: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M14 5l5 5-9 9-5-5 9-9zM12 7l5 5M3 21l3-3"/></svg>,
+  chart: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M4 20V8M10 20V4M16 20v-8M22 20H2"/></svg>,
+  truck: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="2" y="8" width="11" height="9"/><path d="M13 11h5l3 3v3h-8M5 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>,
+  shield: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3z"/></svg>,
+  user: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="12" cy="8" r="4"/><path d="M4 20c2-4 6-5 8-5s6 1 8 5"/></svg>,
+  spark: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg>,
+  search: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>,
+  bell: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M6 8a6 6 0 1 1 12 0c0 5 2 7 2 7H4s2-2 2-7zM10 19a2 2 0 0 0 4 0"/></svg>,
+  building: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="4" y="3" width="16" height="18"/><path d="M9 8h2M13 8h2M9 12h2M13 12h2M9 16h6"/></svg>,
+  cube: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 2L4 6v12l8 4 8-4V6l-8-4zM4 6l8 4 8-4M12 22V10"/></svg>,
+  receipt: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 3v18l3-2 3 2 3-2 3 2 3-2V3l-3 2-3-2-3 2-3-2-3 2zM9 9h6M9 13h6"/></svg>,
+  logoMark: (p)=><svg viewBox="0 0 32 32" fill="none" {...p}><rect x="4" y="4" width="24" height="24" stroke="currentColor" strokeWidth="1.5"/><path d="M10 22 V12 H22 M10 17 H22" stroke="currentColor" strokeWidth="1.5"/></svg>,
+};
+
+// Top nav (sticky)
+function DevNav({ go, route }) {
+  const navItems = [
+    { l: "Platform",  to: "landing#platform" },
+    { l: "Cabinets",  to: "landing#cabinets" },
+    { l: "AI agents", to: "landing#ai" },
+    { l: "Investors", to: "landing#investors" },
+    { l: "Pricing",   to: "landing#pricing" },
+  ];
+  return (
+    <header style={{position:"sticky", top:0, zIndex:60, background:"rgba(248,244,234,0.82)", backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", borderBottom:"1px solid var(--line)"}}>
+      <div style={{maxWidth:1360, margin:"0 auto", padding:"14px 28px", display:"flex", alignItems:"center", gap:24}}>
+        <a onClick={(e)=>{e.preventDefault(); go("landing");}} href="#landing" style={{display:"flex", alignItems:"center", gap:10}}>
+          <span style={{color:"var(--amber)"}}><I.logoMark width="22" height="22"/></span>
+          <span style={{fontFamily:"'Space Grotesk', sans-serif", fontSize:18, letterSpacing:"-0.01em", fontWeight:500}}>ARCONIQUE</span>
+          <span className="badge badge-amber" style={{fontSize:10}}>DEV.OS</span>
+        </a>
+        <nav className="hide-mobile" style={{display:"flex", gap:22, marginLeft:18, fontSize:13}}>
+          {navItems.map(n=>(
+            <a key={n.l} href={"#"+n.to} onClick={(e)=>{e.preventDefault(); go(n.to);}} style={{color:"var(--ink-2)"}}>{n.l}</a>
+          ))}
+        </nav>
+        <div style={{marginLeft:"auto", display:"flex", gap:10, alignItems:"center"}}>
+          <a onClick={(e)=>{e.preventDefault(); go("boq");}} className="hide-mobile mono" style={{fontSize:12, color:"var(--ink-3)", letterSpacing:"0.05em"}}>OPEN.LIVE.DEMO →</a>
+          <button className="btn btn-ghost hide-mobile" onClick={()=>go("login")}>Sign in</button>
+          <button className="btn btn-amber" onClick={()=>go("signup")}>Start trial <I.arrow width="13" height="13"/></button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function DevFooter({ go }) {
+  return (
+    <footer style={{borderTop:"1px solid var(--line)", background:"var(--bg)"}}>
+      <div style={{maxWidth:1360, margin:"0 auto", padding:"56px 28px 36px"}}>
+        <div style={{display:"grid", gridTemplateColumns:"1.6fr 1fr 1fr 1fr 1fr", gap:36}}>
+          <div>
+            <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:14}}>
+              <span style={{color:"var(--amber)"}}><I.logoMark width="22" height="22"/></span>
+              <span className="display" style={{fontSize:18}}>ARCONIQUE</span>
+              <span className="badge badge-amber" style={{fontSize:10}}>DEV.OS</span>
+            </div>
+            <p style={{color:"var(--ink-3)", fontSize:13.5, maxWidth:340, margin:0}}>
+              The construction operating system for boutique villa, condotel and resort developers in Southeast Asia. Built on jobsites in Bali.
+            </p>
+            <p className="mono" style={{marginTop:18, fontSize:11, color:"var(--ink-4)"}}>development.arconique.com</p>
+          </div>
+          {[
+            { h:"Platform",   items:[["Tour","landing#platform"],["Cabinets","landing#cabinets"],["AI agents","landing#ai"],["Investors","investor"],["Pricing","landing#pricing"]] },
+            { h:"Demo",       items:[["BOQ desk","boq"],["Investor portal","investor"],["Sign in","login"],["Start trial","signup"]] },
+            { h:"Resources",  items:[["Spec sheet PDF","#"],["ROI calculator","#"],["Customer stories","#"],["Implementation guide","#"]] },
+            { h:"Legal",      items:[["Terms","#"],["Privacy","#"],["DPA","#"],["Status","#"]] },
+          ].map((col,i)=>(
+            <div key={i}>
+              <div className="label" style={{marginBottom:14}}>{col.h}</div>
+              <ul style={{listStyle:"none", padding:0, margin:0, display:"flex", flexDirection:"column", gap:9}}>
+                {col.items.map(([l, to])=>(
+                  <li key={l}><a onClick={(e)=>{ if(to!=="#"){e.preventDefault(); go(to);} }} href={"#"+to} style={{color:"var(--ink-2)", fontSize:13}}>{l}</a></li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:48, paddingTop:20, borderTop:"1px solid var(--line)", display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:11, color:"var(--ink-4)"}} className="mono">
+          <span>© 2026 ARCONIQUE OS · MADE BETWEEN BALI AND BERLIN</span>
+          <span>BUILD 09H · UPTIME 99.98%</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function useHashRoute(initial="landing") {
+  const [route, setRoute] = useState(() => window.location.hash.replace("#","") || initial);
+  useEffect(() => {
+    const fn = () => {
+      const h = window.location.hash.replace("#","");
+      setRoute(h || initial);
+      const i = h.indexOf("#");
+      if (i > -1) {
+        const anchor = h.slice(i+1);
+        requestAnimationFrame(()=>{ const el = document.getElementById(anchor); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); });
+      } else {
+        window.scrollTo({top:0});
+      }
+    };
+    window.addEventListener("hashchange", fn);
+    return () => window.removeEventListener("hashchange", fn);
+  }, [initial]);
+  const go = useCallback((to)=>{ window.location.hash = "#"+to; }, []);
+  return [route, go];
+}
+
+window.DevShared = { I, DevNav, DevFooter, useHashRoute };
+
+</script>
+<script type="text/jsx-source" data-file="landing.js">
+/* global React, DevShared */
+const { I } = DevShared;
+const { useState: useStateLD } = React;
+
+function DevLanding({ go }) {
+  return (
+    <main>
+      <Hero go={go}/>
+      <Marquee/>
+      <ProjectOverview/>
+      <CabinetGrid go={go}/>
+      <BOQTeaser go={go}/>
+      <AIAgents/>
+      <InvestorTeaser go={go}/>
+      <SpecGrid/>
+      <Pricing go={go}/>
+      <CTABand go={go}/>
+    </main>
+  );
+}
+
+/* ---------- HERO ---------- */
+function Hero({ go }) {
+  return (
+    <section id="platform" style={{position:"relative", paddingTop:48, paddingBottom:96, overflow:"hidden"}} className="grid-paper">
+      <div style={{maxWidth:1360, margin:"0 auto", padding:"0 28px"}}>
+        <div className="mono" style={{display:"inline-flex", alignItems:"center", gap:10, padding:"7px 14px", border:"1px solid var(--line-2)", background:"var(--bg-2)", borderRadius:999, fontSize:11, letterSpacing:"0.12em"}}>
+          <span style={{width:6, height:6, background:"var(--amber)", borderRadius:999}}></span>
+          ARCONIQUE / DEV.OS / V9.06 · BUILT 04 NOV 2026
+        </div>
+
+        <h1 className="display" data-text-reveal style={{fontSize:108, marginTop:24, marginBottom:24, maxWidth:1120, fontWeight:500}}>
+          Build the next one.<br/>
+          <span style={{color:"var(--amber)"}}>On budget. On schedule. On record.</span>
+        </h1>
+
+        <p style={{fontSize:19, maxWidth:680, color:"var(--ink-2)", lineHeight:1.5, marginTop:0}}>
+          Arconique Development OS is the construction-grade operating system for boutique villa, condotel and resort developers. BOQ, procurement, QA/QC, daily reports, investor reporting — one source of truth from groundbreaking to handover.
+        </p>
+
+        <div style={{display:"flex", gap:12, marginTop:32, flexWrap:"wrap"}}>
+          <button className="btn btn-amber btn-lg" onClick={()=>go("signup")}>
+            Start 14-day trial <I.arrow width="14" height="14"/>
+          </button>
+          <button className="btn btn-dark btn-lg" onClick={()=>{ window.location.href="development/index.html"; }}>
+            Open BOQ desk demo
+          </button>
+        </div>
+
+        {/* Hero frame */}
+        <div style={{marginTop:64, position:"relative"}}>
+          <HeroFrame go={go}/>
+        </div>
+
+        <div style={{marginTop:36, display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:24, color:"var(--ink-3)", fontSize:13, paddingTop:24, borderTop:"1px solid var(--line)"}}>
+          {[
+            ["14",   "active projects on Arconique",    {count:14}],
+            ["$24M", "commitment under management",     {count:24, prefix:"$", suffix:"M"}],
+            ["8,300","BOQ lines under control",         {count:8300}],
+            ["1.4%", "average cost variance to budget", {count:1.4, suffix:"%"}],
+            ["23.4%","portfolio IRR YTD",               {count:23.4, suffix:"%"}],
+          ].map((s,i)=>(
+            <div key={i}>
+              <div className="num" data-count={s[2].count} data-count-prefix={s[2].prefix||""} data-count-suffix={s[2].suffix||""} style={{fontSize:28, color:"var(--ink)", fontWeight:500}}>{s[0]}</div>
+              <div style={{fontSize:11.5, letterSpacing:"0.02em", marginTop:4, color:"var(--ink-3)"}}>{s[1]}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HeroFrame({ go }) {
+  return (
+    <div className="corner-marks" data-reveal-mask style={{position:"relative", border:"1px solid var(--line-2)", background:"var(--panel)", padding:0}}>
+      {/* Header strip */}
+      <div style={{display:"flex", alignItems:"center", padding:"12px 18px", borderBottom:"1px solid var(--line)", background:"var(--bg-2)"}}>
+        <div className="mono" style={{fontSize:11, color:"var(--ink-3)", letterSpacing:"0.12em"}}>PROJECT · ETERNAL/PHASE-02 · 12 VILLAS · 5.6 HA</div>
+        <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ok)", letterSpacing:"0.12em"}}>● ON SCHEDULE · 87% BUDGET</span>
+      </div>
+      <div style={{display:"grid", gridTemplateColumns:"1fr 1.1fr", gap:0, minHeight:480}}>
+        {/* LEFT — gantt + BOQ snapshot */}
+        <div style={{padding:24, borderRight:"1px solid var(--line)"}}>
+          <div style={{display:"flex", alignItems:"center", marginBottom:18}}>
+            <h3 className="display" style={{margin:0, fontSize:20}}>Week 36 · Construction plan</h3>
+            <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>NOV 04 — NOV 10</span>
+          </div>
+          {/* Mini gantt */}
+          <div style={{display:"flex", flexDirection:"column", gap:9, marginBottom:18}}>
+            {[
+              { l:"Foundations · Block B", w:90, color:"var(--ok)",     left:0,  status:"complete" },
+              { l:"Concrete · Block B/L2", w:55, color:"var(--amber)",  left:25, status:"in-progress" },
+              { l:"MEP rough-in · Block A",w:45, color:"var(--steel-soft)", left:10, status:"in-progress" },
+              { l:"Roofing · Block A",     w:30, color:"var(--ink-3)",  left:55, status:"queued" },
+              { l:"Finishes · Phase 1",    w:20, color:"var(--ink-3)",  left:75, status:"queued" },
+            ].map((b,i)=>(
+              <div key={i} style={{display:"grid", gridTemplateColumns:"170px 1fr", alignItems:"center", gap:10}}>
+                <span style={{fontSize:12, color:"var(--ink-2)"}}>{b.l}</span>
+                <div style={{position:"relative", height:18, background:"var(--bg-3)", borderRadius:6}}>
+                  <div style={{position:"absolute", inset:0, display:"grid", gridTemplateColumns:"repeat(7, 1fr)"}}>
+                    {Array.from({length:6}).map((_,k)=>(<div key={k} style={{borderRight:"1px dashed var(--line)"}}></div>))}
+                  </div>
+                  <div style={{position:"absolute", top:2, bottom:2, left:b.left+"%", width:b.w+"%", background:b.color, borderRadius:1, opacity: b.status==="queued" ? 0.4 : 1}}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hr-dashed" style={{margin:"6px 0 14px"}}></div>
+
+          {/* BOQ snapshot */}
+          <div style={{display:"flex", alignItems:"baseline"}}>
+            <span className="label">BOQ · 8,300 lines</span>
+            <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>WP-04 · STRUCTURAL</span>
+          </div>
+          <div style={{marginTop:10, display:"flex", flexDirection:"column", gap:4}}>
+            {[
+              ["C25/30 ready-mix concrete · m³", "1,420", "$182,400", "+1.2%", "amber"],
+              ["Steel rebar Ø12 / Ø16 · t",      "84.6",  "$118,200", "−0.4%", "ok"],
+              ["Formwork plywood 18mm · m²",     "3,200", "$28,600",  "+2.8%", "warn"],
+              ["Anti-termite chemical · L",      "240",   "$1,800",   "0.0%",  "ok"],
+            ].map((r,i)=>(
+              <div key={i} style={{display:"grid", gridTemplateColumns:"2fr 60px 80px 60px", padding:"7px 0", gap:10, borderBottom:"1px solid var(--line)", alignItems:"center"}}>
+                <span style={{fontSize:12, color:"var(--ink-2)"}}>{r[0]}</span>
+                <span className="num" style={{fontSize:12, color:"var(--ink-2)", textAlign:"right"}}>{r[1]}</span>
+                <span className="num" style={{fontSize:12, color:"var(--ink)", textAlign:"right"}}>{r[2]}</span>
+                <span className={"badge badge-"+r[4]} style={{fontSize:10, justifySelf:"end"}}>{r[3]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* RIGHT — site photo + tiles */}
+        <div className="photo-site" style={{position:"relative", padding:24}}>
+          <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, height:"100%"}}>
+            <div className="panel-2" style={{padding:16, alignSelf:"start"}}>
+              <div className="label label-amber">Budget · MTD</div>
+              <div className="num" style={{fontSize:30, marginTop:6}}>$182,420</div>
+              <div style={{fontSize:11, color:"var(--ink-3)", marginTop:4}}>+1.2% over plan</div>
+              <div style={{display:"flex", gap:2, marginTop:10}}>
+                {Array.from({length:30}).map((_,i)=>(<span key={i} style={{flex:1, height:5, background: i<18 ? "var(--amber)" : "var(--line-2)"}}></span>))}
+              </div>
+            </div>
+            <div className="panel-2" style={{padding:16, alignSelf:"start"}}>
+              <div className="label">QS · anomalies today</div>
+              <div className="num" style={{fontSize:30, marginTop:6}}>03</div>
+              <div style={{fontSize:11, color:"var(--ink-3)", marginTop:4}}>Auto-flagged by qs-cost-analyst</div>
+              <ul style={{listStyle:"none", padding:0, margin:"10px 0 0", display:"flex", flexDirection:"column", gap:5, fontSize:11, color:"var(--ink-2)"}}>
+                <li>· Marble Hindari 60×60 · +18% vs baseline</li>
+                <li>· Cabling YDA 4mm · 2x supplier spread</li>
+                <li>· Plumbing PEX · qty mismatch BOQ→PR</li>
+              </ul>
+            </div>
+            <div className="panel-2" style={{padding:16, gridColumn:"1 / -1"}}>
+              <div style={{display:"flex", alignItems:"baseline"}}>
+                <div className="label label-amber">AI · qs-cost-analyst · 06:14</div>
+                <span className="mono" style={{marginLeft:"auto", fontSize:10, color:"var(--ink-4)"}}>RUN 0e4f8a · 1.4s</span>
+              </div>
+              <p style={{margin:"10px 0 12px", fontSize:13, lineHeight:1.5, color:"var(--ink)"}}>
+                The Marble Hindari 60×60 line is <span style={{color:"var(--amber)"}}>18.4% above the 6-month rolling baseline</span> for comparable marble lots from this supplier. Adjacent QS-Cost-Analyst projects show $42/m² as the median; we are quoted $49.6/m². Suggest re-issuing the RFQ to two backup vendors before issuing the PO.
+              </p>
+              <div style={{display:"flex", gap:8}}>
+                <button onClick={()=>{ window.location.href="development/index.html"; }} className="btn btn-amber" style={{padding:"7px 12px", fontSize:12}}>Open BOQ line <I.arrow width="12" height="12"/></button>
+                <button className="btn btn-dark" style={{padding:"7px 12px", fontSize:12}}>Reissue RFQ to 2 backups</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* footer strip */}
+      <div style={{display:"flex", alignItems:"center", padding:"10px 18px", borderTop:"1px solid var(--line)", background:"var(--bg-2)", gap:18, fontSize:11, color:"var(--ink-3)"}} className="mono">
+        <span>STAMP: ARC.DEV.OS · 2026-11-04</span>
+        <span>·</span>
+        <span>SIGNED BY: PM @ M.SUTRISNO</span>
+        <span style={{marginLeft:"auto"}}>RUN-ID 4af2 — IMMUTABLE AUDIT</span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- MARQUEE — capabilities ---------- */
+function Marquee() {
+  const items = ["BOQ control", "Procurement", "RFQ matrix", "PO automation", "QA/QC photo-evidence", "Method statements", "Daily reports", "Cost analyst AI", "Tax assistant AI", "Investor portal", "Distributions", "Capital ledger", "Drawings revision", "Buyer portal", "Sales pipeline"];
+  return (
+    <section style={{borderTop:"1px solid var(--line)", borderBottom:"1px solid var(--line)", background:"var(--bg-2)", overflow:"hidden"}}>
+      <div style={{display:"flex", gap:36, padding:"16px 28px", whiteSpace:"nowrap"}} className="mono">
+        {[...items, ...items].map((l,i)=>(
+          <span key={i} style={{fontSize:12, color: i%3===0 ? "var(--amber)" : "var(--ink-3)", letterSpacing:"0.12em"}}>● {l}</span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Project overview — schematic ---------- */
+function ProjectOverview() {
+  return (
+    <section style={{padding:"100px 0", position:"relative"}}>
+      <div style={{maxWidth:1360, margin:"0 auto", padding:"0 28px"}}>
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:80, alignItems:"start"}}>
+          <div>
+            <div className="label label-amber">SECTION 01 · WHAT IS DEV.OS</div>
+            <h2 className="display" data-text-reveal style={{fontSize:60, marginTop:18, marginBottom:18}}>
+              From groundbreaking<br/>to handover, <span style={{color:"var(--amber)"}}>one source of truth.</span>
+            </h2>
+            <p style={{fontSize:17, color:"var(--ink-2)", maxWidth:540, lineHeight:1.55}}>
+              Boutique developers run on twenty spreadsheets, three WhatsApp groups, and one panicked QS. Arconique Development OS replaces all of it with one rigorous workspace where every line item, every photo, every signature, every dollar reconciles.
+            </p>
+            <ul style={{marginTop:32, padding:0, listStyle:"none", display:"flex", flexDirection:"column", gap:14}}>
+              {[
+                ["BOQ control",       "8,300-line bills of quantity with revision history, baseline-vs-actual, and Excel paste-in import."],
+                ["Procurement → PO",  "RFQ matrix · vendor scorecards · auto-PO. The CFO knows what they're approving."],
+                ["QA/QC + reports",   "Photo-evidence inspection trail · geo-tagged · signed at completion. Court-ready."],
+                ["Investor portal",   "Distributions · NAV · bilingual reports. LPs stop emailing you for updates."],
+              ].map((p,i)=>(
+                <li key={i} style={{display:"grid", gridTemplateColumns:"180px 1fr", gap:18, padding:"14px 0", borderTop:"1px solid var(--line)"}}>
+                  <span style={{fontFamily:"'Space Grotesk', sans-serif", fontWeight:500, fontSize:15}}>{p[0]}</span>
+                  <span style={{fontSize:14, color:"var(--ink-2)"}}>{p[1]}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <SchematicVilla/>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SchematicVilla() {
+  // A schematic floorplan-style SVG
+  return (
+    <div className="corner-marks panel" style={{padding:24, position:"relative"}}>
+      <div style={{display:"flex", alignItems:"center"}}>
+        <span className="label label-amber">DWG · ETERNAL/02/A-101 · REV 04</span>
+        <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>1:200 · 04 NOV 2026</span>
+      </div>
+      <div style={{aspectRatio:"4/3", marginTop:16, position:"relative", background:"var(--panel)", border:"1px solid var(--line)", borderRadius:14, overflow:"hidden"}}>
+        <svg viewBox="0 0 400 300" style={{position:"absolute", inset:0, width:"100%", height:"100%"}}>
+          <defs>
+            <pattern id="dgrid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(20,19,14,0.07)" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="400" height="300" fill="url(#dgrid)"/>
+          {/* outer building */}
+          <rect x="50" y="50" width="300" height="200" fill="none" stroke="#14130E" strokeWidth="1.6"/>
+          {/* inner walls */}
+          <line x1="170" y1="50" x2="170" y2="170" stroke="#14130E" strokeWidth="1.1"/>
+          <line x1="170" y1="170" x2="350" y2="170" stroke="#14130E" strokeWidth="1.1"/>
+          <line x1="240" y1="170" x2="240" y2="250" stroke="#14130E" strokeWidth="1.1"/>
+          {/* doors (arcs) */}
+          <path d="M 130 50 A 25 25 0 0 1 155 75 L 130 75 Z" fill="none" stroke="#FF6B35" strokeWidth="0.9"/>
+          <path d="M 170 130 A 20 20 0 0 1 190 150 L 170 150 Z" fill="none" stroke="#FF6B35" strokeWidth="0.9"/>
+          {/* pool */}
+          <rect x="65" y="200" width="80" height="40" rx="6" fill="#C9DCEA" stroke="#3D5A7A" strokeWidth="0.9"/>
+          <text x="80" y="225" fill="#1F3550" fontSize="9" fontFamily="IBM Plex Mono" fontWeight="500">POOL · 32m²</text>
+          {/* labels */}
+          <text x="80" y="100" fill="#14130E" fontSize="9.5" fontFamily="IBM Plex Mono" fontWeight="600">LIVING</text>
+          <text x="80" y="115" fill="#3D3B33" fontSize="8" fontFamily="IBM Plex Mono">42.5 m²</text>
+          <text x="200" y="100" fill="#14130E" fontSize="9.5" fontFamily="IBM Plex Mono" fontWeight="600">MASTER · BED</text>
+          <text x="200" y="115" fill="#3D3B33" fontSize="8" fontFamily="IBM Plex Mono">28.2 m²</text>
+          <text x="200" y="210" fill="#14130E" fontSize="9.5" fontFamily="IBM Plex Mono" fontWeight="600">KITCHEN</text>
+          <text x="200" y="225" fill="#3D3B33" fontSize="8" fontFamily="IBM Plex Mono">14.0 m²</text>
+          <text x="270" y="210" fill="#14130E" fontSize="9.5" fontFamily="IBM Plex Mono" fontWeight="600">DINING</text>
+          <text x="270" y="225" fill="#3D3B33" fontSize="8" fontFamily="IBM Plex Mono">22.0 m²</text>
+          {/* dimensions */}
+          <line x1="50" y1="270" x2="350" y2="270" stroke="#FF6B35" strokeWidth="0.8"/>
+          <line x1="50" y1="265" x2="50" y2="275" stroke="#FF6B35" strokeWidth="0.8"/>
+          <line x1="350" y1="265" x2="350" y2="275" stroke="#FF6B35" strokeWidth="0.8"/>
+          <text x="195" y="284" fill="#C2451E" fontSize="8.5" fontFamily="IBM Plex Mono" fontWeight="600" textAnchor="middle">15.0 m</text>
+          <line x1="30" y1="50" x2="30" y2="250" stroke="#FF6B35" strokeWidth="0.8"/>
+          <line x1="25" y1="50" x2="35" y2="50" stroke="#FF6B35" strokeWidth="0.8"/>
+          <line x1="25" y1="250" x2="35" y2="250" stroke="#FF6B35" strokeWidth="0.8"/>
+          <text x="20" y="155" fill="#C2451E" fontSize="8.5" fontFamily="IBM Plex Mono" fontWeight="600" textAnchor="middle" transform="rotate(-90 20 155)">10.0 m</text>
+          {/* north */}
+          <circle cx="370" cy="70" r="14" fill="#FFFCF4" stroke="#3D3B33" strokeWidth="0.8"/>
+          <path d="M 370 60 L 374 76 L 370 72 L 366 76 Z" fill="#FF6B35"/>
+          <text x="370" y="93" fill="#3D3B33" fontSize="8" fontFamily="IBM Plex Mono" fontWeight="500" textAnchor="middle">N</text>
+        </svg>
+      </div>
+      <div style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:10, marginTop:18}}>
+        {[
+          ["GFA", "186.2 m²"],
+          ["TFA", "240.0 m²"],
+          ["Cost/m²", "$2,180"],
+          ["Sale/m²", "$5,400"],
+        ].map((s,i)=>(
+          <div key={i} style={{padding:"10px 12px", border:"1px solid var(--line)", background:"var(--bg-2)"}}>
+            <div className="label" style={{fontSize:10}}>{s[0]}</div>
+            <div className="num" style={{fontSize:16, marginTop:2}}>{s[1]}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Cabinet grid ---------- */
+function CabinetGrid({ go }) {
+  const cabs = [
+    { code:"01", name:"Project Manager",   k:"PM",    desc:"Portfolio at-risk, kanban pipeline, daily digest, exception inbox.", color:"var(--amber)" },
+    { code:"02", name:"QS / Cost desk",    k:"QS",    desc:"BOQ under review, anomalies, change orders, base­line vs actual, specs.", color:"var(--steel-soft)", to:"boq" },
+    { code:"03", name:"Procurement",       k:"PROC",  desc:"PR queue · RFQ matrix · vendor scorecards · PO and deliveries.", color:"var(--ink-2)" },
+    { code:"04", name:"CFO bookkeeper",    k:"CFO",   desc:"P&L, cash, AR/AP — one cabinet, with tax-assistant on every cell.", color:"var(--ok)" },
+    { code:"05", name:"Site supervisor",   k:"SITE",  desc:"Daily reports, photo evidence, QA/QC inbox, method statements.", color:"var(--warn)" },
+    { code:"06", name:"Investor portal",   k:"LP",    desc:"Capital flow, distributions, NAV, bilingual reports for LPs.", color:"var(--lime)", to:"investor" },
+  ];
+  return (
+    <section id="cabinets" style={{padding:"110px 0", background:"var(--bg-2)", borderTop:"1px solid var(--line)", borderBottom:"1px solid var(--line)"}}>
+      <div style={{maxWidth:1360, margin:"0 auto", padding:"0 28px"}}>
+        <div style={{display:"flex", alignItems:"flex-end", marginBottom:48, gap:24}}>
+          <div>
+            <div className="label label-amber">SECTION 02 · CABINETS</div>
+            <h2 className="display" data-text-reveal style={{fontSize:60, marginTop:18, marginBottom:0}}>Six cabinets.<br/>One project.</h2>
+          </div>
+          <p style={{maxWidth:420, marginLeft:"auto", color:"var(--ink-3)", margin:0}}>
+            Each role gets a cabinet built around their actual work — not a generic dashboard with a hundred toggles.
+          </p>
+        </div>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:16}}>
+          {cabs.map((c,i)=>(
+            <button key={c.code} onClick={()=> c.to && go(c.to)} className="corner-marks" data-reveal="up" data-reveal-delay={(i%3)+1} style={{textAlign:"left", padding:24, border:"1px solid var(--line-2)", background:"var(--panel)", color:"inherit", cursor: c.to ? "pointer" : "default", display:"flex", flexDirection:"column", gap:14, minHeight:240}}>
+              <div style={{display:"flex", alignItems:"baseline"}}>
+                <span className="mono" style={{fontSize:11, color:"var(--ink-4)"}}>CAB-{c.code}</span>
+                <span className="mono" style={{marginLeft:"auto", fontSize:11, color:c.color, letterSpacing:"0.12em"}}>● {c.k}</span>
+              </div>
+              <h3 className="display" style={{margin:0, fontSize:26}}>{c.name}</h3>
+              <p style={{margin:0, color:"var(--ink-2)", fontSize:13.5, lineHeight:1.5}}>{c.desc}</p>
+              <div style={{marginTop:"auto", display:"flex", alignItems:"center", gap:6, fontSize:12, color: c.to ? "var(--amber)" : "var(--ink-4)"}} className="mono">
+                {c.to ? <>OPEN DEMO <I.arrow width="13" height="13"/></> : <>SHIPPED · NO DEMO YET</>}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- BOQ teaser ---------- */
+function BOQTeaser({ go }) {
+  return (
+    <section style={{padding:"110px 0"}}>
+      <div style={{maxWidth:1360, margin:"0 auto", padding:"0 28px", display:"grid", gridTemplateColumns:"1fr 1.2fr", gap:80, alignItems:"center"}}>
+        <div>
+          <div className="label label-amber">SECTION 03 · BOQ INTELLIGENCE</div>
+          <h2 className="display" data-text-reveal style={{fontSize:54, marginTop:18, marginBottom:18}}>
+            8,300 lines.<br/><span style={{color:"var(--amber)"}}>Zero hidden cost drift.</span>
+          </h2>
+          <p style={{fontSize:16, color:"var(--ink-2)", maxWidth:520, lineHeight:1.55}}>
+            Excel paste-in import. Hierarchical sections that match how QS actually thinks. Per-line baseline-vs-actual variance, anomaly detection on every PO, revision history that won't lose a comma between version 14 and 15.
+          </p>
+          <ul style={{marginTop:28, padding:0, listStyle:"none", display:"flex", flexDirection:"column", gap:10, fontSize:14}}>
+            {["Per-line revision history","AI cost analyst on every change order","Variance heat-map across 12 work packages","Side-by-side RFQ comparison built-in","Auto-PO when supplier + price + budget align"].map((l,i)=>(
+              <li key={i} style={{display:"flex", gap:10}}>
+                <span style={{color:"var(--amber)", flexShrink:0, marginTop:4}}><I.check width="13" height="13"/></span>
+                <span style={{color:"var(--ink-2)"}}>{l}</span>
+              </li>
+            ))}
+          </ul>
+          <button onClick={()=>{ window.location.href="development/index.html"; }} className="btn btn-amber" style={{marginTop:30}}>
+            Open the BOQ desk demo <I.arrow width="14" height="14"/>
+          </button>
+        </div>
+        <BOQVisual/>
+      </div>
+    </section>
+  );
+}
+
+function BOQVisual() {
+  const heat = [
+    [0,1,1,2,3,1,0,1,2,2,1,3],
+    [1,2,3,3,4,3,2,1,1,2,1,1],
+    [1,2,2,3,3,2,1,2,2,3,2,2],
+    [0,1,1,2,2,1,1,2,3,3,2,1],
+    [2,3,3,4,4,4,3,2,2,2,1,1],
+    [1,1,2,2,3,2,1,1,2,2,1,1],
+  ];
+  const colors = ["var(--bg-3)", "rgba(255,107,53,0.18)", "rgba(255,107,53,0.36)", "rgba(255,107,53,0.55)", "var(--amber)"];
+  const wps = ["Earthworks","Structural","MEP","Envelope","Finishes","Landscape"];
+  return (
+    <div className="panel corner-marks" style={{padding:24}}>
+      <div style={{display:"flex", alignItems:"center", marginBottom:16}}>
+        <h3 className="display" style={{margin:0, fontSize:22}}>Variance heat-map · 12 weeks</h3>
+        <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>WK 25 — WK 36</span>
+      </div>
+      <div style={{display:"grid", gridTemplateColumns:"100px repeat(12, 1fr)", gap:4, fontSize:11}}>
+        <div></div>
+        {Array.from({length:12}).map((_,i)=>(<div key={i} className="mono" style={{textAlign:"center", color:"var(--ink-4)"}}>{25+i}</div>))}
+        {heat.map((row, ri)=>(
+          <React.Fragment key={ri}>
+            <div className="mono" style={{color:"var(--ink-3)", display:"flex", alignItems:"center"}}>{wps[ri]}</div>
+            {row.map((v,ci)=>(
+              <div key={ci} style={{height:28, background:colors[v], border:"1px solid var(--line)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, color: v>=3 ? "#000" : "var(--ink-3)"}} className="mono">{v ? v+"%" : "·"}</div>
+            ))}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className="hr" style={{margin:"22px 0 14px"}}></div>
+      <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:14}}>
+        <div>
+          <div className="label">Total variance</div>
+          <div className="num" style={{fontSize:24, marginTop:4, color:"var(--amber)"}}>+1.4%</div>
+        </div>
+        <div>
+          <div className="label">PO under flag</div>
+          <div className="num" style={{fontSize:24, marginTop:4}}>14</div>
+        </div>
+        <div>
+          <div className="label">Suggested re-RFQ</div>
+          <div className="num" style={{fontSize:24, marginTop:4, color:"var(--steel-soft)"}}>4</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- AI agents ---------- */
+function AIAgents() {
+  const agents = [
+    { t:"QS Cost Analyst",      live:true,  d:"Catches unit-cost outliers before they ship to PO. Reads against historical baselines + flags drift." },
+    { t:"Procurement Analyst",  live:true,  d:"Compares quotations side-by-side, picks the right vendor, flags price drifts." },
+    { t:"Daily Construction Digest", live:true, d:"Yesterday's exceptions, today's plan. Filed at 06:00 to your PM inbox." },
+    { t:"Weekly Plan Generator",live:true,  d:"Forward-looking week plan with resource calls, risk callouts, schedule pivots." },
+    { t:"Tax Assistant",        live:true,  d:"Auto-categorises every transaction, splits VAT, drafts journal entries." },
+    { t:"Marketing Assistant",  live:false, d:"Per-villa launch copy, channel briefs, agent decks — tuned weekly." },
+    { t:"Executive Business",   live:false, d:"Board-ready snapshot. Multi-project. Owner-stay forecast included." },
+    { t:"Memory · cross-agent", live:true,  d:"Shared semantic memory. Every fact written once, recalled by everyone." },
+  ];
+  return (
+    <section id="ai" style={{padding:"110px 0", background:"var(--bg)", borderTop:"1px solid var(--line)", borderBottom:"1px solid var(--line)", position:"relative", overflow:"hidden"}}>
+      <div className="grid-paper" style={{position:"absolute", inset:0, opacity:0.7}}></div>
+      <div style={{maxWidth:1360, margin:"0 auto", padding:"0 28px", position:"relative"}}>
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:60, marginBottom:48}}>
+          <div>
+            <div className="label label-amber">SECTION 04 · AI AGENTS</div>
+            <h2 className="display" data-text-reveal style={{fontSize:60, marginTop:18, marginBottom:18}}>
+              Eight agents.<br/><span style={{color:"var(--amber)"}}>Five already live.</span>
+            </h2>
+            <p style={{fontSize:17, color:"var(--ink-2)", maxWidth:480}}>
+              Every agent shares one read-only allowlist, one audit log, one budget. They reason about your project — not the entire internet.
+            </p>
+          </div>
+          <AgentTranscript/>
+        </div>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12}}>
+          {agents.map((a,i)=>(
+            <div key={i} className="panel" data-reveal="up" data-reveal-delay={(i%4)+1} style={{padding:18, display:"flex", flexDirection:"column", gap:8, minHeight:160}}>
+              <div style={{display:"flex", alignItems:"center", gap:6}}>
+                <span className="mono" style={{fontSize:10, color:"var(--ink-4)"}}>AG-{String(i+1).padStart(2,"0")}</span>
+                <span className={"badge " + (a.live ? "badge-ok" : "badge-soft")} style={{marginLeft:"auto"}}>{a.live ? "LIVE" : "Q1'26"}</span>
+              </div>
+              <div style={{fontFamily:"'Space Grotesk', sans-serif", fontWeight:500, fontSize:15}}>{a.t}</div>
+              <p style={{margin:0, fontSize:12.5, color:"var(--ink-3)", lineHeight:1.5}}>{a.d}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AgentTranscript() {
+  return (
+    <div className="panel corner-marks" style={{padding:20}}>
+      <div style={{display:"flex", alignItems:"center", paddingBottom:12, marginBottom:12, borderBottom:"1px solid var(--line)"}}>
+        <span className="mono" style={{fontSize:11, color:"var(--ink-3)", letterSpacing:"0.12em"}}>AGENT · procurement-analyst</span>
+        <span className="pulse-amber" style={{marginLeft:"auto"}}></span>
+        <span className="mono" style={{fontSize:11, color:"var(--ink-3)"}}>14:22</span>
+      </div>
+      <div style={{display:"flex", flexDirection:"column", gap:10}}>
+        <div style={{padding:"10px 12px", background:"var(--bg-2)", border:"1px solid var(--line)", fontSize:13}}>
+          <span className="mono" style={{fontSize:10, color:"var(--ink-4)", letterSpacing:"0.12em"}}>PM @ MADE:</span><br/>
+          Compare RFQ-082 for stainless balustrade 304/24mm. 6 vendors. Pick the right one.
+        </div>
+        <div style={{padding:"10px 12px", background:"rgba(255,107,53,0.06)", border:"1px solid rgba(255,107,53,0.25)", fontSize:13}}>
+          <span className="mono" style={{fontSize:10, color:"var(--amber)", letterSpacing:"0.12em"}}>PROCUREMENT-ANALYST:</span><br/>
+          Top 3 vendors after dedupe: <span className="mono" style={{color:"var(--ink)"}}>BaliSteel 304</span> @ $42/m · <span className="mono" style={{color:"var(--ink)"}}>NusaWorks</span> @ $44/m · <span className="mono" style={{color:"var(--ink)"}}>InoxJaya</span> @ $48/m.<br/>
+          Recommend <span className="mono" style={{color:"var(--ok)"}}>BaliSteel</span>: matches V-grade spec on file, on-time score 96%, 14-day lead. Drift vs 6mo baseline: <span className="mono" style={{color:"var(--ok)"}}>−2.4%</span>.
+        </div>
+      </div>
+      <div style={{display:"flex", gap:8, marginTop:14}}>
+        <button className="btn btn-amber" style={{padding:"7px 12px", fontSize:12}}>Accept · draft PO</button>
+        <button className="btn btn-dark" style={{padding:"7px 12px", fontSize:12}}>Why these three?</button>
+      </div>
+      <div className="hr-dashed" style={{margin:"14px 0 8px"}}></div>
+      <div style={{display:"flex", justifyContent:"space-between", fontSize:10, color:"var(--ink-4)"}} className="mono">
+        <span>RUN 7c8e · 2.1s · 540 tok</span>
+        <span>READ-ONLY ALLOWLIST</span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Investor teaser ---------- */
+function InvestorTeaser({ go }) {
+  return (
+    <section id="investors" style={{padding:"110px 0", background:"var(--bg-2)", borderTop:"1px solid var(--line)", borderBottom:"1px solid var(--line)"}}>
+      <div style={{maxWidth:1360, margin:"0 auto", padding:"0 28px", display:"grid", gridTemplateColumns:"1.2fr 1fr", gap:80, alignItems:"center"}}>
+        <InvestorVisual/>
+        <div>
+          <div className="label label-amber">SECTION 05 · INVESTORS</div>
+          <h2 className="display" data-text-reveal style={{fontSize:54, marginTop:18, marginBottom:18}}>
+            LPs stop emailing<br/>you for updates.
+          </h2>
+          <p style={{fontSize:16, color:"var(--ink-2)", maxWidth:520, lineHeight:1.55}}>
+            Bilingual, report-grade portal. Distributions, NAV, capital ledger, waterfall, quarterly attestations. Self-service for LPs, audit-ready for you.
+          </p>
+          <ul style={{marginTop:28, padding:0, listStyle:"none", display:"flex", flexDirection:"column", gap:10, fontSize:14}}>
+            {["EN/ID/RU/JP report templates","Capital ledger with hash-signed PDFs","Waterfall distribution engine","Per-LP private rooms · documents · contracts","Per-quarter attestation flow"].map((l,i)=>(
+              <li key={i} style={{display:"flex", gap:10}}>
+                <span style={{color:"var(--amber)", flexShrink:0, marginTop:4}}><I.check width="13" height="13"/></span>
+                <span style={{color:"var(--ink-2)"}}>{l}</span>
+              </li>
+            ))}
+          </ul>
+          <button onClick={()=>{ window.location.href="development/investor.html"; }} className="btn btn-amber" style={{marginTop:30}}>
+            Open the LP portal preview <I.arrow width="14" height="14"/>
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function InvestorVisual() {
+  return (
+    <div className="panel corner-marks" style={{padding:24}}>
+      <div style={{display:"flex", alignItems:"center"}}>
+        <h3 className="display" style={{margin:0, fontSize:22}}>Eternal Phase 02 · LP brief</h3>
+        <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>Q4 2026</span>
+      </div>
+      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:14, marginTop:20}}>
+        {[
+          ["Commitment called",  "78%",   "$18.7M · 14 LPs"],
+          ["Distribution Oct",   "$124K", "wired 01 Nov"],
+          ["IRR · YTD",          "23.4%", "vs PPM 18%"],
+        ].map((s,i)=>(
+          <div key={i} className="panel-2" style={{padding:14}}>
+            <div className="label">{s[0]}</div>
+            <div className="num" style={{fontSize:24, marginTop:4}}>{s[1]}</div>
+            <div style={{fontSize:11, color:"var(--ink-3)", marginTop:3}}>{s[2]}</div>
+          </div>
+        ))}
+      </div>
+      {/* mini waterfall chart */}
+      <div style={{marginTop:22}}>
+        <div style={{display:"flex", alignItems:"baseline"}}>
+          <span className="label">DISTRIBUTION WATERFALL · OCT 2026</span>
+          <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>USD ·  K</span>
+        </div>
+        <div style={{display:"flex", alignItems:"flex-end", gap:6, marginTop:14, height:160}}>
+          {[
+            { l:"Gross",   v:180, color:"var(--steel)" },
+            { l:"Pref-8%", v:48, color:"var(--steel-soft)" },
+            { l:"GP catch",v:14, color:"var(--lime)" },
+            { l:"LP split",v:60, color:"var(--ink-2)" },
+            { l:"To LPs",  v:124, color:"var(--amber)" },
+          ].map((b,i)=>(
+            <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:6}}>
+              <span className="num" style={{fontSize:11, color:"var(--ink-2)"}}>{b.v}</span>
+              <div style={{width:"100%", height:b.v/200*120+"px", background:b.color, opacity: i===4 ? 1 : 0.7}}></div>
+              <span className="mono" style={{fontSize:9, color:"var(--ink-4)"}}>{b.l.toUpperCase()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{marginTop:22, display:"flex", gap:8}}>
+        <span className="stamp">HASH 4F2A...91C8</span>
+        <span className="stamp">SIGNED · GP @ N.R</span>
+        <span className="stamp">Q4 ATTESTATION</span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Spec grid ---------- */
+function SpecGrid() {
+  const feats = [
+    ["01","Excel-paste BOQ","Drop your spreadsheet. Hierarchical sections + revision history. Excel-paste import doesn't break formulas."],
+    ["02","RFQ matrix","Compare 6 vendors side-by-side. Selected-vendor lock. Price-drift detection per supplier."],
+    ["03","Auto-PO + receiving","Per-line receipts · partial deliveries · variance flagged. PO closes itself when everything's in.","amber"],
+    ["04","Photo-evidence QA","Every report cross-referenced. Geo-tagged · signed at completion · photo-tagged trail."],
+    ["05","Method statements","Library of MS templates per trade. Versioned, approved, attached to tasks."],
+    ["06","Waterfall engine","Pref + catch-up + LP/GP split. Distribution simulator. Quarterly PDFs."],
+    ["07","Bilingual reports","EN/ID/RU/JP. Per-LP templates. Localised currencies, localised dates."],
+    ["08","Mobile-first PWA","Offline reports + voice notes auto-transcribed. Site supervisor in their language."],
+    ["09","API + webhooks","Per-project keys, scoped permissions, HMAC-signed webhooks. Connect your tooling."],
+  ];
+  return (
+    <section style={{padding:"100px 0"}}>
+      <div style={{maxWidth:1360, margin:"0 auto", padding:"0 28px"}}>
+        <div style={{display:"flex", alignItems:"flex-end", marginBottom:48, gap:24}}>
+          <div>
+            <div className="label label-amber">SECTION 06 · SPECIFICATION</div>
+            <h2 className="display" data-text-reveal style={{fontSize:60, marginTop:18, marginBottom:0}}>What's in the box.</h2>
+          </div>
+          <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>9 OF 24 SHOWN · FULL LIST IN PDF</span>
+        </div>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:0, border:"1px solid var(--line)", borderRadius:24, overflow:"hidden"}}>
+          {feats.map((f,i)=>(
+            <div key={i} style={{padding:"28px 26px", borderRight: i%3===2 ? "0" : "1px solid var(--line)", borderBottom: i>=feats.length-3 ? "0" : "1px solid var(--line)", background: f[3]==="amber" ? "rgba(255,107,53,0.05)" : "transparent", position:"relative"}}>
+              <div style={{display:"flex", alignItems:"baseline", gap:14}}>
+                <span className="mono" style={{fontSize:12, color: f[3]==="amber" ? "var(--amber)" : "var(--ink-4)", letterSpacing:"0.12em"}}>F.{f[0]}</span>
+                <h3 className="display" style={{margin:0, fontSize:20}}>{f[1]}</h3>
+              </div>
+              <p style={{margin:"12px 0 0", fontSize:13.5, color:"var(--ink-2)", lineHeight:1.55}}>{f[2]}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Pricing ---------- */
+function Pricing({ go }) {
+  const tiers = [
+    { name:"Project", price:"$1,200", per:"/project/mo", desc:"For developers running one active project (≤ 30 units / $5M GDV).", feats:["1 project · 5 cabinets","8 user seats","BOQ · 5,000 lines","2 AI agents · 5K msg/mo","Investor portal · 8 LPs"] },
+    { name:"Portfolio", price:"$2,800", per:"/project/mo", desc:"For boutique developers with 2–6 concurrent projects.", feats:["Unlimited projects + cabinets","30 seats","BOQ · 30,000 lines","All AI agents · unlimited","Bilingual portal","Slack-channel support"], highlight:true },
+    { name:"Enterprise", price:"Custom", per:"contracted", desc:"Multi-entity holding companies, regulated reporting, SSO.", feats:["Dedicated PM + onboarding","SAML / OIDC SSO","Custom integrations","White-label portal","99.9% SLA"] },
+  ];
+  return (
+    <section id="pricing" style={{padding:"110px 0", background:"var(--bg-2)", borderTop:"1px solid var(--line)"}}>
+      <div style={{maxWidth:1360, margin:"0 auto", padding:"0 28px"}}>
+        <div style={{textAlign:"center", maxWidth:720, margin:"0 auto 48px"}}>
+          <div className="label label-amber">SECTION 07 · PRICING</div>
+          <h2 className="display" data-text-reveal style={{fontSize:60, marginTop:18}}>From $1,200/project. <span style={{color:"var(--amber)"}}>No per-user games.</span></h2>
+          <p style={{fontSize:16, color:"var(--ink-3)", marginTop:14}}>Annual contracts: 18% off. Implementation included for Portfolio + Enterprise.</p>
+        </div>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:16}}>
+          {tiers.map((t,i)=>(
+            <div key={t.name} className={t.highlight ? "corner-marks" : ""} data-reveal="up" data-reveal-delay={i+1} style={{padding:32, background: t.highlight ? "var(--panel)" : "var(--bg-2)", border:"1px solid", borderColor: t.highlight ? "var(--amber)" : "var(--line-2)", display:"flex", flexDirection:"column", gap:18, position:"relative"}}>
+              {t.highlight && <span className="badge badge-amber" style={{position:"absolute", top:-12, left:32}}>Recommended</span>}
+              <div>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline"}}>
+                  <h3 className="display" style={{margin:0, fontSize:24}}>{t.name}</h3>
+                  <span className="mono" style={{fontSize:11, color:"var(--ink-3)"}}>{t.per}</span>
+                </div>
+                <div className="num" style={{fontSize:44, marginTop:14, fontWeight:500}}>{t.price}</div>
+                <p style={{color:"var(--ink-3)", fontSize:13, marginTop:10, lineHeight:1.5}}>{t.desc}</p>
+              </div>
+              <ul style={{listStyle:"none", padding:0, margin:0, display:"flex", flexDirection:"column", gap:8, fontSize:13.5}}>
+                {t.feats.map((f,j)=>(
+                  <li key={j} style={{display:"flex", gap:9, color:"var(--ink-2)"}}>
+                    <span style={{color:"var(--amber)", flexShrink:0, marginTop:2}}><I.check width="13" height="13"/></span>{f}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={()=>go("signup")} className={"btn " + (t.highlight ? "btn-amber" : "btn-dark")} style={{marginTop:"auto", justifyContent:"center"}}>
+                {t.price==="Custom" ? "Talk to sales" : "Start trial"} <I.arrow width="13" height="13"/>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- CTA band ---------- */
+function CTABand({ go }) {
+  return (
+    <section style={{padding:"100px 28px"}}>
+      <div style={{maxWidth:1360, margin:"0 auto"}}>
+        <div className="corner-marks grid-paper" style={{position:"relative", padding:"72px 56px", border:"1px solid var(--amber)", display:"grid", gridTemplateColumns:"1.6fr 1fr", gap:60}}>
+          <div>
+            <div className="label label-amber">SECTION 08 · GET STARTED</div>
+            <h2 className="display" data-text-reveal style={{fontSize:64, marginTop:18, marginBottom:18}}>Run your next groundbreaking on Arconique.</h2>
+            <p style={{maxWidth:540, fontSize:17, color:"var(--ink-2)"}}>
+              14 days. Every cabinet. No card. Your data exports as CSV/XLSX at any time — no lock-in, no penalty.
+            </p>
+            <div style={{display:"flex", gap:12, marginTop:30, flexWrap:"wrap"}}>
+              <button onClick={()=>go("signup")} className="btn btn-amber btn-lg">Start your trial <I.arrow width="14" height="14"/></button>
+              <button onClick={()=>{ window.location.href="development/index.html"; }} className="btn btn-dark btn-lg">Open the BOQ desk</button>
+            </div>
+          </div>
+          <div style={{display:"flex", flexDirection:"column", gap:10}}>
+            {[
+              ["Provision","Workspace ready in 90 seconds."],
+              ["Import",  "Paste BOQ from Excel · or upload XLSX."],
+              ["Invite",  "Add QS, PM, site supervisor, CFO, LPs."],
+              ["Run",     "Run your first daily digest on day 3."],
+            ].map((s,i)=>(
+              <div key={i} style={{display:"flex", gap:14, padding:"12px 16px", background:"var(--bg-2)", border:"1px solid var(--line-2)"}}>
+                <span className="mono" style={{color:"var(--amber)", fontSize:12, width:30}}>0{i+1}</span>
+                <div>
+                  <div style={{fontSize:14, fontWeight:500}}>{s[0]}</div>
+                  <div style={{fontSize:12, color:"var(--ink-3)"}}>{s[1]}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+window.DevLanding = DevLanding;
+
+</script>
+<script type="text/jsx-source" data-file="auth.js">
+/* global React, DevShared */
+const { I } = DevShared;
+const { useState: useStateAD } = React;
+
+function DevLogin({ go }) {
+  const [mode, setMode] = useStateAD("password");
+  const submit = (e)=>{ e.preventDefault(); window.location.href="development/index.html"; };
+  return (
+    <div style={{minHeight:"100vh", display:"grid", gridTemplateColumns:"1.05fr 1fr", background:"var(--bg)"}}>
+      {/* Left blueprint panel */}
+      <aside className="photo-blueprint" style={{position:"relative", padding:48, color:"var(--ink)", display:"flex", flexDirection:"column", borderRight:"1px solid var(--line)"}}>
+        <a onClick={(e)=>{e.preventDefault(); go("landing");}} href="#landing" style={{display:"inline-flex", alignItems:"center", gap:10, color:"var(--ink)"}}>
+          <span style={{color:"var(--amber)"}}><I.logoMark width="22" height="22"/></span>
+          <span className="display" style={{fontSize:18, letterSpacing:"-0.01em"}}>ARCONIQUE</span>
+          <span className="badge badge-amber" style={{fontSize:10}}>DEV.OS</span>
+        </a>
+
+        {/* technical drawing layer */}
+        <svg viewBox="0 0 600 800" style={{position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"none", opacity:0.32}}>
+          <g stroke="#7E9DBF" strokeWidth="0.8" fill="none">
+            <rect x="120" y="220" width="360" height="380"/>
+            <rect x="160" y="260" width="140" height="160"/>
+            <rect x="320" y="260" width="140" height="160"/>
+            <rect x="160" y="440" width="300" height="140"/>
+            <line x1="320" y1="220" x2="320" y2="600"/>
+            <line x1="160" y1="420" x2="460" y2="420"/>
+            <circle cx="230" cy="340" r="40"/>
+            <circle cx="390" cy="340" r="40"/>
+            <line x1="120" y1="620" x2="480" y2="620"/>
+            <text x="300" y="640" fontSize="10" fill="#7E9DBF" fontFamily="IBM Plex Mono" textAnchor="middle">SCALE 1:200 · DWG ARC.EP.02.A101</text>
+          </g>
+          <g stroke="#FF6B35" strokeWidth="0.6" strokeDasharray="4 3" fill="none">
+            <line x1="120" y1="100" x2="480" y2="100"/>
+            <text x="124" y="92" fontSize="9" fill="#FF6B35" fontFamily="IBM Plex Mono">PROPERTY LINE · SETBACK 8m</text>
+          </g>
+        </svg>
+
+        <div style={{marginTop:"auto", position:"relative"}}>
+          <div className="mono" style={{fontSize:11, letterSpacing:"0.16em", color:"var(--amber)", marginBottom:18}}>● BUILDING TONIGHT</div>
+          <div className="display" style={{fontSize:56, lineHeight:1.04, marginBottom:18, fontWeight:500}}>
+            Block B concrete pour<br/>at 04:30 tomorrow.
+          </div>
+          <p style={{fontSize:15, color:"var(--ink-2)", maxWidth:480, opacity:0.9}}>
+            Method statement signed. Mix-design approved. 14 vehicles, 3 pumps, 8 trades on shift. Arconique sequenced it.
+          </p>
+        </div>
+
+        <div style={{position:"absolute", bottom:48, right:48, display:"flex", flexDirection:"column", gap:10, maxWidth:280, zIndex:2}}>
+          <div className="panel-2" style={{padding:14}}>
+            <div className="label label-amber">Tomorrow · pour</div>
+            <div className="num" style={{fontSize:22, marginTop:4}}>1,420 m³</div>
+            <div style={{fontSize:11, color:"var(--ink-3)", marginTop:2}}>C25/30 · ready-mix</div>
+          </div>
+          <div className="panel-2" style={{padding:14}}>
+            <div className="label">QS · open today</div>
+            <div className="num" style={{fontSize:22, marginTop:4}}>03 anomalies</div>
+            <div style={{fontSize:11, color:"var(--ink-3)", marginTop:2}}>Auto-flagged</div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Right form */}
+      <section style={{display:"flex", flexDirection:"column", padding:48, position:"relative"}}>
+        <div style={{display:"flex", justifyContent:"flex-end", alignItems:"center", gap:18, fontSize:13, color:"var(--ink-3)"}}>
+          <span>No account?</span>
+          <button className="btn btn-dark" onClick={()=>go("signup")}>Start trial</button>
+        </div>
+
+        <div style={{margin:"auto 0", maxWidth:440, width:"100%"}}>
+          <div className="label label-amber">Operator sign-in</div>
+          <h1 className="display" style={{fontSize:56, marginTop:14, marginBottom:14, fontWeight:500}}>
+            Welcome back to <span style={{color:"var(--amber)"}}>DEV.OS</span>.
+          </h1>
+          <p style={{color:"var(--ink-3)"}}>For PM, QS, CFO, site supervisor, and LP roles on Arconique Development OS.</p>
+
+          <div style={{display:"inline-flex", padding:4, border:"1px solid var(--line-2)", marginTop:26, background:"var(--bg-2)", borderRadius:999}}>
+            {[["password","Password"], ["magic","Magic link"], ["sso","SSO"]].map(([k,l])=>(
+              <button key={k} onClick={()=>setMode(k)} style={{padding:"7px 14px", border:0, background: mode===k ? "var(--amber)" : "transparent", color: mode===k ? "var(--bg)" : "var(--ink-2)", fontSize:12, fontWeight:500, fontFamily:"IBM Plex Mono", letterSpacing:"0.06em", textTransform:"uppercase"}}>
+                {l}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={submit} style={{display:"flex", flexDirection:"column", gap:14, marginTop:24}}>
+            <div className="field">
+              <label className="label">Work email</label>
+              <input type="email" autoComplete="email" placeholder="made@eternal-developments.com"/>
+            </div>
+            {mode==="password" && (
+              <div className="field">
+                <label className="label" style={{display:"flex", justifyContent:"space-between"}}>
+                  <span>Password</span>
+                  <a href="#" style={{color:"var(--amber)", textTransform:"none", letterSpacing:0, fontFamily:"Inter", fontSize:12}}>Forgot?</a>
+                </label>
+                <input type="password" autoComplete="current-password" placeholder="••••••••"/>
+              </div>
+            )}
+            {mode==="sso" && (
+              <div className="field">
+                <label className="label">Workspace identifier</label>
+                <input placeholder="eternal-developments"/>
+                <span style={{fontSize:11, color:"var(--ink-4)"}} className="mono">e.g. SAML / OIDC tenant · we redirect to your IdP</span>
+              </div>
+            )}
+            <label style={{display:"flex", alignItems:"center", gap:10, fontSize:13, color:"var(--ink-3)", marginTop:6}}>
+              <input type="checkbox" style={{accentColor:"var(--amber)"}}/>
+              Trust this device · 7 days
+            </label>
+            <button type="submit" className="btn btn-amber btn-lg" style={{marginTop:6, justifyContent:"center"}}>
+              {mode==="password" ? "Sign in to DEV.OS" : mode==="magic" ? "Send magic link" : "Continue to IdP"} <I.arrow width="14" height="14"/>
+            </button>
+          </form>
+
+          <div style={{display:"flex", alignItems:"center", gap:12, margin:"28px 0", color:"var(--ink-4)", fontSize:11}} className="mono">
+            <span style={{flex:1, height:1, background:"var(--line)"}}></span>
+            OR
+            <span style={{flex:1, height:1, background:"var(--line)"}}></span>
+          </div>
+
+          <div style={{display:"flex", flexDirection:"column", gap:10}}>
+            {[["Google Workspace","G"], ["Microsoft Entra","M"], ["Open passcode (PWA)","P"]].map(([l,c])=>(
+              <button key={l} className="btn btn-dark" style={{justifyContent:"center", padding:"12px 18px"}}>
+                <span className="mono" style={{width:18, height:18, background:"var(--bg)", border:"1px solid var(--line-2)", display:"inline-flex", alignItems:"center", justifyContent:"center", fontSize:11}}>{c}</span>
+                Continue with {l}
+              </button>
+            ))}
+          </div>
+
+          <p className="mono" style={{marginTop:28, fontSize:10, color:"var(--ink-4)", textAlign:"center", letterSpacing:"0.08em"}}>
+            DEVELOPMENT.ARCONIQUE.COM · By signing in you agree to the <a href="#" style={{color:"var(--ink-3)"}}>Terms</a> & <a href="#" style={{color:"var(--ink-3)"}}>Privacy</a>.
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DevSignup({ go }) {
+  const [step, setStep] = useStateAD(0);
+  const [data, setData] = useStateAD({
+    name:"", email:"", company:"",
+    projectName:"Eternal Phase 02",
+    units: "12",
+    gdv: "5.4",
+    stage: "construction",
+    fundType: "ppm-pref",
+  });
+  const set = (k,v)=>setData(d=>({...d,[k]:v}));
+  return (
+    <div style={{minHeight:"100vh", display:"grid", gridTemplateColumns:"1fr 1.05fr", background:"var(--bg)"}}>
+      <section style={{padding:48, display:"flex", flexDirection:"column", borderRight:"1px solid var(--line)"}}>
+        <a onClick={(e)=>{e.preventDefault(); go("landing");}} href="#landing" style={{display:"inline-flex", alignItems:"center", gap:10, color:"var(--ink)"}}>
+          <span style={{color:"var(--amber)"}}><I.logoMark width="22" height="22"/></span>
+          <span className="display" style={{fontSize:18}}>ARCONIQUE</span>
+          <span className="badge badge-amber" style={{fontSize:10}}>DEV.OS</span>
+        </a>
+
+        <div style={{margin:"auto 0", maxWidth:480, width:"100%"}}>
+          <div className="label label-amber">Provision workspace · 14-day trial</div>
+          <h1 className="display" style={{fontSize:52, marginTop:14, marginBottom:0, fontWeight:500}}>
+            {step===0 && <>Who's <span style={{color:"var(--amber)"}}>steering</span>?</>}
+            {step===1 && <>First <span style={{color:"var(--amber)"}}>project</span> on file.</>}
+            {step===2 && <>Confirm and <span style={{color:"var(--amber)"}}>break ground</span>.</>}
+          </h1>
+          <p style={{color:"var(--ink-3)", marginTop:14}}>
+            {step===0 && "We'll provision a workspace at development.arconique.com/your-org with five seats, sandbox data, and a 60-minute onboarding call."}
+            {step===1 && "Tell us about the first project. We'll wire BOQ, drawings, and a placeholder PPM so your team can try it on day one."}
+            {step===2 && "Quick check before provisioning. Workspace is live in 90 seconds."}
+          </p>
+
+          {/* stepper */}
+          <div style={{display:"flex", alignItems:"center", gap:8, marginTop:22}}>
+            {[0,1,2].map(i=>(
+              <React.Fragment key={i}>
+                <span style={{width:10, height:10, background: i<=step ? "var(--amber)" : "var(--line-2)"}}></span>
+                {i<2 && <span style={{flex:0, width:32, height:1, background: i<step ? "var(--amber)" : "var(--line)"}}></span>}
+              </React.Fragment>
+            ))}
+            <span className="mono" style={{fontSize:11, color:"var(--ink-3)", marginLeft:"auto"}}>{(step+1)} / 3</span>
+          </div>
+
+          <div style={{marginTop:28, display:"flex", flexDirection:"column", gap:14}}>
+            {step===0 && (
+              <>
+                <div className="field"><label className="label">Your name</label><input value={data.name} onChange={e=>set("name",e.target.value)} placeholder="Made Sutrisno"/></div>
+                <div className="field"><label className="label">Work email</label><input type="email" value={data.email} onChange={e=>set("email",e.target.value)} placeholder="made@eternal-developments.com"/></div>
+                <div className="field"><label className="label">Company / SPV name</label><input value={data.company} onChange={e=>set("company",e.target.value)} placeholder="Eternal Developments PT"/></div>
+                <div className="field">
+                  <label className="label">Role</label>
+                  <select defaultValue="director">
+                    <option value="director">Director / Founder</option>
+                    <option value="pm">Project Manager</option>
+                    <option value="qs">QS / Cost Manager</option>
+                    <option value="cfo">CFO / Bookkeeper</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </>
+            )}
+            {step===1 && (
+              <>
+                <div className="field"><label className="label">Project name</label><input value={data.projectName} onChange={e=>set("projectName",e.target.value)}/></div>
+                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                  <div className="field"><label className="label">Units</label><input value={data.units} onChange={e=>set("units",e.target.value)} placeholder="12"/></div>
+                  <div className="field"><label className="label">GDV (USD M)</label><input value={data.gdv} onChange={e=>set("gdv",e.target.value)} placeholder="5.4"/></div>
+                </div>
+                <div className="field">
+                  <label className="label">Stage</label>
+                  <div style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:8}}>
+                    {[["concept","Concept"],["permit","Permit"],["construction","Construction"],["handover","Handover"]].map(([k,l])=>(
+                      <button type="button" key={k} onClick={()=>set("stage",k)} style={{padding:"11px 4px", border:"1px solid", borderColor: data.stage===k ? "var(--amber)" : "var(--line-2)", background: data.stage===k ? "rgba(255,107,53,0.08)" : "var(--bg-2)", color: data.stage===k ? "var(--amber)" : "var(--ink-2)", fontSize:12, fontFamily:"IBM Plex Mono", textTransform:"uppercase", letterSpacing:"0.08em"}}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="field">
+                  <label className="label">Capital structure</label>
+                  <select value={data.fundType} onChange={e=>set("fundType", e.target.value)}>
+                    <option value="self">Self-funded / no investors yet</option>
+                    <option value="ppm-pref">PPM with preferred return + GP catch-up</option>
+                    <option value="js">Joint-venture / single-LP</option>
+                    <option value="club">Club deal / informal</option>
+                  </select>
+                </div>
+              </>
+            )}
+            {step===2 && (
+              <div style={{display:"flex", flexDirection:"column", gap:0, border:"1px solid var(--line-2)"}}>
+                {[
+                  ["Operator",     data.name || "—"],
+                  ["Email",        data.email || "—"],
+                  ["SPV",          data.company || "—"],
+                  ["Project",      data.projectName],
+                  ["Scale",        `${data.units} units · USD ${data.gdv}M GDV`],
+                  ["Stage",        data.stage],
+                  ["Capital",      data.fundType.toUpperCase()],
+                  ["Workspace",    `development.arconique.com/${(data.company||"workspace").toLowerCase().replace(/[^a-z0-9]+/g,"-")}`],
+                ].map((r,i,arr)=>(
+                  <div key={i} style={{display:"grid", gridTemplateColumns:"140px 1fr", padding:"11px 16px", borderBottom: i<arr.length-1 ? "1px solid var(--line)" : "0", alignItems:"center"}}>
+                    <span className="label" style={{fontSize:10}}>{r[0]}</span>
+                    <span className="mono" style={{fontSize:13, color:"var(--ink)"}}>{r[1]}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{display:"flex", justifyContent:"space-between", marginTop:30, gap:10}}>
+            <button className="btn btn-ghost" onClick={()=>step===0 ? go("landing") : setStep(step-1)}>
+              {step===0 ? "← Back to site" : "← Back"}
+            </button>
+            {step<2 ? (
+              <button className="btn btn-amber btn-lg" onClick={()=>setStep(step+1)}>Continue <I.arrow width="13" height="13"/></button>
+            ) : (
+              <button className="btn btn-amber btn-lg" onClick={()=>{ window.location.href="development/index.html"; }}>Provision workspace <I.arrow width="13" height="13"/></button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <aside className="grid-paper" style={{padding:48, position:"relative", overflow:"hidden"}}>
+        <div style={{position:"relative", marginTop:80, maxWidth:520}}>
+          <div className="label label-amber">WHAT YOU GET ON DAY ONE</div>
+          <h2 className="display" style={{fontSize:44, marginTop:14, marginBottom:18, fontWeight:500}}>
+            A workspace pre-loaded with <span style={{color:"var(--amber)"}}>a 12-villa</span> reference project.
+          </h2>
+          <ul style={{listStyle:"none", padding:0, margin:"24px 0", display:"flex", flexDirection:"column", gap:14, color:"var(--ink-2)", fontSize:14.5}}>
+            {[
+              "Six cabinets — PM, QS, Procurement, CFO, Site, Investor.",
+              "5,000-line BOQ with realistic Bali cost baselines.",
+              "5 AI agents already live — qs-cost-analyst, procurement, daily digest, weekly plan, tax.",
+              "PPM template + waterfall engine pre-configured.",
+              "Mobile site PWA — offline reports, voice notes auto-transcribed.",
+            ].map((l,i)=>(
+              <li key={i} style={{display:"flex", gap:12}}>
+                <span style={{color:"var(--amber)", flexShrink:0, marginTop:4}}><I.check width="14" height="14"/></span>
+                {l}
+              </li>
+            ))}
+          </ul>
+          <div style={{marginTop:30, padding:"16px 20px", border:"1px solid var(--line-2)", background:"var(--bg-2)"}}>
+            <div className="label" style={{fontSize:10}}>14 ACTIVE DEVELOPERS · USD 24M COMMITMENT</div>
+            <p style={{margin:"10px 0 0", fontSize:13, color:"var(--ink-2)"}}>"We rebaselined the BOQ in 4 hours. Saved us a $40K marble overpay in week one." — N. Razgulyaev, Founder, Eternal</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+window.DevAuth = { DevLogin, DevSignup };
+
+</script>
+<script type="text/jsx-source" data-file="boq.js">
+/* global React, DevShared */
+const { I } = DevShared;
+const { useState: useStateB } = React;
+
+function BOQShell({ go, current, children, breadcrumbs }) {
+  const nav = [
+    { l:"Project overview", k:"overview", icon:<I.building/> },
+    { l:"BOQ desk",         k:"boq",      icon:<I.spreadsheet/>, badge:"03" },
+    { l:"Procurement",      k:"proc",     icon:<I.truck/>, badge:"14" },
+    { l:"Drawings",         k:"dwg",      icon:<I.cube/> },
+    { l:"QA / QC",          k:"qa",       icon:<I.shield/> },
+    { l:"Finance",          k:"fin",      icon:<I.receipt/> },
+    { l:"AI agents",        k:"ai",       icon:<I.spark/> },
+    { l:"Investor portal",  k:"inv",      icon:<I.user/> },
+  ];
+  return (
+    <div style={{minHeight:"100vh", display:"grid", gridTemplateColumns:"240px 1fr", background:"var(--bg)"}}>
+      <aside style={{background:"var(--bg-2)", borderRight:"1px solid var(--line)", padding:"20px 14px", display:"flex", flexDirection:"column", gap:18, position:"sticky", top:0, height:"100vh", overflow:"auto"}}>
+        <a onClick={(e)=>{e.preventDefault(); go("landing");}} href="#landing" style={{display:"inline-flex", alignItems:"center", gap:10, padding:"4px 6px"}}>
+          <span style={{color:"var(--amber)"}}><I.logoMark width="20" height="20"/></span>
+          <span className="display" style={{fontSize:16, letterSpacing:"-0.01em"}}>ARCONIQUE</span>
+        </a>
+
+        <div style={{padding:"12px 14px", background:"var(--bg-3)", border:"1px solid var(--line)", display:"flex", flexDirection:"column", gap:4}}>
+          <span className="label" style={{fontSize:10}}>Project</span>
+          <span style={{fontFamily:"'Space Grotesk', sans-serif", fontWeight:500, fontSize:14}}>Eternal / Phase 02</span>
+          <span className="mono" style={{fontSize:11, color:"var(--ink-3)"}}>12 villas · 5.6 ha · WK 36</span>
+          <div style={{height:5, background:"var(--bg)", marginTop:8}}>
+            <div style={{height:"100%", width:"58%", background:"var(--amber)"}}></div>
+          </div>
+          <div style={{display:"flex", justifyContent:"space-between", marginTop:4, fontSize:11}} className="mono">
+            <span style={{color:"var(--amber)"}}>58% built</span>
+            <span style={{color:"var(--ink-3)"}}>handover Mar '27</span>
+          </div>
+        </div>
+
+        <ul style={{listStyle:"none", padding:0, margin:0, display:"flex", flexDirection:"column", gap:2}}>
+          {nav.map(n=>(
+            <li key={n.k}>
+              <button onClick={()=>{ if(n.k==="boq") go("boq"); if(n.k==="inv") go("investor"); }} style={{width:"100%", display:"flex", alignItems:"center", gap:10, padding:"9px 12px", border:0, background: current===n.k ? "var(--amber)" : "transparent", color: current===n.k ? "var(--carbon)" : "var(--ink-2)", fontSize:13.5, textAlign:"left", borderRadius:10}}>
+                {React.cloneElement(n.icon,{width:15,height:15})}
+                <span style={{flex:1}}>{n.l}</span>
+                {n.badge && <span className="mono" style={{fontSize:10, padding:"1px 6px", background: current===n.k ? "rgba(14,14,13,0.16)" : "var(--bg-3)", color: current===n.k ? "var(--carbon)" : "var(--ink-3)"}}>{n.badge}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div style={{marginTop:"auto", padding:"14px 12px", borderTop:"1px solid var(--line)"}}>
+          <button onClick={()=>{ window.location.href="development/investor.html"; }} style={{display:"flex", gap:10, alignItems:"center", width:"100%", padding:"6px 0", fontSize:13, color:"var(--ink-3)"}}>
+            <I.external width="14" height="14"/> Investor portal preview
+          </button>
+          <button onClick={()=>go("landing")} style={{display:"flex", gap:10, alignItems:"center", width:"100%", padding:"6px 0", fontSize:13, color:"var(--ink-3)"}}>
+            <I.arrow width="14" height="14" style={{transform:"rotate(180deg)"}}/> Back to marketing
+          </button>
+          <div style={{display:"flex", alignItems:"center", gap:10, marginTop:10}}>
+            <div style={{width:30, height:30, background:"var(--amber)", color:"var(--carbon)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Space Grotesk', sans-serif", fontWeight:500, fontSize:13}}>MS</div>
+            <div>
+              <div style={{fontSize:13, fontWeight:500}}>Made S.</div>
+              <div className="mono" style={{fontSize:10, color:"var(--ink-4)"}}>QS · COST_MGR</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main style={{minWidth:0}}>
+        <header style={{position:"sticky", top:0, zIndex:40, background:"rgba(248,244,234,0.92)", backdropFilter:"blur(10px)", borderBottom:"1px solid var(--line)", padding:"14px 28px", display:"flex", alignItems:"center", gap:18}}>
+          <div style={{display:"flex", alignItems:"center", gap:10, fontSize:12, color:"var(--ink-3)"}} className="mono">
+            {breadcrumbs.map((b,i)=>(<React.Fragment key={i}><span>{b}</span>{i<breadcrumbs.length-1 && <span>/</span>}</React.Fragment>))}
+          </div>
+          <div style={{marginLeft:"auto", display:"flex", alignItems:"center", gap:12}}>
+            <div style={{position:"relative", width:300}}>
+              <span style={{position:"absolute", left:10, top:8, color:"var(--ink-4)"}}><I.search width="14" height="14"/></span>
+              <input placeholder="Search BOQ line, supplier, drawing…" style={{width:"100%", padding:"7px 12px 7px 32px", border:"1px solid var(--line-2)", background:"var(--bg-2)", color:"var(--ink)", borderRadius:999, fontSize:12.5, outline:"none"}}/>
+              <span className="mono" style={{position:"absolute", right:8, top:6, fontSize:10, padding:"1px 6px", border:"1px solid var(--line-2)", borderRadius:6, color:"var(--ink-3)"}}>⌘K</span>
+            </div>
+            <button style={{position:"relative", padding:6, color:"var(--ink-2)"}}><I.bell width="17" height="17"/><span style={{position:"absolute", top:4, right:4, width:6, height:6, borderRadius:999, background:"var(--amber)"}}></span></button>
+            <span className="badge badge-amber" style={{fontSize:10}}>DEMO DATA</span>
+          </div>
+        </header>
+        <div style={{padding:"24px 28px 80px", maxWidth:1480}}>
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function BOQDesk({ go }) {
+  return (
+    <BOQShell go={go} current="boq" breadcrumbs={["PROJECTS","ETERNAL/02","BOQ DESK","WP-04 STRUCTURAL"]}>
+      {/* Header */}
+      <div style={{display:"flex", alignItems:"flex-end", gap:24, marginBottom:24}}>
+        <div>
+          <div className="label label-amber">BILL OF QUANTITIES · REV 14 · STAMPED 04 NOV 2026</div>
+          <h1 className="display" style={{fontSize:48, marginTop:8, marginBottom:0, fontWeight:500}}>
+            WP-04 Structural · <span style={{color:"var(--amber)"}}>1,420 m³ live.</span>
+          </h1>
+        </div>
+        <div style={{marginLeft:"auto", display:"flex", gap:8}}>
+          <button className="btn btn-dark"><I.download width="13" height="13"/> Export XLSX</button>
+          <button className="btn btn-dark">Compare REV 13</button>
+          <button className="btn btn-amber">+ New change order <I.plus width="13" height="13"/></button>
+        </div>
+      </div>
+
+      {/* KPI strip */}
+      <div style={{display:"grid", gridTemplateColumns:"repeat(6, 1fr)", gap:0, border:"1px solid var(--line)", marginBottom:24}}>
+        {[
+          ["BUDGET · WP-04", "$1,840,200", null],
+          ["COMMITTED",      "$1,592,400", "86.5%"],
+          ["ACTUAL · MTD",   "$1,468,720", "$182K Oct"],
+          ["VARIANCE",       "+1.4%",      "vs baseline", "amber"],
+          ["OPEN POs",       "14",          "$84.2K"],
+          ["LINES UNDER FLAG", "03",        "AI-detected", "amber"],
+        ].map((s,i,arr)=>(
+          <div key={i} style={{padding:"16px 18px", borderRight: i<arr.length-1 ? "1px solid var(--line)" : 0, background: s[3]==="amber" ? "rgba(255,107,53,0.04)" : "var(--bg-2)"}}>
+            <div className="label" style={{fontSize:10}}>{s[0]}</div>
+            <div className="num" style={{fontSize:24, marginTop:5, color: s[3]==="amber" ? "var(--amber)" : "var(--ink)"}}>{s[1]}</div>
+            {s[2] && <div style={{fontSize:11, color:"var(--ink-3)", marginTop:2}}>{s[2]}</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* AI flag band */}
+      <AnomalyBand go={go}/>
+
+      {/* Main BOQ table */}
+      <BOQTable/>
+
+      {/* Two-up */}
+      <div style={{marginTop:18, display:"grid", gridTemplateColumns:"1.4fr 1fr", gap:18}}>
+        <RFQPanel/>
+        <VarianceTrend/>
+      </div>
+    </BOQShell>
+  );
+}
+
+function AnomalyBand({ go }) {
+  return (
+    <div className="panel corner-marks" style={{padding:"20px 24px", marginBottom:18, position:"relative", borderColor:"var(--amber)"}}>
+      <div style={{display:"flex", alignItems:"flex-start", gap:18}}>
+        <span style={{flexShrink:0, width:40, height:40, background:"rgba(255,107,53,0.15)", border:"1px solid var(--amber)", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--amber)"}}><I.spark width="20" height="20"/></span>
+        <div style={{flex:1}}>
+          <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:6}}>
+            <span className="label label-amber">qs-cost-analyst · 06:14 · run 4af2</span>
+            <span className="badge badge-amber">3 ANOMALIES</span>
+          </div>
+          <p style={{margin:0, fontSize:14, color:"var(--ink)", lineHeight:1.55, maxWidth:780}}>
+            Line <span className="mono" style={{color:"var(--amber)"}}>WP-04.18.b · Marble Hindari 60×60</span> is <strong style={{color:"var(--amber)"}}>+18.4%</strong> vs 6-month rolling baseline for comparable lots from supplier <span className="mono" style={{color:"var(--ink)"}}>BatuJaya</span>. Median across 4 reference projects is $42/m²; we are quoted $49.6/m². Suggested action: re-issue RFQ to 2 backup vendors before approving PO.
+          </p>
+        </div>
+        <div style={{display:"flex", flexDirection:"column", gap:8, flexShrink:0, alignItems:"flex-end"}}>
+          <button className="btn btn-amber" style={{padding:"7px 12px", fontSize:12}}>Reissue RFQ <I.arrow width="12" height="12"/></button>
+          <button className="btn btn-dark" style={{padding:"7px 12px", fontSize:12}}>Mark accepted</button>
+          <span className="mono" style={{fontSize:10, color:"var(--ink-4)"}}>1.4s · 540 tok</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BOQTable() {
+  const rows = [
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.00", desc:"Block B / Substructure", qty:"—", unit:"—", rate:"—", budget:"—", actual:"—", variance:"—", supplier:"—", section:true },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.01", desc:"Excavation 0-3m · clay", qty:"1,820", unit:"m³", rate:"$14.20", budget:"$25,844", actual:"$24,920", variance:"-3.6%", supplier:"Karya Tanah", flag:"ok" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.02", desc:"Lean concrete blinding C8/10", qty:"180", unit:"m³", rate:"$92.00", budget:"$16,560", actual:"$16,920", variance:"+2.2%", supplier:"Holcim BL", flag:"ok" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.03", desc:"Ready-mix concrete C25/30", qty:"1,420", unit:"m³", rate:"$128.40", budget:"$182,328", actual:"$183,448", variance:"+0.6%", supplier:"Holcim BL", flag:"ok" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.04", desc:"Steel rebar Ø12 — main", qty:"42.4", unit:"t", rate:"$1,420", budget:"$60,208", actual:"$59,640", variance:"-0.9%", supplier:"Krakatau Steel", flag:"ok" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.05", desc:"Steel rebar Ø16 — column", qty:"42.2", unit:"t", rate:"$1,380", budget:"$58,236", actual:"$58,560", variance:"+0.6%", supplier:"Krakatau Steel", flag:"ok" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.06", desc:"Formwork plywood 18mm", qty:"3,200", unit:"m²", rate:"$8.90", budget:"$28,480", actual:"$29,280", variance:"+2.8%", supplier:"PlywoodMega", flag:"warn" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.07", desc:"Anti-termite chemical", qty:"240", unit:"L", rate:"$7.50", budget:"$1,800", actual:"$1,800", variance:"0.0%", supplier:"AgroBali", flag:"ok" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.08", desc:"Waterproofing membrane SBS", qty:"840", unit:"m²", rate:"$12.20", budget:"$10,248", actual:"$10,420", variance:"+1.7%", supplier:"Sika ID", flag:"ok" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.18.b", desc:"Marble Hindari 60×60 cm · honed", qty:"480", unit:"m²", rate:"$49.60", budget:"$20,160", actual:"$23,808", variance:"+18.4%", supplier:"BatuJaya", flag:"danger" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.21", desc:"Stainless balustrade 304/24mm", qty:"180", unit:"m", rate:"$48.00", budget:"$8,640", actual:"$7,560", variance:"-12.5%", supplier:"BaliSteel", flag:"steel" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.24", desc:"PEX-Al-PEX water pipe Ø20", qty:"640", unit:"m", rate:"$6.40", budget:"$4,096", actual:"$4,840", variance:"+18.2%", supplier:"Uponor / mismatched", flag:"danger" },
+    { sec:"WP-04 · STRUCTURAL", code:"WP-04.31", desc:"Cabling YDA 4mm 3-core", qty:"2,400", unit:"m", rate:"$2.10", budget:"$5,040", actual:"$6,720", variance:"+33.3%", supplier:"Eterna Cable", flag:"danger" },
+  ];
+  const tone = { ok:"badge-ok", warn:"badge-warn", danger:"badge-danger", steel:"badge-steel" };
+  return (
+    <div className="panel" style={{padding:0, overflow:"hidden", marginBottom:18}}>
+      <div style={{display:"flex", alignItems:"center", padding:"14px 18px", borderBottom:"1px solid var(--line)"}}>
+        <h2 className="display" style={{margin:0, fontSize:18}}>Lines · WP-04 Structural</h2>
+        <span className="mono" style={{marginLeft:14, fontSize:11, color:"var(--ink-3)"}}>13 of 142 shown · filter: anomalies + parents</span>
+        <div style={{marginLeft:"auto", display:"flex", gap:8}}>
+          <button className="btn btn-dark" style={{padding:"5px 10px", fontSize:11}}>Filter ▾</button>
+          <button className="btn btn-dark" style={{padding:"5px 10px", fontSize:11}}>Add line +</button>
+        </div>
+      </div>
+      <table className="data">
+        <thead>
+          <tr><th>Code</th><th>Description</th><th className="num">Qty</th><th>Unit</th><th className="num">Rate</th><th className="num">Budget</th><th className="num">Actual</th><th className="num">Var.</th><th>Supplier</th><th>Flag</th></tr>
+        </thead>
+        <tbody>
+          {rows.map((r,i)=> r.section ? (
+            <tr key={i} style={{background:"var(--bg-3)"}}>
+              <td className="mono" style={{fontSize:11, color:"var(--amber)", letterSpacing:"0.08em"}}>{r.code}</td>
+              <td colSpan="9" className="mono" style={{fontSize:11, color:"var(--amber)", letterSpacing:"0.12em", textTransform:"uppercase"}}>{r.desc}</td>
+            </tr>
+          ) : (
+            <tr key={i} style={{background: r.flag==="danger" ? "rgba(215,70,77,0.04)" : "transparent"}}>
+              <td className="mono" style={{fontSize:11, color:"var(--ink-3)"}}>{r.code}</td>
+              <td style={{fontSize:13}}>{r.desc}</td>
+              <td className="num">{r.qty}</td>
+              <td className="mono" style={{fontSize:11, color:"var(--ink-3)"}}>{r.unit}</td>
+              <td className="num">{r.rate}</td>
+              <td className="num">{r.budget}</td>
+              <td className="num" style={{color: r.flag==="danger" ? "var(--amber)" : "var(--ink)"}}>{r.actual}</td>
+              <td className="num" style={{color: r.variance.startsWith("+") && parseFloat(r.variance)>5 ? "var(--amber)" : r.variance.startsWith("-") ? "var(--ok)" : "var(--ink)", fontWeight:500}}>{r.variance}</td>
+              <td className="mono" style={{fontSize:11, color:"var(--ink-2)"}}>{r.supplier}</td>
+              <td>{r.flag && <span className={"badge " + tone[r.flag]} style={{fontSize:10}}>{r.flag==="ok"?"OK":r.flag==="warn"?"WATCH":r.flag==="danger"?"ALERT":"REVIEW"}</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{padding:"12px 18px", borderTop:"1px solid var(--line)", display:"flex", justifyContent:"space-between", alignItems:"center", background:"var(--bg-2)"}}>
+        <div style={{display:"flex", gap:18, fontSize:12, color:"var(--ink-3)"}} className="mono">
+          <span>WP-04 subtotal: <span style={{color:"var(--ink)"}}>$421,408</span></span>
+          <span>Δ vs budget: <span style={{color:"var(--amber)"}}>+$5,816 (+1.4%)</span></span>
+        </div>
+        <div style={{display:"flex", gap:8}}>
+          <button className="btn btn-dark" style={{padding:"5px 10px", fontSize:11}}>← REV 13</button>
+          <button className="btn btn-dark" style={{padding:"5px 10px", fontSize:11}}>1 / 14</button>
+          <button className="btn btn-dark" style={{padding:"5px 10px", fontSize:11}}>WP-05 →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RFQPanel() {
+  const vendors = [
+    { name:"BatuJaya",  price:49.60, lead:21, qa:88, current:true,  drift:"+18.4%", driftTone:"danger" },
+    { name:"NusaMarmer",price:43.20, lead:18, qa:92, current:false, drift:"+3.0%",  driftTone:"warn" },
+    { name:"StoneEra",  price:41.80, lead:25, qa:90, current:false, drift:"-0.5%",  driftTone:"ok" },
+    { name:"GraniMega", price:42.00, lead:14, qa:86, current:false, drift:"+0.2%",  driftTone:"ok" },
+  ];
+  return (
+    <div className="panel" style={{padding:0, overflow:"hidden"}}>
+      <div style={{display:"flex", alignItems:"center", padding:"14px 18px", borderBottom:"1px solid var(--line)"}}>
+        <h2 className="display" style={{margin:0, fontSize:18}}>RFQ-082 · Marble Hindari 60×60</h2>
+        <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>4 vendors · re-RFQ today</span>
+      </div>
+      <table className="data">
+        <thead>
+          <tr><th>Vendor</th><th className="num">$/m²</th><th className="num">Lead</th><th className="num">QA</th><th>Drift</th><th></th></tr>
+        </thead>
+        <tbody>
+          {vendors.map((v,i)=>(
+            <tr key={i} style={{background: v.current ? "rgba(215,70,77,0.04)" : i===1 ? "rgba(255,107,53,0.04)" : "transparent"}}>
+              <td>
+                <span className="mono" style={{fontSize:12.5}}>{v.name}</span>
+                {v.current && <span className="badge badge-danger" style={{fontSize:9, marginLeft:8}}>CURRENT</span>}
+                {i===1 && !v.current && <span className="badge badge-amber" style={{fontSize:9, marginLeft:8}}>AI PICK</span>}
+              </td>
+              <td className="num" style={{color:v.current?"var(--amber)":"var(--ink)"}}>${v.price.toFixed(2)}</td>
+              <td className="num">{v.lead}d</td>
+              <td className="num">{v.qa}</td>
+              <td><span className={"badge badge-"+v.driftTone} style={{fontSize:10}}>{v.drift}</span></td>
+              <td><button className="btn btn-dark" style={{padding:"3px 8px", fontSize:10}}>Select</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{padding:"14px 18px", background:"var(--bg-2)", borderTop:"1px solid var(--line)", fontSize:13, color:"var(--ink-2)"}}>
+        <span className="mono" style={{color:"var(--amber)", fontSize:11, letterSpacing:"0.12em"}}>SUGGESTION · </span>
+        Switch <span className="mono">WP-04.18.b</span> to <span className="mono" style={{color:"var(--ink)"}}>StoneEra</span> at $41.80 — saves <span className="mono" style={{color:"var(--ok)"}}>$3,744</span> across 480m². 4 days slower; still on critical path.
+      </div>
+    </div>
+  );
+}
+
+function VarianceTrend() {
+  const points = [-0.2, 0.3, 0.5, 0.4, 0.8, 0.6, 1.0, 0.7, 0.5, 0.9, 1.2, 1.4];
+  const max = 1.5;
+  const w = 480, h = 160, pad=20;
+  const path = points.map((p, i) => {
+    const x = pad + (i / (points.length-1)) * (w - pad*2);
+    const y = h/2 - (p / max) * (h/2 - pad);
+    return (i===0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1);
+  }).join(" ");
+  return (
+    <div className="panel" style={{padding:18}}>
+      <div style={{display:"flex", alignItems:"center", marginBottom:14}}>
+        <h2 className="display" style={{margin:0, fontSize:18}}>Cost variance · 12 weeks</h2>
+        <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>vs baseline · WP-04</span>
+      </div>
+      <div style={{position:"relative"}}>
+        <svg viewBox={`0 0 ${w} ${h}`} style={{width:"100%", height:160}}>
+          {/* grid */}
+          {[0.5, 1, -0.5, -1].map((g,i)=>{
+            const y = h/2 - (g / max) * (h/2 - pad);
+            return <line key={i} x1={pad} y1={y} x2={w-pad} y2={y} stroke="var(--line)" strokeWidth="0.6" strokeDasharray="3 3"/>;
+          })}
+          <line x1={pad} y1={h/2} x2={w-pad} y2={h/2} stroke="var(--line-2)" strokeWidth="1"/>
+          {/* path */}
+          <path d={path} stroke="var(--amber)" strokeWidth="2" fill="none"/>
+          {points.map((p, i)=>{
+            const x = pad + (i / (points.length-1)) * (w - pad*2);
+            const y = h/2 - (p / max) * (h/2 - pad);
+            return <circle key={i} cx={x} cy={y} r="3" fill={i===points.length-1 ? "var(--amber)" : "var(--bg)"} stroke="var(--amber)" strokeWidth="1.5"/>;
+          })}
+          {/* y labels */}
+          <text x="2" y={h/2+3} fill="var(--ink-4)" fontFamily="IBM Plex Mono" fontSize="9">0%</text>
+          <text x="2" y={h/2 - (1/max)*(h/2-pad)+3} fill="var(--ink-4)" fontFamily="IBM Plex Mono" fontSize="9">+1%</text>
+          <text x="2" y={h/2 + (1/max)*(h/2-pad)+3} fill="var(--ink-4)" fontFamily="IBM Plex Mono" fontSize="9">-1%</text>
+        </svg>
+      </div>
+      <div style={{display:"flex", justifyContent:"space-between", marginTop:8, fontSize:10, color:"var(--ink-4)"}} className="mono">
+        {["W25","W27","W29","W31","W33","W35"].map((w,i)=><span key={i}>{w}</span>)}
+      </div>
+      <div className="hr" style={{margin:"14px 0"}}></div>
+      <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:10, fontSize:12}}>
+        <div>
+          <div className="label" style={{fontSize:10}}>3w avg</div>
+          <div className="num" style={{fontSize:18, marginTop:2, color:"var(--amber)"}}>+1.2%</div>
+        </div>
+        <div>
+          <div className="label" style={{fontSize:10}}>Trend</div>
+          <div style={{fontSize:14, marginTop:2, color:"var(--amber)"}}>↑ widening</div>
+        </div>
+        <div>
+          <div className="label" style={{fontSize:10}}>Forecast EAC</div>
+          <div className="num" style={{fontSize:18, marginTop:2}}>+2.1%</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.DevBOQ = BOQDesk;
+
+</script>
+<script type="text/jsx-source" data-file="investor.js">
+/* global React, DevShared */
+const { I } = DevShared;
+
+function InvestorPortal({ go }) {
+  return (
+    <div style={{minHeight:"100vh", background:"var(--bg)"}}>
+      {/* Top bar */}
+      <header style={{background:"var(--bg-2)", borderBottom:"1px solid var(--line)", padding:"14px 28px", display:"flex", alignItems:"center", gap:18, position:"sticky", top:0, zIndex:40}}>
+        <a onClick={(e)=>{e.preventDefault(); go("landing");}} href="#landing" style={{display:"flex", alignItems:"center", gap:10}}>
+          <span style={{color:"var(--amber)"}}><I.logoMark width="20" height="20"/></span>
+          <span className="display" style={{fontSize:16}}>ARCONIQUE</span>
+          <span className="badge badge-amber" style={{fontSize:10}}>LP PORTAL</span>
+        </a>
+        <nav style={{display:"flex", gap:24, marginLeft:24, fontSize:13, color:"var(--ink-3)"}}>
+          {["Dashboard","Distributions","Documents","Capital ledger","Quarterly briefs","Tax pack"].map((l,i)=>(
+            <a key={l} href="#" style={{color: i===0 ? "var(--ink)" : "var(--ink-3)", fontWeight: i===0 ? 500 : 400, borderBottom: i===0 ? "1.5px solid var(--amber)" : "none", paddingBottom:6}}>{l}</a>
+          ))}
+        </nav>
+        <div style={{marginLeft:"auto", display:"flex", alignItems:"center", gap:14}}>
+          <select style={{background:"var(--bg-3)", border:"1px solid var(--line-2)", color:"var(--ink-2)", padding:"5px 8px", fontSize:12, fontFamily:"IBM Plex Mono"}}>
+            <option>EN</option><option>ID</option><option>RU</option><option>JP</option>
+          </select>
+          <span className="badge badge-amber" style={{fontSize:10}}>LP VIEW · DEMO</span>
+          <button onClick={()=>{ window.location.href="development/index.html"; }} className="btn btn-ghost" style={{fontSize:12}}>Operator view →</button>
+          <div style={{width:30, height:30, background:"var(--amber)", color:"var(--carbon)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Space Grotesk', sans-serif", fontWeight:500, fontSize:12}}>RP</div>
+        </div>
+      </header>
+
+      <main style={{maxWidth:1320, margin:"0 auto", padding:"36px 28px 80px"}}>
+        {/* Greeting */}
+        <div style={{display:"flex", alignItems:"flex-end", marginBottom:32, gap:24}}>
+          <div>
+            <div className="label label-amber">Q4 2026 · QUARTERLY UPDATE</div>
+            <h1 className="display" style={{fontSize:56, marginTop:8, marginBottom:0, fontWeight:500}}>
+              Welcome back, <span style={{color:"var(--amber)"}}>Robert.</span>
+            </h1>
+            <p style={{fontSize:16, color:"var(--ink-2)", marginTop:14, maxWidth:680}}>
+              Eternal Phase 02 is at <strong style={{color:"var(--ink)"}}>87% of programme budget</strong>, on track for handover Q1 2027. Your October distribution of $14,940 was wired this morning.
+            </p>
+          </div>
+          <div style={{marginLeft:"auto", display:"flex", gap:8}}>
+            <button className="btn btn-dark">Q4 brief · PDF <I.download width="13" height="13"/></button>
+            <button className="btn btn-amber">Tax pack 2026 <I.download width="13" height="13"/></button>
+          </div>
+        </div>
+
+        {/* KPI strip */}
+        <div style={{display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:0, border:"1px solid var(--line)", marginBottom:32}}>
+          {[
+            ["YOUR COMMITMENT",      "$1,800,000", "12% of total"],
+            ["CALLED · OF COMMIT",   "78%",        "$1,404,000"],
+            ["DISTRIBUTIONS · YTD",  "$84,210",    "5 of 6 pmts",  "amber"],
+            ["NAV · YOUR INTEREST",  "$1,648,200", "↑ 8.2% Q4"],
+            ["IRR · NET",            "23.4%",      "vs PPM 18%",   "amber"],
+          ].map((s,i,arr)=>(
+            <div key={i} style={{padding:"18px 20px", borderRight: i<arr.length-1 ? "1px solid var(--line)" : 0, background: s[3]==="amber" ? "rgba(255,107,53,0.04)" : "var(--bg-2)"}}>
+              <div className="label" style={{fontSize:10}}>{s[0]}</div>
+              <div className="num" style={{fontSize:26, marginTop:6, color: s[3]==="amber" ? "var(--amber)" : "var(--ink)"}}>{s[1]}</div>
+              <div style={{fontSize:11, color:"var(--ink-3)", marginTop:3}}>{s[2]}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{display:"grid", gridTemplateColumns:"1.5fr 1fr", gap:18}}>
+          <CapitalLedger/>
+          <RightCol go={go}/>
+        </div>
+
+        <ProjectProgressBlock/>
+
+        <DocumentsRoom/>
+      </main>
+    </div>
+  );
+}
+
+function CapitalLedger() {
+  const rows = [
+    { d:"15 Mar 2025", t:"Capital call 01", a:"−$540,000", note:"Land + soft costs · groundbreaking", tone:"steel" },
+    { d:"22 Jul 2025", t:"Capital call 02", a:"−$360,000", note:"Substructure milestone", tone:"steel" },
+    { d:"04 Dec 2025", t:"Capital call 03", a:"−$324,000", note:"Superstructure milestone", tone:"steel" },
+    { d:"18 Apr 2026", t:"Distribution Q2", a:"+$22,180",  note:"Pre-sale 4 units · pref 8%", tone:"ok" },
+    { d:"02 Jul 2026", t:"Capital call 04", a:"−$180,000", note:"Finishes drawdown · partial", tone:"steel" },
+    { d:"18 Jul 2026", t:"Distribution Q3", a:"+$24,820",  note:"Pre-sale 7 units cleared", tone:"ok" },
+    { d:"01 Nov 2026", t:"Distribution Oct",a:"+$14,940",  note:"Monthly · GP catch-up zone", tone:"ok" },
+  ];
+  return (
+    <div className="panel" style={{padding:0, overflow:"hidden"}}>
+      <div style={{display:"flex", alignItems:"center", padding:"14px 18px", borderBottom:"1px solid var(--line)"}}>
+        <h2 className="display" style={{margin:0, fontSize:20}}>Capital ledger · your interest</h2>
+        <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>SINCE 15 MAR 2025 · 7 ENTRIES</span>
+      </div>
+      <table className="data">
+        <thead>
+          <tr><th>Date</th><th>Entry</th><th>Memo</th><th className="num">Amount</th><th></th></tr>
+        </thead>
+        <tbody>
+          {rows.map((r,i)=>(
+            <tr key={i}>
+              <td className="mono" style={{fontSize:11, color:"var(--ink-3)"}}>{r.d}</td>
+              <td style={{fontFamily:"'Space Grotesk', sans-serif", fontWeight:500, fontSize:13.5}}>{r.t}</td>
+              <td style={{fontSize:13, color:"var(--ink-3)"}}>{r.note}</td>
+              <td className="num" style={{color: r.tone==="ok" ? "var(--ok)" : "var(--ink-2)", fontWeight:500}}>{r.a}</td>
+              <td><button className="btn btn-dark" style={{padding:"3px 8px", fontSize:10}}>PDF <I.download width="10" height="10"/></button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{padding:"14px 18px", borderTop:"1px solid var(--line)", background:"var(--bg-2)", display:"flex", justifyContent:"space-between"}}>
+        <div style={{display:"flex", gap:24, fontSize:12, color:"var(--ink-3)"}} className="mono">
+          <span>Contributions: <span style={{color:"var(--ink)"}}>$1,404,000</span></span>
+          <span>Distributions: <span style={{color:"var(--ok)"}}>$61,940</span></span>
+          <span>NAV gain: <span style={{color:"var(--amber)"}}>+$244,200</span></span>
+        </div>
+        <span className="stamp">HASH 4F2A...91C8 · SIGNED Q4</span>
+      </div>
+    </div>
+  );
+}
+
+function RightCol({ go }) {
+  return (
+    <div style={{display:"flex", flexDirection:"column", gap:18}}>
+      {/* Waterfall */}
+      <div className="panel" style={{padding:18}}>
+        <div style={{display:"flex", alignItems:"center"}}>
+          <h3 className="display" style={{margin:0, fontSize:18}}>Distribution waterfall</h3>
+          <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>OCT 2026</span>
+        </div>
+        <div style={{marginTop:18, display:"flex", flexDirection:"column", gap:10}}>
+          {[
+            { l:"Gross to fund",    v:180,  pct:100, color:"var(--steel)" },
+            { l:"LP pref 8%",       v:48,   pct:27,  color:"var(--steel-soft)" },
+            { l:"GP catch-up 50%",  v:14,   pct:8,   color:"var(--lime)" },
+            { l:"LP split 80/20",   v:60,   pct:33,  color:"var(--ink-2)" },
+            { l:"→ To you (12%)",   v:14.9, pct:8.3, color:"var(--amber)", hl:true },
+          ].map((r,i)=>(
+            <div key={i}>
+              <div style={{display:"flex", justifyContent:"space-between", fontSize:12, marginBottom:4}}>
+                <span style={{color: r.hl ? "var(--amber)" : "var(--ink-2)", fontWeight: r.hl ? 500 : 400}}>{r.l}</span>
+                <span className="num" style={{color: r.hl ? "var(--amber)" : "var(--ink-2)"}}>${r.v}K</span>
+              </div>
+              <div style={{height:6, background:"var(--bg-3)"}}>
+                <div style={{height:"100%", width:r.pct+"%", background:r.color, opacity: r.hl ? 1 : 0.7}}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Yields */}
+      <div className="panel" style={{padding:18}}>
+        <h3 className="display" style={{margin:0, fontSize:18, marginBottom:14}}>NAV · 6 quarters</h3>
+        <div style={{display:"flex", alignItems:"flex-end", gap:8, height:140}}>
+          {[1.4, 1.45, 1.52, 1.56, 1.58, 1.65].map((v, i)=>(
+            <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:5}}>
+              <span className="num" style={{fontSize:10, color:"var(--ink-3)"}}>{v}M</span>
+              <div style={{width:"100%", height:(v-1.3)/0.4*100+"%", background: i===5 ? "var(--amber)" : "var(--steel-soft)"}}></div>
+              <span className="mono" style={{fontSize:9, color:"var(--ink-4)"}}>{["Q3'25","Q4'25","Q1'26","Q2'26","Q3'26","Q4'26"][i]}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:12, paddingTop:12, borderTop:"1px dashed var(--line-2)", display:"flex", justifyContent:"space-between", fontSize:12}}>
+          <span className="mono" style={{color:"var(--ink-3)"}}>6Q growth</span>
+          <span className="num" style={{color:"var(--amber)"}}>+17.9%</span>
+        </div>
+      </div>
+
+      {/* Note from GP */}
+      <div className="panel corner-marks" style={{padding:18, background:"rgba(255,107,53,0.04)", borderColor:"var(--amber)"}}>
+        <div className="label label-amber">NOTE FROM GP</div>
+        <p style={{margin:"10px 0 14px", fontSize:13.5, color:"var(--ink)", lineHeight:1.55}}>
+          "Q4 is the inflection. Block A is roofed, Block B is poured. Pre-sales hit 78% on programme. We'll start unit walk-throughs for LPs in February." — N. Razgulyaev
+        </p>
+        <button onClick={()=>{ window.location.href="development/index.html"; }} className="btn btn-amber" style={{fontSize:12, padding:"7px 12px"}}>Read full Q4 brief <I.arrow width="12" height="12"/></button>
+      </div>
+    </div>
+  );
+}
+
+function ProjectProgressBlock() {
+  return (
+    <section style={{marginTop:32}}>
+      <div style={{display:"flex", alignItems:"flex-end", marginBottom:18, gap:18}}>
+        <h2 className="display" style={{fontSize:32, margin:0, fontWeight:500}}>Construction progress</h2>
+        <span style={{fontSize:12, color:"var(--ink-3)"}} className="mono">PHOTO-EVIDENCE TRAIL · 1,820 PHOTOS · GEO-TAGGED</span>
+      </div>
+      <div className="panel" style={{padding:24}}>
+        {/* Milestones */}
+        <div style={{display:"grid", gridTemplateColumns:"repeat(6, 1fr)", gap:0, marginBottom:24}}>
+          {[
+            { p:"Land + permit",   s:"complete", d:"Mar 2025" },
+            { p:"Substructure",    s:"complete", d:"Aug 2025" },
+            { p:"Superstructure",  s:"complete", d:"Feb 2026" },
+            { p:"MEP rough-in",    s:"current",  d:"Q4 2026" },
+            { p:"Finishes",        s:"upcoming", d:"Q1 2027" },
+            { p:"Handover",        s:"upcoming", d:"Mar 2027" },
+          ].map((m, i, arr)=>(
+            <div key={i} style={{padding:"14px 16px", position:"relative", borderRight: i<arr.length-1 ? "1px solid var(--line)" : 0}}>
+              <div style={{display:"flex", alignItems:"center", gap:8}}>
+                <span style={{width:10, height:10, borderRadius:999, background: m.s==="complete" ? "var(--ok)" : m.s==="current" ? "var(--amber)" : "var(--line-2)"}}></span>
+                <span className="mono" style={{fontSize:10, color: m.s==="complete" ? "var(--ok)" : m.s==="current" ? "var(--amber)" : "var(--ink-4)", letterSpacing:"0.12em"}}>{m.s.toUpperCase()}</span>
+              </div>
+              <div style={{marginTop:8, fontFamily:"'Space Grotesk', sans-serif", fontSize:14}}>{m.p}</div>
+              <div style={{fontSize:11, color:"var(--ink-3)", marginTop:2}}>{m.d}</div>
+            </div>
+          ))}
+        </div>
+        {/* Photo strip */}
+        <div className="label" style={{marginBottom:10}}>Latest from site · auto-uploaded by site supervisor</div>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:6}}>
+          {[
+            { date:"04 Nov 06:42", note:"Block B / column pour", grad:"linear-gradient(135deg, #2c3848 0%, #15191e 100%)" },
+            { date:"03 Nov 17:18", note:"Block A / roof slab",    grad:"linear-gradient(135deg, #463826 0%, #1c1812 100%)" },
+            { date:"03 Nov 11:30", note:"Marble samples flagged", grad:"linear-gradient(135deg, #5e3a32 0%, #2a1c18 100%)" },
+            { date:"02 Nov 09:14", note:"MEP rough-in / Block A", grad:"linear-gradient(135deg, #3a4250 0%, #1a1d22 100%)" },
+            { date:"01 Nov 16:20", note:"Foundation / Block C",   grad:"linear-gradient(135deg, #4a3a28 0%, #1c1812 100%)" },
+          ].map((p,i)=>(
+            <div key={i} style={{aspectRatio:"4/3", background:p.grad, padding:10, display:"flex", flexDirection:"column", justifyContent:"space-between", border:"1px solid var(--line)"}}>
+              <span className="mono" style={{fontSize:9, color:"rgba(255,255,255,0.55)", letterSpacing:"0.08em"}}>{p.date}</span>
+              <span style={{fontSize:11.5, color:"rgba(255,255,255,0.85)"}}>{p.note}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DocumentsRoom() {
+  const docs = [
+    { t:"Q4 2026 LP Brief",       d:"04 Nov 2026", size:"3.2 MB", type:"PDF", hash:"4f2a91c8" },
+    { t:"October Distribution Statement", d:"01 Nov 2026", size:"482 KB", type:"PDF", hash:"7d3a8821" },
+    { t:"Capital Call Notice 04 (paid)",  d:"02 Jul 2026", size:"218 KB", type:"PDF", hash:"a1c25e09" },
+    { t:"Q3 2026 LP Brief",       d:"15 Jul 2026", size:"2.8 MB", type:"PDF", hash:"b6e0a4c1" },
+    { t:"PPM v2 (executed)",       d:"15 Mar 2025", size:"4.4 MB", type:"PDF", hash:"e1d8b210" },
+    { t:"Insurance certificate '26", d:"02 Jan 2026", size:"180 KB", type:"PDF", hash:"5fa84c66" },
+  ];
+  return (
+    <section style={{marginTop:32}}>
+      <div style={{display:"flex", alignItems:"flex-end", marginBottom:18, gap:18}}>
+        <h2 className="display" style={{fontSize:32, margin:0, fontWeight:500}}>Documents room</h2>
+        <span style={{fontSize:12, color:"var(--ink-3)"}} className="mono">14 ACTIVE · ALL HASH-SIGNED</span>
+        <button className="btn btn-dark" style={{marginLeft:"auto"}}>Quarterly attestation →</button>
+      </div>
+      <div className="panel" style={{padding:0, overflow:"hidden"}}>
+        <table className="data">
+          <thead>
+            <tr><th>Document</th><th>Filed</th><th>Type</th><th>Size</th><th>Hash</th><th></th></tr>
+          </thead>
+          <tbody>
+            {docs.map((d,i)=>(
+              <tr key={i}>
+                <td style={{fontFamily:"'Space Grotesk', sans-serif", fontSize:14}}>{d.t}</td>
+                <td className="mono" style={{fontSize:11, color:"var(--ink-3)"}}>{d.d}</td>
+                <td><span className="badge badge-soft" style={{fontSize:10}}>{d.type}</span></td>
+                <td className="mono" style={{fontSize:11, color:"var(--ink-3)"}}>{d.size}</td>
+                <td className="mono" style={{fontSize:11, color:"var(--ink-3)"}}>{d.hash}</td>
+                <td><button className="btn btn-dark" style={{padding:"4px 10px", fontSize:11}}>Open <I.external width="11" height="11"/></button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+window.DevInvestor = InvestorPortal;
+
+</script>
+<script type="text/jsx-source" data-file="app.js">
+/* global React, ReactDOM, DevShared, DevLanding, DevAuth, DevBOQ, DevInvestor */
+const { DevNav, DevFooter, useHashRoute } = DevShared;
+
+function App() {
+  const [route, go] = useHashRoute("landing");
+  const base = route.split("#")[0];
+  const showChrome = base === "landing";
+  return (
+    <>
+      {showChrome && <DevNav go={go} route={route}/>}
+      {base === "landing"  && <DevLanding go={go}/>}
+      {base === "login"    && <DevAuth.DevLogin go={go}/>}
+      {base === "signup"   && <DevAuth.DevSignup go={go}/>}
+      {base === "boq"      && <DevBOQ go={go}/>}
+      {base === "investor" && <DevInvestor go={go}/>}
+      {showChrome && <DevFooter go={go}/>}
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App/>);
+
+</script>
+
+<script>
+(function(){
+  const scripts = [...document.querySelectorAll('script[type="text/jsx-source"]')];
+  for (const s of scripts) {
+    if (!s.textContent.trim()) continue;
+    try {
+      const compiled = Babel.transform(s.textContent, { presets:["react"] }).code;
+      (0, eval)(compiled);
+    } catch (e) {
+      console.error("[" + s.dataset.file + "]", e.message, e.stack);
+    }
+  }
+})();
+</script>
+<style id="motion-mobile">
+  /* ============ Custom cursor ============ */
+  @media (pointer: fine) {
+    html, body, * { cursor: none !important; }
+    input, textarea, select { cursor: text !important; }
+    .cursor-dot {
+      position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99999;
+      width: 8px; height: 8px; border-radius: 999px;
+      background: var(--terra, var(--amber, #C4583C));
+      transform: translate3d(-100px,-100px,0) translate(-50%,-50%);
+      transition: width .25s ease, height .25s ease, background .25s ease, opacity .25s ease;
+      mix-blend-mode: multiply;
+    }
+    .cursor-ring {
+      position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99998;
+      width: 36px; height: 36px; border-radius: 999px;
+      border: 1.5px solid var(--ink, #14130E);
+      transform: translate3d(-100px,-100px,0) translate(-50%,-50%);
+      transition: width .25s ease, height .25s ease, border-color .25s ease, background .25s ease, opacity .25s ease;
+    }
+    .cursor-dot.cursor-hover { width: 0; height: 0; opacity: 0; }
+    .cursor-ring.cursor-hover {
+      width: 72px; height: 72px;
+      background: var(--terra, var(--amber, #C4583C));
+      border-color: transparent;
+      mix-blend-mode: multiply;
+    }
+    .cursor-ring.cursor-text {
+      width: 4px; height: 28px; border-radius: 2px;
+      background: var(--ink, #14130E); border-color: transparent;
+    }
+    .cursor-label {
+      position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99999;
+      padding: 4px 10px; border-radius: 999px;
+      background: var(--ink, #14130E); color: #fff;
+      font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      transform: translate3d(-200px,-200px,0) translate(-50%, calc(-50% + 40px));
+      opacity: 0; transition: opacity .2s ease;
+      white-space: nowrap;
+    }
+    .cursor-label.cursor-show { opacity: 1; }
+  }
+  @media (pointer: coarse) {
+    .cursor-dot, .cursor-ring, .cursor-label { display: none !important; }
+  }
+
+  /* ============ Reveal-on-scroll ============ */
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity .9s cubic-bezier(.22,.61,.36,1), transform .9s cubic-bezier(.22,.61,.36,1);
+    will-change: opacity, transform;
+  }
+  [data-reveal="left"]  { transform: translateX(-40px); }
+  [data-reveal="right"] { transform: translateX(40px); }
+  [data-reveal="scale"] { transform: scale(0.96); transform-origin: center; }
+  [data-reveal="fade"]  { transform: none; }
+  [data-reveal].in { opacity: 1; transform: none !important; }
+  [data-reveal-delay="1"] { transition-delay: .06s; }
+  [data-reveal-delay="2"] { transition-delay: .12s; }
+  [data-reveal-delay="3"] { transition-delay: .18s; }
+  [data-reveal-delay="4"] { transition-delay: .24s; }
+  [data-reveal-delay="5"] { transition-delay: .30s; }
+  [data-reveal-delay="6"] { transition-delay: .36s; }
+
+  /* Mask reveal — for image/card mask-up */
+  [data-reveal-mask] {
+    clip-path: inset(0 0 100% 0);
+    transition: clip-path 1.1s cubic-bezier(.22,1,.36,1);
+    will-change: clip-path;
+  }
+  [data-reveal-mask].in { clip-path: inset(0 0 0 0); }
+
+  /* Word-by-word text reveal */
+  .word { display: inline-block; overflow: hidden; vertical-align: bottom; line-height: 1.05; padding-bottom: 0.06em; }
+  .word > span {
+    display: inline-block;
+    transform: translateY(110%);
+    transition: transform 1.05s cubic-bezier(.22,1,.36,1);
+    will-change: transform;
+  }
+  [data-text-reveal].in .word > span { transform: translateY(0); }
+
+  /* Char reveal (for shorter labels) */
+  .char { display: inline-block; opacity: 0; transform: translateY(0.4em); transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1); }
+  [data-text-reveal-char].in .char { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-reveal], [data-reveal-mask], [data-text-reveal], [data-text-reveal-char] { opacity: 1 !important; transform: none !important; clip-path: none !important; transition: none !important; }
+    [data-reveal] .word > span { transform: none !important; }
+    [data-parallax] { transform: none !important; }
+    .float-y, .float-x, .marquee-track { animation: none !important; }
+  }
+
+  [data-parallax] { will-change: transform; }
+
+  /* Subtle hover lift on cards-like surfaces */
+  .panel, .card, .bento, .stat-card { transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s ease, border-color .25s ease; }
+  .panel:hover, .card:hover, .bento:hover, .stat-card:hover { transform: translateY(-4px); }
+
+  /* Slow float on decorative cards */
+  @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @keyframes floatX { 0%,100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+  .float-y { animation: floatY 6s ease-in-out infinite; }
+  .float-x { animation: floatX 7s ease-in-out infinite; }
+
+  /* Text shimmer for headline accents */
+  @keyframes shimmer { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+  .shimmer-text {
+    background: linear-gradient(90deg, currentColor 0%, currentColor 30%, rgba(0,0,0,0.18) 50%, currentColor 70%, currentColor 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 4.5s ease-in-out infinite;
+  }
+
+  /* Marquee */
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .marquee { overflow: hidden; }
+  .marquee-track { display: inline-flex; gap: 36px; animation: marquee 40s linear infinite; white-space: nowrap; }
+
+  /* Scroll progress bar */
+  .scroll-progress {
+    position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+    background: var(--terra, var(--amber, #C4583C));
+    z-index: 999999; pointer-events: none; transition: width .08s linear;
+  }
+
+  /* ============ Mobile / responsive ============ */
+  /* Global guards */
+  html, body { overflow-x: hidden; max-width: 100vw; }
+  main { min-width: 0; }
+
+  @media (max-width: 1100px) {
+    [style*="repeat(5, 1fr)"] { grid-template-columns: repeat(3, 1fr) !important; }
+    [style*="repeat(6, 1fr)"] { grid-template-columns: repeat(3, 1fr) !important; }
+  }
+  @media (max-width: 900px) {
+    .display { font-size: clamp(40px, 8.5vw, 72px) !important; line-height: 1.04 !important; }
+
+    /* N-column grids collapse */
+    [style*="repeat(3, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+    [style*="repeat(4, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+    [style*="repeat(5, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+    [style*="repeat(6, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+    /* fr-pair splits stack — React renders as "1fr 1fr" etc. */
+    [style*="1fr 1fr"] { grid-template-columns: 1fr !important; }
+    [style*="1.2fr 1fr"], [style*="1.4fr 1fr"], [style*="1.5fr 1fr"], [style*="1.6fr 1fr"], [style*="1.05fr 1fr"] { grid-template-columns: 1fr !important; }
+    [style*="1fr 1.05fr"], [style*="1fr 1.1fr"], [style*="1fr 1.2fr"], [style*="1fr 1.4fr"], [style*="1fr 1.6fr"] { grid-template-columns: 1fr !important; }
+    [style*="1fr 1.1fr"] { grid-template-columns: 1fr !important; }
+    [style*="1.1fr 1fr"] { grid-template-columns: 1fr !important; }
+
+    /* Cabinet shell side rails collapse */
+    [style*="240px 1fr"] { grid-template-columns: 1fr !important; }
+    aside[style*="position: sticky"] { display: none !important; }
+
+    /* Hide-mobile class on nav items */
+    .hide-mobile { display: none !important; }
+
+    /* Cabinet sub-nav (Statements/My villas/...) — wrap multi-row */
+    nav[style*="display: flex"] { flex-wrap: wrap !important; gap: 12px !important; row-gap: 8px !important; margin-left: 0 !important; }
+    /* Cabinet shell topbar */
+    header[style*="position: sticky"] { padding: 12px 16px !important; flex-wrap: wrap !important; gap: 10px !important; }
+    /* Topbar trailing actions: collapse `margin-left: auto` so they wrap to next line */
+    header[style*="position: sticky"] > div[style*="margin-left: auto"] { margin-left: 0 !important; width: 100% !important; flex-wrap: wrap !important; }
+
+    /* Marquee animation */
+    .marquee-track { gap: 22px; animation-duration: 28s; }
+
+    /* Big section paddings shrink — React renders "110px 0" etc. literally */
+    [style*="padding: 110px"] { padding: 64px 0 !important; }
+    [style*="padding: 100px 28px"] { padding: 56px 18px !important; }
+    [style*="padding: 100px 0"] { padding: 60px 0 !important; }
+    [style*="padding: 72px 56px"], [style*="padding: 80px 64px"] { padding: 40px 24px !important; }
+
+    /* Parallax + cursor off on mobile */
+    [data-parallax] { transform: none !important; }
+    .cursor-dot, .cursor-ring, .cursor-label, .scroll-progress { display: none !important; }
+    html, body, * { cursor: auto !important; }
+    input, textarea, select { cursor: text !important; }
+    button, a, [role="button"] { cursor: pointer !important; }
+
+    /* Tables in cabinets: card/panel parent becomes scroll container, table stays a table */
+    .card, .panel, .stat-card { min-width: 0 !important; }
+    .card:has(> table), .card:has(> *:not(style):not(script) table), 
+    .panel:has(> table), .panel:has(> *:not(style):not(script) table) {
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: touch;
+    }
+    table { display: table !important; width: max-content !important; max-width: none !important; }
+    table thead { display: table-header-group !important; }
+    table tbody { display: table-row-group !important; }
+    table tfoot { display: table-footer-group !important; }
+    table tr { display: table-row !important; }
+    table th, table td { display: table-cell !important; white-space: nowrap !important; }
+
+    /* Cards that have a 180px image rail collapse to stacked */
+    [style*="180px 1fr"] { grid-template-columns: 1fr !important; }
+    [style*="180px 1fr"] > *:first-child { min-height: 140px !important; height: 140px !important; }
+
+    /* Maintain max width on layout shells */
+    [style*="max-width: 1320px"], [style*="max-width: 1360px"], [style*="max-width: 1400px"], [style*="max-width: 1480px"], [style*="max-width: 1280px"], [style*="max-width: 1100px"] {
+      max-width: 100% !important;
+    }
+
+    /* Topbar search input */
+    input[placeholder*="Search"] { width: 100% !important; min-width: 0 !important; }
+    div[style*="width: 280px"], div[style*="width: 300px"] { width: 100% !important; max-width: 100% !important; }
+
+    /* Inline-flex toolbars wrap */
+    [style*="display: inline-flex"] { flex-wrap: wrap !important; }
+
+    /* Mgmt — owner portal section actions: gap and wrap */
+    [style*="margin-left: auto"][style*="display: flex"] { margin-left: 0 !important; flex-wrap: wrap !important; }
+  }
+  @media (max-width: 760px) {
+    /* Floating decorative tiles in hero stack inline (React renders position:absolute literal) */
+    [style*="position: absolute"][style*="top: 28px"],
+    [style*="position: absolute"][style*="bottom: 28px"] {
+      position: static !important;
+      transform: none !important;
+      max-width: 100% !important;
+      margin: 8px 0 !important;
+    }
+    /* Hero photo block shrinks */
+    .photo-villa, .photo-pool, .photo-suite, .photo-warm,
+    .photo-site, .photo-blueprint {
+      min-height: 220px !important;
+      aspect-ratio: auto !important;
+    }
+    .display.h1 { font-size: clamp(36px, 9.5vw, 56px) !important; }
+  }
+  @media (max-width: 600px) {
+    .display { font-size: clamp(32px, 11vw, 52px) !important; }
+    [style*="repeat(2, 1fr)"] { grid-template-columns: 1fr !important; }
+    [style*="repeat(3, 1fr)"], [style*="repeat(4, 1fr)"], [style*="repeat(5, 1fr)"], [style*="repeat(6, 1fr)"] { grid-template-columns: 1fr !important; }
+    /* Container padding shrink */
+    [style*="padding: 0px 28px"], [style*="padding: 0px 32px"], [style*="padding: 24px 28px"] {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+    [style*="padding: 48px"] { padding: 24px !important; }
+    [style*="padding: 56px 48px"] { padding: 28px 18px !important; }
+    /* Cabinet shell topbar tighter */
+    header[style*="position: sticky"] { padding: 10px 16px !important; }
+    /* Tables in cabinets fit phone */
+    table.guests th, table.guests td, table.data th, table.data td { padding: 8px 10px !important; font-size: 12px !important; }
+  }
+</style>
+
+<script id="motion-mobile-js">
+(function(){
+  if (window.__motionInit) return;
+  window.__motionInit = true;
+
+  /* ============ Custom cursor ============ */
+  let dot, ring, label;
+  const isFinePointer = matchMedia('(pointer: fine)').matches;
+  if (isFinePointer) {
+    dot = document.createElement('div');  dot.className  = 'cursor-dot';
+    ring = document.createElement('div'); ring.className = 'cursor-ring';
+    label = document.createElement('div'); label.className = 'cursor-label';
+    document.body.append(dot, ring, label);
+
+    let mx = -100, my = -100, rx = -100, ry = -100;
+    window.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      dot.style.transform = `translate3d(${mx}px,${my}px,0) translate(-50%,-50%)`;
+      label.style.transform = `translate3d(${mx}px,${my}px,0) translate(-50%, calc(-50% + 40px))`;
+    }, { passive: true });
+
+    function follow() {
+      rx += (mx - rx) * 0.18;
+      ry += (my - ry) * 0.18;
+      ring.style.transform = `translate3d(${rx.toFixed(1)}px,${ry.toFixed(1)}px,0) translate(-50%,-50%)`;
+      requestAnimationFrame(follow);
+    }
+    requestAnimationFrame(follow);
+
+    document.addEventListener('mouseenter', () => { dot.style.opacity = '1'; ring.style.opacity = '1'; });
+    document.addEventListener('mouseleave', () => { dot.style.opacity = '0'; ring.style.opacity = '0'; });
+
+    document.addEventListener('mouseover', e => {
+      const t = e.target;
+      if (!t || !t.closest) return;
+      const interactive = t.closest('a, button, [role="button"], input, textarea, select, [data-cursor-hover]');
+      if (interactive) {
+        dot.classList.add('cursor-hover');
+        ring.classList.add('cursor-hover');
+        if (interactive.matches('input, textarea, select')) {
+          ring.classList.add('cursor-text');
+        }
+        const labelText = interactive.dataset && interactive.dataset.cursorLabel;
+        if (labelText) {
+          label.textContent = labelText;
+          label.classList.add('cursor-show');
+        }
+      }
+    });
+    document.addEventListener('mouseout', e => {
+      const t = e.target;
+      if (!t || !t.closest) return;
+      const interactive = t.closest('a, button, [role="button"], input, textarea, select, [data-cursor-hover]');
+      if (interactive) {
+        dot.classList.remove('cursor-hover');
+        ring.classList.remove('cursor-hover');
+        ring.classList.remove('cursor-text');
+        label.classList.remove('cursor-show');
+      }
+    });
+
+    document.addEventListener('mousedown', () => { ring.style.transform += ' scale(0.85)'; });
+    document.addEventListener('mouseup',   () => { /* will be reset by next frame */ });
+  }
+
+  /* ============ Scroll progress bar ============ */
+  const progress = document.createElement('div');
+  progress.className = 'scroll-progress';
+  document.body.appendChild(progress);
+  function updateProgress() {
+    const h = document.documentElement;
+    const pct = h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight) * 100;
+    progress.style.width = Math.min(100, pct) + '%';
+  }
+
+  /* ============ Auto-tag sections + reveal ============ */
+  function autoTagSections() {
+    document.querySelectorAll("section").forEach((s) => {
+      if (!s.hasAttribute("data-reveal") && !s.closest("[data-no-reveal]")) {
+        s.setAttribute("data-reveal", "up");
+      }
+    });
+  }
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add("in");
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
+
+  function scanReveal() {
+    autoTagSections();
+    document.querySelectorAll("[data-reveal]:not(.in), [data-reveal-mask]:not(.in), [data-text-reveal]:not(.in), [data-text-reveal-char]:not(.in)").forEach(el => io.observe(el));
+  }
+
+  /* ============ Word & char splitting ============ */
+  function splitWords(node, idx = { i: 0 }) {
+    for (const child of [...node.childNodes]) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        const text = child.textContent;
+        if (!text.trim()) continue;
+        const frag = document.createDocumentFragment();
+        text.split(/(\s+)/).forEach(w => {
+          if (!w) return;
+          if (!w.trim()) { frag.appendChild(document.createTextNode(w)); return; }
+          const wrap = document.createElement('span'); wrap.className = 'word';
+          const inner = document.createElement('span');
+          inner.textContent = w;
+          inner.style.transitionDelay = (idx.i * 0.05) + 's';
+          idx.i++;
+          wrap.appendChild(inner);
+          frag.appendChild(wrap);
+        });
+        child.replaceWith(frag);
+      } else if (child.nodeType === Node.ELEMENT_NODE && !child.classList.contains('word')) {
+        splitWords(child, idx);
+      }
+    }
+  }
+  function splitChars(node) {
+    const text = node.textContent;
+    node.textContent = '';
+    [...text].forEach((c, i) => {
+      const s = document.createElement('span');
+      s.className = 'char';
+      s.textContent = c === ' ' ? '\u00a0' : c;
+      s.style.transitionDelay = (i * 0.025) + 's';
+      node.appendChild(s);
+    });
+  }
+  function scanTextReveal() {
+    document.querySelectorAll('[data-text-reveal]:not([data-text-reveal-done])').forEach(el => {
+      el.dataset.textRevealDone = '1';
+      splitWords(el);
+    });
+    document.querySelectorAll('[data-text-reveal-char]:not([data-text-reveal-done])').forEach(el => {
+      el.dataset.textRevealDone = '1';
+      splitChars(el);
+    });
+  }
+
+  /* ============ Parallax ============ */
+  let parallaxEls = [];
+  function refreshParallax() {
+    parallaxEls = [];
+    document.querySelectorAll("[data-parallax]").forEach(el => {
+      const rect = el.getBoundingClientRect();
+      parallaxEls.push({
+        el,
+        speed: parseFloat(el.dataset.parallax) || 0.2,
+        anchor: rect.top + window.scrollY + rect.height / 2,
+      });
+    });
+  }
+  let ticking = false;
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      const vh = window.innerHeight;
+      parallaxEls.forEach(p => {
+        const dy = (y + vh / 2 - p.anchor) * p.speed;
+        p.el.style.transform = "translate3d(0," + dy.toFixed(1) + "px,0)";
+      });
+      updateProgress();
+      ticking = false;
+    });
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", () => { refreshParallax(); updateProgress(); }, { passive: true });
+
+  /* ============ Count-up ============ */
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+  function formatNum(n, raw) {
+    if (raw.includes(",") && n >= 1000) return Math.round(n).toLocaleString();
+    if (n % 1 !== 0) return n.toFixed(1);
+    return Math.round(n).toString();
+  }
+  function animateCount(el) {
+    const target = parseFloat(el.dataset.count);
+    if (isNaN(target)) return;
+    const prefix = el.dataset.countPrefix || "";
+    const suffix = el.dataset.countSuffix || "";
+    const dur = 1500;
+    const t0 = performance.now();
+    const raw = el.textContent.trim();
+    function step(now) {
+      const t = Math.min(1, (now - t0) / dur);
+      const v = target * easeOutCubic(t);
+      el.textContent = prefix + formatNum(v, raw) + suffix;
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  const cio = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      animateCount(e.target);
+      cio.unobserve(e.target);
+    });
+  }, { threshold: 0.5 });
+  function scanCounts() {
+    document.querySelectorAll("[data-count]:not([data-count-done])").forEach(el => {
+      el.dataset.countDone = "1";
+      cio.observe(el);
+    });
+  }
+
+  /* ============ Magnetic hover ============ */
+  function bindMagnetic() {
+    document.querySelectorAll(".ra-btn, .btn-amber, .btn-primary, .btn-terra").forEach(el => {
+      if (el.dataset.magBound) return;
+      el.dataset.magBound = "1";
+      el.style.transition = (el.style.transition || "") + ", transform .2s cubic-bezier(.22,1,.36,1)";
+      el.addEventListener("mousemove", (e) => {
+        const r = el.getBoundingClientRect();
+        const x = (e.clientX - r.left - r.width / 2) / r.width * 16;
+        const y = (e.clientY - r.top - r.height / 2) / r.height * 16;
+        el.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px)";
+      });
+      el.addEventListener("mouseleave", () => { el.style.transform = ""; });
+    });
+  }
+
+  function tick() {
+    scanTextReveal();
+    scanReveal();
+    scanCounts();
+    refreshParallax();
+    bindMagnetic();
+    updateProgress();
+  }
+
+  if (document.readyState !== "loading") setTimeout(tick, 120);
+  else document.addEventListener("DOMContentLoaded", () => setTimeout(tick, 120));
+
+  new MutationObserver(() => {
+    clearTimeout(window.__motionDebounce);
+    window.__motionDebounce = setTimeout(tick, 80);
+  }).observe(document.body, { childList: true, subtree: true });
+})();
+</script>
+
+</body>
+</html>

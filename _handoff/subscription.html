@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Arconique — two operating systems for premium property</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Subscription brand · "boutique software house" */
+    --paper:        #F5F0E2;      /* warm bone paper */
+    --paper-2:      #FBF7EC;      /* lifted */
+    --paper-3:      #FFFEF8;      /* lightest */
+    --ink:          #0F1A1F;      /* deep teal-black */
+    --ink-2:        #2A3B41;
+    --ink-3:        #5C6C70;
+    --ink-4:        #8B9295;
+    --line:         #D5CFB8;
+    --line-soft:    #E4DFC9;
+    --line-strong:  #B3AB8E;
+    --gold:         #C9A961;
+    --gold-deep:    #9C7F3F;
+    --gold-soft:    #E6D49C;
+    --terra:        #C4583C;       /* unified with mgmt */
+    --terra-soft:   #E8A78D;
+    --emerald:      #2F5A4E;       /* unified with mgmt forest */
+    --emerald-soft: #D6E5DD;
+    --amber:        #FF6B35;       /* unified with dev */
+    --amber-soft:   #FFD3BC;
+    --steel:        #3D5A7A;
+    --ok:           #4F7A5D;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background: var(--paper); color: var(--ink); font-family:'Inter', system-ui, sans-serif; font-size: 15.5px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; border: 0; background: transparent; color: inherit; }
+  ::selection { background: var(--gold); color: var(--ink); }
+  html { scroll-behavior: smooth; }
+
+  /* Typography */
+  .display { font-family: 'Fraunces', Georgia, serif; font-weight: 400; letter-spacing: -0.02em; line-height: 1.0; font-variation-settings: "opsz" 144, "SOFT" 50; }
+  .display em { font-style: italic; color: var(--terra); font-weight: 400; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-feature-settings: "tnum"; }
+  .num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .label { font-family: 'JetBrains Mono', monospace; text-transform: uppercase; font-size: 11px; letter-spacing: 0.18em; color: var(--ink-3); font-weight: 400; }
+  .label-gold { color: var(--gold-deep); }
+
+  /* Buttons */
+  .btn { display:inline-flex; align-items:center; gap: 8px; padding: 11px 20px; border-radius: 999px; font-size: 14px; font-weight: 500; transition: all .18s ease; white-space: nowrap; border:1px solid transparent; }
+  .btn-ink   { background: var(--ink); color: var(--paper); }
+  .btn-ink:hover { background: #04090c; }
+  .btn-gold  { background: var(--gold); color: var(--ink); }
+  .btn-gold:hover { background: var(--gold-deep); color: var(--paper); }
+  .btn-terra { background: var(--terra); color: var(--paper); }
+  .btn-terra:hover { background: #9c4630; }
+  .btn-ghost { background: transparent; color: var(--ink); border:1px solid var(--line); }
+  .btn-ghost:hover { background: var(--paper-2); border-color: var(--ink); }
+  .btn-amber { background: var(--amber); color: var(--ink); }
+  .btn-amber:hover { background: var(--amber-soft); }
+  .btn-lg { padding: 14px 24px; font-size: 15px; }
+  .btn-sm { padding: 7px 14px; font-size: 13px; }
+
+  /* Tag chip */
+  .chip { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background: var(--paper-2); border:1px solid var(--line); border-radius:999px; font-size:12px; color: var(--ink-2); font-family:'JetBrains Mono', monospace; letter-spacing:0.08em; text-transform: uppercase; }
+  .chip-dot::before { content:""; width:6px; height:6px; border-radius:999px; background: var(--terra); }
+  .chip-ink { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  /* Card surfaces */
+  .card { background: var(--paper-3); border: 1px solid var(--line-soft); border-radius: 22px; }
+  .card-ink { background: var(--ink); color: var(--paper); border-color: var(--ink); border-radius: 22px; }
+
+  /* Photo / brand textures */
+  .tex-paper { background: repeating-linear-gradient(135deg, rgba(15,26,31,0.03) 0 1px, transparent 1px 22px), var(--paper-3); }
+  .tex-warm  { background: linear-gradient(160deg, #d8c19a 0%, #c2986a 38%, #a07645 100%); }
+  .tex-cool  { background: linear-gradient(160deg, #5c7c8a 0%, #3a5364 38%, #1a2a36 100%); }
+  .tex-sand  { background: linear-gradient(160deg, var(--paper-2) 0%, var(--gold-soft) 100%); }
+  .tex-ink   { background: linear-gradient(160deg, var(--ink) 0%, #1e2c30 100%); }
+
+  /* Bento grid */
+  .bento { background: var(--paper-3); border: 1px solid var(--line-soft); border-radius: 24px; padding: 28px; position: relative; }
+  .bento-gold { background: var(--gold); color: var(--ink); }
+  .bento-terra{ background: var(--terra); color: var(--paper); }
+  .bento-ink  { background: var(--ink); color: var(--paper); }
+  .bento-emerald { background: var(--emerald); color: var(--paper); }
+  .bento-amber{ background: var(--amber); color: var(--ink); }
+
+  /* Pulse */
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(196,88,60,0.5); } 50% { box-shadow: 0 0 0 6px rgba(196,88,60,0); } }
+  .pulse-dot { width:7px; height:7px; border-radius:999px; background: var(--terra); display:inline-block; animation: pulse 2.4s ease-in-out infinite; }
+
+  /* Underline gestures */
+  .squiggle { position: relative; }
+  .squiggle::after {
+    content: ""; position: absolute; left: -2%; right: -2%; bottom: -6px; height: 8px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8'><path d='M0 4 Q 15 0 30 4 T 60 4 T 90 4 T 120 4' stroke='%23C4583C' stroke-width='2' fill='none'/></svg>");
+    background-repeat: repeat-x;
+    background-size: 120px 8px;
+  }
+
+  /* Header */
+  header.site { position: sticky; top: 0; z-index: 50; background: rgba(245,240,226,0.86); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line-soft); }
+  .nav-row { max-width: 1360px; margin: 0 auto; padding: 16px 32px; display: flex; align-items: center; gap: 28px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: 'Fraunces', serif; font-size: 22px; letter-spacing: -0.01em; }
+  .brand-mark { width: 26px; height: 26px; color: var(--ink); }
+  nav.top { display: flex; gap: 28px; margin-left: 12px; font-size: 14px; color: var(--ink-2); }
+  nav.top a:hover { color: var(--ink); }
+
+  /* Section spacing */
+  section.sec { padding: 96px 0; }
+  .container { max-width: 1360px; margin: 0 auto; padding: 0 32px; }
+
+  /* Mobile */
+  html, body { overflow-x: hidden; }
+  @media (max-width: 1000px) {
+    [style*="repeat(3, 1fr)"], [style*="repeat(4, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+    [style*="1fr 1fr"], [style*="1.4fr 1fr"] { grid-template-columns: 1fr !important; }
+    section.sec { padding: 56px 0; }
+    .hide-mobile { display: none !important; }
+    .display.xl { font-size: clamp(48px, 11vw, 96px) !important; }
+  }
+  @media (max-width: 640px) {
+    [style*="repeat(2, 1fr)"], [style*="repeat(3, 1fr)"] { grid-template-columns: 1fr !important; }
+    .nav-row { padding: 14px 18px; gap: 14px; }
+    .container { padding: 0 18px; }
+  }
+
+  /* Reveal on scroll */
+  [data-reveal] { opacity: 0; transform: translateY(28px); transition: opacity .9s cubic-bezier(.22,.61,.36,1), transform .9s cubic-bezier(.22,.61,.36,1); }
+  [data-reveal].in { opacity: 1; transform: none; }
+  [data-reveal-delay="1"] { transition-delay: .08s; }
+  [data-reveal-delay="2"] { transition-delay: .16s; }
+  [data-reveal-delay="3"] { transition-delay: .24s; }
+  @media (prefers-reduced-motion: reduce) { [data-reveal] { opacity: 1; transform: none; transition: none; } }
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="site">
+  <div class="nav-row">
+    <a href="#top" class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" fill="none"><path d="M16 4 L26 22 H6 Z" stroke="currentColor" stroke-width="1.5"/><path d="M11 22 L16 13 L21 22" stroke="currentColor" stroke-width="1.5"/></svg>
+      Arconique
+      <span class="chip" style="margin-left:6px; font-size:10px; padding:2px 8px;">SUBSCRIPTION</span>
+    </a>
+    <nav class="top hide-mobile">
+      <a href="#products">Products</a>
+      <a href="#why">Why both</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#trust">Customers</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+      <a href="management.html" class="btn btn-ghost btn-sm hide-mobile">Management OS →</a>
+      <a href="development.html" class="btn btn-ghost btn-sm hide-mobile">Development OS →</a>
+      <a href="#pricing" class="btn btn-ink btn-sm">Start trial</a>
+    </div>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="sec" id="top" style="padding-top:56px;">
+  <div class="container">
+    <div class="chip chip-dot" data-reveal>Arconique · v9 · 04 May 2026 · Made in Bali</div>
+    <h1 class="display xl" data-reveal style="font-size: clamp(60px, 9vw, 132px); font-weight:400; margin: 28px 0 24px; max-width: 1240px;">
+      Two operating systems<br/>
+      <em>for premium property.</em><br/>
+      <span style="color: var(--ink-3); font-style: italic;">One operating company.</span>
+    </h1>
+    <p data-reveal style="font-size: 19px; max-width: 720px; color: var(--ink-2); margin: 0 0 36px;">
+      Arconique builds two software systems for boutique villa and resort businesses in Southeast Asia. <strong style="color: var(--ink); font-weight: 500;">Management OS</strong> runs the portfolio you already own. <strong style="color: var(--ink); font-weight: 500;">Development OS</strong> builds the next one. Both live in one workspace, share one audit log, and stop you from emailing your COO at 23:00.
+    </p>
+    <div style="display:flex; gap:12px; flex-wrap:wrap;" data-reveal>
+      <a href="#pricing" class="btn btn-ink btn-lg">See pricing →</a>
+      <a href="management/index.html" class="btn btn-ghost btn-lg">Tour Management OS</a>
+      <a href="development/index.html" class="btn btn-ghost btn-lg">Tour Development OS</a>
+    </div>
+
+    <!-- Under-hero meta -->
+    <div data-reveal style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 36px; margin-top: 72px; padding-top: 28px; border-top: 1px solid var(--line-soft);">
+      <div><div class="num" style="font-size:34px; color: var(--ink); font-weight:500;">200+</div><div style="font-size:12.5px; color: var(--ink-3); margin-top:4px;">villas under Management OS</div></div>
+      <div><div class="num" style="font-size:34px; color: var(--ink); font-weight:500;">14</div><div style="font-size:12.5px; color: var(--ink-3); margin-top:4px;">active development projects</div></div>
+      <div><div class="num" style="font-size:34px; color: var(--ink); font-weight:500;">$24M</div><div style="font-size:12.5px; color: var(--ink-3); margin-top:4px;">LP commitment under management</div></div>
+      <div><div class="num" style="font-size:34px; color: var(--ink); font-weight:500;">99.98%</div><div style="font-size:12.5px; color: var(--ink-3); margin-top:4px;">platform uptime · 12mo trailing</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRODUCTS ============ -->
+<section class="sec" id="products" style="background: var(--paper-2); border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);">
+  <div class="container">
+    <div style="display:flex; align-items:flex-end; gap:24px; margin-bottom: 56px;" data-reveal>
+      <div>
+        <div class="label label-gold">Two products · one platform</div>
+        <h2 class="display" style="font-size: clamp(40px, 5.5vw, 64px); margin: 12px 0 0;">
+          Pick one. Or <em>let them talk.</em>
+        </h2>
+        <p style="max-width: 580px; color: var(--ink-3); margin: 16px 0 0; font-size: 16px;">
+          Both products are independently complete. Together they share a workspace, a permission model, and an audit log — so a single org can run a 50-villa portfolio while building the next five.
+        </p>
+      </div>
+    </div>
+
+    <!-- Two product cards -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+      <!-- MANAGEMENT -->
+      <div class="bento" data-reveal style="padding: 0; overflow: hidden;">
+        <div class="tex-sand" style="padding: 32px 32px 28px; border-bottom: 1px solid var(--line-soft);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="width:36px; height:36px; border-radius:12px; background: var(--terra); color: var(--paper); display:flex; align-items:center; justify-content:center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V8l9-5 9 5v13M9 21v-7h6v7"/></svg>
+            </span>
+            <span class="chip" style="background: var(--paper); border-color: var(--terra-soft); color: var(--terra);">MANAGEMENT OS</span>
+          </div>
+          <h3 class="display" style="font-size: 44px; margin: 18px 0 10px; max-width: 480px;">Run the portfolio. <em>Quietly.</em></h3>
+          <p style="margin: 0; font-size: 15.5px; color: var(--ink-2); max-width: 520px;">
+            The villa and boutique-hotel operating system. Bookings, owner statements, concierge AI, housekeeping, dynamic pricing, direct bookings — all on one source of truth. Built in Bali for premium hospitality operators.
+          </p>
+        </div>
+
+        <div style="padding: 24px 32px;">
+          <div class="label" style="margin-bottom: 12px;">What you get · 21 cabinets</div>
+          <ul style="list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; font-size: 14px;">
+            <li>· Front office + arrivals</li>
+            <li>· Concierge AI · 4 languages</li>
+            <li>· Owner statements · hash-signed</li>
+            <li>· Owner stays + quotas</li>
+            <li>· Multi-channel sync (6 channels)</li>
+            <li>· Dynamic pricing · live</li>
+            <li>· Maintenance intelligence</li>
+            <li>· Inventory + procurement</li>
+            <li>· Direct-booking website</li>
+            <li>· Guest stays + smart-lock</li>
+            <li>· 8 specialist AI agents</li>
+            <li>· Owner intelligence reports</li>
+          </ul>
+
+          <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--line); display: flex; flex-wrap: wrap; gap: 8px;">
+            <a href="management.html" class="btn btn-ink">Visit landing →</a>
+            <a href="management/index.html" class="btn btn-ghost">Open demo cabinets</a>
+          </div>
+          <div class="mono" style="margin-top: 14px; font-size: 11px; color: var(--ink-4); letter-spacing: 0.08em;">→ management.arconique.com</div>
+        </div>
+      </div>
+
+      <!-- DEVELOPMENT -->
+      <div class="bento" data-reveal data-reveal-delay="1" style="padding: 0; overflow: hidden;">
+        <div class="tex-cool" style="padding: 32px 32px 28px; border-bottom: 1px solid var(--line-soft); color: var(--paper); position: relative;">
+          <div style="position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 30px 30px; pointer-events: none;"></div>
+          <div style="position: relative;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="width:36px; height:36px; border-radius:12px; background: var(--amber); color: var(--ink); display:flex; align-items:center; justify-content:center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 5l5 5-9 9-5-5 9-9zM12 7l5 5M3 21l3-3"/></svg>
+              </span>
+              <span class="chip" style="background: rgba(255,107,53,0.18); border-color: rgba(255,255,255,0.3); color: var(--amber-soft); letter-spacing: 0.12em;">DEVELOPMENT OS</span>
+            </div>
+            <h3 class="display" style="font-size: 44px; margin: 18px 0 10px; max-width: 480px; color: var(--paper);">Build the next one. <span style="color: var(--amber);">On record.</span></h3>
+            <p style="margin: 0; font-size: 15.5px; color: rgba(245,240,226,0.78); max-width: 520px;">
+              The construction operating system for boutique villa and condotel developers. BOQ, procurement, QA/QC, daily reports, investor portal — one source of truth from groundbreaking to handover.
+            </p>
+          </div>
+        </div>
+
+        <div style="padding: 24px 32px;">
+          <div class="label" style="margin-bottom: 12px;">What you get · 20 cabinets</div>
+          <ul style="list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; font-size: 14px;">
+            <li>· BOQ · 8,300-line live tracking</li>
+            <li>· QS Cost Analyst AI</li>
+            <li>· Procurement · PR/RFQ/PO/invoice</li>
+            <li>· Site supervisor PWA</li>
+            <li>· Photo-evidence QA/QC</li>
+            <li>· CFO cabinet · P&L + tax</li>
+            <li>· Investor portal · bilingual</li>
+            <li>· Capital ledger + waterfall</li>
+            <li>· Sales pipeline + buyers</li>
+            <li>· Method statements library</li>
+            <li>· 10 specialist AI agents</li>
+            <li>· Risk radar · executive view</li>
+          </ul>
+
+          <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--line); display: flex; flex-wrap: wrap; gap: 8px;">
+            <a href="development.html" class="btn btn-ink">Visit landing →</a>
+            <a href="development/index.html" class="btn btn-ghost">Open demo cabinets</a>
+          </div>
+          <div class="mono" style="margin-top: 14px; font-size: 11px; color: var(--ink-4); letter-spacing: 0.08em;">→ development.arconique.com</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHY BOTH ============ -->
+<section class="sec" id="why">
+  <div class="container">
+    <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap: 64px; align-items: flex-start;" data-reveal>
+      <div>
+        <div class="label label-gold">Why both</div>
+        <h2 class="display" style="font-size: clamp(40px, 5.5vw, 64px); margin: 12px 0 0;">
+          Build it. <em>Run it.</em> Without<br/>switching browser tabs.
+        </h2>
+        <p style="max-width: 540px; color: var(--ink-3); margin: 22px 0 0; font-size: 16px;">
+          Boutique developers eventually become operators. The unit you sold becomes the villa you run. The villa you run pays for the next groundbreaking. The capital you raised needs ongoing reporting after the asset is live. One workspace closes that loop.
+        </p>
+        <ul style="list-style: none; padding: 0; margin: 36px 0 0; display: flex; flex-direction: column; gap: 16px; font-size: 15px;">
+          <li style="display:flex; gap: 14px;"><span class="num" style="color: var(--gold-deep); min-width: 28px;">01</span><div><strong>One audit log.</strong><br/><span style="color: var(--ink-3);">Every booking, every PO, every change order, every distribution — hash-chained in one append-only ledger.</span></div></li>
+          <li style="display:flex; gap: 14px;"><span class="num" style="color: var(--gold-deep); min-width: 28px;">02</span><div><strong>Asset handover, in place.</strong><br/><span style="color: var(--ink-3);">A villa graduates from Development to Management with one click. Buyers become owners. POs become opex. No data migration.</span></div></li>
+          <li style="display:flex; gap: 14px;"><span class="num" style="color: var(--gold-deep); min-width: 28px;">03</span><div><strong>Investors see both sides.</strong><br/><span style="color: var(--ink-3);">LP portal pulls capital ledger from Development, NOI from Management. One quarterly report. One IRR.</span></div></li>
+          <li style="display:flex; gap: 14px;"><span class="num" style="color: var(--gold-deep); min-width: 28px;">04</span><div><strong>20 roles, one permission model.</strong><br/><span style="color: var(--ink-3);">Site supervisor, GM, QS, concierge, CFO, owner, LP, board member — every role's cabinet, gated by the same RLS layer.</span></div></li>
+        </ul>
+      </div>
+
+      <div style="position: relative;">
+        <div class="card-ink" style="padding: 28px; position: relative; overflow: hidden;">
+          <div style="position: absolute; inset: 0; opacity: 0.12; background: radial-gradient(60% 60% at 100% 0%, var(--gold) 0%, transparent 60%);"></div>
+          <div class="label" style="color: rgba(245,240,226,0.6);">UNIFIED LP REPORT · Q1 2026</div>
+          <h3 class="display" style="font-size: 28px; margin: 10px 0 0; color: var(--paper);">Robert P. · Hong Kong</h3>
+          <div class="mono" style="font-size: 11px; color: rgba(245,240,226,0.6); margin-top: 4px;">LP across EP02 (dev) + ES-S5 (mgmt)</div>
+
+          <div style="margin-top: 26px; display: grid; gap: 14px;">
+            <div style="padding: 14px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;">
+              <div class="label" style="color: var(--amber-soft);">FROM DEVELOPMENT OS</div>
+              <div style="display:flex; justify-content: space-between; margin-top: 8px; align-items: baseline;">
+                <span style="font-size:13.5px;">Commitment called</span><span class="num" style="font-size:18px; color: var(--gold);">78%</span>
+              </div>
+              <div style="display:flex; justify-content: space-between; margin-top: 6px; align-items: baseline;">
+                <span style="font-size:13.5px;">YTD distributions</span><span class="num" style="font-size:18px;">$184K</span>
+              </div>
+            </div>
+            <div style="padding: 14px 16px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;">
+              <div class="label" style="color: var(--amber-soft);">FROM MANAGEMENT OS</div>
+              <div style="display:flex; justify-content: space-between; margin-top: 8px; align-items: baseline;">
+                <span style="font-size:13.5px;">YTD owner payouts</span><span class="num" style="font-size:18px; color: var(--gold);">$84K</span>
+              </div>
+              <div style="display:flex; justify-content: space-between; margin-top: 6px; align-items: baseline;">
+                <span style="font-size:13.5px;">Net annualized yield</span><span class="num" style="font-size:18px;">11.4%</span>
+              </div>
+            </div>
+            <div style="padding: 14px 16px; background: var(--gold); color: var(--ink); border-radius: 12px;">
+              <div class="label" style="color: rgba(15,26,31,0.6);">COMPOSITE IRR · NET</div>
+              <div style="font-family: 'Fraunces', serif; font-size: 42px; margin-top: 6px; font-style: italic; font-weight: 400;">23.4%</div>
+              <div style="font-size: 11px; color: rgba(15,26,31,0.7); margin-top: 2px;">vs PPM 18.0% · attested 31 Mar 2026</div>
+            </div>
+          </div>
+
+          <div class="mono" style="margin-top: 22px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.18); font-size: 10px; color: rgba(245,240,226,0.5); letter-spacing: 0.08em;">
+            HASH a91f2c…7d4b · CHAIN VERIFIED
+          </div>
+        </div>
+        <div style="margin-top: 12px; text-align: center; font-size: 12px; color: var(--ink-3); font-style: italic;">— One LP report. Two systems behind it.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="sec" id="pricing" style="background: var(--paper-2); border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);">
+  <div class="container">
+    <div style="text-align: center; max-width: 720px; margin: 0 auto 56px;" data-reveal>
+      <div class="label label-gold">Pricing · annual gets 18% off</div>
+      <h2 class="display" style="font-size: clamp(40px, 5.5vw, 64px); margin: 12px 0 0;">
+        Buy <em>one.</em> Buy <em>both.</em> 14-day trial first.
+      </h2>
+      <p style="color: var(--ink-3); margin: 18px 0 0; font-size: 16px;">
+        Per-villa for Management OS. Per-project for Development OS. Bundle saves 20%. No card to start. Cancel any time — full CSV/XLSX export of every row.
+      </p>
+    </div>
+
+    <!-- 3 product cards: Management / Development / Both -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;">
+      <!-- Management -->
+      <div class="card" data-reveal style="padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="chip" style="background: var(--paper); border-color: var(--terra-soft); color: var(--terra);">MANAGEMENT OS</span>
+          </div>
+          <h3 class="display" style="font-size: 30px; margin: 14px 0 0; font-weight: 400;">Operator</h3>
+          <p style="margin: 8px 0 0; font-size: 13.5px; color: var(--ink-3);">For multi-owner companies running 5–25 villas.</p>
+        </div>
+        <div>
+          <div style="display:flex; align-items: baseline; gap: 6px;">
+            <span class="display" style="font-size: 54px; font-weight: 400;">$390</span>
+            <span style="color: var(--ink-3); font-size: 14px;">/villa/mo</span>
+          </div>
+          <div class="mono" style="font-size: 11px; color: var(--ink-4); margin-top: 4px;">FROM $190/villa · Starter tier</div>
+        </div>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; color: var(--ink-2);">
+          <li>· All 21 cabinets · unlimited users</li>
+          <li>· Multi-owner statements · DPA</li>
+          <li>· Concierge AI · unlimited messages</li>
+          <li>· Direct-booking website included</li>
+          <li>· Maintenance intelligence</li>
+          <li>· Slack-channel support · live</li>
+        </ul>
+        <a href="management.html#pricing" class="btn btn-terra" style="margin-top: auto; justify-content: center;">Start Management trial →</a>
+      </div>
+
+      <!-- Development -->
+      <div class="card" data-reveal data-reveal-delay="1" style="padding: 28px; display: flex; flex-direction: column; gap: 18px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="chip" style="background: var(--paper); border-color: var(--amber-soft); color: var(--amber);">DEVELOPMENT OS</span>
+          </div>
+          <h3 class="display" style="font-size: 30px; margin: 14px 0 0; font-weight: 400;">Portfolio</h3>
+          <p style="margin: 8px 0 0; font-size: 13.5px; color: var(--ink-3);">For boutique developers with 2–6 concurrent projects.</p>
+        </div>
+        <div>
+          <div style="display:flex; align-items: baseline; gap: 6px;">
+            <span class="display" style="font-size: 54px; font-weight: 400;">$2,800</span>
+            <span style="color: var(--ink-3); font-size: 14px;">/project/mo</span>
+          </div>
+          <div class="mono" style="font-size: 11px; color: var(--ink-4); margin-top: 4px;">FROM $1,200/project · Project tier</div>
+        </div>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; color: var(--ink-2);">
+          <li>· All 20 cabinets · 30 user seats</li>
+          <li>· BOQ · 30,000 lines</li>
+          <li>· All 10 AI agents · unlimited</li>
+          <li>· Bilingual investor portal · 4 langs</li>
+          <li>· Capital + waterfall engine</li>
+          <li>· Slack-channel support · live</li>
+        </ul>
+        <a href="development.html#pricing" class="btn btn-amber" style="margin-top: auto; justify-content: center;">Start Development trial →</a>
+      </div>
+
+      <!-- BUNDLE (recommended) -->
+      <div class="card bento-ink" data-reveal data-reveal-delay="2" style="padding: 28px; display: flex; flex-direction: column; gap: 18px; color: var(--paper); position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--gold);"></div>
+        <span style="position: absolute; top: 14px; right: 14px;" class="chip" style="background: var(--gold); color: var(--ink); border-color: var(--gold);">BEST VALUE · −20%</span>
+        <div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="chip" style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: var(--paper);">MGMT</span>
+            <span style="color: var(--ink-4);">+</span>
+            <span class="chip" style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); color: var(--paper);">DEV</span>
+          </div>
+          <h3 class="display" style="font-size: 30px; margin: 14px 0 0; font-weight: 400; color: var(--paper);">Vertical</h3>
+          <p style="margin: 8px 0 0; font-size: 13.5px; color: rgba(245,240,226,0.7);">For developers who also operate the buildings they sell.</p>
+        </div>
+        <div>
+          <div style="display:flex; align-items: baseline; gap: 6px;">
+            <span class="display" style="font-size: 54px; font-weight: 400; color: var(--paper);">$5,400</span>
+            <span style="color: rgba(245,240,226,0.6); font-size: 14px;">/mo · bundle</span>
+          </div>
+          <div class="mono" style="font-size: 11px; color: var(--gold-soft); margin-top: 4px;">SAVE $1,400/MO vs separate</div>
+        </div>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; color: rgba(245,240,226,0.85);">
+          <li>· Everything in Operator + Portfolio</li>
+          <li>· Unified LP portal · both products</li>
+          <li>· Asset handover · dev → mgmt</li>
+          <li>· 30 villas + 2 projects included</li>
+          <li>· On-island onboarding week</li>
+          <li>· Dedicated success manager</li>
+        </ul>
+        <a href="#cta" class="btn btn-gold" style="margin-top: auto; justify-content: center;">Talk to sales →</a>
+      </div>
+    </div>
+
+    <!-- Enterprise + FAQ pointer -->
+    <div style="margin-top: 24px; padding: 18px 24px; border: 1px dashed var(--line); border-radius: 14px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;" data-reveal>
+      <span class="chip chip-ink">ENTERPRISE</span>
+      <span style="font-size: 14px; color: var(--ink-2); flex: 1;">Portfolios over 50 villas or 6+ concurrent projects · multi-entity SPVs · SAML SSO · custom integrations · 99.9% SLA · white-label owner/LP portal.</span>
+      <a href="#cta" class="btn btn-ghost btn-sm">Custom quote →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRUST ============ -->
+<section class="sec" id="trust">
+  <div class="container">
+    <div style="text-align: center; max-width: 720px; margin: 0 auto 36px;" data-reveal>
+      <div class="label label-gold">Customers</div>
+      <h2 class="display" style="font-size: clamp(36px, 4.5vw, 52px); margin: 12px 0 0;">
+        Trusted by <em>operators and builders</em> across Bali.
+      </h2>
+    </div>
+    <div style="display: flex; justify-content: space-between; gap: 36px; flex-wrap: wrap; padding: 28px 32px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);" data-reveal>
+      <span style="font-family: 'Fraunces', serif; font-size: 22px; color: var(--ink-3);">Eternal Estates</span>
+      <span style="font-family: 'Fraunces', serif; font-size: 22px; font-style: italic; color: var(--ink-3);">Enso Villas</span>
+      <span style="font-family: 'Fraunces', serif; font-size: 22px; color: var(--ink-3);">Ahau Gardens</span>
+      <span style="font-family: 'Fraunces', serif; font-size: 22px; font-style: italic; color: var(--ink-3);">Pererenan Collection</span>
+      <span style="font-family: 'Fraunces', serif; font-size: 22px; color: var(--ink-3);">Tirta Villas</span>
+      <span style="font-family: 'Fraunces', serif; font-size: 22px; font-style: italic; color: var(--ink-3);">Beachfront Bali</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 36px;">
+      <!-- Quote 1 -->
+      <div class="card" data-reveal style="padding: 32px;">
+        <p style="margin: 0; font-family: 'Fraunces', serif; font-size: 22px; line-height: 1.4; font-style: italic; color: var(--ink); letter-spacing: -0.01em;">
+          <span style="color: var(--terra); font-size: 40px; line-height: 0; vertical-align: -10px;">"</span>Before Arconique, eleven villas were running me. Now I close my laptop at six and the system keeps going — owners get their PDFs, guests get answers, I get my evenings back.
+        </p>
+        <div style="margin-top: 24px; display: flex; align-items: center; gap: 12px;">
+          <div style="width: 40px; height: 40px; border-radius: 999px; background: linear-gradient(135deg, var(--gold), var(--terra));"></div>
+          <div>
+            <div style="font-weight: 500;">Made Sutrisno</div>
+            <div class="mono" style="font-size: 11px; color: var(--ink-3);">GM · Eternal Estates · 11 villas · Pererenan</div>
+          </div>
+        </div>
+      </div>
+      <!-- Quote 2 -->
+      <div class="card" data-reveal data-reveal-delay="1" style="padding: 32px;">
+        <p style="margin: 0; font-family: 'Fraunces', serif; font-size: 22px; line-height: 1.4; font-style: italic; color: var(--ink); letter-spacing: -0.01em;">
+          <span style="color: var(--amber); font-size: 40px; line-height: 0; vertical-align: -10px;">"</span>We rebaselined the BOQ in four hours. Caught a $40K marble overpay in week one. The qs-cost-analyst paid for the entire annual subscription on a single line item.
+        </p>
+        <div style="margin-top: 24px; display: flex; align-items: center; gap: 12px;">
+          <div style="width: 40px; height: 40px; border-radius: 999px; background: var(--ink); color: var(--gold); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 16px;">NR</div>
+          <div>
+            <div style="font-weight: 500;">N. Razgulyaev</div>
+            <div class="mono" style="font-size: 11px; color: var(--ink-3);">Founder · Eternal Developments · 3 projects · $24M GDV</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="sec" style="background: var(--paper-2); border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);">
+  <div class="container">
+    <div style="display: flex; align-items: flex-end; gap: 24px; margin-bottom: 56px;" data-reveal>
+      <div>
+        <div class="label label-gold">How it works</div>
+        <h2 class="display" style="font-size: clamp(40px, 5.5vw, 64px); margin: 12px 0 0;">
+          Live in <em>under a week.</em>
+        </h2>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+      <div class="bento bento-emerald" data-reveal style="padding: 24px; min-height: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <div class="num" style="font-size: 36px; color: var(--gold-soft);">01</div>
+        <div class="display" style="font-size: 22px; font-weight: 400;">Provision in 60 seconds</div>
+        <p style="margin: 0; font-size: 13.5px; opacity: 0.82;">Workspace at your subdomain. Demo data preloaded. 5 seats ready.</p>
+      </div>
+      <div class="bento" data-reveal data-reveal-delay="1" style="min-height: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <div class="num" style="font-size: 36px; color: var(--gold-deep);">02</div>
+        <div class="display" style="font-size: 22px; font-weight: 400;">Import your truth</div>
+        <p style="margin: 0; font-size: 13.5px; color: var(--ink-3);">CSV, iCal, Airbnb, Booking.com, or paste an Excel BOQ. We map it for you.</p>
+      </div>
+      <div class="bento bento-gold" data-reveal data-reveal-delay="2" style="min-height: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <div class="num" style="font-size: 36px; color: var(--ink);">03</div>
+        <div class="display" style="font-size: 22px; font-weight: 400; color: var(--ink);">Invite the team</div>
+        <p style="margin: 0; font-size: 13.5px; color: var(--ink-2);">20 internal roles ready. Owners + LPs get tokenized portals. SAML SSO on Enterprise.</p>
+      </div>
+      <div class="bento bento-terra" data-reveal data-reveal-delay="3" style="min-height: 220px; display: flex; flex-direction: column; gap: 10px;">
+        <div class="num" style="font-size: 36px; color: var(--gold-soft);">04</div>
+        <div class="display" style="font-size: 22px; font-weight: 400;">Run by Friday</div>
+        <p style="margin: 0; font-size: 13.5px; opacity: 0.88;">First owner statement on day 3. First daily digest on day 1. First AI run minutes in.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="sec" id="faq">
+  <div class="container">
+    <div style="text-align: center; max-width: 720px; margin: 0 auto 56px;" data-reveal>
+      <div class="label label-gold">FAQ</div>
+      <h2 class="display" style="font-size: clamp(36px, 4.5vw, 52px); margin: 12px 0 0;">
+        The honest answers.
+      </h2>
+    </div>
+
+    <div style="max-width: 880px; margin: 0 auto; display: grid; gap: 4px;" data-reveal>
+      <details class="card" style="padding: 22px 28px; cursor: pointer;">
+        <summary style="font-family: 'Fraunces', serif; font-size: 22px; font-weight: 400; list-style: none; display: flex; justify-content: space-between; align-items: center;">Can I buy just Management OS without Development OS? <span style="color: var(--ink-3); font-size: 28px;">+</span></summary>
+        <p style="margin: 14px 0 0; color: var(--ink-3); font-size: 15px; line-height: 1.6;">Yes. The two products are independently complete. Most villa managers start with Management OS. Developers start with Development OS. About a third of customers run both within their first year.</p>
+      </details>
+      <details class="card" style="padding: 22px 28px; cursor: pointer;">
+        <summary style="font-family: 'Fraunces', serif; font-size: 22px; font-weight: 400; list-style: none; display: flex; justify-content: space-between; align-items: center;">What happens to my data if I cancel? <span style="color: var(--ink-3); font-size: 28px;">+</span></summary>
+        <p style="margin: 14px 0 0; color: var(--ink-3); font-size: 15px; line-height: 1.6;">Every table exports as CSV/XLSX. Statements export as hash-signed PDFs. Documents room downloads as one ZIP. Migration help is included in the offboarding session. No lock-in, no penalty.</p>
+      </details>
+      <details class="card" style="padding: 22px 28px; cursor: pointer;">
+        <summary style="font-family: 'Fraunces', serif; font-size: 22px; font-weight: 400; list-style: none; display: flex; justify-content: space-between; align-items: center;">How are AI agents priced? <span style="color: var(--ink-3); font-size: 28px;">+</span></summary>
+        <p style="margin: 14px 0 0; color: var(--ink-3); font-size: 15px; line-height: 1.6;">Each tier includes a monthly token budget (Operator: $150, Portfolio: $180, Vertical: combined $300). Soft overage to 150%, hard cap above. No per-message charges. Every run is auditable in the cabinet.</p>
+      </details>
+      <details class="card" style="padding: 22px 28px; cursor: pointer;">
+        <summary style="font-family: 'Fraunces', serif; font-size: 22px; font-weight: 400; list-style: none; display: flex; justify-content: space-between; align-items: center;">Is it just for Bali? <span style="color: var(--ink-3); font-size: 28px;">+</span></summary>
+        <p style="margin: 14px 0 0; color: var(--ink-3); font-size: 15px; line-height: 1.6;">Built in Bali, designed for SE Asia, deployed in Thailand and Vietnam too. Multi-currency, multi-language (EN/ID/RU/JP), local tax presets (Bali PHR, Thai SBT, VAT). European pilots starting Q3 2026.</p>
+      </details>
+      <details class="card" style="padding: 22px 28px; cursor: pointer;">
+        <summary style="font-family: 'Fraunces', serif; font-size: 22px; font-weight: 400; list-style: none; display: flex; justify-content: space-between; align-items: center;">Do you have an API? <span style="color: var(--ink-3); font-size: 28px;">+</span></summary>
+        <p style="margin: 14px 0 0; color: var(--ink-3); font-size: 15px; line-height: 1.6;">Yes. Per-org API keys, scoped permissions, HMAC-signed webhooks. Documented at <span class="mono">developer.arconique.com</span>. Public quote API is free; finance + automation endpoints require Portfolio or Vertical tier.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section class="sec" id="cta">
+  <div class="container">
+    <div class="bento bento-ink" data-reveal style="padding: 64px 56px; position: relative; overflow: hidden; display: grid; grid-template-columns: 1.4fr 1fr; gap: 48px; align-items: center;">
+      <div style="position: absolute; inset: 0; opacity: 0.18; background: radial-gradient(60% 80% at 100% 0%, var(--gold) 0%, transparent 60%);"></div>
+      <div style="position: relative;">
+        <div class="label" style="color: rgba(245,240,226,0.6);">Get started</div>
+        <h2 class="display" style="font-size: clamp(40px, 5.5vw, 72px); margin: 14px 0 0; color: var(--paper);">
+          Live tonight on Arconique.
+        </h2>
+        <p style="max-width: 540px; color: rgba(245,240,226,0.78); margin: 18px 0 0; font-size: 17px;">
+          14-day trial of either product. Or both. No card. Cancel any time — your data exports as CSV/XLSX.
+        </p>
+        <div style="display: flex; gap: 12px; margin-top: 30px; flex-wrap: wrap;">
+          <a href="management.html" class="btn btn-gold btn-lg">Start with Management →</a>
+          <a href="development.html" class="btn btn-ghost btn-lg" style="background: transparent; color: var(--paper); border-color: rgba(255,255,255,0.25);">Start with Development</a>
+        </div>
+      </div>
+      <div style="position: relative; display: flex; flex-direction: column; gap: 10px;">
+        <div style="padding: 14px 18px; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; background: rgba(255,255,255,0.04); display: flex; align-items: center; gap: 14px;">
+          <span class="num" style="color: var(--gold); width: 24px;">01</span>
+          <span style="color: rgba(245,240,226,0.9); font-size: 14px;">Pick the product (or bundle)</span>
+        </div>
+        <div style="padding: 14px 18px; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; background: rgba(255,255,255,0.04); display: flex; align-items: center; gap: 14px;">
+          <span class="num" style="color: var(--gold); width: 24px;">02</span>
+          <span style="color: rgba(245,240,226,0.9); font-size: 14px;">Workspace ready in 90 seconds</span>
+        </div>
+        <div style="padding: 14px 18px; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; background: rgba(255,255,255,0.04); display: flex; align-items: center; gap: 14px;">
+          <span class="num" style="color: var(--gold); width: 24px;">03</span>
+          <span style="color: rgba(245,240,226,0.9); font-size: 14px;">First AI run within minutes</span>
+        </div>
+        <div style="padding: 14px 18px; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; background: rgba(255,255,255,0.04); display: flex; align-items: center; gap: 14px;">
+          <span class="num" style="color: var(--gold); width: 24px;">04</span>
+          <span style="color: rgba(245,240,226,0.9); font-size: 14px;">Talk to a human within 24h</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer style="background: var(--paper-2); border-top: 1px solid var(--line-soft); padding: 56px 0 32px;">
+  <div class="container">
+    <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr; gap: 36px;">
+      <div>
+        <div class="brand"><svg class="brand-mark" viewBox="0 0 32 32" fill="none"><path d="M16 4 L26 22 H6 Z" stroke="currentColor" stroke-width="1.5"/><path d="M11 22 L16 13 L21 22" stroke="currentColor" stroke-width="1.5"/></svg> Arconique</div>
+        <p style="margin: 18px 0 0; color: var(--ink-3); font-size: 14px; max-width: 320px;">The operating company for premium property in Southeast Asia. Two products, one platform, one quiet team.</p>
+        <p class="mono" style="margin-top: 22px; font-size: 11px; color: var(--ink-4); letter-spacing: 0.08em;">subscription.arconique.com</p>
+      </div>
+      <div>
+        <div class="label" style="margin-bottom: 14px;">Products</div>
+        <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:9px; font-size: 13.5px;">
+          <li><a href="management.html" style="color: var(--ink-2);">Management OS</a></li>
+          <li><a href="management/index.html" style="color: var(--ink-2);">Mgmt demo cabinets</a></li>
+          <li><a href="development.html" style="color: var(--ink-2);">Development OS</a></li>
+          <li><a href="development/index.html" style="color: var(--ink-2);">Dev demo cabinets</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="label" style="margin-bottom: 14px;">Pricing</div>
+        <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:9px; font-size: 13.5px;">
+          <li><a href="#pricing" style="color: var(--ink-2);">Operator</a></li>
+          <li><a href="#pricing" style="color: var(--ink-2);">Portfolio</a></li>
+          <li><a href="#pricing" style="color: var(--ink-2);">Vertical (bundle)</a></li>
+          <li><a href="#cta" style="color: var(--ink-2);">Enterprise</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="label" style="margin-bottom: 14px;">Company</div>
+        <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:9px; font-size: 13.5px;">
+          <li><a href="#" style="color: var(--ink-2);">About</a></li>
+          <li><a href="#trust" style="color: var(--ink-2);">Customers</a></li>
+          <li><a href="#" style="color: var(--ink-2);">Careers</a></li>
+          <li><a href="#cta" style="color: var(--ink-2);">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="label" style="margin-bottom: 14px;">Legal</div>
+        <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:9px; font-size: 13.5px;">
+          <li><a href="#" style="color: var(--ink-2);">Terms</a></li>
+          <li><a href="#" style="color: var(--ink-2);">Privacy</a></li>
+          <li><a href="#" style="color: var(--ink-2);">DPA</a></li>
+          <li><a href="#" style="color: var(--ink-2);">Status</a></li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line-soft); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--ink-4); flex-wrap: wrap; gap: 10px;" class="mono">
+      <span>© 2026 ARCONIQUE OS · MADE BETWEEN BALI AND BERLIN</span>
+      <span>BUILD v9.07 · UPTIME 99.98%</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Scroll reveal -->
+<script>
+(function(){
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+  }, { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
+  document.querySelectorAll("[data-reveal]").forEach(el => io.observe(el));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,589 @@
+<!doctype html>
+<!-- 
+  CABINET TEMPLATE — Management OS
+  Used as the base for every management/*.html cabinet file.
+  Includes:
+    - design tokens (cream / forest / terracotta / gold palette)
+    - React + Babel + bootstrap
+    - Sidebar component with full nav tree
+    - Topbar with breadcrumbs + search + bell + user
+    - Cabinet content slot (replace data-cabinet-slot)
+    - Real demo data (villas / owners / metrics / staff)
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Integrations · Arconique Management OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream:        #F4EFE6;
+    --cream-deep:   #ECE5D5;
+    --cream-warm:   #FAF7F1;
+    --paper:        #FFFCF7;
+    --ink:          #14201C;
+    --ink-2:        #2A3934;
+    --ink-3:        #4A5A55;
+    --ink-4:        #7E8A85;
+    --forest:       #1F3A33;
+    --forest-deep:  #122621;
+    --terra:        #C4583C;
+    --terra-soft:   #E48A6E;
+    --gold:         #BC9A5C;
+    --gold-soft:    #DCC691;
+    --sage:         #88A89A;
+    --line:         #DAD2C0;
+    --line-soft:    #E5DECC;
+    --line-strong:  #C2B89E;
+    --ok:           #4F7A5D;
+    --warn:         #C58A2E;
+    --danger:       #B14638;
+    --info:         #3D5A7A;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background: var(--cream); color: var(--ink); font-family:'Inter', system-ui, sans-serif; font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; background: transparent; border: 0; color: inherit; }
+  ::selection { background: var(--terra); color: var(--cream-warm); }
+  body::-webkit-scrollbar { width: 10px; }
+  body::-webkit-scrollbar-track { background: var(--cream); }
+  body::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius:999px; border:2px solid var(--cream); }
+
+  .display { font-family:'Newsreader', Georgia, serif; font-weight:400; letter-spacing:-0.02em; line-height:1.02; }
+  .display em { font-style: italic; color: var(--terra); font-weight: 400; }
+  .label { font-family:'JetBrains Mono', monospace; text-transform:uppercase; font-size:10.5px; letter-spacing:0.16em; color: var(--ink-3); font-weight:400; }
+  .mono { font-family:'JetBrains Mono', monospace; font-feature-settings:"tnum"; }
+  .num { font-family:'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .hr { height:1px; background: var(--line-soft); }
+
+  /* Buttons */
+  .btn { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:999px; font-size:13px; font-weight:500; border:1px solid transparent; transition: all .15s ease; white-space: nowrap; }
+  .btn-primary { background: var(--ink); color: var(--cream-warm); }
+  .btn-primary:hover { background: var(--forest); }
+  .btn-terra   { background: var(--terra); color: var(--cream-warm); }
+  .btn-terra:hover { background: #a44627; }
+  .btn-secondary { background: var(--cream-warm); color: var(--ink); border-color: var(--line); }
+  .btn-secondary:hover { background: var(--paper); border-color: var(--ink); }
+  .btn-ghost { background: transparent; color: var(--ink-2); }
+  .btn-ghost:hover { background: var(--cream-deep); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-lg { padding: 11px 18px; font-size: 14px; }
+
+  /* Card */
+  .card { background: var(--paper); border:1px solid var(--line-soft); border-radius:16px; }
+
+  /* Badge */
+  .badge { display:inline-flex; align-items:center; gap:4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-family:'JetBrains Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; border:1px solid var(--line); background: var(--cream-warm); color: var(--ink-3); }
+  .badge-ok    { background: rgba(79,122,93,0.10); color: var(--ok); border-color: rgba(79,122,93,0.25); }
+  .badge-warn  { background: rgba(196,88,60,0.10); color: var(--terra); border-color: rgba(196,88,60,0.25); }
+  .badge-gold  { background: rgba(188,154,92,0.12); color: #8c6f33; border-color: rgba(188,154,92,0.30); }
+  .badge-info  { background: rgba(61,90,122,0.08); color: var(--info); border-color: rgba(61,90,122,0.25); }
+  .badge-ink   { background: var(--ink); color: var(--cream-warm); border-color: var(--ink); }
+  .badge-danger{ background: rgba(177,70,56,0.10); color: var(--danger); border-color: rgba(177,70,56,0.25); }
+
+  /* Pulse */
+  .pulse-dot { width: 6px; height: 6px; border-radius:999px; background: var(--ok); display:inline-block; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(79,122,93,0.55); }
+    50%     { box-shadow: 0 0 0 6px rgba(79,122,93,0); }
+  }
+
+  /* Tables */
+  table.data { width:100%; border-collapse: collapse; }
+  table.data th, table.data td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: middle; font-size:13px; }
+  table.data th { font-family:'JetBrains Mono', monospace; font-size:10.5px; font-weight:500; text-transform:uppercase; letter-spacing:0.14em; color: var(--ink-3); background: var(--cream-warm); border-bottom: 1px solid var(--line); }
+  table.data tbody tr:hover { background: var(--cream-warm); }
+  table.data td.num, table.data th.num { text-align: right; font-family:'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+
+  /* Field */
+  .field { display:flex; flex-direction:column; gap:5px; }
+  .field input, .field select, .field textarea { appearance:none; border:1px solid var(--line); background: var(--paper); color: var(--ink); padding: 9px 12px; border-radius: 10px; font: inherit; outline: none; transition: border-color .15s ease; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--ink); }
+
+  /* Photo placeholder textures */
+  .photo-villa { background: linear-gradient(160deg, #c89e6c 0%, #a17a4a 45%, #5e4628 100%); }
+  .photo-pool { background: linear-gradient(180deg, #4a7264 0%, #2c4a40 100%); }
+  .photo-suite { background: linear-gradient(160deg, #e5d2b2 0%, #b78f5d 100%); }
+  .photo-warm { background: linear-gradient(160deg, #d8c19a 0%, #c2986a 38%, #a07645 100%); }
+
+  /* Sidebar */
+  .sidebar { width: 264px; background: var(--paper); border-right:1px solid var(--line-soft); display:flex; flex-direction:column; height: 100vh; position: sticky; top: 0; overflow-y: auto; flex-shrink: 0; }
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--line); border-radius:999px; }
+  .sb-group { padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+  .sb-group:last-child { border-bottom: 0; }
+  .sb-group-title { font-family:'JetBrains Mono', monospace; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.18em; color: var(--ink-4); padding: 10px 18px 6px; display: flex; align-items: center; gap: 6px; }
+  .sb-item { display:flex; align-items:center; gap:10px; padding: 7px 18px; font-size:13.5px; color:var(--ink-2); cursor:pointer; border:0; background:transparent; width:100%; text-align:left; border-left: 2px solid transparent; transition: background .12s ease, color .12s ease; }
+  .sb-item:hover { background: var(--cream-warm); }
+  .sb-item.on { color: var(--ink); font-weight: 500; background: var(--cream-warm); border-left-color: var(--terra); }
+  .sb-item .sb-badge { margin-left: auto; font-family:'JetBrains Mono', monospace; font-size:10px; padding: 1px 6px; border-radius: 999px; background: var(--cream-deep); color: var(--ink-3); }
+  .sb-item.on .sb-badge { background: var(--terra); color: var(--cream-warm); }
+  .sb-sub { padding-left: 32px; padding-top: 2px; padding-bottom: 2px; font-size: 12.5px; }
+  .sb-sub.on { background: transparent; border-left-color: var(--terra); color: var(--terra); }
+
+  /* Topbar */
+  .topbar { position: sticky; top: 0; z-index: 30; background: rgba(244,239,230,0.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line-soft); padding: 12px 28px; display:flex; align-items:center; gap: 16px; }
+  .crumb { display:flex; align-items:center; gap: 8px; font-size: 12.5px; color: var(--ink-3); font-family:'JetBrains Mono', monospace; }
+  .crumb b { color: var(--ink); font-weight: 500; }
+  .topbar-search { position: relative; width: 320px; }
+  .topbar-search input { width:100%; padding:7px 12px 7px 32px; border:1px solid var(--line); border-radius:999px; background: var(--paper); outline: none; font-size: 13px; }
+  .topbar-search .sx { position: absolute; left: 10px; top: 8px; color: var(--ink-4); }
+  .kbd { font-family:'JetBrains Mono', monospace; font-size: 10px; padding: 1px 6px; border:1px solid var(--line); border-radius: 6px; color: var(--ink-3); }
+
+  /* Tiles / KPIs */
+  .kpi { background: var(--paper); border:1px solid var(--line-soft); border-radius:14px; padding:16px 18px; }
+  .kpi .label { font-size: 10.5px; }
+  .kpi .v { font-family:'JetBrains Mono', monospace; font-size: 26px; margin-top:4px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .kpi .sub { margin-top: 3px; font-size: 12px; color: var(--ink-3); }
+  .kpi.accent .v { color: var(--terra); }
+  .kpi.success .v { color: var(--ok); }
+  .kpi.gold .v { color: var(--gold); }
+
+  /* Inline list */
+  ul.clean { list-style:none; padding:0; margin:0; }
+  ul.clean li { padding: 8px 0; border-bottom: 1px solid var(--line-soft); display:flex; align-items:center; gap:10px; }
+  ul.clean li:last-child { border-bottom: 0; }
+
+  /* Mobile */
+  html, body { overflow-x: hidden; }
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .topbar { padding: 10px 16px; flex-wrap: wrap; }
+    .topbar-search { width: 100%; order: 99; }
+    [style*="repeat(3, 1fr)"], [style*="repeat(4, 1fr)"], [style*="repeat(5, 1fr)"], [style*="repeat(6, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+    [style*="1fr 1fr"], [style*="1.4fr 1fr"], [style*="1.6fr 1fr"] { grid-template-columns: 1fr !important; }
+    table { display: block; overflow-x: auto; }
+  }
+  @media (max-width: 600px) {
+    [style*="repeat(2, 1fr)"], [style*="repeat(3, 1fr)"] { grid-template-columns: 1fr !important; }
+  }
+</style>
+
+<!-- React -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- ICONS -->
+<script type="text/jsx-source" data-file="icons.js">
+/* global React */
+const { useState, useEffect, useMemo, useCallback } = React;
+const I = {
+  search: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>,
+  bell:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M6 8a6 6 0 1 1 12 0c0 5 2 7 2 7H4s2-2 2-7zM10 19a2 2 0 0 0 4 0"/></svg>,
+  chev:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M9 6l6 6-6 6"/></svg>,
+  chevD:  (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M6 9l6 6 6-6"/></svg>,
+  arrow:  (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 12h14M13 6l6 6-6 6"/></svg>,
+  arrowL: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M19 12H5M11 6l-6 6 6 6"/></svg>,
+  check:  (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" {...p}><path d="M4 12l5 5L20 6"/></svg>,
+  plus:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 5v14M5 12h14"/></svg>,
+  dl:     (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 4v12m0 0l-5-5m5 5l5-5M4 20h16"/></svg>,
+  ext:    (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M14 4h6v6M20 4l-9 9M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>,
+  filter: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 5h18M6 12h12M10 19h4"/></svg>,
+  more:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>,
+  logo:   (p) => <svg viewBox="0 0 32 32" fill="none" {...p}><path d="M16 4 L26 22 H6 Z" stroke="currentColor" strokeWidth="1.5" fill="none"/><path d="M11 22 L16 13 L21 22" stroke="currentColor" strokeWidth="1.5" fill="none"/></svg>,
+  /* group icons */
+  home:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M4 11l8-7 8 7v9a2 2 0 0 1-2 2h-3v-6h-6v6H6a2 2 0 0 1-2-2v-9z"/></svg>,
+  port:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 21V8l9-5 9 5v13M9 21v-7h6v7"/></svg>,
+  ppl:    (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="9" cy="8" r="4"/><path d="M17 11a3 3 0 1 0 0-6M3 20c1.5-3 4-5 6-5s4.5 2 6 5M16 20c1-2 3-3 5-3"/></svg>,
+  cal:    (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>,
+  guest:  (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 21V11l9-7 9 7v10M9 21v-6h6v6"/></svg>,
+  msg:    (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M21 12a8 8 0 0 1-12.2 6.8L3 20l1.2-5.8A8 8 0 1 1 21 12z"/></svg>,
+  bed:    (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 18V8m0 6h18m0 0v4m0-4v-2a3 3 0 0 0-3-3h-5v5M3 8h6"/></svg>,
+  wrench: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M14 5l5 5-9 9-5-5 9-9zM12 7l5 5M3 21l3-3"/></svg>,
+  bolt:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>,
+  shield: (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3z"/></svg>,
+  link:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1.5 1.5M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1.5-1.5"/></svg>,
+  rcpt:   (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 3v18l3-2 3 2 3-2 3 2 3-2V3l-3 2-3-2-3 2-3-2-3 2zM9 9h6M9 13h6"/></svg>,
+  spark:  (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg>,
+  chart:  (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M4 20V8M10 20V4M16 20v-8M22 20H2"/></svg>,
+  cog:    (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1A2 2 0 1 1 4.4 17l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8L4.2 7a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1A2 2 0 1 1 19.6 7l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>,
+  doc:    (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 13h8M8 17h5"/></svg>,
+  pkg:    (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.3 7L12 12l8.7-5M12 22V12"/></svg>,
+  audit:  (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
+};
+window.MgmtIcons = I;
+</script>
+
+<!-- NAVIGATION TREE — single source of truth -->
+<script type="text/jsx-source" data-file="nav.js">
+const NAV = [
+  { g:"WORKSPACE", k:"home", icon:"home", items:[
+    { l:"Overview", k:"overview", href:"index.html" },
+  ]},
+  { g:"PORTFOLIO", icon:"port", items:[
+    { l:"Projects",         k:"projects",         href:"projects.html" },
+    { l:"Villas",           k:"villas",           href:"villas.html" },
+    { l:"Owners",           k:"owners",           href:"owners.html" },
+    { l:"Ownership shares", k:"shares",           href:"shares.html" },
+  ]},
+  { g:"BOOKINGS", icon:"cal", items:[
+    { l:"Bookings",   k:"bookings",  href:"bookings.html" },
+    { l:"Calendar",   k:"calendar",  href:"bookings.html#calendar" },
+    { l:"Sync",       k:"sync",      href:"bookings.html#sync" },
+    { l:"Rate plans", k:"rateplans", href:"bookings.html#rate-plans" },
+    { l:"Channels",   k:"channels",  href:"bookings.html#channels" },
+    { l:"Guests",     k:"guests-b",  href:"bookings.html#guests" },
+  ]},
+  { g:"GUEST STAYS", icon:"guest", items:[
+    { l:"Overview",         k:"gs-overview",  href:"guest-stays.html" },
+    { l:"Tokens",           k:"gs-tokens",    href:"guest-stays.html#tokens" },
+    { l:"Villa guides",     k:"vg",           href:"villa-guides.html" },
+    { l:"Services catalog", k:"gs-catalog",   href:"guest-services.html" },
+    { l:"Service orders",   k:"gs-orders",    href:"guest-services.html#orders" },
+    { l:"Concierge",        k:"concierge",    href:"concierge.html" },
+    { l:"Security events",  k:"gs-security",  href:"guest-stays.html#security" },
+  ]},
+  { g:"OWNER STAYS", icon:"bed", items:[
+    { l:"Overview",       k:"os-overview", href:"owner-stays.html" },
+    { l:"Requests",       k:"os-requests", href:"owner-stays.html#requests" },
+    { l:"Policies",       k:"os-policies", href:"owner-stays.html#policies" },
+    { l:"Finance bridge", k:"os-bridge",   href:"owner-stays.html#finance" },
+  ]},
+  { g:"FRONT OFFICE", icon:"home", items:[
+    { l:"Today",          k:"fo-today",   href:"front-office.html" },
+    { l:"Arrivals",       k:"fo-arr",     href:"front-office.html#arrivals" },
+    { l:"Departures",     k:"fo-dep",     href:"front-office.html#departures" },
+    { l:"In-house",       k:"fo-ih",      href:"front-office.html#in-house" },
+    { l:"Availability",   k:"fo-avail",   href:"availability.html" },
+    { l:"Readiness",      k:"fo-ready",   href:"availability.html#readiness" },
+  ]},
+  { g:"OPERATIONS", icon:"wrench", items:[
+    { l:"Command center",   k:"ops-cmd",      href:"operations.html" },
+    { l:"Tasks",            k:"ops-tasks",    href:"operations.html#tasks" },
+    { l:"Housekeeping",     k:"ops-hk",       href:"operations.html#housekeeping" },
+    { l:"Maintenance",      k:"ops-mt",       href:"operations.html#maintenance" },
+    { l:"Preventive",       k:"ops-pv",       href:"maintenance-intelligence.html" },
+    { l:"Service requests", k:"ops-sr",       href:"operations.html#service-requests" },
+  ]},
+  { g:"INVENTORY · PROCUREMENT", icon:"pkg", items:[
+    { l:"Stock command",     k:"inv-cmd",   href:"inventory.html" },
+    { l:"Items",             k:"inv-items", href:"inventory.html#items" },
+    { l:"Movements",         k:"inv-mvts",  href:"inventory.html#movements" },
+    { l:"Suppliers",         k:"inv-sup",   href:"inventory.html#suppliers" },
+    { l:"Purchase requests", k:"pr",        href:"procurement.html" },
+    { l:"Purchase orders",   k:"po",        href:"procurement.html#orders" },
+  ]},
+  { g:"UTILITIES & MAINTENANCE", icon:"bolt", items:[
+    { l:"Maintenance intel.", k:"mi",        href:"maintenance-intelligence.html" },
+    { l:"Templates",          k:"mi-tpl",    href:"maintenance-intelligence.html#templates" },
+    { l:"Risk feed",          k:"mi-risk",   href:"maintenance-intelligence.html#risks" },
+    { l:"Utilities",          k:"util",      href:"utilities.html" },
+    { l:"Accounts",           k:"util-acc",  href:"utilities.html#accounts" },
+    { l:"Readings",           k:"util-r",    href:"utilities.html#readings" },
+  ]},
+  { g:"FINANCE", icon:"rcpt", items:[
+    { l:"Finance",                 k:"fin",         href:"finance.html" },
+    { l:"Owner statements",        k:"fin-stmt",    href:"finance.html#statements" },
+    { l:"Statement transparency",  k:"fin-trans",   href:"finance.html#transparency" },
+    { l:"Material usage bridge",   k:"fin-bridge",  href:"finance.html#bridge" },
+    { l:"Payments",                k:"fin-pay",     href:"finance.html#payments" },
+    { l:"Webhooks",                k:"fin-webhooks",href:"finance.html#webhooks" },
+  ]},
+  { g:"REVENUE", icon:"chart", items:[
+    { l:"Owner intelligence",  k:"oi",          href:"owner-intelligence.html" },
+    { l:"Dynamic pricing",     k:"dp",          href:"dynamic-pricing.html" },
+    { l:"Direct bookings",     k:"db",          href:"direct-bookings.html" },
+    { l:"Guest journey",       k:"gj",          href:"guest-journey.html" },
+    { l:"Service fulfilment",  k:"sf",          href:"service-fulfilment.html" },
+  ]},
+  { g:"INTELLIGENCE", icon:"spark", items:[
+    { l:"AI assistants",       k:"ai",          href:"ai-hub.html" },
+    { l:"AI inbox",            k:"ai-inbox",    href:"ai-hub.html#inbox" },
+    { l:"AI runs",             k:"ai-runs",     href:"ai-hub.html#runs" },
+  ]},
+  { g:"INTEGRATIONS", icon:"link", items:[
+    { l:"Calendar feeds",  k:"int-cf",  href:"integrations.html" },
+    { l:"Conflicts",       k:"int-c",   href:"integrations.html#conflicts" },
+    { l:"Automation rules",k:"int-a",   href:"integrations.html#automation" },
+  ]},
+  { g:"SECURITY · SYSTEM", icon:"shield", items:[
+    { l:"Security",          k:"sec",       href:"security.html" },
+    { l:"Authentication",    k:"sec-auth",  href:"security.html#auth" },
+    { l:"Background jobs",   k:"sys-jobs",  href:"system.html" },
+    { l:"System health",     k:"sys-h",     href:"system.html#health" },
+    { l:"Notifications",     k:"notif",     href:"notifications.html" },
+    { l:"Audit log",         k:"audit",     href:"audit.html" },
+    { l:"Settings",          k:"set",       href:"settings.html" },
+  ]},
+];
+window.MgmtNav = NAV;
+</script>
+
+<!-- DEMO DATA — pulled from repo mock files (realistic Bali villa portfolio) -->
+<script type="text/jsx-source" data-file="data.js">
+const DEMO = {
+  projects: [
+    { id:"eternal-villas", code:"EV", name:"Eternal Villas", area:"Ubud", villas:6, ownership:"hybrid",  occ:82.4, adr:780,  revpar:642,  ytdM:1140 },
+    { id:"enso-villas",    code:"ES", name:"Enso Villas",    area:"Berawa, Canggu", villas:8, ownership:"pooled",  occ:87.1, adr:920,  revpar:801,  ytdM:1840 },
+    { id:"ahau-gardens",   code:"AH", name:"Ahau Gardens",   area:"Pererenan", villas:5, ownership:"individual", occ:71.3, adr:1120, revpar:798,  ytdM:720  },
+  ],
+  villas: [
+    { code:"ES-S1", name:"Enso S1",    project:"Enso",    bed:3, status:"occupied",            occ:88.2, adr:920,  nextDep:"Mr. Tanaka · 26 Apr",   tasks:2 },
+    { code:"ES-S2", name:"Enso S2",    project:"Enso",    bed:3, status:"cleaning",            occ:85.4, adr:920,  nextArr:"Family Nielsen · 25 Apr · 6n", tasks:1 },
+    { code:"ES-S5", name:"Enso S5",    project:"Enso",    bed:4, status:"ready",               occ:89.1, adr:1080, nextArr:"A. Martin · 26 Apr · 4n", tasks:0 },
+    { code:"ES-S6", name:"Enso S6",    project:"Enso",    bed:4, status:"maintenance_blocked",occ:74.8, adr:1080, tasks:0, tickets:2 },
+    { code:"EV-07", name:"Eternal 07", project:"Eternal", bed:3, status:"inspection",          occ:82.0, adr:780,  nextArr:"H. Williams · 25 Apr · 5n", tasks:1 },
+    { code:"EV-03", name:"Eternal 03", project:"Eternal", bed:3, status:"owner_stay",          occ:71.5, adr:780,  tasks:0 },
+    { code:"AH-01", name:"Ahau 01",    project:"Ahau",    bed:3, status:"ready",               occ:73.6, adr:1120, nextArr:"L. Okonkwo · 27 Apr · 7n", tasks:0, tickets:1 },
+    { code:"AH-02", name:"Ahau 02",    project:"Ahau",    bed:4, status:"checkout_pending",    occ:69.4, adr:1240, nextDep:"S. Dubois · 24 Apr",      tasks:1 },
+  ],
+  owners: [
+    { id:"emma",   name:"Emma Whitmore",         initials:"EW", country:"United Kingdom", scope:"2 villas · Enso pool",        ytdM:684, yield:11.4, currency:"USD" },
+    { id:"takeda", name:"Takeda Family Office",  initials:"TF", country:"Japan",          scope:"Enso pool",                   ytdM:2310,yield:10.6, currency:"USD" },
+    { id:"larsen", name:"Larsen Holdings",       initials:"LH", country:"Singapore",      scope:"Ahau 02",                     ytdM:412, yield:9.3,  currency:"IDR" },
+  ],
+  metrics: {
+    occYTD: 83.2, dOcc: 4.6,
+    adr: 912, dAdr: 3.1,
+    revpar: 758, dRev: 7.9,
+    grossMTD: 1364.4, dGross: 12.4,
+    netMTD: 742.1, dNet: 8.7,
+    openMt: 4, slaOk: 2,
+    upcomingCi: 12, today: 3,
+    hkOpen: 6, onTrack: 5,
+  },
+  channels: [
+    { name:"Airbnb",      share:38.2, color:"var(--ok)" },
+    { name:"Booking.com", share:26.4, color:"var(--gold)" },
+    { name:"Direct",      share:19.7, color:"var(--sage)" },
+    { name:"Agoda",       share:9.1,  color:"var(--info)" },
+    { name:"Agent",       share:6.6,  color:"var(--terra)" },
+  ],
+  monthly: [
+    { m:"Nov", rev:1080 }, { m:"Dec", rev:1520 }, { m:"Jan", rev:1410 }, { m:"Feb", rev:1260 }, { m:"Mar", rev:1330 }, { m:"Apr", rev:1364 },
+  ],
+  housekeeping: [
+    { id:"hk-1", villa:"Enso S2",   code:"ES-S2", at:"11:00", who:"Sari W.",  prog:62,  status:"in_progress",      pri:"P2", checks:"11/18" },
+    { id:"hk-2", villa:"Eternal 07",code:"EV-07", at:"13:00", who:"Ketut A.", prog:100, status:"awaiting_approval",pri:"P3", checks:"22/22" },
+    { id:"hk-3", villa:"Ahau 02",   code:"AH-02", at:"14:30", who:"Made T.",  prog:0,   status:"queued",           pri:"P3", checks:"0/24"  },
+  ],
+  maintenance: [
+    { id:"mt-1", villa:"Enso S6", code:"ES-S6", title:"Master bedroom AC not cooling below 26°C", cat:"AC",          pri:"P2", status:"in_progress",   ago:"6h", who:"Budi W.",  sla:"ok"   },
+    { id:"mt-2", villa:"Enso S6", code:"ES-S6", title:"Pool filter pressure alarm",                  cat:"Pool",        pri:"P2", status:"waiting_parts", ago:"1d", who:"Budi W.",  sla:"warn" },
+    { id:"mt-3", villa:"Enso S2", code:"ES-S2", title:"Living room ceiling fan wobble",              cat:"Electrical",  pri:"P3", status:"triaged",       ago:"2h", who:"—",         sla:"ok"   },
+    { id:"mt-4", villa:"Ahau 01", code:"AH-01", title:"Garden irrigation leak near entrance",       cat:"Landscaping", pri:"P3", status:"open",          ago:"30m",who:"—",         sla:"ok"   },
+  ],
+  preventive: [
+    { id:"pv-1", scope:"Eternal Villas · all", task:"Quarterly AC deep clean",     in:"4 days",  cad:"Every 90 days",  who:"External · CoolAir" },
+    { id:"pv-2", scope:"Enso Villas · S1–S8",  task:"Monthly pest management",     in:"2 days",  cad:"Every 30 days",  who:"External · BaliPest" },
+    { id:"pv-3", scope:"Ahau Gardens · common",task:"Fire extinguisher inspection",in:"18 days", cad:"Every 180 days", who:"Internal · Security" },
+  ],
+  ai: [
+    { id:"investor",    name:"Investor Assistant",   tone:"emerald",    target:"Investor · Owner · Delegate",            phase:"v3", live:true,  desc:"Explains owner statements with line-by-line citations. Never invents a number.", surfaces:["/owner/assistant","Statement drawer"] },
+    { id:"finance",     name:"Finance Analyst",       tone:"gold",       target:"Finance Manager · Director · Accountant",phase:"v3", live:true,  desc:"GOP, NOI, ADR, RevPAR, variance detection and narrative drafting across the portfolio.", surfaces:["/dashboard/ai/finance","Finance drawer"] },
+    { id:"operations",  name:"Operations Copilot",    tone:"sage",       target:"Ops Manager · Property Manager · Housekeeping",phase:"v4", live:true, desc:"Today's turnovers, SLA risk, task reassignment, complaint summaries.", surfaces:["/dashboard/ai/operations","Status board"] },
+    { id:"maintenance", name:"Maintenance Assistant", tone:"stone",      target:"Ops Manager · Technician",                phase:"v4", live:true,  desc:"Draft resolutions, lookup warranty documents, propose purchase requests.", surfaces:["/dashboard/ai/maintenance","Ticket drawer"] },
+    { id:"procurement", name:"Procurement Assistant", tone:"emerald",    target:"Procurement Manager · Ops",                phase:"v5", live:false, desc:"Low-stock forecasts, supplier scoring, draft POs — never auto-sent.", surfaces:["/dashboard/ai/procurement","PR drawer"] },
+    { id:"report",      name:"Report Writer",         tone:"gold",       target:"Director · Finance · Ops Manager",        phase:"v4", live:false, desc:"Drafts monthly operations reports, investor letters, board summaries with citations.", surfaces:["/dashboard/ai/report-writer","Reports composer"] },
+    { id:"guest",       name:"Guest Concierge",       tone:"sage",       target:"Guest (via signed stay token)",            phase:"v6", live:true,  desc:"Tokenized guest-side help: guide, Wi-Fi, upsells, service requests. Never reveals smart-lock code.", surfaces:["/stay/[token]/concierge"] },
+    { id:"crm",         name:"CRM Assistant",         tone:"terracotta", target:"Sales · Director · Concierge",            phase:"v7", live:false, desc:"Draft replies, classify leads, match villas to prospect briefs. Never auto-sends.", surfaces:["/dashboard/ai/crm","Lead drawer"] },
+  ],
+  staff: [
+    { name:"Nikita R.",  role:"Director",            initials:"NR" },
+    { name:"Dewi S.",    role:"Finance Manager",     initials:"DS" },
+    { name:"Made S.",    role:"GM · Eternal",        initials:"MS" },
+    { name:"Budi W.",    role:"Maintenance Lead",    initials:"BW" },
+    { name:"Sari W.",    role:"Housekeeping",        initials:"SW" },
+    { name:"Ketut A.",   role:"Housekeeping",        initials:"KA" },
+    { name:"Made T.",    role:"Housekeeping",        initials:"MT" },
+  ],
+};
+window.MgmtData = DEMO;
+</script>
+
+<!-- SHELL — Sidebar + Topbar -->
+<script type="text/jsx-source" data-file="shell.js">
+/* global React, MgmtIcons, MgmtNav, MgmtData */
+const { useState: useStateS, useEffect: useEffectS, useMemo: useMemoS } = React;
+const _I = window.MgmtIcons;
+
+function Sidebar({ activeKey, current }) {
+  return (
+    <aside className="sidebar">
+      <a href="index.html" style={{display:"flex", alignItems:"center", gap:10, padding:"18px 18px 14px"}}>
+        <span style={{color:"var(--forest)"}}><_I.logo width="22" height="22"/></span>
+        <span style={{fontFamily:"'Newsreader', serif", fontSize:20, color:"var(--ink)"}}>Arconique</span>
+        <span className="badge" style={{fontSize:9, padding:"1px 6px"}}>MGMT</span>
+      </a>
+      <div style={{padding:"4px 18px 12px"}}>
+        <div style={{padding:"10px 12px", background:"var(--cream-deep)", borderRadius:10}}>
+          <div className="label" style={{fontSize:9.5}}>Workspace</div>
+          <div style={{fontFamily:"'Newsreader', serif", fontSize:16, marginTop:2}}>Eternal · Enso · Ahau</div>
+          <div style={{fontSize:11, color:"var(--ink-3)", marginTop:2}}>19 villas · 3 owners · Apr 2026</div>
+        </div>
+      </div>
+      {MgmtNav.map(g=>(
+        <div className="sb-group" key={g.g}>
+          <div className="sb-group-title">{g.g}</div>
+          {g.items.map(it=>{
+            const isActive = it.k === activeKey || (current && it.href && it.href.startsWith(current + "#"));
+            const isCurrent = it.href && (it.href === current || it.href === (current + ".html"));
+            return (
+              <a key={it.k} href={it.href || "#"} className={"sb-item " + ((isActive || isCurrent) ? "on" : "")}>
+                {it.l}
+                {it.badge && <span className="sb-badge">{it.badge}</span>}
+              </a>
+            );
+          })}
+        </div>
+      ))}
+    </aside>
+  );
+}
+
+function Topbar({ breadcrumbs = [], actions }) {
+  return (
+    <header className="topbar">
+      <div className="crumb">
+        {breadcrumbs.map((b, i) => (
+          <React.Fragment key={i}>
+            <span style={{color: i === breadcrumbs.length - 1 ? "var(--ink)" : "var(--ink-3)", fontWeight: i === breadcrumbs.length - 1 ? 500 : 400}}>{b}</span>
+            {i < breadcrumbs.length - 1 && <span>/</span>}
+          </React.Fragment>
+        ))}
+      </div>
+      <div style={{marginLeft:"auto", display:"flex", alignItems:"center", gap:10}}>
+        <div className="topbar-search">
+          <span className="sx"><_I.search width="14" height="14"/></span>
+          <input placeholder="Search villa, booking, owner, guest…"/>
+          <span className="kbd" style={{position:"absolute", right:10, top:6}}>⌘K</span>
+        </div>
+        {actions}
+        <button style={{position:"relative", padding:6, color:"var(--ink-2)"}}><_I.bell width="17" height="17"/><span style={{position:"absolute", top:4, right:4, width:7, height:7, borderRadius:999, background:"var(--terra)"}}></span></button>
+        <span className="badge badge-gold" style={{fontSize:9}}>DEMO</span>
+        <div style={{display:"flex", alignItems:"center", gap:8, paddingLeft:8, borderLeft:"1px solid var(--line)"}}>
+          <div style={{width:30, height:30, borderRadius:999, background:"linear-gradient(135deg, var(--gold), var(--terra))", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--cream-warm)", fontSize:11, fontWeight:500}}>NR</div>
+          <div style={{display:"flex", flexDirection:"column", lineHeight:1.1}}>
+            <span style={{fontSize:13, fontWeight:500}}>Nikita R.</span>
+            <span style={{fontSize:10.5, color:"var(--ink-3)"}}>Director</span>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function CabinetPage({ activeKey, current, breadcrumbs, actions, children }) {
+  return (
+    <div style={{display:"flex", minHeight:"100vh", background:"var(--cream)"}}>
+      <Sidebar activeKey={activeKey} current={current}/>
+      <main style={{flex:1, minWidth:0}}>
+        <Topbar breadcrumbs={breadcrumbs} actions={actions}/>
+        <div style={{padding:"24px 28px 80px", maxWidth:1480}}>
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+/* small helpers */
+function Kpi({ label, value, sub, tone }) {
+  return (
+    <div className={"kpi " + (tone ? tone : "")}>
+      <div className="label">{label}</div>
+      <div className="v">{value}</div>
+      {sub && <div className="sub">{sub}</div>}
+    </div>
+  );
+}
+
+function SectionHeading({ eyebrow, title, subtitle, actions }) {
+  return (
+    <div style={{display:"flex", alignItems:"flex-end", gap:18, marginBottom:22}}>
+      <div style={{flex:1, minWidth:0}}>
+        {eyebrow && <div className="label">{eyebrow}</div>}
+        <h1 className="display" style={{fontSize:42, margin:"6px 0 0", fontWeight:400}}>{title}</h1>
+        {subtitle && <p style={{margin:"8px 0 0", color:"var(--ink-3)", fontSize:15, maxWidth:680}}>{subtitle}</p>}
+      </div>
+      {actions && <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>{actions}</div>}
+    </div>
+  );
+}
+
+window.MgmtShell = { Sidebar, Topbar, CabinetPage, Kpi, SectionHeading };
+</script>
+
+<script type="text/jsx-source" data-file="app.js">
+
+const { CabinetPage, Kpi, SectionHeading } = MgmtShell;
+const I = MgmtIcons;
+function App() {
+  return (
+    <CabinetPage activeKey="int-cf" current="integrations.html"
+      breadcrumbs={["Integrations","Calendar feeds"]}
+      actions={<>
+        <button className="btn btn-secondary btn-sm">Run sync</button>
+        <button className="btn btn-primary btn-sm">+ Feed</button>
+      </>}>
+      <SectionHeading
+        eyebrow="Integrations · iCal feeds + automation"
+        title={<>Every channel, every villa, <em>one heartbeat.</em></>}
+        subtitle="iCal feeds sync every 30 min, conflicts auto-detected, automation rules turn events into bookings + tasks."/>
+      <div style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12, marginBottom:18}}>
+        <Kpi label="Active feeds" value="42" sub="across 14 listings"/>
+        <Kpi label="Conflicts open" value="1" sub="ES-S5 · 28 Apr" tone="accent"/>
+        <Kpi label="Auto-rules" value="8" sub="6 active · 2 paused" tone="success"/>
+        <Kpi label="Last sync run" value="2 min ago" sub="all 42 feeds OK"/>
+      </div>
+      <div className="card" style={{padding:0, overflow:"hidden", marginBottom:18}}>
+        <div style={{padding:"14px 18px", borderBottom:"1px solid var(--line-soft)"}}><h3 style={{margin:0, fontFamily:"'Newsreader', serif", fontSize:18, fontWeight:400}}>Calendar feeds</h3></div>
+        <table className="data">
+          <thead><tr><th>Feed</th><th>Villa</th><th>Source</th><th>Last sync</th><th>Events</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td className="mono" style={{fontSize:11}}>feed-airbnb-ES-S5</td><td className="mono">ES-S5</td><td>Airbnb iCal</td><td className="mono" style={{fontSize:11}}>2m ago</td><td className="num">24</td><td><span className="badge badge-ok">OK</span></td></tr>
+            <tr><td className="mono" style={{fontSize:11}}>feed-booking-ES-S5</td><td className="mono">ES-S5</td><td>Booking.com iCal</td><td className="mono" style={{fontSize:11}}>5m ago</td><td className="num">18</td><td><span className="badge badge-warn">Conflict</span></td></tr>
+            <tr><td className="mono" style={{fontSize:11}}>feed-airbnb-EV-07</td><td className="mono">EV-07</td><td>Airbnb iCal</td><td className="mono" style={{fontSize:11}}>4m ago</td><td className="num">14</td><td><span className="badge badge-ok">OK</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h2 id="conflicts" className="display" style={{fontSize:26, marginBottom:14, fontWeight:400, marginTop:24}}>Conflicts</h2>
+      <div className="card" style={{padding:18, border:"1px dashed var(--terra)", background:"var(--cream-warm)"}}>
+        <div className="label" style={{color:"var(--terra)"}}>1 OPEN · ES-S5</div>
+        <h3 style={{margin:"6px 0 8px", fontFamily:"'Newsreader', serif", fontSize:18, fontWeight:400}}>Booking.com hold for 28 Apr overlaps direct booking ARC-25-1049</h3>
+        <p style={{margin:"0 0 12px", fontSize:13, color:"var(--ink-2)"}}>Detected 5m ago. Likely a closed-elsewhere lag. Recommend keep direct + push manual block to Booking.com.</p>
+        <div style={{display:"flex", gap:8}}><button className="btn btn-terra btn-sm">Resolve</button><button className="btn btn-secondary btn-sm">Snooze</button></div>
+      </div>
+      <h2 id="automation" className="display" style={{fontSize:26, marginBottom:14, fontWeight:400, marginTop:24}}>Automation rules</h2>
+      <div className="card" style={{padding:0, overflow:"hidden"}}>
+        <table className="data">
+          <thead><tr><th>Rule</th><th>Trigger</th><th>Action</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>iCal event → booking</td><td className="mono" style={{fontSize:11}}>calendar.event.created</td><td>Create booking · request token · queue welcome</td><td><span className="badge badge-ok">Active</span></td></tr>
+            <tr><td>Booking confirmed → tasks</td><td className="mono" style={{fontSize:11}}>booking.confirmed</td><td>Create checkout-clean + arrival-inspect</td><td><span className="badge badge-ok">Active</span></td></tr>
+            <tr><td>Conflict detected → notify</td><td className="mono" style={{fontSize:11}}>calendar.conflict</td><td>Notify Director + GM via WhatsApp</td><td><span className="badge badge-ok">Active</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </CabinetPage>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+
+</script>
+
+<!-- BOOTSTRAP — compiles JSX, runs in order -->
+<script>
+(function(){
+  const scripts = [...document.querySelectorAll('script[type="text/jsx-source"]')];
+  for (const s of scripts) {
+    if (!s.textContent.trim()) continue;
+    try {
+      const compiled = Babel.transform(s.textContent, { presets:["react"] }).code;
+      (0, eval)(compiled);
+    } catch (e) {
+      console.error("[" + (s.dataset.file || "?") + "]", e.message);
+    }
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1600,initial-scale=1" />
+<title>Mobile QA — Arconique landings</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px; background:#0E0E0D; color:#F5F4EE; font:13px/1.5 -apple-system, system-ui, sans-serif; }
+  h1 { font-size:14px; margin: 0 0 18px; letter-spacing:0.12em; text-transform:uppercase; color:#FFB088; }
+  .row { display:flex; gap:24px; flex-wrap:wrap; margin-bottom:36px; }
+  .frame {
+    display:flex; flex-direction:column; gap:8px; align-items:center;
+  }
+  .frame .meta { display:flex; gap:8px; align-items:center; font-size:11px; font-family:'IBM Plex Mono', ui-monospace, monospace; letter-spacing:0.06em; color:#C9C7BF; }
+  .frame .meta b { color:#FF6B35; }
+  .frame .dev {
+    border-radius:32px; background:#000; padding:8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  .frame .dev > iframe {
+    display:block; background:#fff; border:0;
+    border-radius: 26px;
+  }
+  .grp-label { font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:#8E8C84; margin: 0 0 14px 0; padding-bottom:6px; border-bottom:1px dashed #2A2A26; }
+</style>
+</head>
+<body>
+<h1>Arconique — mobile audit (live frames)</h1>
+
+<div>
+  <div class="grp-label">Management OS · 5 routes · 390 / 768 / 1024px</div>
+  <div class="row" id="mgmt-rail"></div>
+</div>
+
+<div>
+  <div class="grp-label">Development OS · 5 routes · 390 / 768 / 1024px</div>
+  <div class="row" id="dev-rail"></div>
+</div>
+
+<script>
+const PRODUCTS = [
+  { key:"mgmt", file:"management.html", routes:[
+    { hash:"landing",     label:"Landing" },
+    { hash:"login",       label:"Login" },
+    { hash:"signup",      label:"Signup" },
+    { hash:"frontoffice", label:"Front Office" },
+    { hash:"owner",       label:"Owner Portal" },
+  ]},
+  { key:"dev",  file:"development.html", routes:[
+    { hash:"landing",  label:"Landing" },
+    { hash:"login",    label:"Login" },
+    { hash:"signup",   label:"Signup" },
+    { hash:"boq",      label:"BOQ desk" },
+    { hash:"investor", label:"LP Portal" },
+  ]},
+];
+const VIEWPORTS = [
+  { w:390, h:780, label:"iPhone 14" },
+  { w:768, h:920, label:"iPad" },
+  { w:1024, h:720, label:"iPad L" },
+];
+
+function buildRail(product, railEl) {
+  // Inherit preview token from parent URL (sandbox requires it)
+  const parentSearch = window.location.search || "";
+  product.routes.forEach(r => {
+    VIEWPORTS.forEach(vp => {
+      const frame = document.createElement("div"); frame.className = "frame";
+      const meta  = document.createElement("div"); meta.className  = "meta";
+      meta.innerHTML = `<b>${vp.w}px</b> · ${r.label} · ${vp.label}`;
+      const dev   = document.createElement("div"); dev.className = "dev";
+      const ifr   = document.createElement("iframe");
+      ifr.src = `${product.file}${parentSearch}#${r.hash}`;
+      ifr.width  = vp.w;
+      ifr.height = vp.h;
+      ifr.loading = "eager";
+      ifr.style.borderRadius = "26px";
+      dev.appendChild(ifr);
+      frame.append(meta, dev);
+      railEl.appendChild(frame);
+    });
+  });
+}
+buildRail(PRODUCTS[0], document.getElementById("mgmt-rail"));
+buildRail(PRODUCTS[1], document.getElementById("dev-rail"));
+</script>
+</body>
+</html>

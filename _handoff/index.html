@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Arconique — two operating systems</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=Space+Grotesk:wght@400;500;600&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *,*:before,*:after { box-sizing: border-box; }
+  html,body { margin:0; padding:0; min-height:100vh; font-family:'Inter', system-ui, sans-serif; }
+  body { display:grid; grid-template-columns: 1fr 1fr; min-height:100vh; }
+  a { text-decoration: none; color: inherit; }
+
+  /* Left: Management */
+  .mgmt {
+    background: #F4EFE6;
+    color: #14201C;
+    padding: 56px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .mgmt::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(60% 40% at 100% 100%, rgba(196,88,60,0.16), transparent 60%),
+      radial-gradient(50% 60% at 0% 0%, rgba(188,154,92,0.10), transparent 60%);
+    pointer-events: none;
+  }
+  .mgmt h1 { font-family:'Newsreader', serif; font-weight:400; font-size: 72px; line-height:1.02; letter-spacing:-0.02em; margin: 24px 0; }
+  .mgmt h1 em { color:#C4583C; }
+  .mgmt p  { font-size: 17px; color:#4A5A55; max-width: 460px; line-height:1.5; margin:0; }
+
+  /* Right: Development */
+  .dev {
+    background: #0E0E0D;
+    color: #F5F4EE;
+    padding: 56px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .dev::before {
+    content:""; position:absolute; inset:0;
+    background: radial-gradient(40% 50% at 100% 0%, rgba(255,107,53,0.18), transparent 60%);
+    pointer-events:none;
+  }
+  .dev h1 { font-family:'Space Grotesk', sans-serif; font-weight:500; font-size: 72px; line-height:1.02; letter-spacing:-0.025em; margin: 24px 0; }
+  .dev h1 span { color: #FF6B35; }
+  .dev p  { font-size: 17px; color:#C9C7BF; max-width: 460px; line-height:1.5; margin:0; }
+
+  .label { font-family:'IBM Plex Mono', monospace; text-transform:uppercase; font-size:11px; letter-spacing:0.18em; opacity:0.7; }
+  .mgmt .label { color:#4A5A55; }
+  .dev .label  { color:#FF6B35; opacity:1; }
+
+  .cta-row { margin-top: auto; padding-top: 36px; display:flex; flex-direction:column; gap:14px; position:relative; }
+  .btn {
+    display:inline-flex; align-items:center; gap:10px; padding: 14px 22px;
+    font-size:14px; font-weight:500;
+    transition: transform .15s ease, opacity .15s ease;
+    width: fit-content;
+  }
+  .btn:hover { transform: translateX(2px); }
+  .mgmt .btn-primary { background:#14201C; color:#FAF7F1; border-radius:999px; }
+  .mgmt .btn-ghost   { background: transparent; color:#4A5A55; padding-left: 0; }
+  .dev  .btn-primary { background:#FF6B35; color:#0E0E0D; border-radius:2px; }
+  .dev  .btn-ghost   { background: transparent; color:#8E8C84; padding-left: 0; }
+
+  .small { font-size: 13px; opacity: 0.7; margin-top: 8px; }
+
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand .mark { width:22px; height:22px; }
+  .brand .name { font-family:'Newsreader', serif; font-size:20px; letter-spacing:-0.01em; }
+  .dev .brand .name { font-family:'Space Grotesk', sans-serif; font-size:18px; font-weight:500; letter-spacing:0.02em; }
+  .brand .tag { font-family:'IBM Plex Mono', monospace; font-size:10px; padding:2px 8px; border-radius:999px; letter-spacing:0.14em; }
+  .mgmt .brand .tag { border:1px solid #DAD2C0; color:#4A5A55; }
+  .dev  .brand .tag { border:1px solid rgba(255,107,53,0.4); color:#FF6B35; background:rgba(255,107,53,0.08); border-radius:2px; }
+
+  .stats { display:flex; gap:36px; margin-top: 30px; font-size:13px; }
+  .stats div { display:flex; flex-direction:column; gap:4px; }
+  .stats .num { font-family:'IBM Plex Mono', monospace; font-size:24px; }
+  .mgmt .stats .num { color:#14201C; }
+  .dev .stats .num { color:#F5F4EE; }
+  .mgmt .stats span { color:#4A5A55; }
+  .dev .stats span { color:#8E8C84; }
+
+  @media (max-width: 860px) {
+    body { grid-template-columns: 1fr; }
+    .mgmt h1, .dev h1 { font-size: 48px; }
+  }
+</style>
+</head>
+<body>
+  <a href="management.html" class="mgmt">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" fill="none" style="color:#1F3A33;"><path d="M16 4 L26 22 H6 Z" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M11 22 L16 13 L21 22" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      <span class="name">Arconique</span>
+      <span class="tag">MANAGEMENT</span>
+    </div>
+    <div style="margin-top: 80px;">
+      <div class="label">For villa &amp; hotel operators</div>
+      <h1>Run the<br/>villa portfolio<br/><em>quietly.</em></h1>
+      <p>Bookings, owner statements, concierge AI, housekeeping — one operating system for boutique hospitality companies on Airbnb, Booking.com and direct.</p>
+      <div class="stats">
+        <div><span class="num">200+</span><span>Bali villas live</span></div>
+        <div><span class="num">$3.8M</span><span>processed/month</span></div>
+        <div><span class="num">14</span><span>portfolios</span></div>
+      </div>
+    </div>
+    <div class="cta-row">
+      <span class="btn btn-primary">Open Management OS →</span>
+      <span class="small">management.arconique.com</span>
+    </div>
+  </a>
+
+  <a href="development.html" class="dev">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" fill="none" style="color:#FF6B35;"><rect x="4" y="4" width="24" height="24" stroke="currentColor" stroke-width="1.5"/><path d="M10 22 V12 H22 M10 17 H22" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span class="name">ARCONIQUE</span>
+      <span class="tag">DEV.OS</span>
+    </div>
+    <div style="margin-top: 80px;">
+      <div class="label">For boutique developers</div>
+      <h1>Build the<br/>next one.<br/><span>On record.</span></h1>
+      <p>BOQ, procurement, QA/QC, daily reports, investor portal — one construction-grade operating system for villa, condotel and resort developments.</p>
+      <div class="stats">
+        <div><span class="num">14</span><span>projects on-platform</span></div>
+        <div><span class="num">$24M</span><span>commitment under mgmt</span></div>
+        <div><span class="num">23.4%</span><span>portfolio IRR YTD</span></div>
+      </div>
+    </div>
+    <div class="cta-row">
+      <span class="btn btn-primary">Open Development OS →</span>
+      <span class="small" style="color:#8E8C84; font-family:'IBM Plex Mono', monospace; letter-spacing:0.08em;">development.arconique.com</span>
+    </div>
+  </a>
+</body>
+</html>

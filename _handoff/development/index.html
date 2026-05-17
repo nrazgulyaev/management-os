@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Command center · Arconique Development OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #F1ECE0;
+    --bg-2:       #F8F4EA;
+    --bg-3:       #FFFCF4;
+    --panel:      #FFFFFF;
+    --line:       #E5DECC;
+    --line-2:     #D8CFB7;
+    --line-3:     #BAAF92;
+    --concrete:   #2A2A26;
+    --ink:        #14130E;
+    --ink-2:      #3D3B33;
+    --ink-3:      #6E6B5E;
+    --ink-4:      #95917F;
+    --carbon:     #14130E;
+    --amber:      #FF6B35;
+    --amber-soft: #FFB088;
+    --steel:      #3D5A7A;
+    --steel-soft: #7E9DBF;
+    --lime:       #C9DC4A;
+    --warn:       #C58A2E;
+    --danger:     #C2474E;
+    --ok:         #4F8A5D;
+    --pastel-peach:  #F6D2BC;
+    --pastel-sky:    #C9DCEA;
+    --pastel-butter: #F0DE96;
+    --pastel-mint:   #CBDFC8;
+    --pastel-cream:  #ECE5D5;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background: var(--bg); color: var(--ink); font-family:'Inter', system-ui, sans-serif; font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; background: transparent; border: 0; color: inherit; }
+  ::selection { background: var(--amber); color: var(--carbon); }
+  body::-webkit-scrollbar { width: 10px; }
+  body::-webkit-scrollbar-track { background: var(--bg); }
+  body::-webkit-scrollbar-thumb { background: var(--line-3); border-radius:999px; border:2px solid var(--bg); }
+
+  .display { font-family:'Space Grotesk', sans-serif; font-weight:500; letter-spacing:-0.025em; line-height:1.02; }
+  .mono { font-family:'IBM Plex Mono', monospace; font-feature-settings:"tnum"; }
+  .num { font-family:'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .label { font-family:'IBM Plex Mono', monospace; text-transform:uppercase; font-size:10.5px; letter-spacing:0.18em; color: var(--ink-3); font-weight:400; }
+  .label-amber { color: var(--amber); }
+
+  /* Buttons */
+  .btn { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:999px; font-size:13px; font-weight:500; border:1px solid transparent; transition: all .15s ease; white-space: nowrap; }
+  .btn-amber { background: var(--amber); color: var(--carbon); }
+  .btn-amber:hover { background: var(--amber-soft); }
+  .btn-dark { background: var(--ink); color: var(--bg-3); }
+  .btn-dark:hover { background: var(--ink-2); }
+  .btn-secondary { background: var(--panel); color: var(--ink); border-color: var(--line-2); }
+  .btn-secondary:hover { background: var(--bg-3); border-color: var(--ink); }
+  .btn-ghost { background: transparent; color: var(--ink-2); }
+  .btn-ghost:hover { background: var(--bg-3); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-lg { padding: 11px 18px; font-size: 14px; }
+
+  /* Panel + corner-marks */
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; }
+  .panel-2 { background: var(--bg-3); border: 1px solid var(--line); border-radius: 18px; }
+  .corner-marks { position: relative; }
+  .corner-marks::before { content: ""; position: absolute; top: 14px; left: 14px; width: 8px; height: 8px; border-radius: 999px; background: var(--amber); }
+
+  /* Badge */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid var(--line-2); background: var(--bg-3); color: var(--ink-3); border-radius: 999px; }
+  .badge-ok    { color: var(--ok);     border-color: rgba(79,138,93,0.4);  background: rgba(79,138,93,0.10); }
+  .badge-amber { color: var(--amber);  border-color: rgba(255,107,53,0.4);  background: rgba(255,107,53,0.10); }
+  .badge-warn  { color: var(--warn);   border-color: rgba(197,138,46,0.4);  background: rgba(197,138,46,0.10); }
+  .badge-danger{ color: var(--danger); border-color: rgba(194,71,78,0.4);   background: rgba(194,71,78,0.10); }
+  .badge-steel { color: var(--steel);  border-color: rgba(61,90,122,0.4);   background: rgba(61,90,122,0.10); }
+  .badge-ink   { background: var(--ink); color: var(--bg-3); border-color: var(--ink); }
+
+  /* Field */
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field input, .field select, .field textarea { background: var(--bg-3); border: 1px solid var(--line-2); color: var(--ink); padding: 9px 12px; border-radius: 10px; font: inherit; outline: none; transition: border-color .15s ease; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--amber); }
+
+  /* Tables */
+  table.data { width:100%; border-collapse: collapse; font-size:13px; }
+  table.data th, table.data td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.data th { font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:500; text-transform:uppercase; letter-spacing:0.12em; color: var(--ink-3); background: var(--bg-2); border-bottom: 1px solid var(--line-2); }
+  table.data tbody tr:hover { background: var(--bg-2); }
+  table.data td.num, table.data th.num { text-align: right; font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+
+  /* Sidebar */
+  .sidebar { width: 264px; background: var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; height: 100vh; position: sticky; top: 0; overflow-y: auto; flex-shrink: 0; }
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--line-2); border-radius:999px; }
+  .sb-group { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .sb-group:last-child { border-bottom: 0; }
+  .sb-group-title { font-family:'IBM Plex Mono', monospace; text-transform: uppercase; font-size: 9.5px; letter-spacing: 0.18em; color: var(--ink-4); padding: 10px 18px 6px; }
+  .sb-item { display:flex; align-items:center; gap:10px; padding: 7px 18px; font-size:13.5px; color:var(--ink-2); cursor:pointer; border:0; background:transparent; width:100%; text-align:left; border-left: 2px solid transparent; transition: background .12s ease, color .12s ease; }
+  .sb-item:hover { background: var(--bg-3); }
+  .sb-item.on { color: var(--ink); font-weight: 500; background: var(--bg-3); border-left-color: var(--amber); }
+  .sb-item .sb-badge { margin-left: auto; font-family:'IBM Plex Mono', monospace; font-size:10px; padding: 1px 6px; border-radius: 999px; background: var(--bg-2); color: var(--ink-3); }
+
+  /* Topbar */
+  .topbar { position: sticky; top: 0; z-index: 30; background: rgba(248,244,234,0.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); padding: 12px 28px; display:flex; align-items:center; gap: 16px; }
+  .crumb { display:flex; align-items:center; gap: 8px; font-size: 12.5px; color: var(--ink-3); font-family:'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.05em; }
+  .crumb b { color: var(--ink); font-weight: 500; }
+  .topbar-search { position: relative; width: 320px; }
+  .topbar-search input { width:100%; padding:7px 12px 7px 32px; border:1px solid var(--line-2); border-radius:999px; background: var(--bg-3); outline: none; font-size: 13px; }
+  .topbar-search .sx { position: absolute; left: 10px; top: 8px; color: var(--ink-4); }
+  .kbd { font-family:'IBM Plex Mono', monospace; font-size: 10px; padding: 1px 6px; border:1px solid var(--line-2); border-radius: 6px; color: var(--ink-3); }
+
+  /* KPI tile */
+  .kpi { background: var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+  .kpi .label { font-size: 10.5px; }
+  .kpi .v { font-family:'IBM Plex Mono', monospace; font-size: 26px; margin-top:4px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .kpi .sub { margin-top: 3px; font-size: 12px; color: var(--ink-3); }
+  .kpi.accent .v { color: var(--amber); }
+  .kpi.success .v { color: var(--ok); }
+  .kpi.steel .v { color: var(--steel); }
+
+  ul.clean { list-style:none; padding:0; margin:0; }
+  ul.clean li { padding: 8px 0; border-bottom: 1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  ul.clean li:last-child { border-bottom: 0; }
+
+  html, body { overflow-x: hidden; }
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .topbar { padding: 10px 16px; flex-wrap: wrap; }
+    .topbar-search { width: 100%; order: 99; }
+    [style*="repeat(3, 1fr)"], [style*="repeat(4, 1fr)"], [style*="repeat(5, 1fr)"], [style*="repeat(6, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+    [style*="1fr 1fr"], [style*="1.4fr 1fr"], [style*="1.6fr 1fr"], [style*="1.5fr 1fr"], [style*="1.2fr 1fr"] { grid-template-columns: 1fr !important; }
+    table { display: block; overflow-x: auto; }
+  }
+  @media (max-width: 600px) {
+    [style*="repeat(2, 1fr)"], [style*="repeat(3, 1fr)"] { grid-template-columns: 1fr !important; }
+  }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/jsx-source" data-file="icons.js">
+const { useState, useEffect, useMemo } = React;
+const I = {
+  search: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>,
+  bell:   (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M6 8a6 6 0 1 1 12 0c0 5 2 7 2 7H4s2-2 2-7zM10 19a2 2 0 0 0 4 0"/></svg>,
+  arrow:  (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M5 12h14M13 6l6 6-6 6"/></svg>,
+  check:  (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" {...p}><path d="M4 12l5 5L20 6"/></svg>,
+  plus:   (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 5v14M5 12h14"/></svg>,
+  dl:     (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 4v12m0 0l-5-5m5 5l5-5M4 20h16"/></svg>,
+  ext:    (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M14 4h6v6M20 4l-9 9M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>,
+  filter: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 5h18M6 12h12M10 19h4"/></svg>,
+  more:   (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>,
+  logo:   (p)=><svg viewBox="0 0 32 32" fill="none" {...p}><rect x="4" y="4" width="24" height="24" stroke="currentColor" strokeWidth="1.5"/><path d="M10 22 V12 H22 M10 17 H22" stroke="currentColor" strokeWidth="1.5"/></svg>,
+  hammer: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M14 5l5 5-9 9-5-5 9-9zM12 7l5 5M3 21l3-3"/></svg>,
+  chart:  (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M4 20V8M10 20V4M16 20v-8M22 20H2"/></svg>,
+  spread: (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M3 14h18M9 4v16M15 4v16"/></svg>,
+  truck:  (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="2" y="8" width="11" height="9"/><path d="M13 11h5l3 3v3h-8"/><circle cx="5" cy="19" r="2"/><circle cx="17" cy="19" r="2"/></svg>,
+  spark:  (p)=><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/></svg>,
+};
+window.DevIcons = I;
+</script>
+
+<script type="text/jsx-source" data-file="nav.js">
+const NAV = [
+  { g:"COMMAND CENTER", items:[
+    { l:"Overview",            k:"overview", href:"index.html" },
+  ]},
+  { g:"CABINETS", items:[
+    { l:"My cabinet",          k:"my",           href:"my-cabinet.html" },
+    { l:"Project manager",      k:"pm",           href:"project-manager.html" },
+    { l:"CFO / Accountant",    k:"cfo",           href:"cfo.html" },
+    { l:"QS / Cost analyst",   k:"qs",            href:"qs.html" },
+    { l:"Procurement manager", k:"proc",          href:"procurement.html" },
+    { l:"Warehouse manager",   k:"wh",            href:"warehouse.html" },
+    { l:"Site supervisor",     k:"site",          href:"site-supervisor.html" },
+    { l:"Marketing staff",     k:"mkt",           href:"marketing.html" },
+    { l:"Sales manager",       k:"sales",         href:"sales.html" },
+  ]},
+  { g:"AI AGENTS", items:[
+    { l:"Hub",                  k:"ai",           href:"ai-agents.html" },
+    { l:"Inbox",                k:"ai-inbox",     href:"ai-agents.html#inbox" },
+    { l:"QS Cost Analyst",      k:"ai-qs",        href:"ai-agents.html#qs" },
+    { l:"Procurement Analyst",  k:"ai-proc",      href:"ai-agents.html#proc" },
+    { l:"Tax Assistant",        k:"ai-tax",       href:"ai-agents.html#tax" },
+    { l:"Daily Digest",         k:"ai-daily",     href:"ai-agents.html#daily" },
+    { l:"Weekly Plan",          k:"ai-weekly",    href:"ai-agents.html#weekly" },
+    { l:"Project Memory",       k:"ai-mem",       href:"ai-agents.html#memory" },
+  ]},
+  { g:"EXECUTIVE", items:[
+    { l:"Executive dashboard", k:"exec",          href:"executive.html" },
+    { l:"Visual reports",       k:"exec-reports", href:"executive.html#reports" },
+    { l:"Risk radar",           k:"exec-risk",    href:"executive.html#risk" },
+  ]},
+  { g:"BUILD · SELL", items:[
+    { l:"Projects",       k:"projects",  href:"projects.html" },
+    { l:"Assets",         k:"assets",    href:"assets.html" },
+    { l:"Site reports",   k:"reports",   href:"site-reports.html" },
+    { l:"Sales & buyers", k:"sb",        href:"sales.html" },
+    { l:"Reservations",   k:"resv",      href:"sales.html#reservations" },
+    { l:"Contracts",      k:"contracts", href:"sales.html#contracts" },
+    { l:"Invoices",       k:"invoices",  href:"sales.html#invoices" },
+  ]},
+  { g:"CAPITAL", items:[
+    { l:"Finance",         k:"finance",      href:"cfo.html" },
+    { l:"Tax types",        k:"tax",         href:"cfo.html#tax" },
+    { l:"Shared costs",     k:"shared",      href:"cfo.html#shared" },
+    { l:"Investors",        k:"inv",         href:"investor.html" },
+    { l:"Commitments",      k:"inv-comm",    href:"investor.html#commitments" },
+    { l:"Distributions",    k:"inv-dist",    href:"investor.html#distributions" },
+  ]},
+  { g:"STRATEGIC", items:[
+    { l:"Project cycle intel.", k:"cycle",   href:"strategic.html" },
+    { l:"Unit profitability",   k:"unit",    href:"strategic.html#units" },
+    { l:"Cashflow forecast",    k:"cash",    href:"strategic.html#cash" },
+  ]},
+  { g:"OPERATIONS", items:[
+    { l:"Vendors",          k:"vendors",     href:"operations.html" },
+    { l:"Materials",        k:"materials",   href:"operations.html#materials" },
+    { l:"Deliveries",       k:"deliveries",  href:"operations.html#deliveries" },
+    { l:"Safety incidents", k:"safety",      href:"operations.html#safety" },
+  ]},
+  { g:"MARKETING", items:[
+    { l:"Marketing dash",      k:"mkt-dash",  href:"marketing.html" },
+    { l:"Lead sources",         k:"mkt-leads",href:"marketing.html#leads" },
+    { l:"Campaigns",            k:"mkt-camp",  href:"marketing.html#campaigns" },
+    { l:"Content pipeline",     k:"mkt-cont",  href:"marketing.html#content" },
+  ]},
+  { g:"SCHEDULE · KNOWLEDGE", items:[
+    { l:"Schedule",         k:"sched",   href:"schedule.html" },
+    { l:"Drawings",         k:"dwg",     href:"knowledge.html" },
+    { l:"BOQ",              k:"boq",     href:"qs.html#boq" },
+    { l:"Specifications",   k:"specs",   href:"knowledge.html#specs" },
+    { l:"Method statements",k:"ms",      href:"knowledge.html#ms" },
+  ]},
+  { g:"COMMUNICATIONS · SETTINGS", items:[
+    { l:"WhatsApp",         k:"wa",      href:"communications.html" },
+    { l:"Notification rules",k:"notif",  href:"communications.html#notif" },
+    { l:"Settings",         k:"set",     href:"settings.html" },
+    { l:"Platform",         k:"plat",    href:"platform.html" },
+  ]},
+];
+window.DevNav = NAV;
+</script>
+
+<script type="text/jsx-source" data-file="data.js">
+const DATA = {
+  project: {
+    code:"EP02", name:"Eternal Phase 02", area:"Ubud", units:12, gdvM:5.4, stage:"construction",
+    progress:58, handover:"Mar 2027",
+    budgetM:8.4, committedPct:86.5, actualM:1.47, variance:1.4,
+  },
+  projects: [
+    { code:"EP02", name:"Eternal Phase 02", units:12, gdvM:5.4, stage:"construction",  prog:58, ontrack:true,  irr:23.4 },
+    { code:"ES10", name:"Enso 10 Pool",     units:8,  gdvM:7.4, stage:"construction",  prog:34, ontrack:true,  irr:21.8 },
+    { code:"AHP3", name:"Ahau Phase 3",     units:5,  gdvM:6.8, stage:"permit",        prog:14, ontrack:false, irr:18.2 },
+  ],
+  staff: [
+    { name:"Nikita R.",     role:"Director",          init:"NR" },
+    { name:"Made S.",       role:"Project Manager",    init:"MS" },
+    { name:"Komang Y.",     role:"Site Supervisor",    init:"KY" },
+    { name:"Dewi S.",       role:"CFO / Accountant",   init:"DS" },
+    { name:"Wayan T.",      role:"QS / Cost Analyst",  init:"WT" },
+    { name:"Ari P.",        role:"Procurement",        init:"AP" },
+    { name:"Putu L.",       role:"Marketing",          init:"PL" },
+    { name:"Inka R.",       role:"Sales Manager",      init:"IR" },
+  ],
+  ai: [
+    { id:"qs-cost",    name:"QS Cost Analyst",        live:true,  desc:"Catches unit-cost outliers before they ship to PO. Reads against historical baselines + flags drift." },
+    { id:"proc",       name:"Procurement Analyst",    live:true,  desc:"Compares quotations side-by-side, picks the right vendor, flags price drifts." },
+    { id:"daily",      name:"Daily Construction Digest", live:true, desc:"Yesterday's exceptions, today's plan. Filed at 06:00 to your PM inbox." },
+    { id:"weekly",     name:"Weekly Plan Generator",   live:true,  desc:"Forward-looking week plan with resource calls, risk callouts, schedule pivots." },
+    { id:"tax",        name:"Tax Assistant",           live:true,  desc:"Auto-categorises every transaction, splits VAT, drafts journal entries." },
+    { id:"mkt",        name:"Marketing Assistant",     live:false, desc:"Per-villa launch copy, channel briefs, agent decks — tuned weekly." },
+    { id:"exec",       name:"Executive Business",      live:false, desc:"Board-ready snapshot. Multi-project. Owner-stay forecast included." },
+    { id:"buyer",      name:"Buyer CRM Assistant",     live:false, desc:"Draft replies, classify leads, match units to prospect briefs. Never auto-sends." },
+    { id:"memory",     name:"Project Memory",          live:true,  desc:"Shared semantic memory. Every fact written once, recalled by everyone." },
+    { id:"site",       name:"Site Photo Verifier",     live:false, desc:"Reads geo-tagged photos against checklist items, flags discrepancies." },
+  ],
+};
+window.DevData = DATA;
+</script>
+
+<script type="text/jsx-source" data-file="shell.js">
+const _I = window.DevIcons;
+
+function Sidebar({ activeKey, current }) {
+  return (
+    <aside className="sidebar">
+      <a href="index.html" style={{display:"flex", alignItems:"center", gap:10, padding:"18px 18px 14px"}}>
+        <span style={{color:"var(--amber)"}}><_I.logo width="22" height="22"/></span>
+        <span className="display" style={{fontSize:18, color:"var(--ink)", letterSpacing:"0.02em"}}>ARCONIQUE</span>
+        <span className="badge badge-amber" style={{fontSize:9, padding:"1px 6px"}}>DEV.OS</span>
+      </a>
+      <div style={{padding:"4px 18px 12px"}}>
+        <div style={{padding:"10px 12px", background:"var(--bg-3)", borderRadius:10, border:"1px solid var(--line)"}}>
+          <div className="label" style={{fontSize:9.5}}>Active project</div>
+          <div className="display" style={{fontSize:14, marginTop:2}}>Eternal / Phase 02</div>
+          <div className="mono" style={{fontSize:11, color:"var(--ink-3)", marginTop:2}}>12 units · 5.6ha · WK 36</div>
+          <div style={{height:4, background:"var(--bg-2)", marginTop:8, borderRadius:999, overflow:"hidden"}}>
+            <div style={{height:"100%", width:"58%", background:"var(--amber)"}}></div>
+          </div>
+        </div>
+      </div>
+      {DevNav.map(g=>(
+        <div className="sb-group" key={g.g}>
+          <div className="sb-group-title">{g.g}</div>
+          {g.items.map(it=>{
+            const isActive = it.k === activeKey;
+            return (
+              <a key={it.k} href={it.href || "#"} className={"sb-item " + (isActive ? "on" : "")}>{it.l}{it.badge && <span className="sb-badge">{it.badge}</span>}</a>
+            );
+          })}
+        </div>
+      ))}
+    </aside>
+  );
+}
+
+function Topbar({ breadcrumbs = [], actions }) {
+  return (
+    <header className="topbar">
+      <div className="crumb">
+        {breadcrumbs.map((b, i)=>(<React.Fragment key={i}><span style={{color: i===breadcrumbs.length-1 ? "var(--ink)" : "var(--ink-3)", fontWeight: i===breadcrumbs.length-1 ? 500 : 400}}>{b}</span>{i < breadcrumbs.length-1 && <span>/</span>}</React.Fragment>))}
+      </div>
+      <div style={{marginLeft:"auto", display:"flex", alignItems:"center", gap:10}}>
+        <div className="topbar-search">
+          <span className="sx"><_I.search width="14" height="14"/></span>
+          <input placeholder="Search project, BOQ line, vendor, asset…"/>
+          <span className="kbd" style={{position:"absolute", right:10, top:6}}>⌘K</span>
+        </div>
+        {actions}
+        <button style={{position:"relative", padding:6, color:"var(--ink-2)"}}><_I.bell width="17" height="17"/><span style={{position:"absolute", top:4, right:4, width:7, height:7, borderRadius:999, background:"var(--amber)"}}></span></button>
+        <span className="badge badge-amber" style={{fontSize:9}}>DEMO</span>
+        <div style={{display:"flex", alignItems:"center", gap:8, paddingLeft:8, borderLeft:"1px solid var(--line)"}}>
+          <div style={{width:30, height:30, borderRadius:999, background:"var(--amber)", color:"var(--carbon)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:600, fontFamily:"'Space Grotesk', sans-serif"}}>NR</div>
+          <div style={{display:"flex", flexDirection:"column", lineHeight:1.1}}>
+            <span style={{fontSize:13, fontWeight:500}}>Nikita R.</span>
+            <span style={{fontSize:10.5, color:"var(--ink-3)"}}>Director</span>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function CabinetPage({ activeKey, current, breadcrumbs, actions, children }) {
+  return (
+    <div style={{display:"flex", minHeight:"100vh", background:"var(--bg)"}}>
+      <Sidebar activeKey={activeKey} current={current}/>
+      <main style={{flex:1, minWidth:0}}>
+        <Topbar breadcrumbs={breadcrumbs} actions={actions}/>
+        <div style={{padding:"24px 28px 80px", maxWidth:1480}}>
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function Kpi({ label, value, sub, tone }) {
+  return (
+    <div className={"kpi " + (tone ? tone : "")}>
+      <div className="label">{label}</div>
+      <div className="v">{value}</div>
+      {sub && <div className="sub">{sub}</div>}
+    </div>
+  );
+}
+
+function SectionHeading({ eyebrow, title, subtitle, actions }) {
+  return (
+    <div style={{display:"flex", alignItems:"flex-end", gap:18, marginBottom:22}}>
+      <div style={{flex:1, minWidth:0}}>
+        {eyebrow && <div className="label label-amber">{eyebrow}</div>}
+        <h1 className="display" style={{fontSize:42, margin:"6px 0 0", fontWeight:500}}>{title}</h1>
+        {subtitle && <p style={{margin:"8px 0 0", color:"var(--ink-3)", fontSize:15, maxWidth:680}}>{subtitle}</p>}
+      </div>
+      {actions && <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>{actions}</div>}
+    </div>
+  );
+}
+
+window.DevShell = { Sidebar, Topbar, CabinetPage, Kpi, SectionHeading };
+</script>
+
+<script type="text/jsx-source" data-file="app.js">
+
+const { CabinetPage, Kpi, SectionHeading } = DevShell;
+const I = DevIcons; const D = DevData;
+
+function Overview() {
+  return (
+    <CabinetPage activeKey="overview" current="index.html"
+      breadcrumbs={["Command Center","Today"]}
+      actions={<>
+        <button className="btn btn-secondary btn-sm">Daily digest PDF <I.dl width="13" height="13"/></button>
+        <button className="btn btn-amber btn-sm">New project <I.plus width="13" height="13"/></button>
+      </>}>
+      <SectionHeading
+        eyebrow="Tuesday · 21 April 2026 · WK36"
+        title={<>Three projects in motion. <span style={{color:"var(--amber)"}}>One demands your eyes.</span></>}
+        subtitle="Eternal Phase 02 on track at 58% complete · Enso 10 Pool ahead of schedule · Ahau Phase 3 stalled in permit (12-day delay)."
+      />
+
+      <div style={{display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:12, marginBottom:24}}>
+        <Kpi label="Active projects" value="3" sub="1 watch · 2 on track" tone="amber"/>
+        <Kpi label="Total commitment" value="$24M" sub="across 14 LPs"/>
+        <Kpi label="Avg progress" value="35%" sub="weighted by GDV"/>
+        <Kpi label="Cost variance · agg" value="+1.4%" sub="EAC +2.1%" tone="accent"/>
+        <Kpi label="Portfolio IRR · YTD" value="23.4%" sub="vs PPM 18.0%" tone="success"/>
+      </div>
+
+      {/* AI band */}
+      <div className="panel corner-marks" style={{padding:24, marginBottom:18, borderColor:"var(--amber)"}}>
+        <div style={{display:"flex", gap:16, alignItems:"flex-start"}}>
+          <span style={{flexShrink:0, width:42, height:42, background:"rgba(255,107,53,0.15)", border:"1px solid var(--amber)", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", color:"var(--amber)"}}><I.spark width="20" height="20"/></span>
+          <div style={{flex:1}}>
+            <div className="label label-amber">qs-cost-analyst · 06:14 · run 4af2</div>
+            <p style={{margin:"8px 0 14px", fontSize:15, lineHeight:1.55, color:"var(--ink)"}}>
+              Line <span className="mono" style={{color:"var(--amber)"}}>EP02.WP-04.18.b · Marble Hindari 60×60</span> is <strong>+18.4%</strong> vs 6-month rolling baseline for comparable lots from supplier <span className="mono">BatuJaya</span>. Median across 4 reference projects is $42/m²; we are quoted $49.6/m². Suggest re-RFQ to 2 backup vendors before approving PO.
+            </p>
+            <div style={{display:"flex", gap:8}}>
+              <button className="btn btn-amber btn-sm">Reissue RFQ <I.arrow width="12" height="12"/></button>
+              <button className="btn btn-secondary btn-sm">Mark accepted</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Projects roll-up */}
+      <div className="panel" style={{padding:0, overflow:"hidden", marginBottom:18}}>
+        <div style={{padding:"14px 22px", borderBottom:"1px solid var(--line)", display:"flex", alignItems:"center"}}>
+          <h2 className="display" style={{margin:0, fontSize:20, fontWeight:500}}>Projects · 3 active</h2>
+          <span className="mono" style={{marginLeft:"auto", fontSize:11, color:"var(--ink-3)"}}>$24M GDV · 25 UNITS</span>
+        </div>
+        <table className="data">
+          <thead><tr><th>Project</th><th>Units</th><th>GDV</th><th>Stage</th><th>Progress</th><th>State</th><th>IRR</th></tr></thead>
+          <tbody>
+            {D.projects.map(p=>(
+              <tr key={p.code}>
+                <td>
+                  <div style={{display:"flex", alignItems:"center", gap:10}}>
+                    <span className="mono" style={{padding:"2px 6px", border:"1px solid var(--line-2)", borderRadius:6, background:"var(--bg-2)", fontSize:10}}>{p.code}</span>
+                    <span className="display" style={{fontSize:14, fontWeight:500}}>{p.name}</span>
+                  </div>
+                </td>
+                <td className="num">{p.units}</td>
+                <td className="num">${p.gdvM}M</td>
+                <td><span className="badge">{p.stage}</span></td>
+                <td>
+                  <div style={{display:"flex", alignItems:"center", gap:8, minWidth:140}}>
+                    <div style={{flex:1, height:6, background:"var(--bg-2)", borderRadius:999, overflow:"hidden"}}>
+                      <div style={{height:"100%", width:p.prog+"%", background: p.ontrack ? "var(--amber)" : "var(--warn)", borderRadius:999}}></div>
+                    </div>
+                    <span className="mono" style={{fontSize:11, color:"var(--ink-3)", width:32}}>{p.prog}%</span>
+                  </div>
+                </td>
+                <td>{p.ontrack ? <span className="badge badge-ok">On track</span> : <span className="badge badge-warn">Watch</span>}</td>
+                <td className="num" style={{color:"var(--amber)", fontWeight:500}}>{p.irr}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Two-up: Risk radar + Today's site */}
+      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:18}}>
+        <div className="panel" style={{padding:20}}>
+          <h3 className="display" style={{margin:0, fontSize:18, fontWeight:500}}>Risk radar</h3>
+          <ul className="clean" style={{marginTop:14}}>
+            <li><span style={{width:8, height:8, borderRadius:999, background:"var(--danger)"}}></span><span style={{flex:1, fontSize:13}}>AHP3 permit stalled · 12 days</span><span className="badge badge-danger">Critical</span></li>
+            <li><span style={{width:8, height:8, borderRadius:999, background:"var(--amber)"}}></span><span style={{flex:1, fontSize:13}}>EP02 marble PO over baseline</span><span className="badge badge-amber">High</span></li>
+            <li><span style={{width:8, height:8, borderRadius:999, background:"var(--warn)"}}></span><span style={{flex:1, fontSize:13}}>ES10 rebar lead-time +4 days</span><span className="badge badge-warn">Medium</span></li>
+            <li><span style={{width:8, height:8, borderRadius:999, background:"var(--steel)"}}></span><span style={{flex:1, fontSize:13}}>Heavy rain forecast 23–25 Apr</span><span className="badge badge-steel">Weather</span></li>
+          </ul>
+        </div>
+        <div className="panel" style={{padding:20}}>
+          <h3 className="display" style={{margin:0, fontSize:18, fontWeight:500}}>Site activity · today</h3>
+          <ul className="clean" style={{marginTop:14, fontSize:13}}>
+            <li><span className="mono" style={{fontSize:11, color:"var(--ink-3)", minWidth:48}}>04:30</span><span style={{flex:1}}>EP02 · Block B concrete pour · 1,420 m³</span><span className="badge badge-amber">In progress</span></li>
+            <li><span className="mono" style={{fontSize:11, color:"var(--ink-3)", minWidth:48}}>08:00</span><span style={{flex:1}}>ES10 · MEP rough-in inspection</span><span className="badge">Scheduled</span></li>
+            <li><span className="mono" style={{fontSize:11, color:"var(--ink-3)", minWidth:48}}>10:00</span><span style={{flex:1}}>AHP3 · permit office meeting</span><span className="badge badge-warn">Critical</span></li>
+            <li><span className="mono" style={{fontSize:11, color:"var(--ink-3)", minWidth:48}}>14:00</span><span style={{flex:1}}>EP02 · marble samples vendor visit</span><span className="badge">Scheduled</span></li>
+          </ul>
+        </div>
+      </div>
+
+      {/* Team */}
+      <div className="panel" style={{padding:0, overflow:"hidden"}}>
+        <div style={{padding:"14px 22px", borderBottom:"1px solid var(--line)"}}>
+          <h2 className="display" style={{margin:0, fontSize:20, fontWeight:500}}>Team · 8 cabinets</h2>
+        </div>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:14, padding:20}}>
+          {D.staff.map(p=>(
+            <div key={p.name} style={{display:"flex", alignItems:"center", gap:10, padding:"10px 12px", border:"1px solid var(--line)", borderRadius:12, background:"var(--bg-3)"}}>
+              <div style={{width:36, height:36, borderRadius:999, background:"var(--amber)", color:"var(--carbon)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:600, fontFamily:"'Space Grotesk', sans-serif"}}>{p.init}</div>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontSize:13, fontWeight:500}}>{p.name}</div>
+                <div className="mono" style={{fontSize:10, color:"var(--ink-3)"}}>{p.role}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </CabinetPage>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Overview/>);
+
+</script>
+
+<!-- BOOTSTRAP -->
+<script>
+(function(){
+  const scripts = [...document.querySelectorAll('script[type="text/jsx-source"]')];
+  for (const s of scripts) {
+    if (!s.textContent.trim()) continue;
+    try {
+      const compiled = Babel.transform(s.textContent, { presets:["react"] }).code;
+      (0, eval)(compiled);
+    } catch (e) {
+      console.error("[" + (s.dataset.file || "?") + "]", e.message);
+    }
+  }
+})();
+</script>
+</body>
+</html>
