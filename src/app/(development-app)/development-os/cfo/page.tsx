@@ -5,23 +5,25 @@ import {
   Card,
   Badge,
 } from "@/components/dashboard/primitives";
+import { safeQuery } from "@/lib/development/safe-query";
+import { getCfoKpis } from "@/lib/development/server/cabinets/cfo-cabinet-queries";
 
 /**
- * TASK-8-MISSING-ROUTES-1 — Dev OS CFO summary cabinet.
- *
- * Ported from `_handoff/development/cfo.html` (TASK-7-VISUAL). This
- * is the top-level CFO summary (P&L · cash · AR/AP roll-up), distinct
- * from the per-role cabinet at /development-os/cabinets/cfo-accountant
- * which already ships with live data wiring (cfo-cabinet-queries.ts).
- *
- * Mock data preserved verbatim from prototype this sprint. Live
- * wiring to dev_transactions + tax_types + shared_costs lands in
- * TASK-7-DATA-PART-4 (already partly covered by cfo-cabinet-queries
- * for the per-role page — extending here is a follow-up).
+ * Dev OS CFO summary cabinet. KPI strip is live (cash on hand,
+ * receivables, payables-next-30, MTD spend, 30-day forecast burn) via
+ * getCfoKpis(). P&L table + cash-strip + tax + shared-costs tables
+ * remain mock — full wiring lands in CFO-DATA-WIRING-2.
  */
 
 export const metadata = { title: "Development OS · CFO" };
 export const dynamic = "force-dynamic";
+
+function fmtUsd(minor: number): string {
+  const usd = minor / 100;
+  if (Math.abs(usd) >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
+  if (Math.abs(usd) >= 1_000) return `$${(usd / 1_000).toFixed(0)}K`;
+  return `$${Math.round(usd)}`;
+}
 
 const PL_ROWS = [
   { code: "EP02", hardCost: "$1,840K", softCost: "$420K", financing: "$84K", total: "$2,344K" },
@@ -46,7 +48,8 @@ const SHARED_COSTS = [
   { category: "Software licenses", total: "$1,400", rule: "Per-user weight", ep02: "$580", es10: "$520", ahp3: "$300" },
 ];
 
-export default function DevCfoPage() {
+export default async function DevCfoPage() {
+  const kpis = await safeQuery("devCfoKpis", getCfoKpis(), null);
   return (
     <>
       <SectionHeading
@@ -72,11 +75,34 @@ export default function DevCfoPage() {
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
-        <Kpi label="Cash on hand" value="$684K" sub="across 3 SPV banks" tone="success" />
-        <Kpi label="AR · open" value="$184K" sub="6 invoices · 2 past due" tone="accent" />
-        <Kpi label="AP · open" value="$248K" sub="14 invoices · 4 this week" />
-        <Kpi label="MTD spend" value="$182K" sub="hard cost 86%" />
-        <Kpi label="Forecast burn · 30d" value="$220K" sub="vs $240K budget" tone="success" />
+        <Kpi
+          label="Cash on hand"
+          value={kpis ? fmtUsd(kpis.cashOnHandMinor) : "—"}
+          sub="across SPV banks"
+          tone={kpis && kpis.cashOnHandMinor > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="AR · open"
+          value={kpis ? fmtUsd(kpis.receivablesMinor) : "—"}
+          sub="receivables"
+          tone="accent"
+        />
+        <Kpi
+          label="AP · open · next 30d"
+          value={kpis ? fmtUsd(kpis.payablesNext30Minor) : "—"}
+          sub="payables"
+        />
+        <Kpi
+          label="MTD spend"
+          value={kpis ? fmtUsd(kpis.spendMtdMinor) : "—"}
+          sub="outflows month-to-date"
+        />
+        <Kpi
+          label="Forecast burn · 30d"
+          value={kpis ? fmtUsd(kpis.forecastBurn30dMinor) : "—"}
+          sub="trailing-30 outflow"
+          tone={kpis && kpis.forecastBurn30dMinor > 0 ? "success" : undefined}
+        />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 18 }}>
