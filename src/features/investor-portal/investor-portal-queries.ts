@@ -328,6 +328,9 @@ export async function getInvestorDistributions(
 ): Promise<DistributionRecord[]> {
   const db = getDb();
   if (!db) return [];
+  // INVESTOR-2: prefer the audit-locked share from distribution_allocations
+  // when available; fall back to the on-the-fly computation for distributions
+  // that pre-date the INVESTOR-2 ledger backfill.
   const rows = await db.execute<{
     id: string;
     project_name: string | null;
@@ -340,15 +343,21 @@ export async function getInvestorDistributions(
            p.name                                   AS project_name,
            d.distribution_type                     AS distribution_type,
            d.effective_date::text                  AS effective_date,
-           (d.total_amount_usd_minor * c.committed_amount_usd_minor /
-            (SELECT SUM(committed_amount_usd_minor) FROM capital_commitments
-              WHERE project_id = d.project_id AND status = 'active'))::text AS share_usd,
+           COALESCE(
+             a.total_amount_usd_minor::text,
+             (d.total_amount_usd_minor * c.committed_amount_usd_minor /
+              (SELECT SUM(committed_amount_usd_minor) FROM capital_commitments
+                WHERE project_id = d.project_id AND status = 'active'))::text
+           )                                       AS share_usd,
            d.status                                 AS status
       FROM distributions d
       JOIN capital_commitments c ON c.project_id = d.project_id
        AND c.investor_id = ${investorId}::uuid
        AND c.status = 'active'
       LEFT JOIN projects p ON p.id = d.project_id
+      LEFT JOIN distribution_allocations a
+             ON a.distribution_id = d.id
+            AND a.commitment_id = c.id
      ORDER BY d.effective_date DESC
   `);
   return (
