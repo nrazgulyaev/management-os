@@ -80,9 +80,9 @@ export default async function QsPage() {
             <Link href="/development-os/boq/quick-entry" className="btn btn-dark btn-sm">
               Quick entry
             </Link>
-            <button className="btn btn-dark btn-sm">Export XLSX ↓</button>
-            <button className="btn btn-dark btn-sm">Compare REV</button>
-            <button className="btn btn-amber btn-sm">+ Change order</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Export XLSX ↓</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Compare REV</button>
+            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Change order</button>
           </>
         }
       />

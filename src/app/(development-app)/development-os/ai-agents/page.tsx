@@ -61,9 +61,9 @@ export default async function AiAgentsPage() {
         subtitle="Read-only allowlists. Refuses to act on closed periods or beyond scope. Every reply tied to a run id and an audit row."
         actions={
           <>
-            <button className="btn btn-dark btn-sm">Token usage</button>
-            <button className="btn btn-dark btn-sm">Memory editor</button>
-            <button className="btn btn-amber btn-sm">+ Conversation</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Token usage</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Memory editor</button>
+            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Conversation</button>
           </>
         }
       />

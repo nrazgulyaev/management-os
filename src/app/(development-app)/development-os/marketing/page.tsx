@@ -45,8 +45,8 @@ export default function DevMarketingPage() {
         subtitle="Per-source attribution, content calendar, manager performance, conversation logs across WhatsApp + email."
         actions={
           <>
-            <button className="btn btn-dark btn-sm">Export leads ↓</button>
-            <button className="btn btn-amber btn-sm">+ Campaign</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Export leads ↓</button>
+            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Campaign</button>
           </>
         }
       />

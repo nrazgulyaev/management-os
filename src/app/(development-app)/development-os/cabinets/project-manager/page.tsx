@@ -101,8 +101,8 @@ export default async function ProjectManagerPage() {
         subtitle="Portfolio at-risk view, kanban-style WP board, integrated daily digest from AI. Schedule strip and cross-project KPIs coming soon."
         actions={
           <>
-            <button className="btn btn-dark btn-sm">Weekly plan PDF ↓</button>
-            <button className="btn btn-amber btn-sm">+ Work package</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Weekly plan PDF ↓</button>
+            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Work package</button>
           </>
         }
       />

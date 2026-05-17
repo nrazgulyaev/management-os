@@ -98,9 +98,9 @@ export default async function OperationsPage() {
         subtitle="Housekeeping, maintenance, preventive tasks and service requests in one inbox. Photos and voice notes coming soon."
         actions={
           <>
-            <button className="btn btn-secondary btn-sm">Morning brief PDF ↓</button>
-            <button className="btn btn-secondary btn-sm">Assignments</button>
-            <button className="btn btn-primary btn-sm">New task +</button>
+            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Morning brief PDF ↓</button>
+            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Assignments</button>
+            <button className="btn btn-primary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>New task +</button>
           </>
         }
       />

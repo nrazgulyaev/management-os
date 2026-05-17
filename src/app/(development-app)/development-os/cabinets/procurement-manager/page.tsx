@@ -148,8 +148,8 @@ export default async function ProcurementManagerPage() {
         subtitle="Auto-PR from BOQ deviations. Side-by-side vendor comparison with AI scoring. Approval thresholds per role. Per-line receipts at warehouse."
         actions={
           <>
-            <button className="btn btn-dark btn-sm">Vendor scorecards</button>
-            <button className="btn btn-amber btn-sm">+ Purchase request</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Vendor scorecards</button>
+            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Purchase request</button>
           </>
         }
       />

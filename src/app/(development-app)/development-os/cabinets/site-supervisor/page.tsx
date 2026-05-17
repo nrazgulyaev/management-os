@@ -75,8 +75,8 @@ export default async function SiteSupervisorPage() {
         subtitle="Daily report timeline, photo-evidence trail, geo-tagged completion stamps. Voice notes and offline-first PWA support coming soon."
         actions={
           <>
-            <button className="btn btn-dark btn-sm">Submit for sign-off</button>
-            <button className="btn btn-amber btn-sm">+ Photo</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Submit for sign-off</button>
+            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Photo</button>
           </>
         }
       />

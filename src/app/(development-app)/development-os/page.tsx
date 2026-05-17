@@ -82,7 +82,7 @@ export default async function DevelopmentOverviewPage() {
         subtitle="Live counts from the active projects table. Risk radar and site activity feeds populate as project data accumulates."
         actions={
           <>
-            <button className="btn btn-dark btn-sm">Daily digest PDF ↓</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Daily digest PDF ↓</button>
             <Link
               href="/development-os/projects/new"
               className="btn btn-amber btn-sm"

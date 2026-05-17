@@ -72,8 +72,8 @@ export default async function DevWarehousePage() {
         subtitle="Material receipts, location tracking, deliveries-in-progress, low-stock alerts. Connects to Procurement and Operations."
         actions={
           <>
-            <button className="btn btn-dark btn-sm">Export XLSX ↓</button>
-            <button className="btn btn-amber btn-sm">+ Receipt</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Export XLSX ↓</button>
+            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Receipt</button>
           </>
         }
       />

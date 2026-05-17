@@ -126,7 +126,12 @@ export default async function DashboardOverviewPage() {
         }
         actions={
           <>
-            <button className="btn btn-secondary btn-sm">
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled
+              title="Coming soon"
+              style={{ opacity: 0.55, cursor: "not-allowed" }}
+            >
               Export brief <DashboardIcon name="logo" width={13} height={13} />
             </button>
             <Link href="/dashboard/bookings" className="btn btn-primary btn-sm">

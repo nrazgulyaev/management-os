@@ -83,9 +83,9 @@ export default async function ConciergePage() {
         subtitle="Multilingual replies on WhatsApp, in-stay portal and email. Escalates only what truly needs you. Audit log per reply."
         actions={
           <>
-            <button className="btn btn-secondary btn-sm">Templates</button>
-            <button className="btn btn-secondary btn-sm">Memory</button>
-            <button className="btn btn-primary btn-sm">
+            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Templates</button>
+            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Memory</button>
+            <button className="btn btn-primary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>
               Review handoffs · {kpis?.handoffsOpen ?? 0}
             </button>
           </>

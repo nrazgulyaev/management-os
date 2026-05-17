@@ -123,8 +123,8 @@ export default async function CfoAccountantPage() {
             >
               All transactions
             </Link>
-            <button className="btn btn-dark btn-sm">Tax pack PDF ↓</button>
-            <button className="btn btn-amber btn-sm">+ Journal entry</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Tax pack PDF ↓</button>
+            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Journal entry</button>
           </>
         }
       />

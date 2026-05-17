@@ -111,8 +111,8 @@ export default async function BookingsPage() {
         subtitle="One source of truth for every channel. Live rows from your bookings table — channel sync and per-villa rate plans coming soon."
         actions={
           <>
-            <button className="btn btn-secondary btn-sm">Import iCal</button>
-            <button className="btn btn-secondary btn-sm">Export CSV</button>
+            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Import iCal</button>
+            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Export CSV</button>
             <Link href="/dashboard/bookings/new" className="btn btn-primary btn-sm">
               New booking +
             </Link>
@@ -162,8 +162,8 @@ export default async function BookingsPage() {
           </button>
         ))}
         <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button className="btn btn-secondary btn-sm">Project</button>
-          <button className="btn btn-secondary btn-sm">Channel</button>
+          <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Project</button>
+          <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Channel</button>
         </span>
       </div>
 
@@ -364,7 +364,7 @@ export default async function BookingsPage() {
             <h3 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 18, fontWeight: 400 }}>
               Rate plans · active
             </h3>
-            <button className="btn btn-secondary btn-sm" style={{ marginLeft: "auto" }}>+ New plan</button>
+            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed", marginLeft: "auto" }}>+ New plan</button>
           </div>
           {ratePlans.length === 0 ? (
             <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>

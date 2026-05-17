@@ -90,9 +90,9 @@ export default async function AiHubPage() {
         subtitle="Every agent reads the same data, writes to the same audit, hits the same per-tenant budget. Read-only allowlists, refusal on closed periods, escalation paths declared up front."
         actions={
           <>
-            <button className="btn btn-secondary btn-sm">Token usage</button>
-            <button className="btn btn-secondary btn-sm">Memory editor</button>
-            <button className="btn btn-primary btn-sm">New conversation +</button>
+            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Token usage</button>
+            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Memory editor</button>
+            <button className="btn btn-primary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>New conversation +</button>
           </>
         }
       />

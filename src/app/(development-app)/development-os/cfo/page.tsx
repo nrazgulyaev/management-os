@@ -60,7 +60,7 @@ export default function DevCfoPage() {
         subtitle="Tax assistant categorises every transaction, splits VAT, drafts journal entries. Closed periods locked. Per-project + roll-up views."
         actions={
           <>
-            <button className="btn btn-dark btn-sm">Tax pack PDF ↓</button>
+            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Tax pack PDF ↓</button>
             <Link
               href="/development-os/finance/transactions/quick-entry"
               className="btn btn-amber btn-sm"
