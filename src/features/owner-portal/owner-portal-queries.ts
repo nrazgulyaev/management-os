@@ -506,3 +506,132 @@ export async function listMyDistributions(ownerId: string): Promise<Distribution
     rows,
   };
 }
+
+// =============================================================================
+// Sprint OWNER-PORTAL-1B — Owner stay quota tracking.
+// Reads from existing owner_stay_policies + owner_stay_requests schema.
+// No new table needed (audit confirmed: free_nights_per_year + peak_season_rules
+// jsonb already live on owner_stay_policies).
+// =============================================================================
+
+export interface OwnerStayQuota {
+  policyName: string;
+  freeNightsPerYear: number;
+  freeNightsApplyToPeak: boolean;
+  year: number;
+  usedNights: number;
+  remainingNights: number;
+  peakSeasonStart: string | null;
+  peakSeasonEnd: string | null;
+  hasPolicy: boolean;
+  requestsCount: number;
+}
+
+export async function getOwnerStayQuota(
+  ownerId: string,
+  year: number = new Date().getUTCFullYear(),
+): Promise<OwnerStayQuota> {
+  const db = getDb();
+  const fallback: OwnerStayQuota = {
+    policyName: "No policy",
+    freeNightsPerYear: 14,
+    freeNightsApplyToPeak: false,
+    year,
+    usedNights: 0,
+    remainingNights: 14,
+    peakSeasonStart: null,
+    peakSeasonEnd: null,
+    hasPolicy: false,
+    requestsCount: 0,
+  };
+  if (!db) return fallback;
+
+  // Pick the most-specific applicable policy: villa-level (any of the
+  // owner's villas) → project-level → first active policy.
+  const policyRows = await db.execute<{
+    policy_name: string;
+    free_nights: string;
+    apply_to_peak: boolean;
+    peak_rules: unknown;
+  }>(sql`
+    WITH owner_villas AS (
+      SELECT villa_id, project_id
+        FROM ownership_shares os
+        JOIN villas v ON v.id = os.villa_id
+       WHERE os.owner_id = ${ownerId}::uuid
+         AND os.status = 'active'
+    )
+    SELECT p.policy_name           AS policy_name,
+           p.free_nights_per_year::text AS free_nights,
+           p.free_nights_apply_to_peak AS apply_to_peak,
+           p.peak_season_rules      AS peak_rules
+      FROM owner_stay_policies p
+     WHERE p.status = 'active'
+       AND (
+         p.villa_id IN (SELECT villa_id FROM owner_villas)
+         OR p.project_id IN (SELECT project_id FROM owner_villas WHERE project_id IS NOT NULL)
+         OR (p.villa_id IS NULL AND p.project_id IS NULL)
+       )
+     ORDER BY (p.villa_id IS NOT NULL) DESC,
+              (p.project_id IS NOT NULL) DESC
+     LIMIT 1
+  `);
+  const policy = (policyRows as unknown as { rows: Array<{
+    policy_name: string;
+    free_nights: string;
+    apply_to_peak: boolean;
+    peak_rules: unknown;
+  }> }).rows?.[0];
+
+  // Sum allowance_nights_applied for the year. Includes approved +
+  // confirmed/relocated. Drafts/rejected excluded.
+  const usageRows = await db.execute<{
+    used_nights: string;
+    requests_count: string;
+  }>(sql`
+    SELECT COALESCE(SUM(allowance_nights_applied)::text, '0') AS used_nights,
+           COUNT(*)::text                                       AS requests_count
+      FROM owner_stay_requests
+     WHERE owner_id = ${ownerId}::uuid
+       AND allowance_year = ${year}
+       AND status NOT IN ('rejected','cancelled','withdrawn')
+  `);
+  const usage = (usageRows as unknown as { rows: Array<{
+    used_nights: string;
+    requests_count: string;
+  }> }).rows?.[0];
+
+  const freeNights = policy ? Number(policy.free_nights || 14) : 14;
+  const used = Number(usage?.used_nights ?? "0");
+  const requestsCount = Number(usage?.requests_count ?? "0");
+  const remaining = Math.max(0, freeNights - used);
+
+  // Peak season rules — first range entry if shape is { start: 'MM-DD', end: 'MM-DD' }
+  // or { ranges: [{ start, end }, ...] }. Defensively probe.
+  let peakStart: string | null = null;
+  let peakEnd: string | null = null;
+  if (policy?.peak_rules) {
+    const r = policy.peak_rules as
+      | { start?: string; end?: string; ranges?: Array<{ start?: string; end?: string }> };
+    if (r.ranges && r.ranges.length > 0) {
+      peakStart = r.ranges[0].start ?? null;
+      peakEnd = r.ranges[0].end ?? null;
+    } else if (r.start) {
+      peakStart = r.start;
+      peakEnd = r.end ?? null;
+    }
+  }
+
+  return {
+    policyName: policy?.policy_name ?? "Default allowance (14 nights/yr)",
+    freeNightsPerYear: freeNights,
+    freeNightsApplyToPeak: policy?.apply_to_peak ?? false,
+    year,
+    usedNights: used,
+    remainingNights: remaining,
+    peakSeasonStart: peakStart,
+    peakSeasonEnd: peakEnd,
+    hasPolicy: !!policy,
+    requestsCount,
+  };
+}

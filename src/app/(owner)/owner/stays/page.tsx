@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { NoItemsYet } from "@/components/ui/primitives";
 import { listOwnerStayRequestsForCurrentOwner } from "@/features/owner-stays/services";
+import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
+import { getOwnerStayQuota } from "@/features/owner-portal/owner-portal-queries";
 
 export const metadata = { title: "My owner stays" };
 export const dynamic = "force-dynamic";
@@ -35,7 +37,14 @@ function formatMoney(minor: number, currency: string) {
 }
 
 export default async function OwnerStaysPage() {
-  const rows = await listOwnerStayRequestsForCurrentOwner();
+  const owner = await getCurrentOwnerContext().catch(() => null);
+  const [rows, quota] = await Promise.all([
+    listOwnerStayRequestsForCurrentOwner().catch(() => []),
+    owner ? getOwnerStayQuota(owner.ownerId).catch(() => null) : Promise.resolve(null),
+  ]);
+  const usedPct = quota
+    ? Math.min(100, Math.round((quota.usedNights / Math.max(quota.freeNightsPerYear, 1)) * 100))
+    : 0;
 
   return (
     <div className="flex flex-col gap-10">
@@ -52,6 +61,51 @@ export default async function OwnerStaysPage() {
           </Link>
         }
       />
+
+      {/* OWNER-PORTAL-1B — quota panel */}
+      {quota && (
+        <Section eyebrow={`Allowance · ${quota.year}`} title={quota.policyName} variant="panel">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-baseline justify-between gap-4">
+              <div>
+                <div className="text-display text-[28px] leading-tight font-medium text-ink tabular-nums">
+                  {quota.usedNights} <span className="text-ink-tertiary">/ {quota.freeNightsPerYear}</span>
+                </div>
+                <div className="text-xs text-ink-tertiary mt-1">
+                  free nights used · {quota.remainingNights} remaining
+                  {quota.requestsCount > 0 ? ` · ${quota.requestsCount} request${quota.requestsCount === 1 ? "" : "s"}` : ""}
+                </div>
+              </div>
+              <div className="text-right text-[11px] text-ink-tertiary">
+                {quota.freeNightsApplyToPeak
+                  ? "Free nights apply during peak season."
+                  : "Free nights apply outside peak season only."}
+                {quota.peakSeasonStart && quota.peakSeasonEnd && (
+                  <div className="mt-1 font-mono">
+                    Peak: {quota.peakSeasonStart} → {quota.peakSeasonEnd}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="w-full h-2 rounded-full bg-cream-deep overflow-hidden">
+              <div
+                style={{
+                  width: `${usedPct}%`,
+                  height: "100%",
+                  background: usedPct >= 90 ? "var(--terra)" : usedPct >= 60 ? "var(--gold)" : "var(--forest)",
+                  borderRadius: 999,
+                }}
+              />
+            </div>
+            {!quota.hasPolicy && (
+              <p className="text-[11px] text-ink-tertiary italic">
+                No explicit policy configured for your villas — showing the default 14
+                nights/year allowance. Confirm specifics with your operator.
+              </p>
+            )}
+          </div>
+        </Section>
+      )}
 
       <Section eyebrow="Your requests" title={`${rows.length} requests`}>
         {rows.length === 0 ? (

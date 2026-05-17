@@ -10,6 +10,7 @@ import {
   getTwelveMonthNetSeries,
   listMyStatements,
   listMyVillas,
+  getOwnerStayQuota,
 } from "@/features/owner-portal/owner-portal-queries";
 
 /**
@@ -45,13 +46,17 @@ export default async function OwnerHomePage() {
   const owner = await getCurrentOwnerContext();
   if (!owner) redirect("/dashboard");
 
-  const [kpis, villas, monthly, latestStatements] = await Promise.all([
+  const [kpis, villas, monthly, latestStatements, quota] = await Promise.all([
     getOwnerDashboardKpis(owner.ownerId).catch(() => null),
     listMyVillas(owner.ownerId).catch(() => []),
     getTwelveMonthNetSeries(owner.ownerId).catch(() => []),
     listMyStatements(owner.ownerId, { limit: 1 }).catch(() => []),
+    getOwnerStayQuota(owner.ownerId).catch(() => null),
   ]);
   const latest = latestStatements[0] ?? null;
+  const quotaUsedPct = quota
+    ? Math.min(100, Math.round((quota.usedNights / Math.max(quota.freeNightsPerYear, 1)) * 100))
+    : 0;
 
   // Light templated AI-narrative based on real data — no LLM call.
   const monthlyAvg = monthly.length > 0
@@ -226,16 +231,51 @@ export default async function OwnerHomePage() {
             )}
           </div>
 
-          {/* Owner stays quota — empty state, DEMO-3 dependency */}
-          <div className="rounded-md border border-dashed border-line-strong bg-canvas p-5">
-            <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
-              Owner stays · quota
+          {/* Owner stays quota — live via OWNER-PORTAL-1B */}
+          {quota ? (
+            <div className="rounded-md border border-line-soft bg-surface p-5">
+              <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
+                Owner stays · {quota.year}
+              </div>
+              <div className="text-display text-[20px] leading-tight font-medium text-ink mt-2 tabular-nums">
+                {quota.usedNights}
+                <span className="text-ink-tertiary"> / {quota.freeNightsPerYear}</span>
+              </div>
+              <div className="text-[11px] text-ink-tertiary mt-1">
+                free nights used · {quota.remainingNights} remaining
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-cream-deep overflow-hidden mt-3">
+                <div
+                  style={{
+                    width: `${quotaUsedPct}%`,
+                    height: "100%",
+                    background:
+                      quotaUsedPct >= 90
+                        ? "var(--terra)"
+                        : quotaUsedPct >= 60
+                          ? "var(--gold)"
+                          : "var(--forest)",
+                    borderRadius: 999,
+                  }}
+                />
+              </div>
+              <Link
+                href="/owner/stays"
+                className="text-[11px] text-ink-secondary hover:text-terra mt-3 inline-block"
+              >
+                View stays →
+              </Link>
             </div>
-            <p className="text-sm text-ink-tertiary italic mt-2">
-              Quota tracking ships in DEMO-3. Block your villa for personal use via
-              the bookings flow until then.
-            </p>
-          </div>
+          ) : (
+            <div className="rounded-md border border-dashed border-line-strong bg-canvas p-5">
+              <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
+                Owner stays
+              </div>
+              <p className="text-sm text-ink-tertiary italic mt-2">
+                Sign in as an owner to see your allowance.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
