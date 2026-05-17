@@ -117,7 +117,7 @@ export default async function SalesManagerCabinetPage() {
     );
   }
 
-  const data = await safeQuery("salesCabinet", loadSalesCabinet(me.id), {
+  let data = await safeQuery("salesCabinet", loadSalesCabinet(me.id), {
     hotLeadsCount: 0,
     activeConversationsCount: 0,
     reservationsThisMonth: 0,
@@ -128,6 +128,25 @@ export default async function SalesManagerCabinetPage() {
     funnelByLifecycle: [],
     conversationsLast7Days: [],
   });
+
+  // QA-FIXES-1 P5 — fallback to org-wide aggregates when the current user
+  // has no assigned leads. Without this, super_admins (operators) clicking
+  // into the Sales Manager cabinet see all-zeros for DEMO data, which is
+  // technically correct (they're not the assigned manager on any lead) but
+  // visually reads as "the cabinet is empty". The fallback shows the actual
+  // org-wide pipeline.
+  const userHasAssignments =
+    data.hotLeadsCount +
+      data.activeConversationsCount +
+      data.reservationsThisMonth +
+      data.contractsThisMonth +
+      data.followupsOverdueCount +
+      data.topHotLeads.length >
+    0;
+  const showingOrgWide = !userHasAssignments;
+  if (!userHasAssignments) {
+    data = await safeQuery("salesCabinet:orgWide", loadSalesCabinet(null), data);
+  }
 
   // Sprint MD-3.B — Load the 3 most-recent marketing-assistant
   // drafts for the inline AI grid that replaces the Phase-2
@@ -201,6 +220,18 @@ export default async function SalesManagerCabinetPage() {
           aiPromptPlaceholder="Ask the marketing-assistant to draft a follow-up."
           showMyTasksHref="/development-os/marketing/conversations"
         />
+
+        {showingOrgWide && (
+          <div
+            className="rounded-md border border-amber/30 bg-amber/5 px-4 py-3 text-xs text-ink-secondary"
+            style={{ borderColor: "var(--amber)", background: "rgba(217, 165, 109, 0.08)" }}
+          >
+            <strong className="text-ink">You have no leads assigned yet.</strong>{" "}
+            Showing the full org pipeline. To see only your assignments, ask a
+            director to set you as <code>assigned_manager</code> on the lead
+            (or open <Link href="/development-os/sales/new" className="underline">Capture new lead</Link>).
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
           {[

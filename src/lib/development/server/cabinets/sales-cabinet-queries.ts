@@ -29,7 +29,7 @@ export interface SalesCabinetData {
 }
 
 export async function loadSalesCabinet(
-  managerId: string,
+  managerId: string | null,
 ): Promise<SalesCabinetData> {
   const db = getDb();
   if (!db) {
@@ -45,6 +45,17 @@ export async function loadSalesCabinet(
       conversationsLast7Days: [],
     };
   }
+  // QA-FIXES-1 P5: managerId=null returns org-wide aggregates instead of
+  // filtering by assigned manager. Used by the sales-manager cabinet page
+  // as a fallback when the current user (typically super_admin) has no
+  // assigned leads — showing zeros for someone with super_admin role is
+  // misleading because the data exists, just isn't assigned to them.
+  const mgrLeadFilter = managerId
+    ? sql`AND assigned_manager_id = ${managerId}::uuid`
+    : sql``;
+  const mgrConvFilter = managerId
+    ? sql`AND primary_sales_manager_id = ${managerId}::uuid`
+    : sql``;
   const summary = await db.execute<{
     hot: string;
     active_conv: string;
@@ -54,23 +65,23 @@ export async function loadSalesCabinet(
   }>(sql`
     SELECT
       (SELECT COUNT(*)::text FROM leads
-        WHERE assigned_manager_id = ${managerId}::uuid
-          AND lifecycle_status = 'hot') AS hot,
+        WHERE lifecycle_status = 'hot'
+          ${mgrLeadFilter}) AS hot,
       (SELECT COUNT(*)::text FROM sales_conversation_threads
-        WHERE primary_sales_manager_id = ${managerId}::uuid
-          AND (outcome IS NULL OR outcome IN ('still_active', 'on_hold'))) AS active_conv,
+        WHERE (outcome IS NULL OR outcome IN ('still_active', 'on_hold'))
+          ${mgrConvFilter}) AS active_conv,
       (SELECT COUNT(*)::text FROM leads
-        WHERE assigned_manager_id = ${managerId}::uuid
-          AND lifecycle_status = 'reservation'
-          AND lifecycle_status_changed_at >= date_trunc('month', now())) AS res_month,
+        WHERE lifecycle_status = 'reservation'
+          AND lifecycle_status_changed_at >= date_trunc('month', now())
+          ${mgrLeadFilter}) AS res_month,
       (SELECT COUNT(*)::text FROM leads
-        WHERE assigned_manager_id = ${managerId}::uuid
-          AND lifecycle_status = 'contract'
-          AND lifecycle_status_changed_at >= date_trunc('month', now())) AS cont_month,
+        WHERE lifecycle_status = 'contract'
+          AND lifecycle_status_changed_at >= date_trunc('month', now())
+          ${mgrLeadFilter}) AS cont_month,
       (SELECT COUNT(*)::text FROM sales_conversation_threads
-        WHERE primary_sales_manager_id = ${managerId}::uuid
-          AND (outcome IS NULL OR outcome IN ('still_active', 'on_hold'))
-          AND last_message_at < now() - INTERVAL '5 days') AS overdue
+        WHERE (outcome IS NULL OR outcome IN ('still_active', 'on_hold'))
+          AND last_message_at < now() - INTERVAL '5 days'
+          ${mgrConvFilter}) AS overdue
   `);
   const s =
     (summary as unknown as {
@@ -83,18 +94,20 @@ export async function loadSalesCabinet(
       }>;
     }).rows?.[0] ?? null;
 
-  const snapRow = await db.execute<{
-    rate: string;
-    resp: string;
-    score: string;
-  }>(sql`
-    SELECT lead_to_reservation_rate::text AS rate,
-           average_response_time_minutes::text AS resp,
-           ai_quality_score::text AS score
-      FROM manager_performance_metrics
-     WHERE manager_id = ${managerId}::uuid AND period_type = 'weekly'
-     ORDER BY period_start DESC LIMIT 1
-  `);
+  const snapRow = managerId
+    ? await db.execute<{
+        rate: string;
+        resp: string;
+        score: string;
+      }>(sql`
+        SELECT lead_to_reservation_rate::text AS rate,
+               average_response_time_minutes::text AS resp,
+               ai_quality_score::text AS score
+          FROM manager_performance_metrics
+         WHERE manager_id = ${managerId}::uuid AND period_type = 'weekly'
+         ORDER BY period_start DESC LIMIT 1
+      `)
+    : { rows: [] };
   const snap =
     (snapRow as unknown as {
       rows: Array<{ rate: string; resp: string; score: string }>;
@@ -106,8 +119,8 @@ export async function loadSalesCabinet(
     lifecycle_status: string;
   }>(sql`
     SELECT id::text, lead_code, lifecycle_status FROM leads
-     WHERE assigned_manager_id = ${managerId}::uuid
-       AND lifecycle_status IN ('hot', 'qualified')
+     WHERE lifecycle_status IN ('hot', 'qualified')
+       ${mgrLeadFilter}
      ORDER BY lifecycle_status_changed_at DESC LIMIT 5
   `);
 
@@ -117,8 +130,8 @@ export async function loadSalesCabinet(
   }>(sql`
     SELECT lifecycle_status, COUNT(*)::text AS count
       FROM leads
-     WHERE assigned_manager_id = ${managerId}::uuid
-       AND lifecycle_status IS NOT NULL
+     WHERE lifecycle_status IS NOT NULL
+       ${mgrLeadFilter}
      GROUP BY lifecycle_status
   `);
 
@@ -129,8 +142,8 @@ export async function loadSalesCabinet(
     SELECT to_char(date_trunc('day', last_message_at), 'YYYY-MM-DD') AS iso_date,
            COUNT(*)::text AS count
       FROM sales_conversation_threads
-     WHERE primary_sales_manager_id = ${managerId}::uuid
-       AND last_message_at >= (now() - INTERVAL '7 days')
+     WHERE last_message_at >= (now() - INTERVAL '7 days')
+       ${mgrConvFilter}
      GROUP BY 1
      ORDER BY 1 ASC
   `);
