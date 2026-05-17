@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Badge } from "@/components/ui/badge";
 import { listOwnerVillasForCurrentUser } from "@/features/owner-intelligence/calendar-services";
@@ -64,20 +63,11 @@ export default async function OwnerVillaHealthPage({
   const inputs = computed?.inputs;
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "My villas", href: "/owner/villas" },
-          {
-            label: villa.villaName ?? villa.villaCode ?? id,
-            href: `/owner/villas/${id}/calendar`,
-          },
-          { label: "Health" },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · villas · ${villa.villaName ?? villa.villaCode ?? id} · health`}
         title={`${villa.villaName ?? villa.villaCode ?? "Villa"} — health`}
-        description={`Reporting period ${periodStart} → ${periodEnd}.`}
-        actions={
-          <Badge tone={STATUS_TONES[status]}>{status}</Badge>
-        }
+        subtitle={`Reporting period ${periodStart} → ${periodEnd}.`}
+        actions={<Badge tone={STATUS_TONES[status]}>{status}</Badge>}
       />
       <Link
         href={`/owner/villas/${id}/calendar`}
@@ -149,11 +139,12 @@ export default async function OwnerVillaHealthPage({
           )}
         />
       </div>
-      <Section
-        eyebrow="What changed this month"
-        title="Period summary"
-        description="Deterministic narrative built from the same numbers above. No model output."
-      >
+      <section>
+        <div className="label">What changed this month</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>Period summary</h2>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+          Deterministic narrative built from the same numbers above. No model output.
+        </p>
         <ul className="rounded-md border border-line-soft bg-surface p-5 list-disc list-inside text-sm space-y-1">
           {(computed?.explanation ?? []).map((line, i) => (
             <li key={i}>{line}</li>
@@ -165,12 +156,13 @@ export default async function OwnerVillaHealthPage({
             </li>
           )}
         </ul>
-      </Section>
-      <Section
-        eyebrow="Upcoming"
-        title="Preventive maintenance"
-        description="Scheduled within the next 60 days."
-      >
+      </section>
+      <section>
+        <div className="label">Upcoming</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>Preventive maintenance</h2>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+          Scheduled within the next 60 days.
+        </p>
         {preventive.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No preventive items scheduled in this window.
@@ -193,8 +185,12 @@ export default async function OwnerVillaHealthPage({
             ))}
           </ul>
         )}
-      </Section>
-      <Section eyebrow="Recent guest reviews" title={`${reviews.length} reviews`}>
+      </section>
+      <section>
+        <div className="label">Recent guest reviews</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          {reviews.length} reviews
+        </h2>
         {reviews.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No owner-visible reviews yet.
@@ -225,7 +221,7 @@ export default async function OwnerVillaHealthPage({
             ))}
           </ul>
         )}
-      </Section>
+      </section>
     </div>
   );
 }

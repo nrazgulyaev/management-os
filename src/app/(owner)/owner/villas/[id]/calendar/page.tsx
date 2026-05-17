@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
   getOwnerVillaCalendar,
@@ -136,17 +135,10 @@ export default async function OwnerVillaCalendarPage({
   const monthDate = new Date(today);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "My villas", href: "/owner/villas" },
-          {
-            label: villa.villaName ?? villa.villaCode ?? id,
-            href: `/owner/villas`,
-          },
-          { label: "Calendar" },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · villas · ${villa.villaName ?? villa.villaCode ?? id} · calendar`}
         title={`${villa.villaName ?? villa.villaCode ?? "Villa"} calendar`}
-        description={`${villa.projectName ?? ""} · ${from} → ${to}`}
+        subtitle={`${villa.projectName ?? ""} · ${from} → ${to}`}
         actions={
           <div className="flex items-center gap-2">
             <Link
@@ -164,16 +156,19 @@ export default async function OwnerVillaCalendarPage({
           </div>
         }
       />
-      <Section
-        eyebrow="Calendar"
-        title="Month view"
-        description="Visual grid of every booking, owner stay, maintenance window, and internal hold for this villa."
-        action={
+      <section>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+          <div>
+            <div className="label">Calendar</div>
+            <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>Month view</h2>
+            <p style={{ fontSize: 13, color: "var(--ink-3)", margin: 0 }}>
+              Visual grid of every booking, owner stay, maintenance window, and internal hold for this villa.
+            </p>
+          </div>
           <span className="text-[11px] text-ink-tertiary">
             {allOwnerBookings.length} event{allOwnerBookings.length === 1 ? "" : "s"}
           </span>
-        }
-      >
+        </div>
         <OwnerCalendarGrid
           monthDate={monthDate}
           prevHref={`/owner/villas/${id}/calendar`}
@@ -181,7 +176,7 @@ export default async function OwnerVillaCalendarPage({
           events={visualEvents}
           villaLabel={villa.villaName ?? villa.villaCode ?? null}
         />
-      </Section>
+      </section>
 
       <Link
         href="/owner/calendar"
@@ -190,10 +185,11 @@ export default async function OwnerVillaCalendarPage({
         <ArrowLeft className="w-3.5 h-3.5" /> All villas
       </Link>
       {directBookings.length > 0 && (
-        <Section
-          eyebrow="Direct bookings"
-          title={`${directBookings.length} direct booking${directBookings.length === 1 ? "" : "s"}`}
-        >
+        <section>
+          <div className="label">Direct bookings</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+            {directBookings.length} direct booking{directBookings.length === 1 ? "" : "s"}
+          </h2>
           <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
             {directBookings.map((s) => (
               <li
@@ -224,9 +220,13 @@ export default async function OwnerVillaCalendarPage({
               </li>
             ))}
           </ul>
-        </Section>
+        </section>
       )}
-      <Section eyebrow="Schedule" title={`${events.length} events`}>
+      <section>
+        <div className="label">Schedule</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          {events.length} events
+        </h2>
         {events.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             Nothing scheduled in this range.
@@ -276,7 +276,7 @@ export default async function OwnerVillaCalendarPage({
             ))}
           </ul>
         )}
-      </Section>
+      </section>
     </div>
   );
 }

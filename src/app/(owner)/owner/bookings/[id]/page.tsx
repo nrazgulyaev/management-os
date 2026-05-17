@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
   getOwnerBookingSummaryById,
@@ -64,13 +63,10 @@ export default async function OwnerBookingDetail({
   );
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Bookings", href: "/owner/bookings" },
-          { label: summary.ownerLabel },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · bookings · ${summary.ownerLabel}`}
         title={summary.villaName ?? summary.villaCode ?? "Booking"}
-        description={`${summary.checkIn} → ${summary.checkOut} · ${summary.nights} night${summary.nights === 1 ? "" : "s"}`}
+        subtitle={`${summary.checkIn} → ${summary.checkOut} · ${summary.nights} night${summary.nights === 1 ? "" : "s"}`}
         actions={
           <Badge tone={STATUS_TONES[summary.publicStatus]}>
             {publicStatusLabel(summary.publicStatus)}
@@ -78,7 +74,11 @@ export default async function OwnerBookingDetail({
         }
       />
 
-      <Section eyebrow="Stay" title={timeline.headline}>
+      <section>
+        <div className="label">Stay</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          {timeline.headline}
+        </h2>
         <p className="text-sm text-ink-secondary leading-relaxed max-w-2xl">
           {timeline.body}
         </p>
@@ -107,12 +107,13 @@ export default async function OwnerBookingDetail({
             }
           />
         </div>
-      </Section>
+      </section>
 
-      <Section
-        eyebrow="Revenue transparency"
-        title="How this booking affects your statement"
-      >
+      <section>
+        <div className="label">Revenue transparency</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          How this booking affects your statement
+        </h2>
         <div className="rounded-md border border-line-soft bg-muted/30 p-5">
           <p className="text-sm text-ink leading-relaxed">{explanation}</p>
           {summary.statementHref && (
@@ -135,7 +136,7 @@ export default async function OwnerBookingDetail({
             No revenue breakdown is available for this booking yet.
           </p>
         )}
-      </Section>
+      </section>
 
       <p className="text-xs text-ink-tertiary">
         We never expose guest contact information, hold tokens, payment

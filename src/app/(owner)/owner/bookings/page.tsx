@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { NoItemsYet, NoMatchingResults } from "@/components/ui/primitives";
 import { listOwnerBookingSummariesForCurrentUser } from "@/features/owner-bookings/services";
@@ -70,10 +69,10 @@ export default async function OwnerBookingsPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Bookings" }]}
+      <SectionHeading
+        eyebrow="Portfolio · bookings"
         title="My bookings"
-        description="Owner-safe view of every booking, hold, and owner stay across your villas. Guest names are masked; emails, phones, and provider IDs never appear here."
+        subtitle="Owner-safe view of every booking, hold, and owner stay across your villas. Guest names are masked; emails, phones, and provider IDs never appear here."
       />
       <p className="text-[11px] text-ink-tertiary leading-relaxed max-w-3xl">
         Each row is a stay. Source describes where it came from —{" "}
@@ -106,10 +105,11 @@ export default async function OwnerBookingsPage({
           />
         )
       ) : (
-        <Section
-          eyebrow="Bookings"
-          title={`${summaries.length} stay${summaries.length === 1 ? "" : "s"}`}
-        >
+        <section>
+          <div className="label">Bookings</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+            {summaries.length} stay{summaries.length === 1 ? "" : "s"}
+          </h2>
           <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-canvas/50 text-left">
@@ -170,7 +170,7 @@ export default async function OwnerBookingsPage({
               </tbody>
             </table>
           </div>
-        </Section>
+        </section>
       )}
       <p className="text-xs text-ink-tertiary">
         Direct bookings are marked separately so you can see channel mix at a

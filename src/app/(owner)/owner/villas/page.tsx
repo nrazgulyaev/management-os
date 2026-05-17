@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import { listMyVillas } from "@/features/owner-portal/owner-portal-queries";
@@ -32,10 +31,10 @@ export default async function OwnerVillasPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Portfolio", href: "/owner" }, { label: "My villas" }]}
+      <SectionHeading
+        eyebrow="Portfolio · villas"
         title="Your villas"
-        description={
+        subtitle={
           villas.length === 0
             ? "No villa ownership recorded yet."
             : `${villas.length} ${villas.length === 1 ? "villa" : "villas"} with ownership shares on record.`
@@ -48,7 +47,11 @@ export default async function OwnerVillasPage() {
           missing, get in touch.
         </p>
       ) : (
-        <Section eyebrow="Owned villas" title="Performance · this month">
+        <section>
+          <div className="label">Owned villas</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+            Performance · this month
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {villas.map((v, i) => (
               <div
@@ -107,7 +110,7 @@ export default async function OwnerVillasPage() {
               </div>
             ))}
           </div>
-        </Section>
+        </section>
       )}
     </div>
   );

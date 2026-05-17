@@ -1,7 +1,5 @@
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { MetricCard } from "@/components/ui/metric-card";
+import { SectionHeading, Kpi } from "@/components/dashboard/primitives";
 import {
   getOwnerRevenueMetrics,
   listOwnerRevenueSourceMonthly,
@@ -34,28 +32,22 @@ export default async function OwnerVillaRevenuePage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Villas", href: "/owner/villas" },
-          { label: villa.villaName ?? villa.villaCode ?? "Villa" },
-          { label: "Revenue" },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · villas · ${villa.villaName ?? villa.villaCode ?? "Villa"} · revenue`}
         title={`${villa.villaName ?? villa.villaCode ?? "Villa"} — revenue`}
-        description="Per-villa direct vs OTA breakdown across the rolling window."
+        subtitle="Per-villa direct vs OTA breakdown across the rolling window."
       />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
-          label="Gross"
-          value={formatMoneyMinor(metrics.totalGrossMinor, currency)}
-        />
-        <MetricCard
-          label="Net effect"
-          value={formatMoneyMinor(metrics.totalNetEffectMinor, currency)}
-        />
-        <MetricCard label="Bookings" value={String(metrics.bookingCount)} />
-        <MetricCard label="Nights" value={String(metrics.occupiedNights)} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 18 }}>
+        <Kpi label="Gross" value={formatMoneyMinor(metrics.totalGrossMinor, currency)} />
+        <Kpi label="Net effect" value={formatMoneyMinor(metrics.totalNetEffectMinor, currency)} tone="success" />
+        <Kpi label="Bookings" value={String(metrics.bookingCount)} />
+        <Kpi label="Nights" value={String(metrics.occupiedNights)} />
       </div>
-      <Section eyebrow="Source mix" title="Direct vs OTA">
+      <section>
+        <div className="label">Source mix</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Direct vs OTA
+        </h2>
         {sourceMix.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-8 text-sm text-ink-tertiary">
             No revenue rows yet for this villa.
@@ -79,7 +71,7 @@ export default async function OwnerVillaRevenuePage({
             ))}
           </div>
         )}
-      </Section>
+      </section>
     </div>
   );
 }

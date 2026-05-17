@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { listOwnerVillasForCurrentUser } from "@/features/owner-intelligence/calendar-services";
 import { getVillaOperationalTimeline } from "@/features/owner-intelligence/health-services";
@@ -29,17 +28,10 @@ export default async function OwnerVillaTimelinePage({
   const events = await getVillaOperationalTimeline(id, from, to);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "My villas", href: "/owner/villas" },
-          {
-            label: villa.villaName ?? villa.villaCode ?? id,
-            href: `/owner/villas/${id}/calendar`,
-          },
-          { label: "Timeline" },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · villas · ${villa.villaName ?? villa.villaCode ?? id} · timeline`}
         title={`${villa.villaName ?? villa.villaCode ?? "Villa"} timeline`}
-        description={`Operational events between ${from} and ${to}.`}
+        subtitle={`Operational events between ${from} and ${to}.`}
       />
       <Link
         href={`/owner/villas/${id}/calendar`}
@@ -47,7 +39,11 @@ export default async function OwnerVillaTimelinePage({
       >
         <ArrowLeft className="w-3.5 h-3.5" /> Calendar
       </Link>
-      <Section eyebrow="Activity" title={`${events.length} events`}>
+      <section>
+        <div className="label">Activity</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          {events.length} events
+        </h2>
         {events.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No operational activity in this window.
@@ -82,7 +78,7 @@ export default async function OwnerVillaTimelinePage({
             ))}
           </ol>
         )}
-      </Section>
+      </section>
     </div>
   );
 }
