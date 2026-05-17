@@ -1,8 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { verifyCronAuthFromRequest } from "@/features/jobs/auth";
 import { generateStatementForOwnerVilla } from "@/features/finance/statement-generation";
+import { ownerStatements } from "@/lib/db/schema/finance";
+import { owners } from "@/lib/db/schema/ownership";
+import { isEmailConfigured, sendEmail } from "@/features/email/email-service";
+import { statementReady } from "@/features/email/templates";
 
 /**
  * STATEMENT-1 — Monthly statement generation cron.
@@ -26,7 +31,30 @@ interface RunResult {
   organizationName: string | null;
   periodMonth: string;
   generated: number;
+  approved: number;
+  sent: number;
   errors: string[];
+}
+
+/**
+ * EMAIL-1-CRON: auto-approve + auto-send when both env flags are set.
+ * Hardcoded env flags chosen instead of per-org settings to keep the
+ * demo cron safe by default (opt-in via Vercel env, not a forgettable
+ * UI toggle). UI-driven per-org control lands in EMAIL-1-CRON-UI.
+ *
+ *   STATEMENTS_AUTO_APPROVE=true     auto-approve newly-generated drafts
+ *   STATEMENTS_AUTO_SEND=true        auto-send approved statements via Resend
+ *
+ * Either flag absent → cron stops at "draft" or "approved" as appropriate.
+ * STATEMENTS_AUTO_SEND requires RESEND_API_KEY to actually deliver — if
+ * Resend is unconfigured, statements stay 'approved' (operator can send
+ * manually later via the Finance cabinet).
+ */
+function shouldAutoApprove(): boolean {
+  return process.env.STATEMENTS_AUTO_APPROVE === "true";
+}
+function shouldAutoSend(): boolean {
+  return process.env.STATEMENTS_AUTO_SEND === "true";
 }
 
 async function runOnce(periodMonth: string): Promise<RunResult[]> {
@@ -62,6 +90,8 @@ async function runOnce(periodMonth: string): Promise<RunResult[]> {
       organizationName: org.name,
       periodMonth,
       generated: 0,
+      approved: 0,
+      sent: 0,
       errors: [],
     };
     for (const t of rows) {
@@ -73,7 +103,64 @@ async function runOnce(periodMonth: string): Promise<RunResult[]> {
           periodMonth,
           { createdBy: null },
         );
-        if (r) result.generated++;
+        if (!r) continue;
+        result.generated++;
+
+        // EMAIL-1-CRON: optional auto-approve + auto-send.
+        if (shouldAutoApprove()) {
+          await db
+            .update(ownerStatements)
+            .set({
+              status: "approved",
+              approvedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(ownerStatements.id, r.statementId));
+          result.approved++;
+
+          if (shouldAutoSend() && isEmailConfigured()) {
+            const [ownerRow] = await db
+              .select({ name: owners.displayName, email: owners.email })
+              .from(owners)
+              .where(eq(owners.id, t.owner_id))
+              .limit(1);
+            if (ownerRow?.email && ownerRow.email.includes("@")) {
+              const monthLabel = new Date(periodMonth + "T00:00:00Z").toLocaleString(
+                "en",
+                { month: "long", year: "numeric", timeZone: "UTC" },
+              );
+              const tpl = statementReady({
+                ownerFirstName: ownerRow.name?.split(" ")[0] ?? "there",
+                monthLabel,
+                villaCode: null,
+                netToOwnerUsdMinor: r.netToOwnerUsdMinor,
+                portalUrl: "https://management.arconique.com/owner/statements",
+              });
+              const send = await sendEmail({
+                to: ownerRow.email,
+                subject: tpl.subject,
+                html: tpl.html,
+                text: tpl.text,
+              });
+              if (send.ok) {
+                await db
+                  .update(ownerStatements)
+                  .set({
+                    status: "sent",
+                    sentAt: new Date(),
+                    sentToEmail: ownerRow.email,
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(ownerStatements.id, r.statementId));
+                result.sent++;
+              } else {
+                result.errors.push(
+                  `email send failed for ${t.owner_id}: ${send.error?.slice(0, 80)}`,
+                );
+              }
+            }
+          }
+        }
       } catch (e) {
         result.errors.push(
           `${t.owner_id}/${t.villa_id}: ${(e as Error).message}`.slice(0, 200),
