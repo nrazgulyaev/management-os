@@ -570,7 +570,7 @@ export default async function DashboardOverviewPage() {
           sub="next 14 days"
         />
         <Kpi label="Housekeeping" value="—" sub="no tasks seeded" />
-        <Kpi label="Owner stay requests" value="—" sub="schema in DEMO-3" />
+        <Kpi label="Owner stay requests" value="—" sub="coming soon" />
       </div>
 
       {/* Portfolio table — live */}

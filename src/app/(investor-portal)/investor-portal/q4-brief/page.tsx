@@ -100,14 +100,14 @@ export default async function QuarterBriefPage() {
       <Section eyebrow="Narrative" title="Quarter highlights" variant="panel">
         <div className="text-sm text-ink-secondary leading-relaxed space-y-3">
           <p>
-            This brief is a placeholder narrative. The Q-brief authoring workflow
-            (operator writes per-quarter highlights → publishes to investors) ships
-            with the Q-BRIEF-1 sprint. For now, your portal computes headline numbers
-            directly from the capital ledger + NAV snapshots above.
+            This brief is a placeholder narrative. The full quarterly authoring
+            workflow — operator writes per-quarter highlights and publishes to
+            investors — is coming soon. For now, your portal computes headline
+            numbers directly from the capital ledger and NAV snapshots above.
           </p>
           <p>
             Construction milestone narrative, AI-generated portfolio commentary, and
-            comparative benchmarks are tracked under Q-BRIEF-1.
+            comparative benchmarks will be added in upcoming releases.
           </p>
         </div>
       </Section>

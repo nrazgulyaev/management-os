@@ -56,7 +56,7 @@ export default async function OwnerDistributionsPage() {
         {data.rows.length === 0 ? (
           <p className="text-sm text-ink-tertiary italic">
             Once your operator approves and sends a statement, it shows here as a
-            distribution. Bank-rail payouts ship with the PAYOUT-1 sprint.
+            distribution. Bank-rail payout integration coming soon.
           </p>
         ) : (
           <Table>

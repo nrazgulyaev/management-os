@@ -115,7 +115,7 @@ export default async function ConciergePage() {
           sub={kpis && kpis.handoffsOpen > 0 ? "open" : "all clear"}
           tone={kpis && kpis.handoffsOpen > 0 ? "accent" : undefined}
         />
-        <Kpi label="CSAT · 30d" value="—" sub="feedback collection in DEMO-3" />
+        <Kpi label="CSAT · 30d" value="—" sub="feedback collection coming soon" />
       </div>
 
       {/* 2-up: sessions list + active transcript panel */}

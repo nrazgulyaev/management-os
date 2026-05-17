@@ -108,7 +108,7 @@ export default async function BookingsPage() {
             <em style={{ color: "var(--terra)", fontStyle: "italic" }}>in motion</em>
           </>
         }
-        subtitle="One source of truth for every channel. Live rows from your bookings table — channel sync + per-villa rate plans land in DEMO-3."
+        subtitle="One source of truth for every channel. Live rows from your bookings table — channel sync and per-villa rate plans coming soon."
         actions={
           <>
             <button className="btn btn-secondary btn-sm">Import iCal</button>
@@ -140,7 +140,7 @@ export default async function BookingsPage() {
         <Kpi
           label="Channel conflicts"
           value="—"
-          sub="sync schema in DEMO-3"
+          sub="channel sync coming soon"
         />
         <Kpi
           label="Cancellation rate"

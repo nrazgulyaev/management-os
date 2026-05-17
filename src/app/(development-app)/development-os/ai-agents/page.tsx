@@ -75,9 +75,9 @@ export default async function AiAgentsPage() {
           sub={`of ${totalCount} in roadmap`}
           tone={liveCount > 0 ? "success" : undefined}
         />
-        <Kpi label="Runs · 30d" value="—" sub="telemetry lands in PART-3" />
-        <Kpi label="Avg latency" value="—" sub="telemetry lands in PART-3" />
-        <Kpi label="Tokens · MTD" value="—" sub="cost rollup in PART-3" />
+        <Kpi label="Runs · 30d" value="—" sub="agent telemetry coming soon" />
+        <Kpi label="Avg latency" value="—" sub="agent telemetry coming soon" />
+        <Kpi label="Tokens · MTD" value="—" sub="agent cost rollup coming soon" />
         <Kpi
           label="Inbox · recent"
           value={inbox.length === 0 ? "—" : String(inbox.length)}

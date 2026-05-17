@@ -72,7 +72,7 @@ export default async function SiteSupervisorPage() {
             <span style={{ color: "var(--amber)" }}>jobsite log.</span>
           </>
         }
-        subtitle="Daily report timeline, photo-evidence trail, geo-tagged completion stamps. Voice-note panel + offline-first PWA land once DEMO-2 schema seeds."
+        subtitle="Daily report timeline, photo-evidence trail, geo-tagged completion stamps. Voice notes and offline-first PWA support coming soon."
         actions={
           <>
             <button className="btn btn-dark btn-sm">Submit for sign-off</button>
@@ -98,8 +98,8 @@ export default async function SiteSupervisorPage() {
           sub={todaysPhotoCount === 0 ? "none captured yet" : "all geo-tagged"}
           tone={todaysPhotoCount > 0 ? "success" : undefined}
         />
-        <Kpi label="QA checks done" value="—" sub="qa_qc feed in PART-3" />
-        <Kpi label="Safety incidents" value="—" sub="incident feed in PART-3" />
+        <Kpi label="QA checks done" value="—" sub="QA inspections coming soon" />
+        <Kpi label="Safety incidents" value="—" sub="incident reporting coming soon" />
       </div>
 
       {/* Daily report timeline — live site_reports */}

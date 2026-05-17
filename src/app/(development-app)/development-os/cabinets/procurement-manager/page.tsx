@@ -168,7 +168,7 @@ export default async function ProcurementManagerPage() {
         <Kpi
           label="Active RFQs"
           value="—"
-          sub="quotation flow lands in PART-2"
+          sub="quotation flow coming soon"
         />
         <Kpi
           label="POs in transit"
@@ -185,7 +185,7 @@ export default async function ProcurementManagerPage() {
           }
           tone={invoices.length > 0 ? "accent" : undefined}
         />
-        <Kpi label="Avg PR → PO" value="—" sub="cycle-time analytics in PART-2" />
+        <Kpi label="Avg PR → PO" value="—" sub="cycle-time analytics coming soon" />
       </div>
 
       <h2 className="display" style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}>

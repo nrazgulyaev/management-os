@@ -54,9 +54,9 @@ export default async function ConstructionPage() {
           </Table>
         )}
         <p className="text-[11px] text-ink-tertiary italic mt-4">
-          Site photos + per-milestone narrative ship with STORAGE-1. Construction
-          photo gallery + completion percentages will appear here once the
-          documents pipeline is configured.
+          Site photos and per-milestone narrative will appear here once the
+          documents pipeline is configured. Completion percentages and the
+          full construction photo gallery are coming soon.
         </p>
       </Section>
     </div>

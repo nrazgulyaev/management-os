@@ -79,7 +79,7 @@ export default async function DevelopmentOverviewPage() {
             )}
           </>
         }
-        subtitle="Live counts from the active projects table. Risk radar + site activity feeds wire in TASK-7-DATA-PART-3 once their schemas + seed land."
+        subtitle="Live counts from the active projects table. Risk radar and site activity feeds populate as project data accumulates."
         actions={
           <>
             <button className="btn btn-dark btn-sm">Daily digest PDF ↓</button>

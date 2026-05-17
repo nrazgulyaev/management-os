@@ -95,7 +95,7 @@ export default async function OperationsPage() {
             {kpis && kpis.turnoversToday > 0 ? `, ${kpis.turnoversToday} turnovers in motion.` : "."}
           </>
         }
-        subtitle="Housekeeping, maintenance, preventive tasks and service requests in one inbox. Photos + voice notes land in DEMO-3."
+        subtitle="Housekeeping, maintenance, preventive tasks and service requests in one inbox. Photos and voice notes coming soon."
         actions={
           <>
             <button className="btn btn-secondary btn-sm">Morning brief PDF ↓</button>
@@ -122,13 +122,13 @@ export default async function OperationsPage() {
           sub="across portfolio"
           tone={ticketsOpen > 0 ? "accent" : undefined}
         />
-        <Kpi label="Preventive due" value="—" sub="schedule in DEMO-3" />
+        <Kpi label="Preventive due" value="—" sub="preventive schedule coming soon" />
         <Kpi
           label="Service requests"
           value={kpis && kpis.serviceRequestsOpen > 0 ? String(kpis.serviceRequestsOpen) : "—"}
           sub={kpis && kpis.serviceRequestsOpen > 0 ? "open" : "none seeded"}
         />
-        <Kpi label="Photo evidence" value="—" sub="documents pipeline in DEMO-3" />
+        <Kpi label="Photo evidence" value="—" sub="documents pipeline coming soon" />
       </div>
 
       {/* AI Operations Copilot — empty state until daily-digest agent runs */}

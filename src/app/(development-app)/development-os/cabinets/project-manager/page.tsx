@@ -98,7 +98,7 @@ export default async function ProjectManagerPage() {
             )}
           </>
         }
-        subtitle="Portfolio at-risk view, kanban-style WP board, integrated daily digest from AI. Schedule strip + cross-project KPIs land in TASK-7-DATA-PART-3."
+        subtitle="Portfolio at-risk view, kanban-style WP board, integrated daily digest from AI. Schedule strip and cross-project KPIs coming soon."
         actions={
           <>
             <button className="btn btn-dark btn-sm">Weekly plan PDF ↓</button>
@@ -118,15 +118,15 @@ export default async function ProjectManagerPage() {
           }
           tone={inProgressCount > 0 ? "accent" : undefined}
         />
-        <Kpi label="Schedule variance" value="—" sub="gantt rollup in PART-3" />
+        <Kpi label="Schedule variance" value="—" sub="gantt rollup coming soon" />
         <Kpi
           label="Overdue WPs"
           value={atRisk.length === 0 ? "0" : String(atRisk.length)}
           sub="vs planned_finish"
           tone={atRisk.length === 0 ? "success" : "accent"}
         />
-        <Kpi label="Decisions awaiting me" value="—" sub="inbox feed in PART-3" />
-        <Kpi label="Crew on site · today" value="—" sub="site report feed in PART-3" />
+        <Kpi label="Decisions awaiting me" value="—" sub="decision inbox coming soon" />
+        <Kpi label="Crew on site · today" value="—" sub="site report feed coming soon" />
       </div>
 
       {/* Kanban — live work_packages grouped by status */}
