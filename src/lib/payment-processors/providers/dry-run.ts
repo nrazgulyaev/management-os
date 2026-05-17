@@ -68,7 +68,7 @@ export class DryRunPaymentProvider implements PaymentProviderInterface {
     return { success: true };
   }
 
-  async refund(input: RefundInput): Promise<RefundResult> {
+  async refund(_input: RefundInput): Promise<RefundResult> {
     return {
       externalRefundId: `dryrun_refund_${this.provider}_${Date.now()}`,
       status: "dry_run",

@@ -13,7 +13,6 @@ import { requireOrgId } from "@/features/auth/require-org";
 import {
   assertValidQaQcTransition,
   type QaQcStatus,
-  type QaQcSeverity,
 } from "./qa-qc-helpers";
 
 const SEVERITIES = ["low", "medium", "high", "critical"] as const;

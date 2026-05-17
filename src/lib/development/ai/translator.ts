@@ -9,7 +9,7 @@ import { siteReports } from "@/lib/db/schema/site-operations";
 import { getAIProvider } from "@/lib/ai/providers";
 import { computeCallCost } from "@/lib/ai/cost";
 import { checkBudget } from "@/lib/ai/budget";
-import { aiModel } from "@/lib/env";
+import {} from "@/lib/env";
 
 /**
  * AI translation service.

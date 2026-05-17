@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import {} from "next/cache";
 import { requireDb } from "@/lib/db/client";
 import {
   whatsappMessages,

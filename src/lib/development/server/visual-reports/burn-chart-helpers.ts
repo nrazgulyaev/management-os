@@ -11,7 +11,6 @@ import {
   computeAxisRange,
   escapeSvg,
   formatAxisLabel,
-  scaleXIndex,
 } from "./chart-data-helpers";
 
 export interface BurnPeriodPoint {

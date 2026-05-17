@@ -245,7 +245,7 @@ export async function recordInventoryMovement(
   });
 }
 
-const transferSchema = z.object({
+const _transferSchema = z.object({
   itemId: z.string().uuid(),
   fromLocationId: z.string().uuid(),
   toLocationId: z.string().uuid(),
@@ -256,7 +256,7 @@ const transferSchema = z.object({
 
 /** Convenience wrapper: transfer between locations. */
 export async function transferInventory(
-  input: z.input<typeof transferSchema>,
+  input: z.input<typeof _transferSchema>,
 ) {
   return recordInventoryMovement({
     itemId: input.itemId,

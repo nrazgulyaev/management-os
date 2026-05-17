@@ -1,19 +1,14 @@
 import "server-only";
 
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { developmentProjectMeta } from "@/lib/db/schema/development";
 import { projects } from "@/lib/db/schema/projects";
 import {
-  capitalCommitments,
   distributions,
-  investorWallets,
 } from "@/lib/db/schema/investor-capital";
 import {
-  devBankAccounts,
-  devTransactions,
-  devCommitmentsLedger,
 } from "@/lib/db/schema/dev-finance";
 import { aiAssistantRuns } from "@/lib/db/schema/ai";
 import { aiDistributionSuggestions } from "@/lib/db/schema/ai-development";

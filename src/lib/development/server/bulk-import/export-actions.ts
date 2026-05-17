@@ -29,7 +29,7 @@ import { tableToXlsx } from "./xlsx-parser-helpers";
  */
 
 const EXPORT_FORMATS = ["csv", "xlsx", "json"] as const;
-type ExportFormat = (typeof EXPORT_FORMATS)[number];
+type _ExportFormat = (typeof EXPORT_FORMATS)[number];
 
 const SUPPORTED_EXPORT_ENTITIES = [
   "transactions",

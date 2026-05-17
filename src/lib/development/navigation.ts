@@ -1,7 +1,6 @@
 import type { NavGroup } from "@/config/navigation";
 import {
   Activity,
-  AlertTriangle,
   Bell,
   Bot,
   BookOpen,
@@ -48,9 +47,7 @@ import {
   Tags,
   Truck,
   TrendingUp,
-  UserCog,
   Wallet,
-  Wrench,
 } from "lucide-react";
 import { DEVELOPMENT_APP_PATH } from "./constants";
 import type { DevelopmentModule } from "./types";

@@ -99,6 +99,7 @@ export default function QuickPhotoPage() {
 
       {photoUrl && (
         <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- blob: URL preview, next/image doesn't support arbitrary blob URLs */}
           <img
             src={photoUrl}
             alt="captured"

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import _Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { TaskCard } from "@/components/operations/task-card";
@@ -14,7 +14,6 @@ import type { ListOperationTaskFilters } from "@/features/operations/services";
 import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
 import {
   FilterPills,
-  ListTableCard,
   NoItemsYet,
   type FilterPillItem,
 } from "@/components/ui/primitives";

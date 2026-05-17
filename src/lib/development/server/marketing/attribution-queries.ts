@@ -35,7 +35,7 @@ export interface TopAttributedSource {
   conversionRate: number;
 }
 
-const CONVERTED_STATUSES = ["reservation", "contract"] as const;
+const _CONVERTED_STATUSES = ["reservation", "contract"] as const;
 
 export async function loadTopAttributedSource(
   options: {

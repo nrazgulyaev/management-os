@@ -36,7 +36,7 @@ export default async function UsageDashboardPage() {
     (o) =>
       o.productsEnabled.includes("dev") && !o.productsEnabled.includes("mgmt"),
   ).length;
-  const bothCount = orgs.filter(
+  const _bothCount = orgs.filter(
     (o) =>
       o.productsEnabled.includes("mgmt") && o.productsEnabled.includes("dev"),
   ).length;

@@ -15,7 +15,6 @@ import {
   boolean,
   jsonb,
   index,
-  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
 import { projects } from "./projects";

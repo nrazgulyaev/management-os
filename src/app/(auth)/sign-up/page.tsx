@@ -10,7 +10,7 @@
  * the new subscription_plans table for the plan picker.
  */
 
-import type { Metadata } from "next";
+import type {} from "next";
 import Link from "next/link";
 import { eq, asc } from "drizzle-orm";
 import { Logo } from "@/components/brand/logo";

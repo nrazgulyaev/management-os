@@ -1,6 +1,6 @@
 import "server-only";
 
-import { sql } from "drizzle-orm";
+import {} from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 import { generateDigest } from "../executive-digest/digest-actions";

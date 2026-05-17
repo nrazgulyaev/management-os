@@ -37,7 +37,7 @@ export interface AiRadarResult {
 }
 
 export async function runAiRiskRadar(
-  context: AiRadarContext,
+  _context: AiRadarContext,
 ): Promise<AiRadarResult> {
   const dryRun =
     process.env.AI_DRY_RUN === "1" || !process.env.ANTHROPIC_API_KEY;

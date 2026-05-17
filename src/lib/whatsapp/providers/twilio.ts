@@ -104,8 +104,8 @@ export class TwilioWhatsAppProvider implements WhatsAppProvider {
   }
 
   async transcribeVoice(
-    mediaUrl: string,
-    language?: string,
+    _mediaUrl: string,
+    _language?: string,
   ): Promise<TranscribeResult | null> {
     // Twilio doesn't transcribe inbound voice messages automatically —
     // Stage 3.D defers to a later stage that wires Whisper. For now,

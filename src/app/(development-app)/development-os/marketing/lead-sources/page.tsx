@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
-import { EmptyState } from "@/components/ui/empty-state";
+import {} from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listLeadSources } from "@/lib/development/server/lead-sources/lead-source-queries";

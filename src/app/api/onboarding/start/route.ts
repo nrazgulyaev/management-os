@@ -90,7 +90,7 @@ function normalize(parsed: z.infer<typeof baseSchema>): NormalizedInput | string
   };
 }
 
-interface SuccessBody {
+interface _SuccessBody {
   ok: true;
   app_user_id: string;
   organization_id: string;

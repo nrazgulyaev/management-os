@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireDb } from "@/lib/db/client";
@@ -11,7 +11,7 @@ import {
   landTransactionCosts,
 } from "@/lib/db/schema/land";
 import { projects } from "@/lib/db/schema/projects";
-import { devTransactions } from "@/lib/db/schema/dev-finance";
+import {} from "@/lib/db/schema/dev-finance";
 import { requireInternalUser } from "@/features/auth/permissions";
 
 /**

@@ -12,7 +12,6 @@ import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
 import {
   computeAllocationAmounts,
-  type AllocationMethod,
 } from "./allocation-helpers";
 
 /**

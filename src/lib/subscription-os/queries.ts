@@ -11,7 +11,7 @@
  */
 
 import "server-only";
-import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { organizations } from "@/lib/db/schema/saas";
 import {

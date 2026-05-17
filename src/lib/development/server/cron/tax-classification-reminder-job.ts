@@ -2,7 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { devTransactions } from "@/lib/db/schema/dev-finance";
+import {} from "@/lib/db/schema/dev-finance";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 
 /**

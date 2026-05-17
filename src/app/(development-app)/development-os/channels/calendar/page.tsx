@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { villas as villasTable } from "@/lib/db/schema/projects";
-import { eq } from "drizzle-orm";
+import {} from "drizzle-orm";
 import { listChannelReservations } from "@/lib/channel-manager/queries";
 import { CHANNEL_LABELS } from "@/components/development/channels/connect-channel-modal";
 import type { ChannelName } from "@/lib/db/schema/channel-manager";

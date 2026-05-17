@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray, gte } from "drizzle-orm";
+import { desc, eq, inArray, gte } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { riskRadarAlerts } from "@/lib/db/schema/executive";
 

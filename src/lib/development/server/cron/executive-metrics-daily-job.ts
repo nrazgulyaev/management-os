@@ -61,7 +61,7 @@ export async function runDevOsExecutiveMetricsDaily(
   const projRows =
     (projRow as unknown as { rows: Array<{ status: string; n: string }> })
       .rows ?? [];
-  const projects = projRows.map((r) => ({
+  const _projects = projRows.map((r) => ({
     projectId: "",
     status: ((): "on_track" | "at_risk" | "delayed" | "completed" | "paused" => {
       const s = r.status.toLowerCase();

@@ -41,7 +41,6 @@ import {
 } from "@/lib/channel-manager/credentials-crypto";
 import {
   CONFIGURABLE_AGENTS,
-  type ConfigurableAgentKey,
 } from "./agent-config-keys";
 import { getAIProviderForCredentials } from "@/lib/ai/providers";
 

@@ -4,7 +4,7 @@
  * Pure helpers — no I/O.
  */
 
-import { computeAxisRange, escapeSvg, scaleXValue } from "./chart-data-helpers";
+import { computeAxisRange, scaleXValue } from "./chart-data-helpers";
 
 export interface SCurvePoint {
   date: Date;

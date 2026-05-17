@@ -53,7 +53,7 @@ interface DraftLine {
   sortOrder: number;
 }
 
-function isoFirstOfMonth(d: Date): string {
+function _isoFirstOfMonth(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 

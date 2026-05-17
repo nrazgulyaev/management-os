@@ -1,4 +1,4 @@
-import Link from "next/link";
+import _Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";

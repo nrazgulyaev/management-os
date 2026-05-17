@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, lte, sql } from "drizzle-orm";
+import { eq, lte, sql } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
 import {
   orgSubscriptions,

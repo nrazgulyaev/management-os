@@ -3,7 +3,7 @@ import "server-only";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
-import { investorWallets, investors } from "@/lib/db/schema/investor-capital";
+import { investorWallets} from "@/lib/db/schema/investor-capital";
 import { walletMovements } from "@/lib/db/schema/wallet-movements";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";

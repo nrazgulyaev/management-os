@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireDb } from "@/lib/db/client";
 import { aiDocumentExtractions } from "@/lib/db/schema/ai-development";
 import { documents } from "@/lib/db/schema/documents";
-import { devTransactions } from "@/lib/db/schema/dev-finance";
+import {} from "@/lib/db/schema/dev-finance";
 import { requireInternalUser } from "@/features/auth/permissions";
 import {
   extractFromDocument,

@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { sql, eq, and } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   whatsappMessages,
   whatsappWebhookEvents,
 } from "@/lib/db/schema/whatsapp";
-import { getWhatsAppProvider, normalisePhone } from "@/lib/whatsapp/providers";
+import { getWhatsAppProvider} from "@/lib/whatsapp/providers";
 
 /**
  * WhatsApp inbound webhook endpoint.

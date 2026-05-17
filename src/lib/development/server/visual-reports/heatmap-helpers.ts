@@ -7,7 +7,7 @@
  * driven by overage from per-cell budget.
  */
 
-import { escapeSvg, formatAxisLabel } from "./chart-data-helpers";
+import { escapeSvg} from "./chart-data-helpers";
 
 export interface HeatmapCell {
   rowKey: string;

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { eq} from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { taxTypes } from "@/lib/db/schema/tax";
 import { generateTaxPeriodReport } from "@/lib/development/server/tax/tax-actions";
@@ -29,7 +29,7 @@ export async function runDevOsTaxPeriodReport(
     .select({ id: taxTypes.id, key: taxTypes.typeKey })
     .from(taxTypes)
     .where(eq(taxTypes.isActive, true));
-  const monthlyTypes = types.filter((t) => true); // filter not enforceable here without schema check; CHECK at schema level
+  const monthlyTypes = types.filter((_t) => true); // filter not enforceable here without schema check; CHECK at schema level
 
   // Compute the prior calendar month window.
   const now = new Date();

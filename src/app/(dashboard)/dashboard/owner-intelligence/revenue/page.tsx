@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
-import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
+import { DashboardKpi} from "@/components/ui/primitives";
 import { listOwnerRevenueSourceMonthly } from "@/features/owner-bookings/services";
 import { listOwnerVillasForCurrentUser } from "@/features/owner-intelligence/calendar-services";
 import {

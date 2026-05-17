@@ -85,7 +85,7 @@ export function renderCapitalTimelineSvg(
     ];
     for (const seg of segs) {
       if (seg.v <= 0) continue;
-      const top = yScale(yRange.min + (runTop - padT) / usableH * (yRange.max - yRange.min) - 0); // not used
+      const _top = yScale(yRange.min + (runTop - padT) / usableH * (yRange.max - yRange.min) - 0); // not used
       // Compute height in minor → pixel space.
       const h =
         ((seg.v) / (yRange.max - yRange.min || 1)) * usableH;

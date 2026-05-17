@@ -34,7 +34,7 @@ export class DryRunWhatsAppProvider implements WhatsAppProvider {
     return true;
   }
 
-  async sendMessage(input: SendMessageInput): Promise<SendMessageResult> {
+  async sendMessage(_input: SendMessageInput): Promise<SendMessageResult> {
     return {
       externalMessageSid: `DR-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       status: "queued",
@@ -43,7 +43,7 @@ export class DryRunWhatsAppProvider implements WhatsAppProvider {
   }
 
   async sendTemplateMessage(
-    input: SendTemplateInput,
+    _input: SendTemplateInput,
   ): Promise<SendMessageResult> {
     return {
       externalMessageSid: `DRT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

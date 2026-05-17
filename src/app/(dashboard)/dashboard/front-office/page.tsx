@@ -5,7 +5,7 @@ import {
   Inbox,
   Sparkles,
 } from "lucide-react";
-import { DashboardKpi } from "@/components/ui/primitives";
+import {} from "@/components/ui/primitives";
 import {
   GuestArrivalsList,
   HalfDonutGauge,

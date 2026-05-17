@@ -11,7 +11,7 @@
  *   - productivity_logs            per-day actuals; productivity_rate GENERATED
  */
 
-import { sql, type AnyColumn } from "drizzle-orm";
+import { sql} from "drizzle-orm";
 import {
   pgTable,
   uuid,

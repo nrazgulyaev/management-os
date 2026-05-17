@@ -1,4 +1,4 @@
-import Link from "next/link";
+import _Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Section } from "@/components/ui/section";

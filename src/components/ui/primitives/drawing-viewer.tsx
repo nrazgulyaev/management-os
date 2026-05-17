@@ -25,7 +25,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Ruler, Square, Hash, RotateCcw, Trash2 } from "lucide-react";
+import { Ruler, Square, Hash, RotateCcw} from "lucide-react";
 
 export type StrokeKind = "length" | "area" | "count";
 

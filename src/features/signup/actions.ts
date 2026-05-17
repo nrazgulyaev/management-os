@@ -9,7 +9,7 @@ import { organizations } from "@/lib/db/schema/saas";
 import { appUsers } from "@/lib/db/schema/identity";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
-import { coerceProductSlugs, type ProductSlug } from "@/lib/products";
+import { type ProductSlug } from "@/lib/products";
 import {
   computeTrialEndsAt,
   TRIAL_DURATION_DAYS_DEFAULT,

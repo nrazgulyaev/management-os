@@ -1,10 +1,9 @@
 import "server-only";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq} from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
 import {
   investorWallets,
-  investors,
   capitalCommitments,
 } from "@/lib/db/schema/investor-capital";
 import { walletMovements } from "@/lib/db/schema/wallet-movements";

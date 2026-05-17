@@ -6,7 +6,7 @@ import { Section } from "@/components/ui/section";
 import { listFinanceLinks } from "@/features/owner-stays/finance-bridge";
 import { listOwnerStayRequests } from "@/features/owner-stays/services";
 import { BridgePendingButton } from "@/components/owner-stays/bridge-pending-button";
-import { ListTableCard } from "@/components/ui/primitives";
+import {} from "@/components/ui/primitives";
 
 export const metadata = { title: "Owner stay finance bridge" };
 export const dynamic = "force-dynamic";
