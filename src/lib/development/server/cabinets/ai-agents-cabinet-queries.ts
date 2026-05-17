@@ -198,3 +198,78 @@ export async function getRecentAgentOutputs(limit = 8): Promise<AgentInboxRow[]>
     createdAt: r.created_at,
   }));
 }
+
+// =============================================================================
+// AI-TELEMETRY-1 — ai_assistant_runs telemetry for the Dev OS AI hub.
+// =============================================================================
+//
+// ai_assistant_runs has no organization_id column (migration 0072 didn't
+// include it). Use the JOIN strategy via created_by → app_users.organization_id
+// to keep telemetry tenant-scoped. Runs with created_by = NULL (system jobs /
+// crons) are excluded from per-org reads.
+
+export interface DevAiKpis {
+  /** Runs created in the last 24h (org-scoped via created_by). */
+  runsLast24h: number;
+  /** Average latency_ms across last 24h runs (0 if no runs). */
+  avgLatencyMs: number;
+  /** Sum of total_tokens across MTD runs. */
+  totalTokensMtd: number;
+  /** (errors / total) × 100 for last 24h runs (0 if no runs). */
+  errorRatePct: number;
+}
+
+export async function getDevAiKpis(): Promise<DevAiKpis> {
+  const db = getDb();
+  if (!db) {
+    return { runsLast24h: 0, avgLatencyMs: 0, totalTokensMtd: 0, errorRatePct: 0 };
+  }
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    runs_24h: string;
+    avg_latency: string;
+    tokens_mtd: string;
+    errors_24h: string;
+  }>(sql`
+    SELECT
+      (SELECT COUNT(*)::text
+         FROM ai_assistant_runs r
+         JOIN app_users u ON u.id = r.created_by
+        WHERE u.organization_id = ${orgId}::uuid
+          AND r.created_at >= now() - INTERVAL '24 hours') AS runs_24h,
+      (SELECT COALESCE(AVG(latency_ms), 0)::text
+         FROM ai_assistant_runs r
+         JOIN app_users u ON u.id = r.created_by
+        WHERE u.organization_id = ${orgId}::uuid
+          AND r.created_at >= now() - INTERVAL '24 hours'
+          AND r.latency_ms IS NOT NULL) AS avg_latency,
+      (SELECT COALESCE(SUM(total_tokens), 0)::text
+         FROM ai_assistant_runs r
+         JOIN app_users u ON u.id = r.created_by
+        WHERE u.organization_id = ${orgId}::uuid
+          AND r.created_at >= date_trunc('month', now())) AS tokens_mtd,
+      (SELECT COUNT(*)::text
+         FROM ai_assistant_runs r
+         JOIN app_users u ON u.id = r.created_by
+        WHERE u.organization_id = ${orgId}::uuid
+          AND r.created_at >= now() - INTERVAL '24 hours'
+          AND r.status IN ('error', 'failed')) AS errors_24h
+  `);
+  const r =
+    (rows as unknown as {
+      rows: Array<{
+        runs_24h: string;
+        avg_latency: string;
+        tokens_mtd: string;
+        errors_24h: string;
+      }>;
+    }).rows?.[0] ?? null;
+  const total = Number(r?.runs_24h ?? "0");
+  const errors = Number(r?.errors_24h ?? "0");
+  return {
+    runsLast24h: total,
+    avgLatencyMs: Math.round(Number(r?.avg_latency ?? "0")),
+    totalTokensMtd: Number(r?.tokens_mtd ?? "0"),
+    errorRatePct: total > 0 ? Math.round((errors / total) * 1000) / 10 : 0,
+  };
+}

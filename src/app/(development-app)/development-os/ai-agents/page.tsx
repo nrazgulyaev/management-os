@@ -7,6 +7,7 @@ import {
 } from "@/components/dashboard/primitives";
 import {
   getDevAgentConfigs,
+  getDevAiKpis,
   getRecentAgentOutputs,
 } from "@/lib/development/server/cabinets/ai-agents-cabinet-queries";
 
@@ -40,9 +41,15 @@ const STATUS_TONE: Record<string, "ok" | "warn" | "danger" | undefined> = {
 };
 
 export default async function AiAgentsPage() {
-  const [agents, inbox] = await Promise.all([
+  const [agents, inbox, kpis] = await Promise.all([
     getDevAgentConfigs().catch(() => []),
     getRecentAgentOutputs(8).catch(() => []),
+    getDevAiKpis().catch(() => ({
+      runsLast24h: 0,
+      avgLatencyMs: 0,
+      totalTokensMtd: 0,
+      errorRatePct: 0,
+    })),
   ]);
 
   const liveCount = agents.filter((a) => a.isEnabled).length;
@@ -75,9 +82,32 @@ export default async function AiAgentsPage() {
           sub={`of ${totalCount} in roadmap`}
           tone={liveCount > 0 ? "success" : undefined}
         />
-        <Kpi label="Runs · 30d" value="—" sub="agent telemetry coming soon" />
-        <Kpi label="Avg latency" value="—" sub="agent telemetry coming soon" />
-        <Kpi label="Tokens · MTD" value="—" sub="agent cost rollup coming soon" />
+        <Kpi
+          label="Runs · 24h"
+          value={kpis.runsLast24h > 0 ? String(kpis.runsLast24h) : "—"}
+          sub={
+            kpis.runsLast24h > 0
+              ? `${kpis.errorRatePct}% error rate`
+              : "no runs in the last 24h"
+          }
+          tone={kpis.runsLast24h > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Avg latency"
+          value={kpis.avgLatencyMs > 0 ? `${kpis.avgLatencyMs}ms` : "—"}
+          sub="across 24h runs"
+        />
+        <Kpi
+          label="Tokens · MTD"
+          value={
+            kpis.totalTokensMtd > 0
+              ? kpis.totalTokensMtd >= 1000
+                ? `${(kpis.totalTokensMtd / 1000).toFixed(1)}K`
+                : String(kpis.totalTokensMtd)
+              : "—"
+          }
+          sub="month-to-date"
+        />
         <Kpi
           label="Inbox · recent"
           value={inbox.length === 0 ? "—" : String(inbox.length)}
