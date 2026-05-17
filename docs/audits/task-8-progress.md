@@ -1,6 +1,23 @@
 # TASK-8 stub backfill — progress tracker
 
-**Status:** POLISH-BATCH P3 audited; cabinet ports deferred to dedicated TASK-8-PART-N sessions.
+**Status:** TASK-8-MISSING-ROUTES-1 — 3/9 routes shipped. Visual-polish + remaining routes deferred to follow-up sessions.
+
+## Shipped routes (TASK-8-MISSING-ROUTES-1)
+
+| Route | Source | Live data wiring |
+|---|---|---|
+| `/development-os/cfo` | `_handoff/development/cfo.html` | Mock — wiring to dev_transactions follow-up |
+| `/development-os/warehouse` | `_handoff/development/warehouse.html` | SKU + category KPIs wired to dev_os_inventory_items (40 seeded). Deliveries-today table mock. |
+| `/development-os/marketing` | `_handoff/development/marketing.html` | Mock — wiring to leads + campaigns tables follow-up |
+
+## Remaining routes (TASK-8-MISSING-ROUTES-2)
+
+- `/development-os/communications`
+- `/development-os/knowledge`
+- `/development-os/platform`
+- `/development-os/schedule` — could wire to project_tasks + work_packages (45+15 seeded)
+- `/development-os/settings`
+- `/development-os/strategic`
 
 ## Audit findings (2026-05-17)
 
