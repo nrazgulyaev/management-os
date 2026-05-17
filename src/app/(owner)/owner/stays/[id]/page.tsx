@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
 import { getOwnerStayRequestById } from "@/features/owner-stays/services";
 import { OwnerCancelStayButton } from "@/components/owner-stays/owner-cancel-button";
 
@@ -53,14 +52,10 @@ export default async function OwnerStayDetail({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owner portal", href: "/owner" },
-          { label: "Stays", href: "/owner/stays" },
-          { label: id.slice(0, 8) },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · stays · ${id.slice(0, 8)}`}
         title={`${request.villaCode ?? "Villa"} · ${request.requestedStart} → ${request.requestedEnd}`}
-        description="Your owner stay request — status, allowance, estimated charges."
+        subtitle="Your owner stay request — status, allowance, estimated charges."
         actions={
           CANCELLABLE.has(request.status) ? (
             <OwnerCancelStayButton id={request.id} />
@@ -68,7 +63,11 @@ export default async function OwnerStayDetail({
         }
       />
 
-      <Section eyebrow="Status" title={PUBLIC_STATUS[request.status] ?? request.status}>
+      <section>
+        <div className="label">Status</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          {PUBLIC_STATUS[request.status] ?? request.status}
+        </h2>
         <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <Field label="Status">
             <Badge tone={STATUS_TONES[request.status] ?? "neutral"}>
@@ -99,41 +98,57 @@ export default async function OwnerStayDetail({
             )}
           />
         </div>
-      </Section>
+      </section>
 
       {request.relocationRequired && request.status !== "approved" && (
-        <Section eyebrow="Heads up" title="Some dates need extra review">
-          <p className="rounded-md border border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-secondary">
+        <Card style={{ padding: 20 }}>
+          <div className="label">Heads up</div>
+          <h2 className="display" style={{ fontSize: 18, marginTop: 6, marginBottom: 10, fontWeight: 500 }}>
+            Some dates need extra review
+          </h2>
+          <p style={{ fontSize: 14, color: "var(--ink-2)", margin: 0 }}>
             Some of your selected dates overlap with existing reservations.
-            Our team is reviewing whether the stay can be accommodated. You'll
+            Our team is reviewing whether the stay can be accommodated. You&apos;ll
             be notified as soon as a decision is made.
           </p>
-        </Section>
+        </Card>
       )}
 
       {request.status === "approved" && (
-        <Section eyebrow="Confirmed" title="Your stay is on the calendar">
-          <p className="rounded-md border border-success/30 bg-success-weak/40 px-5 py-6 text-sm text-ink">
+        <Card style={{ padding: 20, borderColor: "var(--ok, var(--forest))" }}>
+          <div className="label">Confirmed</div>
+          <h2 className="display" style={{ fontSize: 18, marginTop: 6, marginBottom: 10, fontWeight: 500 }}>
+            Your stay is on the calendar
+          </h2>
+          <p style={{ fontSize: 14, color: "var(--ink)", margin: 0 }}>
             Your stay has been approved and added to the villa calendar. The
             estimated charges above will appear on your statement after the
             stay is completed.
           </p>
-        </Section>
+        </Card>
       )}
 
       {request.status === "rejected" && (
-        <Section eyebrow="Not approved" title="Stay not confirmed">
-          <p className="rounded-md border border-danger/30 bg-danger-weak/30 px-5 py-6 text-sm text-ink">
-            Unfortunately your request couldn't be approved for these dates.
+        <Card style={{ padding: 20 }}>
+          <div className="label">Not approved</div>
+          <h2 className="display" style={{ fontSize: 18, marginTop: 6, marginBottom: 10, fontWeight: 500 }}>
+            Stay not confirmed
+          </h2>
+          <p style={{ fontSize: 14, color: "var(--ink)", margin: 0 }}>
+            Unfortunately your request couldn&apos;t be approved for these dates.
             Please contact your property manager to discuss alternatives.
             {request.adminNotes
               ? ` Note from the team: ${request.adminNotes}`
               : ""}
           </p>
-        </Section>
+        </Card>
       )}
 
-      <Section eyebrow="Timeline" title="What's happened so far">
+      <section>
+        <div className="label">Timeline</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          What&apos;s happened so far
+        </h2>
         <ol className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
           <TimelineItem
             label="Request submitted"
@@ -156,12 +171,16 @@ export default async function OwnerStayDetail({
             />
           )}
         </ol>
-      </Section>
+      </section>
 
       {request.status === "completed" &&
         request.financeBridgeStatus === "bridged" && (
-          <Section eyebrow="On your statement" title="Charges posted">
-            <p className="rounded-md border border-success/30 bg-success-weak/40 px-5 py-6 text-sm text-ink">
+          <Card style={{ padding: 20 }}>
+            <div className="label">On your statement</div>
+            <h2 className="display" style={{ fontSize: 18, marginTop: 6, marginBottom: 10, fontWeight: 500 }}>
+              Charges posted
+            </h2>
+            <p style={{ fontSize: 14, color: "var(--ink)", margin: 0 }}>
               Charges for this stay have been added to your next statement.
               Total: {formatMoney(
                 request.estimatedTotalOwnerChargeMinor,
@@ -169,7 +188,7 @@ export default async function OwnerStayDetail({
               )}
               .
             </p>
-          </Section>
+          </Card>
         )}
     </div>
   );

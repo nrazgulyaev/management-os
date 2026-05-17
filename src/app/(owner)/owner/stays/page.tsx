@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
 import { NoItemsYet } from "@/components/ui/primitives";
 import { listOwnerStayRequestsForCurrentOwner } from "@/features/owner-stays/services";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
@@ -48,10 +47,10 @@ export default async function OwnerStaysPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Owner portal", href: "/owner" }, { label: "Stays" }]}
+      <SectionHeading
+        eyebrow="Portfolio · stays"
         title="Your owner stays"
-        description="Owner stays are welcome. Operational costs and rental-pool compensation may apply depending on your policy and selected dates."
+        subtitle="Owner stays are welcome. Operational costs and rental-pool compensation may apply depending on your policy and selected dates."
         actions={
           <Link
             href="/owner/stays/new"
@@ -64,7 +63,11 @@ export default async function OwnerStaysPage() {
 
       {/* OWNER-PORTAL-1B — quota panel */}
       {quota && (
-        <Section eyebrow={`Allowance · ${quota.year}`} title={quota.policyName} variant="panel">
+        <Card style={{ padding: 20 }}>
+          <div className="label">{`Allowance · ${quota.year}`}</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+            {quota.policyName}
+          </h2>
           <div className="flex flex-col gap-3">
             <div className="flex items-baseline justify-between gap-4">
               <div>
@@ -104,10 +107,14 @@ export default async function OwnerStaysPage() {
               </p>
             )}
           </div>
-        </Section>
+        </Card>
       )}
 
-      <Section eyebrow="Your requests" title={`${rows.length} requests`}>
+      <section>
+        <div className="label">Your requests</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          {rows.length} requests
+        </h2>
         {rows.length === 0 ? (
           <NoItemsYet
             entityLabel="owner-stay requests"
@@ -162,7 +169,7 @@ export default async function OwnerStaysPage() {
             </ul>
           </div>
         )}
-      </Section>
+      </section>
     </div>
   );
 }

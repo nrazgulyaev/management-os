@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { NoItemsYet } from "@/components/ui/primitives";
 import {
@@ -139,10 +138,10 @@ export default async function OwnerCalendarPage({
   nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Calendar" }]}
+      <SectionHeading
+        eyebrow="Portfolio · calendar"
         title="My villa calendar"
-        description="Owner-safe view of bookings, owner stays, maintenance, internal holds, and out-of-order windows. Guest names are masked; emails, phones, and access codes never appear here."
+        subtitle="Owner-safe view of bookings, owner stays, maintenance, internal holds, and out-of-order windows. Guest names are masked; emails, phones, and access codes never appear here."
         actions={
           <div className="flex items-center gap-2">
             {[30, 60, 90].map((d) => (
@@ -181,30 +180,36 @@ export default async function OwnerCalendarPage({
           deposit clears.
         </p>
       </div>
-      <Section
-        eyebrow="Calendar"
-        title="Month view"
-        description="Visual grid of every booking, owner stay, maintenance window, and internal hold across your villas."
-        action={
-          <span className="text-[11px] text-ink-tertiary">
-            {allOwnerBookings.length} event{allOwnerBookings.length === 1 ? "" : "s"}
-          </span>
-        }
-      >
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+        <div>
+          <div className="label">Calendar</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>Month view</h2>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", margin: 0 }}>
+            Visual grid of every booking, owner stay, maintenance window, and internal hold across your villas.
+          </p>
+        </div>
+        <span className="text-[11px] text-ink-tertiary">
+          {allOwnerBookings.length} event{allOwnerBookings.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <Card style={{ padding: 12 }}>
         <OwnerCalendarGrid
           monthDate={monthDate}
           prevHref={`/owner/calendar?horizon=${horizonDays}`}
           nextHref={`/owner/calendar?horizon=${horizonDays}`}
           events={visualEvents}
         />
-      </Section>
+      </Card>
 
       {directBookings.length > 0 && (
-        <Section
-          eyebrow="Direct bookings"
-          title="Direct bookings affecting your villas"
-          description="Pending direct-booking holds that block dates show as Pending; expired and cancelled requests are not shown."
-        >
+        <section>
+          <div className="label">Direct bookings</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+            Direct bookings affecting your villas
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+            Pending direct-booking holds that block dates show as Pending; expired and cancelled requests are not shown.
+          </p>
           <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-canvas/50 text-left">
@@ -257,7 +262,7 @@ export default async function OwnerCalendarPage({
               </tbody>
             </table>
           </div>
-        </Section>
+        </section>
       )}
       {rows.length === 0 ? (
         <NoItemsYet
@@ -266,20 +271,24 @@ export default async function OwnerCalendarPage({
         />
       ) : (
         rows.map((row) => (
-          <Section
-            key={row.villa.villaId}
-            eyebrow={row.villa.projectName ?? "Villa"}
-            title={row.villa.villaName ?? row.villa.villaCode ?? "Your villa"}
-            description={`${row.events.length} event${row.events.length === 1 ? "" : "s"} in this window.`}
-            action={
+          <section key={row.villa.villaId}>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+              <div>
+                <div className="label">{row.villa.projectName ?? "Villa"}</div>
+                <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+                  {row.villa.villaName ?? row.villa.villaCode ?? "Your villa"}
+                </h2>
+                <p style={{ fontSize: 13, color: "var(--ink-3)", margin: 0 }}>
+                  {row.events.length} event{row.events.length === 1 ? "" : "s"} in this window.
+                </p>
+              </div>
               <Link
                 href={`/owner/villas/${row.villa.villaId}/calendar`}
                 className="text-xs text-ink hover:underline underline-offset-4"
               >
                 Open villa calendar →
               </Link>
-            }
-          >
+            </div>
             {row.events.length === 0 ? (
               <p className="rounded-md border border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
                 Nothing scheduled in this window.
@@ -344,7 +353,7 @@ export default async function OwnerCalendarPage({
                 </table>
               </div>
             )}
-          </Section>
+          </section>
         ))
       )}
     </div>

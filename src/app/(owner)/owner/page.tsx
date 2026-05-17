@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import {
@@ -73,14 +72,14 @@ export default async function OwnerHomePage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
+      <SectionHeading
         eyebrow={
           latest
             ? `${latest.monthLabel} · statement ${latest.status === "sent" ? "delivered" : latest.status}`
             : new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date())
         }
         title={`Good morning, ${owner.ownerName.split(" ")[0]}.`}
-        description={aiInsight}
+        subtitle={aiInsight}
         actions={
           latest ? (
             <Button asChild>
@@ -127,18 +126,20 @@ export default async function OwnerHomePage() {
 
       {/* Statement detail + sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
-        <Section
-          eyebrow={latest ? `Statement · ${latest.monthLabel}` : "Statements"}
-          title={latest ? `${latest.villaCode ?? "—"} · ${latest.monthLabel}` : "No statements yet"}
-          variant="panel"
-          action={
-            latest && (
+        <Card style={{ padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+            <div>
+              <div className="label">{latest ? `Statement · ${latest.monthLabel}` : "Statements"}</div>
+              <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 0, fontWeight: 500 }}>
+                {latest ? `${latest.villaCode ?? "—"} · ${latest.monthLabel}` : "No statements yet"}
+              </h2>
+            </div>
+            {latest && (
               <Button asChild variant="ghost" size="sm">
                 <Link href="/owner/statements">All statements →</Link>
               </Button>
-            )
-          }
-        >
+            )}
+          </div>
           {latest ? (
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pb-4 border-b border-line-soft">
@@ -191,7 +192,7 @@ export default async function OwnerHomePage() {
               with the net-to-you amount, the line breakdown, and a download link.
             </p>
           )}
-        </Section>
+        </Card>
 
         <div className="flex flex-col gap-4">
           {/* 12-month chart */}
@@ -280,15 +281,18 @@ export default async function OwnerHomePage() {
       </div>
 
       {/* My villas */}
-      <Section
-        eyebrow="Owned villas"
-        title="Your villas"
-        action={
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/owner/villas">All villas</Link>
-          </Button>
-        }
-      >
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+        <div>
+          <div className="label">Owned villas</div>
+          <h2 className="display" style={{ fontSize: 26, marginTop: 6, marginBottom: 0, fontWeight: 500 }}>
+            Your villas
+          </h2>
+        </div>
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/owner/villas">All villas</Link>
+        </Button>
+      </div>
+      <section>
         {villas.length === 0 ? (
           <p className="text-sm text-ink-tertiary italic">
             No villa ownership recorded. Contact your operator to confirm shares.
@@ -352,7 +356,7 @@ export default async function OwnerHomePage() {
             ))}
           </div>
         )}
-      </Section>
+      </section>
     </div>
   );
 }
