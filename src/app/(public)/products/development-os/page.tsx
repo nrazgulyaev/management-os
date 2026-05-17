@@ -1027,7 +1027,7 @@ function CabinetGrid() {
       k: "PM",
       desc: "Portfolio at-risk, kanban pipeline, daily digest, exception inbox.",
       color: "var(--amber)",
-      href: null,
+      href: "/development-os/cabinets/project-manager",
     },
     {
       code: "02",
@@ -1043,7 +1043,7 @@ function CabinetGrid() {
       k: "PROC",
       desc: "PR queue · RFQ matrix · vendor scorecards · PO and deliveries.",
       color: "var(--ink-2)",
-      href: null,
+      href: "/development-os/cabinets/procurement-manager",
     },
     {
       code: "04",
@@ -1051,7 +1051,7 @@ function CabinetGrid() {
       k: "CFO",
       desc: "P&L, cash, AR/AP — one cabinet, with tax-assistant on every cell.",
       color: "var(--ok)",
-      href: null,
+      href: "/development-os/cabinets/cfo-accountant",
     },
     {
       code: "05",
@@ -1059,7 +1059,7 @@ function CabinetGrid() {
       k: "SITE",
       desc: "Daily reports, photo evidence, QA/QC inbox, method statements.",
       color: "var(--warn)",
-      href: null,
+      href: "/development-os/cabinets/site-supervisor",
     },
     {
       code: "06",

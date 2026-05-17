@@ -38,6 +38,7 @@ const CABINETS: Cabinet[] = [
       "Today's turnovers, photo evidence, supply runs. Mobile-first, offline-capable.",
     icon: <SparkIcon />,
     accent: "var(--terra)",
+    to: "/dashboard/housekeeping",
   },
   {
     key: "concierge",
@@ -46,6 +47,7 @@ const CABINETS: Cabinet[] = [
       "All guest conversations, the AI's handoffs, every service request in one inbox.",
     icon: <MsgIcon />,
     accent: "var(--gold)",
+    to: "/dashboard/concierge",
   },
   {
     key: "finance",
@@ -54,6 +56,7 @@ const CABINETS: Cabinet[] = [
       "Bookings, channel fees, ops costs, owner statements, distributions — reconciled.",
     icon: <ReceiptIcon />,
     accent: "var(--forest)",
+    to: "/dashboard/finance",
   },
   {
     key: "owner",
