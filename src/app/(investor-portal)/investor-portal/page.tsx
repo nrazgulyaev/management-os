@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentInvestorContext } from "@/features/investor-portal/investor-context";
@@ -59,10 +58,10 @@ export default async function InvestorPortalHomePage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
+      <SectionHeading
         eyebrow={`${kpis?.projectsCount ?? 0} projects · ${kpis?.averageProfitSharePct.toFixed(1) ?? "—"}% avg profit share`}
         title={`Welcome back, ${ctx.investorName.split(" ")[0]}.`}
-        description={insight}
+        subtitle={insight}
         actions={
           <Button asChild variant="ghost" size="sm">
             <Link href="/investor-portal/q4-brief">
@@ -97,16 +96,18 @@ export default async function InvestorPortalHomePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
-        <Section
-          eyebrow="Capital ledger"
-          title="Recent activity"
-          variant="panel"
-          action={
+        <Card style={{ padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+            <div>
+              <div className="label">Capital ledger</div>
+              <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 0, fontWeight: 500 }}>
+                Recent activity
+              </h2>
+            </div>
             <Button asChild variant="ghost" size="sm">
               <Link href="/investor-portal/capital">Full ledger →</Link>
             </Button>
-          }
-        >
+          </div>
           {ledger.length === 0 ? (
             <p className="text-sm text-ink-tertiary italic">No capital events recorded yet.</p>
           ) : (
@@ -130,7 +131,7 @@ export default async function InvestorPortalHomePage() {
               ))}
             </ul>
           )}
-        </Section>
+        </Card>
 
         <div className="flex flex-col gap-4">
           <div className="rounded-md border border-line-soft bg-surface p-5">
@@ -188,15 +189,18 @@ export default async function InvestorPortalHomePage() {
         </div>
       </div>
 
-      <Section
-        eyebrow="Your interest"
-        title="Per-project breakdown"
-        action={
+      <section>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+          <div>
+            <div className="label">Your interest</div>
+            <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 0, fontWeight: 500 }}>
+              Per-project breakdown
+            </h2>
+          </div>
           <Button asChild variant="ghost" size="sm">
             <Link href="/investor-portal/construction">Construction →</Link>
           </Button>
-        }
-      >
+        </div>
         {interest.length === 0 ? (
           <p className="text-sm text-ink-tertiary italic">No project commitments.</p>
         ) : (
@@ -225,17 +229,20 @@ export default async function InvestorPortalHomePage() {
             ))}
           </div>
         )}
-      </Section>
+      </section>
 
-      <Section
-        eyebrow="Construction"
-        title="Progress · your projects"
-        action={
+      <section>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+          <div>
+            <div className="label">Construction</div>
+            <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 0, fontWeight: 500 }}>
+              Progress · your projects
+            </h2>
+          </div>
           <Button asChild variant="ghost" size="sm">
             <Link href="/investor-portal/construction">Full view →</Link>
           </Button>
-        }
-      >
+        </div>
         {construction.length === 0 ? (
           <p className="text-sm text-ink-tertiary italic">No construction activity yet.</p>
         ) : (
@@ -256,7 +263,7 @@ export default async function InvestorPortalHomePage() {
             ))}
           </div>
         )}
-      </Section>
+      </section>
     </div>
   );
 }

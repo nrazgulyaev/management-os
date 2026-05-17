@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { getCurrentInvestorContext } from "@/features/investor-portal/investor-context";
 import {
   getInvestorDashboard,
@@ -38,20 +37,21 @@ export default async function QuarterBriefPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Investor portal", href: "/investor-portal" },
-          { label: "Quarter brief" },
-        ]}
+      <SectionHeading
+        eyebrow="Investor portal · quarter brief"
         title="Quarter brief"
-        description={
+        subtitle={
           latestNav
             ? `Snapshot for the quarter ending ${latestNav.quarterEndDate}.`
             : "Quarter brief surfaces here once NAV snapshots are published."
         }
       />
 
-      <Section eyebrow="Headline" title="Net asset value" variant="panel">
+      <Card style={{ padding: 20 }}>
+        <div className="label">Headline</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Net asset value
+        </h2>
         {latestNav ? (
           <div className="flex flex-col gap-3">
             <div className="text-display text-[36px] font-medium text-ink tabular-nums font-mono">
@@ -73,9 +73,13 @@ export default async function QuarterBriefPage() {
         ) : (
           <p className="text-sm text-ink-tertiary italic">No NAV snapshots yet.</p>
         )}
-      </Section>
+      </Card>
 
-      <Section eyebrow="Distributions" title={`YTD ${fmtUsd(ytdDist)}`}>
+      <section>
+        <div className="label">Distributions</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          YTD {fmtUsd(ytdDist)}
+        </h2>
         {dists.length === 0 ? (
           <p className="text-sm text-ink-tertiary italic">No distributions yet.</p>
         ) : (
@@ -95,9 +99,13 @@ export default async function QuarterBriefPage() {
             ))}
           </ul>
         )}
-      </Section>
+      </section>
 
-      <Section eyebrow="Narrative" title="Quarter highlights" variant="panel">
+      <Card style={{ padding: 20 }}>
+        <div className="label">Narrative</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Quarter highlights
+        </h2>
         <div className="text-sm text-ink-secondary leading-relaxed space-y-3">
           <p>
             This brief is a placeholder narrative. The full quarterly authoring
@@ -110,7 +118,7 @@ export default async function QuarterBriefPage() {
             comparative benchmarks will be added in upcoming releases.
           </p>
         </div>
-      </Section>
+      </Card>
     </div>
   );
 }

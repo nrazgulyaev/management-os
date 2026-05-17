@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { getCurrentInvestorContext } from "@/features/investor-portal/investor-context";
 import { getNavSeries } from "@/features/investor-portal/investor-portal-queries";
@@ -23,15 +22,16 @@ export default async function NavPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Investor portal", href: "/investor-portal" },
-          { label: "NAV" },
-        ]}
+      <SectionHeading
+        eyebrow="Investor portal · NAV"
         title="NAV · your share"
-        description="Quarter-end snapshots of net asset value, weighted by your commitment in each project."
+        subtitle="Quarter-end snapshots of net asset value, weighted by your commitment in each project."
       />
-      <Section eyebrow="Trend" title="Per quarter" variant="panel">
+      <Card style={{ padding: 20 }}>
+        <div className="label">Trend</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Per quarter
+        </h2>
         {series.length === 0 ? (
           <p className="text-sm text-ink-tertiary italic">No NAV snapshots yet.</p>
         ) : (
@@ -79,7 +79,7 @@ export default async function NavPage() {
             </Table>
           </>
         )}
-      </Section>
+      </Card>
     </div>
   );
 }

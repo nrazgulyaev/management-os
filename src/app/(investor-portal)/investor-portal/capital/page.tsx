@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { getCurrentInvestorContext } from "@/features/investor-portal/investor-context";
@@ -29,23 +28,27 @@ export default async function CapitalLedgerPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Investor portal", href: "/investor-portal" },
-          { label: "Capital ledger" },
-        ]}
+      <SectionHeading
+        eyebrow="Investor portal · capital ledger"
         title="Capital ledger"
-        description={
+        subtitle={
           ledger.length === 0
             ? "No capital events recorded yet."
             : `${ledger.length} events across your commitments.`
         }
       />
-      <Section eyebrow="All events" title="Chronological">
+      <section>
+        <div className="label">All events</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Chronological
+        </h2>
         {ledger.length === 0 ? (
-          <p className="text-sm text-ink-tertiary italic">Empty ledger.</p>
+          <Card style={{ padding: 24 }}>
+            <p style={{ fontSize: 14, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>Empty ledger.</p>
+          </Card>
         ) : (
-          <Table>
+          <Card style={{ padding: 0, overflow: "hidden" }}>
+            <Table>
             <THead>
               <TR>
                 <TH>Date</TH>
@@ -74,8 +77,9 @@ export default async function CapitalLedgerPage() {
               ))}
             </TBody>
           </Table>
+          </Card>
         )}
-      </Section>
+      </section>
     </div>
   );
 }

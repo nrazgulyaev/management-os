@@ -18,7 +18,6 @@ import {
   InvestorHeroGreetingAI,
   type WaterfallStage,
 } from "@/components/award";
-import { Section } from "@/components/ui/section";
 import {
   loadForecastCashflow,
   type ForecastQuarterRow,
@@ -173,11 +172,14 @@ export default async function DashboardPage() {
           }
         />
 
-        <Section
-          eyebrow="Portfolio"
-          title={strings.dashActiveCommitments}
-          description="Each card opens the commitment detail with capital-call history + distribution ledger."
-        >
+        <section>
+          <div className="label">Portfolio</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+            {strings.dashActiveCommitments}
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+            Each card opens the commitment detail with capital-call history + distribution ledger.
+          </p>
           {commitments.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-stone-300 bg-white px-6 py-10 text-center">
               <p className="text-sm font-medium text-stone-700">
@@ -232,7 +234,7 @@ export default async function DashboardPage() {
               ))}
             </div>
           )}
-        </Section>
+        </section>
       </div>
     </PortalShell>
   );
