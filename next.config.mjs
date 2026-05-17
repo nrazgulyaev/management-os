@@ -107,17 +107,52 @@ const nextConfig = {
   reactStrictMode: true,
   // Pin tracing root to this package so Next doesn't walk up to parent lockfiles.
   outputFileTracingRoot: __dirname,
-  // HF-8 — Receipt OCR ships the receipt image inline (base64 in
-  // FormData) to extractReceipt(). Default Next.js 15 Server Action
-  // body limit is 1 MB; modern phone JPEGs are 2–5 MB and were
-  // crashing with `Body exceeded 1 MB limit` (413, digest 4033951084).
-  // Bumping to 10 MB covers compressed phone uploads with headroom.
-  // Direct-to-storage (presigned URL) is a follow-up sprint.
+
+  // HF-16 — Vercel build OOM (8GB container SIGKILL on ~800 server
+  // files + 426 client components + 100+ routes). Skipping ESLint
+  // during build saves ~500MB-1GB peak; lint still runs locally via
+  // `npm run lint`. TypeScript checks stay ON for correctness.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
+  // HF-16 — Disable production source maps (saves ~30% build memory).
+  // Browser sourcemaps regenerable on demand and aren't shipped to
+  // clients in production anyway.
+  productionBrowserSourceMaps: false,
+
+  // HF-16 — gzip/brotli on Node responses.
+  compress: true,
+
   experimental: {
+    // HF-8 — Receipt OCR ships the receipt image inline (base64 in
+    // FormData) to extractReceipt(). Default Next.js 15 Server Action
+    // body limit is 1 MB; modern phone JPEGs are 2–5 MB and were
+    // crashing with `Body exceeded 1 MB limit` (413, digest 4033951084).
+    // Bumping to 10 MB covers compressed phone uploads with headroom.
+    // Direct-to-storage (presigned URL) is a follow-up sprint.
     serverActions: {
       bodySizeLimit: "10mb",
     },
+    // HF-16 — tree-shake heavy package imports. Without this, the
+    // entire lucide-react icon set + date-fns + recharts bundle
+    // pulls into every server build artefact. Biggest single
+    // memory win.
+    optimizePackageImports: [
+      "lucide-react",
+      "date-fns",
+      "recharts",
+      "@supabase/supabase-js",
+      "drizzle-orm",
+    ],
+    // HF-16 — Cap webpack worker concurrency. Default uses all CPUs
+    // and each worker holds its own module graph; on Vercel's 8GB
+    // container that's the proximate cause of SIGKILL. Slightly
+    // slower wall-clock build, dramatically lower peak memory.
+    workerThreads: false,
+    cpus: 2,
   },
+
   async redirects() {
     return STAGE_10_C_REDIRECTS.map((r) => ({
       source: r.source,
