@@ -302,9 +302,10 @@ export async function getPortfolioProjects(): Promise<PortfolioProjectRow[]> {
       FROM projects p
       LEFT JOIN villas v ON v.project_id = p.id
      WHERE p.status NOT IN ('completed','paused','archived')
-     GROUP BY p.id, p.name, p.location
-     HAVING COUNT(DISTINCT v.id) > 0
-     ORDER BY revenue_ytd_usd DESC NULLS LAST
+     GROUP BY p.id, p.name, p.location, p.created_at
+     ORDER BY revenue_ytd_usd DESC NULLS LAST,
+              COUNT(DISTINCT v.id) DESC,
+              p.created_at DESC
      LIMIT 6
   `);
   const dayOfYear = Math.floor(
