@@ -1,17 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import { listMyDistributions } from "@/features/owner-portal/owner-portal-queries";
-
-/**
- * OWNER-PORTAL-1A — Distributions page.
- * Filters to statements with status='sent' (= delivered, payable
- * distributions). Real payout-rail status lands with PAYOUT-1.
- */
 
 export const metadata = { title: "Distributions" };
 export const dynamic = "force-dynamic";
@@ -38,27 +30,29 @@ export default async function OwnerDistributionsPage() {
   const data = await listMyDistributions(owner.ownerId);
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Portfolio", href: "/owner" },
-          { label: "Distributions" },
-        ]}
+    <>
+      <SectionHeading
+        eyebrow="Portfolio · distributions"
         title="Distributions"
-        description={
+        subtitle={
           data.statementsCount === 0
             ? "No distributions yet. Distributions appear once your operator marks a statement as sent."
             : `YTD ${fmtUsd(data.ytdDistributedUsdMinor)} · ${data.statementsCount} ${data.statementsCount === 1 ? "statement" : "statements"} delivered.`
         }
       />
 
-      <Section eyebrow="Sent statements" title={`${data.rows.length} delivered`}>
-        {data.rows.length === 0 ? (
-          <p className="text-sm text-ink-tertiary italic">
+      <h2 className="display" style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}>
+        Sent statements · {data.rows.length} delivered
+      </h2>
+      {data.rows.length === 0 ? (
+        <Card style={{ padding: 24 }}>
+          <p style={{ color: "var(--ink-3)", fontSize: 14, fontStyle: "italic", margin: 0 }}>
             Once your operator approves and sends a statement, it shows here as a
             distribution. Bank-rail payout integration coming soon.
           </p>
-        ) : (
+        </Card>
+      ) : (
+        <Card style={{ padding: 0, overflow: "hidden" }}>
           <Table>
             <THead>
               <TR>
@@ -101,8 +95,16 @@ export default async function OwnerDistributionsPage() {
               ))}
             </TBody>
           </Table>
-        )}
-      </Section>
-    </div>
+        </Card>
+      )}
+
+      {data.rows.length > 0 && (
+        <p style={{ fontSize: 12, color: "var(--ink-3)", fontStyle: "italic", marginTop: 16 }}>
+          Bank-rail payout integration with status tracking and proof-of-payment
+          attachments coming soon.
+        </p>
+      )}
+
+    </>
   );
 }

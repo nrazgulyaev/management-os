@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FileText } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
@@ -53,14 +52,11 @@ export default async function OwnerDocumentsPage() {
   const docs = await listMyDocuments(owner.ownerId).catch(() => []);
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Portfolio", href: "/owner" },
-          { label: "Documents" },
-        ]}
+    <>
+      <SectionHeading
+        eyebrow="Portfolio · documents"
         title="Documents"
-        description={
+        subtitle={
           docs.length === 0
             ? "Operator-shared documents for your villas. Nothing on file yet."
             : `${docs.length} ${docs.length === 1 ? "document" : "documents"} on file for your villas. Statement PDFs are on the Statements page.`
@@ -68,7 +64,7 @@ export default async function OwnerDocumentsPage() {
       />
 
       {docs.length === 0 ? (
-        <div className="rounded-md border border-dashed border-line-strong bg-canvas p-8">
+        <Card style={{ padding: 32, borderStyle: "dashed" }}>
           <FileText className="w-8 h-8 text-ink-tertiary mb-3" strokeWidth={1.5} />
           <p className="text-sm text-ink-tertiary italic mb-2">
             No documents shared yet. Your operator can upload management
@@ -82,53 +78,58 @@ export default async function OwnerDocumentsPage() {
             </Link>{" "}
             page.
           </p>
-        </div>
+        </Card>
       ) : (
-        <Section eyebrow="On file" title="All documents">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Title</TH>
-                <TH>Type</TH>
-                <TH>Filename</TH>
-                <TH className="text-right">Size</TH>
-                <TH>Uploaded</TH>
-                <TH />
-              </TR>
-            </THead>
-            <TBody>
-              {docs.map((d) => (
-                <TR key={d.id}>
-                  <TD className="font-medium">{d.title}</TD>
-                  <TD>
-                    <Badge tone={typeColor(d.documentType)}>
-                      {d.documentType.replace(/_/g, " ")}
-                    </Badge>
-                  </TD>
-                  <TD className="font-mono text-xs text-ink-tertiary">
-                    {d.fileName ?? "—"}
-                  </TD>
-                  <TD className="text-right font-mono tabular-nums text-sm">
-                    {fmtSize(d.sizeBytes)}
-                  </TD>
-                  <TD className="font-mono text-xs text-ink-tertiary">
-                    {new Date(d.createdAt).toLocaleDateString("en-GB")}
-                  </TD>
-                  <TD className="text-right">
-                    <Link
-                      href={`/api/storage/documents/${d.id}/signed-url`}
-                      target="_blank"
-                      className="text-xs text-ink-secondary hover:text-terra"
-                    >
-                      Download →
-                    </Link>
-                  </TD>
+        <>
+          <h2 className="display" style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}>
+            All documents · on file
+          </h2>
+          <Card style={{ padding: 0, overflow: "hidden" }}>
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Title</TH>
+                  <TH>Type</TH>
+                  <TH>Filename</TH>
+                  <TH className="text-right">Size</TH>
+                  <TH>Uploaded</TH>
+                  <TH />
                 </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Section>
+              </THead>
+              <TBody>
+                {docs.map((d) => (
+                  <TR key={d.id}>
+                    <TD className="font-medium">{d.title}</TD>
+                    <TD>
+                      <Badge tone={typeColor(d.documentType)}>
+                        {d.documentType.replace(/_/g, " ")}
+                      </Badge>
+                    </TD>
+                    <TD className="font-mono text-xs text-ink-tertiary">
+                      {d.fileName ?? "—"}
+                    </TD>
+                    <TD className="text-right font-mono tabular-nums text-sm">
+                      {fmtSize(d.sizeBytes)}
+                    </TD>
+                    <TD className="font-mono text-xs text-ink-tertiary">
+                      {new Date(d.createdAt).toLocaleDateString("en-GB")}
+                    </TD>
+                    <TD className="text-right">
+                      <Link
+                        href={`/api/storage/documents/${d.id}/signed-url`}
+                        target="_blank"
+                        className="text-xs text-ink-secondary hover:text-terra"
+                      >
+                        Download →
+                      </Link>
+                    </TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          </Card>
+        </>
       )}
-    </div>
+    </>
   );
 }
