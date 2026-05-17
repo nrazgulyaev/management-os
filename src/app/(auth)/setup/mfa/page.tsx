@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { getMfaStatus } from "@/features/security-baseline/mfa-services";
@@ -16,14 +15,18 @@ export default async function MfaEnrolmentPage() {
   const status = await getMfaStatus(me.id);
   return (
     <div className="max-w-xl mx-auto py-12 px-6 flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[{ label: "Setup" }, { label: "MFA" }]}
+      <SectionHeading
+        eyebrow="Setup · MFA"
         title="Set up two-factor authentication"
-        description="Adds a six-digit code from your authenticator app on top of your password. Strongly recommended for internal users."
+        subtitle="Adds a six-digit code from your authenticator app on top of your password. Strongly recommended for internal users."
       />
       {status.verified ? (
-        <Section eyebrow="MFA" title="Already enrolled">
-          <div className="flex items-center gap-2">
+        <Card style={{ padding: 20 }}>
+          <div className="label">MFA</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+            Already enrolled
+          </h2>
+          <div className="flex items-center gap-2 mb-3">
             <Badge tone="success">on</Badge>
             <span className="text-sm text-ink">
               Two-factor is already active on your account.
@@ -35,24 +38,32 @@ export default async function MfaEnrolmentPage() {
           >
             Open account security →
           </Link>
-        </Section>
+        </Card>
       ) : status.pendingEnrolment ? (
-        <Section eyebrow="MFA" title="Enrolment pending">
-          <p className="text-sm text-ink-secondary">
+        <Card style={{ padding: 20 }}>
+          <div className="label">MFA</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+            Enrolment pending
+          </h2>
+          <p className="text-sm text-ink-secondary mb-3">
             You started enrolment but did not finish verification. Continue
             below — or restart from scratch.
           </p>
           <Link
             href="/setup/mfa/verify"
-            className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-ink text-ink-inverse text-sm font-medium self-start"
+            className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-ink text-ink-inverse text-sm font-medium self-start mb-3"
           >
             Continue to verify
           </Link>
           <StartEnrolmentButton />
-        </Section>
+        </Card>
       ) : (
-        <Section eyebrow="Step 1" title="Generate a new TOTP secret">
-          <ol className="list-decimal list-inside text-sm text-ink-secondary leading-relaxed space-y-2">
+        <Card style={{ padding: 20 }}>
+          <div className="label">Step 1</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+            Generate a new TOTP secret
+          </h2>
+          <ol className="list-decimal list-inside text-sm text-ink-secondary leading-relaxed space-y-2 mb-4">
             <li>Click the button below to generate a TOTP secret.</li>
             <li>
               Scan the otpauth URL (or enter the secret manually) into Google
@@ -66,7 +77,7 @@ export default async function MfaEnrolmentPage() {
             </li>
           </ol>
           <StartEnrolmentButton />
-        </Section>
+        </Card>
       )}
     </div>
   );

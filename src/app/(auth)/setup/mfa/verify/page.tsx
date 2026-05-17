@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { getMfaStatus } from "@/features/security-baseline/mfa-services";
 import { MfaVerifyForm } from "@/components/security/mfa-verify-form";
@@ -20,14 +19,18 @@ export default async function MfaVerifyPage() {
   }
   return (
     <div className="max-w-md mx-auto py-12 px-6 flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[{ label: "Setup" }, { label: "MFA" }, { label: "Verify" }]}
+      <SectionHeading
+        eyebrow="Setup · MFA · verify"
         title="Verify your authenticator"
-        description="Enter the current 6-digit code from your authenticator app."
+        subtitle="Enter the current 6-digit code from your authenticator app."
       />
-      <Section eyebrow="Step 2" title="Enter the code">
+      <Card style={{ padding: 20 }}>
+        <div className="label">Step 2</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Enter the code
+        </h2>
         <MfaVerifyForm mode="enrolment" />
-      </Section>
+      </Card>
     </div>
   );
 }
