@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -24,13 +24,10 @@ export default async function ProjectsPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Portfolio", href: "/dashboard" },
-          { label: "Projects" },
-        ]}
+      <SectionHeading
+        eyebrow="Portfolio · projects"
         title="Projects"
-        description="Active Bali villa projects under Arconique management. Each project carries its own ownership model, allocation rules, and reserve policy."
+        subtitle="Active Bali villa projects under Arconique management. Each project carries its own ownership model, allocation rules, and reserve policy."
         actions={
           <div className="flex gap-2 items-center">
             <SourceBadge source={source} />

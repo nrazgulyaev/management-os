@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { ProjectForm } from "@/features/projects/form";
 import { getProjectBySlug } from "@/features/projects/services";
@@ -19,14 +19,10 @@ export default async function EditProjectPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Projects", href: "/dashboard/projects" },
-          { label: project.name, href: `/dashboard/projects/${project.slug}` },
-          { label: "Edit" },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · projects · ${project.name} · edit`}
         title={`Edit · ${project.name}`}
-        description="Updates produce an audit event with before / after diff."
+        subtitle="Updates produce an audit event with before / after diff."
       />
       <DbStatusNotice />
       <ProjectForm

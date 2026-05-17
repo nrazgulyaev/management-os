@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { DetailPageHero } from "@/components/ui/primitives";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { StatusPill, type VillaStatus } from "@/components/ui/status-pill";
@@ -31,22 +30,10 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <DetailPageHero
-        breadcrumbs={[
-          { label: "Portfolio", href: "/dashboard" },
-          { label: "Projects", href: "/dashboard/projects" },
-          { label: project.name },
-        ]}
-        eyebrow={project.location}
+      <SectionHeading
+        eyebrow={`Portfolio · projects · ${project.location}`}
         title={project.name}
-        description={project.description ?? project.concept ?? undefined}
-        statusRow={
-          <>
-            <SourceBadge source={project.source} />
-            <Badge tone="success">{project.status.replace("_", " ")}</Badge>
-            <Badge tone="outline">{project.managementStatus}</Badge>
-          </>
-        }
+        subtitle={project.description ?? project.concept ?? undefined}
         actions={
           <>
             {project.source === "db" && (
@@ -69,28 +56,31 @@ export default async function ProjectDetailPage({
             </Button>
           </>
         }
-        summaryStrip={[
-          {
-            label: "Total villas",
-            value: project.totalVillas?.toString() ?? "—",
-          },
-          {
-            label: "Active villas",
-            value: villas.length.toString(),
-          },
-          { label: "Location", value: project.location },
-          {
-            label: "Slug",
-            value: <span className="font-mono text-base">{project.slug}</span>,
-          },
-        ]}
       />
 
-      <Section
-        eyebrow="Villas"
-        title="Villas in this project"
-        description="Live status pulled from the operations layer."
-      >
+      <Card style={{ padding: 20 }}>
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <SourceBadge source={project.source} />
+          <Badge tone="success">{project.status.replace("_", " ")}</Badge>
+          <Badge tone="outline">{project.managementStatus}</Badge>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+          <SummaryCell label="Total villas" value={project.totalVillas?.toString() ?? "—"} />
+          <SummaryCell label="Active villas" value={villas.length.toString()} />
+          <SummaryCell label="Location" value={project.location} />
+          <SummaryCell label="Slug" value={project.slug} mono />
+        </div>
+      </Card>
+
+      <section>
+        <div className="label">Villas</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+          Villas in this project
+        </h2>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+          Live status pulled from the operations layer.
+        </p>
+        <Card style={{ padding: 0, overflow: "hidden" }}>
         <Table>
           <THead>
             <TR>
@@ -131,7 +121,19 @@ export default async function ProjectDetailPage({
             )}
           </TBody>
         </Table>
-      </Section>
+        </Card>
+      </section>
+    </div>
+  );
+}
+
+function SummaryCell({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</div>
+      <div className={`text-base text-ink mt-1 ${mono ? "font-mono tabular-nums" : ""}`}>
+        {value}
+      </div>
     </div>
   );
 }
