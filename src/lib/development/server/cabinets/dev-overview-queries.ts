@@ -126,6 +126,211 @@ export interface LatestAnomalyRow {
   createdAt: string;
 }
 
+// =============================================================================
+// Sprint TASK-7-DATA-PART-3 — risk radar + site activity feed + portfolio KPIs.
+// =============================================================================
+
+export interface RiskRadarRow {
+  riskId: string;
+  riskCode: string;
+  title: string;
+  projectName: string | null;
+  projectCode: string | null;
+  category: string;
+  probability: string;
+  impact: string;
+  riskScore: number;
+  mitigationStatus: string;
+  ownerName: string | null;
+}
+
+export async function getRiskRadar(limit = 5): Promise<RiskRadarRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    id: string;
+    risk_code: string;
+    title: string;
+    project_name: string | null;
+    project_code: string | null;
+    category: string;
+    probability: string;
+    impact: string;
+    risk_score: string;
+    mitigation_status: string;
+    owner_name: string | null;
+  }>(sql`
+    SELECT r.id::text             AS id,
+           r.risk_code             AS risk_code,
+           r.title                 AS title,
+           p.name                  AS project_name,
+           p.project_code          AS project_code,
+           r.category              AS category,
+           r.probability           AS probability,
+           r.impact                AS impact,
+           r.risk_score::text      AS risk_score,
+           r.mitigation_status     AS mitigation_status,
+           u.full_name             AS owner_name
+      FROM project_risks r
+      LEFT JOIN projects p ON p.id = r.project_id
+      LEFT JOIN app_users u ON u.id = r.owner_id
+     WHERE r.organization_id = ${orgId}
+       AND r.mitigation_status NOT IN ('closed_resolved','closed_realized')
+     ORDER BY r.risk_score DESC NULLS LAST, r.identified_at DESC
+     LIMIT ${limit}
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      id: string;
+      risk_code: string;
+      title: string;
+      project_name: string | null;
+      project_code: string | null;
+      category: string;
+      probability: string;
+      impact: string;
+      risk_score: string;
+      mitigation_status: string;
+      owner_name: string | null;
+    }> }).rows ?? []
+  ).map((r) => ({
+    riskId: r.id,
+    riskCode: r.risk_code,
+    title: r.title.replace(/^\[DEMO2\] /, ""),
+    projectName: r.project_name?.replace(/^\[DEMO\] /, "") ?? null,
+    projectCode: r.project_code,
+    category: r.category,
+    probability: r.probability,
+    impact: r.impact,
+    riskScore: Number(r.risk_score || 0),
+    mitigationStatus: r.mitigation_status,
+    ownerName: r.owner_name,
+  }));
+}
+
+export interface SiteActivityRow {
+  source: "site_report";
+  occurredAt: string;
+  projectCode: string | null;
+  summary: string;
+  authorName: string | null;
+  workersPresent: number;
+}
+
+export async function getSiteActivityFeed(limit = 6): Promise<SiteActivityRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    report_date: string;
+    project_code: string | null;
+    summary: string | null;
+    reporter_name: string | null;
+    workers: string;
+  }>(sql`
+    SELECT sr.report_date::text                AS report_date,
+           p.project_code                       AS project_code,
+           sr.summary                           AS summary,
+           u.full_name                          AS reporter_name,
+           sr.total_workers_present::text       AS workers
+      FROM site_reports sr
+      LEFT JOIN projects p ON p.id = sr.project_id
+      LEFT JOIN app_users u ON u.id = sr.reported_by
+     WHERE sr.organization_id = ${orgId}
+     ORDER BY sr.report_date DESC, sr.created_at DESC
+     LIMIT ${limit}
+  `);
+  return (
+    (rows as unknown as { rows: Array<{
+      report_date: string;
+      project_code: string | null;
+      summary: string | null;
+      reporter_name: string | null;
+      workers: string;
+    }> }).rows ?? []
+  ).map((r) => ({
+    source: "site_report" as const,
+    occurredAt: r.report_date,
+    projectCode: r.project_code,
+    summary: r.summary?.replace(/^\[DEMO2\] /, "") ?? "Site report filed",
+    authorName: r.reporter_name,
+    workersPresent: Number(r.workers || 0),
+  }));
+}
+
+export interface PortfolioKpis {
+  activeProjects: number;
+  activeVillas: number;
+  bookingsThisMonth: number;
+  openRisks: number;
+  openWorkPackages: number;
+  recentSiteReports: number;
+}
+
+export async function getDevPortfolioKpis(): Promise<PortfolioKpis> {
+  const db = getDb();
+  if (!db) {
+    return {
+      activeProjects: 0,
+      activeVillas: 0,
+      bookingsThisMonth: 0,
+      openRisks: 0,
+      openWorkPackages: 0,
+      recentSiteReports: 0,
+    };
+  }
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    active_projects: string;
+    active_villas: string;
+    bookings_mtd: string;
+    open_risks: string;
+    open_wps: string;
+    recent_reports: string;
+  }>(sql`
+    SELECT
+      (SELECT COUNT(*)::text FROM projects
+        WHERE organization_id = ${orgId}
+          AND status IN ('active','planning','under_construction','managed')) AS active_projects,
+      (SELECT COUNT(*)::text FROM villas v
+         JOIN projects p ON p.id = v.project_id
+        WHERE p.organization_id = ${orgId}
+          AND v.status NOT IN ('archived','out_of_service')) AS active_villas,
+      COALESCE((SELECT COUNT(*)::text FROM bookings b
+         JOIN villas v ON v.id = b.villa_id
+         JOIN projects p ON p.id = v.project_id
+        WHERE p.organization_id = ${orgId}
+          AND b.check_in >= date_trunc('month', CURRENT_DATE)::date
+          AND b.status IN ('confirmed','checked_in','checked_out')), '0') AS bookings_mtd,
+      (SELECT COUNT(*)::text FROM project_risks
+        WHERE organization_id = ${orgId}
+          AND mitigation_status NOT IN ('closed_resolved','closed_realized')) AS open_risks,
+      (SELECT COUNT(*)::text FROM work_packages
+        WHERE organization_id = ${orgId}
+          AND status IN ('planned','ready_to_start','in_progress')) AS open_wps,
+      (SELECT COUNT(*)::text FROM site_reports
+        WHERE organization_id = ${orgId}
+          AND report_date >= (CURRENT_DATE - INTERVAL '14 days')) AS recent_reports
+  `);
+  const r = (rows as unknown as { rows: Array<{
+    active_projects: string;
+    active_villas: string;
+    bookings_mtd: string;
+    open_risks: string;
+    open_wps: string;
+    recent_reports: string;
+  }> }).rows?.[0];
+  return {
+    activeProjects: Number(r?.active_projects ?? "0"),
+    activeVillas: Number(r?.active_villas ?? "0"),
+    bookingsThisMonth: Number(r?.bookings_mtd ?? "0"),
+    openRisks: Number(r?.open_risks ?? "0"),
+    openWorkPackages: Number(r?.open_wps ?? "0"),
+    recentSiteReports: Number(r?.recent_reports ?? "0"),
+  };
+}
+
 export async function getLatestQsAnomaly(): Promise<LatestAnomalyRow | null> {
   const db = getDb();
   if (!db) return null;

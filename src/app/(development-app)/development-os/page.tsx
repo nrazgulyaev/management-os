@@ -9,6 +9,9 @@ import {
   getActiveProjectsRollup,
   getTeamRoster,
   getLatestQsAnomaly,
+  getRiskRadar,
+  getSiteActivityFeed,
+  getDevPortfolioKpis,
 } from "@/lib/development/server/cabinets/dev-overview-queries";
 
 /**
@@ -50,10 +53,13 @@ const ROLE_DISPLAY: Record<string, string> = {
 };
 
 export default async function DevelopmentOverviewPage() {
-  const [projects, team, latestAnomaly] = await Promise.all([
+  const [projects, team, latestAnomaly, risks, siteActivity, kpis] = await Promise.all([
     getActiveProjectsRollup().catch(() => []),
     getTeamRoster().catch(() => []),
     getLatestQsAnomaly().catch(() => null),
+    getRiskRadar(5).catch(() => []),
+    getSiteActivityFeed(6).catch(() => []),
+    getDevPortfolioKpis().catch(() => null),
   ]);
 
   const totalVillas = projects.reduce((s, p) => s + p.villaCount, 0);
@@ -90,14 +96,31 @@ export default async function DevelopmentOverviewPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 24 }}>
         <Kpi
           label="Active projects"
-          value={projectCount === 0 ? "—" : String(projectCount)}
-          sub={projectCount === 0 ? "create your first" : `${totalVillas} villas in portfolio`}
-          tone={projectCount > 0 ? "accent" : undefined}
+          value={kpis && kpis.activeProjects > 0 ? String(kpis.activeProjects) : "—"}
+          sub={kpis && kpis.activeVillas > 0 ? `${kpis.activeVillas} villas in portfolio` : "create your first"}
+          tone={kpis && kpis.activeProjects > 0 ? "accent" : undefined}
         />
-        <Kpi label="Total commitment" value="—" sub="capital ledger lands in PART-3" />
-        <Kpi label="Avg progress" value="—" sub="WP rollup lands in PART-3" />
-        <Kpi label="Cost variance · agg" value="—" sub="baseline-vs-actual in PART-3" />
-        <Kpi label="Portfolio IRR · YTD" value="—" sub="distribution model in PART-3" />
+        <Kpi
+          label="Bookings · MTD"
+          value={kpis && kpis.bookingsThisMonth > 0 ? String(kpis.bookingsThisMonth) : "—"}
+          sub="this month"
+        />
+        <Kpi
+          label="Open work packages"
+          value={kpis && kpis.openWorkPackages > 0 ? String(kpis.openWorkPackages) : "—"}
+          sub="planned + in-progress"
+        />
+        <Kpi
+          label="Open risks"
+          value={kpis && kpis.openRisks > 0 ? String(kpis.openRisks) : "—"}
+          sub="project_risks register"
+          tone={kpis && kpis.openRisks > 0 ? "accent" : undefined}
+        />
+        <Kpi
+          label="Site reports · 14d"
+          value={kpis && kpis.recentSiteReports > 0 ? String(kpis.recentSiteReports) : "—"}
+          sub="recent jobsite activity"
+        />
       </div>
 
       {/* AI band — live qs-cost-analyst output or friendly empty state */}
@@ -239,39 +262,88 @@ export default async function DevelopmentOverviewPage() {
         )}
       </Card>
 
-      {/* Risk radar + Site activity — empty states */}
+      {/* Risk radar + Site activity — live */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
         <Card style={{ padding: 20 }}>
           <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
             Risk radar
           </h3>
-          <p
-            style={{
-              marginTop: 14,
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-            }}
-          >
-            Cross-project risk model lands in TASK-7-DATA-PART-3. Until then
-            risks surface in the project-manager cabinet&apos;s at-risk view.
-          </p>
+          {risks.length === 0 ? (
+            <p style={{ marginTop: 14, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+              No open project risks. Risks surface here automatically as the
+              register populates.
+            </p>
+          ) : (
+            <ul className="clean" style={{ marginTop: 14 }}>
+              {risks.map((r) => {
+                const tone: "danger" | "warn" | undefined =
+                  r.impact === "severe" || r.impact === "catastrophic"
+                    ? "danger"
+                    : r.impact === "major"
+                      ? "warn"
+                      : undefined;
+                return (
+                  <li key={r.riskId}>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 999,
+                        background:
+                          tone === "danger"
+                            ? "var(--danger)"
+                            : tone === "warn"
+                              ? "var(--amber)"
+                              : "var(--ink-3)",
+                      }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>
+                        {r.projectCode ? `${r.projectCode} · ` : ""}
+                        {r.title}
+                      </div>
+                      <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                        {r.category.replace(/_/g, " ")} · {r.probability} × {r.impact} = {r.riskScore}
+                        {r.ownerName ? ` · ${r.ownerName}` : ""}
+                      </div>
+                    </div>
+                    <Badge tone={tone}>{r.mitigationStatus.replace(/_/g, " ")}</Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Card>
         <Card style={{ padding: 20 }}>
           <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
-            Site activity · today
+            Site activity · recent
           </h3>
-          <p
-            style={{
-              marginTop: 14,
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-            }}
-          >
-            Today&apos;s scheduled work surfaces here once the schedule + daily
-            digest agent feeds are wired.
-          </p>
+          {siteActivity.length === 0 ? (
+            <p style={{ marginTop: 14, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+              No site reports yet. Daily activity surfaces here once
+              supervisors file their first log.
+            </p>
+          ) : (
+            <ul className="clean" style={{ marginTop: 14 }}>
+              {siteActivity.map((a, i) => (
+                <li key={`${a.occurredAt}-${i}`}>
+                  <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)", width: 64 }}>
+                    {a.occurredAt}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 500 }}>
+                      {a.projectCode ? `${a.projectCode} · ` : ""}
+                      {a.summary}
+                    </div>
+                    <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                      {a.authorName ?? "—"}
+                      {a.workersPresent > 0 ? ` · ${a.workersPresent} workers` : ""}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
 

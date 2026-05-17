@@ -8,6 +8,7 @@ import {
   listWorkPackagesByStatus,
   listAtRiskPackages,
   getLatestDailyDigest,
+  getSevenDaySchedule,
   type WpStatus,
   type WorkPackageRow,
 } from "@/lib/development/server/cabinets/project-manager-cabinet-queries";
@@ -60,7 +61,7 @@ function severityForOverdue(days: number): {
 }
 
 export default async function ProjectManagerPage() {
-  const [kanban, atRisk, digest] = await Promise.all([
+  const [kanban, atRisk, digest, schedule] = await Promise.all([
     listWorkPackagesByStatus().catch(
       () =>
         ({
@@ -74,6 +75,7 @@ export default async function ProjectManagerPage() {
     ),
     listAtRiskPackages(5).catch(() => []),
     getLatestDailyDigest().catch(() => null),
+    getSevenDaySchedule().catch(() => []),
   ]);
 
   const inProgressCount = kanban.in_progress.length;
@@ -320,6 +322,81 @@ export default async function ProjectManagerPage() {
           )}
         </Card>
       </div>
+
+      {/* 7-day schedule strip — TASK-7-DATA-PART-3 fill */}
+      <Card style={{ padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "baseline", marginBottom: 14 }}>
+          <h2 className="display" style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>
+            Schedule · next 7 days
+          </h2>
+          <span className="mono" style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}>
+            project_tasks · planned_finish
+          </span>
+        </div>
+        {schedule.every((d) => d.tasks.length === 0) ? (
+          <p style={{ fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            No tasks scheduled in the next 7 days.
+          </p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+            {schedule.map((day) => (
+              <div
+                key={day.isoDate}
+                style={{
+                  padding: 10,
+                  background: "var(--bg-3)",
+                  borderRadius: 10,
+                  border: "1px solid var(--line)",
+                  minHeight: 120,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <div className="label" style={{ fontSize: 9 }}>
+                  {day.dayLabel}
+                </div>
+                {day.tasks.length === 0 ? (
+                  <span className="mono" style={{ fontSize: 9, color: "var(--ink-3)" }}>
+                    —
+                  </span>
+                ) : (
+                  day.tasks.slice(0, 4).map((t) => (
+                    <div
+                      key={t.taskId}
+                      style={{
+                        padding: "6px 8px",
+                        background: "var(--panel)",
+                        border: "1px solid var(--line)",
+                        borderRadius: 6,
+                        fontSize: 10.5,
+                      }}
+                    >
+                      <div
+                        className="mono"
+                        style={{ fontSize: 8.5, color: "var(--ink-3)", marginBottom: 2 }}
+                      >
+                        {t.projectCode ?? t.taskCode}
+                      </div>
+                      <div style={{ lineHeight: 1.3 }}>{t.name}</div>
+                      {t.status === "in_progress" && (
+                        <div className="mono" style={{ fontSize: 8, color: "var(--amber)", marginTop: 2 }}>
+                          {t.progressPercentage}%
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+                {day.tasks.length > 4 && (
+                  <span className="mono" style={{ fontSize: 9, color: "var(--ink-3)" }}>
+                    +{day.tasks.length - 4} more
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </>
   );
 }

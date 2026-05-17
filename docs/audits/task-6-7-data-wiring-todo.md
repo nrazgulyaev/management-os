@@ -128,10 +128,10 @@ authoritative. If not, schema work first.
 | Overview | ✅ TASK-6-DATA-PART-1 | live · 7 readers in `dashboard-cabinet-queries.ts` |
 | Bookings | ✅ TASK-6-DATA-PART-1 | live · 6 readers in `bookings-cabinet-queries.ts` (rate plans + sync deferred) |
 | Operations | ✅ TASK-6-DATA-PART-1 | live · 6 readers in `operations-cabinet-queries.ts` (housekeeping + service requests empty) |
-| Concierge | pending | most green-field; postpone until WhatsApp adapter is settled |
-| Finance | pending | schema-heavy; statement engine in STATEMENT-1 sprint |
-| AI Hub | pending | service work shares schema with future AI surfaces |
-| **Total Mgmt** | **3 ✅ / 5 cabinets** | concierge + finance deferred to PART-1B/2 |
+| Finance | ✅ TASK-6-DATA-PART-2 P1 | DECORATIVE preview (real STATEMENT-1 sprint deferred) · 6 readers in `finance-cabinet-queries.ts` |
+| AI Hub | ✅ TASK-6-DATA-PART-2 P2 | live · 4 readers in `ai-hub-cabinet-queries.ts` · agent registry × org_ai_agent_config |
+| Concierge | ✅ TASK-6-DATA-PART-2 P3 | live empty states · 5 readers in `concierge-cabinet-queries.ts` · ready for guest messaging |
+| **Total Mgmt** | **6 ✅ / 6 cabinets** | all wired · STATEMENT-1 (real statement generation) + WhatsApp adapter remain follow-up sprints |
 
 ## Recommended TASK-6-DATA prompt sequence
 
@@ -150,7 +150,7 @@ Operator can sprint these one cabinet at a time. Recommended order:
 convention. Naming kept distinct so `git grep "task-6-data"` vs
 `task-7-data` triages quickly.
 
-### Cabinet 7.1 — Dev Overview / Command Center — 🟡 PARTIAL (TASK-7-DATA-PART-2)
+### Cabinet 7.1 — Dev Overview / Command Center — ✅ DONE (TASK-7-DATA-PART-3)
 
 **File:** `src/app/(development-app)/development-os/page.tsx`
 
@@ -165,7 +165,7 @@ convention. Naming kept distinct so `git grep "task-6-data"` vs
 
 **Deferred to TASK-7-DATA-PART-3:** Risk radar service · site activity feed · cross-project KPI rollup (commitment / weighted progress / cost variance / portfolio IRR).
 
-### Cabinet 7.2 — Project Manager — 🟡 PARTIAL (TASK-7-DATA-PART-2)
+### Cabinet 7.2 — Project Manager — ✅ DONE (TASK-7-DATA-PART-3)
 
 **File:** `src/app/(development-app)/development-os/cabinets/project-manager/page.tsx`
 
@@ -277,16 +277,16 @@ alarming "0".
 
 ## Dev rollup
 
-| Cabinet | New services | Existing services | Sprint | Status |
-|---|---|---|---|---|
-| Dev Overview | 4 | 2 | 1 day | 🟡 PART-2 (projects+team+AI band live · risk/activity/KPI-rollup → PART-3) |
-| Project Manager | 5 | 0 | 1.5 days | 🟡 PART-2 (kanban+at-risk+digest live · schedule strip → PART-3) |
-| CFO / Accountant | 3 | 3 | 1 day | ✅ TASK-7-DATA-PART-1 |
-| QS / BOQ Desk | 3 | 1 | 1 day | ✅ TASK-7-DATA-PART-2 |
-| Procurement Mgr | 1 | 3 | 0.5 day | ✅ TASK-7-DATA-PART-1 |
-| Site Supervisor | 3 | 1 | 1.5 days | 🟡 PART-2 (reports+photos live · voice-note/QA/safety → PART-3) |
-| AI Agents | 3 | 0 | 1 day | ✅ TASK-7-DATA-PART-2 |
-| **Total** | **22** | **10** | **~7.5 days** | **4 ✅ · 3 🟡 / 7 cabinets** |
+| Cabinet | Status | Notes |
+|---|---|---|
+| Dev Overview | ✅ TASK-7-DATA-PART-3 | risk radar + site activity + portfolio KPIs all live |
+| Project Manager | ✅ TASK-7-DATA-PART-3 | + 7-day schedule strip from project_tasks |
+| CFO / Accountant | ✅ TASK-7-DATA-PART-1 | live |
+| QS / BOQ Desk | ✅ TASK-7-DATA-PART-2 | live |
+| Procurement Mgr | ✅ TASK-7-DATA-PART-1 | live |
+| Site Supervisor | 🟡 PART-2 | reports+photos live · voice-note/QA/safety → DEMO-3 schema dependency |
+| AI Agents | ✅ TASK-7-DATA-PART-2 | live |
+| **Total Dev** | **6 ✅ · 1 🟡 / 7 cabinets** | Site Supervisor voice/QA/safety deferred to DEMO-3 schema sprint |
 
 ## Combined rollup (Tasks 6 + 7 data wiring)
 

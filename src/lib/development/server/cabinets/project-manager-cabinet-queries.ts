@@ -453,6 +453,102 @@ export interface DailyDigestRow {
   createdAt: string;
 }
 
+// =============================================================================
+// Sprint TASK-7-DATA-PART-3 — 7-day schedule strip for PM cabinet.
+// =============================================================================
+
+export interface ScheduleTaskRow {
+  taskId: string;
+  taskCode: string;
+  name: string;
+  workPackageName: string | null;
+  projectCode: string | null;
+  status: string;
+  progressPercentage: number;
+  responsibleUserName: string | null;
+}
+
+export interface ScheduleDayBucket {
+  isoDate: string;
+  dayLabel: string;
+  tasks: ScheduleTaskRow[];
+}
+
+/** Buckets project_tasks by planned_finish over the next 7 days. */
+export async function getSevenDaySchedule(): Promise<ScheduleDayBucket[]> {
+  const db = getDb();
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const buckets: ScheduleDayBucket[] = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today.getTime() + i * 86400000);
+    return {
+      isoDate: d.toISOString().slice(0, 10),
+      dayLabel: d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }),
+      tasks: [],
+    };
+  });
+  if (!db) return buckets;
+  const orgId = await requireOrgId();
+  const startIso = buckets[0].isoDate;
+  const endIso = buckets[6].isoDate;
+  const rows = await db.execute<{
+    task_id: string;
+    task_code: string;
+    name: string;
+    planned_finish: string;
+    status: string;
+    progress: string;
+    wp_name: string | null;
+    project_code: string | null;
+    responsible_name: string | null;
+  }>(sql`
+    SELECT t.id::text                          AS task_id,
+           t.task_code                          AS task_code,
+           t.name                               AS name,
+           t.planned_finish::text               AS planned_finish,
+           t.status                             AS status,
+           t.progress_percentage::text          AS progress,
+           w.name                               AS wp_name,
+           p.project_code                       AS project_code,
+           u.full_name                          AS responsible_name
+      FROM project_tasks t
+      LEFT JOIN work_packages w ON w.id = t.work_package_id
+      LEFT JOIN projects p ON p.id = w.project_id
+      LEFT JOIN app_users u ON u.id = t.responsible_user_id
+     WHERE t.organization_id = ${orgId}
+       AND t.planned_finish BETWEEN ${startIso}::date AND ${endIso}::date
+     ORDER BY t.planned_finish ASC, t.task_code ASC
+     LIMIT 40
+  `);
+  const byDate = new Map<string, ScheduleDayBucket>();
+  for (const b of buckets) byDate.set(b.isoDate, b);
+  for (const r of (rows as unknown as { rows: Array<{
+    task_id: string;
+    task_code: string;
+    name: string;
+    planned_finish: string;
+    status: string;
+    progress: string;
+    wp_name: string | null;
+    project_code: string | null;
+    responsible_name: string | null;
+  }> }).rows ?? []) {
+    const bucket = byDate.get(r.planned_finish);
+    if (!bucket) continue;
+    bucket.tasks.push({
+      taskId: r.task_id,
+      taskCode: r.task_code,
+      name: r.name.replace(/^\[DEMO2\] /, ""),
+      workPackageName: r.wp_name?.replace(/^\[DEMO2\] /, "") ?? null,
+      projectCode: r.project_code,
+      status: r.status,
+      progressPercentage: Number(r.progress || 0),
+      responsibleUserName: r.responsible_name,
+    });
+  }
+  return buckets;
+}
+
 export async function getLatestDailyDigest(): Promise<DailyDigestRow | null> {
   const db = getDb();
   if (!db) return null;
