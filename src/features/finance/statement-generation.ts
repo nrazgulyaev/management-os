@@ -23,7 +23,10 @@ import { ownerStatements, statementLines, statementPeriods } from "@/lib/db/sche
  * villa-attributable). FX rate pinned 15,800 IDR/USD (PART-1 default).
  */
 
-const FX_USD_TO_IDR = 15_800;
+/** Pinned fallback — only used when fx-service is unconfigured or
+ *  rate-limited. FX-CALLERS-1: getUsdToIdr() resolved at generation
+ *  time and snapshotted on the statement row. */
+const FX_USD_TO_IDR_FALLBACK = 15_800;
 const DEFAULT_OPERATOR_COMMISSION = 0.2;
 const TAX_PCT = 0.11;
 const RESERVE_PCT = 0.03;
@@ -144,6 +147,7 @@ async function loadBookings(
   db: NonNullable<ReturnType<typeof getDb>>,
   villaId: string,
   periodMonth: string,
+  fxUsdToIdr: number,
 ): Promise<BookingRow[]> {
   const rows = await db.execute<{
     id: string;
@@ -185,7 +189,7 @@ async function loadBookings(
     const grossUnits = Number(r.gross || 0);
     const channelFeeUnits = Number(r.channel_fee || 0);
     const toIdrMinor = (units: number) => {
-      const idr = isUsd ? units * FX_USD_TO_IDR : units;
+      const idr = isUsd ? units * fxUsdToIdr : units;
       return BigInt(Math.round(idr * 100));
     };
     return {
@@ -290,8 +294,13 @@ export async function generateStatementForOwnerVilla(
   const commissionPct = opts.commissionPct ?? DEFAULT_OPERATOR_COMMISSION;
   const ctx = await loadContext(db, orgId, ownerId, villaId);
   if (!ctx) return null;
+  // FX-CALLERS-1: resolve live USD→IDR rate at generation time and
+  // snapshot it on the statement row. Falls back to pinned 15,800
+  // when ALPHAVANTAGE_API_KEY is missing or the API is rate-limited.
+  const { getUsdToIdr } = await import("@/features/integrations/fx-service");
+  const fxUsdToIdr = (await getUsdToIdr().catch(() => FX_USD_TO_IDR_FALLBACK)) || FX_USD_TO_IDR_FALLBACK;
   const projectId = await resolveProjectId(db, villaId);
-  const bookings = await loadBookings(db, villaId, periodMonth);
+  const bookings = await loadBookings(db, villaId, periodMonth, fxUsdToIdr);
   if (bookings.length === 0) return null;
   const expenses = await loadVillaExpenses(db, orgId, projectId, periodMonth);
 
@@ -390,7 +399,7 @@ export async function generateStatementForOwnerVilla(
 
   const netMinor =
     grossMinor - channelFeeMinor - expenseMinor - taxMinor - reserveMinor - operatorFeeMinor;
-  const netUsdMinor = BigInt(Math.round((Number(netMinor) / 100) / FX_USD_TO_IDR * 100));
+  const netUsdMinor = BigInt(Math.round((Number(netMinor) / 100) / fxUsdToIdr * 100));
 
   const contentHash = hashLines(periodMonth, lines);
 
@@ -426,7 +435,7 @@ export async function generateStatementForOwnerVilla(
       managementFeeMinor: operatorFeeMinor,
       netPayoutMinor: netMinor,
       operatorCommissionPct: String(commissionPct),
-      fxRateSnapshot: String(FX_USD_TO_IDR),
+      fxRateSnapshot: String(fxUsdToIdr),
       netToOwnerUsdMinor: netUsdMinor,
       contentHash,
       status: "draft",
