@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { VillaRowActions } from "@/components/villas/villa-row-actions";
 import { VillaAddButton } from "@/components/villas/villa-add-button";
-import { ListTableCard } from "@/components/ui/primitives";
 
 export const metadata = { title: "Villas" };
 export const dynamic = "force-dynamic";
@@ -23,13 +22,10 @@ export default async function VillasPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Portfolio", href: "/dashboard" },
-          { label: "Villas" },
-        ]}
+      <SectionHeading
+        eyebrow="Portfolio · villas"
         title="Villas"
-        description="Every villa under Arconique management. Status mirrors the operations board."
+        subtitle="Every villa under Arconique management. Status mirrors the operations board."
         actions={
           <div className="flex gap-2 items-center">
             <SourceBadge source={source} />
@@ -44,12 +40,13 @@ export default async function VillasPage() {
 
       <DbStatusNotice />
 
-      <ListTableCard
-        eyebrow="Portfolio"
-        title="All villas"
-        count={villas.length}
-      >
-      <Table>
+      <section>
+        <div className="label">Portfolio</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          All villas · {villas.length}
+        </h2>
+        <Card style={{ padding: 0, overflow: "hidden" }}>
+        <Table>
         <THead>
           <TR>
             <TH>Villa</TH>
@@ -111,7 +108,8 @@ export default async function VillasPage() {
           )}
         </TBody>
       </Table>
-      </ListTableCard>
+        </Card>
+      </section>
     </div>
   );
 }

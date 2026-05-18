@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
@@ -32,10 +32,10 @@ export default async function SharesPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[{ label: "Owners", href: "/dashboard/owners" }, { label: "Shares" }]}
+      <SectionHeading
+        eyebrow="Portfolio · ownership shares"
         title="Ownership shares"
-        description="Active and scheduled allocations across villas and pools. Active shares per villa or per project pool must total 100%."
+        subtitle="Active and scheduled allocations across villas and pools. Active shares per villa or per project pool must total 100%."
         actions={
           <div className="flex items-center gap-2">
             <SourceBadge source={source} />

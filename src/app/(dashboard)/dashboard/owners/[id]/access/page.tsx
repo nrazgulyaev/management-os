@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,18 +29,18 @@ export default async function OwnerAccessPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owners", href: "/dashboard/owners" },
-          { label: owner.displayName, href: `/dashboard/owners/${owner.id}` },
-          { label: "Owner-portal access" },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · owners · ${owner.displayName} · access`}
         title={`${owner.displayName} · access grants`}
-        description="Grant or revoke owner-portal access. Replaces the legacy email-match heuristic with explicit, audited grants."
+        subtitle="Grant or revoke owner-portal access. Replaces the legacy email-match heuristic with explicit, audited grants."
       />
       <DbStatusNotice />
 
-      <Section eyebrow="Active grants" title="Who can read this owner's data">
+      <section>
+        <div className="label">Active grants</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Who can read this owner&apos;s data
+        </h2>
         <Table>
           <THead>
             <TR>
@@ -109,15 +108,19 @@ export default async function OwnerAccessPage({
             )}
           </TBody>
         </Table>
-      </Section>
+      </section>
 
-      <Section eyebrow="Grant access" title="Add an app user to this owner">
+      <section>
+        <div className="label">Grant access</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Add an app user to this owner
+        </h2>
         <GrantForm
           fixedOwnerId={owner.id}
           appUsers={users.map((u) => ({ id: u.id, label: `${u.fullName} · ${u.email}` }))}
           cancelHref={`/dashboard/owners/${owner.id}`}
         />
-      </Section>
+      </section>
     </div>
   );
 }

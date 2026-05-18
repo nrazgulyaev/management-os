@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { DetailPageHero } from "@/components/ui/primitives";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, KeyRound } from "lucide-react";
 import { getOwnerById, listOwnershipShares } from "@/features/owners/services";
 import { listAccessGrantsForOwner } from "@/features/access-grants/services";
-import { Section } from "@/components/ui/section";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 
 export const metadata = { title: "Owner" };
@@ -28,39 +27,42 @@ export default async function OwnerDetailPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <DetailPageHero
-        breadcrumbs={[
-          { label: "Owners", href: "/dashboard/owners" },
-          { label: owner.displayName },
-        ]}
-        eyebrow={owner.type.replace("_", " ")}
+      <SectionHeading
+        eyebrow={`Portfolio · owners · ${owner.type.replace("_", " ")}`}
         title={owner.displayName}
-        description={owner.legalName ?? undefined}
-        statusRow={
-          <>
-            <SourceBadge source={owner.source} />
-            <Badge tone={owner.status === "active" ? "success" : "neutral"}>
-              {owner.status}
-            </Badge>
-          </>
-        }
-        summaryStrip={[
-          { label: "Email", value: owner.email ?? "—" },
-          { label: "Phone", value: owner.phone ?? "—" },
-          { label: "Tax residency", value: owner.taxResidency ?? "—" },
-          {
-            label: "Active shares",
-            value: shares.length.toString(),
-            hint: `${activeGrants.length} portal grant${activeGrants.length === 1 ? "" : "s"}`,
-          },
-        ]}
+        subtitle={owner.legalName ?? undefined}
       />
 
-      <Section
-        eyebrow="Owner-portal access"
-        title="Who can read this owner's data"
-        description="Explicit grants replace the v3 email-match heuristic."
-        action={
+      <Card style={{ padding: 20 }}>
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <SourceBadge source={owner.source} />
+          <Badge tone={owner.status === "active" ? "success" : "neutral"}>
+            {owner.status}
+          </Badge>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+          <SummaryCell label="Email" value={owner.email ?? "—"} />
+          <SummaryCell label="Phone" value={owner.phone ?? "—"} />
+          <SummaryCell label="Tax residency" value={owner.taxResidency ?? "—"} />
+          <SummaryCell
+            label="Active shares"
+            value={shares.length.toString()}
+            hint={`${activeGrants.length} portal grant${activeGrants.length === 1 ? "" : "s"}`}
+          />
+        </div>
+      </Card>
+
+      <section>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+          <div>
+            <div className="label">Owner-portal access</div>
+            <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+              Who can read this owner&apos;s data
+            </h2>
+            <p style={{ fontSize: 13, color: "var(--ink-3)", margin: 0 }}>
+              Explicit grants replace the v3 email-match heuristic.
+            </p>
+          </div>
           <Button asChild variant="secondary" size="sm">
             <Link href={`/dashboard/owners/${owner.id}/access`}>
               <KeyRound className="w-3.5 h-3.5" strokeWidth={1.75} />
@@ -68,8 +70,7 @@ export default async function OwnerDetailPage({
               <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
             </Link>
           </Button>
-        }
-      >
+        </div>
         <div className="rounded-md border border-line-soft bg-surface p-5">
           {activeGrants.length === 0 ? (
             <div className="text-sm text-ink-tertiary">
@@ -89,13 +90,16 @@ export default async function OwnerDetailPage({
             </ul>
           )}
         </div>
-      </Section>
+      </section>
 
-      <Section
-        eyebrow="Holdings"
-        title="Ownership shares"
-        description="Active and historical participation across villas and pools."
-      >
+      <section>
+        <div className="label">Holdings</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+          Ownership shares
+        </h2>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+          Active and historical participation across villas and pools.
+        </p>
         <Table>
           <THead>
             <TR>
@@ -137,7 +141,27 @@ export default async function OwnerDetailPage({
             )}
           </TBody>
         </Table>
-      </Section>
+      </section>
+    </div>
+  );
+}
+
+function SummaryCell({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
+        {label}
+      </div>
+      <div className="text-base text-ink mt-1">{value}</div>
+      {hint && <div className="text-[11px] text-ink-tertiary mt-0.5">{hint}</div>}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listOwners } from "@/features/owners/services";
 import { listProjects } from "@/features/projects/services";
@@ -16,14 +16,10 @@ export default async function NewSharePage() {
   ]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owners", href: "/dashboard/owners" },
-          { label: "Shares", href: "/dashboard/shares" },
-          { label: "New" },
-        ]}
+      <SectionHeading
+        eyebrow="Portfolio · ownership shares · new"
         title="New ownership share"
-        description="Pooled shares attach to a project; individual or hybrid shares attach to a villa. The platform never lets active shares for a single villa or pool exceed 100%."
+        subtitle="Pooled shares attach to a project; individual or hybrid shares attach to a villa. The platform never lets active shares for a single villa or pool exceed 100%."
       />
       <DbStatusNotice />
       <ShareForm

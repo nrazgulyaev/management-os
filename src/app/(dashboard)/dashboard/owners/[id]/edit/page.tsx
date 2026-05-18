@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { OwnerForm } from "@/features/owners/form";
 import { getOwnerById } from "@/features/owners/services";
@@ -18,14 +18,10 @@ export default async function EditOwnerPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owners", href: "/dashboard/owners" },
-          { label: owner.displayName, href: `/dashboard/owners/${owner.id}` },
-          { label: "Edit" },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · owners · ${owner.displayName} · edit`}
         title={`Edit · ${owner.displayName}`}
-        description="Updates produce an audit event."
+        subtitle="Updates produce an audit event."
       />
       <DbStatusNotice />
       <OwnerForm

@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
 import { getDb } from "@/lib/db/client";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
 import { listVillaCalendarBlocks } from "@/features/availability/services";
@@ -88,17 +87,17 @@ export default async function VillaAvailabilityPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Villas", href: "/dashboard/villas" },
-          { label: villa.unitCode, href: `/dashboard/villas/${id}` },
-          { label: "Availability" },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · villas · ${villa.unitCode} · availability`}
         title={`${villa.unitCode} · availability`}
-        description="Combined calendar — bookings, owner stays, maintenance, OOO, internal holds, plus current readiness and a 30-day rate-card preview."
+        subtitle="Combined calendar — bookings, owner stays, maintenance, OOO, internal holds, plus current readiness and a 30-day rate-card preview."
       />
 
-      <Section eyebrow="Now" title="Status">
+      <section>
+        <div className="label">Now</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          Status
+        </h2>
         <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <div>
             <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">Readiness</div>
@@ -121,16 +120,15 @@ export default async function VillaAvailabilityPage({
             </div>
           </div>
         </div>
-      </Section>
+      </section>
 
-      <Section
-        eyebrow="Dynamic pricing"
-        title={
-          dynamicCal.ruleSet
+      <section>
+        <div className="label">Dynamic pricing</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          {dynamicCal.ruleSet
             ? `${dynamicCal.ruleSet.name} · 30-day overlay`
-            : "No applicable rule set"
-        }
-      >
+            : "No applicable rule set"}
+        </h2>
         {dynamicCal.cells.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No dynamic-pricing rule set applies to this villa yet.
@@ -160,9 +158,13 @@ export default async function VillaAvailabilityPage({
             ))}
           </div>
         )}
-      </Section>
+      </section>
 
-      <Section eyebrow="Next 30 days" title={`${blocks.length} active blocks`}>
+      <section>
+        <div className="label">Next 30 days</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+          {blocks.length} active blocks
+        </h2>
         {blocks.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             Open for booking across the next 30 days.
@@ -203,10 +205,14 @@ export default async function VillaAvailabilityPage({
             </table>
           </div>
         )}
-      </Section>
+      </section>
 
       {quote.available && quote.breakdown.length > 0 && (
-        <Section eyebrow="Rate card" title="Next 30 nights">
+        <section>
+          <div className="label">Rate card</div>
+          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+            Next 30 nights
+          </h2>
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
@@ -229,7 +235,7 @@ export default async function VillaAvailabilityPage({
               </tbody>
             </table>
           </div>
-        </Section>
+        </section>
       )}
     </div>
   );

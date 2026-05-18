@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
@@ -34,13 +34,10 @@ export default async function OwnersPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Portfolio", href: "/dashboard" },
-          { label: "Owners & investors" },
-        ]}
+      <SectionHeading
+        eyebrow="Portfolio · owners & investors"
         title="Owners & investors"
-        description="Individuals, companies, and family offices participating across the portfolio."
+        subtitle="Individuals, companies, and family offices participating across the portfolio."
         actions={
           <div className="flex items-center gap-2">
             <SourceBadge source={source} />

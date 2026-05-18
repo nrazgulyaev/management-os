@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listProjects } from "@/features/projects/services";
 import { VillaForm } from "./form";
@@ -16,14 +16,10 @@ export default async function NewVillaPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Portfolio", href: "/dashboard" },
-          { label: "Villas", href: "/dashboard/villas" },
-          { label: "New" },
-        ]}
+      <SectionHeading
+        eyebrow="Portfolio · villas · new"
         title="New villa"
-        description="Create a new villa unit. The unit code must be unique inside the project."
+        subtitle="Create a new villa unit. The unit code must be unique inside the project."
       />
       <DbStatusNotice />
       <VillaForm

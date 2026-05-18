@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { VillaForm } from "@/features/villas/form";
 import { getVillaById } from "@/features/villas/services";
@@ -19,14 +19,10 @@ export default async function EditVillaPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Villas", href: "/dashboard/villas" },
-          { label: villa.name ?? villa.unitCode, href: `/dashboard/villas/${villa.id}` },
-          { label: "Edit" },
-        ]}
+      <SectionHeading
+        eyebrow={`Portfolio · villas · ${villa.name ?? villa.unitCode} · edit`}
         title={`Edit · ${villa.name ?? villa.unitCode}`}
-        description="Updates produce an audit event."
+        subtitle="Updates produce an audit event."
       />
       <DbStatusNotice />
       <VillaForm
