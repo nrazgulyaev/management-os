@@ -43,46 +43,67 @@ export async function upsertGuideSectionAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult & { sectionId?: string }> {
-  await requirePermission("villa_guide.write");
+  // SESSION-RESOLUTION-1 P6 — return friendly errors instead of letting
+  // requirePermission throw bubble up to the framework "Server Components
+  // render error" banner. Mirrors P5 fix in calendar-sync actions.
+  try {
+    await requirePermission("villa_guide.write");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Permission denied";
+    return { ok: false, error: msg };
+  }
   const parsed = upsertGuideSectionSchema.safeParse(parseSectionForm(formData));
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
-  const me = await getCurrentAppUser();
+  const me = await getCurrentAppUser().catch(() => null);
 
   let sectionId: string | undefined;
-  if (parsed.data.id) {
-    await db
-      .update(villaGuideSections)
-      .set({
-        title: parsed.data.title,
-        bodyMd: parsed.data.bodyMd ?? null,
-        sortOrder: parsed.data.sortOrder,
-        guestVisible: parsed.data.guestVisible ?? true,
-        updatedBy: me?.id ?? null,
-        updatedAt: new Date(),
-      })
-      .where(eq(villaGuideSections.id, parsed.data.id));
-    sectionId = parsed.data.id;
-  } else {
-    const [row] = await db
-      .insert(villaGuideSections)
-      .values({
-        villaId: parsed.data.villaId ?? null,
-        projectId: parsed.data.projectId ?? null,
-        sectionKey: parsed.data.sectionKey,
-        title: parsed.data.title,
-        bodyMd: parsed.data.bodyMd ?? null,
-        sortOrder: parsed.data.sortOrder,
-        guestVisible: parsed.data.guestVisible ?? true,
-        updatedBy: me?.id ?? null,
-      })
-      .returning({ id: villaGuideSections.id });
-    sectionId = row?.id;
+  try {
+    if (parsed.data.id) {
+      await db
+        .update(villaGuideSections)
+        .set({
+          title: parsed.data.title,
+          bodyMd: parsed.data.bodyMd ?? null,
+          sortOrder: parsed.data.sortOrder,
+          guestVisible: parsed.data.guestVisible ?? true,
+          updatedBy: me?.id ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(villaGuideSections.id, parsed.data.id));
+      sectionId = parsed.data.id;
+    } else {
+      const [row] = await db
+        .insert(villaGuideSections)
+        .values({
+          villaId: parsed.data.villaId ?? null,
+          projectId: parsed.data.projectId ?? null,
+          sectionKey: parsed.data.sectionKey,
+          title: parsed.data.title,
+          bodyMd: parsed.data.bodyMd ?? null,
+          sortOrder: parsed.data.sortOrder,
+          guestVisible: parsed.data.guestVisible ?? true,
+          updatedBy: me?.id ?? null,
+        })
+        .returning({ id: villaGuideSections.id });
+      sectionId = row?.id;
+    }
+  } catch (err) {
+    const raw = err instanceof Error ? err.message : String(err);
+    if (raw.includes("23505")) {
+      return {
+        ok: false,
+        error: "A section with this key already exists for this villa or project.",
+      };
+    }
+    return { ok: false, error: raw.slice(0, 300) };
   }
 
+  // Audit log is best-effort — never fail the user action because the log
+  // couldn't write.
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: parsed.data.id
@@ -95,7 +116,7 @@ export async function upsertGuideSectionAction(
       villaId: parsed.data.villaId ?? null,
       projectId: parsed.data.projectId ?? null,
     },
-  });
+  }).catch(() => null);
 
   revalidatePath("/dashboard/villa-guides");
   revalidatePath("/dashboard/villa-guides/sections");
