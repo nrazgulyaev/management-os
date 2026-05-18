@@ -46,8 +46,9 @@ export default async function NewVendorPage({
     const bankSwift = String(formData.get("bankSwift") ?? "") || null;
     const notes = String(formData.get("notes") ?? "") || null;
 
+    let result: { vendorCode: string } | null = null;
     try {
-      const result = await createVendor({
+      result = await createVendor({
         vendorCode,
         legalName,
         vendorType,
@@ -65,12 +66,40 @@ export default async function NewVendorPage({
         bankSwift,
         notes,
       });
-      redirect(`/development-os/vendors/${result.vendorCode}`);
     } catch (err) {
-      if (err instanceof Error && err.message.startsWith("NEXT_REDIRECT")) throw err;
-      const msg = err instanceof Error ? err.message : String(err);
+      // SESSION-RESOLUTION-1 P4 — modern Next.js redirect throws an error
+      // whose .digest property starts with "NEXT_REDIRECT", NOT .message.
+      // The previous .message.startsWith check missed that case, so a
+      // legitimate user error inside the try was caught and re-redirected,
+      // but a redirect from elsewhere in the call stack also got caught
+      // and re-redirected — producing the "Server Components render error"
+      // banner the operator hit.
+      if (err instanceof Error) {
+        const digest = (err as Error & { digest?: string }).digest;
+        if (digest?.startsWith("NEXT_REDIRECT") || err.message.startsWith("NEXT_REDIRECT")) {
+          throw err;
+        }
+      }
+      const msg = friendlyVendorError(err);
       redirect(`/development-os/vendors/new?error=${encodeURIComponent(msg)}`);
     }
+    if (result) {
+      redirect(`/development-os/vendors/${result.vendorCode}`);
+    }
+  }
+
+  function friendlyVendorError(err: unknown): string {
+    const raw = err instanceof Error ? err.message : String(err);
+    // Postgres error codes inside the message
+    if (raw.includes("23505")) return "Vendor code already exists — please choose a unique code.";
+    if (raw.includes("23514")) return "Invalid value — please re-check vendor type and other fields.";
+    if (raw.includes("23502")) return "A required field is missing.";
+    if (raw.includes("violates check constraint")) return raw;
+    // Zod validation
+    if (raw.startsWith("[") || raw.includes("Invalid")) {
+      return `Validation error: ${raw.slice(0, 200)}`;
+    }
+    return raw.slice(0, 300);
   }
 
   return (
@@ -124,10 +153,13 @@ export default async function NewVendorPage({
             <Field label="Vendor type">
               <select
                 name="vendorType"
-                defaultValue="other"
                 required
+                defaultValue=""
                 className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm"
               >
+                <option value="" disabled>
+                  Select type…
+                </option>
                 {VENDOR_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {VENDOR_TYPE_LABEL[t]}
