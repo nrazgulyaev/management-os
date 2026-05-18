@@ -1,7 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 
 // Stage 10.I.3 — Products column added. Old "Platform" group split:
@@ -41,13 +38,11 @@ const groups = [
 ];
 
 export function PublicFooter() {
-  const pathname = usePathname();
-  // CHROME-CLEANUP-1 — Per-product landings render their own
-  // <MgmtFooter> / <DevFooter> inside the page body. Skip the
-  // global PublicFooter on those routes to avoid duplicate chrome.
-  if (pathname?.startsWith("/products/")) {
-    return null;
-  }
+  // HF-18 — exclusion now lives at the layout level
+  // (src/app/(public)/products/layout.tsx) so it correctly handles
+  // middleware-rewritten subdomain traffic. PublicFooter renders
+  // unconditionally; the products sub-layout overrides the parent
+  // (public) layout that mounts <PublicFooter>.
   return (
     <footer className="border-t border-line-soft bg-canvas">
       <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-16">

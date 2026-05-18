@@ -25,12 +25,11 @@ export function PublicHeader() {
     setOpen(false);
   }, [pathname]);
 
-  // CHROME-CLEANUP-1 — Per-product landings render their own
-  // <MgmtNav> / <DevNav> headers inside the page body. Skip the
-  // global PublicHeader on those routes to avoid duplicate chrome.
-  if (pathname?.startsWith("/products/")) {
-    return null;
-  }
+  // HF-18 — exclusion now lives at the layout level
+  // (src/app/(public)/products/layout.tsx) so it correctly handles
+  // middleware-rewritten subdomain traffic. PublicHeader renders
+  // unconditionally here; the products sub-layout overrides the parent
+  // (public) layout that mounts <PublicHeader>.
 
   return (
     <header
