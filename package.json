@@ -42,6 +42,7 @@
     "diagnose:session": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/diagnose-operator-session.ts",
     "grant:super-admin": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/grant-super-admin.ts",
     "seed:test-team-accounts": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-test-team-accounts.ts",
+    "seed:ai-agent-config": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-ai-agent-config.ts",
     "seed:auth-owner-grants": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-auth-owner-grants.ts",
     "seed:auth-investor-grants": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-auth-investor-grants.ts",
     "stripe:provision": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/stripe-provision.ts",
