@@ -328,14 +328,17 @@ async function main(): Promise<void> {
   // -----------------------------------------------------------------
   console.log("\nSTEP 4 — role assignments\n");
 
+  // SCHEMA NOTE: user_roles uses `scope_type` (not `scope_kind`) per
+  // src/lib/db/schema/identity.ts:98 and migration 0004. The earlier
+  // version of this script used `scope_kind` and crashed at this step.
   const roleRows = asRows<{
     role_key: string;
-    scope_kind: string | null;
+    scope_type: string | null;
     scope_id: string | null;
   }>(
     await db.execute(sql`
       SELECT r.key                AS role_key,
-             ur.scope_kind         AS scope_kind,
+             ur.scope_type         AS scope_type,
              ur.scope_id::text     AS scope_id
         FROM user_roles ur
         JOIN roles r ON r.id = ur.role_id
@@ -346,18 +349,23 @@ async function main(): Promise<void> {
 
   if (roleRows.length === 0) {
     emit({
-      level: "warn",
-      message: "No role assignments — operator has no granted permissions.",
+      level: "fail",
+      message: "No role assignments — operator has NO granted permissions.",
     });
     emit({
       level: "info",
-      message: "  → REMEDIATION: run `npm run admin:bootstrap` to grant super_admin.",
+      message: "  → THIS is why Sync feeds / Add vendor / Submit report etc. return Permission denied.",
     });
+    emit({
+      level: "info",
+      message: "  → REMEDIATION: run `npm run grant:super-admin` (or the legacy `npm run admin:bootstrap`) to grant super_admin globally.",
+    });
+    pass = false;
   } else {
     for (const r of roleRows) {
       emit({
         level: "ok",
-        message: `role: ${r.role_key}${r.scope_kind ? ` (scope: ${r.scope_kind})` : " (global)"}`,
+        message: `role: ${r.role_key}${r.scope_type ? ` (scope: ${r.scope_type}${r.scope_id ? `=${r.scope_id}` : ""})` : " (global)"}`,
       });
     }
     const hasSuperAdmin = roleRows.some((r) => r.role_key === "super_admin");
@@ -365,6 +373,11 @@ async function main(): Promise<void> {
       emit({
         level: "warn",
         message: "  → No super_admin role; some platform features will be hidden.",
+      });
+    } else {
+      emit({
+        level: "ok",
+        message: "  → super_admin role present.",
       });
     }
   }

@@ -40,6 +40,7 @@
     "seed:investor-2-ledger": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-investor-2-ledger.ts",
     "seed:storage-photos": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-storage-photos.ts",
     "diagnose:session": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/diagnose-operator-session.ts",
+    "grant:super-admin": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/grant-super-admin.ts",
     "seed:auth-owner-grants": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-auth-owner-grants.ts",
     "seed:auth-investor-grants": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-auth-investor-grants.ts",
     "stripe:provision": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/stripe-provision.ts",
