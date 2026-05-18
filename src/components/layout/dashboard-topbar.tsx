@@ -4,18 +4,24 @@ import * as React from "react";
 import Link from "next/link";
 import { Bell, Search, Sparkles } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
-import { WorkspaceSwitcher } from "@/components/shared/workspace-switcher";
 import type { ProductSlug } from "@/lib/products";
 
 export function DashboardTopbar({
   title,
   unreadCount = 0,
-  enabledProducts = null,
+  enabledProducts: _enabledProducts = null,
 }: {
   title?: string;
   unreadCount?: number;
-  /** Stage 10.H — passed in from the server-side shell so the
-   *  cross-product switcher only lists products this org can reach. */
+  /**
+   * MEGA-SPRINT P1 — kept in the API for caller compatibility, but no
+   * longer rendered. The cross-product workspace switcher was removed
+   * from the regular topbar per the HF-18 subdomain-isolation model;
+   * each product has its own subdomain, and the cross-product nav
+   * lives on the Platform Admin OS surface for super_admins only.
+   * Removing the switcher also eliminates the CORS prefetch errors
+   * the operator hit on Mgmt → Dev navigation.
+   */
   enabledProducts?: ProductSlug[] | null;
 }) {
   return (
@@ -25,7 +31,6 @@ export function DashboardTopbar({
       <div className="md:hidden">
         <Logo variant="mark" />
       </div>
-      <WorkspaceSwitcher enabledProducts={enabledProducts} />
       {title && (
         <h1 className="hidden md:block text-sm font-medium text-ink-2">
           {title}

@@ -4,15 +4,19 @@ import * as React from "react";
 import Link from "next/link";
 import { Bell, Search, Sparkles } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
-import { WorkspaceSwitcher } from "@/components/shared/workspace-switcher";
 import type { ProductSlug } from "@/lib/products";
 
 export function DevelopmentAppTopbar({
   title,
-  enabledProducts = null,
+  enabledProducts: _enabledProducts = null,
 }: {
   title?: string;
-  /** Stage 10.H — Dev OS counterpart of the Mgmt OS topbar prop. */
+  /**
+   * MEGA-SPRINT P1 — kept in the API for caller compatibility, but no
+   * longer rendered. See DashboardTopbar for the architectural rationale
+   * (HF-18 subdomain isolation; switcher caused CORS prefetch errors
+   * on cross-product Link prefetch).
+   */
   enabledProducts?: ProductSlug[] | null;
 }) {
   return (
@@ -21,8 +25,6 @@ export function DevelopmentAppTopbar({
       <div className="md:hidden">
         <Logo variant="mark" />
       </div>
-
-      <WorkspaceSwitcher enabledProducts={enabledProducts} />
 
       {title && (
         <h1 className="hidden md:block text-sm font-medium text-ink-2">
