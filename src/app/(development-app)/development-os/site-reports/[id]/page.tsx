@@ -50,15 +50,16 @@ export default async function SiteReportDetailPage({
       </DevelopmentShell>
     );
   }
-  const report = await getSiteReport(id);
+  const report = await getSiteReport(id).catch(() => null);
   if (!report) notFound();
-  const zones = await getSiteZones(report.projectId);
-  const currentUser = await getCurrentAppUser();
-  // Stage 3.B — load any active construction analysis for the HITL card.
+  // SESSION-RESOLUTION-1 P3 — defensive guards. Any of these downstream
+  // queries failing must not cascade to a page crash; render with safe
+  // fallbacks so the operator can still see the report and submit it.
+  const zones = await getSiteZones(report.projectId).catch(() => []);
+  const currentUser = await getCurrentAppUser().catch(() => null);
   const constructionAnalysis = await getActiveAnalysisForReport(report.id).catch(
     () => null,
   );
-  // Sprint MD-2.A — Load photo-evidence items for the grid section.
   const evidencePhotos = await loadSiteReportPhotos(report.id).catch(() => []);
 
   async function handleSubmit() {
@@ -259,36 +260,43 @@ export default async function SiteReportDetailPage({
 
       {report.status === "submitted" && (
         <Section eyebrow="Lifecycle" title="Review">
-          <form action={handleReview} className="flex flex-col gap-3 max-w-2xl">
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-                Reviewer notes (optional)
-              </span>
-              <textarea
-                name="reviewerNotes"
-                rows={2}
-                className="rounded-md border border-line-soft bg-surface px-2 py-1.5 text-sm"
-              />
-            </label>
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                name="reviewStatus"
-                value="reviewed"
-                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-700"
-              >
-                Mark reviewed
-              </button>
-              <button
-                type="submit"
-                name="reviewStatus"
-                value="flagged"
-                className="rounded-md bg-amber-600 px-3 py-1.5 text-xs text-white hover:bg-amber-700"
-              >
-                Flag for follow-up
-              </button>
-            </div>
-          </form>
+          {!currentUser ? (
+            <p className="text-sm text-ink-tertiary">
+              Sign in to mark this report reviewed or flagged. The report has
+              been submitted and is awaiting review by a project manager.
+            </p>
+          ) : (
+            <form action={handleReview} className="flex flex-col gap-3 max-w-2xl">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[11px] uppercase tracking-wide text-ink-tertiary">
+                  Reviewer notes (optional)
+                </span>
+                <textarea
+                  name="reviewerNotes"
+                  rows={2}
+                  className="rounded-md border border-line-soft bg-surface px-2 py-1.5 text-sm"
+                />
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  name="reviewStatus"
+                  value="reviewed"
+                  className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-700"
+                >
+                  Mark reviewed
+                </button>
+                <button
+                  type="submit"
+                  name="reviewStatus"
+                  value="flagged"
+                  className="rounded-md bg-amber-600 px-3 py-1.5 text-xs text-white hover:bg-amber-700"
+                >
+                  Flag for follow-up
+                </button>
+              </div>
+            </form>
+          )}
         </Section>
       )}
 
