@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowUpRight,
+  Bot,
   Building2,
   CreditCard,
   LineChart,
@@ -97,6 +98,15 @@ const PLANNED_PAGES: PageCard[] = [
     href: "/platform/billing",
     status: "needs-config",
     detail: "Ships after 10.6.D.2.2 (Stripe Connect) lands",
+  },
+  {
+    name: "AI agents",
+    description:
+      "Platform-managed AI agents. Define provider/model/system prompt/budget centrally, upload a knowledge base per agent, then subscribe customer orgs to enabled agents.",
+    icon: <Bot className="w-5 h-5" />,
+    href: "/platform/agents",
+    status: "needs-config",
+    detail: "P5 AGENT-FOUNDATION — schema + Vault shipped, admin UI in progress",
   },
 ];
 
