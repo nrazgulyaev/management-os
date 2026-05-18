@@ -421,7 +421,15 @@ async function scoreConflict(
 export async function syncAllActiveCalendarFeedsAction(): Promise<
   ActionResult & { results?: SyncFeedResult[] }
 > {
-  await requirePermission("bookings.sync");
+  // SESSION-RESOLUTION-1 P5 — return friendly errors instead of letting
+  // requirePermission throw bubble up to the framework "Server Components
+  // render error" banner. The caller renders the `ok: false` result inline.
+  try {
+    await requirePermission("bookings.sync");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Permission denied";
+    return { ok: false, error: msg };
+  }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
@@ -430,19 +438,40 @@ export async function syncAllActiveCalendarFeedsAction(): Promise<
     .from(channelCalendarFeeds)
     .where(eq(channelCalendarFeeds.status, "active"));
 
+  // Per-feed try/catch so one bad feed (malformed iCal, network timeout,
+  // PG constraint violation in the upsert path, etc.) doesn't kill the
+  // entire run. Every iteration produces a SyncFeedResult — successful or
+  // errored — so the UI can show a per-row status summary.
   const results: SyncFeedResult[] = [];
   for (const f of feeds) {
-    results.push(await syncCalendarFeed(f.id));
+    try {
+      results.push(await syncCalendarFeed(f.id));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      results.push({
+        feedId: f.id,
+        fetched: 0,
+        inserted: 0,
+        updated: 0,
+        cancelled: 0,
+        conflicts: 0,
+        error: `Unhandled: ${message.slice(0, 200)}`,
+      });
+    }
   }
 
-  const me = await getCurrentAppUser();
+  const me = await getCurrentAppUser().catch(() => null);
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "integrations.calendar.sync_all",
     entityType: "channel_calendar_feed",
     entityId: null,
-    after: { count: feeds.length },
-  });
+    after: {
+      count: feeds.length,
+      succeeded: results.filter((r) => !r.error).length,
+      failed: results.filter((r) => r.error).length,
+    },
+  }).catch(() => null);
 
   revalidatePath("/dashboard/integrations");
   revalidatePath("/dashboard/integrations/calendar-feeds");
