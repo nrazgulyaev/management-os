@@ -156,16 +156,13 @@ test("sprint-2 — development subdomain allows /development-os/* but not /dashb
   assert.equal(isPathAllowedOnProduct("development", "/platform"), false);
 });
 
-test("sprint-2 — platform subdomain allows /platform/* but rejects product paths", async () => {
-  const { isPathAllowedOnProduct } = await import("../src/middleware");
-  assert.equal(isPathAllowedOnProduct("platform", "/platform"), true);
-  assert.equal(isPathAllowedOnProduct("platform", "/platform/organizations"), true);
-  assert.equal(isPathAllowedOnProduct("platform", "/platform/audit"), true);
-  assert.equal(isPathAllowedOnProduct("platform", "/login"), true);
-  assert.equal(isPathAllowedOnProduct("platform", "/dashboard"), false);
-  assert.equal(isPathAllowedOnProduct("platform", "/development-os"), false);
-  assert.equal(isPathAllowedOnProduct("platform", "/pricing"), false);
-});
+// PLATFORM-ROUTING-FIX (2026-05-19) — `platform` subdomain removed. The
+// /platform/* tree now serves on whichever subdomain the super_admin
+// signs in on; the (platform-app)/layout.tsx role gate IS the
+// security boundary. Vercel doesn't have DNS for platform.arconique.com,
+// and the cross-product canonicalisation sweep was redirecting every
+// /platform/* request there → "Deployment not found". No test for a
+// `platform` subdomain now — the case can't be constructed.
 
 test("sprint-2 — subscription subdomain allows sales paths but not product apps", async () => {
   const { isPathAllowedOnProduct } = await import("../src/middleware");

@@ -13,15 +13,14 @@
  *     hosts so dev convenience stays intact.
  *
  *  1. Per-product subdomain (Sprint 2, extended)
- *     `<product>.arconique.com` routes the user into one of four
- *     product surfaces (management / development / subscription /
- *     platform). The middleware:
+ *     `<product>.arconique.com` routes the user into one of three
+ *     product surfaces (management / development / subscription).
+ *     The middleware:
  *       - parses the host
  *       - matches against the PRODUCT_SUBDOMAINS table
  *       - rewrites `/` to a product-specific landing (mgmt + dev get
  *         placeholder pages under `src/app/landing/*`; subscription
- *         keeps the existing umbrella sales home; platform rewrites
- *         to `/platform` where the layout gates super_admin)
+ *         keeps the existing umbrella sales home)
  *       - if the pathname is allowed on that product → stamps an
  *         `x-product: <name>` header and passes through
  *       - if NOT allowed → 307-redirects to the product's defaultLanding
@@ -36,10 +35,12 @@
  *
  * Platform admin role gate: enforced server-side in
  * `src/app/(platform-app)/layout.tsx` via `getCurrentUserContext()`.
- * Middleware doesn't resolve Supabase sessions (Edge runtime + DB-free)
- * — we only restrict which paths the platform subdomain serves; the
- * layout handles the anonymous→/login and non-admin→/no-product-access
- * redirects on render.
+ * PLATFORM-ROUTING-FIX (2026-05-19) — there is no `platform.*`
+ * subdomain. `/platform/*` paths serve from whichever subdomain the
+ * super_admin signs in on (Mgmt / Dev / tenant); the layout's
+ * super_admin gate IS the security boundary, not the hostname. Vercel
+ * doesn't have DNS for `platform.arconique.com`, so the previous
+ * cross-product redirect produced a "Deployment not found" page.
  */
 
 import { type NextRequest, NextResponse } from "next/server";
@@ -112,17 +113,15 @@ export const PRODUCT_SUBDOMAINS = {
     ],
     defaultLanding: "/",
   },
-  platform: {
-    allowedPrefixes: [
-      "/platform",
-      "/login",
-      "/setup",
-      "/accept-invitation",
-      "/no-product-access",
-      "/legal",
-    ],
-    defaultLanding: "/",
-  },
+  // PLATFORM-ROUTING-FIX (2026-05-19) — `platform` subdomain removed.
+  // Vercel doesn't have DNS for `platform.arconique.com`, and the
+  // cross-product canonicalisation sweep at line ~384 was 307-redirecting
+  // every `/platform/*` request to it, producing "Deployment not found"
+  // for super_admins. Solution: keep `/platform/*` as a regular route
+  // group inside whichever subdomain the super_admin signed in on. The
+  // (platform-app)/layout.tsx already gates super_admin via
+  // getCurrentUserContext(); that role check is the actual security
+  // boundary, not the hostname.
 } as const satisfies Record<string, ProductSubdomainConfig>;
 
 export type ProductSubdomain = keyof typeof PRODUCT_SUBDOMAINS;
@@ -265,8 +264,6 @@ function rootRewriteTarget(product: ProductSubdomain): string | null {
       return "/products/management-os";
     case "development":
       return "/products/development-os";
-    case "platform":
-      return "/platform";
     case "subscription":
       return null;
   }
@@ -345,8 +342,8 @@ export function middleware(request: NextRequest) {
     //   2. current product is subscription          → pass through,
     //      subscription serves /products/* as the marketing umbrella
     //      (don't bounce deep-linked customer URLs).
-    //   3. current product is anything else (mgmt, dev, platform)
-    //      on a different slug                      → 307 to the
+    //   3. current product is anything else (mgmt, dev) on a different
+    //      slug                                     → 307 to the
     //      canonical subdomain ROOT (not the /products path), in
     //      production only (skip on localhost / preview).
     //
