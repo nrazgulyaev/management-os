@@ -67,6 +67,17 @@ export interface StreamAgentParams {
   userId: string;
   threadId: string | null;
   userMessage: string;
+  /**
+   * P5.4.POLISH.1 — super_admin "test mode" bypass. When true:
+   *   · subscription gate is skipped (super_admin can chat with ANY
+   *     agent regardless of org subscription state)
+   *   · budget gate is skipped (test traffic doesn't burn live budget)
+   *   · run telemetry is still recorded (visible in the agent's runs
+   *     tab so super_admin can see what they cost)
+   * The route handler is responsible for ensuring this flag is only
+   * ever true for a verified super_admin context.
+   */
+  testMode?: boolean;
 }
 
 export async function streamAgentResponse(
@@ -75,6 +86,7 @@ export async function streamAgentResponse(
   assertAgentEnvReady();
 
   const { agentId, organizationId, userId, threadId: incomingThreadId } = params;
+  const testMode = params.testMode === true;
   const userMessage = params.userMessage.trim();
   if (!userMessage) {
     throw new AgentInferenceError("EMPTY_MESSAGE", "User message is empty.");
@@ -114,16 +126,16 @@ export async function streamAgentResponse(
     )
     .limit(1);
 
-  if (!sub || !sub.isEnabled) {
+  if (!testMode && (!sub || !sub.isEnabled)) {
     throw new AgentInferenceError(
       "NOT_SUBSCRIBED",
       "Your organization is not subscribed to this agent.",
     );
   }
 
-  const systemPrompt = sub.customSystemPrompt ?? agent.systemPrompt;
+  const systemPrompt = sub?.customSystemPrompt ?? agent.systemPrompt;
   const monthlyBudgetUsdMinor =
-    sub.customBudgetUsdMinor ?? agent.budgetMonthlyUsdMinor;
+    sub?.customBudgetUsdMinor ?? agent.budgetMonthlyUsdMinor;
 
   // -------------------------------------------------------------------
   // 3. Budget gate
@@ -139,7 +151,7 @@ export async function streamAgentResponse(
     (spentRow as unknown as { rows?: Array<{ spent: string }> }).rows ?? [];
   const spentUsdMinor = Number(spentRows[0]?.spent ?? "0");
 
-  if (spentUsdMinor >= monthlyBudgetUsdMinor) {
+  if (!testMode && spentUsdMinor >= monthlyBudgetUsdMinor) {
     await recordRun(db, {
       agentId,
       organizationId,
@@ -220,7 +232,7 @@ export async function streamAgentResponse(
     maxOutputTokens: agent.maxTokens,
   });
 
-  if (spentUsdMinor + worstCaseCost > monthlyBudgetUsdMinor) {
+  if (!testMode && spentUsdMinor + worstCaseCost > monthlyBudgetUsdMinor) {
     await recordRun(db, {
       agentId,
       organizationId,

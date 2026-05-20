@@ -20,6 +20,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { getCurrentUserContext } from "@/features/auth/permissions";
 import {
   streamAgentResponse,
   AgentInferenceError,
@@ -33,6 +34,7 @@ export const dynamic = "force-dynamic";
 interface QueryBody {
   message?: unknown;
   threadId?: unknown;
+  testMode?: unknown;
 }
 
 export async function POST(
@@ -59,6 +61,15 @@ export async function POST(
   const message = typeof body.message === "string" ? body.message : "";
   const threadId = typeof body.threadId === "string" ? body.threadId : null;
 
+  // Test mode is requested by the caller but only honored when the
+  // session is a verified super_admin. Anyone else asking for
+  // testMode=true gets it silently flipped back to false.
+  let testMode = false;
+  if (body.testMode === true) {
+    const ctx = await getCurrentUserContext();
+    testMode = ctx.isSuperAdmin === true;
+  }
+
   if (!message.trim()) {
     return NextResponse.json(
       { error: "`message` is required." },
@@ -79,6 +90,7 @@ export async function POST(
       userId: me.id,
       threadId,
       userMessage: message,
+      testMode,
     });
   } catch (err) {
     if (err instanceof BudgetExceededError) {

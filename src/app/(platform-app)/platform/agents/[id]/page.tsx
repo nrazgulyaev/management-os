@@ -20,6 +20,7 @@ import {
   reprocessAgentDocumentFromForm,
   deleteAgentDocumentFromForm,
 } from "@/lib/agents/knowledge-actions";
+import { AgentTestChat } from "./test-chat";
 
 export const metadata = { title: "Agent · Platform Admin" };
 export const dynamic = "force-dynamic";
@@ -216,7 +217,21 @@ export default async function PlatformAgentDetailPage({
       {tab === "subs" && <SubscriptionsTab agentId={a.id} orgs={orgRows} />}
       {tab === "knowledge" && <KnowledgeTab agentId={a.id} docs={docRows} />}
       {tab === "runs" && <PlaceholderTab body="Per-invocation telemetry (tokens, cost, latency, errors) lands in P5.4 once the inference path is wired." />}
-      {tab === "test" && <PlaceholderTab body="Live agent test (chat with the agent before subscribing orgs) lands in P5.4 alongside the inference path." />}
+      {tab === "test" && (
+        <div className="flex flex-col gap-4">
+          {!a.vault_secret_name && (
+            <div
+              role="alert"
+              className="rounded-md border border-warning/40 bg-warning/5 px-4 py-3 text-sm text-ink-secondary"
+            >
+              This agent has no API key configured. Sending a test
+              message will fail with 503 until you add one on the
+              Config tab.
+            </div>
+          )}
+          <AgentTestChat agentId={a.id} />
+        </div>
+      )}
     </div>
   );
 }
