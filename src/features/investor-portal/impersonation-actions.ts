@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { investors } from "@/lib/db/schema/investor-capital";
-import { getCurrentUserContext } from "@/features/auth/permissions";
+import { requireSuperAdmin as requireSuperAdminCtx } from "@/features/auth/require-super-admin";
 import { IMPERSONATION_COOKIE } from "./investor-context";
 
 /**
@@ -21,9 +21,7 @@ interface ActionResult {
 }
 
 async function requireSuperAdmin(): Promise<void> {
-  const ctx = await getCurrentUserContext();
-  if (!ctx.appUser) throw new Error("Sign in required");
-  if (!ctx.isSuperAdmin) throw new Error("Only super_admin can impersonate investors");
+  await requireSuperAdminCtx();
 }
 
 export async function startImpersonatingInvestor(investorId: string): Promise<ActionResult> {

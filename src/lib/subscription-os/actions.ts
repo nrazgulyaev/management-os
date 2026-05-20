@@ -37,6 +37,7 @@ import { organizations } from "@/lib/db/schema/saas";
 import { orgSubscriptions } from "@/lib/db/schema/subscriptions";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { requireSuperAdmin as requireSuperAdminCtx } from "@/features/auth/require-super-admin";
 import {
   transitionSubscription,
   recordLifecycleEvent,
@@ -54,8 +55,8 @@ async function requireSuperAdmin(): Promise<{
   appUserId: string;
   isSuperAdmin: true;
 }> {
-  const ctx = await getCurrentUserContext();
-  if (!ctx.appUser || !ctx.isSuperAdmin) {
+  const ctx = await requireSuperAdminCtx();
+  if (!ctx.appUser) {
     throw new Error("Forbidden — super_admin role required");
   }
   return { appUserId: ctx.appUser.id, isSuperAdmin: true };

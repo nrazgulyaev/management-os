@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { owners } from "@/lib/db/schema/ownership";
-import { getCurrentUserContext } from "@/features/auth/permissions";
+import { requireSuperAdmin as requireSuperAdminCtx } from "@/features/auth/require-super-admin";
 import { IMPERSONATION_COOKIE } from "./owner-context";
 
 /**
@@ -29,9 +29,7 @@ interface ActionResult {
 }
 
 async function requireSuperAdmin(): Promise<void> {
-  const ctx = await getCurrentUserContext();
-  if (!ctx.appUser) throw new Error("Sign in required");
-  if (!ctx.isSuperAdmin) throw new Error("Only super_admin can impersonate owners");
+  await requireSuperAdminCtx();
 }
 
 export async function startImpersonatingOwner(ownerId: string): Promise<ActionResult> {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
-import { getCurrentUserContext } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 import { ServiceTemporarilyUnavailable } from "@/components/system/service-temporarily-unavailable";
 import { ImpersonationBanner } from "@/components/subscription-os/impersonation-banner";
 
@@ -17,9 +17,13 @@ export const metadata: Metadata = {
  * in Stage 10.6.E.1; URL prefix moved from /subscriptions to /platform
  * to free the `subscription` subdomain name for public sales).
  *
- * Permission model unchanged from 10.6.E.1:
- *   - super_admin role required (10.6.E.2 may extend with a separate
- *     `customer_support` role; for v1 we gate on isSuperAdmin)
+ * Permission model (SUPER-ADMIN-GATE-FIX):
+ *   - super_admin role required, checked via `isSuperAdminContext()`
+ *     which reads `user_roles` (canonical RBAC table) — NOT the
+ *     `app_user_roles` cabinet table. See features/auth/require-super-admin.ts
+ *     for the rationale on which table holds super_admin grants.
+ *   - 10.6.E.2 may extend with a separate `customer_support` role; for
+ *     v1 we gate purely on isSuperAdmin.
  *   - Layout pattern mirrors 10.6.B.2-fix: try/catch around the auth
  *     check + isRedirectError-aware re-throw + ServiceTemporarilyUnavailable
  *     fallback so a transient auth-path failure doesn't 500 the page
@@ -39,7 +43,7 @@ export default async function PlatformAppLayout({
   children: React.ReactNode;
 }) {
   try {
-    const ctx = await getCurrentUserContext();
+    const { ok, ctx } = await isSuperAdminContext();
 
     // Demo mode (no DB) — let through; matches the demo-bypass pattern
     // used by enforceProductAccess in Stage 10.H.
@@ -52,11 +56,10 @@ export default async function PlatformAppLayout({
       );
     }
 
-    // Live mode — must be authenticated AND super_admin.
     if (!ctx.appUser) {
       redirect("/login?next=/platform");
     }
-    if (!ctx.isSuperAdmin) {
+    if (!ok) {
       redirect("/no-product-access?reason=platform-os-requires-super-admin");
     }
 

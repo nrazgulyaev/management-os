@@ -22,7 +22,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireDb } from "@/lib/db/client";
 import { platformAgentConfigs } from "@/lib/db/schema/agents";
-import { getCurrentUserContext } from "@/features/auth/permissions";
+import { requireSuperAdmin as requireSuperAdminCtx } from "@/features/auth/require-super-admin";
 import { recordAuditEvent } from "@/features/audit/services";
 import {
   storeAgentApiKey,
@@ -36,12 +36,8 @@ import {
 // -----------------------------------------------------------------------------
 
 async function requireSuperAdmin(): Promise<{ appUserId: string }> {
-  const ctx = await getCurrentUserContext();
-  if (ctx.mode === "demo") return { appUserId: ctx.appUser?.id ?? "demo" };
-  if (!ctx.appUser || !ctx.isSuperAdmin) {
-    throw new Error("Super admin access required.");
-  }
-  return { appUserId: ctx.appUser.id };
+  const ctx = await requireSuperAdminCtx();
+  return { appUserId: ctx.appUser?.id ?? "demo" };
 }
 
 export interface ActionResult<T = unknown> {
