@@ -62,6 +62,37 @@ interface DocRow {
   processed_at: string | null;
 }
 
+interface RunsKpiRow {
+  total_runs: number;
+  success_runs: number;
+  total_cost_mtd: number;
+  avg_latency: number | null;
+  active_threads: number;
+}
+
+interface RunsStatusBucketRow {
+  status: string;
+  count: number;
+}
+
+interface RunsDailyRow {
+  day: string;
+  runs: number;
+  cost_minor: number;
+}
+
+interface RecentRunRow {
+  id: string;
+  started_at: string;
+  status: string;
+  tokens_in: number;
+  tokens_out: number;
+  cost_usd_minor: number;
+  latency_ms: number | null;
+  error_message: string | null;
+  user_email: string | null;
+}
+
 function asRows<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
   if (result && typeof result === "object" && "rows" in result) {
@@ -150,6 +181,82 @@ export default async function PlatformAgentDetailPage({
         )
       : [];
 
+  // Runs tab — telemetry: header KPIs, status buckets, daily series,
+  // recent 50 runs. Limited to a single read pass so the tab loads
+  // even on agents with weeks of history.
+  const runsKpiRows =
+    tab === "runs"
+      ? asRows<RunsKpiRow>(
+          await db.execute(sql`
+            SELECT
+              COUNT(*)::int                                                   AS total_runs,
+              COUNT(*) FILTER (WHERE status = 'success')::int                  AS success_runs,
+              COALESCE(SUM(cost_usd_minor) FILTER (
+                WHERE started_at >= date_trunc('month', now())
+              ), 0)::int                                                       AS total_cost_mtd,
+              CASE WHEN COUNT(latency_ms) > 0
+                   THEN AVG(latency_ms)::int ELSE NULL END                      AS avg_latency,
+              (SELECT COUNT(*)::int FROM agent_threads
+                WHERE agent_id = ${a.id}::uuid)                                 AS active_threads
+              FROM agent_runs
+             WHERE agent_id = ${a.id}::uuid
+               AND started_at >= now() - INTERVAL '30 days'
+          `),
+        )
+      : [];
+
+  const runsStatusBuckets =
+    tab === "runs"
+      ? asRows<RunsStatusBucketRow>(
+          await db.execute(sql`
+            SELECT status, COUNT(*)::int AS count
+              FROM agent_runs
+             WHERE agent_id = ${a.id}::uuid
+               AND started_at >= now() - INTERVAL '30 days'
+             GROUP BY status
+             ORDER BY count DESC
+          `),
+        )
+      : [];
+
+  const runsDaily =
+    tab === "runs"
+      ? asRows<RunsDailyRow>(
+          await db.execute(sql`
+            SELECT to_char(date_trunc('day', started_at), 'YYYY-MM-DD') AS day,
+                   COUNT(*)::int                                          AS runs,
+                   COALESCE(SUM(cost_usd_minor), 0)::int                  AS cost_minor
+              FROM agent_runs
+             WHERE agent_id = ${a.id}::uuid
+               AND started_at >= now() - INTERVAL '30 days'
+             GROUP BY 1
+             ORDER BY 1 ASC
+          `),
+        )
+      : [];
+
+  const recentRuns =
+    tab === "runs"
+      ? asRows<RecentRunRow>(
+          await db.execute(sql`
+            SELECT r.id::text             AS id,
+                   r.started_at::text     AS started_at,
+                   r.status               AS status,
+                   r.tokens_in            AS tokens_in,
+                   r.tokens_out           AS tokens_out,
+                   r.cost_usd_minor       AS cost_usd_minor,
+                   r.latency_ms           AS latency_ms,
+                   r.error_message        AS error_message,
+                   u.email                AS user_email
+              FROM agent_runs r
+              LEFT JOIN app_users u ON u.id = r.user_id
+             WHERE r.agent_id = ${a.id}::uuid
+             ORDER BY r.started_at DESC
+             LIMIT 50
+          `),
+        )
+      : [];
+
   // Org list + subscription state for the Subscriptions tab.
   const orgRows =
     tab === "subs"
@@ -216,7 +323,14 @@ export default async function PlatformAgentDetailPage({
       {tab === "config" && <ConfigTab agent={a} />}
       {tab === "subs" && <SubscriptionsTab agentId={a.id} orgs={orgRows} />}
       {tab === "knowledge" && <KnowledgeTab agentId={a.id} docs={docRows} />}
-      {tab === "runs" && <PlaceholderTab body="Per-invocation telemetry (tokens, cost, latency, errors) lands in P5.4 once the inference path is wired." />}
+      {tab === "runs" && (
+        <RunsTab
+          kpis={runsKpiRows[0] ?? null}
+          statusBuckets={runsStatusBuckets}
+          daily={runsDaily}
+          recent={recentRuns}
+        />
+      )}
       {tab === "test" && (
         <div className="flex flex-col gap-4">
           {!a.vault_secret_name && (
@@ -597,10 +711,198 @@ function SubscriptionsTab({
   );
 }
 
-function PlaceholderTab({ body }: { body: string }) {
+function RunsTab({
+  kpis,
+  statusBuckets,
+  daily,
+  recent,
+}: {
+  kpis: RunsKpiRow | null;
+  statusBuckets: RunsStatusBucketRow[];
+  daily: RunsDailyRow[];
+  recent: RecentRunRow[];
+}) {
+  const total = kpis?.total_runs ?? 0;
+  const success = kpis?.success_runs ?? 0;
+  const successRate =
+    total > 0 ? `${((success / total) * 100).toFixed(1)}%` : "—";
+  const costMtd = ((kpis?.total_cost_mtd ?? 0) / 100).toFixed(2);
+  const avgLatency =
+    kpis?.avg_latency != null ? `${kpis.avg_latency} ms` : "—";
+
+  const STATUS_TONE: Record<string, "ok" | "warn" | "danger" | "ink"> = {
+    success: "ok",
+    error: "danger",
+    budget_exceeded: "warn",
+    rate_limited: "warn",
+    in_progress: "ink",
+  };
+
+  // Daily bar chart — normalize to the max in the window for the
+  // height. SVG bars keep this self-contained, no chart lib needed.
+  const maxRuns = Math.max(1, ...daily.map((d) => d.runs));
+  const barWidth = 100 / Math.max(daily.length, 1);
+
   return (
-    <Card style={{ padding: 32, textAlign: "center" }}>
-      <p className="text-sm text-ink-tertiary max-w-md mx-auto">{body}</p>
+    <div className="flex flex-col gap-6">
+      {/* Header KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <Kpi label="Runs (30d)" value={String(total)} />
+        <Kpi label="Success rate" value={successRate} />
+        <Kpi label="Cost (MTD)" value={`$${costMtd}`} />
+        <Kpi label="Avg latency" value={avgLatency} />
+        <Kpi
+          label="Threads"
+          value={String(kpis?.active_threads ?? 0)}
+        />
+      </div>
+
+      {/* Status histogram */}
+      <Card style={{ padding: 20 }}>
+        <h3
+          className="display"
+          style={{ fontSize: 16, marginBottom: 12, fontWeight: 500 }}
+        >
+          Status breakdown · 30d
+        </h3>
+        {statusBuckets.length === 0 ? (
+          <p className="text-sm text-ink-tertiary">No runs yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {statusBuckets.map((b) => {
+              const pct = total > 0 ? (b.count / total) * 100 : 0;
+              return (
+                <li key={b.status} className="flex items-center gap-3">
+                  <div className="w-28 shrink-0">
+                    <Badge tone={STATUS_TONE[b.status] ?? "ink"}>{b.status}</Badge>
+                  </div>
+                  <div className="flex-1 h-2 bg-muted rounded-sm overflow-hidden">
+                    <div
+                      className="h-full bg-ink/70"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-ink-tertiary tabular-nums w-16 text-right">
+                    {b.count} · {pct.toFixed(0)}%
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+
+      {/* Daily bar chart */}
+      <Card style={{ padding: 20 }}>
+        <h3
+          className="display"
+          style={{ fontSize: 16, marginBottom: 12, fontWeight: 500 }}
+        >
+          Daily runs · last 30 days
+        </h3>
+        {daily.length === 0 ? (
+          <p className="text-sm text-ink-tertiary">No activity in this window.</p>
+        ) : (
+          <div className="relative h-32 w-full">
+            <svg
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              className="absolute inset-0 w-full h-full"
+            >
+              {daily.map((d, i) => {
+                const h = (d.runs / maxRuns) * 100;
+                return (
+                  <rect
+                    key={d.day}
+                    x={i * barWidth + 0.5}
+                    y={100 - h}
+                    width={Math.max(0.5, barWidth - 1)}
+                    height={h}
+                    fill="var(--ink-2, currentColor)"
+                    opacity={0.55}
+                  >
+                    <title>{`${d.day}: ${d.runs} run${d.runs === 1 ? "" : "s"} · $${(d.cost_minor / 100).toFixed(2)}`}</title>
+                  </rect>
+                );
+              })}
+            </svg>
+          </div>
+        )}
+        <div className="mt-2 flex items-center justify-between text-[11px] text-ink-tertiary">
+          <span>{daily[0]?.day ?? ""}</span>
+          <span>{daily[daily.length - 1]?.day ?? ""}</span>
+        </div>
+      </Card>
+
+      {/* Recent runs */}
+      <Card style={{ padding: 0 }}>
+        <div className="px-5 py-4 border-b border-line-soft">
+          <h3
+            className="display"
+            style={{ fontSize: 16, fontWeight: 500 }}
+          >
+            Recent runs · last 50
+          </h3>
+        </div>
+        {recent.length === 0 ? (
+          <div className="px-5 py-12 text-center text-sm text-ink-tertiary">
+            No runs yet. Use the Test tab to send some test traffic.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary border-b border-line-soft">
+                <th className="text-left px-5 py-2">Started</th>
+                <th className="text-left px-3 py-2">User</th>
+                <th className="text-left px-3 py-2">Status</th>
+                <th className="text-right px-3 py-2">Tok in / out</th>
+                <th className="text-right px-3 py-2">Cost</th>
+                <th className="text-right px-5 py-2">Latency</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent.map((r) => (
+                <tr key={r.id} className="border-b border-line-soft last:border-b-0">
+                  <td className="px-5 py-2 font-mono text-[11px] text-ink-tertiary">
+                    {r.started_at.slice(0, 19).replace("T", " ")}
+                  </td>
+                  <td className="px-3 py-2 text-ink-secondary">
+                    {r.user_email ?? "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <Badge tone={STATUS_TONE[r.status] ?? "ink"}>{r.status}</Badge>
+                    {r.error_message && (
+                      <div className="text-[11px] text-danger mt-1 max-w-md truncate">
+                        {r.error_message}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {r.tokens_in} / {r.tokens_out}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    ${(r.cost_usd_minor / 100).toFixed(3)}
+                  </td>
+                  <td className="px-5 py-2 text-right tabular-nums text-ink-secondary">
+                    {r.latency_ms != null ? `${r.latency_ms} ms` : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function Kpi({ label, value }: { label: string; value: string }) {
+  return (
+    <Card style={{ padding: 14 }}>
+      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary mb-1">
+        {label}
+      </div>
+      <div className="text-lg font-medium text-ink tabular-nums">{value}</div>
     </Card>
   );
 }
