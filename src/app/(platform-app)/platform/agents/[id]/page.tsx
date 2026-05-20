@@ -21,6 +21,7 @@ import {
   deleteAgentDocumentFromForm,
 } from "@/lib/agents/knowledge-actions";
 import { AgentTestChat } from "./test-chat";
+import { KnowledgePoller } from "./knowledge-poller";
 
 export const metadata = { title: "Agent · Platform Admin" };
 export const dynamic = "force-dynamic";
@@ -118,6 +119,7 @@ export default async function PlatformAgentDetailPage({
     key_error?: string;
     sub?: string;
     uploaded?: string;
+    processing?: string;
   }>;
 }) {
   const { id } = await params;
@@ -371,6 +373,7 @@ function Flash({
     key_error?: string;
     sub?: string;
     uploaded?: string;
+    processing?: string;
   };
 }) {
   if (params.error) {
@@ -398,9 +401,11 @@ function Flash({
             ? "Subscription enabled."
             : params.sub === "off"
               ? "Subscription disabled."
-              : params.uploaded
-                ? "Document uploaded — processing complete."
-                : null;
+              : params.processing
+                ? "Document uploaded — processing in background. Status will update as it lands."
+                : params.uploaded
+                  ? "Document uploaded — processing complete."
+                  : null;
   if (!msg) return null;
   return (
     <div className="rounded-md border border-ok/40 bg-ok/5 px-4 py-3 text-sm text-ink">
@@ -910,6 +915,7 @@ function Kpi({ label, value }: { label: string; value: string }) {
 function KnowledgeTab({ agentId, docs }: { agentId: string; docs: DocRow[] }) {
   return (
     <div className="flex flex-col gap-6">
+      <KnowledgePoller statuses={docs.map((d) => d.processing_status)} />
       <Card style={{ padding: 20 }}>
         <h2
           className="display"

@@ -61,8 +61,11 @@ export async function uploadAgentDocumentFromForm(
   if (!result.ok) {
     redirect(`${target}&error=${encodeURIComponent(result.error ?? "upload failed")}`);
   }
+  // Pipeline runs in the background; UI polling drives the status
+  // transitions. We redirect immediately with `processing=…` so the
+  // flash banner makes the async nature obvious.
   revalidatePath(target);
-  redirect(`${target}&uploaded=${result.documentId}`);
+  redirect(`${target}&processing=${result.documentId}`);
 }
 
 export async function uploadAndProcessAgentDocument(input: {
@@ -135,11 +138,38 @@ export async function uploadAndProcessAgentDocument(input: {
       .set({ storagePath })
       .where(eq(agentKnowledgeDocuments.id, row.id));
 
-    // Inline pipeline — blocks until embeddings land. 10-60s typical.
-    const result = await processDocument(row.id);
-    if (!result.ok) {
-      return { ok: false, documentId: row.id, error: result.error };
-    }
+    // P5.4.POLISH.3 — background processing.
+    //
+    // Previously we awaited processDocument() inline, which blocked the
+    // upload request for 10-60 seconds (large PDFs occasionally hit
+    // the Vercel function timeout). Now we kick the pipeline as a
+    // fire-and-forget promise and return immediately. The UI polls
+    // the document row's `processing_status` every few seconds and
+    // surfaces transitions to the user.
+    //
+    // Risk profile: the promise dies if the function instance is
+    // recycled mid-process — but processDocument() is idempotent
+    // (clears existing chunks for the document before re-inserting),
+    // so a "Reprocess" button on failed rows recovers cleanly. For
+    // truly large uploads (>5MB / >100 pages) a real queue is the
+    // right answer; this MVP solves the 99% case.
+    void processDocument(row.id).catch(async (err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      try {
+        await db
+          .update(agentKnowledgeDocuments)
+          .set({
+            processingStatus: "failed",
+            processingError: message.slice(0, 500),
+          })
+          .where(eq(agentKnowledgeDocuments.id, row.id));
+      } catch (writeErr) {
+        console.error(
+          "[knowledge-actions] background pipeline failed AND status write failed:",
+          writeErr,
+        );
+      }
+    });
 
     return { ok: true, documentId: row.id };
   } catch (err) {
