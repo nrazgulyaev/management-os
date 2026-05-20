@@ -184,6 +184,20 @@ export default async function AiHubPage() {
                   {a.model ? ` · ${a.model}` : ""}
                 </div>
               )}
+              {a.isLive && a.platformAgentCode && (
+                <a
+                  href={`/development-os/agents/${a.platformAgentCode}`}
+                  style={{
+                    display: "inline-block",
+                    marginTop: 8,
+                    fontSize: 11,
+                    textDecoration: "underline",
+                    color: "var(--ink-2)",
+                  }}
+                >
+                  Open chat →
+                </a>
+              )}
             </div>
           </Card>
         ))}
