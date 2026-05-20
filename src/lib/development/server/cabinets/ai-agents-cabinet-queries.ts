@@ -200,20 +200,27 @@ export async function getRecentAgentOutputs(limit = 8): Promise<AgentInboxRow[]>
 }
 
 // =============================================================================
-// AI-TELEMETRY-1 — ai_assistant_runs telemetry for the Dev OS AI hub.
+// AI-TELEMETRY-1 — Dev OS AI hub KPIs, dual-source.
 // =============================================================================
 //
-// ai_assistant_runs has no organization_id column (migration 0072 didn't
-// include it). Use the JOIN strategy via created_by → app_users.organization_id
-// to keep telemetry tenant-scoped. Runs with created_by = NULL (system jobs /
-// crons) are excluded from per-org reads.
+// P5.6.2: UNION-ALL across the legacy `ai_assistant_runs` table AND the new
+// `agent_runs` table so the cabinet counts every invocation regardless of
+// which path produced it. Once legacy callers migrate, the ai_assistant_runs
+// half drops out.
+//
+// Org scoping differs between the two tables:
+//   · ai_assistant_runs — no organization_id column (migration 0072 didn't
+//     include it); we JOIN through created_by → app_users.organization_id.
+//     Runs with created_by = NULL (system jobs / crons) are excluded.
+//   · agent_runs — has organization_id directly (P5.3 / migration 0109).
 
 export interface DevAiKpis {
-  /** Runs created in the last 24h (org-scoped via created_by). */
+  /** Runs in the last 24h (org-scoped, both tables). */
   runsLast24h: number;
   /** Average latency_ms across last 24h runs (0 if no runs). */
   avgLatencyMs: number;
-  /** Sum of total_tokens across MTD runs. */
+  /** Sum of total_tokens across MTD runs (legacy total_tokens +
+   *  new tokens_in + tokens_out). */
   totalTokensMtd: number;
   /** (errors / total) × 100 for last 24h runs (0 if no runs). */
   errorRatePct: number;
@@ -231,29 +238,38 @@ export async function getDevAiKpis(): Promise<DevAiKpis> {
     tokens_mtd: string;
     errors_24h: string;
   }>(sql`
+    WITH all_runs_24h AS (
+      SELECT r.latency_ms AS latency_ms,
+             (r.status IN ('error', 'failed'))::int AS is_error
+        FROM ai_assistant_runs r
+        JOIN app_users u ON u.id = r.created_by
+       WHERE u.organization_id = ${orgId}::uuid
+         AND r.created_at >= now() - INTERVAL '24 hours'
+      UNION ALL
+      SELECT ar.latency_ms AS latency_ms,
+             (ar.status IN ('error','budget_exceeded','rate_limited'))::int AS is_error
+        FROM agent_runs ar
+       WHERE ar.organization_id = ${orgId}::uuid
+         AND ar.started_at >= now() - INTERVAL '24 hours'
+    ),
+    all_tokens_mtd AS (
+      SELECT COALESCE(r.total_tokens, 0) AS tokens
+        FROM ai_assistant_runs r
+        JOIN app_users u ON u.id = r.created_by
+       WHERE u.organization_id = ${orgId}::uuid
+         AND r.created_at >= date_trunc('month', now())
+      UNION ALL
+      SELECT COALESCE(ar.tokens_in, 0) + COALESCE(ar.tokens_out, 0) AS tokens
+        FROM agent_runs ar
+       WHERE ar.organization_id = ${orgId}::uuid
+         AND ar.started_at >= date_trunc('month', now())
+    )
     SELECT
-      (SELECT COUNT(*)::text
-         FROM ai_assistant_runs r
-         JOIN app_users u ON u.id = r.created_by
-        WHERE u.organization_id = ${orgId}::uuid
-          AND r.created_at >= now() - INTERVAL '24 hours') AS runs_24h,
-      (SELECT COALESCE(AVG(latency_ms), 0)::text
-         FROM ai_assistant_runs r
-         JOIN app_users u ON u.id = r.created_by
-        WHERE u.organization_id = ${orgId}::uuid
-          AND r.created_at >= now() - INTERVAL '24 hours'
-          AND r.latency_ms IS NOT NULL) AS avg_latency,
-      (SELECT COALESCE(SUM(total_tokens), 0)::text
-         FROM ai_assistant_runs r
-         JOIN app_users u ON u.id = r.created_by
-        WHERE u.organization_id = ${orgId}::uuid
-          AND r.created_at >= date_trunc('month', now())) AS tokens_mtd,
-      (SELECT COUNT(*)::text
-         FROM ai_assistant_runs r
-         JOIN app_users u ON u.id = r.created_by
-        WHERE u.organization_id = ${orgId}::uuid
-          AND r.created_at >= now() - INTERVAL '24 hours'
-          AND r.status IN ('error', 'failed')) AS errors_24h
+      (SELECT COUNT(*)::text FROM all_runs_24h) AS runs_24h,
+      (SELECT COALESCE(AVG(latency_ms), 0)::text FROM all_runs_24h
+        WHERE latency_ms IS NOT NULL) AS avg_latency,
+      (SELECT COALESCE(SUM(tokens), 0)::text FROM all_tokens_mtd) AS tokens_mtd,
+      (SELECT COALESCE(SUM(is_error), 0)::text FROM all_runs_24h) AS errors_24h
   `);
   const r =
     (rows as unknown as {
