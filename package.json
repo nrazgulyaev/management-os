@@ -45,6 +45,7 @@
     "seed:ai-agent-config": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-ai-agent-config.ts",
     "migrate:force-0109": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/force-apply-migration-0109.ts",
     "setup:agent-storage": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/setup-agent-storage.ts",
+    "seed:tax-assistant-agent": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-tax-assistant-agent.ts",
     "seed:auth-owner-grants": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-auth-owner-grants.ts",
     "seed:auth-investor-grants": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-auth-investor-grants.ts",
     "stripe:provision": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/stripe-provision.ts",
