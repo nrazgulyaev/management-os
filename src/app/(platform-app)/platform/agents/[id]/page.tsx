@@ -61,6 +61,14 @@ interface DocRow {
   processing_error: string | null;
   uploaded_at: string;
   processed_at: string | null;
+  organization_id: string | null;
+  organization_code: string | null;
+}
+
+interface OrgPickRow {
+  id: string;
+  code: string;
+  name: string | null;
 }
 
 interface RunsKpiRow {
@@ -167,18 +175,35 @@ export default async function PlatformAgentDetailPage({
     tab === "knowledge"
       ? asRows<DocRow>(
           await db.execute(sql`
-            SELECT id::text                AS id,
-                   filename                 AS filename,
-                   mime_type                AS mime_type,
-                   size_bytes               AS size_bytes,
-                   chunk_count              AS chunk_count,
-                   processing_status        AS processing_status,
-                   processing_error         AS processing_error,
-                   uploaded_at::text        AS uploaded_at,
-                   processed_at::text       AS processed_at
-              FROM agent_knowledge_documents
-             WHERE agent_id = ${a.id}::uuid
-             ORDER BY uploaded_at DESC
+            SELECT d.id::text                  AS id,
+                   d.filename                   AS filename,
+                   d.mime_type                  AS mime_type,
+                   d.size_bytes                 AS size_bytes,
+                   d.chunk_count                AS chunk_count,
+                   d.processing_status          AS processing_status,
+                   d.processing_error           AS processing_error,
+                   d.uploaded_at::text          AS uploaded_at,
+                   d.processed_at::text         AS processed_at,
+                   d.organization_id::text      AS organization_id,
+                   o.organization_code          AS organization_code
+              FROM agent_knowledge_documents d
+              LEFT JOIN organizations o ON o.id = d.organization_id
+             WHERE d.agent_id = ${a.id}::uuid
+             ORDER BY d.uploaded_at DESC
+          `),
+        )
+      : [];
+
+  // Org list for the scope dropdown (knowledge tab only).
+  const orgPickRows =
+    tab === "knowledge"
+      ? asRows<OrgPickRow>(
+          await db.execute(sql`
+            SELECT id::text                  AS id,
+                   organization_code          AS code,
+                   display_name               AS name
+              FROM organizations
+             ORDER BY organization_code ASC
           `),
         )
       : [];
@@ -324,7 +349,9 @@ export default async function PlatformAgentDetailPage({
 
       {tab === "config" && <ConfigTab agent={a} />}
       {tab === "subs" && <SubscriptionsTab agentId={a.id} orgs={orgRows} />}
-      {tab === "knowledge" && <KnowledgeTab agentId={a.id} docs={docRows} />}
+      {tab === "knowledge" && (
+        <KnowledgeTab agentId={a.id} docs={docRows} orgs={orgPickRows} />
+      )}
       {tab === "runs" && (
         <RunsTab
           kpis={runsKpiRows[0] ?? null}
@@ -912,7 +939,15 @@ function Kpi({ label, value }: { label: string; value: string }) {
   );
 }
 
-function KnowledgeTab({ agentId, docs }: { agentId: string; docs: DocRow[] }) {
+function KnowledgeTab({
+  agentId,
+  docs,
+  orgs,
+}: {
+  agentId: string;
+  docs: DocRow[];
+  orgs: OrgPickRow[];
+}) {
   return (
     <div className="flex flex-col gap-6">
       <KnowledgePoller statuses={docs.map((d) => d.processing_status)} />
@@ -924,9 +959,8 @@ function KnowledgeTab({ agentId, docs }: { agentId: string; docs: DocRow[] }) {
           Upload document
         </h2>
         <p className="text-xs text-ink-tertiary mb-4">
-          PDF, DOCX, plain text, or markdown · up to 50 MB · the file is
-          chunked + embedded inline (10–60 s typical). The page reloads
-          when processing finishes.
+          PDF, DOCX, plain text, or markdown · up to 50 MB · processing
+          runs in the background. The list below updates automatically.
         </p>
         <form
           action={uploadAgentDocumentFromForm}
@@ -934,13 +968,40 @@ function KnowledgeTab({ agentId, docs }: { agentId: string; docs: DocRow[] }) {
           className="flex flex-col gap-3"
         >
           <input type="hidden" name="agentId" value={agentId} />
-          <input
-            type="file"
-            name="file"
-            required
-            accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
-            className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm file:mr-3 file:rounded-sm file:border-0 file:bg-ink file:text-ink-inverse file:px-3 file:py-1.5 file:text-xs"
-          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                File
+              </label>
+              <input
+                type="file"
+                name="file"
+                required
+                accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+                className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm file:mr-3 file:rounded-sm file:border-0 file:bg-ink file:text-ink-inverse file:px-3 file:py-1.5 file:text-xs"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                Scope
+              </label>
+              <select
+                name="organizationId"
+                defaultValue=""
+                className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm"
+              >
+                <option value="">Platform-global (all subscribed orgs)</option>
+                {orgs.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    Organization · {o.code}
+                    {o.name ? ` — ${o.name}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div>
             <button
               type="submit"
@@ -998,6 +1059,11 @@ function DocumentRow({ agentId, doc: d }: { agentId: string; doc: DocRow }) {
             {d.filename}
           </span>
           <Badge tone={statusTone}>{d.processing_status}</Badge>
+          <Badge tone={d.organization_id ? "ink" : "ok"}>
+            {d.organization_id
+              ? `Org · ${d.organization_code ?? d.organization_id.slice(0, 8)}`
+              : "Global"}
+          </Badge>
           <span className="text-[11px] text-ink-tertiary">
             {sizeKb} · {d.chunk_count} chunk{d.chunk_count === 1 ? "" : "s"}
           </span>

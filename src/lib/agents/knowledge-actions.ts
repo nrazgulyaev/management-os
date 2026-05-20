@@ -51,11 +51,19 @@ export async function uploadAgentDocumentFromForm(
   // return objects to the client. We redirect with ?error/?uploaded.
   const agentId = String(formData.get("agentId") ?? "");
   const file = formData.get("file");
+  // P5.4.POLISH.4 — optional org-scoped upload. Empty string OR
+  // missing field = platform-global (organization_id=NULL).
+  const rawOrg = String(formData.get("organizationId") ?? "").trim();
+  const organizationId = rawOrg.length === 36 ? rawOrg : null;
 
   if (!agentId) throw new Error("agentId is required");
   if (!(file instanceof File)) throw new Error("file is required");
 
-  const result = await uploadAndProcessAgentDocument({ agentId, file });
+  const result = await uploadAndProcessAgentDocument({
+    agentId,
+    file,
+    organizationId,
+  });
   const target = `/platform/agents/${agentId}?tab=knowledge`;
   const { redirect } = await import("next/navigation");
   if (!result.ok) {
@@ -71,8 +79,10 @@ export async function uploadAgentDocumentFromForm(
 export async function uploadAndProcessAgentDocument(input: {
   agentId: string;
   file: File;
+  /** NULL = platform-global; any subscribed org retrieves these. */
+  organizationId?: string | null;
 }): Promise<KnowledgeActionResult> {
-  const { agentId, file } = input;
+  const { agentId, file, organizationId = null } = input;
   try {
     const ctx = await requireSuperAdmin();
     const uploaderId = ctx.appUser?.id ?? null;
@@ -105,7 +115,7 @@ export async function uploadAndProcessAgentDocument(input: {
       .insert(agentKnowledgeDocuments)
       .values({
         agentId,
-        organizationId: null, // platform-global by default
+        organizationId,
         storagePath: "PENDING",
         filename: file.name.slice(0, 255),
         mimeType: mime,
