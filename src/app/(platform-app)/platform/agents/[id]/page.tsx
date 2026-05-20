@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { sql } from "drizzle-orm";
-import { ArrowLeft, KeyRound, Trash2 } from "lucide-react";
+import { ArrowLeft, KeyRound, Trash2, FileText, Upload, RefreshCcw } from "lucide-react";
 import {
   SectionHeading,
   Card,
@@ -15,6 +15,11 @@ import {
   deletePlatformAgentFromForm,
   toggleSubscriptionFromForm,
 } from "@/lib/agents/actions";
+import {
+  uploadAgentDocumentFromForm,
+  reprocessAgentDocumentFromForm,
+  deleteAgentDocumentFromForm,
+} from "@/lib/agents/knowledge-actions";
 
 export const metadata = { title: "Agent · Platform Admin" };
 export const dynamic = "force-dynamic";
@@ -44,6 +49,18 @@ interface OrgSubRow {
   enabled_at: string | null;
 }
 
+interface DocRow {
+  id: string;
+  filename: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  chunk_count: number;
+  processing_status: string;
+  processing_error: string | null;
+  uploaded_at: string;
+  processed_at: string | null;
+}
+
 function asRows<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
   if (result && typeof result === "object" && "rows" in result) {
@@ -68,6 +85,7 @@ export default async function PlatformAgentDetailPage({
     key_removed?: string;
     key_error?: string;
     sub?: string;
+    uploaded?: string;
   }>;
 }) {
   const { id } = await params;
@@ -109,6 +127,27 @@ export default async function PlatformAgentDetailPage({
   );
   if (agentRows.length === 0) notFound();
   const a = agentRows[0];
+
+  // Knowledge base — doc rows for the Knowledge tab.
+  const docRows =
+    tab === "knowledge"
+      ? asRows<DocRow>(
+          await db.execute(sql`
+            SELECT id::text                AS id,
+                   filename                 AS filename,
+                   mime_type                AS mime_type,
+                   size_bytes               AS size_bytes,
+                   chunk_count              AS chunk_count,
+                   processing_status        AS processing_status,
+                   processing_error         AS processing_error,
+                   uploaded_at::text        AS uploaded_at,
+                   processed_at::text       AS processed_at
+              FROM agent_knowledge_documents
+             WHERE agent_id = ${a.id}::uuid
+             ORDER BY uploaded_at DESC
+          `),
+        )
+      : [];
 
   // Org list + subscription state for the Subscriptions tab.
   const orgRows =
@@ -175,7 +214,7 @@ export default async function PlatformAgentDetailPage({
 
       {tab === "config" && <ConfigTab agent={a} />}
       {tab === "subs" && <SubscriptionsTab agentId={a.id} orgs={orgRows} />}
-      {tab === "knowledge" && <PlaceholderTab body="Document upload + chunking + embedding lands in P5.4 RAG infrastructure." />}
+      {tab === "knowledge" && <KnowledgeTab agentId={a.id} docs={docRows} />}
       {tab === "runs" && <PlaceholderTab body="Per-invocation telemetry (tokens, cost, latency, errors) lands in P5.4 once the inference path is wired." />}
       {tab === "test" && <PlaceholderTab body="Live agent test (chat with the agent before subscribing orgs) lands in P5.4 alongside the inference path." />}
     </div>
@@ -202,6 +241,7 @@ function Flash({
     key_removed?: string;
     key_error?: string;
     sub?: string;
+    uploaded?: string;
   };
 }) {
   if (params.error) {
@@ -229,7 +269,9 @@ function Flash({
             ? "Subscription enabled."
             : params.sub === "off"
               ? "Subscription disabled."
-              : null;
+              : params.uploaded
+                ? "Document uploaded — processing complete."
+                : null;
   if (!msg) return null;
   return (
     <div className="rounded-md border border-ok/40 bg-ok/5 px-4 py-3 text-sm text-ink">
@@ -545,6 +587,134 @@ function PlaceholderTab({ body }: { body: string }) {
     <Card style={{ padding: 32, textAlign: "center" }}>
       <p className="text-sm text-ink-tertiary max-w-md mx-auto">{body}</p>
     </Card>
+  );
+}
+
+function KnowledgeTab({ agentId, docs }: { agentId: string; docs: DocRow[] }) {
+  return (
+    <div className="flex flex-col gap-6">
+      <Card style={{ padding: 20 }}>
+        <h2
+          className="display"
+          style={{ fontSize: 18, marginBottom: 6, fontWeight: 500 }}
+        >
+          Upload document
+        </h2>
+        <p className="text-xs text-ink-tertiary mb-4">
+          PDF, DOCX, plain text, or markdown · up to 50 MB · the file is
+          chunked + embedded inline (10–60 s typical). The page reloads
+          when processing finishes.
+        </p>
+        <form
+          action={uploadAgentDocumentFromForm}
+          encType="multipart/form-data"
+          className="flex flex-col gap-3"
+        >
+          <input type="hidden" name="agentId" value={agentId} />
+          <input
+            type="file"
+            name="file"
+            required
+            accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+            className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm file:mr-3 file:rounded-sm file:border-0 file:bg-ink file:text-ink-inverse file:px-3 file:py-1.5 file:text-xs"
+          />
+          <div>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-md bg-ink px-4 py-2 text-sm text-ink-inverse hover:bg-ink/90"
+            >
+              <Upload className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Upload + process
+            </button>
+          </div>
+        </form>
+      </Card>
+
+      <Card style={{ padding: 0 }}>
+        <div className="px-5 py-4 border-b border-line-soft flex items-center justify-between">
+          <h2 className="display" style={{ fontSize: 16, fontWeight: 500 }}>
+            Documents ({docs.length})
+          </h2>
+          <p className="text-xs text-ink-tertiary">
+            Chunks are retrieved via cosine similarity at query time.
+          </p>
+        </div>
+        {docs.length === 0 ? (
+          <div className="px-5 py-12 text-center text-sm text-ink-tertiary">
+            No documents yet. Upload above to populate the agent&apos;s knowledge base.
+          </div>
+        ) : (
+          <ul className="divide-y divide-line-soft">
+            {docs.map((d) => (
+              <DocumentRow key={d.id} agentId={agentId} doc={d} />
+            ))}
+          </ul>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function DocumentRow({ agentId, doc: d }: { agentId: string; doc: DocRow }) {
+  const sizeKb = d.size_bytes ? `${(d.size_bytes / 1024).toFixed(0)} KB` : "—";
+  const statusTone =
+    d.processing_status === "ready"
+      ? "ok"
+      : d.processing_status === "failed"
+        ? "danger"
+        : "warn";
+  return (
+    <li className="px-5 py-4 flex items-start gap-4">
+      <FileText
+        className="w-4 h-4 text-ink-tertiary mt-1 shrink-0"
+        strokeWidth={1.75}
+      />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-ink font-medium truncate">
+            {d.filename}
+          </span>
+          <Badge tone={statusTone}>{d.processing_status}</Badge>
+          <span className="text-[11px] text-ink-tertiary">
+            {sizeKb} · {d.chunk_count} chunk{d.chunk_count === 1 ? "" : "s"}
+          </span>
+        </div>
+        {d.processing_error && (
+          <p className="text-xs text-danger mt-1 break-words">{d.processing_error}</p>
+        )}
+        <p className="text-[11px] text-ink-tertiary mt-1">
+          Uploaded {d.uploaded_at.slice(0, 19).replace("T", " ")}
+          {d.processed_at &&
+            ` · processed ${d.processed_at.slice(0, 19).replace("T", " ")}`}
+        </p>
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        {d.processing_status === "failed" && (
+          <form action={reprocessAgentDocumentFromForm}>
+            <input type="hidden" name="documentId" value={d.id} />
+            <input type="hidden" name="agentId" value={agentId} />
+            <button
+              type="submit"
+              title="Re-process"
+              className="p-1.5 rounded-sm hover:bg-muted text-ink-tertiary hover:text-ink"
+            >
+              <RefreshCcw className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </button>
+          </form>
+        )}
+        <form action={deleteAgentDocumentFromForm}>
+          <input type="hidden" name="documentId" value={d.id} />
+          <input type="hidden" name="agentId" value={agentId} />
+          <button
+            type="submit"
+            title="Delete document + chunks"
+            className="p-1.5 rounded-sm hover:bg-danger/10 text-ink-tertiary hover:text-danger"
+          >
+            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </button>
+        </form>
+      </div>
+    </li>
   );
 }
 
