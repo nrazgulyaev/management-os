@@ -71,6 +71,14 @@ export const PRODUCT_SUBDOMAINS = {
       "/accept-invitation",
       "/no-product-access",
       "/legal",
+      // PLATFORM-ROUTING-HOTFIX-2 — completes 681fd6d. The `platform`
+      // subdomain entry was removed but /platform was not added to the
+      // surviving subdomains' allow-lists, so super_admin requests were
+      // 307'd to `/` by the deny path at the bottom of middleware()
+      // before the (platform-app)/layout.tsx role gate could fire. The
+      // layout's `isSuperAdminContext()` check is the real security
+      // boundary; the host is not.
+      "/platform",
     ],
     defaultLanding: "/",
   },
@@ -87,6 +95,8 @@ export const PRODUCT_SUBDOMAINS = {
       "/accept-invitation",
       "/no-product-access",
       "/legal",
+      // PLATFORM-ROUTING-HOTFIX-2 — see management entry for rationale.
+      "/platform",
     ],
     defaultLanding: "/",
   },
@@ -110,6 +120,8 @@ export const PRODUCT_SUBDOMAINS = {
       "/accept-invitation",
       "/no-product-access",
       "/legal",
+      // PLATFORM-ROUTING-HOTFIX-2 — see management entry for rationale.
+      "/platform",
     ],
     defaultLanding: "/",
   },

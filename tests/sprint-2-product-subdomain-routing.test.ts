@@ -138,7 +138,11 @@ test("sprint-2 — management subdomain allows /dashboard/* but not /development
   assert.equal(isPathAllowedOnProduct("management", "/stay/abc"), true);
   assert.equal(isPathAllowedOnProduct("management", "/login"), true);
   assert.equal(isPathAllowedOnProduct("management", "/development-os"), false);
-  assert.equal(isPathAllowedOnProduct("management", "/platform"), false);
+  // PLATFORM-ROUTING-HOTFIX-2 — /platform must be allowed on every
+  // product subdomain; the host is no longer the security boundary,
+  // (platform-app)/layout.tsx's super_admin check is.
+  assert.equal(isPathAllowedOnProduct("management", "/platform"), true);
+  assert.equal(isPathAllowedOnProduct("management", "/platform/agents"), true);
   assert.equal(isPathAllowedOnProduct("management", "/pricing"), false);
 });
 
@@ -153,7 +157,9 @@ test("sprint-2 — development subdomain allows /development-os/* but not /dashb
   assert.equal(isPathAllowedOnProduct("development", "/buyer-portal"), true);
   assert.equal(isPathAllowedOnProduct("development", "/vendor/service/abc"), true);
   assert.equal(isPathAllowedOnProduct("development", "/dashboard"), false);
-  assert.equal(isPathAllowedOnProduct("development", "/platform"), false);
+  // PLATFORM-ROUTING-HOTFIX-2 — see management test above.
+  assert.equal(isPathAllowedOnProduct("development", "/platform"), true);
+  assert.equal(isPathAllowedOnProduct("development", "/platform/agents"), true);
 });
 
 // PLATFORM-ROUTING-FIX (2026-05-19) — `platform` subdomain removed. The
@@ -174,7 +180,9 @@ test("sprint-2 — subscription subdomain allows sales paths but not product app
   assert.equal(isPathAllowedOnProduct("subscription", "/contact"), true);
   assert.equal(isPathAllowedOnProduct("subscription", "/dashboard"), false);
   assert.equal(isPathAllowedOnProduct("subscription", "/development-os"), false);
-  assert.equal(isPathAllowedOnProduct("subscription", "/platform"), false);
+  // PLATFORM-ROUTING-HOTFIX-2 — see management test above.
+  assert.equal(isPathAllowedOnProduct("subscription", "/platform"), true);
+  assert.equal(isPathAllowedOnProduct("subscription", "/platform/agents"), true);
 });
 
 test("sprint-2 — prefix matching respects path boundaries (no /developmentXYZ false match)", async () => {
