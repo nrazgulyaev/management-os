@@ -72,14 +72,18 @@
   --data-sage: #6e8a7a;
   --data-terracotta: #9e5a49;
 
-  /* Radii — only the sizes with callers in src/ */
+  /* Radii — sizes registered as Tailwind `rounded-*` utilities.
+     The @theme inline block below maps each --r-* to a --radius-*
+     entry so Tailwind generates the matching utility class. */
   --r-sm: 8px;
   --r-md: 12px;
+  --r-lg: 20px;
+  --r-xl: 32px;
 
-  /* Stage 10.6.C.1 — bigger radii for hero cards. --r-4xl currently has
-     no var() callers in src/, but it's part of the documented Stage
-     10.6.C.1 token contract (asserted by tests/development-stage-10-6-
-     c-1-tokens.test.ts). Keep it. */
+  /* Stage 10.6.C.1 — bigger radii for hero cards. --r-4xl has no var()
+     callers in src/, but it's part of the documented Stage 10.6.C.1
+     token contract (asserted by tests/development-stage-10-6-c-1-tokens
+     .test.ts) and registers `rounded-4xl`. Keep it. */
   --r-2xl: 20px;
   --r-3xl: 24px;
   --r-4xl: 32px;
@@ -189,9 +193,7 @@
   --color-data-stone: var(--data-stone);
   --color-data-sage: var(--data-sage);
   --color-data-terracotta: var(--data-terracotta);
-  --color-data-ink: var(--data-ink);
 
-  --radius-xs: var(--r-xs);
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
