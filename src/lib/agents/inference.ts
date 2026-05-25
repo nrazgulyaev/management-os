@@ -26,7 +26,7 @@ import "server-only";
  */
 
 import { sql, eq, and, desc } from "drizzle-orm";
-import { streamText, type LanguageModel } from "ai";
+import { streamText, generateText, stepCountIs, type LanguageModel } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { requireDb } from "@/lib/db/client";
@@ -42,6 +42,7 @@ import { assertAgentEnvReady } from "./env";
 import { retrieveRelevantChunks, formatChunksAsContext } from "./retrieval";
 import { computeCostUsdMinor, estimateCostUsdMinor } from "./pricing";
 import { countTokens } from "./openai-client";
+import { getToolsForAgent, type AgentExecutionContext } from "./tools";
 
 const HISTORY_TURN_LIMIT = 10;
 const DEFAULT_TOP_K = 5;
@@ -443,3 +444,268 @@ function buildLanguageModel(
       );
   }
 }
+
+// ---------------------------------------------------------------------------
+// DAILY-DIGEST-SPRINT-1 P2.2 — non-streaming tool-loop runner
+// ---------------------------------------------------------------------------
+//
+// `runAgentWithTools` is the cron-side / digest-side counterpart to
+// `streamAgentResponse`. Key differences:
+//   · Non-streaming — caller gets the final text once the loop settles.
+//     The cron handler doesn't have a client to stream to.
+//   · Tool-calling enabled via getToolsForAgent(agent_code, ctx). The
+//     AI SDK's generateText handles tool_use → tool_result automatically
+//     when `stopWhen: stepCountIs(N)` is set.
+//   · No thread persistence — digests are stateless one-shots, not
+//     conversational. Skips agentThreads + agentMessages writes.
+//   · No RAG retrieval — context comes from tool calls, not chunks.
+//   · Still enforces the budget gate + writes an agent_runs row with
+//     run_type='scheduled', scheduled_for=<date>, plus a metadata
+//     blob recording every tool_call name+input+output_summary.
+
+const MAX_TOOL_STEPS = 10;
+
+export interface RunAgentWithToolsParams {
+  agentId: string;
+  organizationId: string;
+  userId: string;
+  /** ISO YYYY-MM-DD — the date the digest covers. */
+  scheduledFor: string;
+  /** IANA timezone of the recipient (forwarded into AgentExecutionContext). */
+  timezone?: string;
+  /**
+   * The user-facing message the agent sees. For Daily Digest this is
+   * a brief "Generate the digest for <date>" prompt — the system
+   * prompt does the heavy structural work.
+   */
+  userMessage: string;
+}
+
+export interface RunAgentWithToolsResult {
+  runId: string;
+  text: string;
+  toolCalls: number;
+  tokensIn: number;
+  tokensOut: number;
+  costUsdMinor: number;
+  latencyMs: number;
+}
+
+interface ToolCallTrace {
+  name: string;
+  /** Stringified input (capped at 500 chars). */
+  input: string;
+  /** Stringified output preview (capped at 500 chars). */
+  output_preview: string;
+}
+
+export async function runAgentWithTools(
+  params: RunAgentWithToolsParams,
+): Promise<RunAgentWithToolsResult> {
+  assertAgentEnvReady();
+  const db = requireDb();
+
+  // ---- Load agent + subscription overrides ------------------------------
+  const [agent] = await db
+    .select()
+    .from(platformAgentConfigs)
+    .where(eq(platformAgentConfigs.id, params.agentId))
+    .limit(1);
+  if (!agent) {
+    throw new AgentInferenceError("AGENT_NOT_FOUND", `Agent ${params.agentId} not found.`);
+  }
+  if (!agent.isActive) {
+    throw new AgentInferenceError("AGENT_INACTIVE", "Agent disabled.");
+  }
+
+  const [sub] = await db
+    .select()
+    .from(orgAgentSubscriptions)
+    .where(
+      and(
+        eq(orgAgentSubscriptions.agentId, params.agentId),
+        eq(orgAgentSubscriptions.organizationId, params.organizationId),
+      ),
+    )
+    .limit(1);
+
+  // Subscriptions are an explicit gate even for cron runs. A cron
+  // shouldn't generate a digest for an org that has unsubscribed.
+  if (!sub || !sub.isEnabled) {
+    throw new AgentInferenceError(
+      "NOT_SUBSCRIBED",
+      "Organization is not subscribed to this agent.",
+    );
+  }
+
+  const systemPrompt = sub.customSystemPrompt ?? agent.systemPrompt;
+  const monthlyBudgetUsdMinor =
+    sub.customBudgetUsdMinor ?? agent.budgetMonthlyUsdMinor;
+
+  // ---- Budget gate ------------------------------------------------------
+  const spentRows = await db.execute<{ spent: string }>(sql`
+    SELECT COALESCE(SUM(cost_usd_minor), 0)::text AS spent
+      FROM agent_runs
+     WHERE agent_id = ${params.agentId}::uuid
+       AND organization_id = ${params.organizationId}::uuid
+       AND started_at >= date_trunc('month', now())
+  `);
+  const spentUsdMinor = Number(
+    (spentRows as unknown as { rows?: Array<{ spent: string }> }).rows?.[0]
+      ?.spent ?? "0",
+  );
+  if (spentUsdMinor >= monthlyBudgetUsdMinor) {
+    const runRow = await openRun(db, params, "budget_exceeded", "monthly budget already exceeded");
+    throw new BudgetExceededError(
+      `Run ${runRow.id} not started — monthly budget already exceeded for this agent.`,
+    );
+  }
+
+  // ---- Tool map for this run -------------------------------------------
+  const ctx: AgentExecutionContext = {
+    orgId: params.organizationId,
+    userId: params.userId,
+    date: params.scheduledFor,
+    timezone: params.timezone,
+  };
+  const tools = getToolsForAgent(agent.agentCode, ctx);
+
+  // ---- API key + provider ----------------------------------------------
+  const apiKey = await retrieveAgentApiKey(params.agentId);
+  if (!apiKey) {
+    const runRow = await openRun(db, params, "error", "no API key configured");
+    throw new AgentInferenceError(
+      "MISSING_API_KEY",
+      `Run ${runRow.id} not started — agent has no API key.`,
+    );
+  }
+  const model = buildLanguageModel(agent.provider, agent.model, apiKey);
+
+  // ---- Open in-progress run row ----------------------------------------
+  const [run] = await db
+    .insert(agentRuns)
+    .values({
+      agentId: params.agentId,
+      organizationId: params.organizationId,
+      userId: params.userId,
+      status: "in_progress",
+      // P1.1 columns
+      runType: "scheduled",
+      scheduledFor: params.scheduledFor,
+    } as never)
+    .returning({ id: agentRuns.id });
+
+  const startedAt = Date.now();
+  const toolCallTraces: ToolCallTrace[] = [];
+
+  // ---- Run + handle tool-loop -----------------------------------------
+  try {
+    const result = await generateText({
+      model,
+      system: systemPrompt,
+      prompt: params.userMessage,
+      tools,
+      stopWhen: stepCountIs(MAX_TOOL_STEPS),
+      temperature: Number(agent.temperature),
+      maxOutputTokens: agent.maxTokens,
+      onStepFinish: (step) => {
+        // Capture each tool call's input + a preview of the result so
+        // metadata gives operators visibility into what the agent
+        // actually fetched. AI SDK provides `step.toolCalls` and
+        // `step.toolResults` for the step that just settled.
+        for (const tc of step.toolCalls ?? []) {
+          const inputStr = safeJson(tc.input).slice(0, 500);
+          const match = (step.toolResults ?? []).find(
+            (tr) => tr.toolCallId === tc.toolCallId,
+          );
+          const outputStr = safeJson(match?.output).slice(0, 500);
+          toolCallTraces.push({
+            name: tc.toolName,
+            input: inputStr,
+            output_preview: outputStr,
+          });
+        }
+      },
+    });
+
+    const tokensIn = result.usage?.inputTokens ?? countTokens(systemPrompt + params.userMessage);
+    const tokensOut =
+      result.usage?.outputTokens ?? countTokens(result.text ?? "");
+    const costUsdMinor = computeCostUsdMinor({
+      provider: agent.provider,
+      model: agent.model,
+      tokensIn,
+      tokensOut,
+    });
+    const latencyMs = Date.now() - startedAt;
+
+    await db
+      .update(agentRuns)
+      .set({
+        status: "success",
+        tokensIn,
+        tokensOut,
+        costUsdMinor,
+        latencyMs,
+        completedAt: sql`now()`,
+        metadata: { tool_calls: toolCallTraces, steps: result.steps?.length ?? 1 } as never,
+      })
+      .where(eq(agentRuns.id, run.id));
+
+    return {
+      runId: run.id,
+      text: result.text ?? "",
+      toolCalls: toolCallTraces.length,
+      tokensIn,
+      tokensOut,
+      costUsdMinor,
+      latencyMs,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await db
+      .update(agentRuns)
+      .set({
+        status: "error",
+        errorMessage: msg.slice(0, 500),
+        latencyMs: Date.now() - startedAt,
+        completedAt: sql`now()`,
+        metadata: { tool_calls: toolCallTraces } as never,
+      })
+      .where(eq(agentRuns.id, run.id));
+    throw e;
+  }
+}
+
+async function openRun(
+  db: ReturnType<typeof requireDb>,
+  params: RunAgentWithToolsParams,
+  status: "error" | "budget_exceeded",
+  reason: string,
+): Promise<{ id: string }> {
+  const [row] = await db
+    .insert(agentRuns)
+    .values({
+      agentId: params.agentId,
+      organizationId: params.organizationId,
+      userId: params.userId,
+      status,
+      errorMessage: reason,
+      runType: "scheduled",
+      scheduledFor: params.scheduledFor,
+      completedAt: sql`now()` as never,
+    } as never)
+    .returning({ id: agentRuns.id });
+  return row;
+}
+
+function safeJson(v: unknown): string {
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+}
+
+// Imports unused so far in the file body but required by the new code above.
+void desc;

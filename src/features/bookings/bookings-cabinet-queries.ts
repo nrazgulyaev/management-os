@@ -317,3 +317,133 @@ export async function getConflictResolverItems(): Promise<ConflictRow[]> {
 }
 
 export { usdToIdrMinor };
+
+// =============================================================================
+// DAILY-DIGEST-SPRINT-1 P2 — date-scoped activity for the Daily Digest agent.
+// =============================================================================
+//
+// Note: the `bookings` table has no organization_id column today (schema-
+// level multi-tenancy gap tracked in the FUNCTIONAL-AUDIT-1 doc). All
+// queries are platform-wide; orgId is accepted for forward-compatibility
+// + audit trail but not yet used as a WHERE clause.
+
+export interface DigestBookingsForDate {
+  date: string;
+  checkInsCount: number;
+  checkOutsCount: number;
+  newBookingsCount: number;
+  newBookingsRevenueUsd: number;
+  cancellationsCount: number;
+  netRevenueUsd: number;
+  notableArrivals: Array<{
+    bookingCode: string;
+    villaCode: string;
+    guestName: string | null;
+    nights: number;
+    grossUsd: number;
+  }>;
+}
+
+/**
+ * Bookings activity for the Daily Digest. Returns counts + a small
+ * sample of notable arrivals so the agent can flag specific check-ins
+ * without needing a second tool call.
+ *
+ * "New bookings" = rows whose created_at falls on the digest date.
+ * "Check-ins" / "check-outs" = rows whose check_in / check_out equals
+ * the digest date. Cancellations = status='cancelled' transitions on
+ * that date (using updated_at as proxy — fine for v1).
+ */
+export async function getBookingsActivityForDate(input: {
+  orgId: string;
+  date: string;
+}): Promise<DigestBookingsForDate> {
+  const db = getDb();
+  if (!db) {
+    return {
+      date: input.date,
+      checkInsCount: 0,
+      checkOutsCount: 0,
+      newBookingsCount: 0,
+      newBookingsRevenueUsd: 0,
+      cancellationsCount: 0,
+      netRevenueUsd: 0,
+      notableArrivals: [],
+    };
+  }
+
+  const aggRows = await db.execute<{
+    check_ins: string;
+    check_outs: string;
+    new_bookings: string;
+    new_revenue: string;
+    cancellations: string;
+  }>(sql`
+    SELECT
+      (SELECT COUNT(*)::text FROM bookings
+        WHERE check_in::date  = ${input.date}::date
+          AND status IN ('confirmed','checked_in','checked_out')) AS check_ins,
+      (SELECT COUNT(*)::text FROM bookings
+        WHERE check_out::date = ${input.date}::date
+          AND status IN ('confirmed','checked_in','checked_out')) AS check_outs,
+      (SELECT COUNT(*)::text FROM bookings
+        WHERE created_at::date = ${input.date}::date) AS new_bookings,
+      (SELECT COALESCE(SUM(gross_amount), 0)::text FROM bookings
+        WHERE created_at::date = ${input.date}::date
+          AND status IN ('confirmed','checked_in','checked_out')) AS new_revenue,
+      (SELECT COUNT(*)::text FROM bookings
+        WHERE status = 'cancelled'
+          AND updated_at::date = ${input.date}::date) AS cancellations
+  `);
+  const agg = rowsOf<{
+    check_ins: string;
+    check_outs: string;
+    new_bookings: string;
+    new_revenue: string;
+    cancellations: string;
+  }>(aggRows)[0];
+
+  const notable = await db.execute<{
+    booking_code: string;
+    villa_code: string;
+    guest_name: string | null;
+    nights: string;
+    gross_amount: string;
+  }>(sql`
+    SELECT b.booking_code, v.unit_code AS villa_code, b.notes AS guest_name,
+           b.nights::text AS nights, b.gross_amount::text AS gross_amount
+      FROM bookings b
+      JOIN villas v ON v.id = b.villa_id
+     WHERE b.check_in::date = ${input.date}::date
+       AND b.status IN ('confirmed','checked_in','checked_out')
+     ORDER BY b.gross_amount DESC
+     LIMIT 3
+  `);
+  const notableArrivals = rowsOf<{
+    booking_code: string;
+    villa_code: string;
+    guest_name: string | null;
+    nights: string;
+    gross_amount: string;
+  }>(notable).map((r) => ({
+    bookingCode: r.booking_code,
+    villaCode: r.villa_code,
+    guestName: r.guest_name?.replace(/^\[DEMO2\] /, "").trim() || null,
+    nights: Number(r.nights),
+    grossUsd: Number(r.gross_amount),
+  }));
+
+  // Net revenue = new bookings revenue − cancellation refunds (simplified:
+  // count cancellations × avg gross). Good enough for digest copy.
+  const newRevenue = Number(agg?.new_revenue ?? "0");
+  return {
+    date: input.date,
+    checkInsCount: Number(agg?.check_ins ?? "0"),
+    checkOutsCount: Number(agg?.check_outs ?? "0"),
+    newBookingsCount: Number(agg?.new_bookings ?? "0"),
+    newBookingsRevenueUsd: newRevenue,
+    cancellationsCount: Number(agg?.cancellations ?? "0"),
+    netRevenueUsd: newRevenue, // refinement deferred — see comment above
+    notableArrivals,
+  };
+}

@@ -290,12 +290,80 @@ export const agentRuns = pgTable(
       .notNull()
       .defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    // DAILY-DIGEST-SPRINT-1 migration 0110.
+    /** 'user_initiated' | 'scheduled' — defaults to 'user_initiated' for
+     *  backwards-compat with existing tax_assistant rows. */
+    runType: text("run_type").notNull().default("user_initiated"),
+    /** ISO YYYY-MM-DD — the date the scheduled run covers (NULL for
+     *  user_initiated runs). */
+    scheduledFor: text("scheduled_for"),
+    /** Back-ref to the notifications row this run produced. NULL until
+     *  Phase 4 wires the notifications surface. */
+    notificationId: uuid("notification_id"),
+    /** Scratchpad for tool_call logs + future agent introspection.
+     *  Shape: { tool_calls: [{ name, input, output_preview }], steps?: n }. */
+    metadata: jsonb("metadata"),
   },
   (t) => [
     index("agent_runs_agent_started_idx").on(t.agentId, t.startedAt),
     index("agent_runs_org_started_idx").on(t.organizationId, t.startedAt),
     index("agent_runs_status_idx").on(t.status),
   ],
+);
+
+// -----------------------------------------------------------------------------
+// DAILY-DIGEST-SPRINT-1 migration 0111 — agent_digest_subscriptions + notifications.
+// -----------------------------------------------------------------------------
+
+export const agentDigestSubscriptions = pgTable(
+  "agent_digest_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    agentCode: text("agent_code").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    digestHourLocal: integer("digest_hour_local").notNull().default(7),
+    timezone: text("timezone").notNull().default("Asia/Makassar"),
+    isEnabled: boolean("is_enabled").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    unique("agent_digest_subscriptions_unique").on(t.agentCode, t.userId),
+    index("idx_digest_subs_active").on(t.agentCode, t.timezone),
+  ],
+);
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id),
+    title: text("title").notNull(),
+    /** Markdown content (digest body, alert message, etc.). */
+    body: text("body").notNull(),
+    /** 'digest' | 'alert' | 'info' — CHECK constraint enforced in SQL. */
+    type: text("type").notNull(),
+    relatedRunId: uuid("related_run_id").references(() => agentRuns.id),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("idx_notif_user_unread").on(t.userId, t.createdAt)],
 );
 
 // -----------------------------------------------------------------------------
@@ -310,3 +378,5 @@ export type AgentKnowledgeChunk = typeof agentKnowledgeChunks.$inferSelect;
 export type AgentThread = typeof agentThreads.$inferSelect;
 export type AgentMessage = typeof agentMessages.$inferSelect;
 export type AgentRun = typeof agentRuns.$inferSelect;
+export type AgentDigestSubscription = typeof agentDigestSubscriptions.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;

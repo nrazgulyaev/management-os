@@ -267,3 +267,118 @@ export interface ServiceRequestRow {
 export async function getServiceRequestsForCabinet(): Promise<ServiceRequestRow[]> {
   return [];
 }
+
+// =============================================================================
+// DAILY-DIGEST-SPRINT-1 P2 — date-scoped operational incidents for the Daily
+// Digest agent.
+// =============================================================================
+
+export interface DigestOperationalIncidentsForDate {
+  date: string;
+  newTicketsCount: number;
+  ticketsResolvedCount: number;
+  highSeverityOpenCount: number;
+  newServiceRequestsCount: number;
+  topNewTickets: Array<{
+    ticketCode: string;
+    villaCode: string | null;
+    title: string;
+    severity: string;
+    category: string;
+  }>;
+}
+
+/**
+ * Maintenance + service activity logged on the digest date. Includes
+ * a top-3 sample of newly-opened tickets so the agent can flag
+ * specific issues. No org filter — maintenance_tickets +
+ * service_requests have no organization_id column today.
+ */
+export async function getOperationalIncidentsForDate(input: {
+  orgId: string;
+  date: string;
+}): Promise<DigestOperationalIncidentsForDate> {
+  const db = getDb();
+  if (!db) {
+    return {
+      date: input.date,
+      newTicketsCount: 0,
+      ticketsResolvedCount: 0,
+      highSeverityOpenCount: 0,
+      newServiceRequestsCount: 0,
+      topNewTickets: [],
+    };
+  }
+
+  const aggRows = await db.execute<{
+    new_tickets: string;
+    resolved: string;
+    high_open: string;
+    new_service: string;
+  }>(sql`
+    SELECT
+      (SELECT COUNT(*)::text FROM maintenance_tickets
+        WHERE reported_at::date = ${input.date}::date) AS new_tickets,
+      (SELECT COUNT(*)::text FROM maintenance_tickets
+        WHERE status IN ('resolved','closed')
+          AND updated_at::date = ${input.date}::date) AS resolved,
+      (SELECT COUNT(*)::text FROM maintenance_tickets
+        WHERE severity IN ('high','critical','urgent')
+          AND status NOT IN ('resolved','closed','cancelled')) AS high_open,
+      (SELECT COUNT(*)::text FROM service_requests
+        WHERE created_at::date = ${input.date}::date) AS new_service
+  `);
+  const agg = rowsOf<{
+    new_tickets: string;
+    resolved: string;
+    high_open: string;
+    new_service: string;
+  }>(aggRows)[0];
+
+  const top = await db.execute<{
+    ticket_code: string;
+    villa_code: string | null;
+    title: string;
+    severity: string;
+    category: string;
+  }>(sql`
+    SELECT mt.ticket_code,
+           v.unit_code        AS villa_code,
+           mt.title           AS title,
+           mt.severity        AS severity,
+           mt.issue_category  AS category
+      FROM maintenance_tickets mt
+      LEFT JOIN villas v ON v.id = mt.villa_id
+     WHERE mt.reported_at::date = ${input.date}::date
+     ORDER BY CASE mt.severity
+                WHEN 'critical' THEN 0
+                WHEN 'urgent'   THEN 1
+                WHEN 'high'     THEN 2
+                WHEN 'medium'   THEN 3
+                ELSE 4 END,
+              mt.reported_at DESC
+     LIMIT 3
+  `);
+  const topNewTickets = rowsOf<{
+    ticket_code: string;
+    villa_code: string | null;
+    title: string;
+    severity: string;
+    category: string;
+  }>(top).map((r) => ({
+    ticketCode: r.ticket_code,
+    villaCode: r.villa_code,
+    title: r.title.replace(/^\[DEMO2\] /, ""),
+    severity: r.severity,
+    category: r.category,
+  }));
+
+  return {
+    date: input.date,
+    newTicketsCount: Number(agg?.new_tickets ?? "0"),
+    ticketsResolvedCount: Number(agg?.resolved ?? "0"),
+    highSeverityOpenCount: Number(agg?.high_open ?? "0"),
+    newServiceRequestsCount: Number(agg?.new_service ?? "0"),
+    topNewTickets,
+  };
+}

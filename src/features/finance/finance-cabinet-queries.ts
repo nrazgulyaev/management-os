@@ -599,3 +599,73 @@ export async function getOwnerStatementDetail(
     lines,
   };
 }
+
+
+// =============================================================================
+// DAILY-DIGEST-SPRINT-1 P2 — date-scoped financial activity for the Daily
+// Digest agent.
+// =============================================================================
+
+export interface DigestFinancialActivityForDate {
+  date: string;
+  bookingRevenueUsd: number;     // gross_amount summed over bookings created on date
+  statementsApprovedCount: number;
+  statementsSentCount: number;
+  payoutsQueuedCount: number;    // approximate — count of approved-but-not-sent
+}
+
+/**
+ * Day's financial pulse — booking-side revenue created on the date,
+ * statement approval / sending activity, payout queue depth.
+ *
+ * Aggregated in a single round-trip so the agent gets one tool call's
+ * worth of context. No org filter: see note in bookings file (same
+ * schema gap applies).
+ */
+export async function getFinancialActivityForDate(input: {
+  orgId: string;
+  date: string;
+}): Promise<DigestFinancialActivityForDate> {
+  const db = getDb();
+  if (!db) {
+    return {
+      date: input.date,
+      bookingRevenueUsd: 0,
+      statementsApprovedCount: 0,
+      statementsSentCount: 0,
+      payoutsQueuedCount: 0,
+    };
+  }
+
+  const rows = await db.execute<{
+    booking_revenue: string;
+    stmts_approved: string;
+    stmts_sent: string;
+    payouts_queued: string;
+  }>(sql`
+    SELECT
+      (SELECT COALESCE(SUM(gross_amount), 0)::text FROM bookings
+        WHERE created_at::date = ${input.date}::date
+          AND status IN ('confirmed','checked_in','checked_out')) AS booking_revenue,
+      (SELECT COUNT(*)::text FROM owner_statements
+        WHERE approved_at::date = ${input.date}::date) AS stmts_approved,
+      (SELECT COUNT(*)::text FROM owner_statements
+        WHERE sent_at::date = ${input.date}::date) AS stmts_sent,
+      (SELECT COUNT(*)::text FROM owner_statements
+        WHERE status = 'approved' AND sent_at IS NULL) AS payouts_queued
+  `);
+  const r = rowsOf<{
+    booking_revenue: string;
+    stmts_approved: string;
+    stmts_sent: string;
+    payouts_queued: string;
+  }>(rows)[0];
+
+  return {
+    date: input.date,
+    bookingRevenueUsd: Number(r?.booking_revenue ?? "0"),
+    statementsApprovedCount: Number(r?.stmts_approved ?? "0"),
+    statementsSentCount: Number(r?.stmts_sent ?? "0"),
+    payoutsQueuedCount: Number(r?.payouts_queued ?? "0"),
+  };
+}
