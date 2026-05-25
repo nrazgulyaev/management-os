@@ -279,7 +279,20 @@ export async function countUnreadForCurrentUser(): Promise<number> {
         eq(inAppNotifications.status, "unread"),
       ),
     );
-  return Number(row?.c ?? 0);
+  const operationalUnread = Number(row?.c ?? 0);
+
+  // DAILY-DIGEST-SPRINT-1 P4.1 — additive UNION over the new
+  // `notifications` table (created in migration 0111). Two parallel
+  // notification systems live for now (see src/features/digests/
+  // queries.ts for the rationale); this read combines their unread
+  // counts so the topbar bell badge reflects the user's TRUE
+  // unread total. Read-only; no writer-side changes.
+  const { countUnreadDigestsForCurrentUser } = await import(
+    "@/features/digests/queries"
+  );
+  const digestUnread = await countUnreadDigestsForCurrentUser();
+
+  return operationalUnread + digestUnread;
 }
 
 // -----------------------------------------------------------------------------
