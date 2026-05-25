@@ -2,7 +2,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import { safeQuery } from "@/lib/development/safe-query";
 import { loadMarketingCabinet } from "@/lib/development/server/cabinets/marketing-cabinet-queries";
@@ -172,7 +172,7 @@ export default async function DevMarketingPage() {
                 <td className="num">{c.reach}</td>
                 <td className="num">{c.leads}</td>
                 <td>
-                  <Badge tone={c.status === "warn" ? "warn" : "ok"}>{c.label}</Badge>
+                  <HandoffBadge tone={c.status === "warn" ? "warn" : "ok"}>{c.label}</HandoffBadge>
                 </td>
               </tr>
             ))}

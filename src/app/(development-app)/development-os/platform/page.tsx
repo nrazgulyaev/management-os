@@ -3,7 +3,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 
 export const metadata = { title: "Development OS · Platform" };
@@ -82,7 +82,7 @@ export default function DevPlatformPage() {
                 <td className="num">{o.users}</td>
                 <td className="num">{o.mrr}</td>
                 <td>
-                  <Badge tone="ok">Active</Badge>
+                  <HandoffBadge tone="ok">Active</HandoffBadge>
                 </td>
               </tr>
             ))}

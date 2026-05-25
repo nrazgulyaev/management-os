@@ -5,7 +5,7 @@ import { ArrowLeft, KeyRound, Trash2, FileText, Upload, RefreshCcw } from "lucid
 import {
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import { getDb } from "@/lib/db/client";
 import {
@@ -318,12 +318,12 @@ export default async function PlatformAgentDetailPage({
         subtitle={a.description ?? `${a.provider} · ${a.model}`}
         actions={
           <div className="flex items-center gap-2">
-            <Badge tone={a.is_active ? "ok" : "ink"}>
+            <HandoffBadge tone={a.is_active ? "ok" : "ink"}>
               {a.is_active ? "Active" : "Inactive"}
-            </Badge>
-            <Badge tone={a.vault_secret_name ? "ok" : "warn"}>
+            </HandoffBadge>
+            <HandoffBadge tone={a.vault_secret_name ? "ok" : "warn"}>
               {a.vault_secret_name ? "Key configured" : "No key"}
-            </Badge>
+            </HandoffBadge>
           </div>
         }
       />
@@ -709,9 +709,9 @@ function SubscriptionsTab({
                   {o.organization_code}
                 </td>
                 <td>
-                  <Badge tone={enabled ? "ok" : "ink"}>
+                  <HandoffBadge tone={enabled ? "ok" : "ink"}>
                     {o.is_enabled === null ? "Not subscribed" : enabled ? "On" : "Off"}
-                  </Badge>
+                  </HandoffBadge>
                 </td>
                 <td>
                   <form action={toggleSubscriptionFromForm}>
@@ -806,7 +806,7 @@ function RunsTab({
               return (
                 <li key={b.status} className="flex items-center gap-3">
                   <div className="w-28 shrink-0">
-                    <Badge tone={STATUS_TONE[b.status] ?? "ink"}>{b.status}</Badge>
+                    <HandoffBadge tone={STATUS_TONE[b.status] ?? "ink"}>{b.status}</HandoffBadge>
                   </div>
                   <div className="flex-1 h-2 bg-muted rounded-sm overflow-hidden">
                     <div
@@ -902,7 +902,7 @@ function RunsTab({
                     {r.user_email ?? "—"}
                   </td>
                   <td className="px-3 py-2">
-                    <Badge tone={STATUS_TONE[r.status] ?? "ink"}>{r.status}</Badge>
+                    <HandoffBadge tone={STATUS_TONE[r.status] ?? "ink"}>{r.status}</HandoffBadge>
                     {r.error_message && (
                       <div className="text-[11px] text-danger mt-1 max-w-md truncate">
                         {r.error_message}
@@ -1058,12 +1058,12 @@ function DocumentRow({ agentId, doc: d }: { agentId: string; doc: DocRow }) {
           <span className="text-sm text-ink font-medium truncate">
             {d.filename}
           </span>
-          <Badge tone={statusTone}>{d.processing_status}</Badge>
-          <Badge tone={d.organization_id ? "ink" : "ok"}>
+          <HandoffBadge tone={statusTone}>{d.processing_status}</HandoffBadge>
+          <HandoffBadge tone={d.organization_id ? "ink" : "ok"}>
             {d.organization_id
               ? `Org · ${d.organization_code ?? d.organization_id.slice(0, 8)}`
               : "Global"}
-          </Badge>
+          </HandoffBadge>
           <span className="text-[11px] text-ink-tertiary">
             {sizeKb} · {d.chunk_count} chunk{d.chunk_count === 1 ? "" : "s"}
           </span>

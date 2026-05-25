@@ -4,7 +4,7 @@ import { Plus, MessageSquare, Trash2 } from "lucide-react";
 import {
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import {
@@ -106,9 +106,9 @@ export default async function AgentChatPage({
           subtitle={agent.description ?? `${agent.provider} · ${agent.model}`}
           actions={
             <div className="flex items-center gap-2">
-              <Badge tone={agent.hasApiKey ? "ok" : "warn"}>
+              <HandoffBadge tone={agent.hasApiKey ? "ok" : "warn"}>
                 {agent.hasApiKey ? "Ready" : "Not configured"}
-              </Badge>
+              </HandoffBadge>
             </div>
           }
         />

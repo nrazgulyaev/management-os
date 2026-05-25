@@ -2,7 +2,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 
 export const metadata = { title: "Development OS · Communications" };
@@ -71,7 +71,7 @@ export default function DevCommunicationsPage() {
                 <td>{t.lang}</td>
                 <td style={{ color: "var(--ink-3)" }}>{t.usedFor}</td>
                 <td>
-                  <Badge tone="ok">Approved</Badge>
+                  <HandoffBadge tone="ok">Approved</HandoffBadge>
                 </td>
               </tr>
             ))}

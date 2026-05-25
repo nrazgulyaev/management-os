@@ -2,7 +2,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   listOpenPurchaseRequests,
@@ -78,11 +78,11 @@ const STATUS_TONE: Record<string, "ok" | "warn" | "danger" | "info" | undefined>
 
 function urgencyBadge(u: string) {
   const tone = URGENCY_TONE[u];
-  return tone ? <Badge tone={tone}>{u}</Badge> : <Badge>{u}</Badge>;
+  return tone ? <HandoffBadge tone={tone}>{u}</HandoffBadge> : <HandoffBadge>{u}</HandoffBadge>;
 }
 function statusBadge(s: string) {
   const tone = STATUS_TONE[s];
-  return tone ? <Badge tone={tone}>{s.replace(/_/g, " ")}</Badge> : <Badge>{s.replace(/_/g, " ")}</Badge>;
+  return tone ? <HandoffBadge tone={tone}>{s.replace(/_/g, " ")}</HandoffBadge> : <HandoffBadge>{s.replace(/_/g, " ")}</HandoffBadge>;
 }
 
 interface EmptyStateProps {

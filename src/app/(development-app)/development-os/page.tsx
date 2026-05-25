@@ -4,7 +4,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   getActiveProjectsRollup,
@@ -256,10 +256,10 @@ export default async function DevelopmentOverviewPage() {
                   <td className="mono">{p.projectCode}</td>
                   <td className="num">{p.villaCount}</td>
                   <td>
-                    <Badge>{STAGE_BADGE[p.status] ?? p.status}</Badge>
+                    <HandoffBadge>{STAGE_BADGE[p.status] ?? p.status}</HandoffBadge>
                   </td>
                   <td>
-                    <Badge>{p.managementStatus}</Badge>
+                    <HandoffBadge>{p.managementStatus}</HandoffBadge>
                   </td>
                 </tr>
               ))}
@@ -313,7 +313,7 @@ export default async function DevelopmentOverviewPage() {
                         {r.ownerName ? ` · ${r.ownerName}` : ""}
                       </div>
                     </div>
-                    <Badge tone={tone}>{r.mitigationStatus.replace(/_/g, " ")}</Badge>
+                    <HandoffBadge tone={tone}>{r.mitigationStatus.replace(/_/g, " ")}</HandoffBadge>
                   </li>
                 );
               })}

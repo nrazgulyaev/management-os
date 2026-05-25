@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   getBoqWpRollup,
@@ -299,11 +299,11 @@ export default async function QsPage() {
                   <td className="mono" style={{ fontSize: 12 }}>{v.deliveryEta ?? "—"}</td>
                   <td>
                     {v.status === "selected" ? (
-                      <Badge tone="ok">Selected</Badge>
+                      <HandoffBadge tone="ok">Selected</HandoffBadge>
                     ) : v.status === "under_review" ? (
-                      <Badge tone="warn">Under review</Badge>
+                      <HandoffBadge tone="warn">Under review</HandoffBadge>
                     ) : (
-                      <Badge>{v.status.replace(/_/g, " ")}</Badge>
+                      <HandoffBadge>{v.status.replace(/_/g, " ")}</HandoffBadge>
                     )}
                   </td>
                 </tr>

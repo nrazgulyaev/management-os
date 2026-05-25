@@ -2,7 +2,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   getOperationsKpis,
@@ -226,7 +226,7 @@ export default async function OperationsPage() {
                     <td>{t.assigneeName ?? "—"}</td>
                     <td className="num">{t.progressPct}%</td>
                     <td>
-                      <Badge>{t.status}</Badge>
+                      <HandoffBadge>{t.status}</HandoffBadge>
                     </td>
                     <td className="mono">{t.priority}</td>
                   </tr>
@@ -307,13 +307,13 @@ export default async function OperationsPage() {
                       <td className="mono">{t.villaCode ?? "—"}</td>
                       <td style={{ maxWidth: 280, fontSize: 13 }}>{t.title}</td>
                       <td>
-                        <Badge>{t.issueCategory}</Badge>
+                        <HandoffBadge>{t.issueCategory}</HandoffBadge>
                       </td>
                       <td>
-                        <Badge tone={SEVERITY_TONE[t.severity]}>{t.severity}</Badge>
+                        <HandoffBadge tone={SEVERITY_TONE[t.severity]}>{t.severity}</HandoffBadge>
                       </td>
                       <td>
-                        <Badge tone={status.tone}>{status.text}</Badge>
+                        <HandoffBadge tone={status.tone}>{status.text}</HandoffBadge>
                       </td>
                       <td className="mono">{t.daysOpen}d</td>
                     </tr>
@@ -354,7 +354,7 @@ export default async function OperationsPage() {
                     <span style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 15, flex: 1 }}>
                       {p.templateName}
                     </span>
-                    <Badge>{p.defaultFrequency}</Badge>
+                    <HandoffBadge>{p.defaultFrequency}</HandoffBadge>
                   </div>
                   <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
                     {p.category}
@@ -404,7 +404,7 @@ export default async function OperationsPage() {
                   <td style={{ fontSize: 13, maxWidth: 240 }}>{r.requestType}</td>
                   <td style={{ color: "var(--ink-3)" }}>{r.vendorName ?? "—"}</td>
                   <td>
-                    <Badge>{r.status}</Badge>
+                    <HandoffBadge>{r.status}</HandoffBadge>
                   </td>
                 </tr>
               ))}

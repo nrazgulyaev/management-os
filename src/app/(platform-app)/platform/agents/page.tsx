@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { sql } from "drizzle-orm";
 import { ArrowLeft, Bot, Plus } from "lucide-react";
-import { SectionHeading, Card, Badge } from "@/components/dashboard/primitives";
+import { SectionHeading, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getDb } from "@/lib/db/client";
 
 /**
@@ -169,24 +169,24 @@ export default async function PlatformAgentsListPage() {
                     {r.provider} · {r.model}
                   </td>
                   <td>
-                    <Badge tone={r.scope === "global" ? "info" : "ink"}>
+                    <HandoffBadge tone={r.scope === "global" ? "info" : "ink"}>
                       {r.scope}
-                    </Badge>
+                    </HandoffBadge>
                   </td>
                   <td className="num">{r.subscriber_count}</td>
                   <td className="num">
                     {fmtUsd(Number(r.cost_30d_usd_minor || 0))}
                   </td>
                   <td>
-                    <Badge tone={r.is_active ? "ok" : "ink"}>
+                    <HandoffBadge tone={r.is_active ? "ok" : "ink"}>
                       {r.is_active ? "Active" : "Inactive"}
-                    </Badge>
+                    </HandoffBadge>
                   </td>
                   <td>
                     {r.vault_secret_name ? (
-                      <Badge tone="ok">Configured</Badge>
+                      <HandoffBadge tone="ok">Configured</HandoffBadge>
                     ) : (
-                      <Badge tone="warn">Missing</Badge>
+                      <HandoffBadge tone="warn">Missing</HandoffBadge>
                     )}
                   </td>
                 </tr>

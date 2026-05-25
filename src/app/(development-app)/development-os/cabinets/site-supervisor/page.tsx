@@ -3,7 +3,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   listRecentSiteReports,
@@ -44,11 +44,11 @@ const PHOTO_GRADIENTS = [
 function statusBadge(status: string) {
   const s = status.toLowerCase();
   if (s === "draft" || s === "in_progress" || s === "in-progress")
-    return <Badge tone="warn">In progress</Badge>;
-  if (s === "submitted" || s === "queued") return <Badge>Queued</Badge>;
+    return <HandoffBadge tone="warn">In progress</HandoffBadge>;
+  if (s === "submitted" || s === "queued") return <HandoffBadge>Queued</HandoffBadge>;
   if (s === "approved" || s === "signed_off" || s === "done")
-    return <Badge tone="ok">Done</Badge>;
-  return <Badge>{status.replace(/_/g, " ")}</Badge>;
+    return <HandoffBadge tone="ok">Done</HandoffBadge>;
+  return <HandoffBadge>{status.replace(/_/g, " ")}</HandoffBadge>;
 }
 
 export default async function SiteSupervisorPage() {
@@ -299,9 +299,9 @@ export default async function SiteSupervisorPage() {
                     <td className="mono">{q.inspectionDate}</td>
                     <td className="num">{q.inspectionNumber}</td>
                     <td>
-                      <Badge tone={q.result === "passed" ? "ok" : q.result === "failed" ? "danger" : "warn"}>
+                      <HandoffBadge tone={q.result === "passed" ? "ok" : q.result === "failed" ? "danger" : "warn"}>
                         {q.result.replace(/_/g, " ")}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
                   </tr>
                 ))}
@@ -332,12 +332,12 @@ export default async function SiteSupervisorPage() {
                 return (
                   <li key={s.id} style={{ padding: "12px 22px", borderBottom: "1px solid var(--line)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <Badge tone={sevTone}>{s.severity.replace(/_/g, " ")}</Badge>
+                      <HandoffBadge tone={sevTone}>{s.severity.replace(/_/g, " ")}</HandoffBadge>
                       <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
                         {s.category} · {s.incidentDate}
                       </span>
                       <span style={{ marginLeft: "auto" }}>
-                        <Badge>{s.status}</Badge>
+                        <HandoffBadge>{s.status}</HandoffBadge>
                       </span>
                     </div>
                     <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.4 }}>

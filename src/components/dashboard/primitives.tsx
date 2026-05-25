@@ -116,20 +116,24 @@ export function Card({ children, className, style, id, tone = "default" }: CardP
   );
 }
 
-interface BadgeProps {
+interface HandoffBadgeProps {
   children: React.ReactNode;
   tone?: "ok" | "warn" | "danger" | "gold" | "info" | "ink";
 }
-export function Badge({ children, tone }: BadgeProps) {
+/** Layer B (handoff) badge — pill-shaped, mono-font, per-product
+ *  palette via the `.badge` CSS classes in src/styles/components.css.
+ *  Distinct from src/components/ui/badge.tsx (Layer A, 439 imports,
+ *  Tailwind-class based). Use this one only on handoff-ported pages. */
+export function HandoffBadge({ children, tone }: HandoffBadgeProps) {
   return (
     <span className={"badge" + (tone ? ` badge-${tone}` : "")}>{children}</span>
   );
 }
 
 /** Animated pulse dot. Color picks up the product palette via
- *  `.pulse-dot` in globals.css (mgmt → --ok, dev → --amber,
- *  subscription → --terra). Use inside a `.label`-styled line for
- *  the prototype's `● live` cadence. */
+ *  `.pulse-dot` in src/styles/components.css (mgmt → --ok, dev →
+ *  --amber, subscription → --terra). Use inside a `.label`-styled
+ *  line for the prototype's `● live` cadence. */
 export function Pulse() {
   return <span className="pulse-dot" aria-hidden />;
 }

@@ -2,7 +2,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   listAgentsForCabinet,
@@ -242,14 +242,14 @@ export default async function AiHubPage() {
                     {m.id.slice(0, 8)}
                   </td>
                   <td>
-                    <Badge>{m.agentKey.replace(/_/g, " ")}</Badge>
+                    <HandoffBadge>{m.agentKey.replace(/_/g, " ")}</HandoffBadge>
                   </td>
                   <td style={{ fontSize: 13, maxWidth: 480 }}>{m.subject}</td>
                   <td>
                     {m.severity === "warn" ? (
-                      <Badge tone="warn">Warn</Badge>
+                      <HandoffBadge tone="warn">Warn</HandoffBadge>
                     ) : (
-                      <Badge>Info</Badge>
+                      <HandoffBadge>Info</HandoffBadge>
                     )}
                   </td>
                   <td className="mono" style={{ fontSize: 11 }}>
@@ -307,13 +307,13 @@ export default async function AiHubPage() {
                   </td>
                   <td>
                     {r.status === "completed" ? (
-                      <Badge tone="ok">OK</Badge>
+                      <HandoffBadge tone="ok">OK</HandoffBadge>
                     ) : r.status === "refused" || r.status === "blocked" ? (
-                      <Badge tone="danger">Blocked</Badge>
+                      <HandoffBadge tone="danger">Blocked</HandoffBadge>
                     ) : r.status === "requires_review" ? (
-                      <Badge tone="warn">Review</Badge>
+                      <HandoffBadge tone="warn">Review</HandoffBadge>
                     ) : (
-                      <Badge>{r.status}</Badge>
+                      <HandoffBadge>{r.status}</HandoffBadge>
                     )}
                   </td>
                   <td className="num">{fmtDuration(r.durationMs)}</td>
