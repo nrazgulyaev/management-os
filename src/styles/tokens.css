@@ -1,0 +1,406 @@
+/* =============================================================
+   src/styles/tokens.css
+
+   Single source of truth for design tokens.
+
+   - Layer A (legacy global): :root + .dark — warm-cream neutral
+     + emerald accent. Consumed by ~190 pages via var(--…) and by
+     `body { background: var(--canvas) }` in reset.css.
+
+   - Tailwind @theme inline bridge — registers a small set of the
+     above tokens as Tailwind utilities. Most legacy bridge entries
+     were dead and have been pruned (Phase 2.0 Stage 3 step 4).
+
+   - Layer B (product-scoped): :root[data-product="management"|
+     "development"|"subscription"] — handoff palettes. Higher
+     specificity than :root, so on a `<html data-product="…">`
+     page these win for any colliding token name.
+
+   Layer C (additive OKLCH) used to live here too; it was migrated
+   into Layer A / inlined at call sites and deleted in Phase 2.0.
+   ============================================================= */
+
+:root {
+  /* Surfaces */
+  --canvas: #f8f5f0;
+  --surface: #ffffff;
+  --muted: #f1ece4;
+  --inset: #eee7dc;
+
+  /* Lines */
+  --line-soft: #e4dcce;
+  --line-strong: #b9ad98;
+
+  /* Text */
+  --ink: #0f1110;
+  --ink-secondary: #4a4a46;
+  --ink-tertiary: #7a7670;
+  --ink-inverse: #f6f3ed;
+
+  /* Brand */
+  --accent: #0e3b2e;
+  --accent-weak: #dce6df;
+  --accent-contrast: #ffffff;
+  --gold: #b08a3e;
+  --gold-weak: #f1e7d1;
+
+  /* Semantic */
+  --success: #2e7d64;
+  --warning: #a06a1a;
+  --danger: #a43e2f;
+  --info: #2e4a5c;
+  --neutral-fg: #7a7670;
+
+  /* Semantic soft fills */
+  --success-weak: #dce9e2;
+  --warning-weak: #f3e4c9;
+  --danger-weak: #f0d9d2;
+  --info-weak: #d8e2e9;
+
+  /* Data viz — Sequence A */
+  --data-emerald: #0e3b2e;
+  --data-gold: #b08a3e;
+  --data-stone: #6b6760;
+  --data-sage: #6e8a7a;
+  --data-terracotta: #9e5a49;
+  --data-ink: #2a2d2b;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-xl: 32px;
+
+  /* Stage 10.6.C.1 — bigger radii for hero cards */
+  --r-2xl: 20px;
+  --r-3xl: 24px;
+  --r-4xl: 32px;
+
+  /* Shadows (soft, low) */
+  --shadow-flat: 0 0 0 1px var(--line-soft);
+  --shadow-rest: 0 1px 2px rgba(15, 17, 16, 0.04), 0 0 0 1px var(--line-soft);
+  --shadow-raised: 0 6px 20px -8px rgba(15, 17, 16, 0.1), 0 0 0 1px var(--line-soft);
+  --shadow-floating: 0 20px 60px -20px rgba(15, 17, 16, 0.22), 0 0 0 1px var(--line-soft);
+
+  /* Stage 10.6.C.1 — softer / more lifted hero card shadows */
+  --shadow-soft-card: 0 2px 12px -4px rgba(15, 17, 16, 0.06), 0 0 0 1px var(--line-soft);
+  --shadow-elevated-card: 0 8px 32px -12px rgba(15, 17, 16, 0.12), 0 0 0 1px var(--line-soft);
+
+  /* Stage 10.6.C.1 — hero card gradients (used for primary KPIs in cabinets) */
+  --gradient-emerald-soft: linear-gradient(135deg, #dce6df 0%, #c8d8cd 100%);
+  --gradient-gold-soft: linear-gradient(135deg, #f1e7d1 0%, #e6d9b8 100%);
+  --gradient-coral-soft: linear-gradient(135deg, #f0d9d2 0%, #e8c5bb 100%);
+  --gradient-ink-deep: linear-gradient(135deg, #141716 0%, #0c0e0d 100%);
+
+  /* Motion */
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-editorial: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* _handoff/ Task 1 — typeface aliases. next/font registers the new
+     typefaces under their own variables (--font-newsreader, --font-inter,
+     --font-jetbrains, --font-space, --font-plex, --font-fraunces) in
+     src/app/layout.tsx. The legacy variable names below preserve every
+     existing `font-display` / `font-sans` / `font-mono` reference. */
+  --font-display: var(--font-newsreader);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+.dark {
+  --canvas: #0c0e0d;
+  --surface: #141716;
+  --muted: #1a1d1b;
+  --inset: #1e2220;
+
+  --line-soft: #262a28;
+  --line-strong: #3a3f3c;
+
+  --ink: #f4f1eb;
+  --ink-secondary: #c4beb3;
+  --ink-tertiary: #8a857b;
+  --ink-inverse: #0f1110;
+
+  --accent: #4fb592;
+  --accent-weak: #15332a;
+  --accent-contrast: #0c0e0d;
+  --gold: #d6b567;
+  --gold-weak: #2a2313;
+
+  --success: #4fb592;
+  --warning: #d0a14c;
+  --danger: #d46a57;
+  --info: #8fb0c2;
+  --neutral-fg: #a9a49a;
+
+  --success-weak: #15332a;
+  --warning-weak: #2a2313;
+  --danger-weak: #2e1a17;
+  --info-weak: #1a2730;
+
+  --shadow-flat: 0 0 0 1px var(--line-soft);
+  --shadow-rest: 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line-soft);
+  --shadow-raised: 0 6px 20px -8px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line-soft);
+  --shadow-floating: 0 20px 60px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--line-soft);
+
+  /* Stage 10.6.C.1 — dark-mode hero card shadows + gradients */
+  --shadow-soft-card: 0 2px 12px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--line-soft);
+  --shadow-elevated-card: 0 8px 32px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--line-soft);
+
+  --gradient-emerald-soft: linear-gradient(135deg, #15332a 0%, #1a3a30 100%);
+  --gradient-gold-soft: linear-gradient(135deg, #2a2313 0%, #332b1a 100%);
+  --gradient-coral-soft: linear-gradient(135deg, #2a1614 0%, #331b18 100%);
+  --gradient-ink-deep: linear-gradient(135deg, #050706 0%, #000000 100%);
+}
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-inset: var(--inset);
+
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-ink-inverse: var(--ink-inverse);
+
+  --color-accent: var(--accent);
+  --color-accent-weak: var(--accent-weak);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-gold: var(--gold);
+  --color-gold-weak: var(--gold-weak);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --color-success-weak: var(--success-weak);
+  --color-warning-weak: var(--warning-weak);
+  --color-danger-weak: var(--danger-weak);
+  --color-info-weak: var(--info-weak);
+
+  --color-data-emerald: var(--data-emerald);
+  --color-data-gold: var(--data-gold);
+  --color-data-stone: var(--data-stone);
+  --color-data-sage: var(--data-sage);
+  --color-data-terracotta: var(--data-terracotta);
+  --color-data-ink: var(--data-ink);
+
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-2xl);
+  --radius-3xl: var(--r-3xl);
+  --radius-4xl: var(--r-4xl);
+
+  --font-display: var(--font-display), Georgia, "Iowan Old Style", serif;
+  --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --default-font-family: var(--font-sans);
+
+  /* ===========================================================
+     Arconique OS redesign — new token system (additive).
+     Lives alongside the legacy tokens above so existing pages
+     keep rendering. New primitives in src/components/ui/primitives/*
+     reference these directly; legacy pages migrate over time.
+     Source of truth: design_handoff_arconique_os/DESIGN_TOKENS.md.
+     ============================================================ */
+
+  /* Surfaces & ink (warm off-white system) */
+  --color-bg:              oklch(0.962 0.014 80);
+  --color-bg-elevated:     oklch(0.985 0.008 82);
+  --color-surface-warm:    oklch(0.985 0.013 78);
+  --color-surface-sunken:  oklch(0.945 0.014 78);
+
+  --color-ink-2:           oklch(0.420 0.015 72);
+  --color-ink-3:           oklch(0.620 0.013 75);
+  --color-ink-4:           oklch(0.780 0.010 78);
+  --color-ink-deep:        oklch(0.180 0.012 65);
+  --color-ink-warm:        oklch(0.260 0.018 65);
+
+  --color-line:            oklch(0.905 0.010 78);
+  --color-line-2:          oklch(0.945 0.008 78);
+
+  /* Brand — terra (coral primary) */
+  --color-terra:           oklch(0.690 0.155 38);
+  --color-terra-deep:      oklch(0.560 0.155 36);
+  --color-terra-soft:      oklch(0.935 0.050 50);
+  --color-terra-tint:      oklch(0.970 0.022 50);
+
+  /* Olive (secondary, success-leaning) */
+  --color-olive:           oklch(0.580 0.075 120);
+  --color-olive-deep:      oklch(0.450 0.075 120);
+  --color-olive-soft:      oklch(0.930 0.038 120);
+  --color-olive-tint:      oklch(0.970 0.018 120);
+
+  /* Sea (tertiary, info-leaning) */
+  --color-sea:             oklch(0.580 0.065 215);
+  --color-sea-deep:        oklch(0.420 0.065 215);
+  --color-sea-soft:        oklch(0.930 0.030 215);
+  --color-sea-tint:        oklch(0.965 0.015 215);
+
+  /* Sand (neutral warm accent) */
+  --color-sand:            oklch(0.860 0.045 80);
+  --color-sand-soft:       oklch(0.940 0.030 80);
+
+  /* Semantic soft fills for the new system (the existing
+     `--color-success/warning/danger` map to the legacy emerald/
+     gold/clay palette and stay reachable as `text-success` etc.). */
+  --color-success-soft-2:  oklch(0.930 0.040 150);
+  --color-warning-soft-2:  oklch(0.940 0.060 80);
+  --color-danger-soft-2:   oklch(0.940 0.050 30);
+
+  /* Redesign radii — legacy --radius-xs..--radius-4xl stay valid.
+     These add the handoff's larger card radii without renaming. */
+  --radius-card:           18px;
+  --radius-card-lg:        24px;
+  --radius-card-hero:      32px;   /* default for KPI/feature cards */
+  --radius-card-hero-lg:   40px;   /* hero / wide feature cards */
+
+  /* Redesign shadows */
+  --shadow-redesign-card:  0 1px 3px rgba(60,50,35,0.05),
+                           0 4px 14px rgba(60,50,35,0.05),
+                           0 0 0 1px rgba(60,50,35,0.025);
+  --shadow-redesign-soft:  0 2px 8px rgba(60,50,35,0.045),
+                           0 16px 38px rgba(60,50,35,0.045);
+  --shadow-redesign-pop:   0 12px 36px rgba(60,50,35,0.12),
+                           0 2px 6px rgba(60,50,35,0.06);
+
+  /* Redesign text scale (additive — these don't collide with
+     Tailwind's text-* utilities since they're prefixed). */
+  --text-redesign-xs:   11px;
+  --text-redesign-sm:   12.5px;
+  --text-redesign-base: 14px;
+  --text-redesign-md:   15px;
+  --text-redesign-lg:   17px;
+  --text-redesign-xl:   20px;
+  --text-redesign-2xl:  26px;
+  --text-redesign-3xl:  34px;
+  --text-redesign-4xl:  48px;
+  --text-redesign-5xl:  68px;
+}
+:root[data-product="management"] {
+  --cream:        #F4EFE6;
+  --cream-deep:   #ECE5D5;
+  --cream-warm:   #FAF7F1;
+  --paper:        #FFFCF7;
+  --ink:          #14201C;
+  --ink-2:        #2A3934;
+  --ink-3:        #4A5A55;
+  --ink-4:        #7E8A85;
+  --forest:       #1F3A33;
+  --forest-deep:  #122621;
+  --forest-fade:  #2E4F47;
+  --terra:        #C4583C;
+  --terra-soft:   #E48A6E;
+  --gold:         #BC9A5C;
+  --gold-soft:    #DCC691;
+  --sage:         #88A89A;
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --line-strong:  #C2B89E;
+  --ok:           #4F7A5D;
+  --warn:         #C58A2E;
+
+  --mint:         #D8E8D6;
+  --mint-deep:    #B6D3B2;
+  --peach:        #F6D9CB;
+  --peach-deep:   #EDB89F;
+  --butter:       #F5E9B8;
+  --butter-deep:  #E8D77E;
+  --sky:          #D4E2EC;
+  --sky-deep:     #A8C1D4;
+
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset, 0 12px 30px -18px rgba(20,32,28,0.18);
+  --shadow-soft:  0 18px 40px -24px rgba(20,32,28,0.22);
+}
+
+:root[data-product="development"] {
+  --bg:         #F1ECE0;
+  --bg-2:       #F8F4EA;
+  --bg-3:       #FFFCF4;
+  --panel:      #FFFFFF;
+  --line:       #E5DECC;
+  --line-2:     #D8CFB7;
+  --line-3:     #BAAF92;
+  --concrete:   #2A2A26;
+  --concrete-2: #4A4A42;
+  --concrete-3: #6E6E64;
+  --ink:        #14130E;
+  --ink-2:      #3D3B33;
+  --ink-3:      #6E6B5E;
+  --ink-4:      #95917F;
+  --carbon:     #14130E;
+  --amber:      #FF6B35;
+  --amber-soft: #FFB088;
+  --steel:      #3D5A7A;
+  --steel-soft: #7E9DBF;
+  --lime:       #C9DC4A;
+  --warn:       #C58A2E;
+  --danger:     #C2474E;
+  --ok:         #4F8A5D;
+
+  --pastel-peach:  #F6D2BC;
+  --pastel-sky:    #C9DCEA;
+  --pastel-butter: #F0DE96;
+  --pastel-mint:   #CBDFC8;
+  --pastel-cream:  #ECE5D5;
+  --pastel-rose:   #EFC6BD;
+}
+
+:root[data-product="subscription"] {
+  --paper:        #F5F0E2;
+  --paper-2:      #FBF7EC;
+  --paper-3:      #FFFEF8;
+  --ink:          #0F1A1F;
+  --ink-2:        #2A3B41;
+  --ink-3:        #5C6C70;
+  --ink-4:        #8B9295;
+  --line:         #D5CFB8;
+  --line-soft:    #E4DFC9;
+  --line-strong:  #B3AB8E;
+  --gold:         #C9A961;
+  --gold-deep:    #9C7F3F;
+  --gold-soft:    #E6D49C;
+  --terra:        #C4583C;
+  --terra-soft:   #E8A78D;
+  --emerald:      #2F5A4E;
+  --emerald-soft: #D6E5DD;
+  --amber:        #FF6B35;
+  --amber-soft:   #FFD3BC;
+  --steel:        #3D5A7A;
+  --ok:           #4F7A5D;
+}
+
+/* ============================================================
+   _handoff/ Task 1 — utility classes from the prototypes.
+
+   Defined at file scope (not inside @layer) so they win specificity
+   battles with Tailwind utilities cleanly. They reference the local
+   `var(--…)` palette, so the same `.btn-terra` / `.card` / `.badge`
+   look different per product surface without per-product class
+   duplication.
+
+   `.display` resolves to Newsreader (mgmt), Space Grotesk (dev), or
+   Fraunces (subscription) via the product-scoped --display-font CSS
+   var set on each data-product block below. Mono splits the same way.
+   ============================================================ */
+
+:root[data-product="management"] {
+  --display-font: var(--font-newsreader);
+  --mono-font: var(--font-jetbrains);
+}
+:root[data-product="development"] {
+  --display-font: var(--font-space);
+  --mono-font: var(--font-plex);
+}
+:root[data-product="subscription"] {
+  --display-font: var(--font-fraunces);
+  --mono-font: var(--font-jetbrains);
+}

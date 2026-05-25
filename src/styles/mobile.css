@@ -1,0 +1,157 @@
+/* =============================================================
+   src/styles/mobile.css
+
+   Responsive overrides for handoff prototype JSX. The selectors
+   target inline-style grid templates emitted by ported cabinet
+   and landing pages (e.g. [style*="repeat(5, 1fr)"]) and collapse
+   them to fewer columns at narrow viewports. Plus shared mobile
+   table-overflow, sidebar hide, sticky-header padding fixes.
+
+   The global `html, body { overflow-x: hidden }` reset that used
+   to sit at the top of this block was moved to reset.css.
+   ============================================================= */
+
+/* Mobile / responsive overrides — `[style*=…]` selectors target the
+   inline grids the prototype JSX emits. The dashboard / dev-app
+   routes mostly use Tailwind classes (not inline grid styles) so
+   these rules are scoped to the ported cabinet/landing pages by
+   construction. */
+
+@media (max-width: 1100px) {
+  [style*="repeat(5, 1fr)"] { grid-template-columns: repeat(3, 1fr) !important; }
+  [style*="repeat(6, 1fr)"] { grid-template-columns: repeat(3, 1fr) !important; }
+}
+@media (max-width: 900px) {
+  .display { font-size: clamp(40px, 8.5vw, 72px) !important; line-height: 1.04 !important; }
+
+  [style*="repeat(3, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  [style*="repeat(4, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  [style*="repeat(5, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  [style*="repeat(6, 1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  [style*="1fr 1fr"] { grid-template-columns: 1fr !important; }
+  [style*="1.2fr 1fr"], [style*="1.4fr 1fr"], [style*="1.5fr 1fr"], [style*="1.6fr 1fr"], [style*="1.05fr 1fr"] { grid-template-columns: 1fr !important; }
+  [style*="1fr 1.05fr"], [style*="1fr 1.1fr"], [style*="1fr 1.2fr"], [style*="1fr 1.4fr"], [style*="1fr 1.6fr"] { grid-template-columns: 1fr !important; }
+  [style*="1.1fr 1fr"] { grid-template-columns: 1fr !important; }
+
+  [style*="240px 1fr"] { grid-template-columns: 1fr !important; }
+  /* Task 5 dashboard sidebar (`.sidebar` class, `position: sticky`)
+     stays visible on mid-size screens — only collapses at <=900px
+     via its own .sidebar rule (set elsewhere in this file).
+     We DO NOT add `aside[style*="position: sticky"]` here because
+     the Task 5 sidebar uses className, not inline style. */
+
+  .hide-mobile { display: none !important; }
+
+  nav[style*="display: flex"] { flex-wrap: wrap !important; gap: 12px !important; row-gap: 8px !important; margin-left: 0 !important; }
+  header[style*="position: sticky"] { padding: 12px 16px !important; flex-wrap: wrap !important; gap: 10px !important; }
+  header[style*="position: sticky"] > div[style*="margin-left: auto"] { margin-left: 0 !important; width: 100% !important; flex-wrap: wrap !important; }
+
+  .marquee-track { gap: 22px; animation-duration: 28s; }
+
+  [style*="padding: 110px"] { padding: 64px 0 !important; }
+  [style*="padding: 100px 28px"] { padding: 56px 18px !important; }
+  [style*="padding: 100px 0"] { padding: 60px 0 !important; }
+  [style*="padding: 72px 56px"], [style*="padding: 80px 64px"] { padding: 40px 24px !important; }
+
+  [data-parallax] { transform: none !important; }
+  .cursor-dot, .cursor-ring, .cursor-label, .scroll-progress { display: none !important; }
+  html, body, * { cursor: auto !important; }
+  input, textarea, select { cursor: text !important; }
+  button, a, [role="button"] { cursor: pointer !important; }
+
+  .card, .panel, .stat-card { min-width: 0 !important; }
+  .card:has(> table), .card:has(> *:not(style):not(script) table),
+  .panel:has(> table), .panel:has(> *:not(style):not(script) table) {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  table.data, table.guests {
+    display: table !important; width: max-content !important; max-width: none !important;
+  }
+  table.data thead, table.guests thead { display: table-header-group !important; }
+  table.data tbody, table.guests tbody { display: table-row-group !important; }
+  table.data tr, table.guests tr { display: table-row !important; }
+  table.data th, table.data td,
+  table.guests th, table.guests td { display: table-cell !important; white-space: nowrap !important; }
+
+  [style*="180px 1fr"] { grid-template-columns: 1fr !important; }
+  [style*="180px 1fr"] > *:first-child { min-height: 140px !important; height: 140px !important; }
+
+  [style*="max-width: 1320px"], [style*="max-width: 1360px"], [style*="max-width: 1400px"], [style*="max-width: 1480px"], [style*="max-width: 1280px"], [style*="max-width: 1100px"] {
+    max-width: 100% !important;
+  }
+
+  input[placeholder*="Search"] { width: 100% !important; min-width: 0 !important; }
+  div[style*="width: 280px"], div[style*="width: 300px"] { width: 100% !important; max-width: 100% !important; }
+
+  [style*="display: inline-flex"] { flex-wrap: wrap !important; }
+
+  [style*="margin-left: auto"][style*="display: flex"] { margin-left: 0 !important; flex-wrap: wrap !important; }
+}
+@media (max-width: 760px) {
+  [style*="position: absolute"][style*="top: 28px"],
+  [style*="position: absolute"][style*="bottom: 28px"] {
+    position: static !important;
+    transform: none !important;
+    max-width: 100% !important;
+    margin: 8px 0 !important;
+  }
+  .photo-villa, .photo-pool, .photo-suite, .photo-warm,
+  .photo-site, .photo-blueprint {
+    min-height: 220px !important;
+    aspect-ratio: auto !important;
+  }
+  .display.h1 { font-size: clamp(36px, 9.5vw, 56px) !important; }
+}
+@media (max-width: 600px) {
+  .display { font-size: clamp(32px, 11vw, 52px) !important; }
+  [style*="repeat(2, 1fr)"] { grid-template-columns: 1fr !important; }
+  [style*="repeat(3, 1fr)"], [style*="repeat(4, 1fr)"], [style*="repeat(5, 1fr)"], [style*="repeat(6, 1fr)"] { grid-template-columns: 1fr !important; }
+  [style*="padding: 0px 28px"], [style*="padding: 0px 32px"], [style*="padding: 24px 28px"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  [style*="padding: 48px"] { padding: 24px !important; }
+  [style*="padding: 56px 48px"] { padding: 28px 18px !important; }
+  header[style*="position: sticky"] { padding: 10px 16px !important; }
+  table.guests th, table.guests td, table.data th, table.data td { padding: 8px 10px !important; font-size: 12px !important; }
+}
+
+/* MOBILE-RESPONSIVE-1 — additional mobile fixes for product landings.
+   The product-landing footers use a 5-col inline grid that doesn't match
+   any earlier selector. Collapse to a 2-col on narrow viewports so the
+   nav columns stack readably instead of word-wrapping in 5 cramped columns. */
+@media (max-width: 900px) {
+  /* 5-col product-landing footer grids (MgmtFooter / DevFooter) */
+  [style*="1.5fr 1fr 1fr 1fr 1fr"],
+  [style*="2fr 1fr 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 28px 24px !important;
+  }
+  /* The "five cabinets" hero header on /products/management-os uses a
+     flex row with `flex: 1` h2 + 380px description column. At narrow
+     widths the side-by-side wraps the headline word-per-line. Stack
+     these flex-end horizontal arrangements to column. */
+  [style*="display: flex"][style*="align-items: flex-end"][style*="gap: 48px"],
+  [style*="alignItems: \"flex-end\""][style*="gap: 48"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 18px !important;
+  }
+  /* Hero headlines: tighter floor so 56-108px clamps don't dominate the
+     viewport on narrow phones. */
+  h1.display { font-size: clamp(36px, 9vw, 88px) !important; }
+}
+@media (max-width: 600px) {
+  [style*="1.5fr 1fr 1fr 1fr 1fr"],
+  [style*="2fr 1fr 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px 18px !important;
+  }
+  h1.display { font-size: clamp(30px, 10vw, 64px) !important; }
+  /* Ensure inline horizontal-padding-heavy hero sections breathe on phones */
+  [style*="padding: 110px"], [style*="padding: 100px 28px"] {
+    padding: 48px 18px !important;
+  }
+}

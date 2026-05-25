@@ -22,10 +22,21 @@ const HERE =
     : dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
 
-const GLOBALS = readFileSync(
-  resolve(ROOT, "src/app/globals.css"),
-  "utf8",
-);
+// Phase 2.0: globals.css is now a thin entry that @imports the real
+// modules from src/styles/*.css. Read the entry plus every imported
+// module so the assertions below keep working without caring about
+// which module a given token landed in.
+const GLOBALS = (() => {
+  const entry = readFileSync(resolve(ROOT, "src/app/globals.css"), "utf8");
+  const imports = Array.from(
+    entry.matchAll(/@import\s+"((?:\.\.\/)+styles\/[^"]+)"/g),
+    (m) => m[1],
+  );
+  const modules = imports.map((rel) =>
+    readFileSync(resolve(ROOT, "src/app", rel), "utf8"),
+  );
+  return [entry, ...modules].join("\n");
+})();
 
 // ============================================================================
 // Light-mode tokens
