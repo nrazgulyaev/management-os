@@ -19,7 +19,7 @@ import "server-only";
  */
 
 import { sql } from "drizzle-orm";
-import { requireDb } from "@/lib/db/client";
+import { requireDb, rowsOf } from "@/lib/db/client";
 
 /** Convention: each agent owns a single secret keyed by its id. */
 export function vaultSecretNameFor(agentId: string): string {
@@ -66,7 +66,8 @@ export async function storeAgentApiKey(
     const existing = await db.execute<{ id: string }>(sql`
       SELECT id::text AS id FROM vault.secrets WHERE name = ${secretName} LIMIT 1
     `);
-    const rows = (existing as unknown as { rows: Array<{ id: string }> }).rows ?? [];
+    // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
+    const rows = rowsOf<{ id: string }>(existing);
 
     if (rows.length > 0) {
       await db.execute(sql`
@@ -115,10 +116,8 @@ export async function retrieveAgentApiKey(
        WHERE name = ${secretName}
        LIMIT 1
     `);
-    const rows =
-      (result as unknown as { rows: Array<{ decrypted_secret: string }> })
-        .rows ?? [];
-    return rows[0]?.decrypted_secret ?? null;
+    // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
+    return rowsOf<{ decrypted_secret: string }>(result)[0]?.decrypted_secret ?? null;
   } catch {
     return null;
   }
@@ -146,7 +145,8 @@ export async function deleteAgentApiKey(
        WHERE name = ${secretName}
        RETURNING id::text AS id
     `);
-    const rows = (result as unknown as { rows: Array<{ id: string }> }).rows ?? [];
+    // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
+    const rows = rowsOf<{ id: string }>(result);
     return { ok: true, removed: rows.length > 0 };
   } catch (err) {
     return {

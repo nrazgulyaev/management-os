@@ -51,3 +51,25 @@ export function requireDb(): DB {
 }
 
 export { schema };
+
+/**
+ * SHAPE-FIX-1 — narrow helper for unpacking `db.execute(sql\`…\`)` results.
+ *
+ * Drizzle's runtime result shape varies by driver:
+ *   · `postgres-js` (this project)  → returns a tagged `Array<Row>` directly
+ *                                       (rows live at `result[0]`, `result[1]`, …)
+ *   · `node-postgres` / `pg`         → returns `{ rows, rowCount, fields, … }`
+ *
+ * A lot of in-repo code was originally written against the `pg` shape and casts
+ * `(result as unknown as { rows: ... }).rows ?? []`. With the `postgres-js`
+ * driver `.rows` is `undefined` so that expression silently evaluates to `[]`
+ * — the row IS returned by the DB, the JS code just drops it. The bug is
+ * undetectable from a try/catch because nothing throws.
+ *
+ * `rowsOf<T>(result)` is the surgical accessor for the two sites this fix
+ * lands at (vault.ts + ai-hub-cabinet-queries.ts). The wider codemod across
+ * the remaining ~130 sites is tracked as DB-SHAPE-CODEMOD-1 (see backlog).
+ */
+export function rowsOf<T>(execResult: unknown): T[] {
+  return Array.isArray(execResult) ? (execResult as T[]) : [];
+}

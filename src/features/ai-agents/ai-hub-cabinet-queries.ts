@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 
 /**
@@ -150,12 +150,13 @@ export async function listAgentsForCabinet(): Promise<AiAgentCard[]> {
     string,
     { isEnabled: boolean; provider: string | null; model: string | null }
   >();
-  for (const r of (legacyRows as unknown as { rows: Array<{
+  // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
+  for (const r of rowsOf<{
     agent_key: string;
     is_enabled: boolean;
     provider: string | null;
     model: string | null;
-  }> }).rows ?? []) {
+  }>(legacyRows)) {
     legacyByKey.set(r.agent_key, {
       isEnabled: r.is_enabled,
       provider: r.provider,
@@ -202,7 +203,8 @@ export async function listAgentsForCabinet(): Promise<AiAgentCard[]> {
       subEnabled: boolean;
     }
   >();
-  for (const r of (platformRows as unknown as { rows: Array<{
+  // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
+  for (const r of rowsOf<{
     id: string;
     agent_code: string;
     display_name: string;
@@ -212,7 +214,7 @@ export async function listAgentsForCabinet(): Promise<AiAgentCard[]> {
     is_active: boolean;
     has_key: boolean;
     sub_enabled: boolean | null;
-  }> }).rows ?? []) {
+  }>(platformRows)) {
     platformByCode.set(r.agent_code, {
       id: r.id,
       displayName: r.display_name,
@@ -395,13 +397,14 @@ export async function getAiHubKpis(): Promise<AiHubKpis> {
         ) all_refusals
       ) AS refusals_30d
   `);
-  const r = (rows as unknown as { rows: Array<{
+  // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
+  const r = rowsOf<{
     agents_live: string;
     runs_30d: string;
     avg_latency: string | null;
     token_spend_mtd: string;
     refusals_30d: string;
-  }> }).rows?.[0];
+  }>(rows)[0];
 
   return {
     agentsLive: Number(r?.agents_live ?? "0"),
