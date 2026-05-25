@@ -1,7 +1,9 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
+// SHAPE-FIX-1 / DAILY-DIGEST P0.5 — rowsOf handles postgres-js Array shape.
+// TODO(DB-SHAPE-CODEMOD-1): adjacent Dev OS cabinet files still pending sweep.
 import { requireOrgId } from "@/features/auth/require-org";
 
 /**
@@ -88,9 +90,7 @@ export async function loadProjectManagerCabinet(): Promise<ProjectManagerCabinet
      ORDER BY created_at DESC
      LIMIT 12
   `);
-  const projects =
-    (projRows as unknown as { rows: Array<{ id: string; name: string; status: string }> })
-      .rows ?? [];
+  const projects = rowsOf<{ id: string; name: string; status: string }>(projRows);
 
   const totalsRow = await db.execute<{
     active: string;
@@ -104,10 +104,9 @@ export async function loadProjectManagerCabinet(): Promise<ProjectManagerCabinet
       (SELECT COUNT(*)::text FROM risk_register WHERE status NOT IN ('closed','mitigated')) AS risks,
       (SELECT COUNT(*)::text FROM change_orders WHERE status = 'pending') AS cos
   `);
-  const totals =
-    (totalsRow as unknown as {
-      rows: Array<{ active: string; qaqc: string; risks: string; cos: string }>;
-    }).rows?.[0] ?? null;
+  const totals = rowsOf<{
+    active: string; qaqc: string; risks: string; cos: string;
+  }>(totalsRow)[0] ?? null;
 
   const atRiskRow = await db.execute<{
     id: string;
@@ -135,19 +134,15 @@ export async function loadProjectManagerCabinet(): Promise<ProjectManagerCabinet
    ) DESC
    LIMIT 5
   `);
-  const projectsAtRisk: PmProjectRow[] = (
-    (atRiskRow as unknown as {
-      rows: Array<{
-        id: string;
-        name: string;
-        status: string;
-        qaqc: string;
-        risks: string;
-        cos: string;
-        budget: string | null;
-      }>;
-    }).rows ?? []
-  )
+  const projectsAtRisk: PmProjectRow[] = rowsOf<{
+    id: string;
+    name: string;
+    status: string;
+    qaqc: string;
+    risks: string;
+    cos: string;
+    budget: string | null;
+  }>(atRiskRow)
     .map((r) => {
       const qaqc = Number(r.qaqc);
       const risks = Number(r.risks);
@@ -226,37 +221,31 @@ export async function loadProjectManagerCabinet(): Promise<ProjectManagerCabinet
       pendingChangeOrdersCount: Number(totals?.cos ?? "0"),
     },
     latestDailyDigestCode:
-      (dailyRow as unknown as { rows: Array<{ output_code: string }> }).rows?.[0]
-        ?.output_code ?? null,
+      rowsOf<{ output_code: string }>(dailyRow)[0]?.output_code ?? null,
     latestWeeklyPlanCode:
-      (weeklyRow as unknown as { rows: Array<{ output_code: string }> }).rows?.[0]
-        ?.output_code ?? null,
+      rowsOf<{ output_code: string }>(weeklyRow)[0]?.output_code ?? null,
     recentMemoryItemsCount: Number(
-      (memRow as unknown as { rows: Array<{ n: string }> }).rows?.[0]?.n ?? "0",
+      rowsOf<{ n: string }>(memRow)[0]?.n ?? "0",
     ),
-    activityLast7Days:
-      (activityRows as unknown as {
-        rows: Array<{ iso_date: string; count: string }>;
-      }).rows?.map((r) => ({
-        isoDate: r.iso_date,
-        count: Number(r.count ?? "0"),
-      })) ?? [],
-    recentPmAgentOutputs:
-      (recentOutputs as unknown as {
-        rows: Array<{
-          agent_key: string;
-          output_code: string;
-          title: string;
-          summary: string;
-          created_at: string;
-        }>;
-      }).rows?.map((r) => ({
-        agentKey: r.agent_key,
-        outputCode: r.output_code,
-        title: r.title,
-        summary: r.summary,
-        createdAt: r.created_at,
-      })) ?? [],
+    activityLast7Days: rowsOf<{ iso_date: string; count: string }>(
+      activityRows,
+    ).map((r) => ({
+      isoDate: r.iso_date,
+      count: Number(r.count ?? "0"),
+    })),
+    recentPmAgentOutputs: rowsOf<{
+      agent_key: string;
+      output_code: string;
+      title: string;
+      summary: string;
+      created_at: string;
+    }>(recentOutputs).map((r) => ({
+      agentKey: r.agent_key,
+      outputCode: r.output_code,
+      title: r.title,
+      summary: r.summary,
+      createdAt: r.created_at,
+    })),
   };
 }
 
@@ -355,7 +344,7 @@ export async function listWorkPackagesByStatus(): Promise<
     on_hold: [],
     cancelled: [],
   };
-  for (const r of (rows as unknown as { rows: Array<{
+  for (const r of rowsOf<{
     id: string;
     package_code: string;
     name: string;
@@ -368,7 +357,7 @@ export async function listWorkPackagesByStatus(): Promise<
     budget_minor: string | null;
     actual_minor: string | null;
     planned_finish: string | null;
-  }> }).rows ?? []) {
+  }>(rows)) {
     const status = (r.status as WpStatus) ?? "planned";
     if (!(status in result)) continue;
     result[status].push({
@@ -427,16 +416,14 @@ export async function listAtRiskPackages(limit = 5): Promise<AtRiskRow[]> {
      ORDER BY w.planned_finish ASC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      package_code: string;
-      name: string;
-      project_code: string | null;
-      days_overdue: string;
-      responsible_name: string | null;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    package_code: string;
+    name: string;
+    project_code: string | null;
+    days_overdue: string;
+    responsible_name: string | null;
+  }>(rows).map((r) => ({
     id: r.id,
     packageCode: r.package_code,
     name: r.name,
@@ -522,7 +509,7 @@ export async function getSevenDaySchedule(): Promise<ScheduleDayBucket[]> {
   `);
   const byDate = new Map<string, ScheduleDayBucket>();
   for (const b of buckets) byDate.set(b.isoDate, b);
-  for (const r of (rows as unknown as { rows: Array<{
+  for (const r of rowsOf<{
     task_id: string;
     task_code: string;
     name: string;
@@ -532,7 +519,7 @@ export async function getSevenDaySchedule(): Promise<ScheduleDayBucket[]> {
     wp_name: string | null;
     project_code: string | null;
     responsible_name: string | null;
-  }> }).rows ?? []) {
+  }>(rows)) {
     const bucket = byDate.get(r.planned_finish);
     if (!bucket) continue;
     bucket.tasks.push({
@@ -563,12 +550,12 @@ export async function getLatestDailyDigest(): Promise<DailyDigestRow | null> {
      WHERE agent_key = 'daily_digest'
      ORDER BY created_at DESC LIMIT 1
   `);
-  const r = (rows as unknown as { rows: Array<{
+  const r = rowsOf<{
     output_code: string;
     title: string;
     summary: string;
     created_at: string;
-  }> }).rows?.[0];
+  }>(rows)[0];
   return r
     ? {
         outputCode: r.output_code,

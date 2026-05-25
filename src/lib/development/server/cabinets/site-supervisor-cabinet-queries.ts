@@ -1,7 +1,9 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
+// SHAPE-FIX-1 / DAILY-DIGEST P0.5 — rowsOf handles postgres-js Array shape.
+// TODO(DB-SHAPE-CODEMOD-1): adjacent Dev OS cabinet files still pending sweep.
 import { requireOrgId } from "@/features/auth/require-org";
 
 export interface SiteSupervisorCabinetData {
@@ -54,16 +56,13 @@ export async function loadSiteSupervisorCabinet(
          JOIN site_reports sr ON sr.id = srw.site_report_id
         WHERE sr.report_date = CURRENT_DATE - INTERVAL '1 day') AS yest_workforce
   `);
-  const summaryRow =
-    (summary as unknown as {
-      rows: Array<{
-        today_reports: string;
-        qaqc_assigned: string;
-        materials_today: string;
-        yest_photos: string;
-        yest_workforce: string;
-      }>;
-    }).rows?.[0] ?? null;
+  const summaryRow = rowsOf<{
+    today_reports: string;
+    qaqc_assigned: string;
+    materials_today: string;
+    yest_photos: string;
+    yest_workforce: string;
+  }>(summary)[0] ?? null;
 
   const recentRows = await db.execute<{
     id: string;
@@ -83,14 +82,13 @@ export async function loadSiteSupervisorCabinet(
     materialsExpectedToday: Number(summaryRow?.materials_today ?? "0"),
     yesterdayPhotoCount: Number(summaryRow?.yest_photos ?? "0"),
     yesterdayWorkforceRecorded: Number(summaryRow?.yest_workforce ?? "0"),
-    recentReports:
-      (recentRows as unknown as {
-        rows: Array<{ id: string; report_date: string; project_id: string }>;
-      }).rows?.map((r) => ({
-        id: r.id,
-        reportDate: r.report_date,
-        projectId: r.project_id,
-      })) ?? [],
+    recentReports: rowsOf<{ id: string; report_date: string; project_id: string }>(
+      recentRows,
+    ).map((r) => ({
+      id: r.id,
+      reportDate: r.report_date,
+      projectId: r.project_id,
+    })),
   };
 }
 
@@ -152,19 +150,17 @@ export async function listRecentSiteReports(limit = 5): Promise<SiteReportRow[]>
      ORDER BY sr.report_date DESC, sr.created_at DESC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      report_date: string;
-      project_code: string | null;
-      reporter_name: string | null;
-      reporter_role: string | null;
-      summary: string | null;
-      weather: string | null;
-      workers: string;
-      status: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    report_date: string;
+    project_code: string | null;
+    reporter_name: string | null;
+    reporter_role: string | null;
+    summary: string | null;
+    weather: string | null;
+    workers: string;
+    status: string;
+  }>(rows).map((r) => ({
     id: r.id,
     reportDate: r.report_date,
     projectCode: r.project_code,
@@ -209,15 +205,13 @@ export async function listRecentSitePhotos(limit = 10): Promise<SitePhotoRow[]> 
      ORDER BY captured_at DESC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      report_date: string;
-      project_code: string | null;
-      caption: string | null;
-      captured_at: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    report_date: string;
+    project_code: string | null;
+    caption: string | null;
+    captured_at: string;
+  }>(rows).map((r) => ({
     id: r.id,
     reportDate: r.report_date,
     projectCode: r.project_code,
@@ -268,17 +262,15 @@ export async function listVoiceNotes(limit = 8): Promise<VoiceNoteRow[]> {
      ORDER BY vn.created_at DESC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      project_code: string | null;
-      reporter_name: string | null;
-      duration_seconds: number | null;
-      transcript_text: string | null;
-      transcript_language: string | null;
-      created_at: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    project_code: string | null;
+    reporter_name: string | null;
+    duration_seconds: number | null;
+    transcript_text: string | null;
+    transcript_language: string | null;
+    created_at: string;
+  }>(rows).map((r) => ({
     id: r.id,
     projectCode: r.project_code,
     reporterName: r.reporter_name,
@@ -329,18 +321,16 @@ export async function listQaInspections(limit = 8): Promise<QaInspectionRow[]> {
      ORDER BY qi.inspection_date DESC, qi.inspection_number DESC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      issue_code: string;
-      issue_title: string;
-      villa_code: string | null;
-      inspection_date: string;
-      inspection_number: string;
-      result: string;
-      result_notes: string | null;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    issue_code: string;
+    issue_title: string;
+    villa_code: string | null;
+    inspection_date: string;
+    inspection_number: string;
+    result: string;
+    result_notes: string | null;
+  }>(rows).map((r) => ({
     id: r.id,
     issueCode: r.issue_code,
     issueTitle: r.issue_title,
@@ -391,18 +381,16 @@ export async function listSafetyIncidents(limit = 8): Promise<SafetyIncidentRow[
      ORDER BY si.incident_date DESC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      incident_code: string;
-      project_code: string | null;
-      incident_date: string;
-      severity: string;
-      category: string;
-      description: string;
-      status: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    incident_code: string;
+    project_code: string | null;
+    incident_date: string;
+    severity: string;
+    category: string;
+    description: string;
+    status: string;
+  }>(rows).map((r) => ({
     id: r.id,
     incidentCode: r.incident_code,
     projectCode: r.project_code,

@@ -1,7 +1,9 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
+// SHAPE-FIX-1 / DAILY-DIGEST P0.5 — rowsOf handles postgres-js Array shape.
+// TODO(DB-SHAPE-CODEMOD-1): adjacent Dev OS cabinet files still pending sweep.
 import { requireOrgId } from "@/features/auth/require-org";
 
 /**
@@ -123,8 +125,7 @@ export async function loadCfoCabinet(): Promise<CfoCabinetData> {
      WHERE scope = 'company_wide' AND project_id IS NULL
      ORDER BY snapshot_date DESC LIMIT 2
   `);
-  const snapRows =
-    (snapsRow as unknown as { rows: SnapshotRow[] }).rows ?? [];
+  const snapRows = rowsOf<SnapshotRow>(snapsRow);
   const latest = snapRows[0] ? rowToSnapshot(snapRows[0]) : null;
   const previous = snapRows[1] ? rowToSnapshot(snapRows[1]) : null;
 
@@ -145,20 +146,16 @@ export async function loadCfoCabinet(): Promise<CfoCabinetData> {
      ORDER BY transaction_date DESC, transaction_code DESC
      LIMIT 8
   `);
-  const recentTransactions: CfoCabinetRecentTransaction[] = (
-    (txRows as unknown as {
-      rows: Array<{
-        id: string;
-        transaction_code: string;
-        direction: string;
-        description: string;
-        counterparty_name: string | null;
-        amount_minor: string;
-        currency: string;
-        transaction_date: string;
-      }>;
-    }).rows ?? []
-  ).map((r) => ({
+  const recentTransactions: CfoCabinetRecentTransaction[] = rowsOf<{
+    id: string;
+    transaction_code: string;
+    direction: string;
+    description: string;
+    counterparty_name: string | null;
+    amount_minor: string;
+    currency: string;
+    transaction_date: string;
+  }>(txRows).map((r) => ({
     id: r.id,
     transactionCode: r.transaction_code,
     direction: r.direction,
@@ -181,15 +178,13 @@ export async function loadCfoCabinet(): Promise<CfoCabinetData> {
      WHERE agent_key = 'tax_assistant'
      ORDER BY created_at DESC LIMIT 3
   `);
-  const recentTaxAssistantOutputs: CfoCabinetTaxAssistantOutput[] = (
-    (taxRows as unknown as { rows: Array<{
-      output_code: string;
-      title: string;
-      summary: string;
-      status: string;
-      created_at: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  const recentTaxAssistantOutputs: CfoCabinetTaxAssistantOutput[] = rowsOf<{
+    output_code: string;
+    title: string;
+    summary: string;
+    status: string;
+    created_at: string;
+  }>(taxRows).map((r) => ({
     outputCode: r.output_code,
     title: r.title,
     summary: r.summary,
@@ -222,13 +217,12 @@ export async function loadCfoCabinet(): Promise<CfoCabinetData> {
       recentTaxAssistantOutputs[0]?.outputCode ?? null,
     recentTaxAssistantOutputs,
     latestQsCostAnalystOutputCode:
-      (qsRow as unknown as { rows: Array<{ output_code: string }> }).rows?.[0]
-        ?.output_code ?? null,
+      rowsOf<{ output_code: string }>(qsRow)[0]?.output_code ?? null,
     pendingTaxClassificationsCount: Number(
-      (pendingRow as unknown as { rows: Array<{ n: string }> }).rows?.[0]?.n ?? "0",
+      rowsOf<{ n: string }>(pendingRow)[0]?.n ?? "0",
     ),
     invoicesAwaitingPaymentCount: Number(
-      (invRow as unknown as { rows: Array<{ n: string }> }).rows?.[0]?.n ?? "0",
+      rowsOf<{ n: string }>(invRow)[0]?.n ?? "0",
     ),
   };
 }
@@ -278,13 +272,12 @@ export async function getCfoKpis(): Promise<CfoKpis | null> {
        AND organization_id = ${orgId}
      ORDER BY snapshot_date DESC LIMIT 1
   `);
-  const snap =
-    (snapRow as unknown as { rows: Array<{
-      cash: string;
-      receivables: string;
-      pay30: string;
-      currency: string;
-    }> }).rows?.[0] ?? null;
+  const snap = rowsOf<{
+    cash: string;
+    receivables: string;
+    pay30: string;
+    currency: string;
+  }>(snapRow)[0] ?? null;
 
   // MTD outflow direct from dev_transactions — snapshot doesn't carry it.
   const mtdRow = await db.execute<{ spend: string; currency: string | null }>(sql`
@@ -296,7 +289,7 @@ export async function getCfoKpis(): Promise<CfoKpis | null> {
        AND transaction_date >= date_trunc('month', CURRENT_DATE)
   `);
   const spendMtdMinor = Number(
-    (mtdRow as unknown as { rows: Array<{ spend: string }> }).rows?.[0]?.spend ?? "0",
+    rowsOf<{ spend: string }>(mtdRow)[0]?.spend ?? "0",
   );
 
   // Forecast burn = trailing 30-day outflow average × 30. Simple and
@@ -310,7 +303,7 @@ export async function getCfoKpis(): Promise<CfoKpis | null> {
        AND transaction_date >= CURRENT_DATE - INTERVAL '30 days'
   `);
   const trailing30 = Number(
-    (burnRow as unknown as { rows: Array<{ avg30: string }> }).rows?.[0]?.avg30 ?? "0",
+    rowsOf<{ avg30: string }>(burnRow)[0]?.avg30 ?? "0",
   );
 
   return {
@@ -369,16 +362,14 @@ export async function getPnlByProject(): Promise<PnlByProjectRow[]> {
      GROUP BY p.id, p.project_code, p.name
      ORDER BY p.project_code
   `);
-  const out: PnlByProjectRow[] = (
-    (rows as unknown as { rows: Array<{
-      project_id: string;
-      project_code: string;
-      project_name: string;
-      hard: string;
-      soft: string;
-      fin: string;
-    }> }).rows ?? []
-  ).map((r) => {
+  const out: PnlByProjectRow[] = rowsOf<{
+    project_id: string;
+    project_code: string;
+    project_name: string;
+    hard: string;
+    soft: string;
+    fin: string;
+  }>(rows).map((r) => {
     const hard = Number(r.hard);
     const soft = Number(r.soft);
     const fin = Number(r.fin);
@@ -422,15 +413,14 @@ export async function getCashStrip6Week(): Promise<CashStripPoint[]> {
      GROUP BY 1, 2
      ORDER BY 1
   `);
-  return (
-    (rows as unknown as { rows: Array<{ wk: string; week_label: string; net: string }> })
-      .rows ?? []
-  ).map((r, i, arr) => ({
-    weekIso: r.wk,
-    weekLabel: r.week_label,
-    netMinor: Number(r.net),
-    isFuture: i >= arr.length - 5, // last 5 weeks tinted as forecast in UI
-  }));
+  return rowsOf<{ wk: string; week_label: string; net: string }>(rows).map(
+    (r, i, arr) => ({
+      weekIso: r.wk,
+      weekLabel: r.week_label,
+      netMinor: Number(r.net),
+      isFuture: i >= arr.length - 5, // last 5 weeks tinted as forecast in UI
+    }),
+  );
 }
 
 export interface TaxTypeRow {
@@ -460,15 +450,13 @@ export async function getActiveTaxTypes(): Promise<TaxTypeRow[]> {
      ORDER BY country_code NULLS LAST, display_name
      LIMIT 12
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      type_key: string;
-      display_name: string;
-      rate_percentage: string;
-      reporting_period: string;
-      country_code: string | null;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    type_key: string;
+    display_name: string;
+    rate_percentage: string;
+    reporting_period: string;
+    country_code: string | null;
+  }>(rows).map((r) => ({
     typeKey: r.type_key,
     displayName: r.display_name,
     ratePercentage: r.rate_percentage,
@@ -515,11 +503,9 @@ export async function getSharedCostsBreakdown(): Promise<SharedCostRow[]> {
      ORDER BY cc.display_order, cc.display_name
      LIMIT 8
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string; code: string; name: string; mtd: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string; code: string; name: string; mtd: string;
+  }>(rows).map((r) => ({
     categoryId: r.id,
     categoryCode: r.code,
     displayName: r.name,

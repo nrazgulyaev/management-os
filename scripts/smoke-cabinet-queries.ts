@@ -87,6 +87,22 @@ async function main(): Promise<void> {
   await probe("operations", "maintenance_templates");
   await probe("operations", "service_requests");
 
+  // --- Dev OS (P0.5) ---------------------------------------------------
+  // site-supervisor-cabinet-queries.ts reads:
+  await probe("site-supervisor", "site_reports");
+  await probe("site-supervisor", "site_report_photos");
+  await probe("site-supervisor", "site_report_workforce");
+  await probe("site-supervisor", "qa_qc_issues");
+  // cfo-cabinet-queries.ts reads:
+  await probe("cfo", "dev_transactions");
+  await probe("cfo", "dev_invoices");
+  await probe("cfo", "executive_metrics_snapshots");
+  // project-manager-cabinet-queries.ts reads:
+  await probe("pm", "projects");
+  await probe("pm", "work_packages");
+  await probe("pm", "risk_register");
+  await probe("pm", "change_orders");
+
   console.log(
     "file        table                          count   shape verdict",
   );
