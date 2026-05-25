@@ -565,3 +565,117 @@ export async function getLatestDailyDigest(): Promise<DailyDigestRow | null> {
       }
     : null;
 }
+
+// =============================================================================
+// DAILY-DIGEST-SPRINT-1 P3 — date-scoped milestone changes for the Daily Digest
+// agent.
+// =============================================================================
+
+export interface DigestMilestoneChangesForDate {
+  date: string;
+  workPackagesCompletedCount: number;
+  workPackagesStartedCount: number;
+  phasesEnteredCount: number;
+  phasesCompletedCount: number;
+  topChanges: Array<{
+    kind: "wp_completed" | "wp_started" | "phase_ended" | "phase_started";
+    name: string;
+    projectId: string;
+  }>;
+}
+
+export async function getMilestoneChangesForDate(input: {
+  orgId: string;
+  date: string;
+}): Promise<DigestMilestoneChangesForDate> {
+  const db = getDb();
+  if (!db) {
+    return {
+      date: input.date,
+      workPackagesCompletedCount: 0,
+      workPackagesStartedCount: 0,
+      phasesEnteredCount: 0,
+      phasesCompletedCount: 0,
+      topChanges: [],
+    };
+  }
+
+  const aggRows = await db.execute<{
+    wp_completed: string;
+    wp_started: string;
+    phase_started: string;
+    phase_completed: string;
+  }>(sql`
+    SELECT
+      (SELECT COUNT(*)::text FROM work_packages
+        WHERE organization_id = ${input.orgId}::uuid
+          AND actual_finish::date = ${input.date}::date
+          AND status = 'completed') AS wp_completed,
+      (SELECT COUNT(*)::text FROM work_packages
+        WHERE organization_id = ${input.orgId}::uuid
+          AND status = 'in_progress'
+          AND updated_at::date = ${input.date}::date) AS wp_started,
+      (SELECT COUNT(*)::text FROM project_phases
+        WHERE organization_id = ${input.orgId}::uuid
+          AND actual_start_date = ${input.date}::date) AS phase_started,
+      (SELECT COUNT(*)::text FROM project_phases
+        WHERE organization_id = ${input.orgId}::uuid
+          AND actual_end_date = ${input.date}::date) AS phase_completed
+  `);
+  const agg = rowsOf<{
+    wp_completed: string;
+    wp_started: string;
+    phase_started: string;
+    phase_completed: string;
+  }>(aggRows)[0];
+
+  // Top changes — union of the 4 categories, capped at 6 total.
+  const topRows = await db.execute<{
+    kind: string;
+    name: string;
+    project_id: string;
+  }>(sql`
+    (SELECT 'wp_completed'::text AS kind,
+            name                  AS name,
+            project_id::text      AS project_id
+       FROM work_packages
+      WHERE organization_id = ${input.orgId}::uuid
+        AND actual_finish::date = ${input.date}::date
+        AND status = 'completed'
+      LIMIT 3)
+    UNION ALL
+    (SELECT 'phase_ended'::text AS kind,
+            'Phase ended'        AS name,
+            project_id::text     AS project_id
+       FROM project_phases
+      WHERE organization_id = ${input.orgId}::uuid
+        AND actual_end_date = ${input.date}::date
+      LIMIT 3)
+    UNION ALL
+    (SELECT 'phase_started'::text AS kind,
+            'Phase started'       AS name,
+            project_id::text      AS project_id
+       FROM project_phases
+      WHERE organization_id = ${input.orgId}::uuid
+        AND actual_start_date = ${input.date}::date
+      LIMIT 3)
+  `);
+  const topChanges = rowsOf<{
+    kind: string;
+    name: string;
+    project_id: string;
+  }>(topRows).slice(0, 6).map((r) => ({
+    kind: r.kind as "wp_completed" | "wp_started" | "phase_ended" | "phase_started",
+    name: r.name.replace(/^\[DEMO2\] /, ""),
+    projectId: r.project_id,
+  }));
+
+  return {
+    date: input.date,
+    workPackagesCompletedCount: Number(agg?.wp_completed ?? "0"),
+    workPackagesStartedCount: Number(agg?.wp_started ?? "0"),
+    phasesEnteredCount: Number(agg?.phase_started ?? "0"),
+    phasesCompletedCount: Number(agg?.phase_completed ?? "0"),
+    topChanges,
+  };
+}

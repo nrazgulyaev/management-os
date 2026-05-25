@@ -512,3 +512,137 @@ export async function getSharedCostsBreakdown(): Promise<SharedCostRow[]> {
     mtdMinor: Number(r.mtd),
   }));
 }
+
+// =============================================================================
+// DAILY-DIGEST-SPRINT-1 P3 — date-scoped construction expenses for the Daily
+// Digest agent.
+// =============================================================================
+
+export interface DigestConstructionExpensesForDate {
+  date: string;
+  outflowsCount: number;
+  outflowsUsdMinor: number;
+  inflowsCount: number;
+  inflowsUsdMinor: number;
+  /** Approximate anomaly flag — any single outflow ≥ 90th percentile
+   *  of the trailing 30 days. Crude but actionable for a digest. */
+  largeOutflowsCount: number;
+  topOutflows: Array<{
+    transactionCode: string;
+    counterpartyName: string | null;
+    description: string;
+    amountUsdMinor: number;
+    projectId: string | null;
+  }>;
+}
+
+export async function getConstructionExpensesForDate(input: {
+  orgId: string;
+  date: string;
+}): Promise<DigestConstructionExpensesForDate> {
+  const db = getDb();
+  if (!db) {
+    return {
+      date: input.date,
+      outflowsCount: 0,
+      outflowsUsdMinor: 0,
+      inflowsCount: 0,
+      inflowsUsdMinor: 0,
+      largeOutflowsCount: 0,
+      topOutflows: [],
+    };
+  }
+
+  const aggRows = await db.execute<{
+    out_n: string;
+    out_sum: string;
+    in_n: string;
+    in_sum: string;
+    large_n: string;
+  }>(sql`
+    WITH window_amounts AS (
+      SELECT amount_usd_minor
+        FROM dev_transactions
+       WHERE organization_id = ${input.orgId}::uuid
+         AND direction = 'outflow'
+         AND transaction_date >= ${input.date}::date - INTERVAL '30 days'
+         AND transaction_date <= ${input.date}::date
+    ),
+    threshold AS (
+      SELECT percentile_cont(0.90) WITHIN GROUP (ORDER BY amount_usd_minor) AS p90
+        FROM window_amounts
+    )
+    SELECT
+      (SELECT COUNT(*)::text FROM dev_transactions
+        WHERE organization_id = ${input.orgId}::uuid
+          AND direction = 'outflow'
+          AND transaction_date = ${input.date}::date) AS out_n,
+      (SELECT COALESCE(SUM(amount_usd_minor), 0)::text FROM dev_transactions
+        WHERE organization_id = ${input.orgId}::uuid
+          AND direction = 'outflow'
+          AND transaction_date = ${input.date}::date) AS out_sum,
+      (SELECT COUNT(*)::text FROM dev_transactions
+        WHERE organization_id = ${input.orgId}::uuid
+          AND direction = 'inflow'
+          AND transaction_date = ${input.date}::date) AS in_n,
+      (SELECT COALESCE(SUM(amount_usd_minor), 0)::text FROM dev_transactions
+        WHERE organization_id = ${input.orgId}::uuid
+          AND direction = 'inflow'
+          AND transaction_date = ${input.date}::date) AS in_sum,
+      (SELECT COUNT(*)::text FROM dev_transactions, threshold
+        WHERE organization_id = ${input.orgId}::uuid
+          AND direction = 'outflow'
+          AND transaction_date = ${input.date}::date
+          AND amount_usd_minor >= threshold.p90) AS large_n
+  `);
+  const agg = rowsOf<{
+    out_n: string;
+    out_sum: string;
+    in_n: string;
+    in_sum: string;
+    large_n: string;
+  }>(aggRows)[0];
+
+  const topRows = await db.execute<{
+    transaction_code: string;
+    counterparty_name: string | null;
+    description: string;
+    amount_usd_minor: string;
+    project_id: string | null;
+  }>(sql`
+    SELECT transaction_code,
+           counterparty_name,
+           description,
+           amount_usd_minor::text       AS amount_usd_minor,
+           project_id::text             AS project_id
+      FROM dev_transactions
+     WHERE organization_id = ${input.orgId}::uuid
+       AND direction = 'outflow'
+       AND transaction_date = ${input.date}::date
+     ORDER BY amount_usd_minor DESC
+     LIMIT 3
+  `);
+  const topOutflows = rowsOf<{
+    transaction_code: string;
+    counterparty_name: string | null;
+    description: string;
+    amount_usd_minor: string;
+    project_id: string | null;
+  }>(topRows).map((r) => ({
+    transactionCode: r.transaction_code,
+    counterpartyName: r.counterparty_name,
+    description: r.description,
+    amountUsdMinor: Number(r.amount_usd_minor),
+    projectId: r.project_id,
+  }));
+
+  return {
+    date: input.date,
+    outflowsCount: Number(agg?.out_n ?? "0"),
+    outflowsUsdMinor: Number(agg?.out_sum ?? "0"),
+    inflowsCount: Number(agg?.in_n ?? "0"),
+    inflowsUsdMinor: Number(agg?.in_sum ?? "0"),
+    largeOutflowsCount: Number(agg?.large_n ?? "0"),
+    topOutflows,
+  };
+}

@@ -401,3 +401,107 @@ export async function listSafetyIncidents(limit = 8): Promise<SafetyIncidentRow[
     status: r.status,
   }));
 }
+
+// =============================================================================
+// DAILY-DIGEST-SPRINT-1 P3 — date-scoped site reports for the Daily Digest agent.
+// =============================================================================
+
+export interface DigestSiteReportsForDate {
+  date: string;
+  reportsSubmittedCount: number;
+  activeProjectsCount: number;
+  totalWorkersPresent: number;
+  topReports: Array<{
+    projectId: string;
+    reporterRole: string | null;
+    weather: string | null;
+    workersPresent: number | null;
+    summary: string | null;
+    status: string;
+  }>;
+}
+
+/**
+ * Site activity for the Daily Digest. Returns a count of reports
+ * submitted on the date + the top 3 reports' qualitative summaries
+ * so the agent can pull real progress notes into the digest body.
+ *
+ * Org-scoped via site_reports.organization_id. Project count and
+ * worker totals derive from the same set of reports.
+ */
+export async function getSiteReportsActivityForDate(input: {
+  orgId: string;
+  date: string;
+}): Promise<DigestSiteReportsForDate> {
+  const db = getDb();
+  if (!db) {
+    return {
+      date: input.date,
+      reportsSubmittedCount: 0,
+      activeProjectsCount: 0,
+      totalWorkersPresent: 0,
+      topReports: [],
+    };
+  }
+
+  const aggRows = await db.execute<{
+    reports: string;
+    projects: string;
+    workers: string;
+  }>(sql`
+    SELECT
+      COUNT(*)::text                                       AS reports,
+      COUNT(DISTINCT project_id)::text                      AS projects,
+      COALESCE(SUM(total_workers_present), 0)::text         AS workers
+      FROM site_reports
+     WHERE organization_id = ${input.orgId}::uuid
+       AND report_date = ${input.date}::date
+  `);
+  const agg = rowsOf<{ reports: string; projects: string; workers: string }>(
+    aggRows,
+  )[0];
+
+  const topRows = await db.execute<{
+    project_id: string;
+    reporter_role: string | null;
+    weather: string | null;
+    workers: number | null;
+    summary: string | null;
+    status: string;
+  }>(sql`
+    SELECT project_id::text          AS project_id,
+           reporter_role              AS reporter_role,
+           weather_conditions         AS weather,
+           total_workers_present      AS workers,
+           substr(summary, 1, 300)    AS summary,
+           status                     AS status
+      FROM site_reports
+     WHERE organization_id = ${input.orgId}::uuid
+       AND report_date = ${input.date}::date
+     ORDER BY submitted_at DESC NULLS LAST
+     LIMIT 3
+  `);
+  const topReports = rowsOf<{
+    project_id: string;
+    reporter_role: string | null;
+    weather: string | null;
+    workers: number | null;
+    summary: string | null;
+    status: string;
+  }>(topRows).map((r) => ({
+    projectId: r.project_id,
+    reporterRole: r.reporter_role,
+    weather: r.weather,
+    workersPresent: r.workers,
+    summary: r.summary,
+    status: r.status,
+  }));
+
+  return {
+    date: input.date,
+    reportsSubmittedCount: Number(agg?.reports ?? "0"),
+    activeProjectsCount: Number(agg?.projects ?? "0"),
+    totalWorkersPresent: Number(agg?.workers ?? "0"),
+    topReports,
+  };
+}

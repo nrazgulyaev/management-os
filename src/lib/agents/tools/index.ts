@@ -14,7 +14,10 @@ import "./mgmt-os/bookings";
 import "./mgmt-os/finance";
 import "./mgmt-os/operations";
 
-// Dev OS tools land in Phase 3.
+// Dev OS — Daily Digest tools (P3).
+import "./dev-os/site-reports";
+import "./dev-os/expenses";
+import "./dev-os/milestones";
 
 export {
   registerToolFactory,
