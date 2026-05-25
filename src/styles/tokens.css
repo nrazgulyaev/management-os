@@ -21,58 +21,65 @@
    ============================================================= */
 
 :root {
-  /* Surfaces */
-  --canvas: #f8f5f0;
-  --surface: #ffffff;
-  --muted: #f1ece4;
-  --inset: #eee7dc;
+  /* Phase 2.0 — Layer A tokens. Most are now aliased to their Layer B
+     equivalent so that on a `<html data-product="…">` page the handoff
+     palette wins naturally. The literal after the comma is the fallback
+     for off-product pages (public site, owner shell, field shell). The
+     5 names that ALSO appear in Layer B `[data-product]` blocks
+     (--line-soft, --line-strong, --ink, --gold, --danger) stay as raw
+     literals here — Layer B overrides them via selector specificity. */
 
-  /* Lines */
+  /* Surfaces */
+  --canvas: var(--cream, #f8f5f0);
+  --surface: var(--paper, #ffffff);
+  --muted: var(--cream-deep, #f1ece4);
+  --inset: var(--cream-deep, #eee7dc);
+
+  /* Lines — colliding with Layer B; keep literals as off-product fallback */
   --line-soft: #e4dcce;
   --line-strong: #b9ad98;
 
   /* Text */
   --ink: #0f1110;
-  --ink-secondary: #4a4a46;
-  --ink-tertiary: #7a7670;
-  --ink-inverse: #f6f3ed;
+  --ink-secondary: var(--ink-2, #4a4a46);
+  --ink-tertiary: var(--ink-3, #7a7670);
+  --ink-inverse: var(--cream-warm, #f6f3ed);
 
   /* Brand */
-  --accent: #0e3b2e;
-  --accent-weak: #dce6df;
-  --accent-contrast: #ffffff;
+  --accent: var(--forest, #0e3b2e);
+  --accent-weak: var(--mint, #dce6df);
+  --accent-contrast: var(--cream-warm, #ffffff);
   --gold: #b08a3e;
-  --gold-weak: #f1e7d1;
+  --gold-weak: var(--gold-soft, #f1e7d1);
 
   /* Semantic */
-  --success: #2e7d64;
-  --warning: #a06a1a;
+  --success: var(--ok, #2e7d64);
+  --warning: var(--warn, #a06a1a);
   --danger: #a43e2f;
   --info: #2e4a5c;
-  --neutral-fg: #7a7670;
 
-  /* Semantic soft fills */
+  /* Semantic soft fills — no Layer B equivalents, keep literals */
   --success-weak: #dce9e2;
   --warning-weak: #f3e4c9;
   --danger-weak: #f0d9d2;
   --info-weak: #d8e2e9;
 
-  /* Data viz — Sequence A */
+  /* Data viz — Sequence A. Decorative chart palette; keep literals to
+     avoid the data colors drifting with the UI palette over time. */
   --data-emerald: #0e3b2e;
   --data-gold: #b08a3e;
   --data-stone: #6b6760;
   --data-sage: #6e8a7a;
   --data-terracotta: #9e5a49;
-  --data-ink: #2a2d2b;
 
-  /* Radii */
-  --r-xs: 4px;
+  /* Radii — only the sizes with callers in src/ */
   --r-sm: 8px;
   --r-md: 12px;
-  --r-lg: 20px;
-  --r-xl: 32px;
 
-  /* Stage 10.6.C.1 — bigger radii for hero cards */
+  /* Stage 10.6.C.1 — bigger radii for hero cards. --r-4xl currently has
+     no var() callers in src/, but it's part of the documented Stage
+     10.6.C.1 token contract (asserted by tests/development-stage-10-6-
+     c-1-tokens.test.ts). Keep it. */
   --r-2xl: 20px;
   --r-3xl: 24px;
   --r-4xl: 32px;
@@ -87,15 +94,22 @@
   --shadow-soft-card: 0 2px 12px -4px rgba(15, 17, 16, 0.06), 0 0 0 1px var(--line-soft);
   --shadow-elevated-card: 0 8px 32px -12px rgba(15, 17, 16, 0.12), 0 0 0 1px var(--line-soft);
 
+  /* Phase 2.0 — handoff warm shadows (migrated from the deleted Layer C
+     OKLCH block). Used by hero-greet, filter-bar, dome-donut,
+     mobile-tabbar (4 callers — see Phase 2.0 audit §10.3). */
+  --shadow-warm-card: 0 1px 3px rgba(60,50,35,0.05),
+                      0 4px 14px rgba(60,50,35,0.05),
+                      0 0 0 1px rgba(60,50,35,0.025);
+  --shadow-warm-soft: 0 2px 8px rgba(60,50,35,0.045),
+                      0 16px 38px rgba(60,50,35,0.045);
+  --shadow-warm-pop:  0 12px 36px rgba(60,50,35,0.12),
+                      0 2px 6px rgba(60,50,35,0.06);
+
   /* Stage 10.6.C.1 — hero card gradients (used for primary KPIs in cabinets) */
   --gradient-emerald-soft: linear-gradient(135deg, #dce6df 0%, #c8d8cd 100%);
   --gradient-gold-soft: linear-gradient(135deg, #f1e7d1 0%, #e6d9b8 100%);
   --gradient-coral-soft: linear-gradient(135deg, #f0d9d2 0%, #e8c5bb 100%);
   --gradient-ink-deep: linear-gradient(135deg, #141716 0%, #0c0e0d 100%);
-
-  /* Motion */
-  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-editorial: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* _handoff/ Task 1 — typeface aliases. next/font registers the new
      typefaces under their own variables (--font-newsreader, --font-inter,
@@ -131,7 +145,6 @@
   --warning: #d0a14c;
   --danger: #d46a57;
   --info: #8fb0c2;
-  --neutral-fg: #a9a49a;
 
   --success-weak: #15332a;
   --warning-weak: #2a2313;
