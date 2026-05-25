@@ -1,7 +1,9 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
+// SHAPE-FIX-1 / DAILY-DIGEST P0 — rowsOf handles postgres-js Array shape.
+// TODO(DB-SHAPE-CODEMOD-1): adjacent files in this module still pending full sweep.
 import { requireOrgId } from "@/features/auth/require-org";
 
 /**
@@ -72,10 +74,10 @@ export async function getFinanceKpis(): Promise<FinanceKpis> {
         WHERE b.status IN ('confirmed','checked_in','checked_out')
           AND b.check_in >= date_trunc('month', CURRENT_DATE)::date), '0') AS revenue_mtd
   `);
-  const r = (rows as unknown as { rows: Array<{
+  const r = rowsOf<{
     pending_statements: string;
     revenue_mtd: string;
-  }> }).rows?.[0];
+  }>(rows)[0];
   const grossMtdUsd = Number(r?.revenue_mtd ?? "0");
   const netMtdUsd = grossMtdUsd * (1 - OPERATOR_COMMISSION - CHANNEL_FEE_PCT - TAX_PCT - EXPENSE_PCT);
   return {
@@ -153,7 +155,7 @@ export async function getDemoStatementPreview(): Promise<ComputedStatement | nul
      ORDER BY SUM(b.gross_amount) DESC
      LIMIT 1
   `);
-  const top = (targetRows as unknown as { rows: Array<{
+  const top = rowsOf<{
     owner_id: string;
     owner_name: string;
     villa_id: string;
@@ -162,7 +164,7 @@ export async function getDemoStatementPreview(): Promise<ComputedStatement | nul
     bookings_count: string;
     total_nights: string;
     gross_usd: string;
-  }> }).rows?.[0];
+  }>(targetRows)[0];
   if (!top) return null;
 
   const grossUsd = Number(top.gross_usd || 0);
@@ -274,16 +276,14 @@ export async function listStatementsPreview(limit = 6): Promise<StatementListRow
      ORDER BY month_iso DESC, SUM(b.gross_amount) DESC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      owner_id: string;
-      owner_name: string;
-      villa_id: string;
-      villa_code: string;
-      month_iso: string;
-      gross_usd: string;
-    }> }).rows ?? []
-  ).map((r) => {
+  return rowsOf<{
+    owner_id: string;
+    owner_name: string;
+    villa_id: string;
+    villa_code: string;
+    month_iso: string;
+    gross_usd: string;
+  }>(rows).map((r) => {
     const grossUsd = Number(r.gross_usd || 0);
     const netUsd = grossUsd * (1 - OPERATOR_COMMISSION - CHANNEL_FEE_PCT - TAX_PCT - EXPENSE_PCT);
     const [year, month] = r.month_iso.split("-");
@@ -419,25 +419,23 @@ export async function listOwnerStatementsLive(opts?: {
      ORDER BY s.period_month DESC NULLS LAST, s.created_at DESC
      LIMIT ${opts?.limit ?? 25}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      statement_code: string;
-      owner_id: string;
-      owner_name: string;
-      villa_id: string;
-      villa_code: string | null;
-      period_month: string;
-      gross_minor: string;
-      net_minor: string;
-      net_usd_minor: string | null;
-      status: string;
-      content_hash: string | null;
-      approved_at: string | null;
-      sent_at: string | null;
-      sent_to_email: string | null;
-    }> }).rows ?? []
-  ).map((r) => {
+  return rowsOf<{
+    id: string;
+    statement_code: string;
+    owner_id: string;
+    owner_name: string;
+    villa_id: string;
+    villa_code: string | null;
+    period_month: string;
+    gross_minor: string;
+    net_minor: string;
+    net_usd_minor: string | null;
+    status: string;
+    content_hash: string | null;
+    approved_at: string | null;
+    sent_at: string | null;
+    sent_to_email: string | null;
+  }>(rows).map((r) => {
     const [y, m] = r.period_month.split("-").map(Number);
     const monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en", {
       month: "long",
@@ -524,7 +522,7 @@ export async function getOwnerStatementDetail(
        AND s.organization_id = ${orgId}::uuid
      LIMIT 1
   `);
-  const sr = (sRows as unknown as { rows: Array<{
+  const sr = rowsOf<{
     id: string;
     statement_code: string;
     owner_id: string;
@@ -541,7 +539,7 @@ export async function getOwnerStatementDetail(
     sent_at: string | null;
     sent_to_email: string | null;
     commission_pct: string | null;
-  }> }).rows?.[0];
+  }>(sRows)[0];
   if (!sr) return null;
 
   const lRows = await db.execute<{
@@ -560,15 +558,13 @@ export async function getOwnerStatementDetail(
      WHERE statement_id = ${statementId}::uuid
      ORDER BY sort_order ASC
   `);
-  const lines = (
-    (lRows as unknown as { rows: Array<{
-      id: string;
-      line_type: string;
-      category: string;
-      description: string;
-      amount_minor: string;
-    }> }).rows ?? []
-  ).map((l) => ({
+  const lines = rowsOf<{
+    id: string;
+    line_type: string;
+    category: string;
+    description: string;
+    amount_minor: string;
+  }>(lRows).map((l) => ({
     id: l.id,
     lineType: l.line_type,
     category: l.category,

@@ -1,7 +1,9 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
+// SHAPE-FIX-1 / DAILY-DIGEST P0 — rowsOf handles postgres-js Array shape.
+// TODO(DB-SHAPE-CODEMOD-1): adjacent files in this module still pending full sweep.
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Operations cabinet read aggregates.
@@ -53,12 +55,12 @@ export async function getOperationsKpis(): Promise<OperationsKpis> {
       COALESCE((SELECT COUNT(*)::text FROM service_requests
         WHERE status NOT IN ('completed','cancelled')), '0') AS service_open
   `);
-  const r = (rows as unknown as { rows: Array<{
+  const r = rowsOf<{
     turnovers: string;
     arrivals: string;
     tickets_open: string;
     service_open: string;
-  }> }).rows?.[0];
+  }>(rows)[0];
   return {
     turnoversToday: Number(r?.turnovers ?? "0"),
     arrivalsToday: Number(r?.arrivals ?? "0"),
@@ -109,14 +111,12 @@ export async function getVillaStatusBoard(): Promise<VillaStatusTile[]> {
      WHERE v.status NOT IN ('archived')
      ORDER BY v.unit_code ASC
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      unit_code: string;
-      status: string;
-      has_active_booking: string;
-    }> }).rows ?? []
-  ).map((r) => {
+  return rowsOf<{
+    id: string;
+    unit_code: string;
+    status: string;
+    has_active_booking: string;
+  }>(rows).map((r) => {
     let state: VillaState;
     if (r.has_active_booking === "true") state = "occupied";
     else if (r.status === "cleaning") state = "cleaning";
@@ -171,19 +171,17 @@ export async function getMaintenanceTickets(limit = 12): Promise<MaintenanceTick
      ORDER BY mt.reported_at DESC NULLS LAST
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      ticket_code: string;
-      villa_code: string | null;
-      title: string;
-      category: string;
-      severity: string;
-      status: string;
-      reported_at: string | null;
-      days_open: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    ticket_code: string;
+    villa_code: string | null;
+    title: string;
+    category: string;
+    severity: string;
+    status: string;
+    reported_at: string | null;
+    days_open: string;
+  }>(rows).map((r) => ({
     id: r.id,
     ticketCode: r.ticket_code,
     villaCode: r.villa_code,
@@ -223,14 +221,12 @@ export async function getPreventiveUpcoming(limit = 8): Promise<PreventiveRow[]>
      ORDER BY default_interval_days ASC NULLS LAST, name ASC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      key: string;
-      name: string;
-      category: string;
-      default_frequency: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    key: string;
+    name: string;
+    category: string;
+    default_frequency: string;
+  }>(rows).map((r) => ({
     templateKey: r.key,
     templateName: r.name.replace(/^\[DEMO2\] /, ""),
     category: r.category,

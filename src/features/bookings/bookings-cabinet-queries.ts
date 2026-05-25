@@ -1,7 +1,9 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
+// SHAPE-FIX-1 / DAILY-DIGEST P0 — rowsOf handles postgres-js Array shape.
+// TODO(DB-SHAPE-CODEMOD-1): adjacent files in this module still pending full sweep.
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Bookings cabinet read aggregates.
@@ -74,23 +76,21 @@ export async function listBookingsForCabinet(limit = 25): Promise<BookingsCabine
      ORDER BY b.check_in DESC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      booking_code: string;
-      villa_code: string;
-      channel_key: string | null;
-      channel_name: string | null;
-      guest_name: string | null;
-      check_in: string;
-      check_out: string;
-      nights: string;
-      gross_amount: string;
-      status: string;
-      adults: string;
-      children: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    booking_code: string;
+    villa_code: string;
+    channel_key: string | null;
+    channel_name: string | null;
+    guest_name: string | null;
+    check_in: string;
+    check_out: string;
+    nights: string;
+    gross_amount: string;
+    status: string;
+    adults: string;
+    children: string;
+  }>(rows).map((r) => ({
     id: r.id,
     bookingCode: r.booking_code,
     villaCode: r.villa_code,
@@ -154,14 +154,14 @@ export async function getBookingsKpis(): Promise<BookingsKpis> {
       (SELECT COUNT(*)::text FROM bookings
         WHERE check_in >= date_trunc('year', CURRENT_DATE)::date) AS bookings_ytd
   `);
-  const r = (rows as unknown as { rows: Array<{
+  const r = rowsOf<{
     bookings_mtd: string;
     revenue_mtd: string;
     nights_mtd: string;
     lead_time_avg: string;
     cancellations_ytd: string;
     bookings_ytd: string;
-  }> }).rows?.[0];
+  }>(rows)[0];
   if (!r) {
     return {
       bookingsMtd: 0,
@@ -232,7 +232,7 @@ export async function getNext14NightsTimeline(startDate?: string): Promise<Calen
      WHERE v.status NOT IN ('archived','out_of_service')
      ORDER BY v.unit_code, b.check_in NULLS LAST
   `);
-  const data = (rows as unknown as { rows: Array<{
+  const data = rowsOf<{
     villa_id: string;
     villa_code: string;
     booking_id: string | null;
@@ -242,7 +242,7 @@ export async function getNext14NightsTimeline(startDate?: string): Promise<Calen
     check_out: string | null;
     status: string | null;
     channel_key: string | null;
-  }> }).rows ?? [];
+  }>(rows);
 
   const byVilla = new Map<string, CalendarVillaRow>();
   for (const r of data) {
@@ -296,9 +296,7 @@ export async function getChannelSyncStatus(): Promise<ChannelSyncRow[]> {
      WHERE status = 'active'
      ORDER BY name ASC
   `);
-  return (
-    (rows as unknown as { rows: Array<{ key: string; name: string }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{ key: string; name: string }>(rows).map((r) => ({
     channelKey: r.key,
     channelName: r.name,
     lastSyncAt: null,
