@@ -412,4 +412,255 @@ No code was modified during this audit.
 
 ---
 
-**Next step:** Stage 2 — Migration plan. Will be appended to this same file as `## 10. Migration plan`.
+---
+
+## 10. Migration plan (Stage 2)
+
+This plan is what Stage 3 will execute, after explicit user OK. **No file changes yet.**
+
+### 10.1 Guiding principle
+
+Layer B is the canonical, surviving system. Everything else either becomes a thin alias on top of it (Layer A consumers keep working) or is deleted (Layer C). Layer A's `:root` block stays — but each variable is **either kept at its current literal value (visual parity)** or **rewritten as `var(--layer-b-name, current-literal)`** so that under a `[data-product=…]` scope the Layer B value naturally takes precedence and off-scope pages keep the literal fallback. Nothing about the public API of "use `var(--canvas)`" changes — pages that read Layer A vars continue to work without edit.
+
+### 10.2 Layer A → Layer B alias mapping
+
+For each Layer A variable, the table shows: current `:root` value, the Layer B token that's the closest match, the proposed alias form, and whether values diverge enough that we want to visually compare before flipping.
+
+**Convention:** `var(--name, fallback)` means "use Layer B `--name` if defined for the current scope, otherwise fall back to the literal". This lets off-product pages keep current colors exactly and on-product pages adopt Layer B values where they're close enough.
+
+| Layer A var          | Current value (`:root`) | Layer B target (mgmt) | Δ vs current   | Proposed                                                  | Compare? |
+|----------------------|-------------------------|-----------------------|----------------|-----------------------------------------------------------|----------|
+| `--canvas`           | `#f8f5f0`               | `--cream` `#F4EFE6`   | very small     | `var(--cream, #f8f5f0)`                                   | yes      |
+| `--surface`          | `#ffffff`               | `--paper` `#FFFCF7`   | very small     | `var(--paper, #ffffff)`                                   | yes      |
+| `--muted`            | `#f1ece4`               | `--cream-deep` `#ECE5D5` | small        | `var(--cream-deep, #f1ece4)`                              | yes      |
+| `--inset`            | `#eee7dc`               | `--cream-deep` `#ECE5D5` | small        | `var(--cream-deep, #eee7dc)`                              | yes      |
+| `--line-soft`        | `#e4dcce`               | `--line-soft` `#E5DECC` | imperceptible | **already collides** — keep current `:root` value; Layer B wins under scope (no code change needed) | no |
+| `--line-strong`      | `#b9ad98`               | `--line-strong` `#C2B89E` | small        | **already collides** — keep current `:root`; Layer B wins under scope | yes |
+| `--ink`              | `#0f1110`               | `--ink` `#14201C`     | small (warmer)  | **already collides** — keep current; Layer B wins under scope | yes |
+| `--ink-secondary`    | `#4a4a46`               | `--ink-2` `#2A3934`   | moderate (greener) | `var(--ink-2, #4a4a46)`                                | yes      |
+| `--ink-tertiary`     | `#7a7670`               | `--ink-3` `#4A5A55`   | moderate       | `var(--ink-3, #7a7670)`                                   | yes      |
+| `--ink-inverse`      | `#f6f3ed`               | `--cream-warm` `#FAF7F1` | small        | `var(--cream-warm, #f6f3ed)`                              | yes      |
+| `--accent`           | `#0e3b2e`               | `--forest` `#1F3A33`  | small          | `var(--forest, #0e3b2e)`                                  | yes      |
+| `--accent-weak`      | `#dce6df`               | `--mint` `#D8E8D6`    | small          | `var(--mint, #dce6df)`                                    | yes      |
+| `--accent-contrast`  | `#ffffff`               | `--cream-warm` `#FAF7F1` | small        | `var(--cream-warm, #ffffff)`                              | yes      |
+| `--gold`             | `#b08a3e`               | `--gold` `#BC9A5C`    | **noticeable** | **already collides** — keep current `:root`; Layer B wins under scope. **Flagged for visual review.** | yes |
+| `--gold-weak`        | `#f1e7d1`               | `--gold-soft` `#DCC691` | small         | `var(--gold-soft, #f1e7d1)`                               | yes      |
+| `--success`          | `#2e7d64`               | `--ok` `#4F7A5D`      | moderate       | `var(--ok, #2e7d64)`                                      | yes      |
+| `--warning`          | `#a06a1a`               | `--warn` `#C58A2E`    | moderate       | `var(--warn, #a06a1a)`                                    | yes      |
+| `--danger`           | `#a43e2f`               | dev-only `--danger` `#C2474E` | scope-dependent | keep current; Layer B dev only collides on dev pages | yes |
+| `--info`             | `#2e4a5c`               | no Layer B equivalent | n/a            | keep literal                                              | no       |
+| `--neutral-fg`       | `#7a7670`               | no equivalent         | n/a            | **DELETE** (0 usage)                                      | n/a      |
+| `--success-weak`     | `#dce9e2`               | no exact equivalent   | n/a            | keep literal (no good Layer B target)                     | no       |
+| `--warning-weak`     | `#f3e4c9`               | `--gold-soft` `#DCC691` | small         | keep literal (semantic role mismatch)                     | no       |
+| `--danger-weak`      | `#f0d9d2`               | no equivalent         | n/a            | keep literal                                              | no       |
+| `--info-weak`        | `#d8e2e9`               | no equivalent         | n/a            | keep literal                                              | no       |
+| `--data-emerald`     | `#0e3b2e`               | `--forest`            | small          | `var(--forest, #0e3b2e)`                                  | yes      |
+| `--data-gold`        | `#b08a3e`               | `--gold` (or Layer A `--gold`) | yes   | keep literal (separate semantic role: data viz vs UI gold) | no      |
+| `--data-stone`       | `#6b6760`               | `--ink-3`             | moderate       | keep literal                                              | no       |
+| `--data-sage`        | `#6e8a7a`               | `--sage` `#88A89A`    | small          | `var(--sage, #6e8a7a)`                                    | yes      |
+| `--data-terracotta`  | `#9e5a49`               | `--terra` `#C4583C`   | moderate       | keep literal (terra is brighter; data viz needs muted)    | no       |
+| `--data-ink`         | `#2a2d2b`               | —                     | n/a            | **DELETE** (0 usage)                                      | n/a      |
+| `--r-xs` … `--r-4xl` | tokens                  | n/a                   | n/a            | KEEP `--r-sm`, `--r-md`, `--r-2xl`, `--r-3xl` (used). **DELETE** `--r-xs`, `--r-lg`, `--r-xl`, `--r-4xl` (0 usage). |        |
+| `--shadow-*`         | tokens                  | n/a                   | n/a            | KEEP all (all 6 used).                                    | no       |
+| `--gradient-*-soft`, `--gradient-ink-deep` | tokens | n/a            | n/a            | KEEP (all 4 used).                                        | no       |
+| `--ease-soft`, `--ease-editorial` | tokens     | n/a                   | n/a            | **DELETE** (0 usage)                                      | n/a      |
+| `--font-display`, `--font-sans`, `--font-mono` | tokens | n/a              | n/a            | KEEP. They alias `next/font` variables registered in `layout.tsx`. |  |
+
+**Tailwind `@theme inline` Layer A bridge (lines 148–198):**
+
+42 of 45 aliases are dead utilities (no `bg-canvas` / `text-ink` / `border-line-soft` callers anywhere in `src/`). Two strategies on the table:
+
+- **Strategy A (aggressive):** Delete every dead Tailwind alias. Keep only `--color-ink`, `--color-warning`, `--color-danger` (3 callers). Resulting bridge is ~10 lines. Risk: someone may later try `<div className="bg-canvas">` and get nothing — but that's not regressing existing behavior, since the class wasn't used before anyway. Pre-emptive cleanup.
+- **Strategy B (conservative):** Keep all aliases; relocate them to `tokens.css`. Future contributors keep the utility-class API surface available.
+
+**Recommendation: Strategy A.** The aliases are dead code; keeping them adds noise. If a future feature wants `bg-canvas`, adding one line of `@theme` is trivial. Confirm with user before deletion.
+
+### 10.3 Layer C — delete
+
+Layer C tokens are inside the `@theme inline` block (globals.css lines 200–280). 33 of 45 are dead. The remaining 12 have 1–3 callers, all in `src/components/dashboard/primitives/{dome-donut, concentric-bubbles, area-chart-card, donut-ratio-card, score-chip, hero-greet, filter-bar, mobile-tabbar}.tsx`.
+
+Two-step plan:
+
+1. **Migrate the 12 live Layer C usages to Layer B equivalents.** Mostly trivial substitutions:
+   - `var(--color-terra)` → `var(--terra)` (same role, defined in mgmt + sub scopes)
+   - `var(--color-terra-deep)` → `var(--terra-deep, #a44627)` (Layer B has `--terra-deep` only as a fallback in mgmt scope; provide literal fallback)
+   - `var(--color-olive)`, `var(--color-sea)`, `var(--color-ink-deep)` → no exact Layer B equivalent — these are chart data colors. **Move them to Layer A** as `--data-olive` and `--data-sea` if needed, or just inline the OKLCH literal in the 2 callers. Recommend inlining (chart colors are decorative + change rarely).
+   - `var(--color-warning-soft-2)`, `var(--color-danger-soft-2)` (one caller each in `score-chip.tsx`) → inline the OKLCH literal.
+   - `var(--radius-card)`, `var(--radius-card-hero)` (one caller, hero-greet) → inline `18px` / `32px`.
+   - `var(--shadow-redesign-card/soft/pop)` (4 callers) — these have a distinct visual character (multi-stop warm shadows). Move them into Layer A's shadow block under stable names: `--shadow-warm-card`, `--shadow-warm-soft`, `--shadow-warm-pop`. Update the 4 callers.
+
+2. **After the 12 callers are migrated, delete the entire Layer C block.** All `--color-bg`, `--color-bg-elevated`, `--color-ink-2..4`, `--color-line/line-2`, all `--color-terra/olive/sea/sand-*` variants, all `--text-redesign-*`, `--radius-card*`, `--shadow-redesign-*` go away. Net deletion: ~80 lines from globals.css.
+
+### 10.4 File structure for `src/styles/`
+
+Proposed split. Next.js 15 + Tailwind v4 supports CSS `@import` inside `globals.css` — confirmed by [the Tailwind v4 docs on `@import "tailwindcss"`](https://tailwindcss.com/docs/v4-beta#using-import) and by Next's PostCSS pipeline which resolves `@import` at build time. Each file below is a thin focused module:
+
+```
+src/app/globals.css                    — entry point. ONLY contains
+                                         @import "tailwindcss";
+                                         @custom-variant dark (&:where(.dark, .dark *));
+                                         @import "../styles/tokens.css";
+                                         @import "../styles/reset.css";
+                                         @import "../styles/typography.css";
+                                         @import "../styles/components.css";
+                                         @import "../styles/shell.css";
+                                         @import "../styles/motion.css";
+                                         @import "../styles/mobile.css";
+
+src/styles/tokens.css        — Layer A :root + .dark + Layer B [data-product]
+                                palettes + reduced Tailwind @theme bridge
+                                (the 3 surviving Layer A entries +
+                                 product-agnostic radii/fonts).
+                                ~250 lines.
+
+src/styles/reset.css         — @layer base { html, body, *, ::selection,
+                                tabular-nums, prefers-reduced-motion }.
+                                Also moves `html, body { overflow-x: hidden }`
+                                here from the mobile block.
+                                ~40 lines.
+
+src/styles/typography.css    — @layer utilities { .text-display, .text-label,
+                                .focus-ring, .glass, .no-scrollbar, .serif,
+                                .mono, .tnum, .display, .label, .num }.
+                                Includes the [data-product] .display family.
+                                ~80 lines.
+
+src/styles/components.css    — .btn family (per-product), .card / .panel /
+                                .bento / .card-ink / .ring, .badge family,
+                                .chip family, .ra-btn family, .pulse-dot +
+                                keyframe, table.data, table.guests, ul.clean,
+                                .corner-marks, .hr, .hr-dashed,
+                                .tex-* subscription textures.
+                                ~350 lines.
+
+src/styles/shell.css         — [data-product] .sidebar, .sb-group, .sb-item,
+                                .sb-sub, .sb-badge, .topbar, .topbar-search,
+                                .kbd, .kpi tiles. (Task 5 dashboard shell.)
+                                ~200 lines.
+
+src/styles/motion.css        — .cursor-dot/ring/label (pointer:fine),
+                                [data-reveal], [data-reveal-mask], .word/.char
+                                text-reveal, hover-lift on .panel/.bento/
+                                .stat-card, .float-y/x, .shimmer-text,
+                                .marquee, .scroll-progress, [data-parallax],
+                                handoff-pulse + floatY/X/shimmer/marquee
+                                keyframes.
+                                ~140 lines.
+
+src/styles/mobile.css        — All @media (max-width: 1100/900/760/600px)
+                                blocks — the [style*=…] grid collapse rules,
+                                .hide-mobile, mobile table overflow, mobile
+                                sidebar hide rule for [data-product] .sidebar.
+                                ~180 lines.
+```
+
+Total ≈ 1240 lines spread across 7 focused files (down from 1383 in one monolith). No CSS rules are added or removed at this stage other than the Layer C deletion (~80 lines) and dead-Layer-A-bridge deletion (~30 lines).
+
+### 10.5 Navigation consolidation
+
+Proposed final structure:
+
+```
+src/config/navigation/
+  index.ts             — barrel re-exports
+  management.ts        — MGMT_DASHBOARD_NAV (from current dashboard-nav.ts)
+  development.ts       — DEV_DASHBOARD_NAV (from current development-nav.ts)
+  marketing.ts         — marketingNav (from current navigation.ts)
+  owner.ts             — ownerNav (from current navigation.ts)
+  field.ts             — fieldNav (from current navigation.ts)
+  guest.ts             — guestNav (from current navigation.ts)
+  types.ts             — DashboardNavItem, DashboardNavGroup, NavItem, NavGroup
+```
+
+The current `src/config/navigation.ts` exports a `dashboardNav` consumed by `src/components/layout/dashboard-sidebar.tsx` (legacy sidebar). The newer `MGMT_DASHBOARD_NAV` is consumed by `src/components/dashboard/sidebar.tsx` (handoff Task 5 sidebar). They diverge in grouping (legacy: separate Inventory/Procurement/Utilities/Maintenance/Security/System; new: merged).
+
+**Open question for user (Stage 3 decision point):** do we keep both nav trees alive, or retire the legacy `dashboardNav` and let the new sidebar take over everywhere?
+
+- **Keep both:** safe. Old layout group routes use legacy sidebar with legacy nav; new port routes use new sidebar with new nav. No behavioral change. Just relocate the files.
+- **Retire legacy `dashboardNav`:** requires `dashboard-sidebar.tsx` to switch to `MGMT_DASHBOARD_NAV`. Visible regrouping in the sidebar of the 190 legacy pages. **This is a visual change — out of scope for Phase 2.0** per the brief's no-visual-regression rule.
+
+**Recommendation: keep both, just relocate.** Old `dashboardNav` stays, accessible from the new `navigation/index.ts` barrel. Mark as `@deprecated — superseded by MGMT_DASHBOARD_NAV after Phase 2.1`.
+
+Old top-level files (`src/config/{navigation,dashboard-nav,development-nav}.ts`) become deprecated re-export shims for one release cycle so external imports don't break, then deleted in a follow-up.
+
+### 10.6 UI primitive consolidation
+
+The only real conflict is `Badge`:
+
+- `src/components/ui/badge.tsx` — 439 imports, prop signature `{ tone, className, children }`, uses Tailwind classes (`bg-*`, `text-*`).
+- `src/components/dashboard/primitives.tsx → Badge` — 4 imports, prop signature `{ tone, children }`, uses Layer B `.badge .badge-ok` etc. CSS classes.
+
+Both implementations are intentionally different — one is the Layer A canonical badge, the other is the Layer B handoff badge (pill-shaped, mono-font, per-product styled). Same React export name causes confusion.
+
+**Proposed rename:** Layer B's `Badge` in `dashboard/primitives.tsx` becomes `HandoffBadge` (or `ProductBadge`). Updates 4 import sites. No behavioral change.
+
+`Card` — Layer A version (`src/components/ui/card.tsx`) has **0 imports**. Just delete it. Layer B's `Card` keeps its name.
+
+`Pulse` — Layer B's `Pulse` has **0 imports**. Delete it from `primitives.tsx`. The `.pulse-dot` CSS class stays in `components.css` (it's used directly by some prototype JSX).
+
+**Keep `dashboard/primitives.tsx` as the home for Layer B primitives** rather than moving them to `src/components/ui/*`. Reason: `src/components/ui/*` is already the Layer A canonical namespace with 11 files in heavy use; mixing Layer B primitives in there would create ambiguity. Better naming separation = better long-term clarity. Layer B primitives can live at `src/components/ui/primitives/*` (where they already are for 37 other files) or stay in `src/components/dashboard/primitives.tsx`.
+
+**Recommendation:** Move `Kpi`, `SectionHeading`, `Card`, `HandoffBadge` from `dashboard/primitives.tsx` into separate files under `src/components/ui/handoff/` (new directory). Update import sites (~80 files). Delete `Pulse` (unused). Delete `src/components/ui/card.tsx` (unused).
+
+**Alternative (smaller-blast-radius):** keep everything in `dashboard/primitives.tsx`, only rename `Badge` → `HandoffBadge` and delete unused. ~5 imports updated. Layer B primitives stay in dashboard/ — slight namespace smell but very low risk.
+
+**I'd recommend the alternative for Phase 2.0** (the brief explicitly says infrastructure-only, no large file moves). Reserve the bigger move to a Phase 2.1.
+
+### 10.7 Risks & stop-blockers
+
+1. **CSS specificity inversion.** The 5 colliding Layer A/B vars (`--ink`, `--line-soft`, `--line-strong`, `--gold`, `--danger`) currently work because Layer B's `:root[data-product=…]` selector outweighs Layer A's plain `:root`. After splitting into modules, IF the modules are imported in the wrong order (Layer B `@import` before Layer A in `globals.css`), specificity stays the same (it's selector-driven, not source-order-driven for equal-specificity cases). But source order DOES matter for equal-specificity rules. **Mitigation:** import order in entry `globals.css` will be: tokens → reset → typography → components → shell → motion → mobile. tokens.css contains BOTH Layer A and Layer B; they coexist with specificity intact.
+
+2. **Tailwind `@theme inline` consolidation.** Currently Layer A's bridge and Layer C OKLCH share one `@theme inline { }` block. After deletion of Layer C and relocation of Layer A bridge to `tokens.css`, the `@theme inline` block becomes much smaller. Need to verify Tailwind v4's PostCSS plugin still picks it up when it lives in an `@import`ed file (not the entry). **Mitigation:** small smoke test at start of Stage 3 — if `@theme inline` inside a sub-module breaks Tailwind class generation, keep `@theme inline` in `globals.css` directly.
+
+3. **`@layer base` and `@layer utilities` reordering.** These `@layer` directives must come AFTER `@import "tailwindcss"`. Currently they're at lines 285 and 333. After split: `reset.css` declares `@layer base { … }`, `typography.css` declares `@layer utilities { … }`, etc. Tailwind v4 should merge `@layer` declarations from imports cleanly, but verify with a build before continuing.
+
+4. **MotionLayer.tsx coupling.** `src/components/MotionLayer.tsx` reads `[data-reveal]`, `[data-parallax]` attributes — purely CSS-driven side. As long as `motion.css` keeps the same class/attr names, MotionLayer is unaffected. No JS edit needed.
+
+5. **`<html data-product>` middleware.** `src/middleware.ts` stamps `x-product` header, `src/app/layout.tsx` reads it and sets `<html data-product="…">`. All Layer B styling depends on this attribute. If it ever ends up missing (e.g., during a routing edge case), Layer B vars vanish and Layer A's literals take over. That's a known and acceptable fallback. No change needed here.
+
+6. **Component primitive rename blast radius.** Renaming Layer B `Badge` → `HandoffBadge` touches 4 files. Trivial mechanical edit. The 439 Layer A `Badge` imports are unaffected.
+
+7. **OOM at build.** Brief warns about `cpus: 2` OOM. Not touching the build config. If `npm run build` OOMs after refactor, report and pause.
+
+### 10.8 Verification plan (executed in Stage 4)
+
+After Stage 3 lands, run these checks:
+
+1. **Static:** `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` — all green.
+2. **Token usage check:** grep `src/` for every Layer C var name we deleted — must return 0 hits. Grep for the deleted Layer A bridge aliases — must return 0 hits.
+3. **Manual render sanity** — open these pages in `npm run dev` and capture screenshots:
+   - `/dashboard` — handoff Task 6 port (Layer B `data-product="management"`, new sidebar)
+   - `/dashboard/utilities/accounts` — legacy mgmt page (still Layer B `data-product="management"`, legacy sidebar, Layer A tokens dominant in JSX)
+   - `/development-os` — handoff Task 7 port (Layer B `data-product="development"`)
+   - `/development-os/vendors` — legacy dev page
+   - `/owner` (any owner cabinet) — owner shell
+   - `/` — public marketing site (no `data-product`)
+4. **Visual diff:** capture screenshots on the `main` branch baseline first (save under `docs/audits/phase-2-0-baseline/`). After Stage 3 lands, capture again under `docs/audits/phase-2-0-after/`. Diff with playwright or eyeball. Flag any visible difference.
+5. **Specific token verification** — `var(--gold)` is the one I'm most worried about. Open `/dashboard/finance` (uses gold tints) and compare side-by-side.
+
+### 10.9 Order of operations for Stage 3
+
+Each numbered step = one commit. Tests must stay green at every commit.
+
+1. Create `src/styles/` skeleton. Move CSS in chunks: tokens.css first, then reset.css, then typography.css, etc. After each move, ensure globals.css `@import`s match and the build still works. Use git-mv to preserve history where possible (it's a CSS-to-CSS move, so a plain copy+delete is fine — git tracks similarity automatically).
+2. Inside `tokens.css`: write the Layer A→B alias rewrites per §10.2. **Do not delete any Layer A tokens that have callers.** Delete only those flagged `DELETE` in §10.2 (neutral-fg, data-ink, r-xs, r-lg, r-xl, r-4xl, ease-soft, ease-editorial).
+3. Migrate 12 Layer C call sites in `src/components/dashboard/primitives/*` to Layer B equivalents or inline literals per §10.3 step 1. Delete the Layer C block from `tokens.css` per §10.3 step 2.
+4. Optionally (Strategy A): trim dead Layer A Tailwind bridge entries. (Or skip if user picks Strategy B.)
+5. Rename Layer B `Badge` → `HandoffBadge` in `dashboard/primitives.tsx`; update 4 callers. Delete unused `Pulse`. Delete unused `src/components/ui/card.tsx`.
+6. Create `src/config/navigation/` directory, move + barrel-export existing files. Add deprecated shim re-exports in old paths.
+7. Final `npm run build` + manual sanity passes.
+
+If any step is blocked (e.g., Tailwind `@theme` doesn't survive imports), HALT and report — do not invent workarounds.
+
+---
+
+**HALT — Stage 1 + Stage 2 complete. Awaiting user OK before starting Stage 3 execution.**
+
+Specific decisions I need from you:
+
+1. **Layer A Tailwind bridge cleanup — Strategy A (delete 42 dead aliases) or Strategy B (keep, just relocate)?** I recommend A.
+2. **Navigation files — keep both nav trees (recommended) or retire legacy `dashboardNav` (out of scope)?**
+3. **UI primitives — small rename `Badge→HandoffBadge` (recommended) or larger move into `src/components/ui/handoff/`?**
+4. **Any token in §10.2 you want to flag specifically for "keep literal, do not alias"?**
+
+Once you say "go" with answers (or just "go" to accept recommendations), I'll begin Stage 3.
