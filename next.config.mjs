@@ -111,9 +111,20 @@ const nextConfig = {
   // HF-16 — Vercel build OOM (8GB container SIGKILL on ~800 server
   // files + 426 client components + 100+ routes). Skipping ESLint
   // during build saves ~500MB-1GB peak; lint still runs locally via
-  // `npm run lint`. TypeScript checks stay ON for correctness.
+  // `npm run lint`.
   eslint: {
     ignoreDuringBuilds: true,
+  },
+
+  // HF-16 follow-up — DAILY-DIGEST-SPRINT-1 P4 pushed the server-file
+  // count from ~799 to 807, triggering OOM again on the 8GB Vercel
+  // builder (SIGKILL during Next compile worker). Disabling the
+  // build-time typecheck saves another ~500MB-1GB; typecheck still
+  // runs locally via `npm run typecheck` (and on every commit per
+  // the sprint discipline). Upgrade path: Enhanced Builds (16GB)
+  // when the project re-evaluates Vercel plan tier.
+  typescript: {
+    ignoreBuildErrors: true,
   },
 
   // HF-16 — Disable production source maps (saves ~30% build memory).
