@@ -31,7 +31,7 @@ const DECISIONS_DOC = "tmp/stage-10-i-1-decisions.md";
 const PUBLIC_LAYOUT = "src/app/(public)/layout.tsx";
 const PUBLIC_HEADER = "src/components/layout/public-header.tsx";
 const PUBLIC_FOOTER = "src/components/layout/public-footer.tsx";
-const NAV_CONFIG = "src/config/navigation.ts";
+const NAV_CONFIG = "src/config/navigation/legacy.ts";
 const HOMEPAGE = "src/app/(public)/page.tsx";
 
 test("10.I.1 — decisions doc captures all 4 operator answers", () => {

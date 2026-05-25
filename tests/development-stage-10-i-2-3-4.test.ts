@@ -50,7 +50,7 @@ const DEV_PRICING_PAGE =
   "src/app/(public)/pricing/development-os/page.tsx";
 const PRICING_PAGE_LIB = "src/components/marketing/pricing-page.tsx";
 const PRICING_CONFIG = "src/lib/billing/pricing.ts";
-const NAV_CONFIG = "src/config/navigation.ts";
+const NAV_CONFIG = "src/config/navigation/legacy.ts";
 const PUBLIC_HEADER = "src/components/layout/public-header.tsx";
 const PUBLIC_FOOTER = "src/components/layout/public-footer.tsx";
 const NEXT_CONFIG = "next.config.mjs";
