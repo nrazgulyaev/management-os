@@ -44,6 +44,7 @@
     "seed:test-team-accounts": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-test-team-accounts.ts",
     "seed:ai-agent-config": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-ai-agent-config.ts",
     "migrate:force-0109": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/force-apply-migration-0109.ts",
+    "migrate:daily-digest": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/apply-daily-digest-migrations.ts",
     "setup:agent-storage": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/setup-agent-storage.ts",
     "seed:tax-assistant-agent": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-tax-assistant-agent.ts",
     "ingest:tax-assistant-kb": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/ingest-tax-assistant-kb.ts",
