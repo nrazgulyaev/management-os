@@ -49,6 +49,20 @@ export default async function InboxPage({
         title="Your inbox"
         description="In-app notifications addressed to you. Email / SMS / WhatsApp ship through Resend / Twilio when those provider env vars are configured."
       />
+      {/* DAILY-DIGEST-SPRINT-1 P4.5 — pointer to the parallel digest
+          inbox. The two systems are intentionally separate today
+          (DIGEST-INBOX-UNIFY-1 backlog item). */}
+      <div className="rounded-md border border-line-soft bg-surface px-4 py-3 text-sm text-ink-secondary flex items-center justify-between gap-3 flex-wrap">
+        <span>
+          Looking for daily digest reports? They live separately.
+        </span>
+        <Link
+          href="/dashboard/digests"
+          className="text-sm text-ink hover:underline whitespace-nowrap"
+        >
+          Daily digests →
+        </Link>
+      </div>
       <DbStatusNotice />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -32,9 +32,11 @@ export async function markDigestAsRead(id: string): Promise<void> {
        AND user_id = ${me.id}::uuid
   `);
   // Revalidate both OS list paths + dashboard tiles so the bell
-  // badge + tile state update.
+  // badge + tile state update. Dev OS route is `/agent-digests`
+  // (not `/digests`) — the latter is the existing Executive
+  // Digests surface, separate feature.
   revalidatePath("/dashboard/digests");
-  revalidatePath("/development-os/digests");
+  revalidatePath("/development-os/agent-digests");
   revalidatePath("/dashboard");
   revalidatePath("/development-os");
 }

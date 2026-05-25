@@ -26,6 +26,14 @@ interface TopbarProps {
   userName?: string;
   userRole?: string;
   userInitials?: string;
+  /**
+   * DAILY-DIGEST-SPRINT-1 P4.5 — where the bell click navigates.
+   * Mgmt OS keeps the historical `/dashboard/notifications/inbox`
+   * (the operational notifications surface). Dev OS overrides with
+   * `/development-os/agent-digests` (the digest surface — Dev OS
+   * has no parallel operational inbox today).
+   */
+  inboxHref?: string;
   /** Optional slot in the action area — keeps WorkspaceSwitcher / AI
    *  hub buttons reachable without baking them into this file. */
   actions?: React.ReactNode;
@@ -39,6 +47,7 @@ export function DashboardTopbar({
   userName = "Workspace",
   userRole = "Operator",
   userInitials = "AR",
+  inboxHref = "/dashboard/notifications/inbox",
   actions,
   breadcrumbs,
 }: TopbarProps) {
@@ -66,7 +75,7 @@ export function DashboardTopbar({
         </div>
         {actions}
         <Link
-          href="/dashboard/notifications/inbox"
+          href={inboxHref}
           aria-label={`Inbox · ${unreadCount} unread`}
           style={{
             position: "relative",

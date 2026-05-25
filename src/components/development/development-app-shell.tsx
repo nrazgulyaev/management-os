@@ -4,6 +4,7 @@ import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { OfflineIndicator } from "./pwa/offline-indicator";
 import { InstallPrompt } from "./pwa/install-prompt";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { countUnreadForCurrentUser } from "@/features/notifications/services";
 import { getCurrentOrgTrial } from "@/features/billing/trial-services";
 import { TrialBanner } from "@/components/billing/trial-banner";
 import { MobileTabbar } from "@/components/ui/primitives/mobile-tabbar";
@@ -55,6 +56,16 @@ export async function DevelopmentAppShell({
     // keep fallbacks
   }
 
+  // DAILY-DIGEST-SPRINT-1 P4.5 — Dev OS bell badge. countUnread is
+  // UNION-extended (Phase 4.1) so it reflects digest unreads too.
+  // Wrapped in try/catch so an auth/db blip doesn't break the shell.
+  let unreadCount = 0;
+  try {
+    unreadCount = await countUnreadForCurrentUser();
+  } catch {
+    unreadCount = 0;
+  }
+
   return (
     <div
       data-product="development"
@@ -68,10 +79,11 @@ export async function DevelopmentAppShell({
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         {trial && <TrialBanner state={trial.state} />}
         <DashboardTopbar
-          unreadCount={0}
+          unreadCount={unreadCount}
           userName={userName}
           userRole={userRole}
           userInitials={userInitials}
+          inboxHref="/development-os/agent-digests"
           actions={<AppSwitcher />}
         />
         <div

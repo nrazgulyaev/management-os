@@ -8,9 +8,17 @@ import type { ProductSlug } from "@/lib/products";
 
 export function DevelopmentAppTopbar({
   title,
+  unreadCount = 0,
   enabledProducts: _enabledProducts = null,
 }: {
   title?: string;
+  /**
+   * DAILY-DIGEST-SPRINT-1 P4.5 — total unread notifications for the
+   * signed-in user, drives the bell badge. Computed by the parent
+   * server layout via countUnreadForCurrentUser() (now UNION'd over
+   * both in_app_notifications + the new notifications table).
+   */
+  unreadCount?: number;
   /**
    * MEGA-SPRINT P1 — kept in the API for caller compatibility, but no
    * longer rendered. See DashboardTopbar for the architectural rationale
@@ -50,13 +58,18 @@ export function DevelopmentAppTopbar({
           <Sparkles className="w-4 h-4 text-terra" strokeWidth={1.75} />
           <span>Assistants</span>
         </Link>
-        <button
-          type="button"
-          className="h-10 rounded-full border border-line bg-surface hover:bg-surface-warm inline-flex items-center justify-center transition-colors px-3"
-          aria-label="Notifications"
+        <Link
+          href="/development-os/agent-digests"
+          className="h-10 rounded-full border border-line bg-surface hover:bg-surface-warm inline-flex items-center justify-center transition-colors relative px-3 gap-1.5"
+          aria-label={`Digests · ${unreadCount} unread`}
         >
           <Bell className="w-4 h-4 text-ink-2" strokeWidth={1.75} />
-        </button>
+          {unreadCount > 0 && (
+            <span className="text-xs font-medium text-ink min-w-[18px] h-[18px] inline-flex items-center justify-center rounded-full bg-terra/15 px-1">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </Link>
         <button
           type="button"
           className="h-10 w-10 rounded-full bg-ink-deep text-white text-sm font-medium inline-flex items-center justify-center"

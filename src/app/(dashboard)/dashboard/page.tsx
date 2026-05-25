@@ -6,6 +6,7 @@ import {
   Badge,
 } from "@/components/dashboard/primitives";
 import { DashboardIcon } from "@/components/dashboard/icons";
+import { RecentDigestsTile } from "@/components/digests/recent-digests-tile";
 import { getLiveDashboardCounts } from "@/features/dashboard/live-counts";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import {
@@ -253,61 +254,11 @@ export default async function DashboardOverviewPage() {
           )}
         </Card>
 
-        {/* AI Operations Copilot — empty state until daily-digest agent runs */}
-        <Card
-          style={{
-            padding: 20,
-            background: "var(--forest)",
-            color: "var(--cream-warm)",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              opacity: 0.13,
-              background:
-                "radial-gradient(60% 60% at 100% 0%, var(--gold) 0%, transparent 60%)",
-            }}
-          />
-          <div style={{ position: "relative" }}>
-            <div className="label" style={{ color: "rgba(244,239,230,0.6)" }}>
-              AI · Operations Copilot
-            </div>
-            <h3
-              style={{
-                margin: "8px 0 12px",
-                fontFamily: "var(--font-newsreader), serif",
-                fontSize: 20,
-                fontWeight: 400,
-                lineHeight: 1.3,
-              }}
-            >
-              The Operations Copilot surfaces here the first time the
-              daily-digest agent files a run.
-            </h3>
-            <p style={{ margin: 0, fontSize: 13, color: "rgba(244,239,230,0.8)", lineHeight: 1.5 }}>
-              Configure the agent on the AI hub to start receiving
-              morning briefs with arrivals, turnovers, and exception flags.
-            </p>
-            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-              <Link
-                href="/dashboard/ai"
-                className="btn"
-                style={{
-                  background: "var(--cream-warm)",
-                  color: "var(--ink)",
-                  fontSize: 12,
-                  padding: "6px 12px",
-                }}
-              >
-                Configure agent
-              </Link>
-            </div>
-          </div>
-        </Card>
+        {/* DAILY-DIGEST-SPRINT-1 P4.4 — Recent digests tile replaces
+            the previous scaffolded "Operations Copilot" placeholder.
+            Empty state in the component still surfaces friendly copy
+            until the first digest lands. */}
+        <RecentDigestsTile basePath="/dashboard/digests" />
       </div>
 
       {/* Channels + Monthly revenue + Owners */}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RecentDigestsTile } from "@/components/digests/recent-digests-tile";
 import {
   Kpi,
   SectionHeading,
@@ -196,6 +197,11 @@ export default async function DevelopmentOverviewPage() {
           </div>
         </div>
       </Card>
+
+      {/* DAILY-DIGEST-SPRINT-1 P4.4 — Recent digests tile */}
+      <div style={{ marginBottom: 18 }}>
+        <RecentDigestsTile basePath="/development-os/agent-digests" />
+      </div>
 
       {/* Projects roll-up — live `projects` rows */}
       <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
