@@ -155,6 +155,10 @@ const nextConfig = {
       "recharts",
       "@supabase/supabase-js",
       "drizzle-orm",
+      // P4 — react-markdown + remark + micromark fan out to ~30
+      // sub-packages; tree-shaking them is a meaningful win.
+      "react-markdown",
+      "remark-gfm",
     ],
     // HF-16 — Cap webpack worker concurrency. Default uses all CPUs
     // and each worker holds its own module graph; on Vercel's 8GB
@@ -163,6 +167,23 @@ const nextConfig = {
     workerThreads: false,
     cpus: 2,
   },
+
+  // P4 follow-up — keep heavy server-only deps OUT of the route
+  // bundling pipeline. Each route's server output otherwise traces
+  // the full transitive graph of these modules even when the route
+  // doesn't import them. Externalizing means Next imports them at
+  // runtime from node_modules instead of compiling them into every
+  // function. Biggest blast-radius reduction for the agent-related
+  // routes (only 1-2 actually use these) and the worker memory
+  // footprint during build.
+  serverExternalPackages: [
+    "@ai-sdk/openai",
+    "@ai-sdk/anthropic",
+    "ai",
+    "unpdf",
+    "mammoth",
+    "gpt-tokenizer",
+  ],
 
   async redirects() {
     return STAGE_10_C_REDIRECTS.map((r) => ({
