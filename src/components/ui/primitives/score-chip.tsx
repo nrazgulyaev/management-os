@@ -41,8 +41,8 @@ const TONE_CLS: Record<ScoreChipTone, string> = {
   sea: "bg-sea-soft text-sea-deep",
   sand: "bg-sand-soft text-ink-2",
   success: "bg-olive-soft text-olive-deep",
-  warning: "bg-[var(--color-warning-soft-2)] text-[oklch(0.5_0.13_80)]",
-  danger: "bg-[var(--color-danger-soft-2)] text-danger",
+  warning: "bg-[oklch(0.940_0.060_80)] text-[oklch(0.5_0.13_80)]",
+  danger: "bg-[oklch(0.940_0.050_30)] text-danger",
   ink: "bg-ink-deep text-white",
 };
 
