@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/warm-routes",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/agents/daily-digest/run",
+      "schedule": "0 * * * *"
     }
   ]
 }
