@@ -227,6 +227,15 @@
   --color-surface-warm:    oklch(0.985 0.013 78);
   --color-surface-sunken:  oklch(0.945 0.014 78);
 
+  /* Phase 2.0.5 (PR 3) — Dev OS surfaces. `--bg-2` / `--bg-3` / `--panel`
+     are Layer B `[data-product="development"]` tokens; bridging them
+     here lets Dev pages write `bg-bg-2` / `bg-bg-3` / `bg-panel`
+     directly instead of `bg-[var(--bg-2)]`. Fallback values from the
+     Layer B dev palette literals so off-dev pages still render. */
+  --color-bg-2:            var(--bg-2, #F8F4EA);
+  --color-bg-3:            var(--bg-3, #FFFCF4);
+  --color-panel:           var(--panel, #FFFFFF);
+
   /* Ink scale — aliased to Layer B per-product where applicable.
      --color-ink-deep / --color-ink-warm have no Layer B equivalent. */
   --color-ink-2:           var(--ink-2, oklch(0.420 0.015 72));
