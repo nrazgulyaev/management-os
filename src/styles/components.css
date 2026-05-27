@@ -3563,3 +3563,279 @@ ul.clean li:last-child {
   letter-spacing: 0.1em;
   padding: 4px 0;
 }
+
+/* =============================================================
+   Phase 2.3 owner-01 — Owner Portal · home (narrative tonality).
+
+   Density override: html[data-density="narrative"] inside the
+   owner-portal route group bumps display sizes + line-height +
+   line-length so the surface reads like a quarterly letter, not
+   an operator console.
+
+   Primitives:
+     .owner-greeting        — eyebrow + greet (48px) + narrative paragraph
+     .hero-tile             — dark / flat hero tile
+     .villa-card            — col + row orientations
+     .upcoming-list         — simplified bookings list
+     .quick-action-grid     — 4-up / 2-up action cards
+   ============================================================= */
+
+/* ---------- Narrative typography overrides ---------- */
+[data-density="narrative"] .greet,
+.owner-portal .greet,
+.owner-greeting .greet {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 48px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+  margin: 0;
+}
+[data-density="narrative"] .greet em,
+.owner-greeting .greet em {
+  font-style: italic;
+  color: var(--terra);
+  font-weight: 400;
+}
+[data-density="narrative"] .owner-narr,
+.owner-greeting .owner-narr {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin-top: 14px;
+  max-width: 620px;
+}
+[data-density="narrative"] .owner-eyebrow,
+.owner-greeting .owner-eyebrow {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 12px;
+}
+
+/* ---------- HeroTile ---------- */
+[data-product] .hero-tile {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 22px 24px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 22px;
+}
+[data-product] .hero-tile.dark {
+  background: var(--ink);
+  color: var(--cream-warm, #fff);
+  border-color: var(--ink);
+}
+[data-product] .hero-tile .ht-label {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product] .hero-tile.dark .ht-label { color: rgba(255,255,255,0.55); }
+[data-product] .hero-tile .ht-value {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 42px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin-top: 8px;
+}
+[data-product] .hero-tile.dark .ht-value { color: var(--cream-warm, #fff); }
+[data-product] .hero-tile .ht-sub {
+  font-size: 14px;
+  color: var(--ink-3);
+  margin-top: 6px;
+}
+[data-product] .hero-tile.dark .ht-sub { color: rgba(255,255,255,0.7); }
+[data-product] .hero-tile .ht-foot {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+  margin-top: auto;
+  padding-top: 10px;
+}
+[data-product] .hero-tile.dark .ht-foot { color: rgba(255,255,255,0.55); }
+
+/* ---------- VillaCard ---------- */
+[data-product] .villa-card {
+  display: flex;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 22px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+[data-product] .villa-card:hover {
+  border-color: var(--ink-2);
+  transform: translateY(-2px);
+}
+[data-product] .villa-card.col { flex-direction: column; }
+[data-product] .villa-card.row { flex-direction: row; align-items: stretch; }
+[data-product] .villa-card .vc-hero {
+  position: relative;
+  background: linear-gradient(135deg, color-mix(in oklab, var(--terra) 30%, transparent), var(--cream-deep));
+  background-size: cover;
+  background-position: center;
+  min-height: 180px;
+  display: flex; align-items: center; justify-content: center;
+}
+[data-product] .villa-card.row .vc-hero {
+  width: 200px;
+  min-height: auto;
+}
+[data-product] .villa-card .vc-hero-fallback {
+  font-family: var(--mono-font), monospace;
+  font-size: 18px;
+  color: var(--cream-warm, #fff);
+  letter-spacing: 0.16em;
+}
+[data-product] .villa-card .vc-body {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 18px 20px;
+  flex: 1;
+}
+[data-product] .villa-card .vc-code {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+[data-product] .villa-card .vc-name {
+  margin: 4px 0 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+[data-product] .villa-card .vc-loc {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+[data-product] .villa-card .vc-stats {
+  display: flex; gap: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .villa-card .vc-stat {
+  display: flex; flex-direction: column;
+}
+[data-product] .villa-card .vc-stat .value {
+  font-family: var(--mono-font), monospace;
+  font-size: 16px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] .villa-card .vc-stat .label {
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ---------- UpcomingList ---------- */
+[data-product] .upcoming-list {
+  list-style: none; padding: 0; margin: 0;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 18px;
+  overflow: hidden;
+}
+[data-product] .upcoming-list.empty {
+  padding: 28px 24px;
+  text-align: center;
+  font-style: italic;
+  color: var(--ink-3);
+}
+[data-product] .upcoming-list li {
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .upcoming-list li:last-child { border-bottom: 0; }
+[data-product] .upcoming-list li > a {
+  display: grid;
+  grid-template-columns: 110px 1fr 80px 50px 100px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 18px;
+  font-size: 13.5px;
+  color: var(--ink);
+  text-decoration: none;
+}
+[data-product] .upcoming-list li > a:hover { background: var(--cream-warm, var(--bg-2)); }
+[data-product] .upcoming-list .when {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product] .upcoming-list .who { color: var(--ink); }
+[data-product] .upcoming-list .where {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product] .upcoming-list .nights {
+  font-family: var(--mono-font), monospace;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+[data-product] .upcoming-list .state {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: right;
+}
+
+/* ---------- QuickActionGrid ---------- */
+[data-product] .quick-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 720px) {
+  [data-product] .quick-action-grid { grid-template-columns: repeat(2, 1fr); }
+}
+[data-product] .qa-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 18px 18px 20px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 18px;
+  text-decoration: none;
+  color: inherit;
+}
+[data-product] .qa-card:hover { border-color: var(--ink-2); }
+[data-product] .qa-card .qa-icon {
+  width: 40px; height: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--terra) 14%, transparent);
+  color: var(--terra);
+}
+[data-product] .qa-card .qa-label {
+  margin-top: 8px;
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 17px;
+  color: var(--ink);
+}
+[data-product] .qa-card .qa-ctx {
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
