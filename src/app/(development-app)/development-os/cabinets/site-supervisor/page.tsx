@@ -70,20 +70,31 @@ export default async function SiteSupervisorPage() {
         eyebrow="Site supervisor · daily report"
         title={
           <>
-            Today&apos;s{" "}
-            <span style={{ color: "var(--amber)" }}>jobsite log.</span>
+            Today&apos;s <span className="text-amber">jobsite log.</span>
           </>
         }
         subtitle="Daily report timeline, photo-evidence trail, geo-tagged completion stamps. Voice notes and offline-first PWA support coming soon."
         actions={
           <>
-            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Submit for sign-off</button>
-            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Photo</button>
+            <button
+              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Submit for sign-off
+            </button>
+            <button
+              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              + Photo
+            </button>
           </>
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="grid grid-cols-5 gap-3 mb-[18px]">
         <Kpi
           label="Reports · today"
           value={todaysReportCount === 0 ? "—" : String(todaysReportCount)}
@@ -105,51 +116,34 @@ export default async function SiteSupervisorPage() {
       </div>
 
       {/* Daily report timeline — live site_reports */}
-      <Card style={{ padding: 24, marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "baseline" }}>
-          <h2 className="display" style={{ margin: 0, fontSize: 22, fontWeight: 500 }}>
+      <Card className="p-6 mb-[18px]">
+        <div className="flex items-baseline">
+          <h2 className="display text-[22px] font-medium m-0">
             Daily reports · {reports.length === 0 ? "none yet" : `last ${reports.length}`}
           </h2>
-          <span
-            className="mono"
-            style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}
-          >
+          <span className="mono ml-auto text-[11px] text-ink-3">
             {new Date().toLocaleDateString()}
           </span>
         </div>
 
         {reports.length === 0 ? (
-          <p
-            style={{
-              marginTop: 18,
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-            }}
-          >
+          <p className="mt-[18px] text-[13px] text-ink-3 italic">
             No site reports filed yet. Reports surface here once supervisors
             submit their first daily log.
           </p>
         ) : (
-          <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "160px 1fr", gap: 14 }}>
+          <div className="mt-[18px] grid grid-cols-[160px_1fr] gap-3.5">
             {reports.map((r) => (
               <React.Fragment key={r.id}>
-                <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)", paddingTop: 4 }}>
+                <div className="mono text-[11px] text-ink-3 pt-1">
                   {r.reportDate}
                 </div>
-                <div
-                  style={{
-                    padding: "10px 14px",
-                    border: "1px solid var(--line)",
-                    borderRadius: 10,
-                    background: "var(--bg-3)",
-                  }}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>
+                <div className="px-3.5 py-2.5 border border-line rounded-[10px] bg-bg-3">
+                  <div className="text-[14px] font-medium">
                     {r.projectCode ? `${r.projectCode} · ` : ""}
                     {r.summary ?? "Daily site report"}
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
+                  <div className="text-[12px] text-ink-3 mt-0.5">
                     {r.reporterName ?? "—"}
                     {r.reporterRole ? ` · ${r.reporterRole}` : ""}
                     {r.workersPresent > 0 ? ` · ${r.workersPresent} workers` : ""}
@@ -160,7 +154,7 @@ export default async function SiteSupervisorPage() {
                       </>
                     ) : null}
                   </div>
-                  <div style={{ marginTop: 8 }}>{statusBadge(r.status)}</div>
+                  <div className="mt-2">{statusBadge(r.status)}</div>
                 </div>
               </React.Fragment>
             ))}
@@ -169,59 +163,30 @@ export default async function SiteSupervisorPage() {
       </Card>
 
       {/* Photo evidence — live site_report_photos */}
-      <Card style={{ padding: 20, marginBottom: 18 }}>
-        <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+      <Card className="p-5 mb-[18px]">
+        <h3 className="display text-[18px] font-medium m-0">
           Photo evidence · recent
         </h3>
-        <div className="label" style={{ marginTop: 4 }}>
+        <div className="label mt-1">
           Auto-uploaded · geo-tagged · linked to checklist items
         </div>
         {photos.length === 0 ? (
-          <p
-            style={{
-              marginTop: 14,
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-            }}
-          >
+          <p className="mt-3.5 text-[13px] text-ink-3 italic">
             No photos yet. Captures appear here once site reports include
             geo-tagged uploads.
           </p>
         ) : (
-          <div
-            style={{
-              marginTop: 14,
-              display: "grid",
-              gridTemplateColumns: "repeat(5, 1fr)",
-              gap: 10,
-            }}
-          >
+          <div className="mt-3.5 grid grid-cols-5 gap-2.5">
             {photos.map((p, i) => (
               <div
                 key={p.id}
-                style={{
-                  aspectRatio: "4 / 3",
-                  background: PHOTO_GRADIENTS[i % PHOTO_GRADIENTS.length],
-                  padding: 10,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  border: "1px solid var(--line)",
-                  borderRadius: 10,
-                }}
+                className="p-2.5 flex flex-col justify-between border border-line rounded-[10px] aspect-[4/3]"
+                style={{ background: PHOTO_GRADIENTS[i % PHOTO_GRADIENTS.length] }}
               >
-                <span
-                  className="mono"
-                  style={{
-                    fontSize: 9,
-                    color: "rgba(255,255,255,0.55)",
-                    letterSpacing: "0.08em",
-                  }}
-                >
+                <span className="mono text-[9px] tracking-[0.08em] text-white/55">
                   {p.projectCode ?? p.reportDate}
                 </span>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.85)" }}>
+                <span className="text-[11px] text-white/85">
                   {p.caption ?? "Site capture"}
                 </span>
               </div>
@@ -231,35 +196,38 @@ export default async function SiteSupervisorPage() {
       </Card>
 
       {/* Voice notes — live from voice_notes (DEMO-3) */}
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
-        <div style={{ padding: "14px 22px", borderBottom: "1px solid var(--line)" }}>
-          <h2 className="display" style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
+        <div className="px-[22px] py-3.5 border-b border-line">
+          <h2 className="display text-[20px] font-medium m-0">
             Voice notes · transcribed
           </h2>
-          <div className="label label-amber" style={{ marginTop: 4 }}>
+          <div className="label label-amber mt-1">
             FIELD AUDIO · AI-TRANSCRIBED
           </div>
         </div>
         {voiceNotes.length === 0 ? (
-          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
             No voice notes yet. Supervisors capture audio in the field and the
             AI transcribes — entries appear here.
           </p>
         ) : (
-          <ul className="clean" style={{ padding: "4px 0", margin: 0 }}>
+          <ul className="clean py-1 m-0">
             {voiceNotes.map((n) => (
-              <li key={n.id} style={{ padding: "12px 22px", display: "flex", flexDirection: "column", gap: 4, borderBottom: "1px solid var(--line)" }}>
-                <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)", display: "flex", gap: 8 }}>
+              <li
+                key={n.id}
+                className="px-[22px] py-3 flex flex-col gap-1 border-b border-line"
+              >
+                <div className="mono text-[10px] text-ink-3 flex gap-2">
                   <span>{n.projectCode ?? "—"}</span>
                   <span>·</span>
                   <span>{n.reporterName ?? "field"}</span>
                   {n.durationSeconds != null && <><span>·</span><span>{n.durationSeconds}s</span></>}
                   {n.transcriptLanguage && <><span>·</span><span>{n.transcriptLanguage.toUpperCase()}</span></>}
-                  <span style={{ marginLeft: "auto" }}>
+                  <span className="ml-auto">
                     {new Date(n.createdAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
                   </span>
                 </div>
-                <p style={{ margin: 0, fontFamily: "var(--font-space), sans-serif", fontStyle: "italic", fontSize: 13, color: "var(--ink)" }}>
+                <p className="m-0 font-[var(--font-space),sans-serif] italic text-[13px] text-ink">
                   &quot;{n.transcriptText ?? "—"}&quot;
                 </p>
               </li>
@@ -269,15 +237,15 @@ export default async function SiteSupervisorPage() {
       </Card>
 
       {/* QA inspections + Safety incidents — 2-up */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "14px 22px", borderBottom: "1px solid var(--line)" }}>
-            <h2 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+      <div className="grid grid-cols-2 gap-3.5">
+        <Card padding="none" overflowHidden>
+          <div className="px-[22px] py-3.5 border-b border-line">
+            <h2 className="display text-[18px] font-medium m-0">
               QA · recent inspections
             </h2>
           </div>
           {inspections.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            <p className="p-5 text-[13px] text-ink-3 italic m-0">
               No QA inspections logged yet.
             </p>
           ) : (
@@ -294,7 +262,7 @@ export default async function SiteSupervisorPage() {
               <tbody>
                 {inspections.map((q) => (
                   <tr key={q.id}>
-                    <td style={{ maxWidth: 220, fontSize: 12 }}>{q.issueTitle}</td>
+                    <td className="max-w-[220px] text-[12px]">{q.issueTitle}</td>
                     <td className="mono">{q.villaCode ?? "—"}</td>
                     <td className="mono">{q.inspectionDate}</td>
                     <td className="num">{q.inspectionNumber}</td>
@@ -310,18 +278,18 @@ export default async function SiteSupervisorPage() {
           )}
         </Card>
 
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "14px 22px", borderBottom: "1px solid var(--line)" }}>
-            <h2 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+        <Card padding="none" overflowHidden>
+          <div className="px-[22px] py-3.5 border-b border-line">
+            <h2 className="display text-[18px] font-medium m-0">
               Safety · recent incidents
             </h2>
           </div>
           {incidents.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            <p className="p-5 text-[13px] text-ink-3 italic m-0">
               No safety incidents recorded.
             </p>
           ) : (
-            <ul className="clean" style={{ padding: "4px 0", margin: 0 }}>
+            <ul className="clean py-1 m-0">
               {incidents.map((s) => {
                 const sevTone: "warn" | "danger" | undefined =
                   s.severity === "severe" || s.severity === "fatal"
@@ -330,17 +298,17 @@ export default async function SiteSupervisorPage() {
                       ? "warn"
                       : undefined;
                 return (
-                  <li key={s.id} style={{ padding: "12px 22px", borderBottom: "1px solid var(--line)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <li key={s.id} className="px-[22px] py-3 border-b border-line">
+                    <div className="flex items-center gap-2 mb-1">
                       <HandoffBadge tone={sevTone}>{s.severity.replace(/_/g, " ")}</HandoffBadge>
-                      <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                      <span className="mono text-[10px] text-ink-3">
                         {s.category} · {s.incidentDate}
                       </span>
-                      <span style={{ marginLeft: "auto" }}>
+                      <span className="ml-auto">
                         <HandoffBadge>{s.status}</HandoffBadge>
                       </span>
                     </div>
-                    <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.4 }}>
+                    <p className="m-0 text-[12.5px] text-ink-2 leading-[1.4]">
                       {s.description}
                     </p>
                   </li>
