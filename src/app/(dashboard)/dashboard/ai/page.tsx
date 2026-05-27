@@ -10,34 +10,51 @@ import {
   listAgentInbox,
   listRecentRuns,
 } from "@/features/ai-agents/ai-hub-cabinet-queries";
+import { AgentCatalog, type AgentCatalogItem, type AgentCategory } from "@/components/ai-agents/agent-catalog";
+import type { AgentTone } from "@/components/ai-agents/agent-card";
+import { toHyphenated } from "@/features/ai-agents/registry";
 
 /**
- * Sprint TASK-6-DATA-PART-2 — Mgmt OS AI Hub cabinet live wiring.
+ * Phase 2.1 PR 4 — Mgmt AI Hub catalog refactor.
  *
- * Replaces three mock arrays with live reads in
- * `src/features/ai-agents/ai-hub-cabinet-queries.ts`:
+ * The hub now opens with the template-07 chip strip + 3-up
+ * `<AgentCatalog>`; the inbox + audit-log tables stay below as
+ * cabinet chrome (KPIs collapse into the SectionHeading meta line).
  *
- *   - AI_AGENTS → listAgentsForCabinet() (registry overlay × org_ai_agent_config)
- *   - AI_INBOX  → listAgentInbox()       (agent_invocation_log filtered for review)
- *   - RUNS      → listRecentRuns()       (agent_invocation_log audit log)
- *
- * DEMO-1 enabled 5 agents in org_ai_agent_config so the live/planned
- * mix is real. agent_invocation_log empty until first run — inbox +
- * runs render friendly empty states.
- *
- * All reads org-scoped via requireOrgId() (TENANT-1).
+ * Each catalog card links to the new agent detail route
+ * (`/dashboard/ai/[agentCode]`). Phase 2.2 wires real run + auto-
+ * resolved telemetry into the card stats; today the cards show "—"
+ * for runs/24h since the audit log is empty in dev.
  */
 
 export const metadata = { title: "AI assistants" };
 export const dynamic = "force-dynamic";
 
-const TONE_COLOR: Record<string, string> = {
-  emerald: "var(--ok)",
-  gold: "var(--gold)",
-  sage: "var(--sage)",
-  stone: "var(--ink-3)",
-  terracotta: "var(--terra)",
-  ink: "var(--forest)",
+const TONE_MAP: Record<string, AgentTone> = {
+  emerald: "accent",
+  gold: "gold",
+  sage: "neutral",
+  stone: "neutral",
+  terracotta: "accent",
+  ink: "steel",
+};
+
+const CATEGORIES: AgentCategory[] = [
+  { key: "concierge", label: "Concierge" },
+  { key: "statements", label: "Statements" },
+  { key: "operations", label: "Operations" },
+  { key: "owner-intel", label: "Owner intelligence" },
+];
+
+const CATEGORY_BY_KEY: Record<string, string> = {
+  executive_business: "owner-intel",
+  tax_assistant: "statements",
+  daily_digest: "operations",
+  weekly_plan: "operations",
+  marketing_assistant: "operations",
+  procurement_analyst: "operations",
+  inbox: "concierge",
+  memory: "owner-intel",
 };
 
 function fmtDuration(ms: number | null): string {
@@ -69,6 +86,19 @@ export default async function AiHubPage() {
     listAgentInbox(8).catch(() => []),
     listRecentRuns(8).catch(() => []),
   ]);
+
+  const items: AgentCatalogItem[] = agents.map((a) => ({
+    code: toHyphenated(a.agentKey),
+    name: a.displayName,
+    description: a.description,
+    category: CATEGORY_BY_KEY[a.agentKey] ?? "operations",
+    tone: TONE_MAP[a.tone] ?? "accent",
+    isLive: a.isLive,
+    runs24h: undefined, // empty until agent_invocation_log seeds
+    autoResolvedPct: undefined,
+    schedule: a.isLive ? undefined : "PLANNED",
+    href: `/dashboard/ai/${toHyphenated(a.agentKey)}`,
+  }));
 
   return (
     <>
@@ -141,59 +171,11 @@ export default async function AiHubPage() {
         />
       </div>
 
-      {/* Agent grid */}
-      <div className="grid grid-cols-4 gap-3.5 mb-6">
-        {agents.map((a) => (
-          <Card
-            key={a.agentKey}
-            className="p-[18px] flex flex-col gap-2.5 min-h-[220px] relative"
-          >
-            <div className="flex items-start gap-2.5">
-              <span
-                className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[16px]"
-                style={{
-                  background: a.isLive ? TONE_COLOR[a.tone] : "var(--cream-deep)",
-                  color: a.isLive ? "var(--cream-warm)" : "var(--ink-3)",
-                }}
-              >
-                ✦
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="text-[14.5px] font-medium font-display">
-                  {a.displayName}
-                </div>
-                <div className="mono text-[10px] text-ink-4 mt-0.5">
-                  {a.phase} · {a.isLive ? "LIVE" : "PLANNED"}
-                </div>
-              </div>
-            </div>
-            <p className="m-0 text-[12.5px] text-ink-2 leading-[1.45]">
-              {a.description}
-            </p>
-            <div className="mt-auto pt-2.5 border-t border-dashed border-line">
-              <div className="label text-[9.5px]">For</div>
-              <div className="text-[11.5px] text-ink-3 mt-0.5">{a.target}</div>
-              {a.isLive && a.provider && (
-                <div className="mono text-[10px] text-ink-4 mt-1">
-                  {a.provider}
-                  {a.model ? ` · ${a.model}` : ""}
-                </div>
-              )}
-              {a.isLive && a.platformAgentCode && (
-                <a
-                  href={`/development-os/agents/${a.platformAgentCode}`}
-                  className="inline-block mt-2 text-[11px] underline text-ink-2"
-                >
-                  Open chat →
-                </a>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
+      {/* PR 4 — template-07 catalog. Chip strip filters the grid. */}
+      <AgentCatalog agents={items} categories={CATEGORIES} />
 
       {/* AI inbox */}
-      <h2 id="inbox" className="display text-[30px] mb-3.5 font-normal">
+      <h2 id="inbox" className="display text-[30px] mb-3.5 font-normal mt-8">
         AI inbox · <em>cross-agent</em>
       </h2>
       <Card padding="none" overflowHidden className="mb-[18px]">

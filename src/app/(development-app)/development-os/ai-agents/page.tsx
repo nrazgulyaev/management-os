@@ -10,6 +10,25 @@ import {
   getDevAiKpis,
   getRecentAgentOutputs,
 } from "@/lib/development/server/cabinets/ai-agents-cabinet-queries";
+import { AgentCatalog, type AgentCategory } from "@/components/ai-agents/agent-catalog";
+
+const DEV_CATEGORIES: AgentCategory[] = [
+  { key: "construction", label: "Construction" },
+  { key: "cost", label: "Cost & finance" },
+  { key: "operations", label: "Operations" },
+  { key: "knowledge", label: "Knowledge" },
+];
+
+const DEV_CATEGORY_BY_KEY: Record<string, string> = {
+  qs_cost_analyst: "cost",
+  procurement_analyst: "cost",
+  tax_assistant: "cost",
+  daily_digest: "operations",
+  weekly_plan: "operations",
+  marketing_assistant: "operations",
+  executive_business: "operations",
+  memory: "knowledge",
+};
 
 /**
  * Sprint TASK-7-DATA-PART-2 — Dev OS AI Agents hub live wiring.
@@ -133,58 +152,20 @@ export default async function AiAgentsPage() {
         />
       </div>
 
-      {/* Agent grid — live org_ai_agent_config */}
-      {agents.length === 0 ? (
-        <Card className="p-5 mb-6">
-          <p className="text-[13px] text-ink-3 italic m-0">
-            No agent configuration available. Configure your first agent to populate this grid.
-          </p>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-5 gap-3 mb-6">
-          {agents.map((a) => (
-            <Card
-              key={a.agentKey}
-              className="p-4 flex flex-col gap-2.5 min-h-[180px]"
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className={
-                    "w-8 h-8 rounded-[10px] flex items-center justify-center text-[14px] " +
-                    (a.isEnabled
-                      ? "bg-amber text-carbon"
-                      : "bg-bg-2 text-ink-3")
-                  }
-                >
-                  ✦
-                </span>
-                <span className="ml-auto">
-                  {a.notConfigured ? (
-                    <HandoffBadge>Not configured</HandoffBadge>
-                  ) : a.isEnabled ? (
-                    <HandoffBadge tone="ok">LIVE</HandoffBadge>
-                  ) : (
-                    <HandoffBadge>PAUSED</HandoffBadge>
-                  )}
-                </span>
-              </div>
-              <div className="display text-[14px] font-medium">
-                {a.displayName}
-              </div>
-              <p className="m-0 text-[12px] text-ink-3 leading-[1.45]">
-                {a.description}
-              </p>
-              {!a.notConfigured && (a.provider || a.model) && (
-                <div className="mono text-[10px] text-ink-3 mt-auto">
-                  {a.provider ?? "—"}
-                  {a.model ? ` · ${a.model}` : ""}
-                  {a.hasKey ? " · KEY SET" : ""}
-                </div>
-              )}
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* PR 4 — template-07 catalog (chip strip + 3-up grid). */}
+      <AgentCatalog
+        agents={agents.map((a) => ({
+          code: a.agentKey.replace(/_/g, "-"),
+          name: a.displayName,
+          description: a.description,
+          category: DEV_CATEGORY_BY_KEY[a.agentKey] ?? "construction",
+          tone: a.isEnabled ? "accent" : "neutral",
+          isLive: a.isEnabled && !a.notConfigured,
+          schedule: a.notConfigured ? "NOT CONFIGURED" : (!a.isEnabled ? "PAUSED" : undefined),
+          href: `/development-os/ai-agents/${a.agentKey.replace(/_/g, "-")}`,
+        }))}
+        categories={DEV_CATEGORIES}
+      />
 
       <h2
         id="inbox"
