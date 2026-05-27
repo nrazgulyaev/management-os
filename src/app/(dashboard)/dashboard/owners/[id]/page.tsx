@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { SectionHeading, Card } from "@/components/dashboard/primitives";
+import { Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,18 @@ import { ArrowUpRight, KeyRound } from "lucide-react";
 import { getOwnerById, listOwnershipShares } from "@/features/owners/services";
 import { listAccessGrantsForOwner } from "@/features/access-grants/services";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { DetailPage } from "@/components/dashboard/detail/detail-page";
+import { DetailHeader } from "@/components/dashboard/detail/detail-header";
+import { DetailActivity, type ActivityEntry } from "@/components/dashboard/detail/detail-activity";
+import { DetailRelated, type RelatedItem } from "@/components/dashboard/detail/detail-related";
+import { OwnerDetailTabs } from "./_detail-client";
+
+/**
+ * Phase 2.1 PR 2 — Owner detail uses bricks B1 + B2 + B3 + B5 + B6.
+ * Activity timeline is the main tab (per template 05 assembly C);
+ * Overview / Villas / Statements / Contacts tabs are placeholder
+ * shells until 2.2 wires real data sources.
+ */
 
 export const metadata = { title: "Owner" };
 export const dynamic = "force-dynamic";
@@ -25,14 +37,35 @@ export default async function OwnerDetailPage({
   const grants = await listAccessGrantsForOwner(id);
   const activeGrants = grants.filter((g) => g.status === "active");
 
-  return (
-    <div className="flex flex-col gap-10">
-      <SectionHeading
-        eyebrow={`Portfolio · owners · ${owner.type.replace("_", " ")}`}
-        title={owner.displayName}
-        subtitle={owner.legalName ?? undefined}
-      />
+  // PR 2 — synthetic activity timeline. The dedicated
+  // `src/features/activity/get-activity.ts` resolver lands in 2.2;
+  // until then we surface the few existing signals (shares + grants)
+  // as a hand-rolled timeline so the brick has real content.
+  const shareEntries: ActivityEntry[] = shares.slice(0, 3).map((s) => ({
+    id: `share-${s.id}`,
+    when: `SHARE · ${s.startsOn}`,
+    what: (
+      <>
+        <strong>{s.sharePercent.toFixed(2)}%</strong> in{" "}
+        <em>{s.villaCode ?? s.projectName ?? "—"}</em> · {s.model}
+      </>
+    ),
+    kind: s.status === "active" ? "ok" : "neutral",
+  }));
+  const grantEntries: ActivityEntry[] = activeGrants.slice(0, 3).map((g) => ({
+    id: `grant-${g.id}`,
+    when: `PORTAL · ${g.grantType}`,
+    what: (
+      <>
+        Active grant for <em>{g.appUserName ?? g.appUserEmail}</em>
+      </>
+    ),
+    kind: "accent",
+  }));
+  const activity: ActivityEntry[] = [...shareEntries, ...grantEntries];
 
+  const overviewPanel = (
+    <div className="flex flex-col gap-8 px-7 py-6">
       <Card style={{ padding: 20 }}>
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <SourceBadge source={owner.source} />
@@ -91,58 +124,139 @@ export default async function OwnerDetailPage({
           )}
         </div>
       </section>
-
-      <section>
-        <div className="label">Holdings</div>
-        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
-          Ownership shares
-        </h2>
-        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
-          Active and historical participation across villas and pools.
-        </p>
-        <Table>
-          <THead>
-            <TR>
-              <TH>Subject</TH>
-              <TH>Model</TH>
-              <TH>Effective</TH>
-              <TH>Status</TH>
-              <TH className="text-right">Share %</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {shares.length === 0 ? (
-              <TR>
-                <TD colSpan={5} className="text-ink-tertiary text-center py-8">
-                  No shares recorded.
-                </TD>
-              </TR>
-            ) : (
-              shares.map((s) => (
-                <TR key={s.id}>
-                  <TD className="text-ink">
-                    {s.villaCode ? `Villa · ${s.villaCode}` : `Project · ${s.projectName}`}
-                  </TD>
-                  <TD>
-                    <Badge tone="outline">{s.model}</Badge>
-                  </TD>
-                  <TD className="text-ink-secondary text-sm">
-                    {s.startsOn}
-                    {s.endsOn ? ` → ${s.endsOn}` : " → present"}
-                  </TD>
-                  <TD>
-                    <Badge tone={s.status === "active" ? "success" : "neutral"}>
-                      {s.status}
-                    </Badge>
-                  </TD>
-                  <TDNum>{s.sharePercent.toFixed(2)}%</TDNum>
-                </TR>
-              ))
-            )}
-          </TBody>
-        </Table>
-      </section>
     </div>
+  );
+
+  const sharesPanel = (
+    <div className="flex flex-col gap-3 px-7 py-6">
+      <div className="label">Holdings</div>
+      <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+        Ownership shares
+      </h2>
+      <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+        Active and historical participation across villas and pools.
+      </p>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Subject</TH>
+            <TH>Model</TH>
+            <TH>Effective</TH>
+            <TH>Status</TH>
+            <TH className="text-right">Share %</TH>
+          </TR>
+        </THead>
+        <TBody>
+          {shares.length === 0 ? (
+            <TR>
+              <TD colSpan={5} className="text-ink-tertiary text-center py-8">
+                No shares recorded.
+              </TD>
+            </TR>
+          ) : (
+            shares.map((s) => (
+              <TR key={s.id}>
+                <TD className="text-ink">
+                  {s.villaCode ? `Villa · ${s.villaCode}` : `Project · ${s.projectName}`}
+                </TD>
+                <TD>
+                  <Badge tone="outline">{s.model}</Badge>
+                </TD>
+                <TD className="text-ink-secondary text-sm">
+                  {s.startsOn}
+                  {s.endsOn ? ` → ${s.endsOn}` : " → present"}
+                </TD>
+                <TD>
+                  <Badge tone={s.status === "active" ? "success" : "neutral"}>
+                    {s.status}
+                  </Badge>
+                </TD>
+                <TDNum>{s.sharePercent.toFixed(2)}%</TDNum>
+              </TR>
+            ))
+          )}
+        </TBody>
+      </Table>
+    </div>
+  );
+
+  const activityPanel = (
+    <div className="flex flex-col gap-3 px-7 py-6">
+      {activity.length === 0 ? (
+        <p className="text-sm text-ink-tertiary">No recent activity.</p>
+      ) : (
+        <Card style={{ padding: 20 }}>
+          <DetailActivity entries={activity} />
+        </Card>
+      )}
+    </div>
+  );
+
+  const placeholderPanel = (label: string) => (
+    <div className="flex flex-col gap-3 px-7 py-12 text-sm text-ink-tertiary">
+      <p>{label} lands in Phase 2.2.</p>
+    </div>
+  );
+
+  const related: RelatedItem[] = shares.slice(0, 6).map((s) => ({
+    id: s.id,
+    href: s.villaId ? `/dashboard/villas/${s.villaId}` : undefined,
+    title: <>{s.villaCode ? `Villa · ${s.villaCode}` : `Project · ${s.projectName ?? "—"}`}</>,
+    meta: `${s.sharePercent.toFixed(2)}% · ${s.model}`,
+  }));
+
+  return (
+    <DetailPage>
+      {/* B1 — Header */}
+      <DetailHeader
+        breadcrumb={[
+          { label: "Owners", href: "/dashboard/owners" },
+          { label: owner.displayName },
+        ]}
+        title={owner.displayName}
+        meta={
+          <>
+            <span>{owner.type.replace("_", " ")}</span>
+            <span>·</span>
+            <Badge tone={owner.status === "active" ? "success" : "neutral"}>
+              {owner.status}
+            </Badge>
+            {owner.legalName && (
+              <>
+                <span>·</span>
+                <span>{owner.legalName}</span>
+              </>
+            )}
+          </>
+        }
+      />
+
+      {/* B2 + B3 — tabs + active panel (activity-as-main per template) */}
+      <OwnerDetailTabs
+        initialId="activity"
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "shares", label: "Shares", count: shares.length },
+          { id: "activity", label: "Activity", count: activity.length },
+          { id: "statements", label: "Statements" },
+          { id: "contacts", label: "Contacts" },
+        ]}
+        panels={{
+          overview: overviewPanel,
+          shares: sharesPanel,
+          activity: activityPanel,
+          statements: placeholderPanel("Statements list"),
+          contacts: placeholderPanel("Contacts"),
+        }}
+      />
+
+      {/* B5 — Related strip (owner's villas/projects) */}
+      <DetailRelated
+        eyebrow="Owner's villas"
+        items={related}
+        single={related.length <= 1}
+      />
+    </DetailPage>
   );
 }
 
@@ -165,4 +279,3 @@ function SummaryCell({
     </div>
   );
 }
-

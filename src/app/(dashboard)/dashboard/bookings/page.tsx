@@ -5,8 +5,6 @@ import {
   Card,
   HandoffBadge,
 } from "@/components/dashboard/primitives";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PagerNumbered } from "@/components/ui/pager-numbered";
 import {
   listBookingsForCabinet,
   getBookingsKpis,
@@ -15,6 +13,8 @@ import {
   getChannelSyncStatus,
   getConflictResolverItems,
 } from "@/features/bookings/bookings-cabinet-queries";
+import { BookingsListClient, type BookingRowVM } from "./_list-client";
+import { parseFilters } from "@/lib/url-state";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Bookings cabinet live wiring.
@@ -57,30 +57,26 @@ function fmtDateShort(iso: string): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
-const STATE_BADGE: Record<string, { tone?: "ok" | "info" | "gold" | "warn"; label: string }> = {
-  confirmed: { tone: "ok", label: "Confirmed" },
-  checked_in: { tone: "gold", label: "In-house" },
-  checked_out: { tone: "warn", label: "Checked out" },
-  inquiry: { label: "Inquiry" },
-  tentative: { label: "Tentative" },
-  cancelled: { label: "Cancelled" },
-  no_show: { label: "No show" },
-};
-
-function initials(name: string | null): string {
-  if (!name) return "—";
-  return name
-    .split(/\s+/)
-    .filter((p) => p && /[A-Za-z]/.test(p[0]))
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
+// PR 2 — STATE_BADGE + initials helpers moved into _list-client.tsx
+// when the table rendering became client-side (selection + sort
+// require client state).
 
 const BLOCK_COLORS = ["var(--forest)", "var(--terra)", "var(--ink)", "var(--gold)"] as const;
 
-export default async function BookingsPage() {
+type SearchParams = Record<string, string | string[] | undefined>;
+
+export default async function BookingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams>;
+}) {
+  const params = (await searchParams) ?? {};
+  // PR 2 proof-of-life — parse the chip filters off the URL so deep
+  // links render the right active chips on first paint. Filter
+  // application against the DB lands in 2.2 alongside the row-count
+  // helper; today the filters are display-only.
+  const initialActive = parseFilters(params, ["status", "channel", "date"]);
+
   const [list, kpis, timeline, ratePlans, channels, conflicts] = await Promise.all([
     listBookingsForCabinet(25).catch(() => []),
     getBookingsKpis().catch(() => null),
@@ -163,111 +159,24 @@ export default async function BookingsPage() {
         />
       </div>
 
-      {/* Filter row (static pills until filter state wires up) */}
-      <div className="flex gap-3.5 mb-3.5 items-center py-2.5">
-        <div className="label">FILTER</div>
-        {["All", "Confirmed", "In-house", "Checked out", "Cancelled"].map((t, i) => (
-          <button
-            key={t}
-            className={
-              "btn px-3 py-1 text-[12px] " +
-              (i === 0 ? "btn-primary" : "btn-secondary")
-            }
-          >
-            {t}
-          </button>
-        ))}
-        <span className="ml-auto flex gap-2">
-          <button
-            className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-            disabled
-            title="Coming soon"
-          >
-            Project
-          </button>
-          <button
-            className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-            disabled
-            title="Coming soon"
-          >
-            Channel
-          </button>
-        </span>
-      </div>
-
-      {/* Bookings table — live */}
+      {/* Phase 2.1 PR 2 — list+filter shell with sortable Code,
+          chip filters, bulk-mode swap. */}
       <Card padding="none" overflowHidden className="mb-[18px]">
-        {list.length === 0 ? (
-          <EmptyState
-            variant="first-run"
-            title="No bookings yet"
-            body="Add a villa to your portfolio first, then bookings will sync from Airbnb, Booking.com and direct."
-            actions={
-              <>
-                <Link href="/dashboard/villas" className="btn btn-primary btn-sm">
-                  Add a villa
-                </Link>
-                <Link href="/dashboard/channels" className="btn btn-secondary btn-sm">
-                  Connect channels →
-                </Link>
-              </>
-            }
-          />
-        ) : (
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Guest</th>
-                <th>Villa</th>
-                <th>Channel</th>
-                <th>Stay</th>
-                <th className="num">Nights</th>
-                <th className="num">Gross</th>
-                <th>State</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((b) => {
-                const badge = STATE_BADGE[b.status] ?? { label: b.status };
-                return (
-                  <tr key={b.id}>
-                    <td className="mono text-[11px] text-ink-3">{b.bookingCode}</td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <span className="w-[26px] h-[26px] rounded-full bg-muted border border-line flex items-center justify-center text-[10px]">
-                          {initials(b.guestName)}
-                        </span>
-                        <span>{b.guestName ?? "Guest"}</span>
-                      </div>
-                    </td>
-                    <td className="mono">{b.villaCode}</td>
-                    <td className="text-ink-3">{b.channelName ?? "Direct"}</td>
-                    <td className="mono text-[12px]">
-                      {fmtDateShort(b.checkIn)} → {fmtDateShort(b.checkOut)}
-                    </td>
-                    <td className="num">{b.nights}</td>
-                    <td className="num">{fmtUsdMinor(b.grossUsdMinor)}</td>
-                    <td>
-                      <HandoffBadge tone={badge.tone}>{badge.label}</HandoffBadge>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-        {list.length > 0 && (
-          // Phase 2.1 PR 1 proof-of-life — total = current page slice
-          // until `listBookingsForCabinet` gains a count helper. The
-          // bar syncs ?page=/?per= to the URL on interaction.
-          <PagerNumbered
-            total={list.length}
-            page={1}
-            perPage={20}
-            urlKeyPrefix=""
-          />
-        )}
+        <BookingsListClient
+          rows={list.map<BookingRowVM>((b) => ({
+            id: b.id,
+            bookingCode: b.bookingCode,
+            villaCode: b.villaCode,
+            channelName: b.channelName,
+            guestName: b.guestName,
+            checkIn: fmtDateShort(b.checkIn),
+            checkOut: fmtDateShort(b.checkOut),
+            nights: b.nights,
+            grossUsdFormatted: fmtUsdMinor(b.grossUsdMinor),
+            status: b.status,
+          }))}
+          initialActive={initialActive}
+        />
       </Card>
 
       {/* 14-night calendar timeline — live */}
