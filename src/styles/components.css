@@ -1,0 +1,319 @@
+/* =============================================================
+   src/styles/components.css
+
+   Product-scoped and shared component CSS. Imports nothing;
+   relies on Layer B [data-product] tokens from tokens.css.
+
+   Sections:
+   1. [data-product] .btn / .btn-primary / .btn-terra / etc.
+   2. [data-product] .card / .panel / .card-ink / .ring
+   3. [data-product] .badge family
+   4. [data-product] .chip family
+   5. [data-product] .ra-btn family
+   6. [data-product] .pulse-dot + @keyframes handoff-pulse
+   7. [data-product="development"] table.data
+   8. [data-product="subscription"] .bento + .tex-* textures
+   9. [data-product="management"] table.guests
+   10. product-agnostic shared: table.data, ul.clean,
+       .corner-marks, .hr-dashed, .hr
+   ============================================================= */
+
+/* Buttons */
+[data-product] .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+[data-product] .btn-lg { padding: 14px 22px; font-size: 15px; }
+[data-product] .btn-sm { padding: 7px 14px; font-size: 13px; }
+
+[data-product="management"] .btn-primary { background: var(--ink); color: var(--cream-warm); }
+[data-product="management"] .btn-primary:hover { background: var(--forest); }
+[data-product="management"] .btn-secondary { background: var(--cream-warm); color: var(--ink); border-color: var(--line); }
+[data-product="management"] .btn-secondary:hover { background: var(--paper); border-color: var(--ink); }
+[data-product="management"] .btn-ghost { background: transparent; color: var(--ink); }
+[data-product="management"] .btn-ghost:hover { background: var(--cream-deep); }
+[data-product="management"] .btn-terra { background: var(--terra); color: var(--cream-warm); }
+[data-product="management"] .btn-terra:hover { background: #a44627; }
+
+[data-product="development"] .btn-amber { background: var(--amber); color: var(--carbon); }
+[data-product="development"] .btn-amber:hover { background: var(--amber-soft); }
+[data-product="development"] .btn-light { background: var(--ink); color: #fff; }
+[data-product="development"] .btn-dark { background: var(--bg-3); color: var(--ink); border-color: var(--line-2); }
+[data-product="development"] .btn-dark:hover { background: var(--bg-2); border-color: var(--line-3); }
+[data-product="development"] .btn-ghost { background: transparent; color: var(--ink-2); }
+[data-product="development"] .btn-ghost:hover { color: var(--ink); }
+
+[data-product="subscription"] .btn-ink { background: var(--ink); color: var(--paper); }
+[data-product="subscription"] .btn-ink:hover { background: #04090c; }
+[data-product="subscription"] .btn-gold { background: var(--gold); color: var(--ink); }
+[data-product="subscription"] .btn-gold:hover { background: var(--gold-deep); color: var(--paper); }
+[data-product="subscription"] .btn-terra { background: var(--terra); color: var(--paper); }
+[data-product="subscription"] .btn-terra:hover { background: #9c4630; }
+[data-product="subscription"] .btn-amber { background: var(--amber); color: var(--ink); }
+[data-product="subscription"] .btn-amber:hover { background: var(--amber-soft); }
+[data-product="subscription"] .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+[data-product="subscription"] .btn-ghost:hover { background: var(--paper-2); border-color: var(--ink); }
+
+/* Cards & surfaces */
+[data-product="management"] .card { background: var(--paper); border: 1px solid var(--line-soft); border-radius: 18px; }
+[data-product="management"] .card-tight { border-radius: 14px; }
+[data-product="management"] .ring { border: 1px solid var(--line); }
+[data-product="development"] .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; }
+[data-product="development"] .panel-2 { background: var(--bg-3); border: 1px solid var(--line); border-radius: 18px; }
+[data-product="subscription"] .card { background: var(--paper-3); border: 1px solid var(--line-soft); border-radius: 22px; }
+[data-product="subscription"] .card-ink { background: var(--ink); color: var(--paper); border-color: var(--ink); border-radius: 22px; }
+
+/* Badges */
+[data-product] .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: var(--mono-font), monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+}
+[data-product="management"] .badge-ok    { background: rgba(79,122,93,0.10); color: var(--ok); border-color: rgba(79,122,93,0.25); }
+[data-product="management"] .badge-warn  { background: rgba(196,88,60,0.10); color: var(--terra); border-color: rgba(196,88,60,0.25); }
+[data-product="management"] .badge-gold  { background: rgba(188,154,92,0.12); color: #8c6f33; border-color: rgba(188,154,92,0.30); }
+[data-product="management"] .badge-ink   { background: var(--ink); color: var(--cream-warm); border-color: var(--ink); }
+[data-product="development"] .badge-ok    { color: var(--ok); border-color: rgba(79,138,93,0.4); background: rgba(79,138,93,0.10); }
+[data-product="development"] .badge-amber { color: var(--amber); border-color: rgba(255,107,53,0.4); background: rgba(255,107,53,0.10); }
+[data-product="development"] .badge-warn  { color: var(--warn); border-color: rgba(230,162,60,0.4); background: rgba(230,162,60,0.10); }
+[data-product="development"] .badge-danger{ color: var(--danger); border-color: rgba(215,70,77,0.4); background: rgba(215,70,77,0.10); }
+[data-product="development"] .badge-steel { color: var(--steel-soft); border-color: rgba(125,157,191,0.4); background: rgba(125,157,191,0.10); }
+[data-product="development"] .badge-soft  { color: var(--ink-2); border-color: var(--line-2); background: var(--bg-3); }
+
+/* Chips */
+[data-product="management"] .chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px; background: var(--paper);
+  border: 1px solid rgba(218,210,192,0.7); border-radius: 999px;
+  font-size: 13px; color: var(--ink-2); box-shadow: 0 2px 0 rgba(0,0,0,0.02);
+}
+[data-product="management"] .chip-dot::before { content:""; width:8px; height:8px; border-radius:999px; background: var(--terra); display: inline-block; }
+[data-product="management"] .chip-glass { background: rgba(255,252,247,0.9); backdrop-filter: blur(10px); }
+[data-product="management"] .chip-ink   { background: var(--ink); color: var(--cream-warm); border-color: transparent; }
+[data-product="development"] .chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px; background: var(--bg-2);
+  border: 1px solid var(--line-2); border-radius: 999px;
+  font-size: 12.5px; color: var(--ink-2);
+}
+[data-product="development"] .chip-dot::before { content:""; width:7px; height:7px; border-radius:999px; background: var(--amber); display: inline-block; }
+[data-product="subscription"] .chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; background: var(--paper-2);
+  border: 1px solid var(--line); border-radius: 999px;
+  font-size: 12px; color: var(--ink-2);
+  font-family: var(--mono-font), monospace;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+[data-product="subscription"] .chip-dot::before { content:""; width:6px; height:6px; border-radius:999px; background: var(--terra); display: inline-block; }
+[data-product="subscription"] .chip-ink { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* Round arrow buttons (sticker style) */
+[data-product] .ra-btn {
+  width: 48px; height: 48px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; transition: transform 0.15s ease;
+}
+[data-product] .ra-btn:hover { transform: translateX(2px); }
+[data-product="management"] .ra-btn { background: var(--ink); color: var(--cream-warm); }
+[data-product="management"] .ra-btn.light { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
+[data-product="development"] .ra-btn { width: 46px; height: 46px; background: var(--amber); color: var(--carbon); }
+[data-product="development"] .ra-btn:hover { background: var(--amber-soft); }
+[data-product="development"] .ra-btn.dark { background: var(--bg-3); color: var(--ink); border: 1px solid var(--line-2); }
+[data-product="development"] .ra-btn.light { background: var(--panel); color: var(--ink); border: 1px solid var(--line); }
+
+/* Pulse dot */
+[data-product] .pulse-dot {
+  width: 7px; height: 7px; border-radius: 999px; display: inline-block;
+  animation: handoff-pulse 2.4s ease-in-out infinite;
+}
+[data-product="management"] .pulse-dot { background: var(--ok); }
+[data-product="development"] .pulse-dot { background: var(--amber); }
+[data-product="subscription"] .pulse-dot { background: var(--terra); }
+@keyframes handoff-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; }
+}
+[data-product="development"] table.data {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+[data-product="development"] table.data th,
+[data-product="development"] table.data td {
+  padding: 10px 12px; text-align: left;
+  border-bottom: 1px solid var(--line); vertical-align: middle;
+}
+[data-product="development"] table.data th {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--ink-3); background: var(--bg-2);
+  border-bottom: 1px solid var(--line-2);
+}
+[data-product="development"] table.data tbody tr:hover { background: var(--bg-2); }
+[data-product="development"] table.data td.num,
+[data-product="development"] table.data th.num {
+  text-align: right; font-family: var(--mono-font), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subscription bento + texture surfaces */
+[data-product="subscription"] .bento {
+  background: var(--paper-3);
+  border: 1px solid var(--line-soft);
+  border-radius: 24px;
+  padding: 28px;
+  position: relative;
+}
+[data-product="subscription"] .bento-gold    { background: var(--gold); color: var(--ink); }
+[data-product="subscription"] .bento-terra   { background: var(--terra); color: var(--paper); }
+[data-product="subscription"] .bento-ink     { background: var(--ink); color: var(--paper); }
+[data-product="subscription"] .bento-emerald { background: var(--emerald); color: var(--paper); }
+[data-product="subscription"] .bento-amber   { background: var(--amber); color: var(--ink); }
+
+[data-product="subscription"] .label-gold { color: var(--gold-deep); }
+
+[data-product="subscription"] .tex-paper { background: repeating-linear-gradient(135deg, rgba(15,26,31,0.03) 0 1px, transparent 1px 22px), var(--paper-3); }
+[data-product="subscription"] .tex-warm  { background: linear-gradient(160deg, #d8c19a 0%, #c2986a 38%, #a07645 100%); }
+[data-product="subscription"] .tex-cool  { background: linear-gradient(160deg, #5c7c8a 0%, #3a5364 38%, #1a2a36 100%); }
+[data-product="subscription"] .tex-sand  { background: linear-gradient(160deg, var(--paper-2) 0%, var(--gold-soft) 100%); }
+[data-product="subscription"] .tex-ink   { background: linear-gradient(160deg, var(--ink) 0%, #1e2c30 100%); }
+[data-product="management"] table.guests { width: 100%; border-collapse: collapse; }
+[data-product="management"] table.guests th,
+[data-product="management"] table.guests td {
+  padding: 12px 16px; text-align: left;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 14px; vertical-align: middle;
+}
+[data-product="management"] table.guests th {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3); font-weight: 500; background: var(--cream);
+}
+[data-product="management"] table.guests tbody tr:hover { background: var(--cream); }
+/* ============================================================
+   HF-14 — visual fidelity restoration. Three prototype utility
+   classes that the TASK-6/7-VISUAL ports use but globals.css
+   didn't yet ship:
+
+     1. `table.data` styling under [data-product="management"]
+        — was only scoped to development. Mgmt cabinets (Today
+        schedule, Portfolio table, Bookings, Concierge handoffs,
+        Finance statements, Operations housekeeping, AI Hub runs)
+        all use <table className="data"> and fell back to browser
+        defaults (auto width, no padding, no header chrome) →
+        operator-visible layout collapse.
+     2. `ul.clean` — utility for unordered lists with no list-
+        style + flex-row li children. Used in Owners YTD glance,
+        Concierge sessions, Operations preventive, etc. Without
+        it browsers render the default <ul> + bullet indent.
+     3. `.corner-marks` + `.hr-dashed` — decorative panels used
+        by Dev OS Overview/QS AI bands. Were not ported.
+
+   All three are product-agnostic (Mgmt + Dev both use them) so
+   declared without a [data-product] scope.
+   ============================================================ */
+
+/* `table.data` — base styling shared by both Mgmt and Dev */
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+table.data th,
+table.data td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  vertical-align: middle;
+}
+table.data th {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  background: var(--cream-warm, var(--bg-2));
+  border-bottom: 1px solid var(--line);
+}
+table.data tbody tr:hover {
+  background: var(--cream-warm, var(--bg-2));
+}
+table.data td.num,
+table.data th.num {
+  text-align: right;
+  font-family: var(--mono-font), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* `ul.clean` — bullet-less list with flex-row li, divider lines */
+ul.clean {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+ul.clean li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+ul.clean li:last-child {
+  border-bottom: 0;
+}
+
+/* `.corner-marks` — amber dot anchor in the top-left of a panel */
+.corner-marks {
+  position: relative;
+}
+.corner-marks::before,
+.corner-marks::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--amber, var(--terra));
+  opacity: 0.85;
+}
+.corner-marks::before {
+  top: 14px;
+  left: 14px;
+}
+.corner-marks::after {
+  display: none;
+}
+
+/* `.hr-dashed` — dashed divider line used by QS BOQ table footer */
+.hr-dashed {
+  background-image: linear-gradient(
+    90deg,
+    var(--line-2, var(--line)) 50%,
+    transparent 50%
+  );
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
+  height: 1px;
+}
+
+/* `.hr` — solid 1px divider, reused across both products */
+.hr {
+  height: 1px;
+  background: var(--line-soft, var(--line));
+  border: 0;
+}

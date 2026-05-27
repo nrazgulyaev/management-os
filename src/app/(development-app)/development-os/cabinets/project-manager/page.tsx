@@ -2,7 +2,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   listWorkPackagesByStatus,
@@ -269,7 +269,7 @@ export default async function ProjectManagerPage() {
                         {r.responsibleUserName ? ` · ${r.responsibleUserName}` : ""}
                       </div>
                     </div>
-                    <Badge tone={sev.tone}>{sev.label}</Badge>
+                    <HandoffBadge tone={sev.tone}>{sev.label}</HandoffBadge>
                   </li>
                 );
               })}

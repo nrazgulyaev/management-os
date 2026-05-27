@@ -1,0 +1,133 @@
+/* =============================================================
+   src/styles/typography.css
+
+   @layer utilities — .text-display, .text-label, .focus-ring,
+   .glass, .no-scrollbar, hero-gradient bg utilities, hero-shadow
+   utilities, .serif / .mono / .tnum (handoff-prototype shims).
+
+   Plus the [data-product] .display / .label / .mono / .num family
+   (typeface picks per product surface).
+   ============================================================= */
+
+/* -----------------------------------------------------------
+   Utilities — editorial extras
+   ----------------------------------------------------------- */
+@layer utilities {
+  .text-display {
+    font-family: var(--font-display), Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+
+  .text-label {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+  }
+
+  .divider-hair {
+    border-color: var(--line-soft);
+  }
+
+  .focus-ring {
+    outline: 2px solid var(--line-strong);
+    outline-offset: 2px;
+    border-radius: inherit;
+  }
+
+  .glass {
+    background: color-mix(in oklab, var(--surface), transparent 45%);
+    backdrop-filter: blur(18px) saturate(120%);
+    border: 1px solid color-mix(in oklab, var(--line-soft), transparent 40%);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Stage 10.6.C.1 — hero card gradient utilities */
+  .bg-gradient-emerald-soft {
+    background: var(--gradient-emerald-soft);
+  }
+  .bg-gradient-gold-soft {
+    background: var(--gradient-gold-soft);
+  }
+  .bg-gradient-coral-soft {
+    background: var(--gradient-coral-soft);
+  }
+  .bg-gradient-ink-deep {
+    background: var(--gradient-ink-deep);
+  }
+
+  /* Stage 10.6.C.1 — hero card shadow utilities */
+  .shadow-soft-card {
+    box-shadow: var(--shadow-soft-card);
+  }
+  .shadow-elevated-card {
+    box-shadow: var(--shadow-elevated-card);
+  }
+
+  /* -----------------------------------------------------------
+     Arconique OS redesign — typographic utility classes.
+     Match the handoff's `.serif` / `.mono` / `.tnum` API exactly
+     so prototype JSX from design_handoff_arconique_os/source/
+     can be ported with minimal find-and-replace.
+     ----------------------------------------------------------- */
+  .serif {
+    font-family: var(--font-display), Georgia, "Iowan Old Style", serif;
+    letter-spacing: -0.01em;
+  }
+  .mono {
+    font-family: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+    font-feature-settings: "tnum", "zero";
+    letter-spacing: -0.01em;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+[data-product] .display {
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+[data-product="development"] .display {
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.0;
+}
+[data-product] .display em {
+  font-style: italic;
+  color: var(--terra, var(--amber));
+  font-weight: 400;
+}
+[data-product] .label {
+  font-family: var(--mono-font), ui-monospace, monospace;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+[data-product="development"] .label,
+[data-product="subscription"] .label {
+  letter-spacing: 0.18em;
+}
+[data-product] .mono {
+  font-family: var(--mono-font), ui-monospace, monospace;
+  font-feature-settings: "tnum";
+}
+[data-product] .num {
+  font-family: var(--mono-font), ui-monospace, monospace;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}

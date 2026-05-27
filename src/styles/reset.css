@@ -1,0 +1,61 @@
+/* =============================================================
+   src/styles/reset.css
+
+   Base layer: html/body defaults, selection, tabular-nums helper,
+   reduced-motion override, and the global overflow-x:hidden /
+   main:min-width:0 rules (relocated from the mobile block).
+   ============================================================= */
+
+/* -----------------------------------------------------------
+   Base layer
+   ----------------------------------------------------------- */
+@layer base {
+  * {
+    border-color: var(--line-soft);
+  }
+
+  html {
+    background-color: var(--canvas);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--accent-contrast);
+  }
+
+  /* Numeric feel for tabular figures */
+  .tabular,
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Global overflow guard (relocated from mobile.css — applies at all
+   viewport widths to prevent horizontal scroll from oversized prototype
+   layouts; `main { min-width: 0 }` lets flex/grid children shrink). */
+html, body { overflow-x: hidden; max-width: 100vw; }
+main { min-width: 0; }

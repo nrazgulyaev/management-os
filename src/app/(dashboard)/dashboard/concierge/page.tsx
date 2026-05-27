@@ -2,7 +2,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
   Pulse,
 } from "@/components/dashboard/primitives";
 import {
@@ -178,13 +178,13 @@ export default async function ConciergePage() {
                   </div>
                   <div style={{ display: "flex", gap: 6, alignItems: "center", paddingLeft: 36 }}>
                     {s.status === "active" ? (
-                      <Badge tone="ok">
+                      <HandoffBadge tone="ok">
                         <Pulse /> Live
-                      </Badge>
+                      </HandoffBadge>
                     ) : s.status === "handoff" ? (
-                      <Badge tone="warn">Handoff</Badge>
+                      <HandoffBadge tone="warn">Handoff</HandoffBadge>
                     ) : (
-                      <Badge>{s.status}</Badge>
+                      <HandoffBadge>{s.status}</HandoffBadge>
                     )}
                     <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>
                       {s.messageCount} msgs
@@ -272,15 +272,15 @@ export default async function ConciergePage() {
                   <td style={{ maxWidth: 380, fontSize: 13 }}>{h.summary}</td>
                   <td>
                     {h.priority === "urgent" ? (
-                      <Badge tone="danger">Urgent</Badge>
+                      <HandoffBadge tone="danger">Urgent</HandoffBadge>
                     ) : h.priority === "warn" ? (
-                      <Badge tone="warn">Warn</Badge>
+                      <HandoffBadge tone="warn">Warn</HandoffBadge>
                     ) : (
-                      <Badge>{h.priority}</Badge>
+                      <HandoffBadge>{h.priority}</HandoffBadge>
                     )}
                   </td>
                   <td>
-                    <Badge>{h.status}</Badge>
+                    <HandoffBadge>{h.status}</HandoffBadge>
                   </td>
                   <td className="mono">{fmtTime(h.createdAt)}</td>
                 </tr>

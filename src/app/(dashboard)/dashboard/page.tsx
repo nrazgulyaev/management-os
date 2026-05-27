@@ -3,7 +3,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import { DashboardIcon } from "@/components/dashboard/icons";
 import { RecentDigestsTile } from "@/components/digests/recent-digests-tile";
@@ -243,9 +243,9 @@ export default async function DashboardOverviewPage() {
                     <td>{row.villaCode}</td>
                     <td>{row.guestName ?? "—"}</td>
                     <td>
-                      <Badge tone={row.type === "arrival" ? "ok" : "warn"}>
+                      <HandoffBadge tone={row.type === "arrival" ? "ok" : "warn"}>
                         {row.nights}n
-                      </Badge>
+                      </HandoffBadge>
                     </td>
                   </tr>
                 ))}
@@ -590,7 +590,7 @@ export default async function DashboardOverviewPage() {
                   <td style={{ color: "var(--ink-3)" }}>{p.location}</td>
                   <td className="num">{p.villasCount}</td>
                   <td>
-                    <Badge>{p.managementModel}</Badge>
+                    <HandoffBadge>{p.managementModel}</HandoffBadge>
                   </td>
                   <td className="num">{p.occYtdPct}%</td>
                   <td className="num">{fmtIdrM(p.adrIdrMinor)}</td>

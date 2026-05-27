@@ -4,7 +4,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   listOwnerStatementsLive,
@@ -99,7 +99,7 @@ function StatementDetailCard({ detail }: { detail: RealStatementDetail }) {
           </div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-          <Badge tone={status.tone}>{status.label}</Badge>
+          <HandoffBadge tone={status.tone}>{status.label}</HandoffBadge>
           {detail.approvedAt && (
             <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>
               Approved {new Date(detail.approvedAt).toLocaleDateString("en-GB")}
@@ -125,7 +125,7 @@ function StatementDetailCard({ detail }: { detail: RealStatementDetail }) {
           {detail.lines.map((l) => (
             <tr key={l.id}>
               <td>
-                <Badge>{l.lineType.replace(/_/g, " ")}</Badge>
+                <HandoffBadge>{l.lineType.replace(/_/g, " ")}</HandoffBadge>
               </td>
               <td style={{ fontWeight: 500 }}>{l.description}</td>
               <td
@@ -377,7 +377,7 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
                       {fmtUsd(s.netToOwnerUsdMinor)}
                     </td>
                     <td>
-                      <Badge tone={status.tone}>{status.label}</Badge>
+                      <HandoffBadge tone={status.tone}>{status.label}</HandoffBadge>
                     </td>
                     <td>
                       <Link
@@ -425,7 +425,7 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
                   <td>{p.ownerName}</td>
                   <td className="num">{fmtIdr(p.amountIdrMinor)}</td>
                   <td>
-                    <Badge tone={p.status === "settled" ? "ok" : "gold"}>{p.status}</Badge>
+                    <HandoffBadge tone={p.status === "settled" ? "ok" : "gold"}>{p.status}</HandoffBadge>
                   </td>
                 </tr>
               ))}

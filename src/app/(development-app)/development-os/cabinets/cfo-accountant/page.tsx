@@ -3,7 +3,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   getCfoKpis,
@@ -343,7 +343,7 @@ export default async function CfoAccountantPage() {
                     {t.countryCode ?? "—"}
                   </td>
                   <td>
-                    <Badge>{t.reportingPeriod}</Badge>
+                    <HandoffBadge>{t.reportingPeriod}</HandoffBadge>
                   </td>
                 </tr>
               ))}

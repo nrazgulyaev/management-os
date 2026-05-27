@@ -2,7 +2,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 
 export const metadata = { title: "Development OS · Knowledge" };
@@ -96,7 +96,7 @@ export default function DevKnowledgePage() {
                 <td style={{ color: "var(--ink-3)" }}>{d.project}</td>
                 <td>{d.rev}</td>
                 <td>
-                  <Badge tone={d.status}>{d.statusLabel}</Badge>
+                  <HandoffBadge tone={d.status}>{d.statusLabel}</HandoffBadge>
                 </td>
                 <td>{d.by}</td>
                 <td style={{ color: "var(--ink-3)" }}>{d.when}</td>

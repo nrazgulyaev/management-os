@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Inbox } from "lucide-react";
-import { SectionHeading, Card, Badge } from "@/components/dashboard/primitives";
+import { SectionHeading, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import type { DigestListRow } from "@/features/digests/queries";
 
 /**
@@ -129,7 +129,7 @@ export function DigestListView({
                         >
                           {d.title}
                         </span>
-                        <Badge tone={TYPE_TONE[d.type] ?? "ink"}>{d.type}</Badge>
+                        <HandoffBadge tone={TYPE_TONE[d.type] ?? "ink"}>{d.type}</HandoffBadge>
                         <span className="text-[11px] text-ink-tertiary">
                           {timeAgo(d.createdAt)}
                         </span>

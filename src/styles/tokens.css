@@ -1,0 +1,396 @@
+/* =============================================================
+   src/styles/tokens.css
+
+   Single source of truth for design tokens.
+
+   - Layer A (legacy global): :root + .dark — warm-cream neutral
+     + emerald accent. Consumed by ~190 pages via var(--…) and by
+     `body { background: var(--canvas) }` in reset.css.
+
+   - Tailwind @theme inline bridge — registers a small set of the
+     above tokens as Tailwind utilities. Most legacy bridge entries
+     were dead and have been pruned (Phase 2.0 Stage 3 step 4).
+
+   - Layer B (product-scoped): :root[data-product="management"|
+     "development"|"subscription"] — handoff palettes. Higher
+     specificity than :root, so on a `<html data-product="…">`
+     page these win for any colliding token name.
+
+   Layer C (additive OKLCH) used to live here too; it was migrated
+   into Layer A / inlined at call sites and deleted in Phase 2.0.
+   ============================================================= */
+
+:root {
+  /* Phase 2.0 — Layer A tokens. Most are now aliased to their Layer B
+     equivalent so that on a `<html data-product="…">` page the handoff
+     palette wins naturally. The literal after the comma is the fallback
+     for off-product pages (public site, owner shell, field shell). The
+     5 names that ALSO appear in Layer B `[data-product]` blocks
+     (--line-soft, --line-strong, --ink, --gold, --danger) stay as raw
+     literals here — Layer B overrides them via selector specificity. */
+
+  /* Surfaces */
+  --canvas: var(--cream, #f8f5f0);
+  --surface: var(--paper, #ffffff);
+  --muted: var(--cream-deep, #f1ece4);
+  --inset: var(--cream-deep, #eee7dc);
+
+  /* Lines — colliding with Layer B; keep literals as off-product fallback */
+  --line-soft: #e4dcce;
+  --line-strong: #b9ad98;
+
+  /* Text */
+  --ink: #0f1110;
+  --ink-secondary: var(--ink-2, #4a4a46);
+  --ink-tertiary: var(--ink-3, #7a7670);
+  --ink-inverse: var(--cream-warm, #f6f3ed);
+
+  /* Brand */
+  --accent: var(--forest, #0e3b2e);
+  --accent-weak: var(--mint, #dce6df);
+  --accent-contrast: var(--cream-warm, #ffffff);
+  --gold: #b08a3e;
+  --gold-weak: var(--gold-soft, #f1e7d1);
+
+  /* Semantic */
+  --success: var(--ok, #2e7d64);
+  --warning: var(--warn, #a06a1a);
+  --danger: #a43e2f;
+  --info: #2e4a5c;
+
+  /* Semantic soft fills — no Layer B equivalents, keep literals */
+  --success-weak: #dce9e2;
+  --warning-weak: #f3e4c9;
+  --danger-weak: #f0d9d2;
+  --info-weak: #d8e2e9;
+
+  /* Data viz — Sequence A. Decorative chart palette; keep literals to
+     avoid the data colors drifting with the UI palette over time. */
+  --data-emerald: #0e3b2e;
+  --data-gold: #b08a3e;
+  --data-stone: #6b6760;
+  --data-sage: #6e8a7a;
+  --data-terracotta: #9e5a49;
+
+  /* Radii — sizes registered as Tailwind `rounded-*` utilities.
+     The @theme inline block below maps each --r-* to a --radius-*
+     entry so Tailwind generates the matching utility class. */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-xl: 32px;
+
+  /* Stage 10.6.C.1 — bigger radii for hero cards. --r-4xl has no var()
+     callers in src/, but it's part of the documented Stage 10.6.C.1
+     token contract (asserted by tests/development-stage-10-6-c-1-tokens
+     .test.ts) and registers `rounded-4xl`. Keep it. */
+  --r-2xl: 20px;
+  --r-3xl: 24px;
+  --r-4xl: 32px;
+
+  /* Shadows (soft, low) */
+  --shadow-flat: 0 0 0 1px var(--line-soft);
+  --shadow-rest: 0 1px 2px rgba(15, 17, 16, 0.04), 0 0 0 1px var(--line-soft);
+  --shadow-raised: 0 6px 20px -8px rgba(15, 17, 16, 0.1), 0 0 0 1px var(--line-soft);
+  --shadow-floating: 0 20px 60px -20px rgba(15, 17, 16, 0.22), 0 0 0 1px var(--line-soft);
+
+  /* Stage 10.6.C.1 — softer / more lifted hero card shadows */
+  --shadow-soft-card: 0 2px 12px -4px rgba(15, 17, 16, 0.06), 0 0 0 1px var(--line-soft);
+  --shadow-elevated-card: 0 8px 32px -12px rgba(15, 17, 16, 0.12), 0 0 0 1px var(--line-soft);
+
+  /* Stage 10.6.C.1 — hero card gradients (used for primary KPIs in cabinets) */
+  --gradient-emerald-soft: linear-gradient(135deg, #dce6df 0%, #c8d8cd 100%);
+  --gradient-gold-soft: linear-gradient(135deg, #f1e7d1 0%, #e6d9b8 100%);
+  --gradient-coral-soft: linear-gradient(135deg, #f0d9d2 0%, #e8c5bb 100%);
+  --gradient-ink-deep: linear-gradient(135deg, #141716 0%, #0c0e0d 100%);
+
+  /* _handoff/ Task 1 — typeface aliases. next/font registers the new
+     typefaces under their own variables (--font-newsreader, --font-inter,
+     --font-jetbrains, --font-space, --font-plex, --font-fraunces) in
+     src/app/layout.tsx. The legacy variable names below preserve every
+     existing `font-display` / `font-sans` / `font-mono` reference. */
+  --font-display: var(--font-newsreader);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+.dark {
+  --canvas: #0c0e0d;
+  --surface: #141716;
+  --muted: #1a1d1b;
+  --inset: #1e2220;
+
+  --line-soft: #262a28;
+  --line-strong: #3a3f3c;
+
+  --ink: #f4f1eb;
+  --ink-secondary: #c4beb3;
+  --ink-tertiary: #8a857b;
+  --ink-inverse: #0f1110;
+
+  --accent: #4fb592;
+  --accent-weak: #15332a;
+  --accent-contrast: #0c0e0d;
+  --gold: #d6b567;
+  --gold-weak: #2a2313;
+
+  --success: #4fb592;
+  --warning: #d0a14c;
+  --danger: #d46a57;
+  --info: #8fb0c2;
+
+  --success-weak: #15332a;
+  --warning-weak: #2a2313;
+  --danger-weak: #2e1a17;
+  --info-weak: #1a2730;
+
+  --shadow-flat: 0 0 0 1px var(--line-soft);
+  --shadow-rest: 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line-soft);
+  --shadow-raised: 0 6px 20px -8px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line-soft);
+  --shadow-floating: 0 20px 60px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--line-soft);
+
+  /* Stage 10.6.C.1 — dark-mode hero card shadows + gradients */
+  --shadow-soft-card: 0 2px 12px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--line-soft);
+  --shadow-elevated-card: 0 8px 32px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--line-soft);
+
+  --gradient-emerald-soft: linear-gradient(135deg, #15332a 0%, #1a3a30 100%);
+  --gradient-gold-soft: linear-gradient(135deg, #2a2313 0%, #332b1a 100%);
+  --gradient-coral-soft: linear-gradient(135deg, #2a1614 0%, #331b18 100%);
+  --gradient-ink-deep: linear-gradient(135deg, #050706 0%, #000000 100%);
+}
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-inset: var(--inset);
+
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-ink-inverse: var(--ink-inverse);
+
+  --color-accent: var(--accent);
+  --color-accent-weak: var(--accent-weak);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-gold: var(--gold);
+  --color-gold-weak: var(--gold-weak);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --color-success-weak: var(--success-weak);
+  --color-warning-weak: var(--warning-weak);
+  --color-danger-weak: var(--danger-weak);
+  --color-info-weak: var(--info-weak);
+
+  --color-data-emerald: var(--data-emerald);
+  --color-data-gold: var(--data-gold);
+  --color-data-stone: var(--data-stone);
+  --color-data-sage: var(--data-sage);
+  --color-data-terracotta: var(--data-terracotta);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-2xl);
+  --radius-3xl: var(--r-3xl);
+  --radius-4xl: var(--r-4xl);
+
+  --font-display: var(--font-display), Georgia, "Iowan Old Style", serif;
+  --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --default-font-family: var(--font-sans);
+
+  /* ===========================================================
+     Arconique handoff redesign — additive token system. These
+     entries register Tailwind utility classes (`bg-terra`,
+     `border-line`, `text-ink-2`, `shadow-redesign-card`, etc.)
+     used by ported handoff pages.
+
+     Phase 2.0 (Stage 3): tokens that have a Layer B
+     `[data-product]` equivalent are aliased so the Tailwind class
+     auto-tracks the per-product palette. Tokens without a Layer B
+     equivalent keep their OKLCH literals. Truly-dead entries (no
+     direct var() AND no Tailwind class consumer in src/) deleted.
+     ============================================================ */
+
+  /* Surfaces & ink (off-product fallbacks; no Layer B alternative). */
+  --color-bg:              oklch(0.962 0.014 80);
+  --color-bg-elevated:     oklch(0.985 0.008 82);
+  --color-surface-warm:    oklch(0.985 0.013 78);
+  --color-surface-sunken:  oklch(0.945 0.014 78);
+
+  /* Ink scale — aliased to Layer B per-product where applicable.
+     --color-ink-deep / --color-ink-warm have no Layer B equivalent. */
+  --color-ink-2:           var(--ink-2, oklch(0.420 0.015 72));
+  --color-ink-3:           var(--ink-3, oklch(0.620 0.013 75));
+  --color-ink-deep:        oklch(0.180 0.012 65);
+  --color-ink-warm:        oklch(0.260 0.018 65);
+
+  /* Lines — `border-line` has 1.9k callers; aliased so each
+     [data-product] surface picks up its own --line value. */
+  --color-line:            var(--line, oklch(0.905 0.010 78));
+
+  /* Brand — terra. Defined in Layer B mgmt + subscription scopes;
+     dev pages fall back to the OKLCH literal here. */
+  --color-terra:           var(--terra, oklch(0.690 0.155 38));
+  --color-terra-deep:      var(--terra-deep, oklch(0.560 0.155 36));
+  --color-terra-soft:      var(--terra-soft, oklch(0.935 0.050 50));
+  --color-terra-tint:      oklch(0.970 0.022 50);
+
+  /* Olive / sea / sand — no Layer B equivalent. Used by chart
+     visualisations (area-chart-card, donut-ratio-card), the score
+     chip palette, and a few accent tiles. */
+  --color-olive:           oklch(0.580 0.075 120);
+  --color-olive-deep:      oklch(0.450 0.075 120);
+  --color-olive-soft:      oklch(0.930 0.038 120);
+  --color-olive-tint:      oklch(0.970 0.018 120);
+  --color-sea:             oklch(0.580 0.065 215);
+  --color-sea-deep:        oklch(0.420 0.065 215);
+  --color-sea-soft:        oklch(0.930 0.030 215);
+  --color-sea-tint:        oklch(0.965 0.015 215);
+  --color-sand:            oklch(0.860 0.045 80);
+  --color-sand-soft:       oklch(0.940 0.030 80);
+
+  /* Redesign card radii. --radius-card-lg and --radius-card-hero-lg
+     had no callers and were pruned. */
+  --radius-card:           18px;
+  --radius-card-hero:      32px;
+
+  /* Redesign shadows — driver for `.shadow-redesign-card/soft/pop`
+     Tailwind classes (4 callers across hero-greet, filter-bar,
+     dome-donut, mobile-tabbar). */
+  --shadow-redesign-card:  0 1px 3px rgba(60,50,35,0.05),
+                           0 4px 14px rgba(60,50,35,0.05),
+                           0 0 0 1px rgba(60,50,35,0.025);
+  --shadow-redesign-soft:  0 2px 8px rgba(60,50,35,0.045),
+                           0 16px 38px rgba(60,50,35,0.045);
+  --shadow-redesign-pop:   0 12px 36px rgba(60,50,35,0.12),
+                           0 2px 6px rgba(60,50,35,0.06);
+}
+:root[data-product="management"] {
+  --cream:        #F4EFE6;
+  --cream-deep:   #ECE5D5;
+  --cream-warm:   #FAF7F1;
+  --paper:        #FFFCF7;
+  --ink:          #14201C;
+  --ink-2:        #2A3934;
+  --ink-3:        #4A5A55;
+  --ink-4:        #7E8A85;
+  --forest:       #1F3A33;
+  --forest-deep:  #122621;
+  --forest-fade:  #2E4F47;
+  --terra:        #C4583C;
+  --terra-soft:   #E48A6E;
+  --gold:         #BC9A5C;
+  --gold-soft:    #DCC691;
+  --sage:         #88A89A;
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --line-strong:  #C2B89E;
+  --ok:           #4F7A5D;
+  --warn:         #C58A2E;
+
+  --mint:         #D8E8D6;
+  --mint-deep:    #B6D3B2;
+  --peach:        #F6D9CB;
+  --peach-deep:   #EDB89F;
+  --butter:       #F5E9B8;
+  --butter-deep:  #E8D77E;
+  --sky:          #D4E2EC;
+  --sky-deep:     #A8C1D4;
+
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset, 0 12px 30px -18px rgba(20,32,28,0.18);
+  --shadow-soft:  0 18px 40px -24px rgba(20,32,28,0.22);
+}
+
+:root[data-product="development"] {
+  --bg:         #F1ECE0;
+  --bg-2:       #F8F4EA;
+  --bg-3:       #FFFCF4;
+  --panel:      #FFFFFF;
+  --line:       #E5DECC;
+  --line-2:     #D8CFB7;
+  --line-3:     #BAAF92;
+  --concrete:   #2A2A26;
+  --concrete-2: #4A4A42;
+  --concrete-3: #6E6E64;
+  --ink:        #14130E;
+  --ink-2:      #3D3B33;
+  --ink-3:      #6E6B5E;
+  --ink-4:      #95917F;
+  --carbon:     #14130E;
+  --amber:      #FF6B35;
+  --amber-soft: #FFB088;
+  --steel:      #3D5A7A;
+  --steel-soft: #7E9DBF;
+  --lime:       #C9DC4A;
+  --warn:       #C58A2E;
+  --danger:     #C2474E;
+  --ok:         #4F8A5D;
+
+  --pastel-peach:  #F6D2BC;
+  --pastel-sky:    #C9DCEA;
+  --pastel-butter: #F0DE96;
+  --pastel-mint:   #CBDFC8;
+  --pastel-cream:  #ECE5D5;
+  --pastel-rose:   #EFC6BD;
+}
+
+:root[data-product="subscription"] {
+  --paper:        #F5F0E2;
+  --paper-2:      #FBF7EC;
+  --paper-3:      #FFFEF8;
+  --ink:          #0F1A1F;
+  --ink-2:        #2A3B41;
+  --ink-3:        #5C6C70;
+  --ink-4:        #8B9295;
+  --line:         #D5CFB8;
+  --line-soft:    #E4DFC9;
+  --line-strong:  #B3AB8E;
+  --gold:         #C9A961;
+  --gold-deep:    #9C7F3F;
+  --gold-soft:    #E6D49C;
+  --terra:        #C4583C;
+  --terra-soft:   #E8A78D;
+  --emerald:      #2F5A4E;
+  --emerald-soft: #D6E5DD;
+  --amber:        #FF6B35;
+  --amber-soft:   #FFD3BC;
+  --steel:        #3D5A7A;
+  --ok:           #4F7A5D;
+}
+
+/* ============================================================
+   _handoff/ Task 1 — utility classes from the prototypes.
+
+   Defined at file scope (not inside @layer) so they win specificity
+   battles with Tailwind utilities cleanly. They reference the local
+   `var(--…)` palette, so the same `.btn-terra` / `.card` / `.badge`
+   look different per product surface without per-product class
+   duplication.
+
+   `.display` resolves to Newsreader (mgmt), Space Grotesk (dev), or
+   Fraunces (subscription) via the product-scoped --display-font CSS
+   var set on each data-product block below. Mono splits the same way.
+   ============================================================ */
+
+:root[data-product="management"] {
+  --display-font: var(--font-newsreader);
+  --mono-font: var(--font-jetbrains);
+}
+:root[data-product="development"] {
+  --display-font: var(--font-space);
+  --mono-font: var(--font-plex);
+}
+:root[data-product="subscription"] {
+  --display-font: var(--font-fraunces);
+  --mono-font: var(--font-jetbrains);
+}

@@ -3,7 +3,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import { safeQuery } from "@/lib/development/safe-query";
 import { getCfoKpis } from "@/lib/development/server/cabinets/cfo-cabinet-queries";
@@ -216,7 +216,7 @@ export default async function DevCfoPage() {
                 <td className="num">{t.mtd}</td>
                 <td className="num">{t.ytd}</td>
                 <td>
-                  <Badge tone={t.status === "warn" ? "warn" : "ok"}>{t.label}</Badge>
+                  <HandoffBadge tone={t.status === "warn" ? "warn" : "ok"}>{t.label}</HandoffBadge>
                 </td>
               </tr>
             ))}

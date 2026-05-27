@@ -215,7 +215,7 @@ test("10.C: triage doc maps each BUILD entry to a 10.M sub-phase", () => {
 // ============================================================================
 
 test("10.C: every dashboardNav href resolves to a shipped page (regression guard)", () => {
-  const navSrc = read("src/config/navigation.ts");
+  const navSrc = read("src/config/navigation/legacy.ts");
   const matches = navSrc.match(/href:\s*"\/dashboard[^"]*"/g) ?? [];
   const hrefs = Array.from(
     new Set(

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { SectionHeading, Card, Badge } from "@/components/dashboard/primitives";
+import { SectionHeading, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { markDigestAsReadAction } from "@/features/digests/actions";
 import type { DigestRow } from "@/features/digests/queries";
@@ -69,11 +69,11 @@ export function DigestDetailView({
         subtitle={formatCreatedAt(digest.createdAt)}
         actions={
           <div className="flex items-center gap-2">
-            <Badge tone={TYPE_TONE[digest.type] ?? "ink"}>{digest.type}</Badge>
+            <HandoffBadge tone={TYPE_TONE[digest.type] ?? "ink"}>{digest.type}</HandoffBadge>
             {digest.readAt ? (
-              <Badge tone="ink">read</Badge>
+              <HandoffBadge tone="ink">read</HandoffBadge>
             ) : (
-              <Badge tone="warn">unread</Badge>
+              <HandoffBadge tone="warn">unread</HandoffBadge>
             )}
           </div>
         }

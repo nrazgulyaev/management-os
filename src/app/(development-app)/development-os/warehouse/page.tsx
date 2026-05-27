@@ -3,7 +3,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import { getDb } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -121,7 +121,7 @@ export default async function DevWarehousePage() {
                 <td className="num">{d.qty}</td>
                 <td className="mono">{d.eta}</td>
                 <td>
-                  <Badge tone={d.tone}>{d.status}</Badge>
+                  <HandoffBadge tone={d.tone}>{d.status}</HandoffBadge>
                 </td>
               </tr>
             ))}

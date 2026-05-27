@@ -3,7 +3,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   listBookingsForCabinet,
@@ -223,7 +223,7 @@ export default async function BookingsPage() {
                     <td className="num">{b.nights}</td>
                     <td className="num">{fmtUsdMinor(b.grossUsdMinor)}</td>
                     <td>
-                      <Badge tone={badge.tone}>{badge.label}</Badge>
+                      <HandoffBadge tone={badge.tone}>{badge.label}</HandoffBadge>
                     </td>
                   </tr>
                 );
@@ -436,7 +436,7 @@ export default async function BookingsPage() {
                       sync schema lands in DEMO-3
                     </div>
                   </div>
-                  <Badge>Roster</Badge>
+                  <HandoffBadge>Roster</HandoffBadge>
                 </li>
               ))}
             </ul>

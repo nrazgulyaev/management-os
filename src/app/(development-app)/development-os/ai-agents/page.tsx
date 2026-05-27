@@ -3,7 +3,7 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  Badge,
+  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import {
   getDevAgentConfigs,
@@ -147,11 +147,11 @@ export default async function AiAgentsPage() {
                 </span>
                 <span style={{ marginLeft: "auto" }}>
                   {a.notConfigured ? (
-                    <Badge>Not configured</Badge>
+                    <HandoffBadge>Not configured</HandoffBadge>
                   ) : a.isEnabled ? (
-                    <Badge tone="ok">LIVE</Badge>
+                    <HandoffBadge tone="ok">LIVE</HandoffBadge>
                   ) : (
-                    <Badge>PAUSED</Badge>
+                    <HandoffBadge>PAUSED</HandoffBadge>
                   )}
                 </span>
               </div>
@@ -215,14 +215,14 @@ export default async function AiAgentsPage() {
                       {m.outputCode}
                     </td>
                     <td>
-                      <Badge>{m.agentKey.replace(/_/g, " ")}</Badge>
+                      <HandoffBadge>{m.agentKey.replace(/_/g, " ")}</HandoffBadge>
                     </td>
                     <td style={{ fontSize: 13, maxWidth: 520 }}>{m.title}</td>
                     <td>
                       {tone ? (
-                        <Badge tone={tone}>{m.status.replace(/_/g, " ")}</Badge>
+                        <HandoffBadge tone={tone}>{m.status.replace(/_/g, " ")}</HandoffBadge>
                       ) : (
-                        <Badge>{m.status.replace(/_/g, " ")}</Badge>
+                        <HandoffBadge>{m.status.replace(/_/g, " ")}</HandoffBadge>
                       )}
                     </td>
                     <td className="mono" style={{ fontSize: 11 }}>
