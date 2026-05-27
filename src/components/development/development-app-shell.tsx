@@ -7,8 +7,7 @@ import { getCurrentUserContext } from "@/features/auth/permissions";
 import { countUnreadForCurrentUser } from "@/features/notifications/services";
 import { getCurrentOrgTrial } from "@/features/billing/trial-services";
 import { TrialBanner } from "@/components/billing/trial-banner";
-import { MobileTabbar } from "@/components/ui/primitives/mobile-tabbar";
-import { DEV_TABBAR_ITEMS } from "@/components/layout/mobile-tabbar-configs";
+import { DevelopmentMobileTabbar } from "@/components/development/mobile-tabbar";
 import { AppSwitcher } from "@/components/layout/app-switcher";
 
 /**
@@ -90,7 +89,7 @@ export async function DevelopmentAppShell({
         </main>
       </div>
       <InstallPrompt />
-      <MobileTabbar items={DEV_TABBAR_ITEMS} />
+      <DevelopmentMobileTabbar />
     </div>
   );
 }

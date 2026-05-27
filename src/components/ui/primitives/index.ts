@@ -188,5 +188,6 @@ export type { HeroGreetProps } from "./hero-greet";
 export { FilterBar } from "./filter-bar";
 export type { FilterBarProps, FilterBarOption } from "./filter-bar";
 
-export { MobileTabbar } from "./mobile-tabbar";
-export type { MobileTabbarProps, MobileTabbarItem } from "./mobile-tabbar";
+// Phase 2.1 PR 1 — old floating-pill MobileTabbar primitive removed.
+// Replaced by `src/components/dashboard/mobile-tabbar.tsx` +
+// `src/components/development/mobile-tabbar.tsx` (template 01).

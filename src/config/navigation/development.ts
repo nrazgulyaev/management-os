@@ -38,6 +38,19 @@ export type { DashboardNavGroup, DashboardNavItem };
 
 const DEV = "/development-os";
 
+/**
+ * Phase 2.1 PR 1 — primary mobile tabs (Dev OS).
+ *
+ * See `MGMT_PRIMARY_MOBILE_TABS` in `./management.ts` for rationale.
+ * Five-slot tabbar; 5th slot is always "More".
+ */
+export const DEV_PRIMARY_MOBILE_TABS = [
+  "/development-os",
+  "/development-os/projects",
+  "/development-os/boq",
+  "/development-os/ai-agents",
+] as const;
+
 export const DEV_DASHBOARD_NAV: DashboardNavGroup[] = [
   {
     title: "COMMAND CENTER",

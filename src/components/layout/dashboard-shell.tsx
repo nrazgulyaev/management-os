@@ -5,8 +5,7 @@ import { countUnreadForCurrentUser } from "@/features/notifications/services";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { getCurrentOrgTrial } from "@/features/billing/trial-services";
 import { TrialBanner } from "@/components/billing/trial-banner";
-import { MobileTabbar } from "@/components/ui/primitives/mobile-tabbar";
-import { MGMT_TABBAR_ITEMS } from "./mobile-tabbar-configs";
+import { MobileTabbar } from "@/components/dashboard/mobile-tabbar";
 import { AppSwitcher } from "./app-switcher";
 
 /**
@@ -96,9 +95,13 @@ export async function DashboardShell({
           {children}
         </main>
       </div>
-      {/* HF-12 — desktop sidebar hides ≤ 900px, MobileTabbar takes over.
-          Untouched per Task 5 hard constraint. */}
-      <MobileTabbar items={MGMT_TABBAR_ITEMS} />
+      {/* HF-12 — desktop sidebar hides ≤ 900px, MobileTabbar takes
+          over. Phase 2.1 PR 1 swapped the floating-pill primitive for
+          the template-01 bottom-bar component (5 slots + More sheet).
+          Tabs + sheet read from `MGMT_PRIMARY_MOBILE_TABS` +
+          `MGMT_DASHBOARD_NAV` so config stays the single source of
+          truth. */}
+      <MobileTabbar />
     </div>
   );
 }

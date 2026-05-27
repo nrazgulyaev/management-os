@@ -199,7 +199,12 @@
 [data-product] .kpi.success .v { color: var(--ok); }
 [data-product="management"] .kpi.gold .v { color: var(--gold); }
 
-/* Mobile — hide desktop sidebar (HF-12 MobileTabbar takes over) */
+/* Mobile — hide desktop sidebar (HF-12 MobileTabbar takes over).
+ *
+ * Phase 2.1 PR 1 — reserve 78px at the bottom of `main` for the
+ * fixed `.mobile-tabbar` so cabinet content isn't covered. The
+ * `.mobile-tabbar` rule itself lives in `components.css`.
+ */
 @media (max-width: 900px) {
   [data-product] .sidebar { display: none; }
   [data-product] .topbar {
@@ -207,4 +212,5 @@
     flex-wrap: wrap;
   }
   [data-product] .topbar-search { width: 100%; order: 99; }
+  [data-product] main { padding-bottom: 78px; }
 }

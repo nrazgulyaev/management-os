@@ -5,6 +5,8 @@ import {
   Card,
   HandoffBadge,
 } from "@/components/dashboard/primitives";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PagerNumbered } from "@/components/ui/pager-numbered";
 import {
   listBookingsForCabinet,
   getBookingsKpis,
@@ -196,9 +198,21 @@ export default async function BookingsPage() {
       {/* Bookings table — live */}
       <Card padding="none" overflowHidden className="mb-[18px]">
         {list.length === 0 ? (
-          <p className="p-5 text-[13px] text-ink-3 italic m-0">
-            No bookings to show. Create your first booking to populate the table.
-          </p>
+          <EmptyState
+            variant="first-run"
+            title="No bookings yet"
+            body="Add a villa to your portfolio first, then bookings will sync from Airbnb, Booking.com and direct."
+            actions={
+              <>
+                <Link href="/dashboard/villas" className="btn btn-primary btn-sm">
+                  Add a villa
+                </Link>
+                <Link href="/dashboard/channels" className="btn btn-secondary btn-sm">
+                  Connect channels →
+                </Link>
+              </>
+            }
+          />
         ) : (
           <table className="data">
             <thead>
@@ -242,6 +256,17 @@ export default async function BookingsPage() {
               })}
             </tbody>
           </table>
+        )}
+        {list.length > 0 && (
+          // Phase 2.1 PR 1 proof-of-life — total = current page slice
+          // until `listBookingsForCabinet` gains a count helper. The
+          // bar syncs ?page=/?per= to the URL on interaction.
+          <PagerNumbered
+            total={list.length}
+            page={1}
+            perPage={20}
+            urlKeyPrefix=""
+          />
         )}
       </Card>
 

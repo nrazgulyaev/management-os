@@ -56,6 +56,25 @@ export interface DashboardNavGroup {
   items: DashboardNavItem[];
 }
 
+/**
+ * Phase 2.1 PR 1 — primary mobile tabs.
+ *
+ * 4 hrefs that occupy the first 4 slots of the mobile tabbar
+ * (template 01). The 5th slot is always "More" → opens a Radix
+ * bottom sheet listing every other nav item. Order matches the
+ * tabbar's left-to-right grid.
+ *
+ * String-only on purpose (HF-12 pattern) — labels + icons live in
+ * `src/components/dashboard/mobile-tabbar.tsx`, which can hold
+ * React refs without serialization concerns.
+ */
+export const MGMT_PRIMARY_MOBILE_TABS = [
+  "/dashboard",
+  "/dashboard/bookings",
+  "/dashboard/guests",
+  "/dashboard/finance",
+] as const;
+
 export const MGMT_DASHBOARD_NAV: DashboardNavGroup[] = [
   {
     title: "WORKSPACE",
