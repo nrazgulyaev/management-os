@@ -13,7 +13,18 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 
-const FIELDS = ["villa", "checkIn", "checkOut", "guest", "channel"] as const;
+const FIELDS = [
+  "villa",
+  "checkIn",
+  "checkOut",
+  "guest",
+  "email",
+  "phone",
+  "adults",
+  "children",
+  "channel",
+  "notes",
+] as const;
 type FieldId = (typeof FIELDS)[number];
 
 const INITIAL: Record<FieldId, string> = {
@@ -21,7 +32,12 @@ const INITIAL: Record<FieldId, string> = {
   checkIn: "",
   checkOut: "",
   guest: "",
+  email: "",
+  phone: "",
+  adults: "2",
+  children: "0",
   channel: "direct",
+  notes: "",
 };
 
 export function NewBookingCta() {
@@ -120,6 +136,49 @@ export function NewBookingCta() {
                 placeholder="Full name"
               />
             </div>
+            <div className="field-row">
+              <div className="field">
+                <label className="field-label">Email</label>
+                <input
+                  className="input"
+                  type="email"
+                  value={values.email}
+                  onChange={(e) => update("email", e.target.value)}
+                  placeholder="guest@example.com"
+                />
+              </div>
+              <div className="field">
+                <label className="field-label">Phone</label>
+                <input
+                  className="input"
+                  value={values.phone}
+                  onChange={(e) => update("phone", e.target.value)}
+                  placeholder="+62 …"
+                />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label className="field-label">Adults</label>
+                <input
+                  className="input mono"
+                  type="number"
+                  min={1}
+                  value={values.adults}
+                  onChange={(e) => update("adults", e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label className="field-label">Children</label>
+                <input
+                  className="input mono"
+                  type="number"
+                  min={0}
+                  value={values.children}
+                  onChange={(e) => update("children", e.target.value)}
+                />
+              </div>
+            </div>
             <div className="field">
               <label className="field-label">Channel</label>
               <select
@@ -131,7 +190,18 @@ export function NewBookingCta() {
                 <option value="airbnb">Airbnb</option>
                 <option value="booking">Booking.com</option>
                 <option value="agoda">Agoda</option>
+                <option value="ta">Travel agent</option>
               </select>
+            </div>
+            <div className="field">
+              <label className="field-label">Internal notes</label>
+              <textarea
+                className="textarea"
+                value={values.notes}
+                onChange={(e) => update("notes", e.target.value)}
+                rows={3}
+                placeholder="What should ops/concierge know? (not shared with guest)"
+              />
             </div>
           </form>
         </ModalBody>
