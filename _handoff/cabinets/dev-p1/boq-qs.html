@@ -1,0 +1,2090 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BOQ + QS — Dev P1 · Phase 2.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style id="chrome-css">
+/* ===== ds/tokens.css ===== */
+/* ============================================================
+   Arconique Design System — tokens
+   Layer B (product-scoped). Layer A legacy is being deprecated.
+   ============================================================ */
+
+/* Management OS — warm hospitality */
+[data-product="management"],
+[data-product="owner"] {
+  /* Surfaces */
+  --cream:        #F4EFE6;
+  --cream-deep:   #ECE5D5;
+  --cream-warm:   #FAF7F1;
+  --paper:        #FFFCF7;
+
+  /* Ink */
+  --ink:          #14201C;
+  --ink-2:        #2A3934;
+  --ink-3:        #4A5A55;
+  --ink-4:        #7E8A85;
+
+  /* Brand */
+  --forest:       #1F3A33;
+  --forest-deep:  #122621;
+  --forest-fade:  #2E4F47;
+  --terra:        #C4583C;
+  --terra-soft:   #E48A6E;
+  --gold:         #BC9A5C;
+  --gold-soft:    #DCC691;
+  --sage:         #88A89A;
+
+  /* Lines */
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --line-strong:  #C2B89E;
+
+  /* Semantic */
+  --ok:           #4F7A5D;
+  --warn:         #C58A2E;
+  --danger:       #B14132;
+  --info:         #3D5A7A;
+
+  /* Accent pastels (bento cards, status pills) */
+  --mint:         #D8E8D6;
+  --mint-deep:    #B6D3B2;
+  --peach:        #F6D9CB;
+  --peach-deep:   #EDB89F;
+  --butter:       #F5E9B8;
+  --butter-deep:  #E8D77E;
+  --sky:          #D4E2EC;
+  --sky-deep:     #A8C1D4;
+
+  /* Type */
+  --display-font: 'Newsreader', Georgia, 'Iowan Old Style', serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-card: 18px;
+  --r-card-lg: 22px;
+  --r-hero: 28px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 12px 30px -18px rgba(20,32,28,0.18);
+  --shadow-soft:  0 18px 40px -24px rgba(20,32,28,0.22);
+  --shadow-pop:   0 24px 56px -28px rgba(20,32,28,0.28),
+                  0 2px 6px rgba(20,32,28,0.06);
+
+  /* Accent role (used by .btn-primary semantics) */
+  --accent:           var(--terra);
+  --accent-deep:      #A44627;
+  --accent-soft:      var(--terra-soft);
+  --on-accent:        var(--cream-warm);
+  --inverted-bg:      var(--forest);
+  --inverted-bg-deep: var(--forest-deep);
+  --inverted-fg:      var(--cream-warm);
+}
+
+/* Owner Portal — same palette, slightly calmer */
+[data-product="owner"] {
+  /* Owner is for non-technical users, used 2–4× per month.
+     Inherits Mgmt palette. The differentiation is density/sizing —
+     applied at the component level, not via different tokens. */
+}
+
+/* Development OS — engineering grade */
+[data-product="development"] {
+  /* Surfaces */
+  --bg:           #F1ECE0;
+  --bg-2:         #F8F4EA;
+  --bg-3:         #FFFCF4;
+  --panel:        #FFFFFF;
+
+  /* Compatibility aliases (cards/topbars look up --paper/--cream too) */
+  --paper:        var(--panel);
+  --cream:        var(--bg);
+  --cream-warm:   var(--bg-2);
+  --cream-deep:   var(--bg-2);
+
+  /* Lines */
+  --line:         #E5DECC;
+  --line-2:       #D8CFB7;
+  --line-3:       #BAAF92;
+  --line-soft:    #ECE6D5;
+  --line-strong:  var(--line-3);
+
+  /* Ink */
+  --concrete:     #2A2A26;
+  --concrete-2:   #4A4A42;
+  --concrete-3:   #6E6E64;
+  --ink:          #14130E;
+  --ink-2:        #3D3B33;
+  --ink-3:        #6E6B5E;
+  --ink-4:        #95917F;
+  --carbon:       #14130E;
+
+  /* Brand */
+  --amber:        #FF6B35;
+  --amber-soft:   #FFB088;
+  --amber-deep:   #D8541F;
+  --steel:        #3D5A7A;
+  --steel-soft:   #7E9DBF;
+  --lime:         #C9DC4A;
+
+  /* Semantic */
+  --ok:           #4F8A5D;
+  --warn:         #C58A2E;
+  --danger:       #C2474E;
+  --info:         var(--steel);
+
+  /* Pastels (status/event tags) */
+  --pastel-peach:  #F6D2BC;
+  --pastel-sky:    #C9DCEA;
+  --pastel-butter: #F0DE96;
+  --pastel-mint:   #CBDFC8;
+  --pastel-cream:  #ECE5D5;
+  --pastel-rose:   #EFC6BD;
+
+  /* Type */
+  --display-font: 'Space Grotesk', system-ui, sans-serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-card: 14px;
+  --r-card-lg: 18px;
+  --r-hero: 22px;
+  --r-pill: 999px;
+
+  /* Shadows — more graphical, less soft */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 8px 22px -14px rgba(20,19,14,0.20);
+  --shadow-soft:  0 18px 38px -22px rgba(20,19,14,0.24);
+  --shadow-pop:   0 24px 50px -26px rgba(20,19,14,0.30),
+                  0 2px 6px rgba(20,19,14,0.07);
+
+  /* Accent role */
+  --accent:           var(--amber);
+  --accent-deep:      var(--amber-deep);
+  --accent-soft:      var(--amber-soft);
+  --on-accent:        var(--carbon);
+  --inverted-bg:      var(--carbon);
+  --inverted-bg-deep: #050402;
+  --inverted-fg:      #FFFFFF;
+}
+
+/* ============================================================
+   Documentation page chrome — neutral, NOT product-scoped
+   ============================================================ */
+:root {
+  --doc-bg:       #0F0F0E;
+  --doc-bg-2:     #16161A;
+  --doc-bg-3:     #1D1D22;
+  --doc-line:     #2A2A2F;
+  --doc-line-2:   #3A3A40;
+  --doc-fg:       #E8E5DE;
+  --doc-fg-2:     #B2AFA8;
+  --doc-fg-3:     #807D77;
+  --doc-accent:   #E4D9B8;
+
+  --doc-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --doc-sans:    'Inter', system-ui, sans-serif;
+}
+
+
+/* ===== ds/primitives.css ===== */
+/* ============================================================
+   Arconique Design System — primitives
+   Buttons, cards, badges, chips, KPI, pulse, type utilities.
+   Lives under [data-product=…]; the documentation chrome
+   (sections.css) provides the outer surface.
+   ============================================================ */
+
+/* ---------- Type utilities ---------- */
+[data-product] .display {
+  font-family: var(--display-font);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  color: var(--ink);
+}
+[data-product="development"] .display {
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+[data-product] .display em {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 400;
+}
+
+[data-product] .label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+[data-product="development"] .label,
+[data-product="owner"] .label { letter-spacing: 0.18em; }
+
+[data-product] .mono {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+}
+[data-product] .num {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+[data-product] .body {
+  font-family: var(--sans-font);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ---------- */
+[data-product] .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease,
+              border-color 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+[data-product] .btn-lg { padding: 14px 22px; font-size: 15px; }
+[data-product] .btn-sm { padding: 7px 14px; font-size: 13px; }
+[data-product] .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Primary — uses inverted bg per product */
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product="management"] .btn-primary:hover,
+[data-product="owner"] .btn-primary:hover { background: var(--forest); }
+[data-product="development"] .btn-primary:hover { background: #25241D; }
+
+/* Accent — terra (Mgmt/Owner), amber (Dev) */
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); }
+[data-product] .btn-accent:hover { background: var(--accent-deep); }
+
+/* Secondary — light card with border */
+[data-product="management"] .btn-secondary,
+[data-product="owner"] .btn-secondary {
+  background: var(--cream-warm); color: var(--ink); border-color: var(--line);
+}
+[data-product="management"] .btn-secondary:hover,
+[data-product="owner"] .btn-secondary:hover { background: var(--paper); border-color: var(--ink-2); }
+[data-product="development"] .btn-secondary {
+  background: var(--bg-3); color: var(--ink); border-color: var(--line-2);
+}
+[data-product="development"] .btn-secondary:hover { background: var(--bg-2); border-color: var(--line-3); }
+
+/* Ghost */
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); }
+[data-product="management"] .btn-ghost:hover,
+[data-product="owner"] .btn-ghost:hover { background: var(--cream-deep); color: var(--ink); }
+[data-product="development"] .btn-ghost:hover { background: var(--bg-2); color: var(--ink); }
+
+/* Danger */
+[data-product] .btn-danger { background: var(--danger); color: var(--cream-warm); }
+[data-product] .btn-danger:hover { filter: brightness(0.92); }
+
+/* Round arrow / sticker buttons */
+[data-product] .ra-btn {
+  width: 46px; height: 46px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; cursor: pointer; transition: transform 0.15s ease, background 0.18s ease;
+  background: var(--ink); color: var(--inverted-fg);
+}
+[data-product] .ra-btn:hover { transform: translateX(2px); }
+[data-product] .ra-btn.light {
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line);
+}
+[data-product] .ra-btn.accent { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- Cards ---------- */
+[data-product="management"] .card,
+[data-product="owner"] .card {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+}
+[data-product="development"] .card,
+[data-product="development"] .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+}
+[data-product] .card-lg { border-radius: var(--r-card-lg); }
+[data-product] .card-hero { border-radius: var(--r-hero); }
+[data-product] .card-pad { padding: 20px; }
+[data-product] .card-pad-lg { padding: 28px; }
+
+/* Inverted hero band */
+[data-product] .card-inverted {
+  background: var(--inverted-bg);
+  color: var(--inverted-fg);
+  border-color: var(--inverted-bg);
+}
+[data-product] .card-inverted .label { color: rgba(255,255,255,0.55); }
+
+/* ---------- Badges ---------- */
+[data-product] .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-family: var(--mono-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  background: var(--paper);
+}
+[data-product] .badge-ok     { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
+[data-product] .badge-warn   { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+[data-product] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product] .badge-info   { background: color-mix(in oklab, var(--info) 12%, transparent); color: var(--info); border-color: color-mix(in oklab, var(--info) 35%, transparent); }
+[data-product] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product="management"] .badge-gold,
+[data-product="owner"] .badge-gold { background: rgba(188,154,92,0.15); color: #8c6f33; border-color: rgba(188,154,92,0.35); }
+[data-product] .badge-ink {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .badge-soft {
+  background: var(--cream-warm, var(--bg-2)); color: var(--ink-2); border-color: var(--line-soft, var(--line-2));
+}
+
+/* ---------- Chips ---------- */
+[data-product] .chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+[data-product="development"] .chip { background: var(--bg-2); border-color: var(--line-2); }
+[data-product] .chip-dot::before {
+  content: ""; width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent); display: inline-block;
+}
+[data-product] .chip-ink { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .chip-active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+/* ---------- Pulse dot ---------- */
+[data-product] .pulse-dot {
+  width: 7px; height: 7px; border-radius: 999px; display: inline-block;
+  background: var(--ok);
+  animation: ds-pulse 2.4s ease-in-out infinite;
+}
+[data-product] .pulse-dot.accent { background: var(--accent); color: var(--accent); }
+@keyframes ds-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; }
+}
+
+/* ---------- Avatar ---------- */
+[data-product] .avatar {
+  width: 32px; height: 32px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-fg);
+  font-family: var(--sans-font);
+  font-size: 11px; font-weight: 500;
+  background: linear-gradient(135deg, var(--gold-soft, var(--amber-soft)), var(--accent));
+}
+[data-product] .avatar-lg { width: 44px; height: 44px; font-size: 14px; }
+[data-product] .avatar-sm { width: 24px; height: 24px; font-size: 10px; }
+
+/* ---------- KPI tile ---------- */
+[data-product] .kpi {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft, var(--line));
+  background: var(--paper, var(--panel));
+}
+[data-product] .kpi .label { font-size: 10.5px; }
+[data-product] .kpi .v {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  margin-top: 4px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.05;
+}
+[data-product] .kpi .sub {
+  margin-top: 3px;
+  font-family: var(--sans-font);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+[data-product] .kpi.accent .v { color: var(--accent); }
+[data-product] .kpi.ok .v { color: var(--ok); }
+[data-product] .kpi.warn .v { color: var(--warn); }
+[data-product] .kpi.gold .v { color: var(--gold, var(--amber)); }
+[data-product] .kpi-lg .v { font-size: 36px; }
+[data-product] .kpi-lg { padding: 22px 22px; }
+
+/* Owner has a calmer, bigger KPI variant for statement clarity */
+[data-product="owner"] .kpi-narrative {
+  padding: 28px 28px;
+  border-radius: var(--r-card-lg);
+}
+[data-product="owner"] .kpi-narrative .label { font-size: 11px; }
+[data-product="owner"] .kpi-narrative .v {
+  font-family: var(--display-font);
+  font-feature-settings: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-top: 10px;
+}
+[data-product="owner"] .kpi-narrative .sub {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+/* ---------- Section heading ---------- */
+[data-product] .section-heading { margin-bottom: 22px; }
+[data-product] .section-heading .eyebrow { margin-bottom: 8px; }
+[data-product] .section-heading h2,
+[data-product] .section-heading h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .section-heading h2,
+[data-product="development"] .section-heading h1 { font-weight: 500; letter-spacing: -0.025em; }
+[data-product] .section-heading p {
+  margin: 10px 0 0;
+  color: var(--ink-3);
+  font-size: 15px;
+  max-width: 680px;
+  line-height: 1.55;
+}
+[data-product="owner"] .section-heading h2,
+[data-product="owner"] .section-heading h1 { font-size: 44px; }
+[data-product="owner"] .section-heading p { font-size: 16px; }
+
+/* ---------- Page header (with breadcrumbs) ---------- */
+[data-product] .page-header {
+  display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 22px;
+}
+[data-product] .page-header .left { flex: 1; min-width: 0; }
+[data-product] .page-header .crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+[data-product] .page-header .crumb a { color: var(--ink-3); text-decoration: none; }
+[data-product] .page-header .crumb a:hover { color: var(--ink); }
+[data-product] .page-header h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .page-header h1 { font-weight: 500; }
+[data-product] .page-header .actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+
+/* ===== ds/layout.css ===== */
+/* ============================================================
+   Arconique Design System — layout (sidebar, topbar, tables)
+   ============================================================ */
+
+/* ---------- App shell wrapper used in previews ---------- */
+[data-product] .app-shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  height: 580px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  overflow: hidden;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-content {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-body {
+  padding: 22px 28px;
+  overflow: auto;
+  flex: 1;
+}
+
+/* ---------- Sidebar ---------- */
+[data-product] .sidebar {
+  border-right: 1px solid var(--line-soft, var(--line));
+  display: flex; flex-direction: column;
+  background: var(--paper, var(--panel));
+  overflow-y: auto;
+}
+[data-product] .sidebar::-webkit-scrollbar { width: 6px; }
+[data-product] .sidebar::-webkit-scrollbar-thumb {
+  background: var(--line); border-radius: 999px;
+}
+[data-product] .sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 18px 14px;
+  text-decoration: none; color: var(--ink);
+}
+[data-product] .sb-brand .logo {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-bg);
+}
+[data-product] .sb-brand .wordmark {
+  font-family: var(--display-font);
+  font-size: 20px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace {
+  margin: 0 18px 12px;
+  padding: 10px 12px;
+  background: var(--cream-deep, var(--bg-2));
+  border-radius: 10px;
+}
+[data-product] .sb-workspace .label { font-size: 9.5px; }
+[data-product] .sb-workspace .name {
+  font-family: var(--display-font);
+  font-size: 16px;
+  margin-top: 2px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace .sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+[data-product] .sb-group {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .sb-group:last-child { border-bottom: 0; }
+[data-product] .sb-group-title {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 10px 18px 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+[data-product] .sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 18px;
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer; border: 0; background: transparent;
+  width: 100%; text-align: left;
+  border-left: 2px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease;
+  text-decoration: none;
+}
+[data-product="management"] .sb-item:hover,
+[data-product="owner"] .sb-item:hover { background: var(--cream-warm); }
+[data-product="development"] .sb-item:hover { background: var(--bg-2); }
+[data-product] .sb-item.on {
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product="management"] .sb-item.on,
+[data-product="owner"] .sb-item.on {
+  background: var(--cream-warm);
+  border-left-color: var(--accent);
+}
+[data-product="development"] .sb-item.on {
+  background: var(--bg-2);
+  border-left-color: var(--accent);
+}
+[data-product] .sb-badge {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+[data-product] .sb-item.on .sb-badge {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Topbar ---------- */
+[data-product] .topbar {
+  position: sticky; top: 0; z-index: 30;
+  padding: 12px 28px;
+  display: flex; align-items: center; gap: 16px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--cream, var(--bg)) 92%, transparent);
+}
+[data-product] .tb-crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+[data-product] .tb-crumb b { color: var(--ink); font-weight: 500; }
+[data-product] .tb-spacer { flex: 1; }
+[data-product] .tb-search {
+  position: relative;
+  width: 280px;
+}
+[data-product] .tb-search input {
+  width: 100%;
+  padding: 7px 38px 7px 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  outline: none;
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper, var(--panel));
+}
+[data-product] .tb-search .sx {
+  position: absolute; left: 10px; top: 8px;
+  color: var(--ink-4);
+}
+[data-product] .tb-search .kbd {
+  position: absolute; right: 8px; top: 6px;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-3);
+}
+[data-product] .tb-bell {
+  position: relative;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-2);
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+[data-product] .tb-bell:hover { background: var(--cream-deep, var(--bg-2)); }
+[data-product] .tb-bell .dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent);
+}
+[data-product] .tb-user {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+[data-product] .tb-user .meta {
+  display: flex; flex-direction: column;
+  line-height: 1.15;
+}
+[data-product] .tb-user .name { font-size: 13px; font-weight: 500; color: var(--ink); }
+[data-product] .tb-user .role { font-size: 10.5px; color: var(--ink-3); }
+
+/* ---------- Tables ---------- */
+[data-product] table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans-font);
+  font-size: 13px;
+}
+[data-product] table.data th,
+[data-product] table.data td {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] table.data th {
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+[data-product="management"] table.data th,
+[data-product="owner"] table.data th {
+  background: var(--cream);
+  border-bottom-color: var(--line-soft);
+}
+[data-product="development"] table.data th {
+  background: var(--bg-2);
+  border-bottom-color: var(--line-2);
+}
+[data-product] table.data tbody tr:hover {
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 60%, transparent);
+}
+[data-product] table.data td.num,
+[data-product] table.data th.num {
+  text-align: right;
+  font-family: var(--mono-font);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] table.data .row-title {
+  font-family: var(--display-font);
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+/* Mgmt-soft variant: airier rows, serif row titles */
+[data-product="management"] table.guests,
+[data-product="owner"] table.guests {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--sans-font);
+}
+[data-product="management"] table.guests th,
+[data-product="management"] table.guests td,
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft);
+}
+[data-product="management"] table.guests th,
+[data-product="owner"] table.guests th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: var(--cream);
+}
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td { padding: 18px 22px; }
+[data-product="management"] table.guests tbody tr:hover,
+[data-product="owner"] table.guests tbody tr:hover { background: var(--cream); }
+
+/* ---------- Forms ---------- */
+[data-product] .field { display: flex; flex-direction: column; gap: 6px; }
+[data-product] .field-label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+[data-product] .input,
+[data-product] .select,
+[data-product] .textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper, var(--panel));
+  font-family: var(--sans-font);
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+[data-product] .textarea { min-height: 96px; resize: vertical; }
+[data-product] .input:focus,
+[data-product] .select:focus,
+[data-product] .textarea:focus {
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+[data-product] .input::placeholder,
+[data-product] .textarea::placeholder { color: var(--ink-4); }
+[data-product] .field-help { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+[data-product] .field-error { font-size: 12px; color: var(--danger); margin-top: 2px; }
+
+[data-product] .check {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--sans-font); font-size: 14px; color: var(--ink);
+  cursor: pointer;
+}
+[data-product] .check input { appearance: none; -webkit-appearance: none; }
+[data-product] .check .box {
+  width: 18px; height: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--paper, var(--panel));
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+[data-product] .check input:checked + .box {
+  background: var(--ink); border-color: var(--ink);
+}
+[data-product] .check input:checked + .box::after {
+  content: "";
+  width: 9px; height: 5px;
+  border-left: 2px solid var(--inverted-fg);
+  border-bottom: 2px solid var(--inverted-fg);
+  transform: rotate(-45deg) translate(0, -2px);
+}
+
+[data-product] .radio .box { border-radius: 999px; }
+[data-product] .radio input:checked + .box {
+  background: var(--paper, var(--panel));
+  border-color: var(--accent);
+}
+[data-product] .radio input:checked + .box::after {
+  content: ""; width: 9px; height: 9px;
+  border: 0; transform: none; background: var(--accent);
+  border-radius: 999px;
+}
+
+[data-product] .toggle {
+  position: relative; width: 38px; height: 22px;
+  background: var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+[data-product] .toggle::after {
+  content: ""; position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  background: var(--paper, var(--panel));
+  border-radius: 999px;
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+[data-product] .toggle.on { background: var(--accent); }
+[data-product] .toggle.on::after { transform: translateX(16px); }
+
+/* ---------- Filter bar ---------- */
+[data-product] .filter-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--paper, var(--panel));
+  margin-bottom: 14px;
+}
+[data-product] .filter-bar .divider {
+  width: 1px; height: 22px; background: var(--line); margin: 0 2px;
+}
+
+/* ---------- Empty state ---------- */
+[data-product] .empty {
+  padding: 40px 28px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-card);
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 50%, transparent);
+  text-align: center;
+}
+[data-product] .empty .glyph {
+  width: 44px; height: 44px; margin: 0 auto 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 999px;
+}
+[data-product] .empty .title {
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+[data-product] .empty .copy {
+  font-size: 13px;
+  color: var(--ink-3);
+  max-width: 360px;
+  margin: 0 auto 14px;
+  line-height: 1.5;
+}
+
+/* ---------- Pagination ---------- */
+[data-product] .pagination {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono-font);
+  font-size: 12px;
+}
+[data-product] .pagination button {
+  min-width: 30px; height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper, var(--panel));
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .pagination button:hover { border-color: var(--ink-2); color: var(--ink); }
+[data-product] .pagination button.on {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .pagination .meta {
+  margin-left: 12px; color: var(--ink-3);
+}
+
+/* ---------- Modal ---------- */
+[data-product] .modal-backdrop {
+  position: relative;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  padding: 36px 28px;
+  border-radius: var(--r-card);
+  display: flex; align-items: flex-start; justify-content: center;
+}
+[data-product] .modal {
+  width: 480px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border-radius: var(--r-card-lg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  box-shadow: var(--shadow-pop);
+}
+[data-product] .modal-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+}
+[data-product] .modal-header h3 {
+  margin: 0;
+  font-family: var(--display-font); font-weight: 400; font-size: 19px;
+  color: var(--ink);
+}
+[data-product] .modal-header p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
+[data-product] .modal-body { padding: 18px 22px; }
+[data-product] .modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* ---------- Command palette preview ---------- */
+[data-product] .cmdk {
+  width: 540px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+[data-product] .cmdk-input {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  font-family: var(--sans-font);
+  font-size: 15px;
+  color: var(--ink-2);
+  display: flex; align-items: center; gap: 10px;
+}
+[data-product] .cmdk-input .sx { color: var(--ink-4); }
+[data-product] .cmdk-group {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .cmdk-group:last-child { border-bottom: 0; }
+[data-product] .cmdk-group-title {
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 8px 18px 4px;
+}
+[data-product] .cmdk-item {
+  padding: 8px 18px;
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--sans-font); font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .cmdk-item.on,
+[data-product] .cmdk-item:hover { background: var(--cream-warm, var(--bg-2)); color: var(--ink); }
+[data-product] .cmdk-item .hint {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+
+/* ---------- Detail page skeleton ---------- */
+[data-product] .detail-shell {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 18px;
+}
+[data-product] .detail-shell .related { display: flex; flex-direction: column; gap: 14px; }
+[data-product] .detail-tabs {
+  display: flex; align-items: center; gap: 4px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 18px;
+}
+[data-product] .detail-tabs .tab {
+  padding: 10px 14px;
+  border: 0; background: transparent;
+  font-family: var(--sans-font);
+  font-size: 13.5px; color: var(--ink-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+[data-product] .detail-tabs .tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- Mobile preview frame ---------- */
+.mobile-frame {
+  width: 360px;
+  border: 1px solid var(--line, #DAD2C0);
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--cream, var(--bg, #F4EFE6));
+  box-shadow: 0 16px 40px -18px rgba(15,15,14,0.22),
+              0 2px 6px rgba(15,15,14,0.06);
+  height: 640px;
+  display: flex; flex-direction: column;
+}
+.mobile-frame .mobile-status {
+  height: 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  font-family: var(--mono-font, monospace);
+  font-size: 11px;
+  color: var(--ink, #14201C);
+}
+.mobile-frame .mobile-body {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Mobile tabbar */
+[data-product] .mobile-tabbar {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+}
+[data-product] .mobile-tabbar .tb {
+  flex: 1;
+  padding: 8px 0 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  cursor: pointer;
+  border: 0; background: transparent;
+}
+[data-product] .mobile-tabbar .tb.on {
+  color: var(--ink);
+}
+[data-product] .mobile-tabbar .tb.on .ico {
+  color: var(--accent);
+}
+[data-product] .mobile-tabbar .ico {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+
+/* ===== ds/meta.css ===== */
+/* ============================================================
+   Documentation page chrome — neutral surface that hosts
+   the product previews. NOT product-scoped.
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--doc-sans);
+  background: var(--doc-bg);
+  color: var(--doc-fg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100vh;
+}
+
+/* ---------- App layout ---------- */
+.ds-app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- Left rail (TOC) ---------- */
+.ds-toc {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--doc-line);
+  padding: 24px 16px 32px;
+  background: var(--doc-bg-2);
+}
+.ds-toc .ds-mark {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  padding: 4px 8px 16px;
+}
+.ds-toc .ds-mark .glyph {
+  width: 6px; height: 6px;
+  background: var(--doc-accent);
+  border-radius: 2px;
+  display: inline-block;
+}
+.ds-toc h1 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0 0 22px;
+  padding: 0 8px;
+  color: var(--doc-fg);
+  letter-spacing: -0.005em;
+}
+.ds-toc .ds-toc-group {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 18px;
+}
+.ds-toc .ds-toc-group-title {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  padding: 8px 8px 6px;
+}
+.ds-toc .ds-toc-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  text-decoration: none;
+  border-radius: 6px;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+}
+.ds-toc .ds-toc-item:hover {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+}
+.ds-toc .ds-toc-item.on {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+  border-left-color: var(--doc-accent);
+}
+.ds-toc .ds-toc-item .num {
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  color: var(--doc-fg-3);
+  width: 18px;
+}
+
+/* ---------- Right side ---------- */
+.ds-main {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--doc-bg);
+}
+
+/* ---------- Product tab bar ---------- */
+.ds-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1px solid var(--doc-line);
+  background: var(--doc-bg);
+  padding: 0 32px;
+}
+.ds-tab {
+  padding: 18px 18px;
+  font-family: var(--doc-sans);
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  border: 0; background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex; align-items: center; gap: 10px;
+}
+.ds-tab:hover { color: var(--doc-fg); }
+.ds-tab.on {
+  color: var(--doc-fg);
+  border-bottom-color: var(--doc-accent);
+}
+.ds-tab .swatch {
+  width: 10px; height: 10px;
+  border-radius: 999px;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+}
+.ds-tab .tag {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  margin-left: 6px;
+}
+.ds-tab.on .tag { color: var(--doc-fg-2); }
+.ds-tabs .ds-meta {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 4px;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.ds-tabs .ds-meta .pill {
+  padding: 4px 10px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 999px;
+  color: var(--doc-fg-2);
+}
+
+/* ---------- Content area ---------- */
+.ds-content {
+  padding: 0 32px 96px;
+}
+
+/* ---------- Section ---------- */
+.ds-section {
+  padding: 56px 0 24px;
+  border-bottom: 1px solid var(--doc-line);
+}
+.ds-section:last-child { border-bottom: 0; }
+.ds-section-head {
+  display: flex; align-items: flex-end; gap: 18px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.ds-section-head .ds-section-eyebrow {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.ds-section-head h2 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 28px;
+  margin: 0;
+  letter-spacing: -0.015em;
+  color: var(--doc-fg);
+}
+.ds-section-head p {
+  margin: 8px 0 0;
+  max-width: 580px;
+  color: var(--doc-fg-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.ds-section-head .ds-section-meta {
+  margin-left: auto;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  display: flex; gap: 14px;
+  align-items: center;
+}
+
+/* ---------- Sub-section ---------- */
+.ds-sub {
+  margin-bottom: 36px;
+}
+.ds-sub-head {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 14px;
+}
+.ds-sub-head h3 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0;
+  color: var(--doc-fg);
+}
+.ds-sub-head .code {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  padding: 1px 6px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 4px;
+}
+.ds-sub-head p {
+  margin: 0;
+  color: var(--doc-fg-2);
+  font-size: 13px;
+}
+
+/* ---------- Preview surface (the warm card the product previews sit on) ---------- */
+.ds-preview {
+  background: var(--cream, var(--bg, #F4EFE6));
+  border-radius: 14px;
+  padding: 28px;
+  border: 1px solid var(--doc-line);
+  position: relative;
+  overflow: hidden;
+}
+.ds-preview.tight { padding: 18px; }
+.ds-preview.flush { padding: 0; }
+.ds-preview .ds-preview-tag {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  background: rgba(15,15,14,0.05);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* ---------- Code snippet ---------- */
+.ds-code {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 12px 14px;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+  border-radius: 8px;
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.ds-code .kw { color: #c5b889; }
+.ds-code .str { color: #b6cd97; }
+.ds-code .com { color: var(--doc-fg-3); font-style: italic; }
+
+/* ---------- Spec list (key = value rows) ---------- */
+.ds-spec {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 6px 18px;
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 14px 0 0;
+}
+.ds-spec dt { color: var(--doc-fg-3); }
+.ds-spec dd { margin: 0; color: var(--doc-fg); }
+
+/* ---------- Two/three column grid for showcase ---------- */
+.ds-grid { display: grid; gap: 14px; }
+.ds-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.ds-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.ds-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.ds-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+.ds-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.ds-grid.cols-mobile { grid-template-columns: 1fr 360px; gap: 28px; align-items: start; }
+
+/* ---------- Color swatch ---------- */
+.swatch-card {
+  display: flex; flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+}
+.swatch-card .chip {
+  height: 80px;
+  background: var(--c);
+  display: flex; align-items: flex-end;
+  padding: 10px 12px;
+  color: var(--cfg, #fff);
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.swatch-card .meta {
+  padding: 8px 12px 10px;
+}
+.swatch-card .name {
+  font-family: var(--doc-sans);
+  font-size: 12.5px;
+  color: var(--doc-fg);
+  margin-bottom: 1px;
+}
+.swatch-card .var {
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Type specimen ---------- */
+.type-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--doc-line);
+  align-items: baseline;
+}
+.type-row:last-child { border-bottom: 0; }
+.type-row .meta {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.type-row .meta .name { color: var(--doc-fg-2); margin-bottom: 2px; }
+.type-row .specimen { color: var(--ink, var(--doc-fg)); }
+
+/* ---------- Token row (radii, shadows) ---------- */
+.token-row {
+  display: grid;
+  grid-template-columns: 64px 140px 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--doc-line);
+}
+.token-row:last-child { border-bottom: 0; }
+.token-row .visual {
+  width: 64px; height: 64px;
+  background: var(--cream, var(--bg, #F4EFE6));
+  border: 1px solid var(--line, #DAD2C0);
+  display: flex; align-items: center; justify-content: center;
+}
+.token-row .name {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+}
+.token-row .value {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Inline label inside the meta dark area ---------- */
+.ds-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--doc-line-2);
+  color: var(--doc-fg-2);
+}
+.ds-tag.accent {
+  background: var(--doc-accent);
+  color: var(--doc-bg);
+  border-color: var(--doc-accent);
+}
+
+/* ---------- Mobile preview row ---------- */
+.ds-mobile-row {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.ds-mobile-row .ds-mobile-notes {
+  padding-top: 16px;
+}
+.ds-mobile-row .ds-mobile-notes h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--doc-fg);
+}
+.ds-mobile-row .ds-mobile-notes p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  line-height: 1.55;
+}
+
+/* ---------- Small viewport gracefully ---------- */
+@media (max-width: 1280px) {
+  .ds-grid.cols-mobile,
+  .ds-mobile-row { grid-template-columns: 1fr; }
+  .ds-grid.cols-5, .ds-grid.cols-6 { grid-template-columns: repeat(3, 1fr); }
+  .ds-content { padding: 0 22px 80px; }
+  .ds-tabs { padding: 0 22px; }
+}
+@media (max-width: 900px) {
+  .ds-app { grid-template-columns: 1fr; }
+  .ds-toc {
+    position: relative; height: auto;
+    border-right: 0; border-bottom: 1px solid var(--doc-line);
+  }
+  .ds-grid.cols-3, .ds-grid.cols-4, .ds-grid.cols-5, .ds-grid.cols-6 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ds-content { padding: 0 16px 64px; }
+  .ds-tabs { padding: 0 16px; overflow-x: auto; }
+  .ds-tabs .ds-meta { display: none; }
+}
+
+</style>
+<style>
+.shell-preview { display: flex; background: var(--bg, var(--cream)); border-radius: var(--r-card-lg); overflow: hidden; border: 1px solid var(--line); }
+.shell-preview > main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.frame-cap { font-family: var(--doc-mono); font-size: 10px; color: var(--doc-fg-3); text-transform: uppercase; letter-spacing: 0.18em; margin-top: 10px; text-align: center; }
+.spec-grid { display: grid; grid-template-columns: 200px 1fr; gap: 0; }
+.spec-grid > div { padding: 12px 16px; border-bottom: 1px solid var(--doc-line); font-size: 13px; }
+.spec-grid > div:nth-child(odd) { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg-3); text-transform: uppercase; letter-spacing: 0.14em; }
+.spec-grid > div:nth-child(even) { color: var(--doc-fg); }
+.spec-grid code { font-family: var(--doc-mono); font-size: 12px; color: var(--doc-accent); background: rgba(228,217,184,0.08); padding: 1px 6px; border-radius: 4px; }
+.spec-card-warm { background: #1D1D22; border: 1px solid var(--doc-line); border-radius: 14px; padding: 24px; margin-top: 20px; }
+.spec-card-warm h4 { margin: 0 0 4px; font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); }
+.spec-card-warm p { margin: 0; font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg-2); line-height: 1.6; }
+.tpl-nav { display: flex; flex-direction: column; gap: 2px; }
+.tpl-nav a { display: flex; align-items: center; gap: 10px; padding: 7px 8px; font-family: var(--doc-sans); font-size: 13px; color: var(--doc-fg-2); text-decoration: none; border-radius: 6px; border-left: 2px solid transparent; }
+.tpl-nav a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.tpl-nav a.on { background: var(--doc-bg-3); color: var(--doc-fg); border-left-color: var(--doc-accent); }
+.tpl-nav a .num { font-family: var(--doc-mono); font-size: 10px; color: var(--doc-fg-3); width: 18px; }
+.anchor-nav { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 14px 0; border-top: 1px solid var(--doc-line); border-bottom: 1px solid var(--doc-line); }
+.anchor-nav a { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg-2); text-decoration: none; padding: 4px 10px; border: 1px solid var(--doc-line); border-radius: 999px; letter-spacing: 0.1em; text-transform: uppercase; }
+.anchor-nav a:hover { color: var(--doc-fg); border-color: var(--doc-fg-2); }
+.ia { background: #1D1D22; border: 1px solid var(--doc-line); border-radius: 14px; padding: 24px; display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: start; }
+.ia .lhs h4 { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); margin: 0 0 8px; }
+.ia .lhs .v { font-family: var(--doc-sans); font-size: 13px; color: var(--doc-fg-2); line-height: 1.6; }
+.ia ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.ia li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; font-family: var(--doc-sans); font-size: 13px; color: var(--doc-fg-2); background: rgba(228,217,184,0.04); border-radius: 6px; }
+.ia li code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-accent); background: rgba(228,217,184,0.08); padding: 1px 6px; border-radius: 4px; }
+.ia li .badge { margin-left: auto; font-family: var(--doc-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--doc-fg-3); }
+.ia li .badge.live { color: #88B894; }
+.ia li .badge.new  { color: #D8B354; }
+
+/* WP-tree (workpackage navigation) */
+[data-product="development"] .wp-tree {
+  background: var(--bg-2);
+  border-right: 1px solid var(--line);
+  width: 240px; flex-shrink: 0;
+  padding: 14px 12px;
+  overflow-y: auto;
+}
+[data-product="development"] .wp-tree .wp {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: var(--sans-font); font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+}
+[data-product="development"] .wp-tree .wp .code {
+  font-family: var(--mono-font); font-size: 10.5px;
+  letter-spacing: 0.08em; color: var(--ink-3);
+}
+[data-product="development"] .wp-tree .wp.on {
+  background: var(--panel); color: var(--ink); font-weight: 500;
+  border-left: 2px solid var(--amber); margin-left: -2px;
+}
+[data-product="development"] .wp-tree .wp .alert {
+  width: 6px; height: 6px; border-radius: 999px;
+  background: var(--warn); margin-left: 6px;
+}
+
+/* Variance pills (delta from plan) */
+[data-product="development"] .delta {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  font-family: var(--mono-font); font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  border-radius: 4px;
+}
+[data-product="development"] .delta.ok { background: rgba(79,138,93,0.10); color: var(--ok); }
+[data-product="development"] .delta.warn { background: rgba(255,107,53,0.12); color: var(--amber); }
+[data-product="development"] .delta.danger { background: rgba(194,71,78,0.10); color: var(--danger); }
+[data-product="development"] .delta.neutral { background: var(--bg-3); color: var(--ink-3); }
+
+/* Variance review (QS) */
+[data-product="development"] .variance-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+[data-product="development"] .variance-card.flagged {
+  border-color: rgba(255,107,53,0.4);
+  background: linear-gradient(135deg, var(--panel), rgba(255,107,53,0.04));
+}
+[data-product="development"] .variance-card .ref {
+  font-family: var(--mono-font); font-size: 11px;
+  color: var(--ink-3); letter-spacing: 0.08em;
+}
+[data-product="development"] .variance-card .title {
+  font-family: var(--sans-font); font-size: 14px;
+  color: var(--ink); font-weight: 500;
+  margin: 0;
+}
+[data-product="development"] .variance-card .meta {
+  font-family: var(--mono-font); font-size: 11px;
+  color: var(--ink-3); letter-spacing: 0.06em;
+  margin-top: 3px;
+}
+[data-product="development"] .variance-card .num-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  font-family: var(--mono-font);
+  font-variant-numeric: tabular-nums;
+}
+[data-product="development"] .variance-card .num-grid div { display: flex; flex-direction: column; }
+[data-product="development"] .variance-card .num-grid .l {
+  font-size: 9.5px; color: var(--ink-3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+[data-product="development"] .variance-card .num-grid .v {
+  font-size: 14px; color: var(--ink); font-weight: 500;
+  margin-top: 2px;
+}
+
+/* Variance review action bar */
+[data-product="development"] .variance-actions {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-top: 10px;
+}
+</style>
+</head>
+<body>
+<div class="ds-app">
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span> Arconique · Phase 2.2</div>
+    <h1>Mgmt + Dev P1</h1>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Mgmt P1</div>
+      <nav class="tpl-nav">
+        <a href="../mgmt-p1/bookings.html"><span class="num">01</span> Bookings</a>
+        <a href="../mgmt-p1/finance.html"><span class="num">02</span> Finance · Statements</a>
+        <a href="../mgmt-p1/owners.html"><span class="num">03</span> Owners</a>
+        <a href="../mgmt-p1/operations.html"><span class="num">04</span> Operations</a>
+      </nav>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Dev P1</div>
+      <nav class="tpl-nav">
+        <a href="projects.html"><span class="num">01</span> Projects + PM</a>
+        <a href="cfo.html"><span class="num">02</span> CFO / Finance</a>
+        <a href="boq-qs.html" class="on"><span class="num">03</span> BOQ + QS</a>
+        <a href="procurement.html"><span class="num">04</span> Procurement</a>
+      </nav>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Reference</div>
+      <nav class="tpl-nav">
+        <a href="../../templates/index.html">↗ Templates (Phase 2.1)</a>
+        <a href="../../design-system.html">↗ Design system (Phase 2.0)</a>
+      </nav>
+    </div>
+  </aside>
+
+  <div class="ds-main">
+    <header class="ds-tabs">
+      <button class="ds-tab on" data-product-tab="development" style="--swatch:#FF6B35">
+        <span class="swatch"></span> Development OS <span class="tag">DEV</span>
+      </button>
+      <div class="ds-meta">
+        <span>Dev P1 · 03 · BOQ + QS</span>
+        <span class="pill">Variance control</span>
+      </div>
+    </header>
+
+    <div class="ds-content">
+
+      <section class="ds-section">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Dev P1 · 03</div>
+            <h2>BOQ + QS · Bill of Quantities &amp; Quantity Surveyor</h2>
+            <p>The construction-industry ledger. Every project has a BOQ: ~142 line items grouped into Work Packages (WP-01 Earthworks, WP-02 Concrete, WP-03 Steel, WP-04 Finishes, etc.). Each line: code · description · planned qty · unit · planned rate · actual qty · actual rate · variance. <strong style="color:var(--doc-fg)">QS approves variances</strong> before they roll up into project P&L. The "anomaly" rows we showed in Mgmt Finance trace back here — every utility +21% or marble +18% has a BOQ line.</p>
+          </div>
+          <div class="ds-section-meta">
+            <span>QS · PM read · CFO read</span>
+            <span>•</span>
+            <span>~142 lines × 6 projects</span>
+          </div>
+        </div>
+
+        <div class="anchor-nav">
+          <a href="#ia">↓ IA</a>
+          <a href="#boq">↓ BOQ table</a>
+          <a href="#variances">↓ Variance review (QS)</a>
+          <a href="#import">↓ Import + reconcile</a>
+          <a href="#spec">↓ For Claude Code</a>
+        </div>
+
+        <div class="spec-card-warm">
+          <h4>Two cabinets, one cabinet</h4>
+          <p>"BOQ" is the ledger; "QS" is the role. Combined here because the only user of BOQ data <em>at scale</em> is the QS. PM glances at totals (via Project detail KPIs). CFO reads aggregates (via CFO console). QS lives here all day. <strong style="color:var(--doc-fg)">Big-table cabinet</strong> — virtualized rows, sticky header, cursor pagination from template 03.</p>
+        </div>
+      </section>
+
+      <section class="ds-section" id="ia">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Anatomy</div>
+            <h2 style="font-size:22px">Information architecture</h2>
+          </div>
+        </div>
+
+        <div class="ia">
+          <div class="lhs"><h4>Routes</h4></div>
+          <ul>
+            <li><code>/development-os/cabinets/qs</code> · Cross-project variance review queue · <span class="badge live">refactored 2.1 scaffold</span></li>
+            <li><code>/development-os/projects/[id]/boq</code> · Per-project BOQ table with WP-tree nav <span class="badge new">2.2</span></li>
+            <li><code>/development-os/projects/[id]/boq/[lineId]</code> · Line detail · actuals history · related POs <span class="badge new">2.2</span></li>
+            <li><code>/development-os/cabinets/qs/import</code> · CSV/Excel import wizard for new BOQs <span class="badge new">2.2</span></li>
+          </ul>
+        </div>
+
+        <div class="ia" style="margin-top:14px">
+          <div class="lhs"><h4>Agents</h4></div>
+          <ul>
+            <li><code>variance-detector</code> · Compares actuals against planned · flags &gt;5% deltas <span class="badge new">2.2</span></li>
+            <li><code>cost-coder</code> · Maps incoming invoices to BOQ lines (heuristic + LLM-assist) <span class="badge new">2.2</span></li>
+            <li><code>cost-anomaly-explainer</code> · Drafts reason-text for QS to accept/refine <span class="badge new">2.2</span></li>
+          </ul>
+        </div>
+
+        <div class="ia" style="margin-top:14px">
+          <div class="lhs"><h4>Modals</h4></div>
+          <ul>
+            <li><code>&lt;ApproveVarianceModal&gt;</code> · confirm · reason + impact + sign <span class="badge new">2.2</span></li>
+            <li><code>&lt;RejectVarianceModal&gt;</code> · destructive-ish · pushes back to PM for re-quote <span class="badge new">2.2</span></li>
+            <li><code>&lt;EditBoqLineModal&gt;</code> · form-md · update planned qty/rate (rare, audited) <span class="badge new">2.2</span></li>
+            <li><code>&lt;ImportBoqModal&gt;</code> · form-lg · 3-step wizard (upload → map columns → confirm) <span class="badge new">2.2</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="ds-section" id="boq">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Screen 1</div>
+            <h2 style="font-size:22px">BOQ table · per project</h2>
+            <p>Sidebar WP-tree (left, 240px) + table (right, scrollable). Click WP to filter. Variance pills colored by direction. Click line → detail drawer with actuals history.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" data-product="development" style="padding:20px;background:#1A1A1F;">
+          <div class="shell-preview" style="display:block">
+            <main>
+              <div class="page-header" style="padding:20px 28px 16px;margin:0;border-bottom:1px solid var(--line);background:var(--bg-2)">
+                <div class="left">
+                  <div class="crumb" style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);letter-spacing:0.12em;text-transform:uppercase"><a href="#">Dev OS</a> / <a href="#">EV-Phase-02</a> / <span>BOQ</span></div>
+                  <h1>BOQ · EV-Phase-02</h1>
+                  <div style="display:flex;gap:14px;margin-top:8px;font-family:var(--mono-font);font-size:11.5px;color:var(--ink-3);letter-spacing:0.08em">
+                    <span>142 LINES · 7 WP · $2.45M PLANNED · $1.42M COMMITTED (58%)</span>
+                    <span>•</span>
+                    <span style="color:var(--amber)">+$210K NET VARIANCE (+8.6%)</span>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn btn-ghost btn-sm">↗ Import revision</button>
+                  <button class="btn btn-dark btn-sm">↓ Export BOQ</button>
+                  <button class="btn btn-amber btn-sm">Review variances · 4</button>
+                </div>
+              </div>
+
+              <div style="display:flex;min-height:480px">
+                <aside class="wp-tree">
+                  <div style="font-family:var(--mono-font);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);padding:6px 12px">Work packages</div>
+                  <div class="wp"><span>All packages</span><span class="code">142</span></div>
+                  <div class="wp"><span>Earthworks</span><span class="code">WP-01 · 12</span></div>
+                  <div class="wp"><span>Concrete</span><span class="code">WP-02 · 18</span></div>
+                  <div class="wp"><span>Steel</span><span class="code">WP-03 · 22</span></div>
+                  <div class="wp on"><span>Finishes</span><span class="code">WP-04 · 34</span><span class="alert"></span></div>
+                  <div class="wp"><span>MEP</span><span class="code">WP-05 · 28</span></div>
+                  <div class="wp"><span>Joinery</span><span class="code">WP-06 · 18</span></div>
+                  <div class="wp"><span>External works</span><span class="code">WP-07 · 10</span></div>
+                </aside>
+
+                <div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden">
+                  <table class="data">
+                    <thead><tr>
+                      <th>Code</th>
+                      <th>Description</th>
+                      <th class="num">Qty (plan)</th>
+                      <th class="num">Qty (act)</th>
+                      <th>Unit</th>
+                      <th class="num">Rate (plan)</th>
+                      <th class="num">Rate (act)</th>
+                      <th class="num">Cost $</th>
+                      <th>Δ</th>
+                    </tr></thead>
+                    <tbody>
+                      <tr><td class="mono" style="font-size:11px">WP-04.18.a</td><td>Marble Karawang 60×60 · cream</td><td class="num">1,420</td><td class="num">1,420</td><td>m²</td><td class="num">38.20</td><td class="num">38.20</td><td class="num" style="font-weight:500">54,244</td><td><span class="delta ok">±0%</span></td></tr>
+                      <tr style="background:rgba(255,107,53,0.05)"><td class="mono" style="font-size:11px">WP-04.18.b</td><td>Marble Hindari 60×60 · grey</td><td class="num">340</td><td class="num">340</td><td>m²</td><td class="num">44.00</td><td class="num">52.10</td><td class="num" style="font-weight:500">17,714</td><td><span class="delta warn">+18.4%</span></td></tr>
+                      <tr><td class="mono" style="font-size:11px">WP-04.19</td><td>Adhesive grout type-S</td><td class="num">88</td><td class="num">88</td><td>bag</td><td class="num">12.40</td><td class="num">12.40</td><td class="num" style="font-weight:500">1,091</td><td><span class="delta ok">±0%</span></td></tr>
+                      <tr><td class="mono" style="font-size:11px">WP-04.20</td><td>Polishing labor · marble</td><td class="num">320</td><td class="num">340</td><td>m²</td><td class="num">8.50</td><td class="num">8.50</td><td class="num" style="font-weight:500">2,890</td><td><span class="delta warn">+6.3%</span></td></tr>
+                      <tr><td class="mono" style="font-size:11px">WP-04.21</td><td>Travertine wall cladding</td><td class="num">220</td><td class="num">220</td><td>m²</td><td class="num">68.00</td><td class="num">66.40</td><td class="num" style="font-weight:500">14,608</td><td><span class="delta ok">−2.4%</span></td></tr>
+                      <tr><td class="mono" style="font-size:11px">WP-04.22</td><td>Sealant + impregnator coat</td><td class="num">560</td><td class="num">—</td><td>m²</td><td class="num">3.20</td><td class="num">—</td><td class="num" style="color:var(--ink-3)">— pending</td><td><span class="delta neutral">queued</span></td></tr>
+                      <tr style="background:rgba(255,107,53,0.05)"><td class="mono" style="font-size:11px">WP-04.23</td><td>Decking · ipe hardwood</td><td class="num">180</td><td class="num">208</td><td>m²</td><td class="num">128.00</td><td class="num">128.00</td><td class="num" style="font-weight:500">26,624</td><td><span class="delta warn">+15.6% qty</span></td></tr>
+                      <tr><td class="mono" style="font-size:11px">WP-04.24</td><td>Glass railing system</td><td class="num">62</td><td class="num">62</td><td>m</td><td class="num">214.00</td><td class="num">218.00</td><td class="num" style="font-weight:500">13,516</td><td><span class="delta warn">+1.9%</span></td></tr>
+                      <tr><td class="mono" style="font-size:11px">WP-04.25</td><td>Ironmongery package</td><td class="num">42</td><td class="num">42</td><td>set</td><td class="num">142.00</td><td class="num">140.00</td><td class="num" style="font-weight:500">5,880</td><td><span class="delta ok">−1.4%</span></td></tr>
+                    </tbody>
+                  </table>
+
+                  <!-- Cursor pager + WP summary -->
+                  <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-top:1px solid var(--line);background:var(--bg-2);font-family:var(--mono-font);font-size:11.5px;color:var(--ink-3);letter-spacing:0.06em">
+                    <span>WP-04 · LINES 18–25 OF 34</span>
+                    <span style="margin-left:auto;display:inline-flex;gap:14px">
+                      <span>SUBTOTAL · <span style="color:var(--ink);font-weight:500">$136,567</span></span>
+                      <span style="color:var(--amber)">VARIANCE · +$8,420 (+6.6%)</span>
+                    </span>
+                    <span style="display:inline-flex;gap:2px">
+                      <button style="background:transparent;border:1px solid var(--line);color:var(--ink-2);padding:4px 12px;border-radius:6px;font-family:var(--mono-font);font-size:11px">‹ Prev 20</button>
+                      <button style="background:transparent;border:1px solid var(--line);color:var(--ink-2);padding:4px 12px;border-radius:6px;font-family:var(--mono-font);font-size:11px">Next 20 ›</button>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+        <div class="frame-cap">BOQ table · WP-04 selected · variance pills · 2 flagged rows tinted · cursor pager from template 03</div>
+      </section>
+
+      <section class="ds-section" id="variances">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Screen 2</div>
+            <h2 style="font-size:22px">Variance review queue · QS workspace · <code style="font-family:var(--doc-mono);color:var(--doc-accent);background:rgba(228,217,184,0.08);padding:1px 6px;border-radius:4px;font-size:14px;">/development-os/cabinets/qs</code></h2>
+            <p>Cross-project queue of all flagged variances. QS reviews · accepts (cost rolls into project) · rejects (PM re-quotes) · investigates (asks contractor for breakdown). Stack of cards, not a table — each variance needs context.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" data-product="development" style="padding:20px;background:#1A1A1F;">
+          <div class="shell-preview">
+            <main>
+              <div class="page-header" style="padding:20px 28px 16px;margin:0;border-bottom:1px solid var(--line);background:var(--bg-2)">
+                <div class="left">
+                  <div class="crumb" style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);letter-spacing:0.12em;text-transform:uppercase"><a href="#">Dev OS</a> / <span>QS</span></div>
+                  <h1>Variance review · 4 open</h1>
+                  <p style="margin:8px 0 0;font-size:13px;color:var(--ink-3)">Across 3 projects · $18K aggregate impact · 2 awaiting reason from contractor</p>
+                </div>
+                <div class="actions">
+                  <button class="btn btn-ghost btn-sm">History · 38</button>
+                  <button class="btn btn-dark btn-sm">Run variance scan</button>
+                </div>
+              </div>
+
+              <div style="padding:18px 28px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                <div class="kpi accent"><div class="label">Open</div><div class="v">4</div><div class="sub">$18K impact</div></div>
+                <div class="kpi"><div class="label">Approved · 30d</div><div class="v">22</div><div class="sub">$48K rolled in</div></div>
+                <div class="kpi"><div class="label">Rejected · 30d</div><div class="v">3</div><div class="sub">re-quoted</div></div>
+                <div class="kpi"><div class="label">Avg review time</div><div class="v">2.1d</div><div class="sub">target 3d</div></div>
+              </div>
+
+              <div style="padding:22px 28px;display:flex;flex-direction:column;gap:12px">
+                <div class="variance-card flagged">
+                  <div>
+                    <div class="ref">WP-04.18.b</div>
+                    <span class="delta warn" style="margin-top:6px">+18.4%</span>
+                  </div>
+                  <div>
+                    <h4 class="title">Marble Hindari 60×60 · grey</h4>
+                    <div class="meta">EV-PHASE-02 · WP-04 FINISHES · LINE 18B · FLAGGED 2D AGO</div>
+                    <div style="margin-top:10px;padding:10px 12px;background:var(--bg-2);border:1px dashed var(--line-2);border-radius:8px;font-size:12.5px;color:var(--ink-2);line-height:1.55">
+                      <strong style="color:var(--ink);font-weight:500">Contractor explanation:</strong> Supplier hike from PT. Hindari +18% on grey series effective March, cited Italian quarry shutdown. Confirmed by 2 alternate suppliers (Toko Marmer +16%, Bali Stone +21%).
+                    </div>
+                    <div class="variance-actions">
+                      <button class="btn btn-dark btn-sm">Investigate · request alt</button>
+                      <button class="btn btn-secondary btn-sm">Reject · re-quote</button>
+                      <button class="btn btn-amber btn-sm">Approve · roll into project</button>
+                    </div>
+                  </div>
+                  <div class="num-grid">
+                    <div><span class="l">Planned</span><span class="v">$14,960</span></div>
+                    <div><span class="l">Actual</span><span class="v" style="color:var(--amber)">$17,714</span></div>
+                    <div><span class="l">Δ impact</span><span class="v" style="color:var(--amber)">+$2,754</span></div>
+                  </div>
+                </div>
+
+                <div class="variance-card flagged">
+                  <div>
+                    <div class="ref">WP-04.23</div>
+                    <span class="delta warn" style="margin-top:6px">+15.6% qty</span>
+                  </div>
+                  <div>
+                    <h4 class="title">Decking · ipe hardwood</h4>
+                    <div class="meta">EV-PHASE-02 · WP-04 FINISHES · LINE 23 · FLAGGED 4D AGO</div>
+                    <div style="margin-top:10px;padding:10px 12px;background:rgba(255,107,53,0.06);border:1px solid rgba(255,107,53,0.2);border-radius:8px;font-size:12.5px;color:var(--ink-2);line-height:1.55">
+                      <strong style="color:var(--ink);font-weight:500">⚠ No contractor reason on file.</strong> 28 m² overage on 180 m² plan. Cost-anomaly-explainer suggests: revised pool deck geometry (villa 6 floor plan changed during arch QA Mar 8).
+                    </div>
+                    <div class="variance-actions">
+                      <button class="btn btn-dark btn-sm">Request reason · contractor</button>
+                      <button class="btn btn-secondary btn-sm">Reject · re-measure</button>
+                      <button class="btn btn-amber btn-sm">Approve · accept overage</button>
+                    </div>
+                  </div>
+                  <div class="num-grid">
+                    <div><span class="l">Planned</span><span class="v">$23,040</span></div>
+                    <div><span class="l">Actual</span><span class="v" style="color:var(--amber)">$26,624</span></div>
+                    <div><span class="l">Δ impact</span><span class="v" style="color:var(--amber)">+$3,584</span></div>
+                  </div>
+                </div>
+
+                <div class="variance-card">
+                  <div>
+                    <div class="ref">WP-05.14</div>
+                    <span class="delta warn" style="margin-top:6px">+9.2%</span>
+                  </div>
+                  <div>
+                    <h4 class="title">Copper piping · ½" potable</h4>
+                    <div class="meta">AH-PHASE-01 · WP-05 MEP · LINE 14 · FLAGGED 5H AGO</div>
+                    <div style="margin-top:10px;padding:10px 12px;background:var(--bg-2);border:1px dashed var(--line-2);border-radius:8px;font-size:12.5px;color:var(--ink-2);line-height:1.55">
+                      <strong style="color:var(--ink);font-weight:500">Contractor explanation:</strong> LME copper +12% YoY; passed through 9.2% net of negotiated buffer. Acceptable.
+                    </div>
+                    <div class="variance-actions">
+                      <button class="btn btn-dark btn-sm">Investigate</button>
+                      <button class="btn btn-secondary btn-sm">Reject</button>
+                      <button class="btn btn-amber btn-sm">Approve</button>
+                    </div>
+                  </div>
+                  <div class="num-grid">
+                    <div><span class="l">Planned</span><span class="v">$8,400</span></div>
+                    <div><span class="l">Actual</span><span class="v" style="color:var(--amber)">$9,170</span></div>
+                    <div><span class="l">Δ impact</span><span class="v" style="color:var(--amber)">+$770</span></div>
+                  </div>
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+        <div class="frame-cap">QS workspace · 3 variances · grouped contractor-explanation + suggested-by-agent · 3-action footer per card</div>
+      </section>
+
+      <section class="ds-section" id="import">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Flow · Import + reconcile</div>
+            <h2 style="font-size:22px">BOQ import · 3-step wizard</h2>
+            <p>QS uploads new BOQ revision (Excel/CSV from QS firm) → maps columns → reconciles against current. Diff-view shows added/changed/removed lines before committing. Same flow handles initial-import (new project) and revision (re-quoted scope).</p>
+          </div>
+        </div>
+
+        <div class="spec-grid">
+          <div>Step 1 · Upload</div><div>CSV / XLSX / XLS · drag-drop · auto-detects WP grouping · validates row count (warn if &gt;200 or &lt;30 — likely wrong file)</div>
+          <div>Step 2 · Map columns</div><div>Auto-map known headers (code, description, qty, unit, rate). User confirms / overrides. Required fields validated. Unmapped columns dropped.</div>
+          <div>Step 3 · Reconcile</div><div>Diff against current BOQ (if revision): added lines green, removed red, changed yellow with old→new shown. Click row to see line history. Confirm reconciliation creates new BOQ revision with delta link to previous (audit-friendly).</div>
+          <div>Versioning</div><div>BOQs are versioned. Each line keeps history. Snapshot taken on every reconcile; diffs computed from snapshots, not from row mutations.</div>
+        </div>
+      </section>
+
+      <section class="ds-section" id="spec">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> For Claude Code</div>
+            <h2 style="font-size:22px">Where this lands</h2>
+          </div>
+        </div>
+
+        <div class="spec-grid">
+          <div>Routes</div><div>
+            <code>src/app/(development-app)/development-os/cabinets/qs/page.tsx</code> · variance queue (refactor — exists 2.1)<br>
+            <code>src/app/(development-app)/development-os/projects/[id]/boq/page.tsx</code> · BOQ table<br>
+            <code>src/app/(development-app)/development-os/projects/[id]/boq/[lineId]/page.tsx</code> · line detail<br>
+            <code>src/app/(development-app)/development-os/cabinets/qs/import/page.tsx</code> · import wizard
+          </div>
+          <div>Components</div><div>
+            <code>&lt;WpTree workpackages selectedKey onSelect&gt;</code> · left-rail nav<br>
+            <code>&lt;BoqTable rows&gt;</code> · virtualized via <code>@tanstack/react-virtual</code> (new dep, ~5KB) — needed for 142+ row scroll perf<br>
+            <code>&lt;Delta value baseline kind&gt;</code> · pill with ok/warn/danger/neutral tones<br>
+            <code>&lt;VarianceCard variance&gt;</code> · QS-workspace card primitive<br>
+            All in <code>src/components/boq/</code>
+          </div>
+          <div>Schema</div><div>
+            <code>boq_revisions</code> · FK project_id, version, snapshot_at, replaces_id?<br>
+            <code>boq_lines</code> · FK revision_id, code, description, wp_code, qty_planned, unit, rate_planned, line_total_planned · index on (project_id, wp_code)<br>
+            <code>boq_actuals</code> · FK line_id, qty_actual, rate_actual, source_po_id, recorded_at · multi-row per line allowed (partial actuals)<br>
+            <code>variance_reviews</code> · FK line_id, flagged_at, kind, qs_decision (approve/reject/investigate), decision_at?, reason?
+          </div>
+          <div>Computation</div><div>
+            <code>src/features/boq/variance.ts</code> · <code>computeVariance(line, actuals)</code> returns <code>{ qtyDelta, rateDelta, costDelta, kind }</code>. Flagging threshold: &gt;5% on cost. Recomputed on every BOQ actuals write.
+          </div>
+          <div>Modals</div><div>ApproveVarianceModal · RejectVarianceModal · EditBoqLineModal · ImportBoqModal — all in <code>src/components/boq/</code></div>
+          <div>Agents</div><div>
+            <code>variance-detector</code> · scheduled hourly + on actuals write · writes to variance_reviews<br>
+            <code>cost-coder</code> · auto-assigns invoices to BOQ lines (heuristic match + LLM fallback)<br>
+            <code>cost-anomaly-explainer</code> · drafts suggested reason text (visible in variance card · QS confirms/refines)
+          </div>
+          <div>NOT in 2.2</div><div>Real-time multi-user variance review (deferred to 2.4) · auto-rejection rules · MEP/struct disciplines getting their own variance flows · BIM integration</div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function setProduct(p) {
+  document.querySelectorAll("[data-product-tab]").forEach(b => b.classList.toggle("on", b.dataset.productTab === p));
+  document.querySelectorAll(".ds-preview").forEach(d => d.setAttribute("data-product", p));
+}
+document.querySelectorAll("[data-product-tab]").forEach(b => b.addEventListener("click", () => setProduct(b.dataset.productTab)));
+setProduct("development");
+(function() {
+  const params = window.location.search;
+  if (!params) return;
+  document.querySelectorAll('a[href$=".html"], a[href*=".html#"]').forEach(a => {
+    const href = a.getAttribute('href');
+    if (!href || href.includes('?') || href.startsWith('http') || href.startsWith('#')) return;
+    const [path, hash] = href.split('#');
+    a.setAttribute('href', path + params + (hash ? '#' + hash : ''));
+  });
+})();
+</script>
+</body>
+</html>
