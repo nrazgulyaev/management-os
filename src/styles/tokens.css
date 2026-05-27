@@ -245,6 +245,18 @@
   --color-terra-soft:      var(--terra-soft, oklch(0.935 0.050 50));
   --color-terra-tint:      oklch(0.970 0.022 50);
 
+  /* Phase 2.0.5 — additional handoff palette bridges for tokens PR 2/3
+     will reference repeatedly across the cabinet port-pages. Same alias
+     pattern as --color-terra above. Off-product fallback chosen from the
+     management palette for cream/paper/forest/ok, dev for amber/carbon. */
+  --color-paper:           var(--paper, #FFFCF7);
+  --color-cream:           var(--cream, #F4EFE6);
+  --color-cream-warm:      var(--cream-warm, #FAF7F1);
+  --color-forest:          var(--forest, #1F3A33);
+  --color-amber:           var(--amber, #FF6B35);
+  --color-carbon:          var(--carbon, #14130E);
+  --color-ok:              var(--ok, #4F7A5D);
+
   /* Olive / sea / sand — no Layer B equivalent. Used by chart
      visualisations (area-chart-card, donut-ratio-card), the score
      chip palette, and a few accent tiles. */

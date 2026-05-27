@@ -155,3 +155,27 @@
     padding: 48px 18px !important;
   }
 }
+
+/* Phase 2.0.5 — class-based mobile overrides for Tailwind grid utilities
+   used by ported cabinet pages. Mirror the existing
+   [style*="repeat(N, 1fr)"] selectors above so PR 2/3 can write
+   `<div className="grid grid-cols-5">` and get the same responsive
+   collapse without the attribute-selector trick. The [style*=…]
+   selectors above stay intact for landing pages still on inline grids. */
+@media (max-width: 1100px) {
+  .grid.grid-cols-5,
+  .grid.grid-cols-6 { grid-template-columns: repeat(3, 1fr) !important; }
+}
+@media (max-width: 900px) {
+  .grid.grid-cols-3,
+  .grid.grid-cols-4,
+  .grid.grid-cols-5,
+  .grid.grid-cols-6 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 600px) {
+  .grid.grid-cols-2,
+  .grid.grid-cols-3,
+  .grid.grid-cols-4,
+  .grid.grid-cols-5,
+  .grid.grid-cols-6 { grid-template-columns: 1fr !important; }
+}

@@ -131,3 +131,39 @@
   font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
 }
+
+/* Phase 2.0.5 — card-heading helpers. The .display class above covers
+   hero headlines (h1). .display-sm/md/lg cover the card-title pattern
+   repeated dozens of times in port-pages as inline
+   `<h2 style={{margin:0, fontFamily:"var(--font-newsreader), serif",
+   fontSize:22, fontWeight:400}}>`. Picks up the per-product display
+   font via --display-font. */
+[data-product] .display-sm {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin: 0;
+}
+[data-product] .display-md {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+  margin: 0;
+}
+[data-product] .display-lg {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin: 0;
+}
+[data-product="development"] .display-sm,
+[data-product="development"] .display-md,
+[data-product="development"] .display-lg {
+  font-weight: 500;
+}
