@@ -74,7 +74,7 @@ export default async function DevelopmentOverviewPage() {
           <>
             {projectCount === 0 ? "No projects yet." : `${projectCount} project${projectCount === 1 ? "" : "s"} in motion.`}{" "}
             {projectCount > 0 && (
-              <span style={{ color: "var(--amber)" }}>
+              <span className="text-amber">
                 Real portfolio rollup below.
               </span>
             )}
@@ -83,7 +83,13 @@ export default async function DevelopmentOverviewPage() {
         subtitle="Live counts from the active projects table. Risk radar and site activity feeds populate as project data accumulates."
         actions={
           <>
-            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Daily digest PDF ↓</button>
+            <button
+              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Daily digest PDF ↓
+            </button>
             <Link
               href="/development-os/projects/new"
               className="btn btn-amber btn-sm"
@@ -94,7 +100,7 @@ export default async function DevelopmentOverviewPage() {
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 24 }}>
+      <div className="grid grid-cols-5 gap-3 mb-6">
         <Kpi
           label="Active projects"
           value={kpis && kpis.activeProjects > 0 ? String(kpis.activeProjects) : "—"}
@@ -125,45 +131,22 @@ export default async function DevelopmentOverviewPage() {
       </div>
 
       {/* AI band — live qs-cost-analyst output or friendly empty state */}
-      <Card
-        className="corner-marks"
-        style={{ padding: 24, marginBottom: 18, borderColor: "var(--amber)" }}
-      >
-        <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-          <span
-            style={{
-              flexShrink: 0,
-              width: 42,
-              height: 42,
-              background: "rgba(255,107,53,0.15)",
-              border: "1px solid var(--amber)",
-              borderRadius: 12,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--amber)",
-            }}
-          >
+      <Card className="corner-marks p-6 mb-[18px] border-amber">
+        <div className="flex gap-4 items-start">
+          <span className="flex-shrink-0 w-[42px] h-[42px] bg-[rgba(255,107,53,0.15)] border border-amber rounded-xl flex items-center justify-center text-amber">
             ✦
           </span>
-          <div style={{ flex: 1 }}>
+          <div className="flex-1">
             {latestAnomaly ? (
               <>
                 <div className="label label-amber">
                   qs-cost-analyst · {latestAnomaly.outputCode} ·{" "}
                   {new Date(latestAnomaly.createdAt).toLocaleString()}
                 </div>
-                <p
-                  style={{
-                    margin: "8px 0 14px",
-                    fontSize: 15,
-                    lineHeight: 1.55,
-                    color: "var(--ink)",
-                  }}
-                >
+                <p className="mt-2 mb-3.5 text-[15px] leading-[1.55] text-ink">
                   <strong>{latestAnomaly.title}</strong>
                   <br />
-                  <span style={{ color: "var(--ink-2)" }}>{latestAnomaly.summary}</span>
+                  <span className="text-ink-2">{latestAnomaly.summary}</span>
                 </p>
                 <Link
                   href={`/development-os/ai-agents/qs-cost-analyst`}
@@ -175,14 +158,7 @@ export default async function DevelopmentOverviewPage() {
             ) : (
               <>
                 <div className="label label-amber">qs-cost-analyst</div>
-                <p
-                  style={{
-                    margin: "8px 0 14px",
-                    fontSize: 15,
-                    lineHeight: 1.55,
-                    color: "var(--ink)",
-                  }}
-                >
+                <p className="mt-2 mb-3.5 text-[15px] leading-[1.55] text-ink">
                   No anomaly runs yet — the qs-cost-analyst agent surfaces here
                   the first time it catches a BOQ line outside its baseline.
                 </p>
@@ -199,41 +175,24 @@ export default async function DevelopmentOverviewPage() {
       </Card>
 
       {/* DAILY-DIGEST-SPRINT-1 P4.4 — Recent digests tile */}
-      <div style={{ marginBottom: 18 }}>
+      <div className="mb-[18px]">
         <RecentDigestsTile basePath="/development-os/agent-digests" />
       </div>
 
       {/* Projects roll-up — live `projects` rows */}
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
-        <div
-          style={{
-            padding: "14px 22px",
-            borderBottom: "1px solid var(--line)",
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <h2 className="display" style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
+        <div className="px-[22px] py-3.5 border-b border-line flex items-center">
+          <h2 className="display text-[20px] font-medium m-0">
             Projects · {projectCount} active
           </h2>
           {projectCount > 0 && (
-            <span
-              className="mono"
-              style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}
-            >
+            <span className="mono ml-auto text-[11px] text-ink-3">
               {totalVillas} VILLAS · {projectCount} {projectCount === 1 ? "PROJECT" : "PROJECTS"}
             </span>
           )}
         </div>
         {projectCount === 0 ? (
-          <p
-            style={{
-              padding: 20,
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-            }}
-          >
+          <p className="p-5 text-[13px] text-ink-3 italic">
             No active projects. Create one to start the portfolio rollup.
           </p>
         ) : (
@@ -250,7 +209,7 @@ export default async function DevelopmentOverviewPage() {
             <tbody>
               {projects.map((p) => (
                 <tr key={p.projectId}>
-                  <td style={{ fontFamily: "var(--font-space), sans-serif", fontWeight: 500 }}>
+                  <td className="font-[var(--font-space),sans-serif] font-medium">
                     {p.name}
                   </td>
                   <td className="mono">{p.projectCode}</td>
@@ -269,18 +228,16 @@ export default async function DevelopmentOverviewPage() {
       </Card>
 
       {/* Risk radar + Site activity — live */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 18 }}>
-        <Card style={{ padding: 20 }}>
-          <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
-            Risk radar
-          </h3>
+      <div className="grid grid-cols-2 gap-3.5 mb-[18px]">
+        <Card className="p-5">
+          <h3 className="display text-[18px] font-medium m-0">Risk radar</h3>
           {risks.length === 0 ? (
-            <p style={{ marginTop: 14, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+            <p className="mt-3.5 text-[13px] text-ink-3 italic">
               No open project risks. Risks surface here automatically as the
               register populates.
             </p>
           ) : (
-            <ul className="clean" style={{ marginTop: 14 }}>
+            <ul className="clean mt-3.5">
               {risks.map((r) => {
                 const tone: "danger" | "warn" | undefined =
                   r.impact === "severe" || r.impact === "catastrophic"
@@ -291,24 +248,21 @@ export default async function DevelopmentOverviewPage() {
                 return (
                   <li key={r.riskId}>
                     <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 999,
-                        background:
-                          tone === "danger"
-                            ? "var(--danger)"
-                            : tone === "warn"
-                              ? "var(--amber)"
-                              : "var(--ink-3)",
-                      }}
+                      className={
+                        "w-2 h-2 rounded-full " +
+                        (tone === "danger"
+                          ? "bg-danger"
+                          : tone === "warn"
+                            ? "bg-amber"
+                            : "bg-ink-3")
+                      }
                     />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>
+                    <div className="flex-1">
+                      <div className="text-[13px] font-medium">
                         {r.projectCode ? `${r.projectCode} · ` : ""}
                         {r.title}
                       </div>
-                      <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                      <div className="mono text-[10px] text-ink-3">
                         {r.category.replace(/_/g, " ")} · {r.probability} × {r.impact} = {r.riskScore}
                         {r.ownerName ? ` · ${r.ownerName}` : ""}
                       </div>
@@ -320,28 +274,28 @@ export default async function DevelopmentOverviewPage() {
             </ul>
           )}
         </Card>
-        <Card style={{ padding: 20 }}>
-          <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+        <Card className="p-5">
+          <h3 className="display text-[18px] font-medium m-0">
             Site activity · recent
           </h3>
           {siteActivity.length === 0 ? (
-            <p style={{ marginTop: 14, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+            <p className="mt-3.5 text-[13px] text-ink-3 italic">
               No site reports yet. Daily activity surfaces here once
               supervisors file their first log.
             </p>
           ) : (
-            <ul className="clean" style={{ marginTop: 14 }}>
+            <ul className="clean mt-3.5">
               {siteActivity.map((a, i) => (
                 <li key={`${a.occurredAt}-${i}`}>
-                  <span className="mono" style={{ fontSize: 10, color: "var(--ink-3)", width: 64 }}>
+                  <span className="mono text-[10px] text-ink-3 w-16">
                     {a.occurredAt}
                   </span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 500 }}>
+                  <div className="flex-1">
+                    <div className="text-[12.5px] font-medium">
                       {a.projectCode ? `${a.projectCode} · ` : ""}
                       {a.summary}
                     </div>
-                    <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                    <div className="mono text-[10px] text-ink-3">
                       {a.authorName ?? "—"}
                       {a.workersPresent > 0 ? ` · ${a.workersPresent} workers` : ""}
                     </div>
@@ -354,58 +308,29 @@ export default async function DevelopmentOverviewPage() {
       </div>
 
       {/* Team grid — live app_users */}
-      <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ padding: "14px 22px", borderBottom: "1px solid var(--line)" }}>
-          <h2 className="display" style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>
+      <Card padding="none" overflowHidden>
+        <div className="px-[22px] py-3.5 border-b border-line">
+          <h2 className="display text-[20px] font-medium m-0">
             Team · {team.length} {team.length === 1 ? "member" : "members"}
           </h2>
         </div>
         {team.length === 0 ? (
-          <p
-            style={{
-              padding: 20,
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-            }}
-          >
+          <p className="p-5 text-[13px] text-ink-3 italic">
             No active team members. Invite users to populate the roster.
           </p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, padding: 20 }}>
+          <div className="grid grid-cols-4 gap-3.5 p-5">
             {team.map((p) => (
               <div
                 key={p.userId}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 12px",
-                  border: "1px solid var(--line)",
-                  borderRadius: 12,
-                  background: "var(--bg-3)",
-                }}
+                className="flex items-center gap-2.5 px-3 py-2.5 border border-line rounded-xl bg-bg-3"
               >
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 999,
-                    background: "var(--amber)",
-                    color: "var(--carbon)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    fontFamily: "var(--font-space), sans-serif",
-                  }}
-                >
+                <div className="w-9 h-9 rounded-full bg-amber text-carbon flex items-center justify-center text-[12px] font-semibold font-[var(--font-space),sans-serif]">
                   {p.initials}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>{p.fullName}</div>
-                  <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)" }}>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] font-medium">{p.fullName}</div>
+                  <div className="mono text-[10px] text-ink-3">
                     {p.primaryRole ? ROLE_DISPLAY[p.primaryRole] ?? p.primaryRole : p.email}
                   </div>
                 </div>
