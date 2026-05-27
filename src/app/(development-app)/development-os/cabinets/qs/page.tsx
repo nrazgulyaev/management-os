@@ -64,16 +64,19 @@ export default async function QsPage() {
   return (
     <>
       <SectionHeading
-        eyebrow="BOQ · live"
+        eyebrow="QS · variance review queue"
         title={
           <>
-            WP-led ·{" "}
-            <span className="text-amber">variance from baseline.</span>
+            Variance review ·{" "}
+            <span className="text-amber">QS sign-off queue.</span>
           </>
         }
-        subtitle="Per-line baseline vs actual, AI-flagged anomalies, full revision history, side-by-side RFQ resolution."
+        subtitle="Lines crossing 5% drift surface here for QS approval. Per-project BOQ tables live under /development-os/projects/<slug>/boq; import a new revision via the wizard."
         actions={
           <>
+            <Link href="/development-os/cabinets/qs/import" className="btn btn-amber btn-sm">
+              + Import BOQ
+            </Link>
             <Link href="/development-os/boq" className="btn btn-dark btn-sm">
               Open full BOQ
             </Link>
