@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   Kpi,
   SectionHeading,
@@ -14,6 +13,7 @@ import {
   getConflictResolverItems,
 } from "@/features/bookings/bookings-cabinet-queries";
 import { BookingsListClient, type BookingRowVM } from "./_list-client";
+import { NewBookingCta } from "./_new-booking-cta";
 import { parseFilters } from "@/lib/url-state";
 
 /**
@@ -123,9 +123,7 @@ export default async function BookingsPage({
             >
               Export CSV
             </button>
-            <Link href="/dashboard/bookings/new" className="btn btn-primary btn-sm">
-              New booking +
-            </Link>
+            <NewBookingCta />
           </>
         }
       />

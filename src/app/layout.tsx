@@ -10,6 +10,7 @@ import {
 import { headers } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import { MotionLayer } from "@/components/motion-layer";
+import { CommandPaletteProvider } from "@/components/command-palette-provider";
 import "./globals.css";
 
 /**
@@ -156,7 +157,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-canvas text-ink antialiased">
-        {children}
+        <CommandPaletteProvider>{children}</CommandPaletteProvider>
         <MotionLayer />
         <Analytics />
       </body>

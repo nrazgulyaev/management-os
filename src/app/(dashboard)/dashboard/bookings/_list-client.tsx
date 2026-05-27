@@ -23,6 +23,7 @@ import { SortableHeader, type SortDirection } from "@/components/ui/sortable-hea
 import { PagerNumbered } from "@/components/ui/pager-numbered";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListPage } from "@/components/dashboard/list-page";
+import { DestructiveConfirmModal } from "@/components/ui/modal";
 import type { ActiveFilter } from "@/lib/url-state";
 import Link from "next/link";
 import { HandoffBadge } from "@/components/dashboard/primitives";
@@ -104,6 +105,7 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
   const [active, setActive] = React.useState<ActiveFilter[]>(initialActive);
   const [sortDir, setSortDir] = React.useState<SortDirection>("desc");
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [confirmCancel, setConfirmCancel] = React.useState(false);
 
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
   const someSelected = selected.size > 0 && !allSelected;
@@ -132,7 +134,7 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
     { id: "move", label: "Move to project", onRun: () => alert(`Move ${selected.size} → project (PR 2 proof-of-life)`) },
     { id: "edit", label: "Bulk edit", onRun: () => alert(`Bulk edit ${selected.size} (PR 2 proof-of-life)`) },
     { id: "export", label: `Export ${selected.size}`, onRun: () => alert(`Export ${selected.size} (PR 2 proof-of-life)`) },
-    { id: "cancel", label: "Cancel bookings", danger: true, onRun: () => alert(`Cancel ${selected.size} (PR 2 proof-of-life)`) },
+    { id: "cancel", label: "Cancel bookings", danger: true, onRun: () => setConfirmCancel(true) },
   ];
 
   const topBar = selected.size > 0 ? (
@@ -250,6 +252,26 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
           urlKeyPrefix=""
         />
       )}
+
+      <DestructiveConfirmModal
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title={`Cancel ${selected.size} booking${selected.size === 1 ? "" : "s"}?`}
+        body={
+          <>
+            Refunds will process via the originating channel. This can&apos;t be
+            undone — refunds clear within 14 days.
+          </>
+        }
+        confirmLabel="Yes, cancel & refund"
+        cancelLabel="Keep bookings"
+        onConfirm={() => {
+          // PR 3 proof-of-life — wires to the cancel server action
+          // in 2.2; today we just clear the selection so the bar
+          // collapses back to the FilterBar.
+          setSelected(new Set());
+        }}
+      />
     </ListPage>
   );
 }
