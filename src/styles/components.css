@@ -3068,3 +3068,67 @@ ul.clean li:last-child {
 }
 [data-product] .arrival-cal .counts .arr { color: var(--ok); }
 [data-product] .arrival-cal .counts .dep { color: var(--warn); }
+
+/* =============================================================
+   Phase 2.2 mgmt-02 — Finance / statements primitives.
+
+   .section-pill   — 7-tone owner-statement section badge
+   .row-anomaly    — statement-line row tint when an anomaly is flagged
+   ============================================================= */
+
+[data-product] .section-pill {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border: 1px solid transparent;
+}
+[data-product] .section-pill.revenue {
+  background: color-mix(in oklab, var(--ok) 14%, transparent);
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+  color: var(--ok);
+}
+[data-product] .section-pill.fees {
+  background: color-mix(in oklab, var(--info, #3D5A7A) 14%, transparent);
+  border-color: color-mix(in oklab, var(--info, #3D5A7A) 35%, transparent);
+  color: var(--info, #3D5A7A);
+}
+[data-product] .section-pill.taxes {
+  background: color-mix(in oklab, var(--warn) 14%, transparent);
+  border-color: color-mix(in oklab, var(--warn) 35%, transparent);
+  color: var(--warn);
+}
+[data-product] .section-pill.expenses {
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-2);
+  border-color: var(--line);
+}
+[data-product] .section-pill.shared {
+  background: color-mix(in oklab, var(--info, #3D5A7A) 8%, transparent);
+  color: var(--info, #3D5A7A);
+  border-color: color-mix(in oklab, var(--info, #3D5A7A) 25%, transparent);
+}
+[data-product] .section-pill.mgmt {
+  background: color-mix(in oklab, var(--gold, var(--warn)) 14%, transparent);
+  border-color: color-mix(in oklab, var(--gold, var(--warn)) 35%, transparent);
+  color: var(--gold, var(--warn));
+}
+[data-product] .section-pill.reserves {
+  background: transparent;
+  border-color: var(--line-strong, var(--line));
+  border-style: dashed;
+  color: var(--ink-3);
+}
+
+/* Anomaly row tint on statement-line tables */
+[data-product] table.data tbody tr.row-anomaly {
+  background: color-mix(in oklab, var(--warn) 8%, transparent);
+}
+[data-product] table.data tbody tr.row-anomaly::after {
+  content: "⚠";
+  margin-left: 4px;
+  color: var(--warn);
+}
