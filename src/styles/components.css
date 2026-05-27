@@ -4744,3 +4744,106 @@ ul.clean li:last-child {
   border-radius: 999px;
   border: 1px solid var(--c-border);
 }
+
+/* ---------------------------------------------------------------
+ * Phase 2.3 owner-07 — Owner settings primitives
+ * --------------------------------------------------------------- */
+
+[data-product="owner"] .settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+[data-product="owner"] .settings-section .ss-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+[data-product="owner"] .settings-section .ss-title {
+  font-size: 13px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--c-text);
+}
+[data-product="owner"] .settings-section .ss-helper {
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
+[data-product="owner"] .settings-section .ss-rows {
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  background: var(--c-surface);
+  overflow: hidden;
+}
+[data-product="owner"] .settings-section.ss-warn .ss-rows {
+  border-color: rgba(192,132,86,0.5);
+  background: rgba(192,132,86,0.04);
+}
+
+[data-product="owner"] .settings-row {
+  display: grid;
+  grid-template-columns: 220px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--c-border);
+}
+[data-product="owner"] .settings-row:last-child { border-bottom: 0; }
+[data-product="owner"] .settings-row .sr-label-text {
+  font-size: 13px;
+  color: var(--c-text);
+}
+[data-product="owner"] .settings-row .sr-label-helper {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  margin-top: 2px;
+}
+[data-product="owner"] .settings-row .sr-value {
+  font-size: 13px;
+  color: var(--c-text);
+  font-family: var(--font-mono);
+}
+[data-product="owner"] .settings-row .sr-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 700px) {
+  [data-product="owner"] .settings-row {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+  [data-product="owner"] .settings-row .sr-action { justify-content: flex-start; }
+}
+
+[data-product="owner"] .toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--c-bg-muted);
+  border: 1px solid var(--c-border);
+  cursor: pointer;
+  padding: 0;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+[data-product="owner"] .toggle.is-on {
+  background: #c08456;
+  border-color: #8b5a30;
+}
+[data-product="owner"] .toggle.is-disabled { opacity: 0.5; cursor: not-allowed; }
+[data-product="owner"] .toggle .toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  transition: transform 160ms ease;
+}
+[data-product="owner"] .toggle.is-on .toggle-knob { transform: translateX(18px); }
