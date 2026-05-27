@@ -1,0 +1,278 @@
+/* ---------- Detail page (template 05) ---------- */
+[data-product] .detail-page { display: flex; flex-direction: column; }
+[data-product] .page-header-meta {
+  display: flex; gap: 12px; margin-top: 8px;
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  flex-wrap: wrap;
+  align-items: center;
+}
+[data-product] .main-and-side { display: flex; min-width: 0; }
+[data-product] .main-and-side > main {
+  flex: 1; min-width: 0;
+}
+[data-product] .main-and-side > .dp-side { flex-shrink: 0; }
+
+/* ---------- DetailTabs (B2) ---------- */
+[data-product] .dp-tabs {
+  display: flex; gap: 0;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
+}
+[data-product] .dp-tab {
+  padding: 14px 16px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  border: 0; background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex; align-items: center; gap: 8px;
+}
+[data-product] .dp-tab:hover { color: var(--ink); }
+[data-product="management"] .dp-tab.on,
+[data-product="owner"] .dp-tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--terra);
+  font-weight: 500;
+}
+[data-product="development"] .dp-tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--amber);
+  font-weight: 500;
+}
+[data-product] .dp-tab .count {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  padding: 1px 6px;
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 999px;
+  color: var(--ink-3);
+}
+[data-product="management"] .dp-tab.on .count,
+[data-product="owner"] .dp-tab.on .count {
+  background: var(--terra);
+  color: var(--cream-warm, #fff);
+}
+[data-product="development"] .dp-tab.on .count {
+  background: var(--amber);
+  color: var(--carbon, #14130E);
+}
+
+/* ---------- DetailSide (B4) ---------- */
+[data-product] .dp-side {
+  width: 300px;
+  background: var(--cream-warm, var(--bg-2));
+  border-left: 1px solid var(--line-soft, var(--line));
+  padding: 22px 22px;
+  display: flex; flex-direction: column; gap: 20px;
+  align-self: stretch;
+}
+[data-product] .dp-side .side-card {
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+[data-product] .dp-side .side-card .ft {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 6px;
+}
+[data-product] .dp-side .side-card h4 {
+  margin: 0 0 4px;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--ink);
+}
+[data-product="development"] .dp-side .side-card h4 { font-weight: 500; }
+[data-product] .dp-side .side-card .sub {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+[data-product] .dp-side .side-card-foot {
+  margin-top: 10px;
+}
+
+/* ---------- DetailActionBar (B8) ---------- */
+[data-product] .dp-actionbar {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 28px;
+  background: var(--paper, var(--panel));
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -8px 24px -16px rgba(20,32,28,0.2);
+}
+[data-product] .dp-actionbar .dirty {
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px;
+  color: var(--warn);
+  letter-spacing: 0.08em;
+}
+[data-product] .dp-actionbar .dirty b { color: var(--warn); font-weight: 500; }
+[data-product] .dp-actionbar .spacer { flex: 1; }
+
+/* ---------- Inline edit (B7) ---------- */
+[data-product] .inline-edit {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  cursor: text;
+  position: relative;
+  transition: background 0.12s ease;
+}
+[data-product] .inline-edit.readonly { cursor: default; }
+[data-product] .inline-edit:hover:not(.readonly):not(.editing) {
+  background: var(--cream-warm, var(--bg-2));
+  outline: 1px dashed var(--line-strong, var(--line));
+  outline-offset: -1px;
+}
+[data-product] .inline-edit.editing {
+  background: var(--paper, var(--panel));
+  outline: 2px solid var(--terra);
+  outline-offset: -1px;
+  padding: 4px 8px;
+}
+[data-product="development"] .inline-edit.editing {
+  outline-color: var(--amber);
+}
+[data-product] .inline-edit .pen {
+  width: 12px; height: 12px;
+  color: var(--ink-4);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  flex-shrink: 0;
+}
+[data-product] .inline-edit:hover:not(.readonly):not(.editing) .pen { opacity: 1; }
+[data-product] .inline-edit input,
+[data-product] .inline-edit select {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  outline: none;
+  min-width: 4ch;
+}
+
+/* ---------- Activity (B6) ---------- */
+[data-product] .activity {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column;
+}
+[data-product] .activity-item {
+  display: flex; gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .activity-item:last-child { border-bottom: 0; }
+[data-product] .activity-item .marker {
+  width: 24px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center;
+}
+[data-product] .activity-item .marker .dot {
+  width: 8px; height: 8px;
+  background: var(--line-strong, var(--line));
+  border-radius: 999px;
+  margin-top: 6px;
+}
+[data-product="management"] .activity-item .marker .dot.accent,
+[data-product="owner"] .activity-item .marker .dot.accent {
+  background: var(--terra);
+}
+[data-product="development"] .activity-item .marker .dot.accent {
+  background: var(--amber);
+}
+[data-product] .activity-item .marker .dot.ok { background: var(--ok); }
+[data-product] .activity-item .marker .dot.warn { background: var(--warn); }
+[data-product] .activity-item .marker .line {
+  flex: 1; width: 1px;
+  background: var(--line-soft, var(--line));
+  margin-top: 4px;
+}
+[data-product] .activity-item .body { flex: 1; min-width: 0; }
+[data-product] .activity-item .meta {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-4);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+[data-product] .activity-item .what {
+  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1.55;
+}
+[data-product] .activity-item .what em {
+  font-style: normal; color: var(--ink-3);
+}
+
+/* ---------- Related strip (B5) ---------- */
+[data-product] .related {
+  background: var(--cream-warm, var(--bg-2));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-top: 24px;
+}
+[data-product] .related .ft {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 12px;
+}
+[data-product] .related .row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+[data-product] .related .row.single {
+  grid-template-columns: 1fr;
+}
+[data-product] .related .item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+[data-product] .related .item:hover { border-color: var(--ink-2); }
+[data-product] .related .item .related-text {
+  flex: 1; min-width: 0;
+}
+[data-product] .related .item .what {
+  font-size: 13px;
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product] .related .item .meta {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+/* ---------- Mobile collapse for two-column detail ---------- */
+@media (max-width: 900px) {
+  [data-product] .main-and-side { flex-direction: column; }
+  [data-product] .dp-side {
+    width: auto;
+    border-left: 0;
+    border-top: 1px solid var(--line-soft, var(--line));
+  }
+  [data-product] .related .row { grid-template-columns: 1fr; }
+  [data-product] .facets { display: none; }
+}
+

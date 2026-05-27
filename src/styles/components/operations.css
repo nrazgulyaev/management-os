@@ -1,0 +1,261 @@
+/* =============================================================
+   Phase 2.2 mgmt-04 — Operations command center primitives.
+
+   .ops-hero / .ops-tile     — 3-tile hero strip
+   .maintenance-queue        — grid-row layout per ticket
+   .turnover-board / .tb-*   — 4-column kanban (dnd-kit)
+   .sla-pill                 — on-track / at-risk / breached
+   .priority-badge           — P0/P1/P2/P3
+   .staff-chip               — assignee chip (unassigned variant dashed)
+   ============================================================= */
+
+/* ---------- OpsTile + OpsHero ---------- */
+[data-product] .ops-hero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 1000px) {
+  [data-product] .ops-hero { grid-template-columns: 1fr; }
+}
+[data-product] .ops-tile {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 16px 18px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+}
+[data-product] .ops-tile.dark {
+  background: var(--ink);
+  color: var(--cream-warm, #fff);
+  border-color: var(--ink);
+}
+[data-product] .ops-tile .ot-label {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+}
+[data-product] .ops-tile.dark .ot-label { color: rgba(255,255,255,0.6); }
+[data-product] .ops-tile .ot-value {
+  font-family: var(--mono-font), monospace;
+  font-size: 36px;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] .ops-tile.dark .ot-value { color: var(--cream-warm, #fff); }
+[data-product] .ops-tile.tone-ok .ot-value { color: var(--ok); }
+[data-product] .ops-tile.tone-warn .ot-value { color: var(--warn); }
+[data-product] .ops-tile.tone-danger .ot-value { color: var(--danger); }
+[data-product] .ops-tile.tone-accent .ot-value { color: var(--terra); }
+[data-product="development"] .ops-tile.tone-accent .ot-value { color: var(--amber); }
+[data-product] .ops-tile .ot-context {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+[data-product] .ops-tile.dark .ot-context { color: rgba(255,255,255,0.7); }
+[data-product] .ops-tile .ot-footer {
+  margin-top: 4px;
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product] .ops-tile.dark .ot-footer { color: rgba(255,255,255,0.6); }
+
+/* ---------- SlaPill ---------- */
+[data-product] .sla-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid transparent;
+}
+[data-product] .sla-pill .dot { width: 6px; height: 6px; border-radius: 999px; display: inline-block; }
+[data-product] .sla-pill .hint {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  margin-left: 2px;
+}
+[data-product] .sla-pill.ok { background: color-mix(in oklab, var(--ok) 12%, transparent); border-color: color-mix(in oklab, var(--ok) 35%, transparent); color: var(--ok); }
+[data-product] .sla-pill.ok .dot { background: var(--ok); }
+[data-product] .sla-pill.warn { background: color-mix(in oklab, var(--warn) 12%, transparent); border-color: color-mix(in oklab, var(--warn) 35%, transparent); color: var(--warn); }
+[data-product] .sla-pill.warn .dot { background: var(--warn); }
+[data-product] .sla-pill.danger { background: color-mix(in oklab, var(--danger) 12%, transparent); border-color: color-mix(in oklab, var(--danger) 35%, transparent); color: var(--danger); }
+[data-product] .sla-pill.danger .dot { background: var(--danger); }
+
+/* ---------- PriorityBadge ---------- */
+[data-product] .priority-badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-2);
+}
+[data-product] .priority-badge.p0 { background: var(--danger); color: #fff; }
+[data-product] .priority-badge.p1 { background: var(--warn); color: var(--ink); }
+[data-product] .priority-badge.p2 { background: var(--info, #3D5A7A); color: #fff; }
+[data-product] .priority-badge.p3 { background: var(--line-strong, var(--line)); color: var(--ink-2); }
+
+/* ---------- StaffChip ---------- */
+[data-product] .staff-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px 2px 2px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+[data-product] .staff-chip:hover { border-color: var(--ink-2); }
+[data-product] .staff-chip.unassigned {
+  background: transparent;
+  border-style: dashed;
+  color: var(--ink-3);
+}
+[data-product] .staff-chip .initials {
+  width: 22px; height: 22px;
+  border-radius: 999px;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  font-weight: 500;
+}
+[data-product] .staff-chip.unassigned .initials {
+  background: transparent;
+  border: 1px dashed var(--line-strong, var(--line));
+  color: var(--ink-3);
+}
+
+/* ---------- MaintenanceQueue ---------- */
+[data-product] .maintenance-queue {
+  display: flex; flex-direction: column;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 12px;
+  overflow: hidden;
+}
+[data-product] .mq-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 140px 140px;
+  gap: 12px;
+  padding: 10px 14px;
+  align-items: center;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  font-size: 12.5px;
+}
+[data-product] .mq-row:last-child { border-bottom: 0; }
+[data-product] .mq-row.status-breached { background: color-mix(in oklab, var(--danger) 6%, transparent); }
+[data-product] .mq-row.status-at-risk { background: color-mix(in oklab, var(--warn) 5%, transparent); }
+[data-product] .mq-row .mq-title {
+  display: flex; gap: 8px; align-items: baseline;
+  text-decoration: none;
+  color: inherit;
+}
+[data-product] .mq-row .mq-title:hover .title { text-decoration: underline; }
+[data-product] .mq-row .mq-title .ref {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product] .mq-row .mq-title .title { color: var(--ink); }
+[data-product] .mq-row .mq-title .villa {
+  margin-left: auto;
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+/* ---------- TurnoverBoard ---------- */
+[data-product] .turnover-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  [data-product] .turnover-board { grid-template-columns: 1fr; }
+}
+[data-product] .tb-col {
+  display: flex; flex-direction: column;
+  background: var(--cream-warm, var(--bg-2));
+  border-radius: 12px;
+  padding: 10px;
+  min-height: 280px;
+}
+[data-product] .tb-col-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px 10px;
+}
+[data-product] .tb-col-label {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  flex: 1;
+}
+[data-product] .tb-col-count {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product] .tb-col-body {
+  display: flex; flex-direction: column; gap: 8px;
+}
+[data-product] .tb-card {
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: grab;
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 12.5px;
+}
+[data-product] .tb-card:active { cursor: grabbing; }
+[data-product] .tb-card-head {
+  display: flex; align-items: center; gap: 8px;
+}
+[data-product] .tb-card-head .villa {
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px;
+  color: var(--ink);
+  font-weight: 500;
+  flex: 1;
+}
+[data-product] .tb-card-head .badge {
+  font-family: var(--mono-font), monospace;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--warn) 12%, transparent);
+  color: var(--warn);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+[data-product] .tb-card-meta {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+[data-product] .tb-overflow {
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.1em;
+  padding: 4px 0;
+}
+

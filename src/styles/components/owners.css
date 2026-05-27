@@ -1,0 +1,170 @@
+/* =============================================================
+   Phase 2.2 mgmt-03 — Owners cabinet primitives.
+
+   .tier-ring      — single-glyph platinum/gold/silver
+   .risk-pill      — ok/watch/flag with optional reason text
+   .portal-dot     — 3-state portal sign-in indicator
+   .insight-card   — AI-flagged retention-risk panel
+   .villa-mini     — compact villa chip (side panel + cross-cabinet)
+   ============================================================= */
+
+[data-product] .tier-ring {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+[data-product] .tier-ring .ring {
+  width: 14px; height: 14px;
+  border-radius: 999px;
+  display: inline-block;
+  box-shadow: inset 0 0 0 2px var(--paper, var(--panel));
+}
+[data-product] .tier-ring.platinum .ring { background: var(--ink); }
+[data-product] .tier-ring.gold .ring { background: var(--gold, var(--warn)); }
+[data-product] .tier-ring.silver .ring { background: var(--cream-deep, var(--bg-3)); box-shadow: inset 0 0 0 2px var(--paper, var(--panel)), 0 0 0 1px var(--line); }
+[data-product] .tier-ring .lbl {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+[data-product] .risk-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid transparent;
+}
+[data-product] .risk-pill .dot {
+  width: 6px; height: 6px;
+  border-radius: 999px;
+  display: inline-block;
+}
+[data-product] .risk-pill .reason {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+}
+[data-product] .risk-pill.ok {
+  background: color-mix(in oklab, var(--ok) 12%, transparent);
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+  color: var(--ok);
+}
+[data-product] .risk-pill.ok .dot { background: var(--ok); }
+[data-product] .risk-pill.watch {
+  background: color-mix(in oklab, var(--warn) 12%, transparent);
+  border-color: color-mix(in oklab, var(--warn) 35%, transparent);
+  color: var(--warn);
+}
+[data-product] .risk-pill.watch .dot { background: var(--warn); }
+[data-product] .risk-pill.flag {
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+  border-color: color-mix(in oklab, var(--danger) 35%, transparent);
+  color: var(--danger);
+}
+[data-product] .risk-pill.flag .dot { background: var(--danger); }
+
+[data-product] .portal-dot {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+[data-product] .portal-dot .dot {
+  width: 8px; height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+}
+[data-product] .portal-dot.active .dot { background: var(--ok); }
+[data-product] .portal-dot.invited .dot { background: var(--warn); }
+[data-product] .portal-dot.not-invited .dot { background: var(--line-strong, var(--line)); }
+[data-product] .portal-dot .lbl {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* InsightCard */
+[data-product] .insight-card {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 16px 18px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+}
+[data-product] .insight-card.level-flag {
+  background: color-mix(in oklab, var(--danger) 5%, var(--paper, var(--panel)));
+  border-color: color-mix(in oklab, var(--danger) 30%, transparent);
+}
+[data-product] .insight-card.level-watch {
+  background: color-mix(in oklab, var(--warn) 5%, var(--paper, var(--panel)));
+  border-color: color-mix(in oklab, var(--warn) 30%, transparent);
+}
+[data-product] .insight-card .ic-head {
+  display: flex; align-items: center; gap: 10px;
+}
+[data-product] .insight-card .ic-kind {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+[data-product] .insight-card .ic-when {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+[data-product] .insight-card .ic-body {
+  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1.55;
+}
+[data-product] .insight-card .ic-actions {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+
+/* VillaMini */
+[data-product] .villa-mini {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+[data-product] .villa-mini:hover { border-color: var(--ink-2); }
+[data-product] .villa-mini .vm-code {
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px;
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product] .villa-mini .vm-body { flex: 1; min-width: 0; }
+[data-product] .villa-mini .vm-name { font-size: 13px; color: var(--ink); }
+[data-product] .villa-mini .vm-meta {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  margin-top: 1px;
+}
+[data-product] .villa-mini .vm-stat {
+  display: flex; flex-direction: column; align-items: flex-end;
+}
+[data-product] .villa-mini .vm-stat .value {
+  font-family: var(--mono-font), monospace;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+[data-product] .villa-mini .vm-stat .label {
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+

@@ -1,0 +1,252 @@
+/* =============================================================
+   Phase 2.2 dev-03 — BOQ + QS primitives.
+
+   .delta-pill        — signed pct badge w/ ok/warn/danger/neutral
+   .wp-tree           — left-rail work-package navigator
+   .boq-table         — virtualized table (sticky header + scroll)
+   .boq-workspace     — 2-col layout (tree left + table right)
+   .variance-card     — QS workspace row (3-col grid)
+   .boq-diff          — import wizard diff-view
+   ============================================================= */
+
+/* ---------- DeltaPill ---------- */
+[data-product] .delta-pill {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+[data-product] .delta-pill.ok {
+  background: color-mix(in oklab, var(--ok) 14%, transparent);
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+  color: var(--ok);
+}
+[data-product] .delta-pill.warn {
+  background: color-mix(in oklab, var(--warn) 14%, transparent);
+  border-color: color-mix(in oklab, var(--warn) 35%, transparent);
+  color: var(--warn);
+}
+[data-product] .delta-pill.danger {
+  background: color-mix(in oklab, var(--danger) 14%, transparent);
+  border-color: color-mix(in oklab, var(--danger) 35%, transparent);
+  color: var(--danger);
+}
+[data-product] .delta-pill.neutral {
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+
+/* ---------- BOQ workspace + WP tree ---------- */
+[data-product] .boq-workspace {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 14px;
+}
+@media (max-width: 1000px) {
+  [data-product] .boq-workspace { grid-template-columns: 1fr; }
+}
+[data-product] .wp-tree {
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 12px;
+  padding: 6px 4px;
+  display: flex; flex-direction: column;
+  height: fit-content;
+  max-height: 560px;
+  overflow-y: auto;
+}
+[data-product] .wp-node {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+[data-product] .wp-node:hover { background: var(--cream-warm, var(--bg-2)); }
+[data-product] .wp-node.on {
+  background: var(--cream-warm, var(--bg-2));
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product] .wp-node .code {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product] .wp-node .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[data-product] .wp-node .count {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+/* ---------- BOQ table (virtualized) ---------- */
+[data-product] .boq-table {
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 12px;
+  overflow: hidden;
+}
+[data-product] .boq-head {
+  display: grid;
+  grid-template-columns: 110px 1fr 80px 70px 50px 70px 90px 80px;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product] .boq-head .cell.num,
+[data-product] .boq-head .cell.qty,
+[data-product] .boq-head .cell.rate,
+[data-product] .boq-head .cell.total { text-align: right; }
+[data-product] .boq-scroll {
+  overflow-y: auto;
+  position: relative;
+}
+[data-product] .boq-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 80px 70px 50px 70px 90px 80px;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  font-size: 12.5px;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+[data-product] .boq-row:hover { background: var(--cream-warm, var(--bg-2)); }
+[data-product] .boq-row .cell { min-width: 0; }
+[data-product] .boq-row .cell.code { color: var(--ink); font-weight: 500; }
+[data-product] .boq-row .cell.desc {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--ink-2);
+}
+[data-product] .boq-row .cell.wp { color: var(--ink-3); }
+[data-product] .boq-row .cell.num,
+[data-product] .boq-row .cell.qty,
+[data-product] .boq-row .cell.rate,
+[data-product] .boq-row .cell.total { text-align: right; }
+[data-product] .boq-row .cell.delta { text-align: right; }
+[data-product] .boq-foot {
+  padding: 10px 14px;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  background: var(--cream-warm, var(--bg-2));
+  border-top: 1px solid var(--line-soft, var(--line));
+}
+
+/* ---------- Variance card (QS workspace) ---------- */
+[data-product] .variance-card {
+  display: grid;
+  grid-template-columns: 200px 1fr 260px;
+  gap: 18px;
+  padding: 16px 18px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 12px;
+}
+@media (max-width: 900px) {
+  [data-product] .variance-card { grid-template-columns: 1fr; }
+}
+[data-product] .vc-left {
+  display: flex; flex-direction: column; gap: 6px;
+  align-items: flex-start;
+}
+[data-product] .vc-code {
+  font-family: var(--mono-font), monospace;
+  font-size: 12px;
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product] .vc-wp {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+[data-product] .vc-middle { display: flex; flex-direction: column; gap: 8px; }
+[data-product] .vc-title { font-size: 13px; color: var(--ink); font-weight: 500; }
+[data-product] .vc-reason {
+  font-size: 12px;
+  color: var(--ink-2);
+  background: var(--cream-warm, var(--bg-2));
+  border-left: 2px solid var(--line-strong, var(--line));
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+[data-product] .vc-reason-label {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+[data-product] .vc-actions {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-top: 4px;
+}
+[data-product] .vc-right {
+  display: flex; flex-direction: column; gap: 6px;
+}
+[data-product] .vc-stat {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font-size: 12px;
+}
+[data-product] .vc-stat-label {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-product] .vc-stat-value {
+  color: var(--ink);
+  font-family: var(--mono-font), monospace;
+}
+[data-product] .vc-stat[data-tone="warn"] .vc-stat-value { color: var(--warn); }
+[data-product] .vc-stat[data-tone="danger"] .vc-stat-value { color: var(--danger); }
+[data-product] .vc-stat[data-tone="ok"] .vc-stat-value { color: var(--ok); }
+
+/* ---------- BOQ import diff-view ---------- */
+[data-product] .boq-diff ul {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+[data-product] .boq-diff li {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+[data-product] .boq-diff li.added {
+  background: color-mix(in oklab, var(--ok) 8%, transparent);
+  color: var(--ok);
+}
+[data-product] .boq-diff li.removed {
+  background: color-mix(in oklab, var(--danger) 8%, transparent);
+  color: var(--danger);
+  text-decoration: line-through;
+}
+[data-product] .boq-diff li.changed {
+  background: color-mix(in oklab, var(--warn) 8%, transparent);
+  color: var(--ink-2);
+}
+[data-product] .boq-diff .diff-tag {
+  width: 18px; text-align: center;
+  font-weight: 500;
+}
+

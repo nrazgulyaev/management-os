@@ -1,0 +1,291 @@
+/* =============================================================
+   Phase 2.2 dev-04 — Procurement + vendors primitives.
+
+   .rfq-status               — 5-state pill (draft/sent/quoting/awarded/closed)
+   .vendor-score             — numeric badge (high/mid/low)
+   .vendor-card              — directory list-row
+   .quote-compare            — 3-col side-by-side
+   .agent-recommend-banner   — green vendor-matcher strip
+   ============================================================= */
+
+/* ---------- RFQ status pill ---------- */
+[data-product] .rfq-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border: 1px solid transparent;
+}
+[data-product] .rfq-status .dot {
+  width: 6px; height: 6px;
+  border-radius: 999px;
+  display: inline-block;
+}
+[data-product] .rfq-status.draft {
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+[data-product] .rfq-status.draft .dot { background: var(--ink-3); }
+[data-product] .rfq-status.sent {
+  background: color-mix(in oklab, var(--info, #3D5A7A) 14%, transparent);
+  color: var(--info, #3D5A7A);
+}
+[data-product] .rfq-status.sent .dot { background: var(--info, #3D5A7A); }
+[data-product] .rfq-status.quoting {
+  background: color-mix(in oklab, var(--warn) 14%, transparent);
+  color: var(--warn);
+}
+[data-product] .rfq-status.quoting .dot { background: var(--warn); }
+[data-product] .rfq-status.awarded {
+  background: color-mix(in oklab, var(--ok) 14%, transparent);
+  color: var(--ok);
+}
+[data-product] .rfq-status.awarded .dot { background: var(--ok); }
+[data-product] .rfq-status.closed {
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+[data-product] .rfq-status.closed .dot { background: var(--ink-3); }
+
+/* ---------- VendorScore ---------- */
+[data-product] .vendor-score {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  border: 1px solid transparent;
+}
+[data-product] .vendor-score .dot {
+  width: 7px; height: 7px;
+  border-radius: 999px;
+  display: inline-block;
+}
+[data-product] .vendor-score.high {
+  background: color-mix(in oklab, var(--ok) 14%, transparent);
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+  color: var(--ok);
+}
+[data-product] .vendor-score.high .dot { background: var(--ok); }
+[data-product] .vendor-score.mid {
+  background: color-mix(in oklab, var(--warn) 14%, transparent);
+  border-color: color-mix(in oklab, var(--warn) 35%, transparent);
+  color: var(--warn);
+}
+[data-product] .vendor-score.mid .dot { background: var(--warn); }
+[data-product] .vendor-score.low {
+  background: color-mix(in oklab, var(--danger) 14%, transparent);
+  border-color: color-mix(in oklab, var(--danger) 35%, transparent);
+  color: var(--danger);
+}
+[data-product] .vendor-score.low .dot { background: var(--danger); }
+
+/* ---------- VendorCard ---------- */
+[data-product] .vendor-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 16px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+[data-product] .vendor-card:hover {
+  border-color: var(--ink-2);
+  transform: translateY(-2px);
+}
+[data-product] .vc-head {
+  display: flex; align-items: center; gap: 8px;
+}
+[data-product] .vendor-card .vc-name {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+  flex: 1;
+}
+[data-product] .vendor-card .vc-cat {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-product] .vendor-card .vc-stats {
+  display: flex; gap: 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .vendor-card .vc-stat {
+  display: flex; flex-direction: column;
+}
+[data-product] .vendor-card .vc-stat .value {
+  font-family: var(--mono-font), monospace;
+  font-size: 13px;
+  color: var(--ink);
+}
+[data-product] .vendor-card .vc-stat .label {
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+[data-product] .vendor-card .vc-flag {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+[data-product] .vendor-card .vc-flag.tone-ok {
+  background: color-mix(in oklab, var(--ok) 12%, transparent);
+  color: var(--ok);
+}
+[data-product] .vendor-card .vc-flag.tone-warn {
+  background: color-mix(in oklab, var(--warn) 12%, transparent);
+  color: var(--warn);
+}
+[data-product] .vendor-card .vc-flag.tone-danger {
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+/* ---------- QuoteCompare ---------- */
+[data-product] .quote-compare {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 14px 0;
+}
+[data-product] .quote-compare.cols-2 { grid-template-columns: repeat(2, 1fr); }
+[data-product] .quote-compare.cols-1 { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  [data-product] .quote-compare { grid-template-columns: 1fr; }
+}
+[data-product] .qc-col {
+  position: relative;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 16px 18px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+}
+[data-product] .qc-col.winner {
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+  background: color-mix(in oklab, var(--ok) 6%, var(--paper, var(--panel)));
+}
+[data-product] .qc-winner-tag {
+  position: absolute;
+  top: -10px; left: 14px;
+  background: var(--ok);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+}
+[data-product] .qc-head {
+  display: flex; align-items: center; gap: 8px;
+}
+[data-product] .qc-vendor {
+  flex: 1;
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product] .qc-total {
+  font-family: var(--mono-font), monospace;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] .qc-meta {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+[data-product] .qc-lines {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column;
+  border-top: 1px solid var(--line-soft, var(--line));
+  margin-top: 6px;
+  padding-top: 6px;
+}
+[data-product] .qc-lines li {
+  display: grid;
+  grid-template-columns: 90px 1fr 70px;
+  gap: 6px;
+  font-size: 11.5px;
+  padding: 3px 0;
+}
+[data-product] .qc-lines .qc-desc {
+  color: var(--ink-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-product] .qc-lines .num {
+  text-align: right;
+  font-family: var(--mono-font), monospace;
+  color: var(--ink);
+}
+[data-product] .qc-lines .qc-more {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  color: var(--ink-3);
+  grid-template-columns: 1fr;
+  padding-top: 4px;
+}
+[data-product] .qc-savings {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ok);
+  font-weight: 500;
+}
+
+/* ---------- AgentRecommendBanner ---------- */
+[data-product] .agent-recommend-banner {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--ok) 8%, var(--paper, var(--panel)));
+  border: 1px solid color-mix(in oklab, var(--ok) 30%, transparent);
+  margin-top: 14px;
+}
+[data-product] .arb-glyph {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: var(--ok);
+  color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+[data-product] .arb-body { flex: 1; min-width: 0; }
+[data-product] .arb-title {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+[data-product] .arb-title b { color: var(--ink); }
+[data-product] .arb-rationale {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+[data-product] .arb-confidence {
+  font-size: 10.5px;
+  color: var(--ok);
+  letter-spacing: 0.1em;
+}
+

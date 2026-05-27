@@ -8,15 +8,37 @@
    The actual CSS lives in src/styles/*.css. This file pulls them
    together in cascade order. Edit those modules, not this file.
 
-   Order matters: tokens → reset → typography → components → shell
-   → motion → mobile. Each later module assumes the variables and
+   Order matters: tokens → reset → typography → components/* →
+   motion → mobile. Each later module assumes the variables and
    base styles from earlier modules.
+
+   The components/ subdirectory is split per-cabinet so per-cabinet
+   styling is easy to find and edit. Cleanup-B (post-2.3) split
+   what had grown to a 4.8k line monolith into 18 modules.
    ============================================================= */
 
 @import "../styles/tokens.css";
 @import "../styles/reset.css";
 @import "../styles/typography.css";
-@import "../styles/components.css";
-@import "../styles/shell.css";
+
+@import "../styles/components/primitives.css";
+@import "../styles/components/shell.css";
+@import "../styles/components/empty-state.css";
+@import "../styles/components/pager.css";
+@import "../styles/components/filter-bar.css";
+@import "../styles/components/detail.css";
+@import "../styles/components/modal.css";
+@import "../styles/components/command-palette.css";
+@import "../styles/components/ai-agent.css";
+@import "../styles/components/projects.css";
+@import "../styles/components/cfo.css";
+@import "../styles/components/boq.css";
+@import "../styles/components/procurement.css";
+@import "../styles/components/bookings.css";
+@import "../styles/components/finance.css";
+@import "../styles/components/owners.css";
+@import "../styles/components/operations.css";
+@import "../styles/components/owner-portal.css";
+
 @import "../styles/motion.css";
 @import "../styles/mobile.css";

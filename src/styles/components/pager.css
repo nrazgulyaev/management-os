@@ -1,0 +1,91 @@
+/* ---------- Pager (template 03) ---------- */
+[data-product] .pager {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
+  font-size: 13px;
+  color: var(--ink-2);
+  flex-wrap: wrap;
+}
+[data-product] .pager .summary {
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+[data-product] .pager .summary b { color: var(--ink); font-weight: 500; }
+[data-product] .pager .grow { flex: 1; }
+[data-product] .pager .nav { display: inline-flex; align-items: center; gap: 2px; }
+[data-product] .pager .pg {
+  min-width: 32px; height: 32px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 8px;
+  font-family: var(--mono-font), monospace;
+  font-size: 12px;
+  color: var(--ink-2);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+[data-product] .pager .pg:hover:not(:disabled):not(.gap) {
+  background: var(--paper, var(--panel));
+  border-color: var(--line);
+  color: var(--ink);
+}
+[data-product] .pager .pg.on {
+  background: var(--ink);
+  color: var(--cream-warm, #fff);
+  border-color: var(--ink);
+}
+[data-product] .pager .pg:disabled { opacity: 0.35; cursor: not-allowed; }
+[data-product] .pager .pg.gap { cursor: default; pointer-events: none; color: var(--ink-4); }
+[data-product] .pager .perpage {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+[data-product] .pager .perpage select {
+  font-family: var(--mono-font), monospace;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper, var(--panel));
+  color: var(--ink);
+  outline: none;
+  cursor: pointer;
+}
+[data-product] .pager .jump {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+[data-product] .pager .jump input {
+  width: 96px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper, var(--panel));
+  color: var(--ink);
+  font-family: var(--mono-font), monospace;
+  font-size: 12px;
+  text-align: center;
+  outline: none;
+}
+[data-product] .pager.loadmore {
+  justify-content: center;
+  gap: 12px;
+  background: transparent;
+  border-top: 0;
+  padding: 20px;
+}
+[data-product] .pager.loadmore .summary { color: var(--ink-3); }
+[data-product] .pager.cursor .nav { gap: 8px; }
+

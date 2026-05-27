@@ -1,0 +1,105 @@
+/* =============================================================
+   Phase 2.1 PR 1 — Foundations primitives.
+
+   Three primitives, scoped under [data-product] to honor the
+   Layer B palette (Mgmt = terra accent; Dev = amber accent):
+
+     - .empty           — template 02 EmptyState (5 variants)
+     - .pager           — template 03 Pagination (3 variants)
+     - .mobile-tabbar   — template 01 MobileTabbar + .more-sheet
+
+   Values copied verbatim from
+   `_handoff/templates/{empty-state,pagination,mobile-tabbar}.html`.
+   ============================================================= */
+
+/* ---------- Empty state (template 02) ---------- */
+[data-product] .empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 56px 32px;
+  text-align: center;
+  gap: 12px;
+}
+[data-product] .empty .glyph {
+  width: 56px; height: 56px;
+  border-radius: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 6px;
+}
+[data-product="management"] .empty .glyph {
+  background: var(--cream-deep, var(--cream)); color: var(--ink-3);
+}
+[data-product="owner"] .empty .glyph {
+  background: var(--cream-deep, var(--cream)); color: var(--ink-3);
+}
+[data-product="development"] .empty .glyph {
+  background: var(--bg-2); color: var(--ink-3); border: 1px solid var(--line-2);
+}
+[data-product="management"] .empty .glyph.accent,
+[data-product="owner"] .empty .glyph.accent {
+  background: color-mix(in oklab, var(--terra) 14%, transparent);
+  color: var(--terra);
+  border: 0;
+}
+[data-product="development"] .empty .glyph.accent {
+  background: color-mix(in oklab, var(--amber) 14%, transparent);
+  color: var(--amber);
+  border: 0;
+}
+[data-product] .empty .glyph.ok {
+  background: color-mix(in oklab, var(--ok) 12%, transparent);
+  color: var(--ok);
+  border: 0;
+}
+[data-product] .empty .glyph.warn {
+  background: color-mix(in oklab, var(--warn) 14%, transparent);
+  color: var(--warn);
+  border: 0;
+}
+[data-product] .empty h3 {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  line-height: 1.15;
+}
+[data-product="development"] .empty h3 { font-weight: 500; }
+[data-product] .empty p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-3);
+  max-width: 360px;
+  line-height: 1.55;
+}
+[data-product] .empty .actions {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  margin-top: 6px;
+}
+[data-product] .empty .meta {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-4);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+[data-product] .empty.inline {
+  padding: 28px 24px;
+  flex-direction: row;
+  align-items: center;
+  text-align: left;
+  gap: 16px;
+}
+[data-product] .empty.inline .glyph { margin: 0; flex-shrink: 0; width: 40px; height: 40px; }
+[data-product] .empty.inline h3 { font-size: 16px; }
+[data-product] .empty.inline p { font-size: 13px; }
+[data-product] .empty.inline .actions { margin-top: 0; margin-left: auto; }
+[data-product="owner"] .empty.narrative {
+  padding: 80px 40px;
+}
+[data-product="owner"] .empty.narrative h3 { font-size: 30px; }
+[data-product="owner"] .empty.narrative p { font-size: 16px; max-width: 480px; }
+[data-product="owner"] .empty.narrative .glyph { width: 72px; height: 72px; border-radius: 22px; }
+

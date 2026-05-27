@@ -1,0 +1,98 @@
+/* =============================================================
+   Phase 2.2 mgmt-01 — Bookings cabinet primitives.
+
+   .channel-pill     — 5 brand-tinted variants (airbnb/bcom/agoda/direct/ta)
+   .row-arriving/.row-departing/.row-instay/.row-cancelled — row-bg overrides
+   .arrival-cal      — 7-day grid (today highlighted)
+   ============================================================= */
+
+/* ---------- ChannelPill ---------- */
+[data-product] .channel-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--sans-font), system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+}
+[data-product] .channel-pill .dot {
+  width: 6px; height: 6px;
+  border-radius: 999px;
+  display: inline-block;
+}
+[data-product] .channel-pill.airbnb { color: #d9214d; border-color: rgba(217, 33, 77, 0.3); }
+[data-product] .channel-pill.airbnb .dot { background: #d9214d; }
+[data-product] .channel-pill.bcom { color: #003580; border-color: rgba(0, 53, 128, 0.3); }
+[data-product] .channel-pill.bcom .dot { background: #003580; }
+[data-product] .channel-pill.agoda { color: #df4e1f; border-color: rgba(223, 78, 31, 0.3); }
+[data-product] .channel-pill.agoda .dot { background: #df4e1f; }
+[data-product] .channel-pill.direct { color: var(--ink); border-color: var(--ink-3); }
+[data-product] .channel-pill.direct .dot { background: var(--ink); }
+[data-product] .channel-pill.ta { color: #b08a2e; border-color: rgba(176, 138, 46, 0.3); }
+[data-product] .channel-pill.ta .dot { background: #b08a2e; }
+
+/* ---------- Row tones (overrides on table.data tbody tr) ---------- */
+[data-product] table.data tbody tr.row-arriving {
+  background: color-mix(in oklab, var(--terra) 5%, transparent);
+}
+[data-product="development"] table.data tbody tr.row-arriving {
+  background: color-mix(in oklab, var(--amber) 5%, transparent);
+}
+[data-product] table.data tbody tr.row-departing {
+  background: color-mix(in oklab, var(--gold, var(--warn)) 6%, transparent);
+}
+[data-product] table.data tbody tr.row-instay {
+  background: color-mix(in oklab, var(--ok) 5%, transparent);
+}
+[data-product] table.data tbody tr.row-cancelled {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+/* ---------- ArrivalCalendar ---------- */
+[data-product] .arrival-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin: 14px 0;
+}
+[data-product] .arrival-cal .day {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 8px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 10px;
+}
+[data-product="management"] .arrival-cal .day.today,
+[data-product="owner"] .arrival-cal .day.today {
+  background: color-mix(in oklab, var(--terra) 8%, var(--paper, var(--panel)));
+  border-color: color-mix(in oklab, var(--terra) 35%, transparent);
+}
+[data-product="development"] .arrival-cal .day.today {
+  background: color-mix(in oklab, var(--amber) 8%, var(--paper, var(--panel)));
+  border-color: color-mix(in oklab, var(--amber) 35%, transparent);
+}
+[data-product] .arrival-cal .weekday {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product] .arrival-cal .num {
+  font-family: var(--mono-font), monospace;
+  font-size: 18px;
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product] .arrival-cal .counts {
+  display: flex; gap: 8px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+[data-product] .arrival-cal .counts .arr { color: var(--ok); }
+[data-product] .arrival-cal .counts .dep { color: var(--warn); }
+

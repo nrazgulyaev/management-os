@@ -1,0 +1,186 @@
+/* =============================================================
+   Phase 2.2 dev-02 — CFO cabinet primitives.
+
+   .waterfall          — row-based bar visualization
+   .capital-calls-list — vertical stack of capital-call cards
+   .capital-call-card  — single call summary card
+   .cashflow-forecast  — sparkline + per-month table
+   .cfo-detail-kpis    — 4-up NumKpi strip
+   ============================================================= */
+
+/* ---------- Waterfall ---------- */
+[data-product] .waterfall {
+  display: flex; flex-direction: column; gap: 6px;
+}
+[data-product] .wf-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 130px;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+}
+[data-product] .wf-label {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-product] .wf-track {
+  height: 14px;
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 4px;
+  overflow: hidden;
+}
+[data-product] .wf-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+[data-product="management"] .wf-row.tone-accent .wf-fill,
+[data-product="owner"] .wf-row.tone-accent .wf-fill { background: var(--terra); }
+[data-product="development"] .wf-row.tone-accent .wf-fill { background: var(--amber); }
+[data-product] .wf-row.tone-ink .wf-fill { background: var(--ink-2); }
+[data-product] .wf-row.tone-dashed .wf-fill {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--ink-3) 0,
+    var(--ink-3) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+[data-product] .wf-row.tone-ok .wf-fill { background: var(--ok); }
+[data-product] .wf-value {
+  text-align: right;
+  font-family: var(--mono-font), monospace;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+[data-product] .wf-value .wf-hint {
+  display: block;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  margin-top: 1px;
+}
+
+/* ---------- Capital calls list ---------- */
+[data-product] .capital-calls-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media (max-width: 760px) {
+  [data-product] .capital-calls-list { grid-template-columns: 1fr; }
+}
+
+[data-product] .capital-call-card {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 16px 18px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+[data-product] .capital-call-card:hover {
+  border-color: var(--ink-2);
+  transform: translateY(-2px);
+}
+[data-product] .capital-call-card .head {
+  display: flex; align-items: center; gap: 8px;
+}
+[data-product] .capital-call-card .ref {
+  font-family: var(--mono-font), monospace;
+  font-size: 12px;
+  color: var(--ink);
+  font-weight: 500;
+  flex: 1;
+}
+[data-product] .capital-call-card .status-pill {
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-2);
+}
+[data-product] .capital-call-card .status-pill.tone-accent {
+  background: color-mix(in oklab, var(--terra) 14%, transparent);
+  color: var(--terra);
+}
+[data-product="development"] .capital-call-card .status-pill.tone-accent {
+  background: color-mix(in oklab, var(--amber) 14%, transparent);
+  color: var(--amber);
+}
+[data-product] .capital-call-card .status-pill.tone-ok {
+  background: color-mix(in oklab, var(--ok) 14%, transparent);
+  color: var(--ok);
+}
+[data-product] .capital-call-card .status-pill.tone-warn {
+  background: color-mix(in oklab, var(--warn) 14%, transparent);
+  color: var(--warn);
+}
+[data-product] .capital-call-card .project {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+[data-product] .capital-call-card .totals {
+  display: flex; gap: 12px;
+}
+[data-product] .capital-call-card .meta {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Cashflow forecast ---------- */
+[data-product] .cashflow-forecast {
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+  padding: 18px;
+}
+[data-product] .cashflow-forecast.empty {
+  padding: 40px 28px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-3);
+  border-style: dashed;
+}
+[data-product] .cashflow-forecast .sparkline {
+  width: 100%;
+  height: 80px;
+  margin-bottom: 14px;
+}
+[data-product="management"] .cashflow-forecast .sparkline polyline,
+[data-product="owner"] .cashflow-forecast .sparkline polyline {
+  stroke: var(--terra);
+}
+[data-product="development"] .cashflow-forecast .sparkline polyline {
+  stroke: var(--amber);
+}
+[data-product] .cashflow-forecast .sparkline .axis {
+  stroke: var(--line-strong, var(--line));
+  stroke-dasharray: 2 4;
+}
+[data-product] .cashflow-forecast .forecast-table { margin-top: 0; }
+[data-product] .cashflow-forecast .neg { color: var(--danger); }
+
+/* ---------- CFO detail KPI strip ---------- */
+[data-product] .cfo-detail-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+  padding: 12px;
+}
+@media (max-width: 760px) {
+  [data-product] .cfo-detail-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+
