@@ -46,40 +46,19 @@ export function SectionHeading({
   actions,
 }: SectionHeadingProps) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "flex-end",
-        gap: 18,
-        marginBottom: 22,
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 0 }}>
+    <div className="flex items-end gap-[18px] mb-[22px]">
+      <div className="flex-1 min-w-0">
         {eyebrow && <div className="label">{eyebrow}</div>}
-        <h1
-          className="display"
-          style={{ fontSize: 42, margin: "6px 0 0", fontWeight: 400 }}
-        >
+        <h1 className="display text-[42px] mt-1.5 mb-0 font-normal">
           {title}
         </h1>
         {subtitle != null && (
-          <p
-            style={{
-              margin: "8px 0 0",
-              color: "var(--ink-3)",
-              fontSize: 15,
-              maxWidth: 680,
-            }}
-          >
+          <p className="mt-2 mb-0 text-[15px] text-[var(--ink-3,var(--ink-tertiary))] max-w-[680px]">
             {subtitle}
           </p>
         )}
       </div>
-      {actions && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {actions}
-        </div>
-      )}
+      {actions && <div className="flex gap-2 flex-wrap">{actions}</div>}
     </div>
   );
 }
@@ -95,12 +74,48 @@ interface CardProps {
    *  (Mgmt: forest-deep; Dev: ink), used for the editorial AI band
    *  cards. */
   tone?: "default" | "dark";
+  /** Phase 2.0.5 — padding preset. Default is `none` for backward
+   *  compatibility (existing 174 callsites pass `style={{padding: N}}`
+   *  explicitly). New code should opt in: `padding="default"` =
+   *  20px / 18px, `padding="lg"` = 26px / 22px, `padding="tight"` =
+   *  18px / 14px. Inline `style.padding` always wins. */
+  padding?: "none" | "tight" | "default" | "lg";
+  /** Phase 2.0.5 — shorthand for `overflow: hidden`. Pairs with
+   *  `padding="none"` + a child header + table pattern. Inline
+   *  `style.overflow` always wins. */
+  overflowHidden?: boolean;
 }
-export function Card({ children, className, style, id, tone = "default" }: CardProps) {
+export function Card({
+  children,
+  className,
+  style,
+  id,
+  tone = "default",
+  padding = "none",
+  overflowHidden = false,
+}: CardProps) {
+  const paddingClass =
+    padding === "tight"
+      ? "px-[18px] py-[14px]"
+      : padding === "default"
+      ? "px-5 py-[18px]"
+      : padding === "lg"
+      ? "px-[26px] py-[22px]"
+      : "";
+
+  const classes = [
+    "card",
+    paddingClass,
+    overflowHidden && "overflow-hidden",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div
       id={id}
-      className={"card" + (className ? ` ${className}` : "")}
+      className={classes}
       style={
         tone === "dark"
           ? {
