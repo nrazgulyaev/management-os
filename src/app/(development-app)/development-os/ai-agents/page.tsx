@@ -62,20 +62,38 @@ export default async function AiAgentsPage() {
         title={
           <>
             One quiet team for the{" "}
-            <span style={{ color: "var(--amber)" }}>jobsite.</span>
+            <span className="text-amber">jobsite.</span>
           </>
         }
         subtitle="Read-only allowlists. Refuses to act on closed periods or beyond scope. Every reply tied to a run id and an audit row."
         actions={
           <>
-            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Token usage</button>
-            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Memory editor</button>
-            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Conversation</button>
+            <button
+              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Token usage
+            </button>
+            <button
+              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Memory editor
+            </button>
+            <button
+              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              + Conversation
+            </button>
           </>
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="grid grid-cols-5 gap-3 mb-[18px]">
         <Kpi
           label="Agents · live"
           value={String(liveCount)}
@@ -117,35 +135,30 @@ export default async function AiAgentsPage() {
 
       {/* Agent grid — live org_ai_agent_config */}
       {agents.length === 0 ? (
-        <Card style={{ padding: 20, marginBottom: 24 }}>
-          <p style={{ fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+        <Card className="p-5 mb-6">
+          <p className="text-[13px] text-ink-3 italic m-0">
             No agent configuration available. Configure your first agent to populate this grid.
           </p>
         </Card>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 24 }}>
+        <div className="grid grid-cols-5 gap-3 mb-6">
           {agents.map((a) => (
             <Card
               key={a.agentKey}
-              style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, minHeight: 180 }}
+              className="p-4 flex flex-col gap-2.5 min-h-[180px]"
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="flex items-center gap-2">
                 <span
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 10,
-                    background: a.isEnabled ? "var(--amber)" : "var(--bg-2)",
-                    color: a.isEnabled ? "var(--carbon)" : "var(--ink-3)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 14,
-                  }}
+                  className={
+                    "w-8 h-8 rounded-[10px] flex items-center justify-center text-[14px] " +
+                    (a.isEnabled
+                      ? "bg-amber text-carbon"
+                      : "bg-bg-2 text-ink-3")
+                  }
                 >
                   ✦
                 </span>
-                <span style={{ marginLeft: "auto" }}>
+                <span className="ml-auto">
                   {a.notConfigured ? (
                     <HandoffBadge>Not configured</HandoffBadge>
                   ) : a.isEnabled ? (
@@ -155,14 +168,14 @@ export default async function AiAgentsPage() {
                   )}
                 </span>
               </div>
-              <div className="display" style={{ fontSize: 14, fontWeight: 500 }}>
+              <div className="display text-[14px] font-medium">
                 {a.displayName}
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: "var(--ink-3)", lineHeight: 1.45 }}>
+              <p className="m-0 text-[12px] text-ink-3 leading-[1.45]">
                 {a.description}
               </p>
               {!a.notConfigured && (a.provider || a.model) && (
-                <div className="mono" style={{ fontSize: 10, color: "var(--ink-3)", marginTop: "auto" }}>
+                <div className="mono text-[10px] text-ink-3 mt-auto">
                   {a.provider ?? "—"}
                   {a.model ? ` · ${a.model}` : ""}
                   {a.hasKey ? " · KEY SET" : ""}
@@ -175,21 +188,13 @@ export default async function AiAgentsPage() {
 
       <h2
         id="inbox"
-        className="display"
-        style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}
+        className="display text-[22px] mb-3.5 font-medium"
       >
         AI inbox · cross-agent
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <Card padding="none" overflowHidden>
         {inbox.length === 0 ? (
-          <p
-            style={{
-              padding: 20,
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-            }}
-          >
+          <p className="p-5 text-[13px] text-ink-3 italic">
             No agent outputs yet. The inbox populates the first time any
             dev-side agent files a run — anomalies, digests, weekly plans
             all surface here.
@@ -211,13 +216,13 @@ export default async function AiAgentsPage() {
                 const tone = STATUS_TONE[m.status];
                 return (
                   <tr key={m.outputCode}>
-                    <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                    <td className="mono text-[11px] text-ink-3">
                       {m.outputCode}
                     </td>
                     <td>
                       <HandoffBadge>{m.agentKey.replace(/_/g, " ")}</HandoffBadge>
                     </td>
-                    <td style={{ fontSize: 13, maxWidth: 520 }}>{m.title}</td>
+                    <td className="text-[13px] max-w-[520px]">{m.title}</td>
                     <td>
                       {tone ? (
                         <HandoffBadge tone={tone}>{m.status.replace(/_/g, " ")}</HandoffBadge>
@@ -225,7 +230,7 @@ export default async function AiAgentsPage() {
                         <HandoffBadge>{m.status.replace(/_/g, " ")}</HandoffBadge>
                       )}
                     </td>
-                    <td className="mono" style={{ fontSize: 11 }}>
+                    <td className="mono text-[11px]">
                       {new Date(m.createdAt).toLocaleString()}
                     </td>
                     <td>

@@ -68,7 +68,7 @@ export default async function QsPage() {
         title={
           <>
             WP-led ·{" "}
-            <span style={{ color: "var(--amber)" }}>variance from baseline.</span>
+            <span className="text-amber">variance from baseline.</span>
           </>
         }
         subtitle="Per-line baseline vs actual, AI-flagged anomalies, full revision history, side-by-side RFQ resolution."
@@ -80,59 +80,61 @@ export default async function QsPage() {
             <Link href="/development-os/boq/quick-entry" className="btn btn-dark btn-sm">
               Quick entry
             </Link>
-            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Export XLSX ↓</button>
-            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Compare REV</button>
-            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Change order</button>
+            <button
+              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Export XLSX ↓
+            </button>
+            <button
+              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Compare REV
+            </button>
+            <button
+              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              + Change order
+            </button>
           </>
         }
       />
 
       {/* WP rollup strip — live boq_sections subtotal_minor */}
       {wpRollup.length === 0 ? (
-        <Card style={{ padding: 20, marginBottom: 18 }}>
-          <p
-            style={{ fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}
-          >
+        <Card className="p-5 mb-[18px]">
+          <p className="text-[13px] text-ink-3 italic m-0">
             No work-package sections yet. Create or import a BOQ to see the
             rollup strip here.
           </p>
         </Card>
       ) : (
         <div
+          className="grid gap-0 border border-line rounded-[14px] overflow-hidden mb-[18px]"
           style={{
-            display: "grid",
             gridTemplateColumns: `repeat(${Math.min(wpRollup.length, 6)}, 1fr)`,
-            gap: 0,
-            border: "1px solid var(--line)",
-            borderRadius: 14,
-            overflow: "hidden",
-            marginBottom: 18,
           }}
         >
           {wpRollup.slice(0, 6).map((wp, i, arr) => (
             <div
               key={wp.wpCode}
-              style={{
-                padding: "16px 18px",
-                borderRight: i < arr.length - 1 ? "1px solid var(--line)" : 0,
-                background: "var(--panel)",
-              }}
+              className={
+                "px-[18px] py-4 bg-panel " +
+                (i < arr.length - 1 ? "border-r border-line" : "")
+              }
             >
-              <div className="label" style={{ fontSize: 10 }}>
+              <div className="label text-[10px]">
                 {wp.wpCode} · {wp.wpTitle}
               </div>
-              <div
-                className="num"
-                style={{
-                  fontSize: 22,
-                  marginTop: 4,
-                  color: "var(--ink)",
-                  fontWeight: 500,
-                }}
-              >
+              <div className="num text-[22px] mt-1 text-ink font-medium">
                 {fmtMinor(wp.budgetMinor || wp.baselineMinor, wp.currency)}
               </div>
-              <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>
+              <div className="text-[11px] text-ink-3 mt-0.5">
                 {wp.itemCount} {wp.itemCount === 1 ? "line" : "lines"} · baseline
                 {" "}{fmtMinor(wp.baselineMinor, wp.currency)}
               </div>
@@ -143,41 +145,20 @@ export default async function QsPage() {
 
       {/* AI anomaly band — empty state until agent_outputs seeded */}
       <Card
-        className="corner-marks"
-        style={{ padding: 20, marginBottom: 18, borderColor: "var(--amber)" }}
+        className="corner-marks p-5 mb-[18px] border-amber"
       >
-        <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
-          <span
-            style={{
-              flexShrink: 0,
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              background: "rgba(255,107,53,0.15)",
-              color: "var(--amber)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+        <div className="flex gap-[18px] items-start">
+          <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-[rgba(255,107,53,0.15)] text-amber flex items-center justify-center">
             ✦
           </span>
-          <div style={{ flex: 1 }}>
+          <div className="flex-1">
             <div className="label label-amber">qs-cost-analyst</div>
-            <p
-              style={{
-                margin: "6px 0 12px",
-                fontSize: 14,
-                color: "var(--ink)",
-                lineHeight: 1.55,
-                maxWidth: 780,
-              }}
-            >
+            <p className="mt-1.5 mb-3 text-[14px] text-ink leading-[1.55] max-w-[780px]">
               No cost anomalies detected in the active BOQ. Anomaly runs will
               surface here once the qs-cost-analyst agent files them against
               your baseline.
             </p>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex gap-2">
               <Link
                 href="/development-os/ai-agents"
                 className="btn btn-dark btn-sm"
@@ -190,35 +171,20 @@ export default async function QsPage() {
       </Card>
 
       {/* BOQ top-7 table — live boq_items */}
-      <Card id="boq" style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
-        <div
-          style={{
-            padding: "14px 22px",
-            borderBottom: "1px solid var(--line)",
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <h2 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+      <Card id="boq" padding="none" overflowHidden className="mb-[18px]">
+        <div className="px-[22px] py-3.5 border-b border-line flex items-center">
+          <h2 className="display text-[18px] font-medium m-0">
             BOQ · top {boqLines.length === 0 ? "7" : boqLines.length} lines by total
           </h2>
           <Link
             href="/development-os/boq"
-            className="btn btn-dark btn-sm"
-            style={{ marginLeft: "auto" }}
+            className="btn btn-dark btn-sm ml-auto"
           >
             Filter / full BOQ
           </Link>
         </div>
         {boqLines.length === 0 ? (
-          <p
-            style={{
-              padding: 20,
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-            }}
-          >
+          <p className="p-5 text-[13px] text-ink-3 italic">
             No BOQ items yet for this org. Import a BOQ XLSX to populate.
           </p>
         ) : (
@@ -236,16 +202,16 @@ export default async function QsPage() {
             <tbody>
               {boqLines.map((r) => (
                 <tr key={`${r.sectionCode}.${r.itemCode}`}>
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  <td className="mono text-[11px] text-ink-3">
                     {r.sectionCode}.{r.itemCode}
                   </td>
-                  <td style={{ fontSize: 13 }}>{r.description}</td>
+                  <td className="text-[13px]">{r.description}</td>
                   <td className="num">{fmtQuantity(r.quantity)}</td>
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  <td className="mono text-[11px] text-ink-3">
                     {r.unitOfMeasure}
                   </td>
                   <td className="num">{fmtMinor(r.unitRateMinor, r.currency)}</td>
-                  <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>
+                  <td className="num text-ink font-medium">
                     {fmtMinor(r.totalMinor, r.currency)}
                   </td>
                 </tr>
@@ -256,22 +222,12 @@ export default async function QsPage() {
       </Card>
 
       {/* RFQ matrix — live procurement_quotations */}
-      <h2
-        className="display"
-        style={{ fontSize: 24, marginBottom: 14, fontWeight: 500 }}
-      >
+      <h2 className="display text-[24px] mb-3.5 font-medium">
         RFQ matrix
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <Card padding="none" overflowHidden>
         {rfqMatrix.length === 0 ? (
-          <p
-            style={{
-              padding: 20,
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-            }}
-          >
+          <p className="p-5 text-[13px] text-ink-3 italic">
             No active RFQs. Quotations land here when vendors respond to an open
             purchase request.
           </p>
@@ -290,13 +246,13 @@ export default async function QsPage() {
             <tbody>
               {rfqMatrix.map((v) => (
                 <tr key={v.quotationId}>
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  <td className="mono text-[11px] text-ink-3">
                     {v.prCode ?? "—"}
                   </td>
                   <td>{v.materialName ?? "—"}</td>
                   <td>{v.vendorName ?? "—"}</td>
                   <td className="num">{fmtMinor(v.totalAmountMinor, v.currency)}</td>
-                  <td className="mono" style={{ fontSize: 12 }}>{v.deliveryEta ?? "—"}</td>
+                  <td className="mono text-[12px]">{v.deliveryEta ?? "—"}</td>
                   <td>
                     {v.status === "selected" ? (
                       <HandoffBadge tone="ok">Selected</HandoffBadge>

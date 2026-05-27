@@ -97,7 +97,7 @@ export default async function CfoAccountantPage() {
         title={
           <>
             P&L · cash · AR/AP.{" "}
-            <span style={{ color: "var(--amber)" }}>One source of truth.</span>
+            <span className="text-amber">One source of truth.</span>
           </>
         }
         subtitle="Tax assistant categorises every transaction, splits VAT, drafts journal entries. Closed periods locked. Per-project + roll-up views."
@@ -123,13 +123,25 @@ export default async function CfoAccountantPage() {
             >
               All transactions
             </Link>
-            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Tax pack PDF ↓</button>
-            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Journal entry</button>
+            <button
+              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Tax pack PDF ↓
+            </button>
+            <button
+              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              + Journal entry
+            </button>
           </>
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="grid grid-cols-5 gap-3 mb-[18px]">
         <Kpi
           label="Cash on hand"
           value={usdCompact(kpis?.cashOnHandMinor)}
@@ -160,26 +172,19 @@ export default async function CfoAccountantPage() {
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 18 }}>
-        <Card style={{ padding: 20 }}>
-          <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+      <div className="grid grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
+        <Card className="p-5">
+          <h3 className="display text-[18px] font-medium m-0">
             P&L · YTD by project
           </h3>
-          <div className="label" style={{ marginTop: 4 }}>USD · cost basis</div>
+          <div className="label mt-1">USD · cost basis</div>
           {pnl.length === 0 ? (
-            <p
-              style={{
-                marginTop: 16,
-                fontSize: 13,
-                color: "var(--ink-3)",
-                fontStyle: "italic",
-              }}
-            >
+            <p className="mt-4 text-[13px] text-ink-3 italic">
               No project transactions yet — categorise expenses against a
               project to see this roll up.
             </p>
           ) : (
-            <table className="data" style={{ marginTop: 14 }}>
+            <table className="data mt-3.5">
               <thead>
                 <tr>
                   <th>Project</th>
@@ -193,58 +198,43 @@ export default async function CfoAccountantPage() {
                 {pnl.map((r) => (
                   <tr key={r.projectId}>
                     <td>
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span className="mono" style={{ fontSize: 12 }}>{r.projectCode}</span>
-                        <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{r.projectName}</span>
+                      <div className="flex flex-col">
+                        <span className="mono text-[12px]">{r.projectCode}</span>
+                        <span className="text-[11px] text-ink-3">{r.projectName}</span>
                       </div>
                     </td>
                     <td className="num">{usdCompact(r.hardCostMinor)}</td>
                     <td className="num">{usdCompact(r.softCostMinor)}</td>
                     <td className="num">{usdCompact(r.financingMinor)}</td>
-                    <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>
+                    <td className="num text-ink font-medium">
                       {usdCompact(r.totalMinor)}
                     </td>
                   </tr>
                 ))}
-                <tr style={{ background: "var(--bg-2)", fontWeight: 500 }}>
+                <tr className="bg-bg-2 font-medium">
                   <td>Portfolio</td>
                   <td className="num">{pnlTotals.hard}</td>
                   <td className="num">{pnlTotals.soft}</td>
                   <td className="num">{pnlTotals.fin}</td>
-                  <td className="num" style={{ color: "var(--amber)" }}>{pnlTotals.total}</td>
+                  <td className="num text-amber">{pnlTotals.total}</td>
                 </tr>
               </tbody>
             </table>
           )}
         </Card>
 
-        <Card style={{ padding: 20 }}>
-          <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+        <Card className="p-5">
+          <h3 className="display text-[18px] font-medium m-0">
             Cash position · 8 weeks
           </h3>
           {cashStrip.length === 0 ? (
-            <p
-              style={{
-                marginTop: 16,
-                fontSize: 13,
-                color: "var(--ink-3)",
-                fontStyle: "italic",
-              }}
-            >
+            <p className="mt-4 text-[13px] text-ink-3 italic">
               No transactions in the trailing 8-week window yet — quick-entry
               one to populate this strip.
             </p>
           ) : (
             <>
-              <div
-                style={{
-                  marginTop: 14,
-                  display: "flex",
-                  alignItems: "flex-end",
-                  gap: 6,
-                  height: 140,
-                }}
-              >
+              <div className="mt-3.5 flex items-end gap-1.5 h-[140px]">
                 {cashStrip.map((p) => {
                   const heightPx = Math.max(
                     4,
@@ -254,48 +244,31 @@ export default async function CfoAccountantPage() {
                   return (
                     <div
                       key={p.weekIso}
-                      style={{
-                        flex: 1,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 5,
-                      }}
+                      className="flex-1 flex flex-col items-center gap-[5px]"
                     >
-                      <span className="num" style={{ fontSize: 9, color: "var(--ink-3)" }}>
+                      <span className="num text-[9px] text-ink-3">
                         {usdCompact(p.netMinor)}
                       </span>
                       <div
-                        style={{
-                          width: "100%",
-                          height: `${heightPx}px`,
-                          background: negative
-                            ? "var(--danger, var(--amber))"
+                        className={
+                          "w-full rounded-t-[3px] " +
+                          (negative
+                            ? "bg-[var(--danger,var(--amber))]"
                             : p.isFuture
-                              ? "var(--amber)"
-                              : "var(--steel)",
-                          borderRadius: "3px 3px 0 0",
-                          opacity: p.isFuture ? 0.7 : 1,
-                        }}
+                              ? "bg-amber"
+                              : "bg-[var(--steel)]") +
+                          (p.isFuture ? " opacity-70" : "")
+                        }
+                        style={{ height: `${heightPx}px` }}
                       />
-                      <span className="mono" style={{ fontSize: 8, color: "var(--ink-4)" }}>
+                      <span className="mono text-[8px] text-ink-4">
                         {p.weekLabel}
                       </span>
                     </div>
                   );
                 })}
               </div>
-              <div
-                style={{
-                  marginTop: 12,
-                  padding: 12,
-                  background: "var(--bg-3)",
-                  border: "1px solid var(--line)",
-                  borderRadius: 10,
-                  fontSize: 12,
-                  color: "var(--ink-2)",
-                }}
-              >
+              <div className="mt-3 p-3 bg-bg-3 border border-line rounded-[10px] text-[12px] text-ink-2">
                 Bars show net (inflow − outflow) USD by ISO week. Steel = past,
                 amber = recent. Cash forecasting wires in TASK-7-DATA-PART-2.
               </div>
@@ -306,21 +279,13 @@ export default async function CfoAccountantPage() {
 
       <h2
         id="tax"
-        className="display"
-        style={{ fontSize: 24, marginBottom: 14, fontWeight: 500 }}
+        className="display text-[24px] mb-3.5 font-medium"
       >
         Tax types · auto-categorised by AI
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
         {taxTypes.length === 0 ? (
-          <p
-            style={{
-              padding: 20,
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-            }}
-          >
+          <p className="p-5 text-[13px] text-ink-3 italic">
             No active tax types configured. Seed PPN / PPh 21 / PPh 23 / PBB
             via the tax-types admin route.
           </p>
@@ -339,7 +304,7 @@ export default async function CfoAccountantPage() {
                 <tr key={t.typeKey}>
                   <td>{t.displayName}</td>
                   <td className="mono">{Number(t.ratePercentage).toFixed(2)}%</td>
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  <td className="mono text-[11px] text-ink-3">
                     {t.countryCode ?? "—"}
                   </td>
                   <td>
@@ -354,21 +319,13 @@ export default async function CfoAccountantPage() {
 
       <h2
         id="shared"
-        className="display"
-        style={{ fontSize: 24, marginBottom: 14, fontWeight: 500, marginTop: 24 }}
+        className="display text-[24px] mb-3.5 font-medium mt-6"
       >
         Shared costs · allocation
       </h2>
-      <Card style={{ padding: 20 }}>
+      <Card className="p-5">
         {shared.length === 0 ? (
-          <p
-            style={{
-              fontSize: 13,
-              color: "var(--ink-3)",
-              fontStyle: "italic",
-              margin: 0,
-            }}
-          >
+          <p className="text-[13px] text-ink-3 italic m-0">
             No company-overhead cost categories yet — flag a category with
             type <span className="mono">corporate_event</span> to surface it
             here.
@@ -390,11 +347,11 @@ export default async function CfoAccountantPage() {
                 <tr key={s.categoryId}>
                   <td>{s.displayName}</td>
                   <td className="num">{usdCompact(s.mtdMinor)}</td>
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  <td className="mono text-[11px] text-ink-3">
                     pending rule engine
                   </td>
                   {Array.from({ length: sharedColCount }).map((_, i) => (
-                    <td key={i} className="num" style={{ color: "var(--ink-4)" }}>
+                    <td key={i} className="num text-ink-4">
                       —
                     </td>
                   ))}
@@ -403,15 +360,7 @@ export default async function CfoAccountantPage() {
             </tbody>
           </table>
         )}
-        <p
-          className="mono"
-          style={{
-            marginTop: 12,
-            fontSize: 10,
-            color: "var(--ink-4)",
-            letterSpacing: "0.08em",
-          }}
-        >
+        <p className="mono mt-3 text-[10px] text-ink-4 tracking-[0.08em]">
           ALLOCATION RULES SHIP IN TASK-7-DATA-PART-2
         </p>
       </Card>

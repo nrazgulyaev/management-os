@@ -92,22 +92,11 @@ interface EmptyStateProps {
 }
 function EmptyState({ title, hint, cta }: EmptyStateProps) {
   return (
-    <div
-      style={{
-        padding: "32px 20px",
-        textAlign: "center",
-        color: "var(--ink-3)",
-        background: "var(--bg-3, var(--cream-warm))",
-        border: "1px dashed var(--line, var(--line-soft))",
-        borderRadius: 10,
-      }}
-    >
-      <div className="display" style={{ fontSize: 16, fontWeight: 500, color: "var(--ink-2)" }}>
-        {title}
-      </div>
-      <p style={{ margin: "6px 0 0", fontSize: 13 }}>{hint}</p>
+    <div className="px-5 py-8 text-center text-ink-3 bg-bg-3 border border-dashed border-line rounded-[10px]">
+      <div className="display text-[16px] font-medium text-ink-2">{title}</div>
+      <p className="mt-1.5 mb-0 text-[13px]">{hint}</p>
       {cta && (
-        <a href={cta.href} className="btn btn-amber btn-sm" style={{ marginTop: 16 }}>
+        <a href={cta.href} className="btn btn-amber btn-sm mt-4">
           {cta.label}
         </a>
       )}
@@ -142,19 +131,31 @@ export default async function ProcurementManagerPage() {
         title={
           <>
             PR → RFQ → PO →{" "}
-            <span style={{ color: "var(--amber)" }}>delivered.</span>
+            <span className="text-amber">delivered.</span>
           </>
         }
         subtitle="Auto-PR from BOQ deviations. Side-by-side vendor comparison with AI scoring. Approval thresholds per role. Per-line receipts at warehouse."
         actions={
           <>
-            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Vendor scorecards</button>
-            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Purchase request</button>
+            <button
+              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Vendor scorecards
+            </button>
+            <button
+              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              + Purchase request
+            </button>
           </>
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="grid grid-cols-5 gap-3 mb-[18px]">
         <Kpi
           label="Open PRs"
           value={prs.length === 0 ? "—" : String(prs.length)}
@@ -188,12 +189,12 @@ export default async function ProcurementManagerPage() {
         <Kpi label="Avg PR → PO" value="—" sub="cycle-time analytics coming soon" />
       </div>
 
-      <h2 className="display" style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}>
+      <h2 className="display text-[22px] mb-3.5 font-medium">
         Open purchase requests
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
         {prs.length === 0 ? (
-          <div style={{ padding: 20 }}>
+          <div className="p-5">
             <EmptyState
               title="No open purchase requests"
               hint="DEMO-1 didn't seed procurement data for this org. Create your first PR to start the procure-to-pay flow."
@@ -219,7 +220,7 @@ export default async function ProcurementManagerPage() {
             <tbody>
               {prs.map((r: ProcurementPrRow) => (
                 <tr key={r.id}>
-                  <td className="mono" style={{ fontSize: 11 }}>{r.requestCode}</td>
+                  <td className="mono text-[11px]">{r.requestCode}</td>
                   <td>{r.materialName}</td>
                   <td className="mono">{r.projectCode ?? "—"}</td>
                   <td>{r.requesterName ?? "—"}</td>
@@ -233,15 +234,12 @@ export default async function ProcurementManagerPage() {
         )}
       </Card>
 
-      <h2
-        className="display"
-        style={{ fontSize: 22, marginBottom: 14, fontWeight: 500, marginTop: 24 }}
-      >
+      <h2 className="display text-[22px] mb-3.5 font-medium mt-6">
         POs in transit
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
         {pos.length === 0 ? (
-          <div style={{ padding: 20 }}>
+          <div className="p-5">
             <EmptyState
               title="No POs in transit"
               hint="Approve a purchase request to generate a PO and surface delivery tracking here."
@@ -262,7 +260,7 @@ export default async function ProcurementManagerPage() {
             <tbody>
               {pos.map((r: ProcurementPoRow) => (
                 <tr key={r.id}>
-                  <td className="mono" style={{ fontSize: 11 }}>{r.poCode}</td>
+                  <td className="mono text-[11px]">{r.poCode}</td>
                   <td>{r.vendorName ?? "—"}</td>
                   <td className="mono">{r.projectCode ?? "—"}</td>
                   <td className="mono">{r.expectedDelivery ?? "—"}</td>
@@ -275,15 +273,12 @@ export default async function ProcurementManagerPage() {
         )}
       </Card>
 
-      <h2
-        className="display"
-        style={{ fontSize: 22, marginBottom: 14, fontWeight: 500, marginTop: 24 }}
-      >
+      <h2 className="display text-[22px] mb-3.5 font-medium mt-6">
         Invoices · awaiting payment
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <Card padding="none" overflowHidden>
         {invoices.length === 0 ? (
-          <div style={{ padding: 20 }}>
+          <div className="p-5">
             <EmptyState
               title="No invoices awaiting"
               hint="Vendor invoices linked to POs show up here once received."
@@ -304,14 +299,14 @@ export default async function ProcurementManagerPage() {
             <tbody>
               {invoices.map((r: ProcurementInvoiceRow) => (
                 <tr key={r.id}>
-                  <td className="mono" style={{ fontSize: 11 }}>{r.invoiceNumber}</td>
+                  <td className="mono text-[11px]">{r.invoiceNumber}</td>
                   <td>{r.vendorName ?? "—"}</td>
                   <td className="mono">{r.poCode ?? "—"}</td>
                   <td className="num">{fmtMinor(r.totalMinor, r.currency)}</td>
                   <td className="mono">
                     {r.dueDate ?? "—"}
                     {r.daysToDue !== null && r.daysToDue < 0 && (
-                      <span style={{ color: "var(--danger, var(--amber))", marginLeft: 6 }}>
+                      <span className="text-[var(--danger,var(--amber))] ml-1.5">
                         ({-r.daysToDue}d late)
                       </span>
                     )}

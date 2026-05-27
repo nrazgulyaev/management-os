@@ -69,14 +69,10 @@ export async function DevelopmentAppShell({
   return (
     <div
       data-product="development"
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "var(--bg, var(--cream))",
-      }}
+      className="flex min-h-screen bg-[var(--bg,var(--cream))]"
     >
       <DevelopmentSidebar />
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <div className="flex-1 min-w-0 flex flex-col">
         {trial && <TrialBanner state={trial.state} />}
         <DashboardTopbar
           unreadCount={unreadCount}
@@ -86,23 +82,10 @@ export async function DevelopmentAppShell({
           inboxHref="/development-os/agent-digests"
           actions={<AppSwitcher />}
         />
-        <div
-          style={{
-            padding: "8px 28px 0",
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-        >
+        <div className="pt-2 px-7 flex justify-end">
           <OfflineIndicator />
         </div>
-        <main
-          style={{
-            flex: 1,
-            padding: "24px 28px 96px",
-            maxWidth: 1480,
-            width: "100%",
-          }}
-        >
+        <main className="flex-1 px-7 pt-6 pb-24 max-w-[1480px] w-full">
           {children}
         </main>
       </div>
