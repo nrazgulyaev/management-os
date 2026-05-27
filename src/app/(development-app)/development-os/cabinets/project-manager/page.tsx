@@ -14,19 +14,22 @@ import {
 } from "@/lib/development/server/cabinets/project-manager-cabinet-queries";
 
 /**
- * Sprint TASK-7-DATA-PART-2 — Dev OS Project Manager cabinet live wiring.
+ * Phase 2.2 dev-01 — PM cabinet reframed as the personal queue
+ * (cross-project) per `_handoff/cabinets/dev-p1/projects.html`.
  *
- * Visual port from `_handoff/development/project-manager.html` (TASK-7-
- * VISUAL, commit `316dc65`); this commit replaces three mock arrays
- * with live, org-scoped reads in
- * `src/lib/development/server/cabinets/project-manager-cabinet-queries.ts`:
+ * The project-list + project-detail surfaces are at
+ * `/development-os/projects` — this cabinet is the PM's *personal*
+ * working board: every WP they own (across all projects), the
+ * at-risk shortlist, and the daily digest they read first thing.
  *
- *   - mockKANBAN   → listWorkPackagesByStatus()  (org-scoped work_packages)
- *   - mockAT_RISK  → listAtRiskPackages(5)       (overdue planned_finish)
- *   - mockDIGEST   → getLatestDailyDigest()      (latest daily_digest run)
+ * Live data (kept from the original TASK-7 wiring):
+ *   - mockKANBAN   → listWorkPackagesByStatus()
+ *   - mockAT_RISK  → listAtRiskPackages(5)
+ *   - mockDIGEST   → getLatestDailyDigest()
  *
- * KPI strip + construction schedule strip stay placeholder this sprint —
- * cross-project rollup + gantt feed land in TASK-7-DATA-PART-3.
+ * Real PM personal-queue filtering (WPs owned by current user,
+ * cross-project rollup, due-today aggregation) lands in the 2.2
+ * data-wiring slice.
  */
 
 export const metadata = { title: "Project Manager · Cabinet" };
@@ -87,18 +90,18 @@ export default async function ProjectManagerPage() {
   return (
     <>
       <SectionHeading
-        eyebrow="My cabinet · Project manager"
+        eyebrow="PM · personal queue · cross-project"
         title={
           <>
             {totalOpen === 0
-              ? "No open work packages yet."
+              ? "Inbox zero. Nothing in your queue."
               : `${inProgressCount} WPs in flight.`}{" "}
             {totalOpen > 0 && (
               <span className="text-amber">{totalOpen} open across board.</span>
             )}
           </>
         }
-        subtitle="Portfolio at-risk view, kanban-style WP board, integrated daily digest from AI. Schedule strip and cross-project KPIs coming soon."
+        subtitle="Your personal at-risk view, kanban-style WP board, integrated daily digest. For project shapes + milestones open the project detail from /development-os/projects."
         actions={
           <>
             <button

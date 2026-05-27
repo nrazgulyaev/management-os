@@ -1922,3 +1922,322 @@ ul.clean li:last-child {
   color: var(--ink-4);
   letter-spacing: 0.08em;
 }
+
+/* =============================================================
+   Phase 2.2 dev-01 — Projects cabinet primitives.
+
+   .health-pill   — tri-state health glyph (compact / verbose)
+   .progress-bar  — caption · label + 6px track + fill
+   .num-kpi       — inline number + label (sidebar mini-stats)
+   .milestone-row — list row (editor + read-only variants)
+   .project-card  — grid-layout list card
+   .projects-grid — 2-up / 3-up grid wrapper
+   ============================================================= */
+
+/* ---------- HealthPill ---------- */
+[data-product] .health-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid transparent;
+}
+[data-product] .health-pill .dot {
+  width: 7px; height: 7px;
+  border-radius: 999px;
+  display: inline-block;
+}
+[data-product] .health-pill.green {
+  background: color-mix(in oklab, var(--ok) 12%, transparent);
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+  color: var(--ok);
+}
+[data-product] .health-pill.green .dot { background: var(--ok); }
+[data-product] .health-pill.amber {
+  background: color-mix(in oklab, var(--warn) 12%, transparent);
+  border-color: color-mix(in oklab, var(--warn) 35%, transparent);
+  color: var(--warn);
+}
+[data-product] .health-pill.amber .dot { background: var(--warn); }
+[data-product] .health-pill.red {
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+  border-color: color-mix(in oklab, var(--danger) 35%, transparent);
+  color: var(--danger);
+}
+[data-product] .health-pill.red .dot { background: var(--danger); }
+
+/* ---------- ProgressBar ---------- */
+[data-product] .progress-bar { display: flex; flex-direction: column; gap: 6px; }
+[data-product] .progress-bar .progress-bar-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  font-size: 12px;
+}
+[data-product] .progress-bar .caption {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+}
+[data-product] .progress-bar .lbl {
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px;
+  color: var(--ink);
+}
+[data-product] .progress-bar .track {
+  height: 6px;
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 999px;
+  overflow: hidden;
+}
+[data-product="management"] .progress-bar .fill,
+[data-product="owner"] .progress-bar .fill { background: var(--terra); height: 100%; transition: width 0.18s ease; }
+[data-product="development"] .progress-bar .fill { background: var(--amber); height: 100%; transition: width 0.18s ease; }
+[data-product] .progress-bar.ok .fill { background: var(--ok) !important; }
+[data-product] .progress-bar.warn .fill { background: var(--warn) !important; }
+[data-product] .progress-bar.danger .fill { background: var(--danger) !important; }
+
+/* ---------- NumKpi ---------- */
+[data-product] .num-kpi {
+  display: inline-flex; flex-direction: column; gap: 2px;
+  padding: 8px 10px;
+  min-width: 80px;
+}
+[data-product] .num-kpi .value {
+  font-family: var(--mono-font), monospace;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+[data-product] .num-kpi .label {
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+}
+[data-product] .num-kpi .sub {
+  font-family: var(--sans-font), system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product] .num-kpi.tone-accent .value {
+  color: var(--terra);
+}
+[data-product="development"] .num-kpi.tone-accent .value { color: var(--amber); }
+[data-product] .num-kpi.tone-ok .value { color: var(--ok); }
+[data-product] .num-kpi.tone-warn .value { color: var(--warn); }
+[data-product] .num-kpi.tone-danger .value { color: var(--danger); }
+
+/* ---------- MilestoneRow ---------- */
+[data-product] .milestone-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  font-size: 13px;
+}
+[data-product] .milestone-row:last-child { border-bottom: 0; }
+[data-product] .milestone-row.editable { padding-left: 8px; }
+[data-product] .milestone-row .drag-handle {
+  cursor: grab;
+  font-family: var(--mono-font), monospace;
+  font-size: 14px;
+  color: var(--ink-4);
+  user-select: none;
+  padding: 0 4px;
+}
+[data-product] .milestone-row .drag-handle:active { cursor: grabbing; }
+[data-product] .milestone-row .status-dot {
+  width: 8px; height: 8px;
+  border-radius: 999px;
+  background: var(--line-strong, var(--line));
+  flex-shrink: 0;
+}
+[data-product] .milestone-row .status-dot.in-progress {
+  background: var(--accent, var(--terra));
+}
+[data-product="development"] .milestone-row .status-dot.in-progress {
+  background: var(--amber);
+}
+[data-product] .milestone-row .status-dot.done { background: var(--ok); }
+[data-product] .milestone-row .status-dot.blocked { background: var(--danger); }
+[data-product] .milestone-row .status-dot.slipping { background: var(--warn); }
+[data-product] .milestone-row .ms-body { flex: 1; min-width: 0; }
+[data-product] .milestone-row .name { color: var(--ink); font-weight: 500; }
+[data-product] .milestone-row .meta {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+}
+[data-product] .milestone-row .meta .slip { color: var(--danger); }
+[data-product] .milestone-row .meta .early { color: var(--ok); }
+[data-product] .milestone-row .meta .deps {
+  font-family: var(--mono-font), monospace;
+  border-left: 1px solid var(--line);
+  padding-left: 8px;
+}
+[data-product] .milestone-row .status-pill {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+  color: var(--ink-2);
+}
+[data-product] .milestone-row .status-pill.done {
+  color: var(--ok);
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+}
+[data-product] .milestone-row .status-pill.in-progress {
+  color: var(--accent, var(--terra));
+  border-color: color-mix(in oklab, var(--terra) 35%, transparent);
+}
+[data-product] .milestone-row .status-pill.blocked {
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 35%, transparent);
+}
+[data-product] .milestone-row .status-pill.slipping {
+  color: var(--warn);
+  border-color: color-mix(in oklab, var(--warn) 35%, transparent);
+}
+[data-product] .milestone-row .status-select {
+  font-family: var(--sans-font), system-ui, sans-serif;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper, var(--panel));
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+}
+
+/* ---------- ProjectCard + grid ---------- */
+[data-product] .projects-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media (min-width: 1440px) {
+  [data-product] .projects-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 760px) {
+  [data-product] .projects-grid { grid-template-columns: 1fr; }
+}
+
+[data-product] .project-card {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 18px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 18px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+[data-product] .project-card:hover {
+  border-color: var(--ink-2);
+  transform: translateY(-2px);
+}
+[data-product] .project-card .head {
+  display: flex; align-items: center; gap: 8px;
+}
+[data-product] .project-card .code {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  flex: 1;
+}
+[data-product] .project-card .name {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--ink);
+}
+[data-product="development"] .project-card .name { font-weight: 500; }
+[data-product] .project-card .phase {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+[data-product] .project-card .meta-pills {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+[data-product] .project-card .stats {
+  display: flex; gap: 16px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .project-card .stats .stat {
+  display: flex; flex-direction: column; gap: 1px;
+}
+[data-product] .project-card .stats .value {
+  font-family: var(--mono-font), monospace;
+  font-size: 14px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] .project-card .stats .label {
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* ---------- Milestones editor (dev-01) ---------- */
+[data-product] .ms-editor-toolbar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+[data-product] .ms-editor-toolbar .ml-auto { margin-left: auto; }
+[data-product] .ms-editor-list {
+  display: flex; flex-direction: column;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 12px;
+  overflow: hidden;
+}
+[data-product] .ms-editor-row {
+  display: flex; align-items: center;
+}
+[data-product] .ms-editor-row > .milestone-row {
+  flex: 1; min-width: 0;
+}
+[data-product] .ms-editor-reorder {
+  display: flex; flex-direction: column;
+  padding: 0 8px;
+  gap: 2px;
+}
+[data-product] .ms-editor-reorder button {
+  width: 22px; height: 22px;
+  border: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--ink-3);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+[data-product] .ms-editor-reorder button:hover:not(:disabled) {
+  border-color: var(--ink-2);
+  color: var(--ink);
+}
+[data-product] .ms-editor-reorder button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
