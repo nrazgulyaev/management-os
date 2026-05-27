@@ -89,7 +89,7 @@ export default async function OperationsPage() {
               ? `${kpis.arrivalsToday} arrivals today`
               : "No arrivals today"}
             {", "}
-            <em style={{ color: "var(--terra)", fontStyle: "italic" }}>
+            <em>
               {ticketsOpen} open {ticketsOpen === 1 ? "ticket" : "tickets"}
             </em>
             {kpis && kpis.turnoversToday > 0 ? `, ${kpis.turnoversToday} turnovers in motion.` : "."}
@@ -98,14 +98,32 @@ export default async function OperationsPage() {
         subtitle="Housekeeping, maintenance, preventive tasks and service requests in one inbox. Photos and voice notes coming soon."
         actions={
           <>
-            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Morning brief PDF ↓</button>
-            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Assignments</button>
-            <button className="btn btn-primary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>New task +</button>
+            <button
+              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Morning brief PDF ↓
+            </button>
+            <button
+              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Assignments
+            </button>
+            <button
+              className="btn btn-primary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              New task +
+            </button>
           </>
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="grid grid-cols-6 gap-3 mb-[18px]">
         <Kpi
           label="Turnovers · today"
           value={kpis && kpis.turnoversToday > 0 ? String(kpis.turnoversToday) : "—"}
@@ -131,59 +149,26 @@ export default async function OperationsPage() {
         <Kpi label="Photo evidence" value="—" sub="documents pipeline coming soon" />
       </div>
 
-      {/* AI Operations Copilot — empty state until daily-digest agent runs */}
-      <Card
-        style={{
-          padding: 20,
-          marginBottom: 18,
-          background: "var(--forest)",
-          color: "var(--cream-warm)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+      {/* AI Operations Copilot — empty state until daily-digest agent runs.
+          NOTE: bg-forest is the Layer A `--forest` alias; we want the dark
+          forest tone explicitly (matching original `var(--forest)`), not
+          the Card primitive's `tone="dark"` which uses `--forest-deep`. */}
+      <Card className="p-5 mb-[18px] bg-forest text-cream-warm relative overflow-hidden">
         <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            opacity: 0.13,
-            background: "radial-gradient(60% 60% at 100% 0%, var(--gold) 0%, transparent 60%)",
-          }}
+          className="absolute inset-0 opacity-[0.13] bg-[radial-gradient(60%_60%_at_100%_0%,var(--gold)_0%,transparent_60%)]"
         />
-        <div style={{ display: "flex", gap: 16, alignItems: "flex-start", position: "relative" }}>
-          <span
-            style={{
-              flexShrink: 0,
-              width: 44,
-              height: 44,
-              borderRadius: 999,
-              background: "rgba(255,255,255,0.08)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--gold-soft)",
-            }}
-          >
+        <div className="flex gap-4 items-start relative">
+          <span className="flex-shrink-0 w-11 h-11 rounded-full bg-white/[0.08] flex items-center justify-center text-[var(--gold-soft)]">
             ✦
           </span>
-          <div style={{ flex: 1 }}>
-            <div className="label" style={{ color: "rgba(244,239,230,0.65)" }}>
+          <div className="flex-1">
+            <div className="label text-[rgba(244,239,230,0.65)]">
               Operations Copilot
             </div>
-            <p
-              style={{
-                margin: "6px 0 14px",
-                fontFamily: "var(--font-newsreader), serif",
-                fontSize: 22,
-                lineHeight: 1.3,
-                fontWeight: 300,
-              }}
-            >
+            <p className="mt-1.5 mb-3.5 font-display text-[22px] leading-[1.3] font-light">
               The Operations Copilot will surface ad-hoc scheduling suggestions
               here the first time the{" "}
-              <em style={{ color: "var(--gold-soft)", fontStyle: "italic" }}>
-                daily-digest agent
-              </em>{" "}
+              <em className="text-[var(--gold-soft)]">daily-digest agent</em>{" "}
               files a run.
             </p>
           </div>
@@ -191,18 +176,16 @@ export default async function OperationsPage() {
       </Card>
 
       {/* Housekeeping + status board */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 18 }}>
-        <Card id="housekeeping" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center" }}>
-            <h2 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 22, fontWeight: 400 }}>
-              Housekeeping · today
-            </h2>
-            <span className="mono" style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}>
+      <div className="grid grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
+        <Card id="housekeeping" padding="none" overflowHidden>
+          <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
+            <h2 className="display-md">Housekeeping · today</h2>
+            <span className="mono ml-auto text-[11px] text-ink-3">
               NOT SEEDED
             </span>
           </div>
           {housekeeping.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            <p className="p-5 text-[13px] text-ink-3 italic m-0">
               No housekeeping tasks scheduled. Seed `operation_tasks` rows or
               wire the Mgmt OS scheduler to populate this board.
             </p>
@@ -236,33 +219,28 @@ export default async function OperationsPage() {
           )}
         </Card>
 
-        <Card style={{ padding: 20 }}>
-          <h3 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 18, fontWeight: 400 }}>
+        <Card className="p-5">
+          <h3 className="display-sm">
             Status board · {totalVillas} {totalVillas === 1 ? "villa" : "villas"}
           </h3>
-          <div className="label" style={{ marginTop: 4 }}>Live readiness</div>
+          <div className="label mt-1">Live readiness</div>
           {totalVillas === 0 ? (
-            <p style={{ marginTop: 14, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+            <p className="mt-3.5 text-[13px] text-ink-3 italic">
               No villas yet.
             </p>
           ) : (
-            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div className="mt-3.5 grid grid-cols-2 gap-2">
               {STATE_TILES.map((s) => (
                 <div
                   key={s.key}
-                  style={{
-                    padding: "10px 12px",
-                    border: "1px solid var(--line-soft)",
-                    borderRadius: 10,
-                    background: "var(--cream-warm)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
+                  className="px-3 py-2.5 border border-line-soft rounded-[10px] bg-cream-warm flex items-center gap-2"
                 >
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: s.color }} />
-                  <span style={{ fontSize: 13, flex: 1 }}>{s.label}</span>
-                  <span className="num" style={{ fontSize: 14, fontWeight: 500 }}>
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: s.color }}
+                  />
+                  <span className="text-[13px] flex-1">{s.label}</span>
+                  <span className="num text-[14px] font-medium">
                     {tileCounts.get(s.key) ?? 0}
                   </span>
                 </div>
@@ -273,18 +251,16 @@ export default async function OperationsPage() {
       </div>
 
       {/* Maintenance + preventive */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 18 }}>
-        <Card id="maintenance" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center" }}>
-            <h2 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 22, fontWeight: 400 }}>
-              Maintenance tickets
-            </h2>
-            <span className="mono" style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}>
+      <div className="grid grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
+        <Card id="maintenance" padding="none" overflowHidden>
+          <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
+            <h2 className="display-md">Maintenance tickets</h2>
+            <span className="mono ml-auto text-[11px] text-ink-3">
               {tickets.length} OPEN
             </span>
           </div>
           {tickets.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            <p className="p-5 text-[13px] text-ink-3 italic m-0">
               No open tickets. Maintenance tickets surface here once reported.
             </p>
           ) : (
@@ -305,7 +281,7 @@ export default async function OperationsPage() {
                   return (
                     <tr key={t.id}>
                       <td className="mono">{t.villaCode ?? "—"}</td>
-                      <td style={{ maxWidth: 280, fontSize: 13 }}>{t.title}</td>
+                      <td className="max-w-[280px] text-[13px]">{t.title}</td>
                       <td>
                         <HandoffBadge>{t.issueCategory}</HandoffBadge>
                       </td>
@@ -324,39 +300,28 @@ export default async function OperationsPage() {
           )}
         </Card>
 
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-soft)" }}>
-            <h2 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 22, fontWeight: 400 }}>
-              Preventive · upcoming
-            </h2>
-            <div className="label" style={{ marginTop: 4 }}>
+        <Card padding="none" overflowHidden>
+          <div className="px-[18px] py-3.5 border-b border-line-soft">
+            <h2 className="display-md">Preventive · upcoming</h2>
+            <div className="label mt-1">
               Templates · no schedule yet
             </div>
           </div>
           {preventive.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            <p className="p-5 text-[13px] text-ink-3 italic m-0">
               No preventive maintenance templates configured.
             </p>
           ) : (
-            <ul className="clean" style={{ padding: "4px 0" }}>
+            <ul className="clean py-1">
               {preventive.map((p) => (
-                <li
-                  key={p.templateKey}
-                  style={{
-                    padding: "12px 18px",
-                    flexDirection: "column",
-                    alignItems: "flex-start",
-                    gap: 6,
-                    display: "flex",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%" }}>
-                    <span style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 15, flex: 1 }}>
+                <li key={p.templateKey} className="flex flex-col items-start gap-1.5 px-[18px] py-3">
+                  <div className="flex items-center gap-2.5 w-full">
+                    <span className="serif text-[15px] flex-1">
                       {p.templateName}
                     </span>
                     <HandoffBadge>{p.defaultFrequency}</HandoffBadge>
                   </div>
-                  <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
+                  <div className="mono text-[10.5px] text-ink-4">
                     {p.category}
                   </div>
                 </li>
@@ -369,15 +334,13 @@ export default async function OperationsPage() {
       {/* Service requests */}
       <h2
         id="service-requests"
-        className="display"
-        style={{ fontSize: 30, marginTop: 32, marginBottom: 14, fontWeight: 400 }}
+        className="display text-[30px] mt-8 mb-3.5 font-normal"
       >
-        Service requests ·{" "}
-        <em style={{ color: "var(--terra)", fontStyle: "italic" }}>guest-side</em>
+        Service requests · <em>guest-side</em>
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <Card padding="none" overflowHidden>
         {serviceRequests.length === 0 ? (
-          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
             No service requests yet. Guest-initiated requests surface here once
             the in-stay portal or concierge cabinet routes them through.
           </p>
@@ -396,13 +359,11 @@ export default async function OperationsPage() {
             <tbody>
               {serviceRequests.map((r) => (
                 <tr key={r.id}>
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                    {r.code}
-                  </td>
+                  <td className="mono text-[11px] text-ink-3">{r.code}</td>
                   <td className="mono">{r.villaCode ?? "—"}</td>
                   <td>{r.guestName ?? "—"}</td>
-                  <td style={{ fontSize: 13, maxWidth: 240 }}>{r.requestType}</td>
-                  <td style={{ color: "var(--ink-3)" }}>{r.vendorName ?? "—"}</td>
+                  <td className="text-[13px] max-w-[240px]">{r.requestType}</td>
+                  <td className="text-ink-3">{r.vendorName ?? "—"}</td>
                   <td>
                     <HandoffBadge>{r.status}</HandoffBadge>
                   </td>

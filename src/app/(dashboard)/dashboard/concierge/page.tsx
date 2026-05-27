@@ -70,29 +70,43 @@ export default async function ConciergePage() {
         title={
           sessions.length === 0 ? (
             <>
-              Ready for guests to{" "}
-              <em style={{ color: "var(--terra)", fontStyle: "italic" }}>start messaging.</em>
+              Ready for guests to <em>start messaging.</em>
             </>
           ) : (
             <>
-              {sessions.length} sessions{" "}
-              <em style={{ color: "var(--terra)", fontStyle: "italic" }}>across channels.</em>
+              {sessions.length} sessions <em>across channels.</em>
             </>
           )
         }
         subtitle="Multilingual replies on WhatsApp, in-stay portal and email. Escalates only what truly needs you. Audit log per reply."
         actions={
           <>
-            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Templates</button>
-            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Memory</button>
-            <button className="btn btn-primary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>
+            <button
+              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Templates
+            </button>
+            <button
+              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Memory
+            </button>
+            <button
+              className="btn btn-primary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
               Review handoffs · {kpis?.handoffsOpen ?? 0}
             </button>
           </>
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="grid grid-cols-5 gap-3 mb-[18px]">
         <Kpi
           label="Active sessions"
           value={kpis && kpis.activeSessions > 0 ? String(kpis.activeSessions) : "—"}
@@ -119,64 +133,46 @@ export default async function ConciergePage() {
       </div>
 
       {/* 2-up: sessions list + active transcript panel */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 14, marginBottom: 18 }}>
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", borderBottom: "1px solid var(--line-soft)" }}>
-            <h3 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 18, fontWeight: 400 }}>
-              Sessions
-            </h3>
-            <span className="mono" style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}>
+      <div className="grid grid-cols-[1fr_1.3fr] gap-3.5 mb-[18px]">
+        <Card padding="none" overflowHidden>
+          <div className="px-[18px] py-3.5 flex items-center border-b border-line-soft">
+            <h3 className="display-sm">Sessions</h3>
+            <span className="mono ml-auto text-[11px] text-ink-3">
               {sessions.length} · ALL CHANNELS
             </span>
           </div>
           {sessions.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            <p className="p-5 text-[13px] text-ink-3 italic m-0">
               No active sessions. Concierge sessions appear here when guests
               message via WhatsApp, the in-stay portal, or direct chat.
             </p>
           ) : (
-            <ul className="clean" style={{ padding: 0 }}>
+            <ul className="clean p-0">
               {sessions.map((s, i) => (
                 <li
                   key={s.id}
-                  style={{
-                    padding: "12px 18px",
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                    gap: 6,
-                    borderLeft: i === 0 ? "3px solid var(--terra)" : "3px solid transparent",
-                    background: i === 0 ? "var(--cream-warm)" : "transparent",
-                    cursor: "pointer",
-                    display: "flex",
-                  }}
+                  className={
+                    "flex flex-col items-stretch gap-1.5 px-[18px] py-3 cursor-pointer border-l-[3px] " +
+                    (i === 0
+                      ? "border-terra bg-cream-warm"
+                      : "border-transparent")
+                  }
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 999,
-                        background: "var(--cream-deep)",
-                        border: "1px solid var(--line)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 10,
-                      }}
-                    >
+                  <div className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-muted border border-line flex items-center justify-center text-[10px]">
                       {initials(s.guestName)}
                     </span>
-                    <span style={{ fontWeight: 500, fontSize: 13.5 }}>
+                    <span className="font-medium text-[13.5px]">
                       {s.guestName ?? "Guest"}
                     </span>
-                    <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>
+                    <span className="mono text-[10px] text-ink-4">
                       {s.villaCode ?? "—"} {s.language ? `· ${s.language.toUpperCase()}` : ""}
                     </span>
-                    <span className="mono" style={{ marginLeft: "auto", fontSize: 10, color: "var(--ink-4)" }}>
+                    <span className="mono ml-auto text-[10px] text-ink-4">
                       {fmtTime(s.lastMessageAt)}
                     </span>
                   </div>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center", paddingLeft: 36 }}>
+                  <div className="flex gap-1.5 items-center pl-9">
                     {s.status === "active" ? (
                       <HandoffBadge tone="ok">
                         <Pulse /> Live
@@ -186,7 +182,7 @@ export default async function ConciergePage() {
                     ) : (
                       <HandoffBadge>{s.status}</HandoffBadge>
                     )}
-                    <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>
+                    <span className="mono text-[10px] text-ink-4">
                       {s.messageCount} msgs
                     </span>
                   </div>
@@ -197,32 +193,20 @@ export default async function ConciergePage() {
         </Card>
 
         {/* Transcript panel — empty state until session selected */}
-        <Card style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 380 }}>
-          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-soft)", display: "flex", alignItems: "center", gap: 10 }}>
+        <Card padding="none" overflowHidden className="flex flex-col min-h-[380px]">
+          <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center gap-2.5">
             <div>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>
+              <div className="text-[14px] font-medium">
                 {sessions.length === 0 ? "No session selected" : "Select a session"}
               </div>
-              <div className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+              <div className="mono text-[11px] text-ink-3">
                 {sessions.length === 0
                   ? "Live transcript renders here once guests start messaging"
                   : "Open a session on the left to view the transcript"}
               </div>
             </div>
           </div>
-          <div
-            style={{
-              padding: 24,
-              flex: 1,
-              background: "var(--cream-warm)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--ink-3)",
-              fontSize: 13,
-              fontStyle: "italic",
-            }}
-          >
+          <div className="p-6 flex-1 bg-cream-warm flex items-center justify-center text-ink-3 text-[13px] italic">
             {sessions.length === 0
               ? "Configure WhatsApp / in-stay portal channels on the AI hub to start receiving messages."
               : "Click a session to load its transcript."}
@@ -230,16 +214,12 @@ export default async function ConciergePage() {
         </Card>
       </div>
 
-      <h2
-        className="display"
-        style={{ fontSize: 30, marginTop: 32, marginBottom: 14, fontWeight: 400 }}
-      >
-        Handoffs needing{" "}
-        <em style={{ color: "var(--terra)", fontStyle: "italic" }}>your eyes</em>
+      <h2 className="display text-[30px] mt-8 mb-3.5 font-normal">
+        Handoffs needing <em>your eyes</em>
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
         {handoffs.length === 0 ? (
-          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
             No handoffs queued. Sessions that the AI cannot resolve surface
             here automatically with priority + assignment context.
           </p>
@@ -260,16 +240,18 @@ export default async function ConciergePage() {
               {handoffs.map((h) => (
                 <tr
                   key={h.id}
-                  style={{
-                    background: h.priority === "urgent" ? "rgba(196,88,60,0.04)" : "transparent",
-                  }}
+                  className={
+                    h.priority === "urgent"
+                      ? "bg-[rgba(196,88,60,0.04)]"
+                      : ""
+                  }
                 >
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  <td className="mono text-[11px] text-ink-3">
                     {h.sessionId ? h.sessionId.slice(0, 8) : "—"}
                   </td>
                   <td className="mono">{h.villaCode ?? "—"}</td>
                   <td>{h.guestName ?? "—"}</td>
-                  <td style={{ maxWidth: 380, fontSize: 13 }}>{h.summary}</td>
+                  <td className="max-w-[380px] text-[13px]">{h.summary}</td>
                   <td>
                     {h.priority === "urgent" ? (
                       <HandoffBadge tone="danger">Urgent</HandoffBadge>
@@ -291,39 +273,35 @@ export default async function ConciergePage() {
       </Card>
 
       {/* Safety events + Memory editor */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 18 }}>
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line-soft)" }}>
-            <h3 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 18, fontWeight: 400 }}>
-              Safety events · last 24h
-            </h3>
-            <div className="label" style={{ marginTop: 4 }}>
+      <div className="grid grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
+        <Card padding="none" overflowHidden>
+          <div className="px-[18px] py-3.5 border-b border-line-soft">
+            <h3 className="display-sm">Safety events · last 24h</h3>
+            <div className="label mt-1">
               Projected from message safety flags
             </div>
           </div>
           {safety.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            <p className="p-5 text-[13px] text-ink-3 italic m-0">
               No safety events. Anomalies (refused requests, sensitive
               disclosures, lock-attempt patterns) surface here in real time.
             </p>
           ) : (
-            <ul className="clean" style={{ padding: 0 }}>
+            <ul className="clean p-0">
               {safety.map((e) => (
-                <li key={e.id} style={{ padding: "12px 18px" }}>
+                <li key={e.id} className="px-[18px] py-3">
                   <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 999,
-                      background: e.riskLevel === "warn" ? "var(--warn)" : "var(--ink-3)",
-                    }}
+                    className={
+                      "w-2 h-2 rounded-full " +
+                      (e.riskLevel === "warn" ? "bg-[var(--warn)]" : "bg-ink-3")
+                    }
                   />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{e.eventLabel}</div>
-                    <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
+                  <div className="flex-1">
+                    <div className="text-[13px] font-medium">{e.eventLabel}</div>
+                    <div className="mono text-[10.5px] text-ink-4">
                       {e.villaCode ?? "—"} · {fmtTime(e.occurredAt)}
                     </div>
-                    <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>{e.note}</div>
+                    <div className="text-[12px] text-ink-3 mt-0.5">{e.note}</div>
                   </div>
                 </li>
               ))}
@@ -331,34 +309,19 @@ export default async function ConciergePage() {
           )}
         </Card>
 
-        <Card
-          style={{
-            padding: 20,
-            background: "var(--cream-warm)",
-            border: "1px dashed var(--line-strong)",
-          }}
-        >
+        <Card className="p-5 bg-cream-warm border border-dashed border-line-strong">
           <div className="label label-amber">AI Memory · written by AI</div>
-          <h3
-            style={{
-              margin: "4px 0 8px",
-              fontFamily: "var(--font-newsreader), serif",
-              fontSize: 18,
-              fontWeight: 400,
-            }}
-          >
-            Recalled per-guest facts
-          </h3>
+          <h3 className="display-sm mt-1 mb-2">Recalled per-guest facts</h3>
           {memory.length === 0 ? (
-            <p style={{ fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: "0 0 14px" }}>
+            <p className="text-[13px] text-ink-3 italic m-0 mb-3.5">
               Once concierge sessions start producing facts (allergies,
               preferences, smart-lock notes), they surface here for review +
               editing.
             </p>
           ) : (
-            <ul className="clean" style={{ padding: 0, marginBottom: 14 }}>
+            <ul className="clean p-0 mb-3.5">
               {memory.map((m) => (
-                <li key={m.id} style={{ padding: "8px 0", fontSize: 13 }}>
+                <li key={m.id} className="py-2 text-[13px]">
                   • {m.fact}
                 </li>
               ))}

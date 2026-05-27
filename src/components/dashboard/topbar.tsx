@@ -63,70 +63,32 @@ export function DashboardTopbar({
           </React.Fragment>
         ))}
       </div>
-      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+      <div className="ml-auto flex items-center gap-2.5">
         <div className="topbar-search hide-mobile">
           <span className="sx">
             <DashboardIcon name="search" width={14} height={14} />
           </span>
           <input placeholder="Search villa, booking, owner, guest…" />
-          <span className="kbd" style={{ position: "absolute", right: 10, top: 6 }}>
-            ⌘K
-          </span>
+          <span className="kbd absolute right-2.5 top-1.5">⌘K</span>
         </div>
         {actions}
         <Link
           href={inboxHref}
           aria-label={`Inbox · ${unreadCount} unread`}
-          style={{
-            position: "relative",
-            padding: 6,
-            color: "var(--ink-2)",
-            display: "inline-flex",
-          }}
+          className="relative p-1.5 text-ink-2 inline-flex"
         >
           <DashboardIcon name="bell" width={17} height={17} />
           {unreadCount > 0 && (
-            <span
-              style={{
-                position: "absolute",
-                top: 4,
-                right: 4,
-                width: 7,
-                height: 7,
-                borderRadius: 999,
-                background: "var(--terra, var(--amber))",
-              }}
-            />
+            <span className="absolute top-1 right-1 w-[7px] h-[7px] rounded-full bg-[var(--terra,var(--amber))]" />
           )}
         </Link>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            paddingLeft: 8,
-            borderLeft: "1px solid var(--line)",
-          }}
-        >
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 999,
-              background: "linear-gradient(135deg, var(--gold, #BC9A5C), var(--terra, #C4583C))",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--cream-warm, #FAF7F1)",
-              fontSize: 11,
-              fontWeight: 500,
-            }}
-          >
+        <div className="flex items-center gap-2 pl-2 border-l border-line">
+          <div className="w-[30px] h-[30px] rounded-full bg-[linear-gradient(135deg,var(--gold,#BC9A5C),var(--terra,#C4583C))] flex items-center justify-center text-[var(--cream-warm,#FAF7F1)] text-[11px] font-medium">
             {userInitials}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
-            <span style={{ fontSize: 13, fontWeight: 500 }}>{userName}</span>
-            <span style={{ fontSize: 10.5, color: "var(--ink-3)" }}>{userRole}</span>
+          <div className="flex flex-col leading-[1.1]">
+            <span className="text-[13px] font-medium">{userName}</span>
+            <span className="text-[10.5px] text-ink-3">{userRole}</span>
           </div>
         </div>
       </div>

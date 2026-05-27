@@ -41,52 +41,21 @@ export function DashboardSidebar({
     <aside className="sidebar">
       <Link
         href="/dashboard"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "18px 18px 14px",
-        }}
+        className="flex items-center gap-2.5 px-[18px] pt-[18px] pb-3.5"
       >
-        <span style={{ color: "var(--forest, var(--ink))" }}>
+        <span className="text-[var(--forest,var(--ink))]">
           <DashboardIcon name="logo" width={22} height={22} />
         </span>
-        <span
-          style={{
-            fontFamily: "var(--font-newsreader), serif",
-            fontSize: 20,
-            color: "var(--ink)",
-          }}
-        >
-          Arconique
-        </span>
-        <span className="badge" style={{ fontSize: 9, padding: "1px 6px" }}>
-          MGMT
-        </span>
+        <span className="font-display text-[20px] text-ink">Arconique</span>
+        <span className="badge text-[9px] px-1.5 py-px">MGMT</span>
       </Link>
 
-      <div style={{ padding: "4px 18px 12px" }}>
-        <div
-          style={{
-            padding: "10px 12px",
-            background: "var(--cream-deep, var(--bg-2))",
-            borderRadius: 10,
-          }}
-        >
-          <div className="label" style={{ fontSize: 9.5 }}>
-            Workspace
-          </div>
-          <div
-            style={{
-              fontFamily: "var(--font-newsreader), serif",
-              fontSize: 16,
-              marginTop: 2,
-            }}
-          >
-            {workspaceLabel}
-          </div>
+      <div className="pt-1 px-[18px] pb-3">
+        <div className="px-3 py-2.5 bg-[var(--cream-deep,var(--bg-2))] rounded-[10px]">
+          <div className="label text-[9.5px]">Workspace</div>
+          <div className="font-display text-[16px] mt-0.5">{workspaceLabel}</div>
           {workspaceSubtitle && (
-            <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 2 }}>
+            <div className="text-[11px] text-ink-3 mt-0.5">
               {workspaceSubtitle}
             </div>
           )}
