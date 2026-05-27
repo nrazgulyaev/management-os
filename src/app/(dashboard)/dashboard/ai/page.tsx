@@ -80,24 +80,38 @@ export default async function AiHubPage() {
         }
         title={
           <>
-            One quiet team.{" "}
-            <em style={{ color: "var(--terra)", fontStyle: "italic" }}>
-              {agents.length}
-            </em>{" "}
-            specialists. One audit log.
+            One quiet team. <em>{agents.length}</em> specialists. One audit log.
           </>
         }
         subtitle="Every agent reads the same data, writes to the same audit, hits the same per-tenant budget. Read-only allowlists, refusal on closed periods, escalation paths declared up front."
         actions={
           <>
-            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Token usage</button>
-            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Memory editor</button>
-            <button className="btn btn-primary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>New conversation +</button>
+            <button
+              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Token usage
+            </button>
+            <button
+              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Memory editor
+            </button>
+            <button
+              className="btn btn-primary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              New conversation +
+            </button>
           </>
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="grid grid-cols-5 gap-3 mb-[18px]">
         <Kpi
           label="Agents · live"
           value={kpis ? String(kpis.agentsLive) : "—"}
@@ -128,58 +142,39 @@ export default async function AiHubPage() {
       </div>
 
       {/* Agent grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 24 }}>
+      <div className="grid grid-cols-4 gap-3.5 mb-6">
         {agents.map((a) => (
           <Card
             key={a.agentKey}
-            style={{
-              padding: 18,
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-              minHeight: 220,
-              position: "relative",
-            }}
+            className="p-[18px] flex flex-col gap-2.5 min-h-[220px] relative"
           >
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <div className="flex items-start gap-2.5">
               <span
+                className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[16px]"
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
                   background: a.isLive ? TONE_COLOR[a.tone] : "var(--cream-deep)",
                   color: a.isLive ? "var(--cream-warm)" : "var(--ink-3)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 16,
                 }}
               >
                 ✦
               </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 14.5,
-                    fontWeight: 500,
-                    fontFamily: "var(--font-newsreader), serif",
-                  }}
-                >
+              <div className="flex-1 min-w-0">
+                <div className="text-[14.5px] font-medium font-display">
                   {a.displayName}
                 </div>
-                <div className="mono" style={{ fontSize: 10, color: "var(--ink-4)", marginTop: 2 }}>
+                <div className="mono text-[10px] text-ink-4 mt-0.5">
                   {a.phase} · {a.isLive ? "LIVE" : "PLANNED"}
                 </div>
               </div>
             </div>
-            <p style={{ margin: 0, fontSize: 12.5, color: "var(--ink-2)", lineHeight: 1.45 }}>
+            <p className="m-0 text-[12.5px] text-ink-2 leading-[1.45]">
               {a.description}
             </p>
-            <div style={{ marginTop: "auto", paddingTop: 10, borderTop: "1px dashed var(--line)" }}>
-              <div className="label" style={{ fontSize: 9.5 }}>For</div>
-              <div style={{ fontSize: 11.5, color: "var(--ink-3)", marginTop: 2 }}>{a.target}</div>
+            <div className="mt-auto pt-2.5 border-t border-dashed border-line">
+              <div className="label text-[9.5px]">For</div>
+              <div className="text-[11.5px] text-ink-3 mt-0.5">{a.target}</div>
               {a.isLive && a.provider && (
-                <div className="mono" style={{ fontSize: 10, color: "var(--ink-4)", marginTop: 4 }}>
+                <div className="mono text-[10px] text-ink-4 mt-1">
                   {a.provider}
                   {a.model ? ` · ${a.model}` : ""}
                 </div>
@@ -187,13 +182,7 @@ export default async function AiHubPage() {
               {a.isLive && a.platformAgentCode && (
                 <a
                   href={`/development-os/agents/${a.platformAgentCode}`}
-                  style={{
-                    display: "inline-block",
-                    marginTop: 8,
-                    fontSize: 11,
-                    textDecoration: "underline",
-                    color: "var(--ink-2)",
-                  }}
+                  className="inline-block mt-2 text-[11px] underline text-ink-2"
                 >
                   Open chat →
                 </a>
@@ -204,17 +193,12 @@ export default async function AiHubPage() {
       </div>
 
       {/* AI inbox */}
-      <h2
-        id="inbox"
-        className="display"
-        style={{ fontSize: 30, marginBottom: 14, fontWeight: 400 }}
-      >
-        AI inbox ·{" "}
-        <em style={{ color: "var(--terra)", fontStyle: "italic" }}>cross-agent</em>
+      <h2 id="inbox" className="display text-[30px] mb-3.5 font-normal">
+        AI inbox · <em>cross-agent</em>
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
         {inbox.length === 0 ? (
-          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
             No agent suggestions yet. The inbox populates the first time any
             enabled agent files a run requiring operator review.
           </p>
@@ -233,18 +217,19 @@ export default async function AiHubPage() {
               {inbox.map((m) => (
                 <tr
                   key={m.id}
-                  style={{
-                    fontWeight: m.isRead ? 400 : 500,
-                    background: m.isRead ? "transparent" : "var(--cream-warm)",
-                  }}
+                  className={
+                    m.isRead
+                      ? "font-normal"
+                      : "font-medium bg-cream-warm"
+                  }
                 >
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  <td className="mono text-[11px] text-ink-3">
                     {m.id.slice(0, 8)}
                   </td>
                   <td>
                     <HandoffBadge>{m.agentKey.replace(/_/g, " ")}</HandoffBadge>
                   </td>
-                  <td style={{ fontSize: 13, maxWidth: 480 }}>{m.subject}</td>
+                  <td className="text-[13px] max-w-[480px]">{m.subject}</td>
                   <td>
                     {m.severity === "warn" ? (
                       <HandoffBadge tone="warn">Warn</HandoffBadge>
@@ -252,9 +237,7 @@ export default async function AiHubPage() {
                       <HandoffBadge>Info</HandoffBadge>
                     )}
                   </td>
-                  <td className="mono" style={{ fontSize: 11 }}>
-                    {fmtTime(m.invokedAt)}
-                  </td>
+                  <td className="mono text-[11px]">{fmtTime(m.invokedAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -265,15 +248,13 @@ export default async function AiHubPage() {
       {/* Runs */}
       <h2
         id="runs"
-        className="display"
-        style={{ fontSize: 30, marginTop: 32, marginBottom: 14, fontWeight: 400 }}
+        className="display text-[30px] mt-8 mb-3.5 font-normal"
       >
-        Recent runs ·{" "}
-        <em style={{ color: "var(--terra)", fontStyle: "italic" }}>full audit log</em>
+        Recent runs · <em>full audit log</em>
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <Card padding="none" overflowHidden>
         {runs.length === 0 ? (
-          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
             No agent runs yet. The audit log captures every invocation
             (status, latency, tokens, cost) — first row lands the moment an
             agent fires.
@@ -294,15 +275,15 @@ export default async function AiHubPage() {
             <tbody>
               {runs.map((r) => (
                 <tr key={r.id}>
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  <td className="mono text-[11px] text-ink-3">
                     {r.id.slice(0, 8)}
                   </td>
                   <td>
-                    <span className="badge" style={{ textTransform: "capitalize" }}>
+                    <span className="badge capitalize">
                       {r.agentKey.replace(/_/g, " ")}
                     </span>
                   </td>
-                  <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
+                  <td className="mono text-[11px] text-ink-3">
                     {r.model ?? "—"}
                   </td>
                   <td>
@@ -318,9 +299,7 @@ export default async function AiHubPage() {
                   </td>
                   <td className="num">{fmtDuration(r.durationMs)}</td>
                   <td className="num">{fmtCostUsd(r.costMinor)}</td>
-                  <td className="mono" style={{ fontSize: 11 }}>
-                    {fmtTime(r.invokedAt)}
-                  </td>
+                  <td className="mono text-[11px]">{fmtTime(r.invokedAt)}</td>
                 </tr>
               ))}
             </tbody>

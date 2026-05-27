@@ -16,14 +16,9 @@ export async function RecentDigestsTile({
   const digests = await listRecentDigestsForTile(3);
 
   return (
-    <Card style={{ padding: 20 }}>
+    <Card className="p-5">
       <div className="flex items-center justify-between mb-3">
-        <h3
-          className="display"
-          style={{ fontSize: 16, fontWeight: 500 }}
-        >
-          Recent digests
-        </h3>
+        <h3 className="display text-[16px] font-medium">Recent digests</h3>
         <Link
           href={basePath}
           className="text-xs text-ink-tertiary hover:text-ink"

@@ -79,34 +79,27 @@ const STATUS_TONE: Record<string, { tone?: "warn" | "ok" | "gold" | "danger"; la
 function StatementDetailCard({ detail }: { detail: RealStatementDetail }) {
   const status = STATUS_TONE[detail.status] ?? { label: detail.status };
   return (
-    <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
-      <div
-        style={{
-          padding: "16px 22px",
-          display: "flex",
-          alignItems: "flex-start",
-          borderBottom: "1px solid var(--line-soft)",
-        }}
-      >
+    <Card padding="none" overflowHidden className="mb-[18px]">
+      <div className="px-[22px] py-4 flex items-start border-b border-line-soft">
         <div>
           <div className="label">Statement</div>
-          <h2 style={{ margin: "6px 0 0", fontFamily: "var(--font-newsreader), serif", fontSize: 24 }}>
+          <h2 className="mt-1.5 mb-0 font-display text-[24px]">
             {detail.villaCode ?? "—"} · {detail.monthLabel}
           </h2>
-          <div className="mono" style={{ fontSize: 11, color: "var(--ink-4)", marginTop: 4 }}>
+          <div className="mono text-[11px] text-ink-4 mt-1">
             {detail.lines.length} lines · {detail.statementCode}
             {detail.contentHash ? ` · hash ${detail.contentHash.slice(0, 8)}…` : ""}
           </div>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+        <div className="ml-auto flex flex-col items-end gap-1">
           <HandoffBadge tone={status.tone}>{status.label}</HandoffBadge>
           {detail.approvedAt && (
-            <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>
+            <span className="mono text-[10px] text-ink-4">
               Approved {new Date(detail.approvedAt).toLocaleDateString("en-GB")}
             </span>
           )}
           {detail.sentAt && (
-            <span className="mono" style={{ fontSize: 10, color: "var(--ink-4)" }}>
+            <span className="mono text-[10px] text-ink-4">
               Sent {new Date(detail.sentAt).toLocaleDateString("en-GB")} → {detail.sentToEmail ?? "—"}
             </span>
           )}
@@ -127,22 +120,24 @@ function StatementDetailCard({ detail }: { detail: RealStatementDetail }) {
               <td>
                 <HandoffBadge>{l.lineType.replace(/_/g, " ")}</HandoffBadge>
               </td>
-              <td style={{ fontWeight: 500 }}>{l.description}</td>
+              <td className="font-medium">{l.description}</td>
               <td
-                className="num"
-                style={{ color: l.amountIdrMinor >= 0n ? "var(--ok)" : "var(--ink-2)" }}
+                className={
+                  "num " +
+                  (l.amountIdrMinor >= 0n ? "text-ok" : "text-ink-2")
+                }
               >
                 {signedIdr(l.amountIdrMinor)}
               </td>
             </tr>
           ))}
-          <tr style={{ borderTop: "2px solid var(--ink)", background: "var(--cream-warm)" }}>
-            <td colSpan={2} style={{ padding: "16px 14px", fontFamily: "var(--font-newsreader), serif", fontSize: 22, fontWeight: 400 }}>
+          <tr className="border-t-2 border-ink bg-cream-warm">
+            <td colSpan={2} className="px-3.5 py-4 font-display text-[22px] font-normal">
               Net to owner · {detail.monthLabel}
             </td>
-            <td className="num" style={{ padding: "16px 14px", fontSize: 24, color: "var(--terra)" }}>
+            <td className="num px-3.5 py-4 text-[24px] text-terra">
               {fmtIdr(detail.netToOwnerIdrMinor)}
-              <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>
+              <div className="text-[11px] text-ink-3 mt-1">
                 ≈ {fmtUsd(detail.netToOwnerUsdMinor)}
               </div>
             </td>
@@ -150,16 +145,7 @@ function StatementDetailCard({ detail }: { detail: RealStatementDetail }) {
         </tbody>
       </table>
 
-      <div
-        style={{
-          padding: "14px 22px",
-          borderTop: "1px solid var(--line-soft)",
-          display: "flex",
-          gap: 8,
-          background: "var(--cream-warm)",
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="px-[22px] py-3.5 border-t border-line-soft flex gap-2 bg-cream-warm flex-wrap">
         <Link
           href={`/api/finance/statements/${detail.id}/pdf`}
           className="btn btn-secondary btn-sm"
@@ -186,18 +172,12 @@ function StatementDetailCard({ detail }: { detail: RealStatementDetail }) {
               type="email"
               placeholder="owner@example.com"
               defaultValue={detail.sentToEmail ?? ""}
-              style={{
-                padding: "4px 8px",
-                fontSize: 12,
-                border: "1px solid var(--line)",
-                borderRadius: 6,
-                marginRight: 6,
-              }}
+              className="px-2 py-1 text-[12px] border border-line rounded-md mr-1.5"
             />
             <button className="btn btn-primary btn-sm" type="submit">Mark sent</button>
           </form>
         )}
-        <span className="mono" style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}>
+        <span className="mono ml-auto text-[11px] text-ink-3">
           {detail.commissionPct}% operator fee · FX 15,800 IDR/USD
         </span>
       </div>
@@ -249,10 +229,7 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
           detail ? (
             <>
               {detail.ownerName} ·{" "}
-              <em style={{ color: "var(--terra)", fontStyle: "italic" }}>
-                {detail.villaCode ?? "—"}
-              </em>{" "}
-              · {detail.monthLabel}
+              <em>{detail.villaCode ?? "—"}</em> · {detail.monthLabel}
             </>
           ) : (
             <>Owner statements.</>
@@ -264,17 +241,11 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
             : "Generate statements for any month with bookings, then approve and send via PDF download. Automated monthly delivery available when email integration is configured."
         }
         actions={
-          <form action={generateForPeriodAction} style={{ display: "flex", gap: 8 }}>
+          <form action={generateForPeriodAction} className="flex gap-2">
             <select
               name="period"
               defaultValue={sp.period ?? uniquePeriods[0] ?? ""}
-              style={{
-                padding: "6px 10px",
-                fontSize: 12,
-                border: "1px solid var(--line)",
-                borderRadius: 6,
-                background: "var(--paper)",
-              }}
+              className="px-2.5 py-1.5 text-[12px] border border-line rounded-md bg-paper"
             >
               {(uniquePeriods.length === 0
                 ? [new Date().toISOString().slice(0, 8) + "01"]
@@ -292,7 +263,7 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="grid grid-cols-5 gap-3 mb-[18px]">
         <Kpi
           label="Statements · total"
           value={allStatements.length === 0 ? "—" : String(allStatements.length)}
@@ -327,23 +298,20 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
       {detail ? (
         <StatementDetailCard detail={detail} />
       ) : (
-        <Card style={{ padding: 20, marginBottom: 18 }}>
-          <p style={{ fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+        <Card className="p-5 mb-[18px]">
+          <p className="text-[13px] text-ink-3 italic m-0">
             No statement selected. Generate statements for a period above to populate this view.
           </p>
         </Card>
       )}
 
       {/* All statements list */}
-      <h2
-        className="display"
-        style={{ fontSize: 30, marginTop: 32, marginBottom: 14, fontWeight: 400 }}
-      >
+      <h2 className="display text-[30px] mt-8 mb-3.5 font-normal">
         All statements
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
         {allStatements.length === 0 ? (
-          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
             No statements yet. Use the &quot;Generate all&quot; button above to materialise statements
             for any month with bookings.
           </p>
@@ -364,16 +332,17 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
               {allStatements.map((s) => {
                 const status = STATUS_TONE[s.status] ?? { label: s.status };
                 return (
-                  <tr key={s.id} style={{ background: s.id === selectedId ? "var(--cream-warm)" : "transparent" }}>
+                  <tr
+                    key={s.id}
+                    className={s.id === selectedId ? "bg-cream-warm" : ""}
+                  >
                     <td>{s.ownerName}</td>
-                    <td className="mono" style={{ fontSize: 12 }}>{s.villaCode ?? "—"}</td>
-                    <td style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 14 }}>
-                      {s.monthLabel}
-                    </td>
-                    <td className="num" style={{ color: "var(--terra)", fontWeight: 500 }}>
+                    <td className="mono text-[12px]">{s.villaCode ?? "—"}</td>
+                    <td className="serif text-[14px]">{s.monthLabel}</td>
+                    <td className="num text-terra font-medium">
                       {fmtIdr(s.netToOwnerIdrMinor)}
                     </td>
-                    <td className="num" style={{ color: "var(--ink-3)", fontSize: 12 }}>
+                    <td className="num text-ink-3 text-[12px]">
                       {fmtUsd(s.netToOwnerUsdMinor)}
                     </td>
                     <td>
@@ -398,15 +367,13 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
       {/* Payouts queue */}
       <h2
         id="payments"
-        className="display"
-        style={{ fontSize: 30, marginTop: 32, marginBottom: 14, fontWeight: 400 }}
+        className="display text-[30px] mt-8 mb-3.5 font-normal"
       >
-        Payouts{" "}
-        <em style={{ color: "var(--terra)", fontStyle: "italic" }}>queued</em>
+        Payouts <em>queued</em>
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
         {payouts.length === 0 ? (
-          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
             No payouts queued. Payouts generate from approved statements; payment-rails
             integration coming soon.
           </p>
@@ -437,13 +404,9 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
       {bridge ? (
         <Card
           id="bridge"
-          style={{
-            padding: 20,
-            background: "var(--cream-warm)",
-            border: "1px dashed var(--terra)",
-          }}
+          className="p-5 bg-cream-warm border border-dashed border-terra"
         >
-          <div className="label" style={{ color: "var(--terra)" }}>
+          <div className="label text-terra">
             Material usage bridge · {bridge.consumedBookingsCount} entries
           </div>
         </Card>

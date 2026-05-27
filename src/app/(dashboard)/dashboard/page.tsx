@@ -115,9 +115,9 @@ export default async function DashboardOverviewPage() {
         title={
           <>
             {timeOfDayGreeting()},{" "}
-            <em style={{ color: "var(--terra)", fontStyle: "italic" }}>
-              {firstName}.
-            </em>
+            {/* `.display em` rule in typography.css already styles em
+                inside .display as italic + terra; no inline needed. */}
+            <em>{firstName}.</em>
           </>
         }
         subtitle={
@@ -128,10 +128,9 @@ export default async function DashboardOverviewPage() {
         actions={
           <>
             <button
-              className="btn btn-secondary btn-sm"
+              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
               disabled
               title="Coming soon"
-              style={{ opacity: 0.55, cursor: "not-allowed" }}
             >
               Export brief <DashboardIcon name="logo" width={13} height={13} />
             </button>
@@ -143,14 +142,7 @@ export default async function DashboardOverviewPage() {
       />
 
       {/* KPI strip — live portfolio metrics */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(5, 1fr)",
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
+      <div className="grid grid-cols-5 gap-3 mb-6">
         <Kpi
           label="Occupancy YTD"
           value={metrics ? `${metrics.occupancyYtd}%` : "—"}
@@ -182,46 +174,16 @@ export default async function DashboardOverviewPage() {
       </div>
 
       {/* Today + AI Copilot */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.5fr 1fr",
-          gap: 14,
-          marginBottom: 14,
-        }}
-      >
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div
-            style={{
-              padding: "16px 20px",
-              display: "flex",
-              alignItems: "center",
-              borderBottom: "1px solid var(--line-soft)",
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                fontFamily: "var(--font-newsreader), serif",
-                fontSize: 22,
-                fontWeight: 400,
-              }}
-            >
-              Today
-            </h2>
-            <span
-              className="mono"
-              style={{
-                marginLeft: "auto",
-                fontSize: 11,
-                color: "var(--ink-3)",
-              }}
-            >
+      <div className="grid grid-cols-[1.5fr_1fr] gap-3.5 mb-3.5">
+        <Card padding="none" overflowHidden>
+          <div className="px-5 py-4 flex items-center border-b border-line-soft">
+            <h2 className="display-md">Today</h2>
+            <span className="mono ml-auto text-[11px] text-ink-3">
               ARRIVALS · DEPARTURES
             </span>
           </div>
           {schedule.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            <p className="p-5 text-[13px] text-ink-3 italic m-0">
               No arrivals or departures scheduled for today.
             </p>
           ) : (
@@ -262,68 +224,28 @@ export default async function DashboardOverviewPage() {
       </div>
 
       {/* Channels + Monthly revenue + Owners */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1.3fr 1fr",
-          gap: 14,
-          marginBottom: 14,
-        }}
-      >
-        <Card style={{ padding: 20 }}>
-          <h3
-            style={{
-              margin: 0,
-              fontFamily: "var(--font-newsreader), serif",
-              fontSize: 18,
-              fontWeight: 400,
-            }}
-          >
-            Revenue by channel
-          </h3>
-          <div className="label" style={{ marginTop: 4 }}>
-            MTD share
-          </div>
+      <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-3.5 mb-3.5">
+        <Card className="p-5">
+          <h3 className="display-sm">Revenue by channel</h3>
+          <div className="label mt-1">MTD share</div>
           {channels.length === 0 ? (
-            <p style={{ marginTop: 16, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+            <p className="mt-4 text-[13px] text-ink-3 italic">
               No bookings this month yet.
             </p>
           ) : (
-            <div
-              style={{
-                marginTop: 16,
-                display: "flex",
-                flexDirection: "column",
-                gap: 11,
-              }}
-            >
+            <div className="mt-4 flex flex-col gap-[11px]">
               {channels.map((c) => (
                 <div key={c.channel}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 12.5,
-                      marginBottom: 4,
-                    }}
-                  >
+                  <div className="flex justify-between text-[12.5px] mb-1">
                     <span>{c.channel}</span>
                     <span className="num">{c.pctShare}%</span>
                   </div>
-                  <div
-                    style={{
-                      height: 6,
-                      background: "var(--cream-deep)",
-                      borderRadius: 999,
-                      overflow: "hidden",
-                    }}
-                  >
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
+                      className="h-full rounded-full"
                       style={{
-                        height: "100%",
                         width: `${Math.min(c.pctShare * 2, 100)}%`,
                         background: CHANNEL_COLOR[c.channel] ?? "var(--ink-2)",
-                        borderRadius: 999,
                       }}
                     />
                   </div>
@@ -333,96 +255,48 @@ export default async function DashboardOverviewPage() {
           )}
         </Card>
 
-        <Card style={{ padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "baseline" }}>
-            <h3
-              style={{
-                margin: 0,
-                fontFamily: "var(--font-newsreader), serif",
-                fontSize: 18,
-                fontWeight: 400,
-              }}
-            >
-              Six-month gross
-            </h3>
-            <span
-              className="num"
-              style={{
-                marginLeft: "auto",
-                fontSize: 11,
-                color: "var(--ink-3)",
-              }}
-            >
+        <Card className="p-5">
+          <div className="flex items-baseline">
+            <h3 className="display-sm">Six-month gross</h3>
+            <span className="num ml-auto text-[11px] text-ink-3">
               IDR · billions
             </span>
           </div>
           {monthly.length === 0 ? (
-            <p style={{ marginTop: 18, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+            <p className="mt-[18px] text-[13px] text-ink-3 italic">
               No booking history yet.
             </p>
           ) : (
             <>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-end",
-                  gap: 8,
-                  marginTop: 18,
-                  height: 140,
-                }}
-              >
+              <div className="flex items-end gap-2 mt-[18px] h-[140px]">
                 {monthly.map((row, i) => {
                   const h = monthlyMax > 0 ? (Number(row.amountIdrMinor) / monthlyMax) * 120 : 0;
                   return (
                     <div
                       key={row.monthIso}
-                      style={{
-                        flex: 1,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
+                      className="flex-1 flex flex-col items-center gap-1.5"
                     >
-                      <span
-                        className="num"
-                        style={{ fontSize: 10, color: "var(--ink-3)" }}
-                      >
+                      <span className="num text-[10px] text-ink-3">
                         {fmtIdrB(row.amountIdrMinor)}
                       </span>
                       <div
-                        style={{
-                          width: "100%",
-                          height: `${Math.max(h, 2)}px`,
-                          background:
-                            i === monthly.length - 1
-                              ? "var(--terra)"
-                              : "var(--forest)",
-                          borderRadius: "4px 4px 0 0",
-                        }}
+                        className={
+                          "w-full rounded-t-[4px] " +
+                          (i === monthly.length - 1 ? "bg-terra" : "bg-forest")
+                        }
+                        style={{ height: `${Math.max(h, 2)}px` }}
                       />
-                      <span
-                        className="mono"
-                        style={{ fontSize: 10, color: "var(--ink-4)" }}
-                      >
+                      <span className="mono text-[10px] text-ink-4">
                         {row.monthLabel}
                       </span>
                     </div>
                   );
                 })}
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginTop: 12,
-                  fontSize: 11,
-                  color: "var(--ink-3)",
-                }}
-              >
+              <div className="flex justify-between mt-3 text-[11px] text-ink-3">
                 <span>
                   6-month total:{" "}
-                  <span className="num" style={{ color: "var(--ink)" }}>
+                  <span className="num text-ink">
                     IDR {fmtIdrB(sixMonthTotalMinor)}
                   </span>
                 </span>
@@ -431,26 +305,17 @@ export default async function DashboardOverviewPage() {
           )}
         </Card>
 
-        <Card style={{ padding: 20 }}>
-          <h3
-            style={{
-              margin: 0,
-              fontFamily: "var(--font-newsreader), serif",
-              fontSize: 18,
-              fontWeight: 400,
-            }}
-          >
-            Owners · YTD payouts
-          </h3>
-          <div className="label" style={{ marginTop: 4 }}>
+        <Card className="p-5">
+          <h3 className="display-sm">Owners · YTD payouts</h3>
+          <div className="label mt-1">
             USD-equivalent · top {owners.length}
           </div>
           {owners.length === 0 ? (
-            <p style={{ marginTop: 14, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+            <p className="mt-3.5 text-[13px] text-ink-3 italic">
               No owner payouts yet.
             </p>
           ) : (
-            <ul className="clean" style={{ marginTop: 14 }}>
+            <ul className="clean mt-3.5">
               {owners.map((o) => {
                 const initials = o.name
                   .split(/\s+/)
@@ -460,45 +325,24 @@ export default async function DashboardOverviewPage() {
                   .join("")
                   .toUpperCase();
                 return (
-                  <li key={o.ownerId} style={{ padding: "10px 0" }}>
+                  <li key={o.ownerId} className="py-2.5">
                     <span
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 999,
-                        background:
-                          "linear-gradient(135deg, var(--gold-soft), var(--terra))",
-                        color: "var(--cream-warm)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 11,
-                        fontWeight: 500,
-                      }}
+                      className="w-8 h-8 rounded-full text-cream-warm flex items-center justify-center text-[11px] font-medium bg-[linear-gradient(135deg,var(--gold-soft),var(--terra))]"
                     >
                       {initials}
                     </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>{o.name}</div>
-                      <div
-                        className="mono"
-                        style={{ fontSize: 10, color: "var(--ink-4)" }}
-                      >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-medium">{o.name}</div>
+                      <div className="mono text-[10px] text-ink-4">
                         {o.villasCount} {o.villasCount === 1 ? "villa" : "villas"}
                         {o.projectName ? ` · ${o.projectName.replace(/^\[DEMO\] /, "")}` : ""}
                       </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div
-                        className="num"
-                        style={{ fontSize: 13, color: "var(--terra)" }}
-                      >
+                    <div className="text-right">
+                      <div className="num text-[13px] text-terra">
                         {fmtUsdK(o.payoutUsdMinor)}
                       </div>
-                      <div
-                        className="mono"
-                        style={{ fontSize: 10, color: "var(--ink-3)" }}
-                      >
+                      <div className="mono text-[10px] text-ink-3">
                         {o.yieldPct}% net
                       </div>
                     </div>
@@ -511,14 +355,7 @@ export default async function DashboardOverviewPage() {
       </div>
 
       {/* Operational health — 4-up KPIs */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 12,
-          marginBottom: 14,
-        }}
-      >
+      <div className="grid grid-cols-4 gap-3 mb-3.5">
         <Kpi label="Open maintenance" value="—" sub="ops cabinet · live" />
         <Kpi
           label="Upcoming check-ins"
@@ -530,35 +367,18 @@ export default async function DashboardOverviewPage() {
       </div>
 
       {/* Portfolio table — live */}
-      <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div
-          style={{
-            padding: "16px 20px",
-            display: "flex",
-            alignItems: "center",
-            borderBottom: "1px solid var(--line-soft)",
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontFamily: "var(--font-newsreader), serif",
-              fontSize: 22,
-              fontWeight: 400,
-            }}
-          >
+      <Card padding="none" overflowHidden>
+        <div className="px-5 py-4 flex items-center border-b border-line-soft">
+          <h2 className="display-md">
             Portfolio · {projectCount} {projectCount === 1 ? "project" : "projects"}
           </h2>
-          <span
-            className="mono"
-            style={{ marginLeft: "auto", fontSize: 11, color: "var(--ink-3)" }}
-          >
+          <span className="mono ml-auto text-[11px] text-ink-3">
             {villaCount} VILLAS · {projectCount}{" "}
             {projectCount === 1 ? "PROJECT" : "PROJECTS"}
           </span>
         </div>
         {portfolio.length === 0 ? (
-          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
             No villa-style projects yet. Seed a project + villas to populate.
           </p>
         ) : (
@@ -578,23 +398,18 @@ export default async function DashboardOverviewPage() {
               {portfolio.map((p) => (
                 <tr key={p.projectId}>
                   <td>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-newsreader), serif",
-                        fontSize: 15,
-                      }}
-                    >
+                    <span className="serif text-[15px]">
                       {p.projectName.replace(/^\[DEMO\] /, "")}
                     </span>
                   </td>
-                  <td style={{ color: "var(--ink-3)" }}>{p.location}</td>
+                  <td className="text-ink-3">{p.location}</td>
                   <td className="num">{p.villasCount}</td>
                   <td>
                     <HandoffBadge>{p.managementModel}</HandoffBadge>
                   </td>
                   <td className="num">{p.occYtdPct}%</td>
                   <td className="num">{fmtIdrM(p.adrIdrMinor)}</td>
-                  <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>
+                  <td className="num text-ink font-medium">
                     IDR {fmtIdrB(p.ytdRevenueIdrMinor)}
                   </td>
                 </tr>
@@ -606,33 +421,18 @@ export default async function DashboardOverviewPage() {
 
       {/* Statement nudge — empty state until STATEMENT-1 ships the schema */}
       {nudge ? (
-        <div
-          style={{
-            marginTop: 24,
-            padding: "14px 20px",
-            border: "1px dashed var(--line)",
-            borderRadius: 12,
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            fontSize: 13,
-            color: "var(--ink-3)",
-          }}
-        >
-          <span className="badge badge-gold" style={{ fontSize: 9 }}>
-            NEXT
-          </span>
+        <div className="mt-6 px-5 py-3.5 border border-dashed border-line rounded-xl flex items-center gap-3.5 text-[13px] text-ink-3">
+          <span className="badge badge-gold text-[9px]">NEXT</span>
           <span>
             Owner statement for{" "}
-            <strong style={{ color: "var(--ink)" }}>
+            <strong className="text-ink">
               {nudge.ownerName} · {nudge.villaCode} · {nudge.monthLabel}
             </strong>{" "}
             awaits your sign-off before auto-sending on {nudge.autoSendAt}.
           </span>
           <Link
             href={`/dashboard/finance/statements/${nudge.statementId}`}
-            className="btn btn-terra btn-sm"
-            style={{ marginLeft: "auto" }}
+            className="btn btn-terra btn-sm ml-auto"
           >
             Open statement →
           </Link>

@@ -231,6 +231,7 @@
      --color-ink-deep / --color-ink-warm have no Layer B equivalent. */
   --color-ink-2:           var(--ink-2, oklch(0.420 0.015 72));
   --color-ink-3:           var(--ink-3, oklch(0.620 0.013 75));
+  --color-ink-4:           var(--ink-4, oklch(0.780 0.010 78));
   --color-ink-deep:        oklch(0.180 0.012 65);
   --color-ink-warm:        oklch(0.260 0.018 65);
 

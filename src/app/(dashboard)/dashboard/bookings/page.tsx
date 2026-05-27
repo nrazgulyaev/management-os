@@ -105,14 +105,26 @@ export default async function BookingsPage() {
             {list.length === 0
               ? "No bookings yet."
               : `${list.length} ${list.length === 1 ? "booking" : "bookings"}`}{" "}
-            <em style={{ color: "var(--terra)", fontStyle: "italic" }}>in motion</em>
+            <em>in motion</em>
           </>
         }
         subtitle="One source of truth for every channel. Live rows from your bookings table — channel sync and per-villa rate plans coming soon."
         actions={
           <>
-            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Import iCal</button>
-            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Export CSV</button>
+            <button
+              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Import iCal
+            </button>
+            <button
+              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+              disabled
+              title="Coming soon"
+            >
+              Export CSV
+            </button>
             <Link href="/dashboard/bookings/new" className="btn btn-primary btn-sm">
               New booking +
             </Link>
@@ -120,7 +132,7 @@ export default async function BookingsPage() {
         }
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="grid grid-cols-5 gap-3 mb-[18px]">
         <Kpi
           label="Bookings · MTD"
           value={kpis && kpis.bookingsMtd > 0 ? String(kpis.bookingsMtd) : "—"}
@@ -150,27 +162,41 @@ export default async function BookingsPage() {
       </div>
 
       {/* Filter row (static pills until filter state wires up) */}
-      <div style={{ display: "flex", gap: 14, marginBottom: 14, alignItems: "center", padding: "10px 0" }}>
+      <div className="flex gap-3.5 mb-3.5 items-center py-2.5">
         <div className="label">FILTER</div>
         {["All", "Confirmed", "In-house", "Checked out", "Cancelled"].map((t, i) => (
           <button
             key={t}
-            className={"btn " + (i === 0 ? "btn-primary" : "btn-secondary")}
-            style={{ padding: "4px 12px", fontSize: 12 }}
+            className={
+              "btn px-3 py-1 text-[12px] " +
+              (i === 0 ? "btn-primary" : "btn-secondary")
+            }
           >
             {t}
           </button>
         ))}
-        <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Project</button>
-          <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Channel</button>
+        <span className="ml-auto flex gap-2">
+          <button
+            className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            Project
+          </button>
+          <button
+            className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            Channel
+          </button>
         </span>
       </div>
 
       {/* Bookings table — live */}
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
         {list.length === 0 ? (
-          <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
             No bookings to show. Create your first booking to populate the table.
           </p>
         ) : (
@@ -192,32 +218,18 @@ export default async function BookingsPage() {
                 const badge = STATE_BADGE[b.status] ?? { label: b.status };
                 return (
                   <tr key={b.id}>
-                    <td className="mono" style={{ fontSize: 11, color: "var(--ink-3)" }}>
-                      {b.bookingCode}
-                    </td>
+                    <td className="mono text-[11px] text-ink-3">{b.bookingCode}</td>
                     <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span
-                          style={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: 999,
-                            background: "var(--cream-deep)",
-                            border: "1px solid var(--line)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 10,
-                          }}
-                        >
+                      <div className="flex items-center gap-2">
+                        <span className="w-[26px] h-[26px] rounded-full bg-muted border border-line flex items-center justify-center text-[10px]">
                           {initials(b.guestName)}
                         </span>
                         <span>{b.guestName ?? "Guest"}</span>
                       </div>
                     </td>
                     <td className="mono">{b.villaCode}</td>
-                    <td style={{ color: "var(--ink-3)" }}>{b.channelName ?? "Direct"}</td>
-                    <td className="mono" style={{ fontSize: 12 }}>
+                    <td className="text-ink-3">{b.channelName ?? "Direct"}</td>
+                    <td className="mono text-[12px]">
                       {fmtDateShort(b.checkIn)} → {fmtDateShort(b.checkOut)}
                     </td>
                     <td className="num">{b.nights}</td>
@@ -236,31 +248,28 @@ export default async function BookingsPage() {
       {/* 14-night calendar timeline — live */}
       <h2
         id="calendar"
-        className="display"
-        style={{ fontSize: 30, fontWeight: 400, marginBottom: 14, marginTop: 32 }}
+        className="display text-[30px] font-normal mb-3.5 mt-8"
       >
         Calendar · next 14 nights{" "}
-        <em style={{ fontSize: 18, color: "var(--terra)", fontStyle: "italic" }}>per villa</em>
+        <em className="text-[18px]">per villa</em>
       </h2>
-      <Card style={{ padding: 20, marginBottom: 18, overflow: "auto" }}>
+      <Card className="p-5 mb-[18px] overflow-auto">
         {timeline.length === 0 ? (
-          <p style={{ fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+          <p className="text-[13px] text-ink-3 italic m-0">
             No villas configured yet.
           </p>
         ) : (
           <>
-            <div style={{ minWidth: 1100, display: "grid", gridTemplateColumns: "120px 1fr" }}>
+            <div className="min-w-[1100px] grid grid-cols-[120px_1fr]">
               <div />
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(14, 1fr)", gap: 2 }}>
+              <div className="grid grid-cols-14 gap-0.5">
                 {dayLabels.map((d, i) => (
                   <div
                     key={i}
-                    className="mono"
-                    style={{
-                      fontSize: 10,
-                      textAlign: "center",
-                      color: d.highlighted ? "var(--terra)" : "var(--ink-3)",
-                    }}
+                    className={
+                      "mono text-[10px] text-center " +
+                      (d.highlighted ? "text-terra" : "text-ink-3")
+                    }
                   >
                     {d.day}
                   </div>
@@ -270,35 +279,13 @@ export default async function BookingsPage() {
             {timeline.map((v) => (
               <div
                 key={v.villaId}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "120px 1fr",
-                  marginTop: 6,
-                  alignItems: "center",
-                }}
+                className="grid grid-cols-[120px_1fr] mt-1.5 items-center"
               >
-                <div className="mono" style={{ fontSize: 12, color: "var(--ink-3)" }}>
-                  {v.villaCode}
-                </div>
-                <div
-                  style={{
-                    position: "relative",
-                    height: 24,
-                    background: "var(--cream-warm)",
-                    borderRadius: 6,
-                    border: "1px solid var(--line-soft)",
-                  }}
-                >
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      display: "grid",
-                      gridTemplateColumns: "repeat(14, 1fr)",
-                    }}
-                  >
+                <div className="mono text-[12px] text-ink-3">{v.villaCode}</div>
+                <div className="relative h-6 bg-cream-warm rounded-md border border-line-soft">
+                  <div className="absolute inset-0 grid grid-cols-14">
                     {Array.from({ length: 13 }).map((_, i) => (
-                      <div key={i} style={{ borderRight: "1px dashed var(--line-soft)" }} />
+                      <div key={i} className="border-r border-dashed border-line-soft" />
                     ))}
                   </div>
                   {v.blocks.map((b, i) => {
@@ -319,21 +306,11 @@ export default async function BookingsPage() {
                       <div
                         key={b.bookingId}
                         title={`${b.guestName ?? "Guest"} · ${b.bookingCode}`}
+                        className="absolute top-[3px] h-[18px] rounded text-cream-warm text-[11px] flex items-center overflow-hidden whitespace-nowrap px-2"
                         style={{
-                          position: "absolute",
-                          top: 3,
-                          height: 18,
                           left: `${(ciDay / 14) * 100}%`,
                           width: `${((coDay - ciDay) / 14) * 100}%`,
                           background: BLOCK_COLORS[i % BLOCK_COLORS.length],
-                          borderRadius: 4,
-                          padding: "0 8px",
-                          color: "var(--cream-warm)",
-                          fontSize: 11,
-                          display: "flex",
-                          alignItems: "center",
-                          overflow: "hidden",
-                          whiteSpace: "nowrap",
                         }}
                       >
                         {b.guestName ?? b.bookingCode}
@@ -350,24 +327,21 @@ export default async function BookingsPage() {
       {/* 2-up: Rate plans + Channel sync */}
       <div
         id="rate-plans"
-        style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 14, marginBottom: 18 }}
+        className="grid grid-cols-[1.2fr_1fr] gap-3.5 mb-[18px]"
       >
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <div
-            style={{
-              padding: "14px 18px",
-              borderBottom: "1px solid var(--line-soft)",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <h3 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 18, fontWeight: 400 }}>
-              Rate plans · active
-            </h3>
-            <button className="btn btn-secondary btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed", marginLeft: "auto" }}>+ New plan</button>
+        <Card padding="none" overflowHidden>
+          <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
+            <h3 className="display-sm">Rate plans · active</h3>
+            <button
+              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed ml-auto"
+              disabled
+              title="Coming soon"
+            >
+              + New plan
+            </button>
           </div>
           {ratePlans.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            <p className="p-5 text-[13px] text-ink-3 italic m-0">
               No rate plans configured. Dynamic-pricing schema lands in DEMO-3.
             </p>
           ) : (
@@ -383,14 +357,12 @@ export default async function BookingsPage() {
               <tbody>
                 {ratePlans.map((p) => (
                   <tr key={p.planName}>
-                    <td style={{ fontFamily: "var(--font-newsreader), serif", fontSize: 14 }}>
-                      {p.planName}
-                    </td>
-                    <td style={{ fontSize: 12, color: "var(--ink-3)" }}>{p.channels.join(", ")}</td>
-                    <td className="mono" style={{ fontSize: 12 }}>
+                    <td className="serif text-[14px]">{p.planName}</td>
+                    <td className="text-[12px] text-ink-3">{p.channels.join(", ")}</td>
+                    <td className="mono text-[12px]">
                       {fmtUsdMinor(p.basePriceUsdMinor)}/night
                     </td>
-                    <td style={{ fontSize: 12, color: "var(--ink-3)" }}>{p.multipliers}</td>
+                    <td className="text-[12px] text-ink-3">{p.multipliers}</td>
                   </tr>
                 ))}
               </tbody>
@@ -398,41 +370,25 @@ export default async function BookingsPage() {
           )}
         </Card>
 
-        <Card id="channels" style={{ padding: 0, overflow: "hidden" }}>
-          <div
-            style={{
-              padding: "14px 18px",
-              borderBottom: "1px solid var(--line-soft)",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <h3 style={{ margin: 0, fontFamily: "var(--font-newsreader), serif", fontSize: 18, fontWeight: 400 }}>
-              Channels
-            </h3>
-            <span className="mono" style={{ marginLeft: "auto", fontSize: 10, color: "var(--ink-3)" }}>
+        <Card id="channels" padding="none" overflowHidden>
+          <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
+            <h3 className="display-sm">Channels</h3>
+            <span className="mono ml-auto text-[10px] text-ink-3">
               SYNC NOT CONFIGURED
             </span>
           </div>
           {channels.length === 0 ? (
-            <p style={{ padding: 20, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>
+            <p className="p-5 text-[13px] text-ink-3 italic m-0">
               No channels yet.
             </p>
           ) : (
-            <ul className="clean" style={{ padding: "4px 0" }}>
+            <ul className="clean py-1">
               {channels.map((c) => (
-                <li key={c.channelKey} style={{ padding: "10px 18px" }}>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: 999,
-                      background: "var(--ink-3)",
-                    }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{c.channelName}</div>
-                    <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-4)" }}>
+                <li key={c.channelKey} className="px-[18px] py-2.5">
+                  <span className="w-2 h-2 rounded-full bg-ink-3" />
+                  <div className="flex-1">
+                    <div className="text-[13px] font-medium">{c.channelName}</div>
+                    <div className="mono text-[10.5px] text-ink-4">
                       sync schema lands in DEMO-3
                     </div>
                   </div>
@@ -448,14 +404,9 @@ export default async function BookingsPage() {
       {conflicts.length > 0 && (
         <Card
           id="sync"
-          style={{
-            padding: 20,
-            marginBottom: 18,
-            background: "var(--cream-warm)",
-            border: "1px dashed var(--terra)",
-          }}
+          className="p-5 mb-[18px] bg-cream-warm border border-dashed border-terra"
         >
-          <div className="label" style={{ color: "var(--terra)" }}>
+          <div className="label text-terra">
             {conflicts.length} channel {conflicts.length === 1 ? "conflict" : "conflicts"}
           </div>
         </Card>
