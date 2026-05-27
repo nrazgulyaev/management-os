@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Kpi,
   SectionHeading,
@@ -137,13 +138,18 @@ export default async function ProcurementManagerPage() {
         subtitle="Auto-PR from BOQ deviations. Side-by-side vendor comparison with AI scoring. Approval thresholds per role. Per-line receipts at warehouse."
         actions={
           <>
-            <button
-              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
+            <Link
+              href="/development-os/vendors"
+              className="btn btn-dark btn-sm"
             >
-              Vendor scorecards
-            </button>
+              Vendor directory
+            </Link>
+            <Link
+              href="/development-os/cabinets/procurement-manager/pos"
+              className="btn btn-dark btn-sm"
+            >
+              Purchase orders
+            </Link>
             <button
               className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
               disabled
