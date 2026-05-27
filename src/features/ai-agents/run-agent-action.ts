@@ -25,7 +25,10 @@ import { requireOrgId } from "@/features/auth/require-org";
 import { getAgentEligibility } from "./agent-config-actions";
 import { RUN_NOW_AGENTS, type RunNowAgentKey } from "./run-agent-config";
 
-export { RUN_NOW_AGENTS, type RunNowAgentKey };
+// Re-export removed (was: `export { RUN_NOW_AGENTS, type RunNowAgentKey }`).
+// Next 15's "use server" enforcement rejects non-function exports at module
+// load. The re-export was dead code anyway — every consumer imports these
+// symbols directly from ./run-agent-config. Error digest 3894952268.
 
 const inputSchema = z.object({
   agentKey: z.enum(
