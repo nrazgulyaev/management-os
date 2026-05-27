@@ -7,6 +7,7 @@ import {
 } from "@/components/dashboard/primitives";
 import { safeQuery } from "@/lib/development/safe-query";
 import { getCfoKpis } from "@/lib/development/server/cabinets/cfo-cabinet-queries";
+import { WaterfallChart } from "@/components/cfo/waterfall-chart";
 
 /**
  * Dev OS CFO summary cabinet. KPI strip is live (cash on hand,
@@ -104,6 +105,40 @@ export default async function DevCfoPage() {
           tone={kpis && kpis.forecastBurn30dMinor > 0 ? "success" : undefined}
         />
       </div>
+
+      {/* PR 2.2 dev-02 — consolidated console: waterfall + sub-route nav */}
+      <Card style={{ padding: 20, marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 14 }}>
+          <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+            Capital waterfall · YTD
+          </h3>
+          <span className="label">USD · cost basis</span>
+          <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <Link href="/development-os/cfo/cashflow" className="btn btn-secondary btn-sm">
+              Cashflow forecast →
+            </Link>
+            <Link href="/development-os/cfo/capital-calls" className="btn btn-secondary btn-sm">
+              Capital calls →
+            </Link>
+            <Link href="/development-os/cfo/distributions" className="btn btn-secondary btn-sm">
+              Distributions →
+            </Link>
+          </span>
+        </div>
+        <WaterfallChart
+          rows={[
+            { label: "Commitments", usdMinor: 12_400_000_00n, tone: "accent" },
+            { label: "Called to date", usdMinor: 8_200_000_00n, tone: "accent" },
+            { label: "Land + acquisition", usdMinor: 3_100_000_00n, tone: "ink" },
+            { label: "Hard costs", usdMinor: 3_400_000_00n, tone: "ink" },
+            { label: "Soft costs", usdMinor: 820_000_00n, tone: "ink" },
+            { label: "Financing", usdMinor: 150_000_00n, tone: "ink" },
+            { label: "Sales + marketing", usdMinor: 240_000_00n, tone: "ink" },
+            { label: "Reserved (contingency)", usdMinor: 280_000_00n, tone: "dashed" },
+            { label: "Cash on hand", usdMinor: 210_000_00n, tone: "ok" },
+          ]}
+        />
+      </Card>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 18 }}>
         <Card style={{ padding: 20 }}>
