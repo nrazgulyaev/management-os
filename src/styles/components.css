@@ -3839,3 +3839,217 @@ ul.clean li:last-child {
   color: var(--ink-3);
   line-height: 1.5;
 }
+
+/* =============================================================
+   Phase 2.3 owner-02 — Owner statements primitives.
+
+   .net-hero            — 42px display net-to-you card
+   .statement-row       — list row (pending elevated · gold border)
+   .owner-status        — 6-state pill (pending/viewed/acked/disputed/auto/revised)
+   .why-link            — inline "why this number?" link
+   .why-drawer          — right-side explainer drawer
+   ============================================================= */
+
+/* ---------- NetHero ---------- */
+[data-product] .net-hero {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 28px 30px;
+  background: var(--ink);
+  color: var(--cream-warm, #fff);
+  border-radius: 24px;
+}
+[data-product] .net-hero .nh-period {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+}
+[data-product] .net-hero .nh-label {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  margin-top: 8px;
+}
+[data-product] .net-hero .nh-value {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 48px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--cream-warm, #fff);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+[data-product] .net-hero .nh-wire {
+  font-size: 13.5px;
+  color: rgba(255,255,255,0.7);
+  margin-top: 12px;
+}
+
+/* ---------- OwnerStatusPill ---------- */
+[data-product] .owner-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid transparent;
+}
+[data-product] .owner-status .dot { width: 6px; height: 6px; border-radius: 999px; display: inline-block; }
+[data-product] .owner-status.pending {
+  background: color-mix(in oklab, var(--gold, var(--warn)) 18%, transparent);
+  border-color: color-mix(in oklab, var(--gold, var(--warn)) 45%, transparent);
+  color: var(--gold, var(--warn));
+}
+[data-product] .owner-status.pending .dot { background: var(--gold, var(--warn)); }
+[data-product] .owner-status.viewed {
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+[data-product] .owner-status.viewed .dot { background: var(--ink-3); }
+[data-product] .owner-status.acknowledged {
+  background: color-mix(in oklab, var(--ok) 14%, transparent);
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+  color: var(--ok);
+}
+[data-product] .owner-status.acknowledged .dot { background: var(--ok); }
+[data-product] .owner-status.disputed {
+  background: color-mix(in oklab, var(--danger) 14%, transparent);
+  border-color: color-mix(in oklab, var(--danger) 35%, transparent);
+  color: var(--danger);
+}
+[data-product] .owner-status.disputed .dot { background: var(--danger); }
+[data-product] .owner-status.auto_acknowledged {
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+  font-style: italic;
+}
+[data-product] .owner-status.auto_acknowledged .dot { background: var(--ink-3); }
+[data-product] .owner-status.revised {
+  background: color-mix(in oklab, var(--terra) 14%, transparent);
+  color: var(--terra);
+}
+[data-product] .owner-status.revised .dot { background: var(--terra); }
+
+/* ---------- StatementListRow ---------- */
+[data-product] .statement-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.2fr;
+  gap: 18px;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+[data-product] .statement-row:hover {
+  border-color: var(--ink-2);
+  transform: translateY(-1px);
+}
+[data-product] .statement-row.state-pending {
+  border-color: color-mix(in oklab, var(--gold, var(--warn)) 45%, transparent);
+  box-shadow: 0 2px 6px color-mix(in oklab, var(--gold, var(--warn)) 8%, transparent);
+}
+[data-product] .statement-row .sr-period {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 18px;
+  color: var(--ink);
+}
+[data-product] .statement-row .sr-code {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+[data-product] .statement-row .sr-right {
+  display: flex; flex-direction: column; align-items: flex-end;
+}
+[data-product] .statement-row .sr-amount {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 20px;
+  color: var(--ink);
+}
+[data-product] .statement-row .sr-hint {
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+/* ---------- WhyLink + WhyDrawer ---------- */
+[data-product] .why-link {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+[data-product] .why-link:hover { color: var(--ink); }
+
+.why-drawer-overlay {
+  position: fixed; inset: 0;
+  z-index: 60;
+  background: color-mix(in srgb, var(--ink, #14201C) 35%, transparent);
+}
+.why-drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 420px; max-width: calc(100vw - 32px);
+  z-index: 61;
+  background: var(--paper, #FFFCF7);
+  border-left: 1px solid var(--line);
+  padding: 28px 28px 24px;
+  display: flex; flex-direction: column; gap: 14px;
+  overflow-y: auto;
+}
+.why-drawer h3 {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--ink, #14201C);
+}
+.why-drawer .why-drawer-lede {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--ink-2, #2A3934);
+  line-height: 1.55;
+}
+.why-drawer .why-drawer-body p {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  color: var(--ink-2, #2A3934);
+  line-height: 1.6;
+}
+.why-drawer .why-drawer-example {
+  background: var(--cream-warm, #FAF7F1);
+  border: 1px solid var(--line-soft, #E5DECC);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--ink-2, #2A3934);
+  line-height: 1.55;
+}
+.why-drawer .why-drawer-example .ft {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3, #4A5A55);
+  margin-bottom: 4px;
+}
+.why-drawer .why-drawer-close { margin-top: auto; align-self: flex-start; }
