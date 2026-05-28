@@ -5,6 +5,7 @@ import {
   timestamp,
   integer,
   index,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
 
@@ -37,11 +38,26 @@ export const documents = pgTable(
     }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    // Phase 2 data-wiring PR 3 — owner-portal metadata. The
+    // audit also proposed `owner_id` + `visible_to_owner`
+    // columns, but `entityType='owner' + entityId` and
+    // `visibility='owner'` already cover those — keeping the
+    // existing pattern + adding only the genuinely-new
+    // signing / expiry columns.
+    signedAt: timestamp("signed_at", { withTimezone: true }),
+    /** Content hash captured at sign time. */
+    signedHash: text("signed_hash"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** Convenience flag — denormalises visibility for the owner-portal documents
+     *  cabinet query. True ⇔ visibility ∈ ('owner','public'). Backfill defaults
+     *  via the migration. */
+    visibleToOwner: boolean("visible_to_owner").notNull().default(false),
   },
   (t) => [
     index("documents_entity_idx").on(t.entityType, t.entityId),
     index("documents_type_idx").on(t.documentType),
     index("documents_status_idx").on(t.status),
+    index("documents_owner_kind_created_idx").on(t.entityType, t.entityId, t.documentType, t.createdAt),
   ],
 );
 

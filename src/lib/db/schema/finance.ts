@@ -19,6 +19,7 @@ import { bookings } from "./bookings";
 import { documents } from "./documents";
 import { payoutMethods } from "./ownership";
 import { organizations } from "./saas";
+import { ownerThreads } from "./owner-threads";
 
 /**
  * Finance domain — investor-grade ledger.
@@ -366,9 +367,11 @@ export const ownerStatements = pgTable(
     autoAckAt: timestamp("auto_ack_at", { withTimezone: true }),
     /** Enum: line_amount | line_missing | line_extra | math_error | other. */
     disputeReasonKind: text("dispute_reason_kind"),
-    // FK to owner_threads.id is backfilled in PR 3 once that table
-    // exists. Column is nullable + unreferenced until then.
-    disputeThreadId: uuid("dispute_thread_id"),
+    // Phase 2 PR 3 — FK to ownerThreads.id wired now that the
+    // table exists. Migration 0114 adds the constraint at the DB level.
+    disputeThreadId: uuid("dispute_thread_id").references(() => ownerThreads.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

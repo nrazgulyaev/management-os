@@ -93,3 +93,6 @@ export * from "./boq-revisions";
 export * from "./boq-actuals";
 export * from "./variance-reviews";
 export * from "./vendor-scores";
+// Phase 2 data-wiring PR 3 (Owner slice).
+export * from "./owner-threads";
+export * from "./owner-notification-prefs";

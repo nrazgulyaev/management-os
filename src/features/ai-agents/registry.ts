@@ -34,6 +34,10 @@ export const MGMT_AGENT_CODES = [
   // already exist under src/features/ai-agents/{statements,owners}/.
   "statement-anomaly-detector",
   "onboarding-doc-checker",
+  // Phase 2 data-wiring PR 3 — event-triggered on owner_messages insert
+  // where actor_kind='owner'. Code stub at
+  // src/features/ai-agents/owners/owner-concierge.ts.
+  "owner-concierge",
 ] as const;
 
 export type MgmtAgentCode = (typeof MGMT_AGENT_CODES)[number];
