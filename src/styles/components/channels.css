@@ -1,0 +1,167 @@
+/* ---------------------------------------------------------------
+ * Phase 2.4 mgmt-01 — Channels cabinet primitives
+ * (connect-wizard, listing-matcher — beyond the ChannelGrid in
+ *  p24-primitives.css)
+ * --------------------------------------------------------------- */
+
+[data-product="management"] .connect-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+[data-product="management"] .connect-wizard .cw-steps {
+  display: flex;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: var(--cream-warm, var(--bg-2));
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  align-self: flex-start;
+}
+[data-product="management"] .connect-wizard .cw-steps li {
+  padding: 8px 14px;
+  border-right: 1px solid var(--line);
+}
+[data-product="management"] .connect-wizard .cw-steps li:last-child { border-right: 0; }
+[data-product="management"] .connect-wizard .cw-steps li.is-on {
+  background: var(--ink);
+  color: var(--inverted-fg);
+}
+
+[data-product="management"] .cw-step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+[data-product="management"] .cw-step-title {
+  font-family: var(--display-font);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--ink);
+}
+[data-product="management"] .cw-help {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+[data-product="management"] .cw-channels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+[data-product="management"] .cw-channel-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--paper);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+[data-product="management"] .cw-channel-btn.is-on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--paper));
+}
+[data-product="management"] .cw-channel-btn.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+[data-product="management"] .cw-channel-name {
+  font-size: 15px;
+  color: var(--ink);
+}
+[data-product="management"] .cw-channel-auth {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+[data-product="management"] .cw-channel-tag {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+[data-product="management"] .cw-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft, var(--line));
+}
+
+[data-product="management"] .listing-matcher {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+[data-product="management"] .lm-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-card);
+}
+[data-product="management"] .lm-bucket {
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--paper);
+  overflow: hidden;
+}
+[data-product="management"] .lm-bucket-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--cream-warm, var(--bg-2));
+  border-bottom: 1px solid var(--line);
+}
+[data-product="management"] .lm-bucket-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+[data-product="management"] .lm-matched .lm-bucket-label   { color: var(--ok); }
+[data-product="management"] .lm-ambiguous .lm-bucket-label { color: var(--warn); }
+[data-product="management"] .lm-unmatched .lm-bucket-label { color: var(--danger); }
+[data-product="management"] .lm-bucket-count {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product="management"] .lm-row {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product="management"] .lm-row:last-child { border-bottom: 0; }
+[data-product="management"] .lm-listing-name {
+  font-size: 13px;
+  color: var(--ink);
+}
+[data-product="management"] .lm-listing-id {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+@media (max-width: 700px) {
+  [data-product="management"] .cw-channels { grid-template-columns: 1fr; }
+  [data-product="management"] .lm-row { grid-template-columns: 1fr; }
+}
