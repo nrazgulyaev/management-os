@@ -3399,7 +3399,7 @@ BEGIN
     FROM guest_service_fulfilments f
     JOIN guest_service_orders o ON o.id = f.order_id
     WHERE f.id = 'aa000003-0000-0000-0000-000000000004'
-    ON CONFLICT (fulfilment_id, stay_token_id) DO NOTHING;
+    ON CONFLICT (id) DO NOTHING;
     INSERT INTO guest_service_ratings
       (id, order_id, fulfilment_id, booking_id, vendor_id, rating, comment, sentiment, status)
     SELECT
@@ -4102,7 +4102,7 @@ BEGIN
      208000, 170560, 'USD',
      true, NULL, NULL,
      true, now())
-  ON CONFLICT (owner_id, booking_id) WHERE booking_id IS NOT NULL DO NOTHING;
+  ON CONFLICT (id) DO NOTHING;
 
   -- 2) Direct booking confirmed but not yet on a statement (Ahau 02).
   INSERT INTO owner_booking_summaries
@@ -4127,7 +4127,7 @@ BEGIN
      532000, NULL, 'USD',
      false, NULL, NULL,
      true, now())
-  ON CONFLICT (owner_id, booking_id) WHERE booking_id IS NOT NULL DO NOTHING;
+  ON CONFLICT (id) DO NOTHING;
 
   -- 3) OTA (Airbnb) confirmed, estimated only.
   INSERT INTO owner_booking_summaries
@@ -4152,7 +4152,7 @@ BEGIN
      224000, NULL, 'USD',
      false, NULL, NULL,
      true, now())
-  ON CONFLICT (owner_id, booking_id) WHERE booking_id IS NOT NULL DO NOTHING;
+  ON CONFLICT (id) DO NOTHING;
 
   -- 4) Owner stay (Ahau 02).
   INSERT INTO owner_booking_summaries
@@ -4177,7 +4177,7 @@ BEGIN
      NULL, NULL, 'USD',
      false, NULL, NULL,
      true, now())
-  ON CONFLICT (owner_id, booking_id) WHERE booking_id IS NOT NULL DO NOTHING;
+  ON CONFLICT (id) DO NOTHING;
 
   -- 5) Maintenance block (Eternal S5).
   INSERT INTO owner_booking_summaries
@@ -4202,7 +4202,7 @@ BEGIN
      NULL, NULL, NULL,
      false, NULL, NULL,
      true, now())
-  ON CONFLICT (owner_id, booking_id) WHERE booking_id IS NOT NULL DO NOTHING;
+  ON CONFLICT (id) DO NOTHING;
 
   -- Revenue breakdown rows: posted direct booking + service upsell.
   INSERT INTO owner_booking_revenue_breakdowns

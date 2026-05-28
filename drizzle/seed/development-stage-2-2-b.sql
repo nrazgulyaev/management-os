@@ -234,14 +234,14 @@ INSERT INTO pricing_rules (project_id, rule_type, base_price_usd_minor,
   escalation_percent, escalation_frequency, escalation_start_trigger,
   escalation_start_value, ceiling_price_usd_minor, is_active, notes)
 VALUES
-  ('11111111-1111-4111-8111-111111111101', 'time_based',
+  ('1eda0001-0000-0000-0000-000000000001', 'time_based',
     78000000, 1.5000, 'monthly', 'sales_start', '2025-03-15', 110000000, true,
     'Eternal Villas — 1.5%/month from sales start, capped at $1.1M.'),
-  ('11111111-1111-4111-8111-111111111102', 'progress_based',
+  ('1eda0001-0000-0000-0000-000000000002', 'progress_based',
     88000000, 2.0000, 'per_10_progress_pct', 'construction_start',
     '2025-09-22', 130000000, true,
     'Enso Villas — +2% per 10% construction progress.'),
-  ('11111111-1111-4111-8111-111111111103', 'manual',
+  ('1eda0001-0000-0000-0000-000000000003', 'manual',
     52000000, 0.0000, NULL, 'sales_start', NULL, 70000000, true,
     'Ahau Gardens — manual snapshots only until permits clear.')
 ON CONFLICT (project_id) DO UPDATE SET
