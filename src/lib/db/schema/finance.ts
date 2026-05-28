@@ -353,6 +353,22 @@ export const ownerStatements = pgTable(
     sentToEmail: text("sent_to_email"),
     pdfUrl: text("pdf_url"),
     disputeNotes: text("dispute_notes"),
+    // Phase 2 data-wiring PR 1 — owner-side state machine, independent
+    // of mgmt-side `status`. The auto-ack scheduler reads
+    // (owner_state, auto_ack_at) to flip pending → auto_acknowledged
+    // after the TTL.
+    /** Enum: pending | viewed | acknowledged | disputed | auto_acknowledged | superseded. */
+    ownerState: text("owner_state").notNull().default("pending"),
+    ownerViewedAt: timestamp("owner_viewed_at", { withTimezone: true }),
+    ownerAckedAt: timestamp("owner_acked_at", { withTimezone: true }),
+    ownerDisputedAt: timestamp("owner_disputed_at", { withTimezone: true }),
+    /** Populated when statement becomes "ready for owner" so the auto-ack scheduler knows when to fire. */
+    autoAckAt: timestamp("auto_ack_at", { withTimezone: true }),
+    /** Enum: line_amount | line_missing | line_extra | math_error | other. */
+    disputeReasonKind: text("dispute_reason_kind"),
+    // FK to owner_threads.id is backfilled in PR 3 once that table
+    // exists. Column is nullable + unreferenced until then.
+    disputeThreadId: uuid("dispute_thread_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -362,6 +378,7 @@ export const ownerStatements = pgTable(
     index("owner_statements_status_idx").on(t.status),
     index("owner_statements_org_idx").on(t.organizationId),
     index("owner_statements_period_month_idx").on(t.periodMonth),
+    index("owner_statements_owner_state_auto_ack_idx").on(t.ownerState, t.autoAckAt),
   ],
 );
 

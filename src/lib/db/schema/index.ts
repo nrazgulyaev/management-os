@@ -80,3 +80,8 @@ export * from "./payment-processors";
 export * from "./p4-marketing";
 export * from "./attribution";
 export * from "./agents";
+// Phase 2 data-wiring PR 1 (Mgmt slice).
+export * from "./statement-anomalies";
+export * from "./owner-insights";
+export * from "./onboarding-drafts";
+export * from "./sla-breaches";
