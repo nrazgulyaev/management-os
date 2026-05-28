@@ -85,3 +85,11 @@ export * from "./statement-anomalies";
 export * from "./owner-insights";
 export * from "./onboarding-drafts";
 export * from "./sla-breaches";
+// Phase 2 data-wiring PR 2 (Dev slice).
+export * from "./milestones";
+export * from "./rfis";
+export * from "./capital-calls";
+export * from "./boq-revisions";
+export * from "./boq-actuals";
+export * from "./variance-reviews";
+export * from "./vendor-scores";

@@ -17,6 +17,7 @@
  */
 
 import Link from "next/link";
+import { subscriptionUrl } from "@/lib/marketing/cross-product-links";
 import {
   ArrowUpRight,
   Building2,
@@ -137,13 +138,13 @@ export function SalesHub() {
             source of truth — investor-grade trust by default.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
-            <Link
-              href="/signup"
+            <a
+              href={subscriptionUrl("/signup")}
               className="inline-flex items-center gap-2 rounded-3xl bg-ink text-ink-inverse px-6 h-12 text-sm font-medium shadow-soft-card hover:bg-ink/90 transition-colors"
             >
               Start a 14-day free trial
               <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
-            </Link>
+            </a>
             <Link
               href="/contact"
               className="inline-flex items-center gap-2 rounded-3xl bg-surface text-ink border border-line-soft px-6 h-12 text-sm font-medium shadow-soft-card hover:bg-muted transition-colors"
@@ -296,13 +297,13 @@ export function SalesHub() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-              <Link
-                href="/signup"
+              <a
+                href={subscriptionUrl("/signup")}
                 className="inline-flex items-center gap-2 rounded-3xl bg-ink text-ink-inverse px-6 h-12 text-sm font-medium shadow-soft-card hover:bg-ink/90 transition-colors"
               >
                 Start free trial
                 <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
-              </Link>
+              </a>
               <Link
                 href="/pricing"
                 className="inline-flex items-center gap-2 rounded-3xl bg-surface text-ink border border-line-soft px-6 h-12 text-sm font-medium hover:bg-muted transition-colors"

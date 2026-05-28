@@ -23,6 +23,11 @@ import {
   Activity,
   BellRing,
 } from "lucide-react";
+import {
+  developmentUrl,
+  managementUrl,
+  subscriptionUrl,
+} from "@/lib/marketing/cross-product-links";
 
 export interface NavItem {
   href: string;
@@ -44,13 +49,16 @@ export interface NavGroup {
 //   Owner portal / Investor reporting / Guest experience / Operations
 //     stay reachable via the footer's Resources column (lower priority
 //     in the primary nav once the per-product entries take centre stage).
+// Cross-product hrefs are absolute so the nav renders safely from any
+// host without triggering RSC prefetch CORS failures (see
+// `src/lib/marketing/cross-product-links.ts`).
 export const marketingNav: NavItem[] = [
-  { href: "/products/management-os", label: "Management OS" },
-  { href: "/products/development-os", label: "Development OS" },
-  { href: "/pricing/management-os", label: "Pricing" },
-  { href: "/portfolio", label: "Portfolio" },
-  { href: "/case-studies", label: "Case studies" },
-  { href: "/contact", label: "Contact" },
+  { href: managementUrl("/products/management-os"), label: "Management OS" },
+  { href: developmentUrl("/products/development-os"), label: "Development OS" },
+  { href: subscriptionUrl("/pricing/management-os"), label: "Pricing" },
+  { href: subscriptionUrl("/portfolio"), label: "Portfolio" },
+  { href: subscriptionUrl("/case-studies"), label: "Case studies" },
+  { href: subscriptionUrl("/contact"), label: "Contact" },
 ];
 
 export const dashboardNav: NavGroup[] = [

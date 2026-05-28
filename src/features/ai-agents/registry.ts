@@ -47,6 +47,23 @@ export const DEV_AGENT_CODES = [
   "marketing-assistant",
   "executive-business",
   "memory",
+  // Phase 2 data-wiring PR 2 — agents whose code stubs ship under
+  // src/features/ai-agents/{bookings,operations,projects,cfo,boq,vendors}/.
+  // Cron-scheduled (per 02-dev.md):
+  "arrival-prep",                 // hourly
+  "turnover-allocator",           // every 90s
+  "schedule-variance-detector",   // daily 05:30
+  "weekly-report-composer",       // Friday 09:00
+  "cashflow-forecaster",          // daily 04:00 — refreshes monthly_projections JSONB
+  "vendor-score-updater",         // nightly 02:00
+  // Event-triggered (invoked from action code):
+  "rfi-router",                   // on RFI compose
+  "capital-call-drafter",         // when project cash < 14d runway
+  "variance-detector",            // hourly + on actuals write
+  "cost-coder",                   // on invoice upload
+  "cost-anomaly-explainer",       // on variance flag
+  "vendor-matcher",               // on RFQ create + at award time
+  "quote-parser",                 // on PDF upload
 ] as const;
 
 export type DevAgentCode = (typeof DEV_AGENT_CODES)[number];

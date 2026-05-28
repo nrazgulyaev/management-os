@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { marketingNav } from "@/config/navigation";
+import { subscriptionUrl } from "@/lib/marketing/cross-product-links";
 import { cn } from "@/lib/utils";
 
 export function PublicHeader() {
@@ -44,25 +45,31 @@ export function PublicHeader() {
         <Logo />
         <nav className="hidden lg:flex items-center gap-1">
           {marketingNav.map((item) => {
+            const isExternal = /^https?:\/\//.test(item.href);
             const active =
-              item.href === "/"
+              !isExternal &&
+              (item.href === "/"
                 ? pathname === "/"
-                : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "relative px-3 py-2 text-sm transition-colors rounded-sm",
-                  active
-                    ? "text-ink"
-                    : "text-ink-secondary hover:text-ink"
-                )}
-              >
+                : pathname.startsWith(item.href));
+            const className = cn(
+              "relative px-3 py-2 text-sm transition-colors rounded-sm",
+              active ? "text-ink" : "text-ink-secondary hover:text-ink"
+            );
+            const inner = (
+              <>
                 {item.label}
                 {active && (
                   <span className="absolute left-3 right-3 -bottom-[1px] h-px bg-ink" />
                 )}
+              </>
+            );
+            return isExternal ? (
+              <a key={item.href} href={item.href} className={className}>
+                {inner}
+              </a>
+            ) : (
+              <Link key={item.href} href={item.href} className={className}>
+                {inner}
               </Link>
             );
           })}
@@ -72,7 +79,7 @@ export function PublicHeader() {
             <Link href="/login">Sign in</Link>
           </Button>
           <Button asChild size="sm" variant="primary">
-            <Link href="/signup">Get started free</Link>
+            <a href={subscriptionUrl("/signup")}>Get started free</a>
           </Button>
         </div>
         <button
@@ -86,21 +93,25 @@ export function PublicHeader() {
       {open && (
         <div className="lg:hidden border-t border-line-soft bg-canvas">
           <nav className="flex flex-col py-2">
-            {marketingNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="px-6 py-3 text-sm text-ink hover:bg-muted"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {marketingNav.map((item) => {
+              const isExternal = /^https?:\/\//.test(item.href);
+              const className = "px-6 py-3 text-sm text-ink hover:bg-muted";
+              return isExternal ? (
+                <a key={item.href} href={item.href} className={className}>
+                  {item.label}
+                </a>
+              ) : (
+                <Link key={item.href} href={item.href} className={className}>
+                  {item.label}
+                </Link>
+              );
+            })}
             <div className="border-t border-line-soft mt-2 p-4 flex gap-2">
               <Button asChild variant="secondary" size="sm" className="flex-1">
                 <Link href="/login">Sign in</Link>
               </Button>
               <Button asChild size="sm" className="flex-1">
-                <Link href="/signup">Get started free</Link>
+                <a href={subscriptionUrl("/signup")}>Get started free</a>
               </Button>
             </div>
           </nav>

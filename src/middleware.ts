@@ -437,7 +437,11 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match everything except _next/static, _next/image, and favicon.
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    // Match everything except static assets served from /public. Without
+    // these exclusions the host-aware allow-list bounces requests like
+    // /manifest.json or /icons/* to `/` (defaultLanding), so the browser
+    // receives HTML when it expects JSON / an image and surfaces a
+    // "Manifest: Syntax error" or broken icon.
+    "/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|icons/|landing/).*)",
   ],
 };

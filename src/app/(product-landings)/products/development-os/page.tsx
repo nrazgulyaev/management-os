@@ -1,6 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { RevealOnScroll } from "@/components/motion/reveal-on-scroll";
+import { subscriptionUrl } from "@/lib/marketing/cross-product-links";
 
 /**
  * Sprint _handoff/ Task 4 — Development OS landing.
@@ -156,9 +157,9 @@ function DevNav() {
           <Link href="/login" className="btn btn-ghost hide-mobile">
             Sign in
           </Link>
-          <Link href="/signup" className="btn btn-amber">
+          <a href={subscriptionUrl("/signup")} className="btn btn-amber">
             Start trial <I.arrow width={13} height={13} />
-          </Link>
+          </a>
         </div>
       </div>
     </header>
@@ -240,9 +241,9 @@ function Hero() {
         </p>
 
         <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
-          <Link href="/signup" className="btn btn-amber btn-lg">
+          <a href={subscriptionUrl("/signup")} className="btn btn-amber btn-lg">
             Start 14-day trial <I.arrow width={14} height={14} />
-          </Link>
+          </a>
           <Link href="/development-os" className="btn btn-dark btn-lg">
             Open BOQ desk demo
           </Link>
@@ -2150,14 +2151,23 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href={t.price === "Custom" ? "/contact" : "/signup"}
-                className={"btn " + (t.highlight ? "btn-amber" : "btn-dark")}
-                style={{ marginTop: "auto", justifyContent: "center" }}
-              >
-                {t.price === "Custom" ? "Talk to sales" : "Start trial"}{" "}
-                <I.arrow width={13} height={13} />
-              </Link>
+              {t.price === "Custom" ? (
+                <Link
+                  href="/contact"
+                  className={"btn " + (t.highlight ? "btn-amber" : "btn-dark")}
+                  style={{ marginTop: "auto", justifyContent: "center" }}
+                >
+                  Talk to sales <I.arrow width={13} height={13} />
+                </Link>
+              ) : (
+                <a
+                  href={subscriptionUrl("/signup")}
+                  className={"btn " + (t.highlight ? "btn-amber" : "btn-dark")}
+                  style={{ marginTop: "auto", justifyContent: "center" }}
+                >
+                  Start trial <I.arrow width={13} height={13} />
+                </a>
+              )}
             </div>
           ))}
         </div>
@@ -2198,9 +2208,9 @@ function CTABand() {
               at any time — no lock-in, no penalty.
             </p>
             <div style={{ display: "flex", gap: 12, marginTop: 30, flexWrap: "wrap" }}>
-              <Link href="/signup" className="btn btn-amber btn-lg">
+              <a href={subscriptionUrl("/signup")} className="btn btn-amber btn-lg">
                 Start your trial <I.arrow width={14} height={14} />
-              </Link>
+              </a>
               <Link href="/development-os" className="btn btn-dark btn-lg">
                 Open the BOQ desk
               </Link>
@@ -2263,7 +2273,7 @@ function DevFooter() {
         ["BOQ desk", "/development-os/cabinets/qs"],
         ["Investor portal", "/investor-portal/dashboard"],
         ["Sign in", "/login"],
-        ["Start trial", "/signup"],
+        ["Start trial", subscriptionUrl("/signup")],
       ],
     },
     {
@@ -2348,16 +2358,23 @@ function DevFooter() {
                   gap: 9,
                 }}
               >
-                {col.items.map(([l, href]) => (
-                  <li key={l}>
-                    <Link
-                      href={href}
-                      style={{ color: "var(--ink-2)", fontSize: 13 }}
-                    >
-                      {l}
-                    </Link>
-                  </li>
-                ))}
+                {col.items.map(([l, href]) => {
+                  const isExternal = /^https?:\/\//.test(href);
+                  const style = { color: "var(--ink-2)", fontSize: 13 };
+                  return (
+                    <li key={l}>
+                      {isExternal ? (
+                        <a href={href} style={style}>
+                          {l}
+                        </a>
+                      ) : (
+                        <Link href={href} style={style}>
+                          {l}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

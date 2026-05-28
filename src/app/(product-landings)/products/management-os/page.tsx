@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { RevealOnScroll } from "@/components/motion/reveal-on-scroll";
+import { subscriptionUrl } from "@/lib/marketing/cross-product-links";
 import { CabinetPicker } from "./_components/cabinet-picker";
 
 /**
@@ -225,9 +226,9 @@ function MgmtNav() {
           <Link href="/login" className="btn btn-ghost hide-mobile">
             Sign in
           </Link>
-          <Link href="/signup" className="btn btn-primary">
+          <a href={subscriptionUrl("/signup")} className="btn btn-primary">
             Start trial
-          </Link>
+          </a>
         </div>
       </div>
     </header>
@@ -296,9 +297,9 @@ function Hero() {
         </p>
 
         <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
-          <Link href="/signup" className="btn btn-primary btn-lg">
+          <a href={subscriptionUrl("/signup")} className="btn btn-primary btn-lg">
             Start 14-day trial <I.arrow width={16} height={16} />
-          </Link>
+          </a>
           <Link href="/dashboard" className="btn btn-secondary btn-lg">
             Tour live demo
           </Link>
@@ -1698,14 +1699,23 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href={t.price === "Custom" ? "/contact" : "/signup"}
-                className={"btn " + (t.highlight ? "btn-primary" : "btn-secondary")}
-                style={{ marginTop: "auto", justifyContent: "center" }}
-              >
-                {t.price === "Custom" ? "Talk to sales" : "Start trial"}{" "}
-                <I.arrow width={14} height={14} />
-              </Link>
+              {t.price === "Custom" ? (
+                <Link
+                  href="/contact"
+                  className={"btn " + (t.highlight ? "btn-primary" : "btn-secondary")}
+                  style={{ marginTop: "auto", justifyContent: "center" }}
+                >
+                  Talk to sales <I.arrow width={14} height={14} />
+                </Link>
+              ) : (
+                <a
+                  href={subscriptionUrl("/signup")}
+                  className={"btn " + (t.highlight ? "btn-primary" : "btn-secondary")}
+                  style={{ marginTop: "auto", justifyContent: "center" }}
+                >
+                  Start trial <I.arrow width={14} height={14} />
+                </a>
+              )}
             </div>
           ))}
         </div>
@@ -1775,13 +1785,13 @@ function CTABand() {
                 flexWrap: "wrap",
               }}
             >
-              <Link
-                href="/signup"
+              <a
+                href={subscriptionUrl("/signup")}
                 className="btn btn-lg"
                 style={{ background: "var(--cream-warm)", color: "var(--ink)" }}
               >
                 Start your trial <I.arrow width={15} height={15} />
-              </Link>
+              </a>
               <Link
                 href="/dashboard"
                 className="btn btn-lg"
@@ -1858,7 +1868,7 @@ function MgmtFooter() {
         ["Front office", "/dashboard"],
         ["Owner portal", "/owner"],
         ["Sign in", "/login"],
-        ["Start trial", "/signup"],
+        ["Start trial", subscriptionUrl("/signup")],
       ],
     },
     {
@@ -1956,16 +1966,23 @@ function MgmtFooter() {
                   gap: 9,
                 }}
               >
-                {col.items.map(([l, href]) => (
-                  <li key={l}>
-                    <Link
-                      href={href}
-                      style={{ color: "var(--ink-3)", fontSize: 14 }}
-                    >
-                      {l}
-                    </Link>
-                  </li>
-                ))}
+                {col.items.map(([l, href]) => {
+                  const isExternal = /^https?:\/\//.test(href);
+                  const style = { color: "var(--ink-3)", fontSize: 14 };
+                  return (
+                    <li key={l}>
+                      {isExternal ? (
+                        <a href={href} style={style}>
+                          {l}
+                        </a>
+                      ) : (
+                        <Link href={href} style={style}>
+                          {l}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

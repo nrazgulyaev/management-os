@@ -1,38 +1,47 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import {
+  developmentUrl,
+  managementUrl,
+  subscriptionUrl,
+} from "@/lib/marketing/cross-product-links";
 
 // Stage 10.I.3 — Products column added. Old "Platform" group split:
 // product entries land in Products; the role-specific surfaces (owner /
 // investor / guest / operations) move to Resources for lower priority.
+// All cross-product entries are absolute URLs so the footer renders
+// safely from any host without triggering RSC prefetch CORS failures.
+// `/login` is shared across all three products; `/contact` lives only
+// on subscription.
 const groups = [
   {
     label: "Products",
     links: [
-      { label: "Management OS", href: "/products/management-os" },
-      { label: "Development OS", href: "/products/development-os" },
-      { label: "Pricing — Management OS", href: "/pricing/management-os" },
-      { label: "Pricing — Development OS", href: "/pricing/development-os" },
+      { label: "Management OS", href: managementUrl("/products/management-os") },
+      { label: "Development OS", href: developmentUrl("/products/development-os") },
+      { label: "Pricing — Management OS", href: subscriptionUrl("/pricing/management-os") },
+      { label: "Pricing — Development OS", href: subscriptionUrl("/pricing/development-os") },
     ],
   },
   {
     label: "Resources",
     links: [
-      { label: "Owner portal", href: "/owner-portal" },
-      { label: "Investor reporting", href: "/investor-reporting" },
-      { label: "Guest experience", href: "/guest-experience" },
-      { label: "Operations", href: "/operations" },
-      { label: "Portfolio", href: "/portfolio" },
-      { label: "Case studies", href: "/case-studies" },
+      { label: "Owner portal", href: subscriptionUrl("/owner-portal") },
+      { label: "Investor reporting", href: subscriptionUrl("/investor-reporting") },
+      { label: "Guest experience", href: subscriptionUrl("/guest-experience") },
+      { label: "Operations", href: subscriptionUrl("/operations") },
+      { label: "Portfolio", href: subscriptionUrl("/portfolio") },
+      { label: "Case studies", href: subscriptionUrl("/case-studies") },
     ],
   },
   {
     label: "Access",
     links: [
-      { label: "Get started free", href: "/signup" },
+      { label: "Get started free", href: subscriptionUrl("/signup") },
       { label: "Sign in", href: "/login" },
-      { label: "Contact", href: "/contact" },
-      { label: "Owner portal", href: "/owner" },
-      { label: "Staff field", href: "/field" },
+      { label: "Contact", href: subscriptionUrl("/contact") },
+      { label: "Owner portal", href: managementUrl("/owner") },
+      { label: "Staff field", href: managementUrl("/field") },
     ],
   },
 ];
@@ -58,16 +67,24 @@ export function PublicFooter() {
             <div key={g.label}>
               <h4 className="text-label mb-4">{g.label}</h4>
               <ul className="flex flex-col gap-2.5">
-                {g.links.map((l) => (
-                  <li key={l.href}>
-                    <Link
-                      href={l.href}
-                      className="text-sm text-ink-secondary hover:text-ink transition-colors"
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
+                {g.links.map((l) => {
+                  const isExternal = /^https?:\/\//.test(l.href);
+                  const className =
+                    "text-sm text-ink-secondary hover:text-ink transition-colors";
+                  return (
+                    <li key={l.href}>
+                      {isExternal ? (
+                        <a href={l.href} className={className}>
+                          {l.label}
+                        </a>
+                      ) : (
+                        <Link href={l.href} className={className}>
+                          {l.label}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}
@@ -77,9 +94,9 @@ export function PublicFooter() {
             © {new Date().getFullYear()} Arconique. Managed from Bali.
           </p>
           <div className="flex gap-5 text-xs text-ink-tertiary">
-            <Link href="/contact" className="hover:text-ink">
+            <a href={subscriptionUrl("/contact")} className="hover:text-ink">
               Contact
-            </Link>
+            </a>
             <span className="opacity-40">Privacy</span>
             <span className="opacity-40">Terms</span>
           </div>
