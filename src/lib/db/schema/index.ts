@@ -96,3 +96,6 @@ export * from "./vendor-scores";
 // Phase 2 data-wiring PR 3 (Owner slice).
 export * from "./owner-threads";
 export * from "./owner-notification-prefs";
+// Packet C PR 1 — owner-data-l2.
+export * from "./villa-photos";
+export * from "./owner-activity-log";
