@@ -19,7 +19,9 @@ export type JobType =
   | "attachment_cleanup"
   | "guest_journey"
   | "owner_intelligence"
-  | "booking_lifecycle";
+  | "booking_lifecycle"
+  // Packet C PR 3 — statement-preparer cron.
+  | "statement_preparer";
 
 export interface JobDefinitionSeed {
   key: string;
@@ -237,6 +239,22 @@ export const DEFAULT_JOB_DEFINITIONS: JobDefinitionSeed[] = [
     enabled: true,
     timeoutSeconds: 300,
     maxRetries: 0,
+    config: null,
+  },
+  {
+    // Packet C PR 3 — statement-preparer cron. 1st of month, 06:00 UTC.
+    // Walks active owners × prior month, fires the statement-preparer
+    // agent for any missing (owner, period) pairs. Agent body itself is
+    // a stub awaiting Phase 2.5+ implementation; the cron + walk are in.
+    key: "statement_preparer_monthly",
+    name: "Statement preparer — monthly",
+    description:
+      "1st-of-month walk over active owners; logs missing statements for the prior period and (once the agent body lands) fires the statement-preparer agent.",
+    jobType: "statement_preparer",
+    scheduleCron: "0 6 1 * *",
+    enabled: true,
+    timeoutSeconds: 600,
+    maxRetries: 1,
     config: null,
   },
 ];
