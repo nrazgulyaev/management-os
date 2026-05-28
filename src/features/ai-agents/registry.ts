@@ -30,6 +30,10 @@ export const MGMT_AGENT_CODES = [
   "procurement-analyst",
   "inbox",
   "memory",
+  // Phase 2 data-wiring PR 1 — event-triggered (no cron). Code stubs
+  // already exist under src/features/ai-agents/{statements,owners}/.
+  "statement-anomaly-detector",
+  "onboarding-doc-checker",
 ] as const;
 
 export type MgmtAgentCode = (typeof MGMT_AGENT_CODES)[number];
