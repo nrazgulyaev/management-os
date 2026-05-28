@@ -1,0 +1,273 @@
+/* ---------------------------------------------------------------
+ * Phase 2.4 dev-03 — Investors cabinet primitives
+ * (lp-table, lp-detail, dist preview, dist flow, capital-call modal,
+ *  quarterly composer)
+ * --------------------------------------------------------------- */
+
+[data-product="development"] table.data.lp-table tbody tr:hover { background: var(--cream-warm, var(--bg-2)); }
+
+[data-product="development"] .lp-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+[data-product="development"] .lp-detail .ld-class {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product="development"] .lp-detail .ld-name {
+  font-family: var(--display-font);
+  font-size: 32px;
+  font-weight: 500;
+  margin: 2px 0 0;
+}
+[data-product="development"] .lp-detail .ld-kpis {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+[data-product="development"] .lp-detail .ld-kpi {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-card);
+}
+[data-product="development"] .lp-detail .ld-kpi-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product="development"] .lp-detail .ld-kpi-value { font-size: 22px; color: var(--ink); font-feature-settings: "tnum"; }
+[data-product="development"] .lp-detail .ld-section { display: flex; flex-direction: column; gap: 10px; }
+[data-product="development"] .lp-detail .ld-section-title { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+
+[data-product] .wf-chart {
+  position: relative;
+  background: var(--panel, var(--paper));
+  border: 1px solid var(--line-2, var(--line));
+  border-radius: var(--r-card);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+[data-product] .wf-chart .wf-bars {
+  display: grid;
+  grid-template-columns: repeat(var(--bars, 7), 1fr);
+  gap: 12px;
+  align-items: flex-end;
+  height: calc(100% - 28px);
+}
+[data-product] .wf-chart .wf-bar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 6px 4px 28px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--cream-warm, var(--bg-2));
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--ink);
+}
+[data-product] .wf-chart .wf-bar.wf-start    { background: color-mix(in srgb, var(--accent) 22%, var(--cream-warm, var(--bg-2))); }
+[data-product] .wf-chart .wf-bar.wf-add      { background: color-mix(in srgb, var(--ok) 22%, var(--cream-warm, var(--bg-2))); }
+[data-product] .wf-chart .wf-bar.wf-sub      { background: color-mix(in srgb, var(--warn) 22%, var(--cream-warm, var(--bg-2))); }
+[data-product] .wf-chart .wf-bar.wf-total    { background: var(--ink); color: var(--inverted-fg); }
+[data-product] .wf-chart .wf-bar.wf-neutral  { background: var(--cream-warm, var(--bg-2)); }
+[data-product] .wf-chart .wf-value {
+  position: absolute;
+  top: 6px;
+  left: 0; right: 0;
+  font-size: 11px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+[data-product] .wf-chart .wf-label {
+  position: absolute;
+  bottom: 10px;
+  left: 0; right: 0;
+  font-size: 10px;
+  text-align: center;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product] .wf-chart .wf-bar.wf-total .wf-label { color: rgba(255,255,255,0.7); }
+[data-product] .wf-chart .wf-sublabel {
+  position: absolute;
+  bottom: -16px;
+  left: 0; right: 0;
+  font-size: 9px;
+  text-align: center;
+  color: var(--ink-3);
+}
+[data-product] .wf-chart .wf-unit {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+}
+
+[data-product="development"] .dist-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+[data-product="development"] .dist-preview .dp-kpis {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+[data-product="development"] .dist-preview .dp-kpi {
+  padding: 8px 10px;
+  background: var(--cream-warm, var(--bg-2));
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-card);
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+[data-product="development"] .dist-preview .dp-kpi-label { color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
+
+[data-product="development"] .distribution-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-card);
+  padding: 18px;
+}
+[data-product="development"] .distribution-flow .df-steps {
+  display: flex;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: var(--cream-warm, var(--bg-2));
+  align-self: flex-start;
+}
+[data-product="development"] .distribution-flow .df-steps li {
+  padding: 8px 14px;
+  border-right: 1px solid var(--line-2);
+}
+[data-product="development"] .distribution-flow .df-steps li.is-on { background: var(--ink); color: var(--inverted-fg); }
+[data-product="development"] .distribution-flow .df-steps li.is-done { color: var(--ok); }
+[data-product="development"] .distribution-flow .df-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft, var(--line-2));
+}
+[data-product="development"] .distribution-flow .df-foot-note { color: var(--warn); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+[data-product] .ccm-preview {
+  border: 1px solid var(--line-2, var(--line));
+  border-radius: var(--r-card);
+  background: var(--panel, var(--paper));
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+[data-product] .ccm-prev-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product] .ccm-prev-sum.is-ok { color: var(--ok); }
+[data-product] .ccm-prev-sum.is-bad { color: var(--danger); }
+[data-product] .ccm-prev-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+[data-product] .ccm-prev-row {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+[data-product] .ccm-prev-row:nth-child(even) { background: var(--cream-warm, var(--bg-2)); }
+
+[data-product="development"] .quarterly-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-card);
+  padding: 22px;
+}
+[data-product="development"] .quarterly-composer .qc-period {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product="development"] .quarterly-composer .qc-title {
+  font-family: var(--display-font);
+  font-size: 26px;
+  font-weight: 500;
+  margin: 2px 0 0;
+}
+[data-product="development"] .quarterly-composer .qc-kpis {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+[data-product="development"] .quarterly-composer .qc-kpi {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--cream-warm, var(--bg-2));
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-card);
+  font-size: 11px;
+}
+[data-product="development"] .quarterly-composer .qc-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft, var(--line-2));
+}
+@media (max-width: 700px) {
+  [data-product="development"] .lp-detail .ld-kpis,
+  [data-product="development"] .dist-preview .dp-kpis,
+  [data-product="development"] .quarterly-composer .qc-kpis { grid-template-columns: repeat(2, 1fr); }
+}
