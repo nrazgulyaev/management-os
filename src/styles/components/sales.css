@@ -1,0 +1,228 @@
+/* ---------------------------------------------------------------
+ * Phase 2.4 dev-02 — Sales cabinet primitives
+ * (buyer-detail, contract-page, payment-ladder, offer-modal,
+ *  funnel-chart)
+ * --------------------------------------------------------------- */
+
+[data-product="development"] .buyer-detail {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+}
+@media (max-width: 900px) { [data-product="development"] .buyer-detail { grid-template-columns: 1fr; } }
+[data-product="development"] .buyer-detail .bd-side {
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-card);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+[data-product="development"] .buyer-detail .bd-score { display: flex; align-items: center; gap: 8px; }
+[data-product="development"] .buyer-detail .bd-score-chip {
+  font-family: var(--display-font);
+  font-size: 32px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: var(--r-card);
+  background: var(--cream-warm, var(--bg-2));
+  color: var(--ink-3);
+  letter-spacing: -0.01em;
+}
+[data-product="development"] .buyer-detail .bd-score-chip.bd-score-ok { color: var(--ok); }
+[data-product="development"] .buyer-detail .bd-score-chip.bd-score-warn { color: var(--warn); }
+[data-product="development"] .buyer-detail .bd-score-chip.bd-score-danger { color: var(--danger); }
+[data-product="development"] .buyer-detail .bd-hot {
+  background: var(--accent);
+  color: var(--on-accent);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-product="development"] .buyer-detail .bd-meta {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+[data-product="development"] .buyer-detail .bd-meta dt {
+  font-family: var(--mono-font);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+[data-product="development"] .buyer-detail .bd-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+[data-product="development"] .contract-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-card);
+  padding: 18px;
+}
+[data-product="development"] .contract-page .cp-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+[data-product="development"] .contract-page .cp-code {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product="development"] .contract-page .cp-title {
+  font-family: var(--display-font);
+  font-size: 22px;
+  font-weight: 500;
+  margin: 2px 0 0;
+}
+[data-product="development"] .contract-page .cp-status {
+  font-family: var(--mono-font);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--cream-warm, var(--bg-2));
+  color: var(--ink-3);
+}
+[data-product="development"] .contract-page .cp-status-draft         { color: var(--ink-3); }
+[data-product="development"] .contract-page .cp-status-sent          { color: var(--accent); }
+[data-product="development"] .contract-page .cp-status-countersigned { color: var(--ok); }
+[data-product="development"] .contract-page .cp-status-in_payment    { color: var(--warn); }
+[data-product="development"] .contract-page .cp-status-completed     { color: var(--ok); }
+[data-product="development"] .contract-page .cp-status-cancelled     { color: var(--danger); }
+[data-product="development"] .contract-page .cp-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: var(--cream-warm, var(--bg-2));
+  border-radius: var(--r-pill);
+  align-self: flex-start;
+  border: 1px solid var(--line-2);
+}
+[data-product="development"] .contract-page .cp-tab {
+  border: 0;
+  background: transparent;
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+[data-product="development"] .contract-page .cp-tab.is-on {
+  background: var(--ink);
+  color: var(--inverted-fg);
+}
+
+[data-product="development"] .payment-ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-card);
+}
+[data-product="development"] .payment-ladder .pl-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-product="development"] .payment-ladder .pl-progress { color: var(--ink); }
+[data-product="development"] .payment-ladder .pl-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+[data-product="development"] .payment-ladder .pl-row {
+  display: grid;
+  grid-template-columns: 110px 130px 1fr 90px;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft, var(--line-2));
+  border-radius: var(--r-card);
+  background: var(--paper);
+  font-size: 12px;
+}
+[data-product="development"] .payment-ladder .pl-row.pl-status-paid    { background: color-mix(in srgb, var(--ok) 6%, var(--paper)); border-color: color-mix(in srgb, var(--ok) 40%, var(--line-2)); }
+[data-product="development"] .payment-ladder .pl-row.pl-status-due     { background: color-mix(in srgb, var(--accent) 6%, var(--paper)); }
+[data-product="development"] .payment-ladder .pl-row.pl-status-overdue { background: color-mix(in srgb, var(--danger) 6%, var(--paper)); border-color: color-mix(in srgb, var(--danger) 40%, var(--line-2)); }
+[data-product="development"] .payment-ladder .pl-pill {
+  font-family: var(--mono-font);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--cream-warm, var(--bg-2));
+  color: var(--ink-3);
+  text-align: center;
+}
+[data-product="development"] .payment-ladder .pl-pill-paid    { background: var(--ok); color: white; }
+[data-product="development"] .payment-ladder .pl-pill-due     { background: var(--accent); color: var(--on-accent); }
+[data-product="development"] .payment-ladder .pl-pill-overdue { background: var(--danger); color: white; }
+[data-product="development"] .payment-ladder .pl-foot {
+  font-size: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+[data-product="development"] .funnel-chart {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-card);
+  padding: 14px;
+}
+[data-product="development"] .funnel-chart .fc-svg { width: 100%; height: 100%; }
+[data-product="development"] .funnel-chart .fc-stage { fill: var(--accent); cursor: pointer; transition: opacity 200ms ease; }
+[data-product="development"] .funnel-chart .fc-stage:hover { opacity: 1 !important; }
+[data-product="development"] .funnel-chart .fc-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: center;
+}
+[data-product="development"] .funnel-chart .fc-row {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--r-card);
+  cursor: pointer;
+  font-size: 12px;
+}
+[data-product="development"] .funnel-chart .fc-row:hover { background: var(--cream-warm, var(--bg-2)); }
+[data-product="development"] .funnel-chart .fc-count { color: var(--ink); }
+[data-product="development"] .funnel-chart .fc-sub { color: var(--ink-3); font-size: 10px; letter-spacing: 0.04em; }
+@media (max-width: 900px) { [data-product="development"] .funnel-chart { grid-template-columns: 1fr; } }
+
+[data-product] .field-helper { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+[data-product] .field-warn   { font-size: 11px; color: var(--warn); padding-top: 4px; }
+[data-product] .field-error  { font-size: 11px; color: var(--danger); padding-top: 4px; }
