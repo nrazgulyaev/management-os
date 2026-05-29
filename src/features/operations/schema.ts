@@ -211,7 +211,7 @@ export const createMaintenanceTicketSchema = z.object({
   title: z.string().min(2).max(200),
   description: z.string().max(4000).optional().or(z.literal("")),
   issueCategory: maintenanceCategoryEnum,
-  severity: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
+  severity: z.enum(["p0", "p1", "p2", "p3"]).default("p2"),
   villaId: optionalUuid,
   projectId: optionalUuid,
   bookingId: optionalUuid,
@@ -281,7 +281,7 @@ export const createDamageReportSchema = z.object({
   bookingId: optionalUuid,
   guestId: optionalUuid,
   taskId: optionalUuid,
-  severity: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
+  severity: z.enum(["p0", "p1", "p2", "p3"]).default("p2"),
   estimatedCostMinor: z.coerce.bigint().optional(),
   currency: z
     .string()

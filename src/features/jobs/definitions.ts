@@ -21,7 +21,9 @@ export type JobType =
   | "owner_intelligence"
   | "booking_lifecycle"
   // Packet C PR 3 — statement-preparer cron.
-  | "statement_preparer";
+  | "statement_preparer"
+  // phase-2a PR 3 — maintenance SLA breach scan.
+  | "sla_scan";
 
 export interface JobDefinitionSeed {
   key: string;
@@ -254,6 +256,23 @@ export const DEFAULT_JOB_DEFINITIONS: JobDefinitionSeed[] = [
     scheduleCron: "0 6 1 * *",
     enabled: true,
     timeoutSeconds: 600,
+    maxRetries: 1,
+    config: null,
+  },
+  {
+    // phase-2a PR 3 — maintenance SLA breach scan. Route:
+    // /api/cron/maintenance-sla-scan. Walks open maintenance tickets,
+    // recomputes computeSlaStatus against the p0-p3 target windows, and
+    // logs an sla_breaches row (deduped per open breach) for each past
+    // its target. Idempotent; safe at any cadence.
+    key: "maintenance_sla_scan",
+    name: "Maintenance SLA breach scan",
+    description:
+      "Scans open maintenance tickets and logs an sla_breaches row (deduped per open breach) for any past its severity SLA target (p0 2h / p1 8h / p2 48h / p3 14d).",
+    jobType: "sla_scan",
+    scheduleCron: "*/30 * * * *",
+    enabled: true,
+    timeoutSeconds: 120,
     maxRetries: 1,
     config: null,
   },

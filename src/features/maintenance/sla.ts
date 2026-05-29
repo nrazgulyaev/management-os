@@ -19,13 +19,18 @@
  */
 
 export type SlaStatus = "on-track" | "at-risk" | "breached";
-export type TicketPriority = "P0" | "P1" | "P2" | "P3";
+/**
+ * Unified maintenance severity / SLA priority vocabulary (mig 0116):
+ * the DB column `maintenance_tickets.severity` stores these same values,
+ * so severity IS the priority — no mapping layer.
+ */
+export type TicketPriority = "p0" | "p1" | "p2" | "p3";
 
 export const SLA_TARGET_MS: Record<TicketPriority, number> = {
-  P0: 2 * 60 * 60 * 1000, // 2h
-  P1: 8 * 60 * 60 * 1000, // 8h
-  P2: 48 * 60 * 60 * 1000, // 48h
-  P3: 14 * 24 * 60 * 60 * 1000, // 14d
+  p0: 2 * 60 * 60 * 1000, // 2h
+  p1: 8 * 60 * 60 * 1000, // 8h
+  p2: 48 * 60 * 60 * 1000, // 48h
+  p3: 14 * 24 * 60 * 60 * 1000, // 14d
 };
 
 export interface SlaInput {

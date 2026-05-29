@@ -2,10 +2,10 @@ import * as React from "react";
 import type { TicketPriority } from "@/features/maintenance/sla";
 
 const LABEL: Record<TicketPriority, string> = {
-  P0: "P0 · urgent",
-  P1: "P1 · high",
-  P2: "P2 · normal",
-  P3: "P3 · low",
+  p0: "P0 · urgent",
+  p1: "P1 · high",
+  p2: "P2 · normal",
+  p3: "P3 · low",
 };
 
 export interface PriorityBadgeProps {
@@ -18,7 +18,7 @@ export interface PriorityBadgeProps {
 export function PriorityBadge({ priority, compact, className }: PriorityBadgeProps) {
   return (
     <span className={`priority-badge ${priority.toLowerCase()}${className ? ` ${className}` : ""}`}>
-      {compact ? priority : LABEL[priority]}
+      {compact ? priority.toUpperCase() : LABEL[priority]}
     </span>
   );
 }
