@@ -21,7 +21,7 @@ export interface EscalateTicketModalProps {
 
 export function EscalateTicketModal({ open, onOpenChange, ticket, candidates, onSubmit }: EscalateTicketModalProps) {
   const [assignee, setAssignee] = React.useState<string>("");
-  const [priority, setPriority] = React.useState<TicketPriority>("P1");
+  const [priority, setPriority] = React.useState<TicketPriority>("p1");
   const [reason, setReason] = React.useState("");
 
   React.useEffect(() => {
@@ -74,10 +74,10 @@ export function EscalateTicketModal({ open, onOpenChange, ticket, candidates, on
         <div className="field">
           <label className="field-label">New priority</label>
           <select className="select" value={priority} onChange={(e) => setPriority(e.target.value as TicketPriority)}>
-            <option value="P0">P0 · urgent</option>
-            <option value="P1">P1 · high</option>
-            <option value="P2">P2 · normal</option>
-            <option value="P3">P3 · low</option>
+            <option value="p0">P0 · urgent</option>
+            <option value="p1">P1 · high</option>
+            <option value="p2">P2 · normal</option>
+            <option value="p3">P3 · low</option>
           </select>
         </div>
         <div className="field">

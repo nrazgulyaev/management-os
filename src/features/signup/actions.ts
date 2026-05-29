@@ -226,7 +226,36 @@ export async function signupAction(
     trialEndsOn: trialEndsAt.toISOString().slice(0, 10),
   });
 
-  // 7) Record a security event for the audit trail.
+  // 7) Sign the user in so the session cookie is set and the user lands
+  //    straight in their workspace — no second login after signup. The
+  //    cookie is written origin-aware by getSupabaseServer (Domain
+  //    `.arconique.com` in production), so it's valid across the
+  //    management / development / subscription subdomains.
+  //
+  //    The previous version ignored the sign-in result: on any failure it
+  //    still redirected to the dashboard sessionless, and the dashboard
+  //    guard then bounced the user to /login — the "log in again after
+  //    signup" symptom. We now gate the workspace redirect on a live
+  //    session and, on failure (Supabase unconfigured, network/Supabase
+  //    error), fall back to /login?onboarded=1 — an already-handled route
+  //    that shows a "workspace ready, sign in" notice. The account is
+  //    fully provisioned at this point, so the user just signs in once.
+  const supabase = await getSupabaseServer();
+  let signedIn = false;
+  if (supabase) {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: emailLower,
+      password: data.password,
+    });
+    signedIn = !signInError;
+  }
+  if (!signedIn) {
+    redirect("/login?onboarded=1");
+  }
+
+  // 8) Record the signup security event — only on the success path, so a
+  //    failed auto-sign-in (which falls back to /login above) never logs a
+  //    bogus "login_succeeded".
   await recordSecurityEvent({
     appUserId: appUser.id,
     eventType: "login_succeeded",
@@ -238,15 +267,10 @@ export async function signupAction(
     },
   });
 
-  // 8) Sign the user in via the public Supabase client (sets cookies).
-  const supabase = await getSupabaseServer();
-  if (supabase) {
-    await supabase.auth.signInWithPassword({
-      email: emailLower,
-      password: data.password,
-    });
-  }
-
+  // Live session — land in the products-aware workspace (both/mgmt →
+  // /dashboard, dev-only → /development-os). redirect() signals via a
+  // thrown NEXT_REDIRECT, so it must stay at top level, never inside a
+  // try/catch that would swallow it.
   const landingPath = landingPathFor(products);
   revalidatePath(landingPath);
   redirect(landingPath);

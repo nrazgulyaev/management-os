@@ -318,8 +318,8 @@ async function collectMaintenanceTicketDrafts(
     eventDate: isoDate(t.createdAt) ?? from,
     eventEndDate: null,
     title: "Maintenance ticket",
-    description: `Severity: ${t.severity ?? "normal"} · status ${t.status}`,
-    severity: t.severity === "critical" ? "warning" : "info",
+    description: `Severity: ${t.severity ?? "p2"} · status ${t.status}`,
+    severity: t.severity === "p0" || t.severity === "p1" ? "warning" : "info",
     sortOrder: 50,
   }));
 }

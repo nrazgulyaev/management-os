@@ -21,7 +21,7 @@ export interface NewTicketModalProps {
 
 const INITIAL: NewTicketValues = {
   villaId: "",
-  priority: "P2",
+  priority: "p2",
   title: "",
   description: "",
   photoName: null,
@@ -69,10 +69,10 @@ export function NewTicketModal({ open, onOpenChange, villas, onSubmit }: NewTick
           <div className="field">
             <label className="field-label">Priority</label>
             <select className="select" value={values.priority} onChange={(e) => setValues((p) => ({ ...p, priority: e.target.value as TicketPriority }))}>
-              <option value="P0">P0 · urgent (2h)</option>
-              <option value="P1">P1 · high (8h)</option>
-              <option value="P2">P2 · normal (48h)</option>
-              <option value="P3">P3 · low (14d)</option>
+              <option value="p0">P0 · urgent (2h)</option>
+              <option value="p1">P1 · high (8h)</option>
+              <option value="p2">P2 · normal (48h)</option>
+              <option value="p3">P3 · low (14d)</option>
             </select>
           </div>
         </div>

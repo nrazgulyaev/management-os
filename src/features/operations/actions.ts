@@ -1355,12 +1355,14 @@ export async function assignMaintenanceTicketAction(
         title: ticket.title,
         description: ticket.description ?? null,
         category: "maintenance",
+        // ticket.severity is p0-p3 (mig 0116); operation_tasks.priority
+        // keeps the generic low/normal/high/urgent scale — map across.
         priority:
-          ticket.severity === "urgent"
+          ticket.severity === "p0"
             ? "urgent"
-            : ticket.severity === "high"
+            : ticket.severity === "p1"
               ? "high"
-              : ticket.severity === "low"
+              : ticket.severity === "p3"
                 ? "low"
                 : "normal",
         source: "system",

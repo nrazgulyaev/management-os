@@ -57,11 +57,22 @@ const DEFAULT_COPY: ProductCopy = {
   ],
 };
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset?: string; onboarded?: string }>;
+}) {
   const supabaseReady = isSupabaseAuthConfigured();
   const h = await headers();
   const product = h.get("x-product") ?? "";
   const copy = PRODUCT_COPY[product] ?? DEFAULT_COPY;
+  const sp = await searchParams;
+  const notice =
+    sp.reset === "1"
+      ? "Your password has been updated. Sign in with your new password."
+      : sp.onboarded === "1"
+        ? "Your workspace is ready. Sign in to get started."
+        : null;
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-canvas">
@@ -76,6 +87,12 @@ export default async function LoginPage() {
             <p className="mt-3 text-ink-secondary">
               Sign in to your staff, owner, or investor workspace.
             </p>
+
+            {notice ? (
+              <div className="mt-6 rounded-sm border border-success/30 bg-success-weak/40 px-3 py-2 text-xs text-ink">
+                {notice}
+              </div>
+            ) : null}
 
             <LoginForm supabaseReady={supabaseReady} product={product} />
 

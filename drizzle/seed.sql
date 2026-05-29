@@ -579,15 +579,15 @@ BEGIN
     ('1eda0b02-0000-0000-0000-000000000001', 'MNT-20260425-0001',
      '1eda0002-0000-0000-0000-000000000013', '1eda0001-0000-0000-0000-000000000002',
      'Bedroom 2 AC not cooling', 'Reported by guest yesterday; technician scheduled for tomorrow.',
-     'ac', 'high', 'scheduled', true, 'USD', 18000),
+     'ac', 'p1', 'scheduled', true, 'USD', 18000),
     ('1eda0b02-0000-0000-0000-000000000002', 'MNT-20260425-0002',
      '1eda0002-0000-0000-0000-000000000004', '1eda0001-0000-0000-0000-000000000001',
      'Pool pump intermittent', 'Pump cycling off mid-day — likely thermal cutout. Awaiting parts.',
-     'pool', 'normal', 'waiting_parts', true, 'USD', 35000),
+     'pool', 'p2', 'waiting_parts', true, 'USD', 35000),
     ('1eda0b02-0000-0000-0000-000000000003', 'MNT-20260425-0003',
      '1eda0002-0000-0000-0000-000000000020', '1eda0001-0000-0000-0000-000000000003',
      'Wi-Fi access point offline', 'Lobby AP unresponsive. Power-cycle scheduled.',
-     'internet', 'high', 'open', false, 'USD', NULL)
+     'internet', 'p1', 'open', false, 'USD', NULL)
   ON CONFLICT (ticket_code) DO NOTHING;
 
   -- Preventive schedules
@@ -628,11 +628,11 @@ BEGIN
     ('1eda0b05-0000-0000-0000-000000000001',
      '1eda0002-0000-0000-0000-000000000002',
      'Bedside lamp shade torn', 'Discovered during turnover. Likely accidental.',
-     'low', 'under_review', true, false, 'USD', 4500),
+     'p3', 'under_review', true, false, 'USD', 4500),
     ('1eda0b05-0000-0000-0000-000000000002',
      '1eda0002-0000-0000-0000-000000000021',
      'Wine stain on living-room rug', 'Spot-treated; deep cleaning quoted.',
-     'normal', 'approved', false, true, 'USD', 12500)
+     'p2', 'approved', false, true, 'USD', 12500)
   ON CONFLICT (id) DO NOTHING;
 END $$;
 

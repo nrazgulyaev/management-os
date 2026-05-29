@@ -46,10 +46,10 @@ const STATE_TILES: Array<{ key: VillaState; label: string; color: string }> = [
 ];
 
 const SEVERITY_TONE: Record<string, "ok" | "info" | "gold" | "warn" | undefined> = {
-  low: undefined,
-  normal: "info",
-  high: "warn",
-  urgent: "warn",
+  p3: undefined, // low
+  p2: "info", // normal
+  p1: "warn", // high
+  p0: "warn", // urgent
 };
 
 const STATUS_LABEL: Record<string, { tone?: "ok" | "info" | "gold" | "warn"; text: string }> = {

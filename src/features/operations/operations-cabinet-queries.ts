@@ -323,7 +323,7 @@ export async function getOperationalIncidentsForDate(input: {
         WHERE status IN ('resolved','closed')
           AND updated_at::date = ${input.date}::date) AS resolved,
       (SELECT COUNT(*)::text FROM maintenance_tickets
-        WHERE severity IN ('high','critical','urgent')
+        WHERE severity IN ('p0','p1')
           AND status NOT IN ('resolved','closed','cancelled')) AS high_open,
       (SELECT COUNT(*)::text FROM service_requests
         WHERE created_at::date = ${input.date}::date) AS new_service
@@ -351,10 +351,10 @@ export async function getOperationalIncidentsForDate(input: {
       LEFT JOIN villas v ON v.id = mt.villa_id
      WHERE mt.reported_at::date = ${input.date}::date
      ORDER BY CASE mt.severity
-                WHEN 'critical' THEN 0
-                WHEN 'urgent'   THEN 1
-                WHEN 'high'     THEN 2
-                WHEN 'medium'   THEN 3
+                WHEN 'p0' THEN 0
+                WHEN 'p1' THEN 1
+                WHEN 'p2' THEN 2
+                WHEN 'p3' THEN 3
                 ELSE 4 END,
               mt.reported_at DESC
      LIMIT 3

@@ -85,11 +85,11 @@ export function DamageReportForm({
             </select>
           </Field>
           <Field label="Severity">
-            <select name="severity" defaultValue="normal" className={selectCls}>
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
+            <select name="severity" defaultValue="p2" className={selectCls}>
+              <option value="p0">P0 · urgent</option>
+              <option value="p1">P1 · high</option>
+              <option value="p2">P2 · normal</option>
+              <option value="p3">P3 · low</option>
             </select>
           </Field>
         </div>
