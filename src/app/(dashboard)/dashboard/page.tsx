@@ -19,6 +19,8 @@ import {
   getCurrentStatementNudge,
   getOperationalHealthTiles,
 } from "@/features/dashboard/dashboard-cabinet-queries";
+import { getAttentionFeed } from "@/features/dashboard/attention-feed";
+import { AttentionFeedCard } from "@/components/dashboard/attention-feed-card";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Overview live wiring.
@@ -87,7 +89,7 @@ function todayBrief(): string {
 }
 
 export default async function DashboardOverviewPage() {
-  const [live, currentUser, metrics, channels, monthly, owners, portfolio, schedule, nudge, opsHealth] =
+  const [live, currentUser, metrics, channels, monthly, owners, portfolio, schedule, nudge, opsHealth, attention] =
     await Promise.all([
       getLiveDashboardCounts().catch(() => null),
       getCurrentAppUser().catch(() => null),
@@ -99,6 +101,11 @@ export default async function DashboardOverviewPage() {
       getTodaySchedule().catch(() => []),
       getCurrentStatementNudge().catch(() => null),
       getOperationalHealthTiles().catch(() => null),
+      getAttentionFeed().catch(() => ({
+        items: [],
+        total: 0,
+        counts: { critical: 0, high: 0, medium: 0 },
+      })),
     ]);
 
   const firstName = currentUser?.fullName?.split(/\s+/)[0] ?? "operator";
@@ -173,6 +180,11 @@ export default async function DashboardOverviewPage() {
           value={metrics && metrics.netToOwnersMtdIdrMinor > 0n ? `IDR ${fmtIdrB(metrics.netToOwnersMtdIdrMinor)}` : "—"}
           sub="gross × (1 − commission)"
         />
+      </div>
+
+      {/* Cross-cabinet attention queue — phase-2a PR 2 */}
+      <div className="mb-3.5">
+        <AttentionFeedCard feed={attention} />
       </div>
 
       {/* Today + AI Copilot */}
