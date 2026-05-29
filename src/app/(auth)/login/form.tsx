@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signInAction, type AuthResult } from "@/features/auth/actions";
 import { useFormStatus } from "react-dom";
@@ -52,7 +53,15 @@ export function LoginForm({
         />
       </label>
       <label className="flex flex-col gap-2">
-        <span className="text-label">Password</span>
+        <div className="flex items-center justify-between">
+          <span className="text-label">Password</span>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-ink-tertiary hover:text-ink hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <input
           type="password"
           name="password"

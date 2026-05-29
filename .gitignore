@@ -8,7 +8,7 @@ out/
 .DS_Store
 next-env.d.ts
 .vercel
-.tsbuildinfo
+*.tsbuildinfo
 coverage/
 tmp/
 .env.production.local
