@@ -226,19 +226,7 @@ export async function signupAction(
     trialEndsOn: trialEndsAt.toISOString().slice(0, 10),
   });
 
-  // 7) Record a security event for the audit trail.
-  await recordSecurityEvent({
-    appUserId: appUser.id,
-    eventType: "login_succeeded",
-    severity: "info",
-    metadata: {
-      via: "signup",
-      organizationId: createdOrg.id,
-      products,
-    },
-  });
-
-  // 8) Sign the user in so the session cookie is set and the user lands
+  // 7) Sign the user in so the session cookie is set and the user lands
   //    straight in their workspace — no second login after signup. The
   //    cookie is written origin-aware by getSupabaseServer (Domain
   //    `.arconique.com` in production), so it's valid across the
@@ -264,6 +252,20 @@ export async function signupAction(
   if (!signedIn) {
     redirect("/login?onboarded=1");
   }
+
+  // 8) Record the signup security event — only on the success path, so a
+  //    failed auto-sign-in (which falls back to /login above) never logs a
+  //    bogus "login_succeeded".
+  await recordSecurityEvent({
+    appUserId: appUser.id,
+    eventType: "login_succeeded",
+    severity: "info",
+    metadata: {
+      via: "signup",
+      organizationId: createdOrg.id,
+      products,
+    },
+  });
 
   // Live session — land in the products-aware workspace (both/mgmt →
   // /dashboard, dev-only → /development-os). redirect() signals via a
