@@ -35,7 +35,7 @@ import { env } from "@/lib/env";
 export const WARM_ROUTES = [
   "/",
   "/pricing",
-  "/sign-up",
+  "/signup",
   "/login",
   "/dashboard",
   "/development-os",
