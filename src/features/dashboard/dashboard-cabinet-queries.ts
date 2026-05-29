@@ -1,7 +1,8 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
+import { getOperationsKpis } from "@/features/operations/operations-cabinet-queries";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Overview live read aggregates.
@@ -78,12 +79,15 @@ export async function getPortfolioMetrics(): Promise<PortfolioMetrics> {
            AND b.check_in >= mt.month_start
       ), '0') AS revenue_mtd_usd
   `);
-  const r = (row as unknown as { rows: Array<{
+  // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape. The
+  // prior `.rows?.[0]` accessor read `undefined` on this driver, so this
+  // query silently returned EMPTY_METRICS even when the DB had data.
+  const r = rowsOf<{
     villa_count: string;
     booked_nights_ytd: string;
     revenue_ytd_usd: string;
     revenue_mtd_usd: string;
-  }> }).rows?.[0];
+  }>(row)[0];
   if (!r) return EMPTY_METRICS;
 
   const villaCount = Number(r.villa_count || "0");
@@ -131,7 +135,7 @@ export async function getRevenueByChannel(monthsBack = 1): Promise<ChannelMixRow
      ORDER BY SUM(b.gross_amount) DESC NULLS LAST
      LIMIT 6
   `);
-  const data = (rows as unknown as { rows: Array<{ channel: string; total_usd: string }> }).rows ?? [];
+  const data = rowsOf<{ channel: string; total_usd: string }>(rows);
   const total = data.reduce((s, r) => s + Number(r.total_usd || 0), 0);
   return data.map((r) => {
     const amt = Number(r.total_usd || 0);
@@ -161,7 +165,7 @@ export async function getMonthlyRevenueStrip(months = 6): Promise<MonthlyRevenue
      GROUP BY 1
      ORDER BY 1 ASC
   `);
-  const data = (rows as unknown as { rows: Array<{ month_iso: string; total_usd: string }> }).rows ?? [];
+  const data = rowsOf<{ month_iso: string; total_usd: string }>(rows);
   return data.map((r) => {
     const [year, month] = r.month_iso.split("-");
     const monthLabel = new Date(Number(year), Number(month) - 1, 1).toLocaleString("en", {
@@ -230,16 +234,14 @@ export async function getOwnersYtdPayouts(top = 3): Promise<OwnerPayoutRow[]> {
      ORDER BY payout_usd DESC NULLS LAST
      LIMIT ${top}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      owner_id: string;
-      name: string;
-      villas_count: string;
-      project_name: string | null;
-      payout_usd: string;
-      villa_revenue_usd: string;
-    }> }).rows ?? []
-  ).map((r) => {
+  return rowsOf<{
+    owner_id: string;
+    name: string;
+    villas_count: string;
+    project_name: string | null;
+    payout_usd: string;
+    villa_revenue_usd: string;
+  }>(rows).map((r) => {
     const payout = Number(r.payout_usd || 0);
     const revenue = Number(r.villa_revenue_usd || 0);
     const yieldPct = revenue > 0 ? (payout / revenue) * 100 : 0;
@@ -311,17 +313,15 @@ export async function getPortfolioProjects(): Promise<PortfolioProjectRow[]> {
   const dayOfYear = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000,
   ) + 1;
-  return (
-    (rows as unknown as { rows: Array<{
-      project_id: string;
-      project_name: string;
-      location: string;
-      villas_count: string;
-      model: string;
-      booked_nights_ytd: string;
-      revenue_ytd_usd: string;
-    }> }).rows ?? []
-  ).map((r) => {
+  return rowsOf<{
+    project_id: string;
+    project_name: string;
+    location: string;
+    villas_count: string;
+    model: string;
+    booked_nights_ytd: string;
+    revenue_ytd_usd: string;
+  }>(rows).map((r) => {
     const villas = Number(r.villas_count || 0);
     const nights = Number(r.booked_nights_ytd || 0);
     const revenue = Number(r.revenue_ytd_usd || 0);
@@ -378,14 +378,12 @@ export async function getTodaySchedule(date?: string): Promise<TodayScheduleRow[
      ORDER BY 1, 2
      LIMIT 12
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      kind: string;
-      villa_code: string;
-      guest_name: string | null;
-      nights: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    kind: string;
+    villa_code: string;
+    guest_name: string | null;
+    nights: string;
+  }>(rows).map((r) => ({
     time: r.kind === "arrival" ? "14:00" : "11:00",
     type: r.kind as "arrival" | "departure",
     villaCode: r.villa_code,
@@ -402,7 +400,115 @@ export interface StatementNudge {
   statementId: string;
 }
 
-/** No `owner_statements` table seeded yet (STATEMENT-1 sprint). */
+/**
+ * Surfaces the owner statement closest to its automated milestone that
+ * still awaits operator attention — the Overview's "next action" band.
+ *
+ * Targets statements still in the owner-side `pending` state that have an
+ * `auto_ack_at` deadline set (i.e. they've become "ready for owner" and
+ * the scheduler will auto-acknowledge/send on that date). Soonest deadline
+ * first. Returns null when nothing is pending — the page renders nothing.
+ *
+ * `owner_statements` exists since STATEMENT-1 (mig 0104) + the owner-state
+ * ALTER (mig 0112); the previous `return null` stub predated those.
+ */
 export async function getCurrentStatementNudge(): Promise<StatementNudge | null> {
-  return null;
+  const db = getDb();
+  if (!db) return null;
+  const rows = await db.execute<{
+    statement_id: string;
+    owner_name: string | null;
+    villa_code: string | null;
+    period_month: string | null;
+    auto_ack_at: string;
+  }>(sql`
+    SELECT s.id::text                          AS statement_id,
+           o.display_name                       AS owner_name,
+           v.unit_code                          AS villa_code,
+           to_char(s.period_month, 'YYYY-MM')   AS period_month,
+           s.auto_ack_at::text                  AS auto_ack_at
+      FROM owner_statements s
+      JOIN owners o ON o.id = s.owner_id
+      LEFT JOIN villas v ON v.id = s.villa_id
+     WHERE s.owner_state = 'pending'
+       AND s.auto_ack_at IS NOT NULL
+     ORDER BY s.auto_ack_at ASC
+     LIMIT 1
+  `);
+  const r = rowsOf<{
+    statement_id: string;
+    owner_name: string | null;
+    villa_code: string | null;
+    period_month: string | null;
+    auto_ack_at: string;
+  }>(rows)[0];
+  if (!r) return null;
+
+  let monthLabel = "—";
+  if (r.period_month) {
+    const [y, m] = r.period_month.split("-");
+    monthLabel = new Date(Number(y), Number(m) - 1, 1).toLocaleString("en", {
+      month: "long",
+      year: "numeric",
+    });
+  }
+  const autoSendAt = new Date(r.auto_ack_at).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+  });
+
+  return {
+    ownerName: (r.owner_name ?? "Owner").replace(/^\[DEMO\] /, "").trim(),
+    villaCode: r.villa_code ?? "Portfolio",
+    monthLabel,
+    autoSendAt,
+    statementId: r.statement_id,
+  };
+}
+
+export interface OperationalHealthTiles {
+  /** Maintenance tickets not yet resolved/closed/cancelled. */
+  openMaintenance: number;
+  /** Today's check-outs — the turnover/housekeeping workload for today. */
+  housekeepingTurnoversToday: number;
+  /** Owner-stay requests still awaiting an operator decision. */
+  ownerStayRequestsPending: number;
+}
+
+/**
+ * The Overview's operational-health tile row. Reuses the live ops cabinet
+ * aggregate (`getOperationsKpis`) for maintenance + turnovers, and counts
+ * owner-stay requests awaiting a decision. These tiles previously rendered
+ * a hardcoded "—".
+ */
+export async function getOperationalHealthTiles(): Promise<OperationalHealthTiles> {
+  const db = getDb();
+  if (!db) {
+    return {
+      openMaintenance: 0,
+      housekeepingTurnoversToday: 0,
+      ownerStayRequestsPending: 0,
+    };
+  }
+
+  const kpis = await getOperationsKpis();
+
+  // Pending = no decision recorded yet. Keyed off the decision timestamps
+  // rather than the `status` string so it's robust to status-vocab drift.
+  const rows = await db.execute<{ pending: string }>(sql`
+    SELECT COUNT(*)::text AS pending
+      FROM owner_stay_requests
+     WHERE approved_at IS NULL
+       AND rejected_at IS NULL
+       AND completed_at IS NULL
+  `);
+  const ownerStayRequestsPending = Number(
+    rowsOf<{ pending: string }>(rows)[0]?.pending ?? "0",
+  );
+
+  return {
+    openMaintenance: kpis.ticketsOpen,
+    housekeepingTurnoversToday: kpis.turnoversToday,
+    ownerStayRequestsPending,
+  };
 }

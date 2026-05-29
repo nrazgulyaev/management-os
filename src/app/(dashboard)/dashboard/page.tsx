@@ -17,6 +17,7 @@ import {
   getPortfolioProjects,
   getTodaySchedule,
   getCurrentStatementNudge,
+  getOperationalHealthTiles,
 } from "@/features/dashboard/dashboard-cabinet-queries";
 
 /**
@@ -86,7 +87,7 @@ function todayBrief(): string {
 }
 
 export default async function DashboardOverviewPage() {
-  const [live, currentUser, metrics, channels, monthly, owners, portfolio, schedule, nudge] =
+  const [live, currentUser, metrics, channels, monthly, owners, portfolio, schedule, nudge, opsHealth] =
     await Promise.all([
       getLiveDashboardCounts().catch(() => null),
       getCurrentAppUser().catch(() => null),
@@ -97,6 +98,7 @@ export default async function DashboardOverviewPage() {
       getPortfolioProjects().catch(() => []),
       getTodaySchedule().catch(() => []),
       getCurrentStatementNudge().catch(() => null),
+      getOperationalHealthTiles().catch(() => null),
     ]);
 
   const firstName = currentUser?.fullName?.split(/\s+/)[0] ?? "operator";
@@ -354,16 +356,29 @@ export default async function DashboardOverviewPage() {
         </Card>
       </div>
 
-      {/* Operational health — 4-up KPIs */}
+      {/* Operational health — 4-up KPIs (live via getOperationalHealthTiles) */}
       <div className="grid grid-cols-4 gap-3 mb-3.5">
-        <Kpi label="Open maintenance" value="—" sub="ops cabinet · live" />
+        <Kpi
+          label="Open maintenance"
+          value={opsHealth ? String(opsHealth.openMaintenance) : "—"}
+          sub="ops cabinet · live"
+          tone={opsHealth && opsHealth.openMaintenance > 0 ? "gold" : undefined}
+        />
         <Kpi
           label="Upcoming check-ins"
           value={String(upcomingCheckIns)}
           sub="next 14 days"
         />
-        <Kpi label="Housekeeping" value="—" sub="no tasks seeded" />
-        <Kpi label="Owner stay requests" value="—" sub="coming soon" />
+        <Kpi
+          label="Housekeeping"
+          value={opsHealth ? String(opsHealth.housekeepingTurnoversToday) : "—"}
+          sub="turnovers today"
+        />
+        <Kpi
+          label="Owner stay requests"
+          value={opsHealth ? String(opsHealth.ownerStayRequestsPending) : "—"}
+          sub="awaiting decision"
+        />
       </div>
 
       {/* Portfolio table — live */}
