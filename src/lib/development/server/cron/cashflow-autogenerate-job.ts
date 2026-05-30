@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 import { computeMonthlyCashflowProjection } from "../cashflow/cashflow-helpers";
 import { cashflowForecasts } from "@/lib/db/schema/profitability-cashflow";
@@ -36,7 +36,7 @@ export async function runDevOsCashflowAutoGenerate(
      WHERE is_active = TRUE
   `);
   const startingCash = Number(
-    (cashRow as unknown as { rows: Array<{ cash: string }> }).rows?.[0]?.cash ?? "0",
+    rowsOf<{ cash: string }>(cashRow)[0]?.cash ?? "0",
   );
 
   // Latest monthly payroll commitment.
@@ -48,7 +48,7 @@ export async function runDevOsCashflowAutoGenerate(
      LIMIT 1
   `);
   const monthlyPayroll = Number(
-    (payrollRow as unknown as { rows: Array<{ amount: string }> }).rows?.[0]
+    rowsOf<{ amount: string }>(payrollRow)[0]
       ?.amount ?? "0",
   );
 

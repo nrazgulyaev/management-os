@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 
 /**
@@ -31,8 +31,7 @@ export async function runDevOsOfflineQueueStats(
      GROUP BY sync_status
   `);
   const statsRows =
-    (stats as unknown as { rows: Array<{ sync_status: string; n: string }> })
-      .rows ?? [];
+    rowsOf<{ sync_status: string; n: string }>(stats);
 
   const pruned = await db.execute<{ deleted: string }>(sql`
     WITH del AS (
@@ -44,7 +43,7 @@ export async function runDevOsOfflineQueueStats(
     SELECT COUNT(*)::text AS deleted FROM del
   `);
   const deletedCount = Number(
-    (pruned as unknown as { rows: Array<{ deleted: string }> }).rows?.[0]
+    rowsOf<{ deleted: string }>(pruned)[0]
       ?.deleted ?? "0",
   );
 

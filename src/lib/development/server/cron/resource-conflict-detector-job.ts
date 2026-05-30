@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 
 /**
@@ -66,7 +66,7 @@ export async function runDevOsResourceConflictDetector(
     SELECT COUNT(*)::text AS inserted FROM inserted
   `);
   const inserted = Number(
-    (result as unknown as { rows: Array<{ inserted: string }> }).rows?.[0]
+    rowsOf<{ inserted: string }>(result)[0]
       ?.inserted ?? "0",
   );
 

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 import { runAgent } from "../ai/agent-runner";
 import { buildDailyDigest } from "../ai/daily-construction-digest/daily-digest-helpers";
@@ -32,8 +32,7 @@ export async function runDevOsDailyConstructionDigest(
      LIMIT 50
   `);
   const projects =
-    (projRows as unknown as { rows: Array<{ id: string; name: string }> })
-      .rows ?? [];
+    rowsOf<{ id: string; name: string }>(projRows);
 
   let generated = 0;
   const today = new Date();

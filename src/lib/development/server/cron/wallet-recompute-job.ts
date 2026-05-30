@@ -1,7 +1,7 @@
 import "server-only";
 
 import { eq, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 import { investorWallets } from "@/lib/db/schema/investor-capital";
 
@@ -45,8 +45,7 @@ export async function runDevOsWalletRecompute(
           JOIN capital_commitments cc ON cc.investor_id = s.investor_id
          WHERE cc.id = ${w.commitmentId}
       `);
-      const rows = (result as unknown as { rows: Array<{ residual: string }> })
-        .rows ?? [];
+      const rows = rowsOf<{ residual: string }>(result);
       const residual = rows[0]?.residual ?? "0";
 
       const residualValue = BigInt(residual);
