@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { mapPool } from "@/lib/db/map-pool";
 import { listBookingConflicts } from "@/features/integrations/calendar-sync/services";
 
 /**
@@ -272,13 +273,16 @@ export interface AttentionFeed {
  * `limit` (default 12) plus the full counts.
  */
 export async function getAttentionFeed(limit = 12): Promise<AttentionFeed> {
-  const groups = await Promise.all([
-    safeSource(statementItems),
-    safeSource(slaBreachItems),
-    safeSource(ownerStayItems),
-    safeSource(channelConflictItems),
-    safeSource(capitalCallItems),
-  ]);
+  // DB-POOL-FANOUT-1 — bound concurrency (3) so the feed's per-source
+  // queries don't over-subscribe the pool on top of whatever else the
+  // render is doing. Each source is already wrapped in safeSource (never
+  // throws), so a slow/timed-out source degrades to [] rather than
+  // stalling the whole feed.
+  const groups = await mapPool(
+    [statementItems, slaBreachItems, ownerStayItems, channelConflictItems, capitalCallItems],
+    3,
+    (src) => safeSource(src),
+  );
   const all = groups.flat();
 
   all.sort((a, b) => {

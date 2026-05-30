@@ -9,6 +9,7 @@ import { DashboardIcon } from "@/components/dashboard/icons";
 import { RecentDigestsTile } from "@/components/digests/recent-digests-tile";
 import { getLiveDashboardCounts } from "@/features/dashboard/live-counts";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { mapPoolAll } from "@/lib/db/map-pool";
 import {
   getPortfolioMetrics,
   getRevenueByChannel,
@@ -87,19 +88,27 @@ function todayBrief(): string {
 }
 
 export default async function DashboardOverviewPage() {
+  // DB-POOL-FANOUT-1 — bound concurrency to 4 so this render never
+  // over-subscribes the postgres-js pool (max:5) behind the Supabase
+  // transaction pooler. Each task keeps its own .catch() fallback, so a
+  // failing/timed-out query degrades to empty data instead of stalling
+  // the page to the 300s function timeout.
   const [live, currentUser, metrics, channels, monthly, owners, portfolio, schedule, nudge, opsHealth] =
-    await Promise.all([
-      getLiveDashboardCounts().catch(() => null),
-      getCurrentAppUser().catch(() => null),
-      getPortfolioMetrics().catch(() => null),
-      getRevenueByChannel(1).catch(() => []),
-      getMonthlyRevenueStrip(6).catch(() => []),
-      getOwnersYtdPayouts(3).catch(() => []),
-      getPortfolioProjects().catch(() => []),
-      getTodaySchedule().catch(() => []),
-      getCurrentStatementNudge().catch(() => null),
-      getOperationalHealthTiles().catch(() => null),
-    ]);
+    await mapPoolAll(
+      [
+        () => getLiveDashboardCounts().catch(() => null),
+        () => getCurrentAppUser().catch(() => null),
+        () => getPortfolioMetrics().catch(() => null),
+        () => getRevenueByChannel(1).catch(() => []),
+        () => getMonthlyRevenueStrip(6).catch(() => []),
+        () => getOwnersYtdPayouts(3).catch(() => []),
+        () => getPortfolioProjects().catch(() => []),
+        () => getTodaySchedule().catch(() => []),
+        () => getCurrentStatementNudge().catch(() => null),
+        () => getOperationalHealthTiles().catch(() => null),
+      ] as const,
+      4,
+    );
 
   const firstName = currentUser?.fullName?.split(/\s+/)[0] ?? "operator";
   const villaCount = live?.villas ?? 0;

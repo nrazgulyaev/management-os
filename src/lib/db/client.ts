@@ -24,10 +24,30 @@ export function getDb(): DB | null {
   if (!env.server.DATABASE_URL) return null;
 
   if (!global.__arconique_pg__) {
+    // DB-POOL-FANOUT-1 — DATABASE_URL is the Supabase transaction pooler
+    // (Supavisor, :6543), so `prepare:false` is mandatory. The actual fix
+    // for the /dashboard P0 is the bounded-fan-out helper
+    // (src/lib/db/map-pool.ts), which caps how many of these `max:5`
+    // connections a single render acquires so it can't over-subscribe the
+    // pool and stall to the 300s function timeout. These two client-side
+    // timeouts are the supporting safety nets:
+    //   · connect_timeout — fail fast (10s) if the pooler won't hand out a
+    //                       connection, instead of hanging the request.
+    //   · max_lifetime    — recycle connections (30m) so a long-lived
+    //                       serverless instance never pins a stale pooled
+    //                       connection indefinitely.
+    //
+    // NOT a server-side `statement_timeout` here: verified against prod
+    // that Supavisor transaction mode ignores startup-packet connection
+    // params (SHOW statement_timeout stayed at the 2min default). A query
+    // cap must be applied role-level via `ALTER ROLE … SET
+    // statement_timeout` (separate DB change), not in this client.
     global.__arconique_pg__ = postgres(env.server.DATABASE_URL, {
       max: 5,
       prepare: false,
       idle_timeout: 30,
+      connect_timeout: 10,
+      max_lifetime: 60 * 30,
     });
   }
   if (!global.__arconique_db__) {
