@@ -251,13 +251,31 @@ async function capitalCallItems(): Promise<AttentionItem[]> {
 // Aggregator
 // ---------------------------------------------------------------------------
 
-/** Run a source normaliser, swallowing failures so one bad source can't
- *  take down the whole feed. */
+/** Per-source deadline (ms). A source that doesn't resolve in time
+ *  degrades to [] rather than holding up the feed. Layer 1 of the
+ *  "a hung source never blocks the render" guarantee (Layer 2 is the
+ *  <Suspense> boundary around the feed on /dashboard). */
+const SOURCE_DEADLINE_MS = 3_000;
+
+/**
+ * Run a source normaliser with two guards:
+ *   - try/catch              → an *erroring* source degrades to []
+ *   - Promise.race(deadline) → a *hanging* source degrades to [] after
+ *     SOURCE_DEADLINE_MS (which try/catch cannot catch)
+ * Either way a single source can never make the feed wait past the
+ * deadline.
+ */
 async function safeSource(fn: () => Promise<AttentionItem[]>): Promise<AttentionItem[]> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<AttentionItem[]>((resolve) => {
+    timer = setTimeout(() => resolve([]), SOURCE_DEADLINE_MS);
+  });
   try {
-    return await fn();
+    return await Promise.race([fn(), deadline]);
   } catch {
     return [];
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
