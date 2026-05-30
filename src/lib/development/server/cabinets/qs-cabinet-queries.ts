@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 
 export interface QsCabinetData {
@@ -67,16 +67,14 @@ export async function loadQsCabinet(): Promise<QsCabinetData> {
           AND created_at >= now() - INTERVAL '7 days') AS anomalies_week
   `);
   const s =
-    (summary as unknown as {
-      rows: Array<{
+    rowsOf<{
         active_boqs: string;
         awaiting_qs: string;
         spec_recent: string;
         boqs_under_review: string;
         open_cos: string;
         anomalies_week: string;
-      }>;
-    }).rows?.[0] ?? null;
+      }>(summary)[0] ?? null;
 
   const recentBoqs = await db.execute<{ id: string; title: string; status: string }>(sql`
     SELECT id::text, title, status FROM boq_documents
@@ -121,28 +119,22 @@ export async function loadQsCabinet(): Promise<QsCabinetData> {
     openChangeOrdersCount: Number(s?.open_cos ?? "0"),
     anomaliesThisWeekCount: Number(s?.anomalies_week ?? "0"),
     recentBoqs:
-      (recentBoqs as unknown as {
-        rows: Array<{ id: string; title: string; status: string }>;
-      }).rows ?? [],
+      rowsOf<{ id: string; title: string; status: string }>(recentBoqs),
     latestQsAnalystOutputCode:
-      (latestQs as unknown as { rows: Array<{ output_code: string }> }).rows?.[0]
+      rowsOf<{ output_code: string }>(latestQs)[0]
         ?.output_code ?? null,
     anomaliesLast7Days:
-      (dailyAnomalies as unknown as {
-        rows: Array<{ iso_date: string; count: string }>;
-      }).rows?.map((r) => ({
+      rowsOf<{ iso_date: string; count: string }>(dailyAnomalies).map((r) => ({
         isoDate: r.iso_date,
         count: Number(r.count ?? "0"),
       })) ?? [],
     recentQsAnalystOutputs:
-      (recentOutputs as unknown as {
-        rows: Array<{
+      rowsOf<{
           output_code: string;
           title: string;
           summary: string;
           created_at: string;
-        }>;
-      }).rows?.map((r) => ({
+        }>(recentOutputs).map((r) => ({
         outputCode: r.output_code,
         title: r.title,
         summary: r.summary,
@@ -204,14 +196,14 @@ export async function getBoqWpRollup(): Promise<WpRollupRow[]> {
      LIMIT 6
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       wp_code: string;
       wp_title: string;
       budget: string;
       baseline: string;
       item_count: string;
       currency: string;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     wpCode: r.wp_code,
     wpTitle: r.wp_title,
@@ -263,7 +255,7 @@ export async function getBoqTopLines(limit = 7): Promise<BoqLineRow[]> {
      LIMIT ${limit}
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       item_code: string;
       section_code: string;
       description: string;
@@ -272,7 +264,7 @@ export async function getBoqTopLines(limit = 7): Promise<BoqLineRow[]> {
       unit_rate_minor: string;
       total_minor: string;
       currency: string;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     itemCode: r.item_code,
     sectionCode: r.section_code,
@@ -329,7 +321,7 @@ export async function getRfqMatrix(): Promise<RfqMatrixRow[]> {
      LIMIT 12
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       vendor_name: string | null;
       pr_code: string | null;
@@ -338,7 +330,7 @@ export async function getRfqMatrix(): Promise<RfqMatrixRow[]> {
       currency: string;
       delivery_eta: string | null;
       status: string;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     quotationId: r.id,
     vendorName: r.vendor_name,
