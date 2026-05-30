@@ -8,6 +8,8 @@ import {
   listStatementLines,
 } from "@/features/finance/services";
 import { StatementDetail } from "@/components/finance/statement-detail";
+import { StatementDisputeButton } from "@/components/owner/statement-dispute-button";
+import { getStatementDisputeState } from "@/features/owner-portal/get-statement-dispute-state";
 import { AIPayoutExplainer } from "@/components/owner/ai-payout-explainer";
 import {
   getStatementExplanationSnapshot,
@@ -52,6 +54,9 @@ export default async function OwnerStatementDetail({
   // Fallback explanation when the snapshot is missing.
   const fallbackExplanation = generateStatementExplanation(statement, lines);
 
+  // Owner-side dispute state (separate from the mgmt OwnerStatementRow).
+  const disputeState = await getStatementDisputeState(id);
+
   return (
     <div className="flex flex-col gap-12">
       <SectionHeading
@@ -59,12 +64,19 @@ export default async function OwnerStatementDetail({
         title={statement.periodLabel}
         subtitle={`${statement.villaCode ?? statement.projectName ?? "—"} · ${statement.managementModel}`}
         actions={
-          <Button asChild variant="secondary">
-            <a href={`/owner/statements/${id}/pdf`} target="_blank" rel="noopener noreferrer">
-              <Download className="w-4 h-4" strokeWidth={1.75} />
-              Download PDF
-            </a>
-          </Button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <StatementDisputeButton
+              statementId={statement.id}
+              statementCode={statement.statementCode}
+              alreadyDisputed={disputeState.alreadyDisputed}
+            />
+            <Button asChild variant="secondary">
+              <a href={`/owner/statements/${id}/pdf`} target="_blank" rel="noopener noreferrer">
+                <Download className="w-4 h-4" strokeWidth={1.75} />
+                Download PDF
+              </a>
+            </Button>
+          </div>
         }
       />
 

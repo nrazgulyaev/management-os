@@ -3,6 +3,7 @@ import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import { listMyVillas } from "@/features/owner-portal/owner-portal-queries";
+import { getVillaHeroUrls } from "@/features/owner-portal/get-owner-insights";
 
 /**
  * OWNER-PORTAL-1A — My villas (live from ownership_shares).
@@ -28,6 +29,9 @@ export default async function OwnerVillasPage() {
   const owner = await getCurrentOwnerContext();
   if (!owner) redirect("/dashboard");
   const villas = await listMyVillas(owner.ownerId);
+  const heroUrls = await getVillaHeroUrls(villas.map((v) => v.villaId)).catch(
+    () => ({}) as Record<string, string>,
+  );
 
   return (
     <div className="flex flex-col gap-10">
@@ -60,10 +64,19 @@ export default async function OwnerVillasPage() {
                 className="rounded-lg border border-line-soft bg-surface overflow-hidden flex flex-col"
               >
                 <div
-                  style={{
-                    background: VILLA_GRADIENTS[i % VILLA_GRADIENTS.length],
-                    height: 120,
-                  }}
+                  style={
+                    heroUrls[v.villaId]
+                      ? {
+                          backgroundImage: `url(${heroUrls[v.villaId]})`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                          height: 120,
+                        }
+                      : {
+                          background: VILLA_GRADIENTS[i % VILLA_GRADIENTS.length],
+                          height: 120,
+                        }
+                  }
                 />
                 <div className="p-5 flex flex-col gap-3">
                   <div className="flex items-center justify-between">
