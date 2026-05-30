@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 
 /**
@@ -48,14 +48,14 @@ export async function getActiveProjectsRollup(): Promise<OverviewProjectRow[]> {
      LIMIT 12
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       project_code: string;
       name: string;
       status: string;
       management_status: string;
       villa_count: string;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     projectId: r.id,
     projectCode: r.project_code,
@@ -98,12 +98,12 @@ export async function getTeamRoster(): Promise<TeamRosterRow[]> {
      LIMIT 12
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       full_name: string;
       email: string;
       role_key: string | null;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     userId: r.id,
     fullName: r.full_name,
@@ -181,7 +181,7 @@ export async function getRiskRadar(limit = 5): Promise<RiskRadarRow[]> {
      LIMIT ${limit}
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       risk_code: string;
       title: string;
@@ -193,7 +193,7 @@ export async function getRiskRadar(limit = 5): Promise<RiskRadarRow[]> {
       risk_score: string;
       mitigation_status: string;
       owner_name: string | null;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     riskId: r.id,
     riskCode: r.risk_code,
@@ -242,13 +242,13 @@ export async function getSiteActivityFeed(limit = 6): Promise<SiteActivityRow[]>
      LIMIT ${limit}
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       report_date: string;
       project_code: string | null;
       summary: string | null;
       reporter_name: string | null;
       workers: string;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     source: "site_report" as const,
     occurredAt: r.report_date,
@@ -313,14 +313,14 @@ export async function getDevPortfolioKpis(): Promise<PortfolioKpis> {
         WHERE organization_id = ${orgId}
           AND report_date >= (CURRENT_DATE - INTERVAL '14 days')) AS recent_reports
   `);
-  const r = (rows as unknown as { rows: Array<{
+  const r = rowsOf<{
     active_projects: string;
     active_villas: string;
     bookings_mtd: string;
     open_risks: string;
     open_wps: string;
     recent_reports: string;
-  }> }).rows?.[0];
+  }>(rows)[0];
   return {
     activeProjects: Number(r?.active_projects ?? "0"),
     activeVillas: Number(r?.active_villas ?? "0"),
@@ -346,12 +346,12 @@ export async function getLatestQsAnomaly(): Promise<LatestAnomalyRow | null> {
      WHERE agent_key = 'qs_cost_analyst'
      ORDER BY created_at DESC LIMIT 1
   `);
-  const r = (rows as unknown as { rows: Array<{
+  const r = rowsOf<{
     output_code: string;
     title: string;
     summary: string;
     created_at: string;
-  }> }).rows?.[0];
+  }>(rows)[0];
   return r
     ? {
         outputCode: r.output_code,
