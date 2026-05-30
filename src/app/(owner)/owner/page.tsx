@@ -11,6 +11,8 @@ import {
   listMyVillas,
   getOwnerStayQuota,
 } from "@/features/owner-portal/owner-portal-queries";
+import { getActiveOwnerInsights } from "@/features/owner-portal/get-owner-insights";
+import { mapPoolAll } from "@/lib/db/map-pool";
 
 /**
  * Sprint OWNER-PORTAL-1A — Owner home (dashboard).
@@ -45,13 +47,20 @@ export default async function OwnerHomePage() {
   const owner = await getCurrentOwnerContext();
   if (!owner) redirect("/dashboard");
 
-  const [kpis, villas, monthly, latestStatements, quota] = await Promise.all([
-    getOwnerDashboardKpis(owner.ownerId).catch(() => null),
-    listMyVillas(owner.ownerId).catch(() => []),
-    getTwelveMonthNetSeries(owner.ownerId).catch(() => []),
-    listMyStatements(owner.ownerId, { limit: 1 }).catch(() => []),
-    getOwnerStayQuota(owner.ownerId).catch(() => null),
-  ]);
+  // DB-POOL-FANOUT-1 — 6 concurrent reads (>4) bounded to 4 at a time so
+  // the owner home never over-subscribes the postgres-js pool.
+  const [kpis, villas, monthly, latestStatements, quota, insights] =
+    await mapPoolAll(
+      [
+        () => getOwnerDashboardKpis(owner.ownerId).catch(() => null),
+        () => listMyVillas(owner.ownerId).catch(() => []),
+        () => getTwelveMonthNetSeries(owner.ownerId).catch(() => []),
+        () => listMyStatements(owner.ownerId, { limit: 1 }).catch(() => []),
+        () => getOwnerStayQuota(owner.ownerId).catch(() => null),
+        () => getActiveOwnerInsights(owner.ownerId).catch(() => []),
+      ] as const,
+      4,
+    );
   const latest = latestStatements[0] ?? null;
   const quotaUsedPct = quota
     ? Math.min(100, Math.round((quota.usedNights / Math.max(quota.freeNightsPerYear, 1)) * 100))
@@ -123,6 +132,46 @@ export default async function OwnerHomePage() {
           sub="channel mix · 30d"
         />
       </div>
+
+      {/* What needs you — active owner insights (PR4) */}
+      {insights.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <div>
+            <div className="label">What needs you</div>
+            <h2 className="display" style={{ fontSize: 22, marginTop: 6, fontWeight: 500 }}>
+              Worth a look
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {insights.map((it) => {
+              const tone =
+                it.level === "act"
+                  ? "var(--terra)"
+                  : it.level === "watch"
+                    ? "var(--gold)"
+                    : "var(--forest)";
+              return (
+                <div
+                  key={it.id}
+                  className="rounded-md border border-line-soft bg-surface p-4 flex gap-3"
+                >
+                  <span
+                    className="w-1 rounded-full shrink-0"
+                    style={{ background: tone }}
+                    aria-hidden
+                  />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium text-ink">{it.title}</span>
+                    {it.detail && (
+                      <span className="text-xs text-ink-tertiary">{it.detail}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Statement detail + sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
