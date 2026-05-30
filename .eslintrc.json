@@ -49,7 +49,6 @@
         "src/lib/development/server/cabinets/ai-agents-cabinet-queries.ts",
         "src/lib/development/server/cabinets/dev-overview-queries.ts",
         "src/lib/development/server/cabinets/marketing-cabinet-queries.ts",
-        "src/lib/development/server/cabinets/qs-cabinet-queries.ts",
         "src/lib/development/server/cabinets/sales-cabinet-queries.ts",
         "src/lib/development/server/cabinets/warehouse-cabinet-queries.ts",
         "src/lib/development/server/cron/ai-memory-aggregator-job.ts",
