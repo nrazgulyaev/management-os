@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 
 export interface MarketingCabinetData {
   contentByStatus: Record<string, number>;
@@ -46,9 +46,7 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
     SELECT status, COUNT(*)::text AS n FROM content_pieces GROUP BY status
   `);
   const contentByStatus: Record<string, number> = {};
-  for (const r of (statusRows as unknown as {
-    rows: Array<{ status: string; n: string }>;
-  }).rows ?? []) {
+  for (const r of rowsOf<{ status: string; n: string }>(statusRows)) {
     contentByStatus[r.status] = Number(r.n);
   }
 
@@ -72,16 +70,14 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
       (SELECT COUNT(*)::text FROM leads WHERE lifecycle_status = 'hot') AS hot
   `);
   const s =
-    (summary as unknown as {
-      rows: Array<{
+    rowsOf<{
         review: string;
         sched_week: string;
         recent_pub: string;
         active_camp: string;
         leads_week: string;
         hot: string;
-      }>;
-    }).rows?.[0] ?? null;
+      }>(summary)[0] ?? null;
 
   const latestMa = await db.execute<{ output_code: string }>(sql`
     SELECT output_code FROM agent_outputs
@@ -133,31 +129,25 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
     leadsThisWeek: Number(s?.leads_week ?? "0"),
     hotLeadsCount: Number(s?.hot ?? "0"),
     latestMarketingAssistantOutputCode:
-      (latestMa as unknown as { rows: Array<{ output_code: string }> }).rows?.[0]
+      rowsOf<{ output_code: string }>(latestMa)[0]
         ?.output_code ?? null,
     publishesLast7Days:
-      (dailyPublishes as unknown as {
-        rows: Array<{ iso_date: string; count: string }>;
-      }).rows?.map((r) => ({
+      rowsOf<{ iso_date: string; count: string }>(dailyPublishes).map((r) => ({
         isoDate: r.iso_date,
         count: Number(r.count ?? "0"),
       })) ?? [],
     funnelByLifecycle:
-      (funnelRows as unknown as {
-        rows: Array<{ lifecycle_status: string; count: string }>;
-      }).rows?.map((r) => ({
+      rowsOf<{ lifecycle_status: string; count: string }>(funnelRows).map((r) => ({
         lifecycleStatus: r.lifecycle_status,
         count: Number(r.count ?? "0"),
       })) ?? [],
     recentMarketingAssistantOutputs:
-      (recentOutputs as unknown as {
-        rows: Array<{
+      rowsOf<{
           output_code: string;
           title: string;
           summary: string;
           created_at: string;
-        }>;
-      }).rows?.map((r) => ({
+        }>(recentOutputs).map((r) => ({
         outputCode: r.output_code,
         title: r.title,
         summary: r.summary,
