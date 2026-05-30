@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 
 /**
  * Sprint INVESTOR-CABINET — Investor portal read aggregates.
@@ -15,6 +15,11 @@ import { getDb } from "@/lib/db/client";
  * (commitment.committed_amount_usd_minor / project total committed)
  * × distribution.total_amount_usd_minor — distribution_allocations
  * is not seeded.
+ *
+ * SHAPE-BUG-SWEEP-1 (fix #1): all `db.execute()` reads unpack via
+ * `rowsOf<T>()` (postgres-js returns a tagged Array, not `{ rows }`).
+ * Query SQL and row→DTO mapping are unchanged; only the result
+ * accessor was converted.
  */
 
 export interface InvestorDashboardKpis {
@@ -88,14 +93,14 @@ export async function getInvestorDashboard(
       COALESCE((SELECT COUNT(DISTINCT project_id)::text FROM my_commitments), '0') AS projects_count,
       COALESCE((SELECT AVG(profit_share_percent)::text FROM my_commitments), '0') AS avg_profit_share
   `);
-  const r = (row as unknown as { rows: Array<{
+  const r = rowsOf<{
     total_committed: string;
     total_drawn: string;
     total_distributed: string;
     current_nav: string;
     projects_count: string;
     avg_profit_share: string;
-  }> }).rows?.[0];
+  }>(row)[0];
   return {
     totalCommittedUsdMinor: BigInt(r?.total_committed ?? "0"),
     totalDrawnUsdMinor: BigInt(r?.total_drawn ?? "0"),
@@ -173,16 +178,14 @@ export async function getCapitalLedger(
     ORDER BY event_date DESC NULLS LAST
     LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      event_type: string;
-      event_date: string;
-      amount_usd: string;
-      project_name: string | null;
-      narrative: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    event_type: string;
+    event_date: string;
+    amount_usd: string;
+    project_name: string | null;
+    narrative: string;
+  }>(rows).map((r) => ({
     id: r.id,
     eventType: r.event_type as CapitalLedgerEvent["eventType"],
     date: r.event_date?.slice(0, 10) ?? "",
@@ -240,18 +243,16 @@ export async function getYourInterest(
        AND c.status = 'active'
      ORDER BY p.name ASC
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      project_id: string;
-      project_name: string;
-      fund_class: string;
-      committed_usd: string;
-      drawn_usd: string;
-      profit_share_pct: string;
-      project_total_committed: string;
-      latest_nav: string | null;
-    }> }).rows ?? []
-  ).map((r) => {
+  return rowsOf<{
+    project_id: string;
+    project_name: string;
+    fund_class: string;
+    committed_usd: string;
+    drawn_usd: string;
+    profit_share_pct: string;
+    project_total_committed: string;
+    latest_nav: string | null;
+  }>(rows).map((r) => {
     const committed = BigInt(r.committed_usd);
     const projTotal = Number(r.project_total_committed || "1");
     const ownershipPct = projTotal > 0 ? (Number(committed) / projTotal) * 100 : 0;
@@ -300,9 +301,7 @@ export async function getNavSeries(investorId: string): Promise<NavSeriesPoint[]
      GROUP BY ns.quarter_end_date
      ORDER BY ns.quarter_end_date ASC
   `);
-  return (
-    (rows as unknown as { rows: Array<{ quarter_end: string; nav_share: string }> }).rows ?? []
-  ).map((r) => {
+  return rowsOf<{ quarter_end: string; nav_share: string }>(rows).map((r) => {
     const d = new Date(r.quarter_end + "T00:00:00Z");
     const q = Math.ceil((d.getUTCMonth() + 1) / 3);
     const label = `Q${q} '${String(d.getUTCFullYear()).slice(2)}`;
@@ -360,16 +359,14 @@ export async function getInvestorDistributions(
             AND a.commitment_id = c.id
      ORDER BY d.effective_date DESC
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      project_name: string | null;
-      distribution_type: string;
-      effective_date: string;
-      share_usd: string;
-      status: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    project_name: string | null;
+    distribution_type: string;
+    effective_date: string;
+    share_usd: string;
+    status: string;
+  }>(rows).map((r) => ({
     distributionId: r.id,
     projectName: r.project_name?.replace(/^\[DEMO\] /, "") ?? null,
     distributionType: r.distribution_type,
@@ -415,16 +412,14 @@ export async function getConstructionProgress(
      )
      ORDER BY p.name
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      project_id: string;
-      project_name: string;
-      wp_count: string;
-      report_count: string;
-      qa_count: string;
-      latest_report: string | null;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    project_id: string;
+    project_name: string;
+    wp_count: string;
+    report_count: string;
+    qa_count: string;
+    latest_report: string | null;
+  }>(rows).map((r) => ({
     projectId: r.project_id,
     projectName: r.project_name?.replace(/^\[DEMO\] /, "") ?? "Project",
     workPackagesCount: Number(r.wp_count || 0),
@@ -487,18 +482,16 @@ export async function listMyInvestorDocuments(
      ORDER BY d.created_at DESC
      LIMIT 100
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      title: string;
-      document_type: string;
-      file_name: string | null;
-      mime_type: string | null;
-      size_bytes: number | null;
-      created_at: string;
-      visibility: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    title: string;
+    document_type: string;
+    file_name: string | null;
+    mime_type: string | null;
+    size_bytes: number | null;
+    created_at: string;
+    visibility: string;
+  }>(rows).map((r) => ({
     id: r.id,
     title: r.title,
     documentType: r.document_type,
