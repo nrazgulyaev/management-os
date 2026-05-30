@@ -23,7 +23,6 @@
   "overrides": [
     {
       "files": [
-        "src/app/(dashboard)/dashboard/investors/page.tsx",
         "src/app/(dashboard)/dashboard/system/health/page.tsx",
         "src/app/(development-app)/development-os/marketing/dashboard/page.tsx",
         "src/app/(development-app)/development-os/marketing/lead-sources/[[]key[]]/page.tsx",
@@ -38,7 +37,6 @@
         "src/features/ai-agents/ai-hub-cabinet-queries.ts",
         "src/features/dynamic-pricing/services.ts",
         "src/features/finance/statement-generation.ts",
-        "src/features/front-office/room-board.ts",
         "src/features/integrations/fx-service.ts",
         "src/features/notifications/delivery.ts",
         "src/features/owner-portal/owner-context.ts",
