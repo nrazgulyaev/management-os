@@ -41,7 +41,6 @@
         "src/features/front-office/room-board.ts",
         "src/features/guest-ai-concierge/concierge-cabinet-queries.ts",
         "src/features/integrations/fx-service.ts",
-        "src/features/investor-portal/investor-portal-queries.ts",
         "src/features/notifications/delivery.ts",
         "src/features/owner-portal/owner-context.ts",
         "src/features/team/actions.ts",
