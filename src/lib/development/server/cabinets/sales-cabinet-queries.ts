@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 
 export interface SalesCabinetData {
   hotLeadsCount: number;
@@ -84,15 +84,13 @@ export async function loadSalesCabinet(
           ${mgrConvFilter}) AS overdue
   `);
   const s =
-    (summary as unknown as {
-      rows: Array<{
+    rowsOf<{
         hot: string;
         active_conv: string;
         res_month: string;
         cont_month: string;
         overdue: string;
-      }>;
-    }).rows?.[0] ?? null;
+      }>(summary)[0] ?? null;
 
   const snapRow = managerId
     ? await db.execute<{
@@ -109,9 +107,7 @@ export async function loadSalesCabinet(
       `)
     : { rows: [] };
   const snap =
-    (snapRow as unknown as {
-      rows: Array<{ rate: string; resp: string; score: string }>;
-    }).rows?.[0] ?? null;
+    rowsOf<{ rate: string; resp: string; score: string }>(snapRow)[0] ?? null;
 
   const hotRows = await db.execute<{
     id: string;
@@ -162,24 +158,18 @@ export async function loadSalesCabinet(
         }
       : null,
     topHotLeads:
-      (hotRows as unknown as {
-        rows: Array<{ id: string; lead_code: string; lifecycle_status: string }>;
-      }).rows?.map((r) => ({
+      rowsOf<{ id: string; lead_code: string; lifecycle_status: string }>(hotRows).map((r) => ({
         id: r.id,
         leadCode: r.lead_code,
         lifecycleStatus: r.lifecycle_status,
       })) ?? [],
     funnelByLifecycle:
-      (funnelRows as unknown as {
-        rows: Array<{ lifecycle_status: string; count: string }>;
-      }).rows?.map((r) => ({
+      rowsOf<{ lifecycle_status: string; count: string }>(funnelRows).map((r) => ({
         lifecycleStatus: r.lifecycle_status,
         count: Number(r.count ?? "0"),
       })) ?? [],
     conversationsLast7Days:
-      (convRows as unknown as {
-        rows: Array<{ iso_date: string; count: string }>;
-      }).rows?.map((r) => ({
+      rowsOf<{ iso_date: string; count: string }>(convRows).map((r) => ({
         isoDate: r.iso_date,
         count: Number(r.count ?? "0"),
       })) ?? [],
