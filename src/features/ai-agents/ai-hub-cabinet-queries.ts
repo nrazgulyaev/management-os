@@ -451,14 +451,14 @@ export async function listAgentInbox(limit = 8): Promise<AgentInboxItem[]> {
      LIMIT ${limit}
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       agent_key: string;
       subject: string;
       status: string;
       invoked_at: string;
       review_status: string | null;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     id: r.id,
     agentKey: r.agent_key,
@@ -506,7 +506,7 @@ export async function listRecentRuns(limit = 8): Promise<AgentRun[]> {
      LIMIT ${limit}
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       agent_key: string;
       model: string | null;
@@ -514,7 +514,7 @@ export async function listRecentRuns(limit = 8): Promise<AgentRun[]> {
       duration_ms: number | null;
       cost_minor: string | null;
       invoked_at: string;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     id: r.id,
     agentKey: r.agent_key,
