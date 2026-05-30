@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 
 /**
  * Sprint OWNER-PORTAL-1A — Owner portal read aggregates.
@@ -72,7 +72,10 @@ export async function listMyVillas(ownerId: string): Promise<OwnerVillaRow[]> {
        AND os.status = 'active'
      ORDER BY v.unit_code ASC
   `);
-  const data = (rows as unknown as { rows: Array<{
+  // SHAPE-FIX: postgres-js returns db.execute() as an Array; the old
+  // `.rows ?? []` accessor read undefined and silently dropped every row
+  // (the "0 villas" bug). rowsOf<T>() handles the real shape.
+  const data = rowsOf<{
     villa_id: string;
     villa_code: string | null;
     villa_name: string | null;
@@ -81,7 +84,7 @@ export async function listMyVillas(ownerId: string): Promise<OwnerVillaRow[]> {
     mtd_net_usd: string;
     mtd_nights: string;
     mtd_revenue_usd: string;
-  }> }).rows ?? [];
+  }>(rows);
 
   const dayOfMonth = new Date().getUTCDate();
   return data.map((r) => {
@@ -156,21 +159,19 @@ export async function listMyStatements(
      ORDER BY s.period_month DESC NULLS LAST, s.created_at DESC
      LIMIT ${opts?.limit ?? 24}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      statement_code: string;
-      villa_code: string | null;
-      period_month: string;
-      net_idr_minor: string;
-      net_usd_minor: string | null;
-      status: string;
-      approved_at: string | null;
-      sent_at: string | null;
-      sent_to_email: string | null;
-      content_hash: string | null;
-    }> }).rows ?? []
-  ).map((r) => {
+  return rowsOf<{
+    id: string;
+    statement_code: string;
+    villa_code: string | null;
+    period_month: string;
+    net_idr_minor: string;
+    net_usd_minor: string | null;
+    status: string;
+    approved_at: string | null;
+    sent_at: string | null;
+    sent_to_email: string | null;
+    content_hash: string | null;
+  }>(rows).map((r) => {
     const [y, m] = r.period_month.split("-").map(Number);
     const monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en", {
       month: "long",
@@ -252,7 +253,7 @@ export async function getMyStatementDetail(
        AND s.owner_id = ${ownerId}::uuid
      LIMIT 1
   `);
-  const sr = (sRows as unknown as { rows: Array<{
+  const sr = rowsOf<{
     id: string;
     statement_code: string;
     villa_code: string | null;
@@ -268,7 +269,7 @@ export async function getMyStatementDetail(
     content_hash: string | null;
     commission_pct: string | null;
     gross_minor: string;
-  }> }).rows?.[0];
+  }>(sRows)[0];
   if (!sr) return null;
 
   const lRows = await db.execute<{
@@ -287,11 +288,9 @@ export async function getMyStatementDetail(
      WHERE statement_id = ${statementId}::uuid
      ORDER BY sort_order ASC
   `);
-  const lines = (
-    (lRows as unknown as { rows: Array<{
-      id: string; line_type: string; category: string; description: string; amount_minor: string;
-    }> }).rows ?? []
-  ).map((l) => ({
+  const lines = rowsOf<{
+    id: string; line_type: string; category: string; description: string; amount_minor: string;
+  }>(lRows).map((l) => ({
     id: l.id,
     lineType: l.line_type,
     category: l.category,
@@ -360,9 +359,9 @@ export async function getTwelveMonthNetSeries(ownerId: string): Promise<TwelveMo
        AND s.period_month IS NOT NULL
        AND s.period_month >= ${start}::date
   `);
-  const data = (rows as unknown as { rows: Array<{
+  const data = rowsOf<{
     period_month: string; net_usd_minor: string | null; net_idr_minor: string;
-  }> }).rows ?? [];
+  }>(rows);
   const byMonth = new Map(buckets.map((b) => [b.monthIso, b]));
   for (const r of data) {
     const b = byMonth.get(r.period_month);
@@ -408,9 +407,9 @@ export async function getOwnerDashboardKpis(ownerId: string): Promise<OwnerDashb
      ORDER BY period_month DESC NULLS LAST, created_at DESC
      LIMIT 1
   `);
-  const ls = (latestStmtRow as unknown as { rows: Array<{
+  const ls = rowsOf<{
     period_month: string; net_usd_minor: string | null; net_idr_minor: string;
-  }> }).rows?.[0];
+  }>(latestStmtRow)[0];
 
   // 30-day occupancy + ADR + channel mix across owner's villas.
   const opsRow = await db.execute<{
@@ -445,14 +444,14 @@ export async function getOwnerDashboardKpis(ownerId: string): Promise<OwnerDashb
       COALESCE(SUM(CASE WHEN channel_class = 'ota'    AND currency = 'USD' THEN gross_amount ELSE 0 END)::text,'0') AS ota_units
       FROM last30
   `);
-  const r = (opsRow as unknown as { rows: Array<{
+  const r = rowsOf<{
     bookings_30d: string;
     nights_30d: string;
     revenue_30d_usd: string;
     villa_count: string;
     direct_units: string;
     ota_units: string;
-  }> }).rows?.[0];
+  }>(opsRow)[0];
 
   const villaCount = Number(r?.villa_count ?? "0");
   const nights = Number(r?.nights_30d ?? "0");
@@ -576,12 +575,12 @@ export async function getOwnerStayQuota(
               (p.project_id IS NOT NULL) DESC
      LIMIT 1
   `);
-  const policy = (policyRows as unknown as { rows: Array<{
+  const policy = rowsOf<{
     policy_name: string;
     free_nights: string;
     apply_to_peak: boolean;
     peak_rules: unknown;
-  }> }).rows?.[0];
+  }>(policyRows)[0];
 
   // Sum allowance_nights_applied for the year. Includes approved +
   // confirmed/relocated. Drafts/rejected excluded.
@@ -596,10 +595,10 @@ export async function getOwnerStayQuota(
        AND allowance_year = ${year}
        AND status NOT IN ('rejected','cancelled','withdrawn')
   `);
-  const usage = (usageRows as unknown as { rows: Array<{
+  const usage = rowsOf<{
     used_nights: string;
     requests_count: string;
-  }> }).rows?.[0];
+  }>(usageRows)[0];
 
   const freeNights = policy ? Number(policy.free_nights || 14) : 14;
   const used = Number(usage?.used_nights ?? "0");
@@ -697,18 +696,16 @@ export async function listMyDocuments(ownerId: string): Promise<OwnerDocumentRow
      ORDER BY d.created_at DESC
      LIMIT 100
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      title: string;
-      document_type: string;
-      file_name: string | null;
-      mime_type: string | null;
-      size_bytes: number | null;
-      created_at: string;
-      visibility: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    title: string;
+    document_type: string;
+    file_name: string | null;
+    mime_type: string | null;
+    size_bytes: number | null;
+    created_at: string;
+    visibility: string;
+  }>(rows).map((r) => ({
     id: r.id,
     title: r.title,
     documentType: r.document_type,
