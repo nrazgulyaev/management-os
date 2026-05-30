@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 
 export interface WarehouseCabinetData {
   totalSkuCount: number;
@@ -60,16 +60,14 @@ export async function loadWarehouseCabinet(): Promise<WarehouseCabinetData> {
         WHERE status IN ('ordered', 'partially_delivered')) AS pending_deliveries
   `);
   const s =
-    (summary as unknown as {
-      rows: Array<{
+    rowsOf<{
         total_sku: string;
         low: string;
         zero: string;
         today_movements: string;
         qaqc_materials: string;
         pending_deliveries: string;
-      }>;
-    }).rows?.[0] ?? null;
+      }>(summary)[0] ?? null;
 
   const dailyMovements = await db.execute<{
     iso_date: string;
@@ -106,22 +104,18 @@ export async function loadWarehouseCabinet(): Promise<WarehouseCabinetData> {
     qaqcLinkedToMaterialsCount: Number(s?.qaqc_materials ?? "0"),
     pendingDeliveriesCount: Number(s?.pending_deliveries ?? "0"),
     movementsLast7Days:
-      (dailyMovements as unknown as {
-        rows: Array<{ iso_date: string; count: string }>;
-      }).rows?.map((r) => ({
+      rowsOf<{ iso_date: string; count: string }>(dailyMovements).map((r) => ({
         isoDate: r.iso_date,
         count: Number(r.count ?? "0"),
       })) ?? [],
     recentMovements:
-      (recent as unknown as {
-        rows: Array<{
+      rowsOf<{
           id: string;
           movement_type: string;
           item_name: string;
           quantity: string;
           movement_date: string;
-        }>;
-      }).rows?.map((r) => ({
+        }>(recent).map((r) => ({
         id: r.id,
         movementType: r.movement_type,
         itemName: r.item_name ?? null,
