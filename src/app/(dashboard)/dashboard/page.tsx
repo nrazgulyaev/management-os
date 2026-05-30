@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   Kpi,
@@ -5,6 +6,10 @@ import {
   Card,
   HandoffBadge,
 } from "@/components/dashboard/primitives";
+import {
+  AttentionFeedSection,
+  AttentionFeedSkeleton,
+} from "@/components/dashboard/attention-feed-section";
 import { DashboardIcon } from "@/components/dashboard/icons";
 import { RecentDigestsTile } from "@/components/digests/recent-digests-tile";
 import { getLiveDashboardCounts } from "@/features/dashboard/live-counts";
@@ -182,6 +187,16 @@ export default async function DashboardOverviewPage() {
           value={metrics && metrics.netToOwnersMtdIdrMinor > 0n ? `IDR ${fmtIdrB(metrics.netToOwnersMtdIdrMinor)}` : "—"}
           sub="gross × (1 − commission)"
         />
+      </div>
+
+      {/* Cross-cabinet attention queue — phase-2a PR 2, re-landed pool-safe.
+          Behind <Suspense> so the page shell streams immediately and a slow
+          feed (or a degraded-empty one after the 3s per-source deadline)
+          can never block the render or the post-login redirect here. */}
+      <div className="mb-3.5">
+        <Suspense fallback={<AttentionFeedSkeleton />}>
+          <AttentionFeedSection />
+        </Suspense>
       </div>
 
       {/* Today + AI Copilot */}
