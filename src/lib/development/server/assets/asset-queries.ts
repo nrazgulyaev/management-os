@@ -1,7 +1,7 @@
 import "server-only";
 
 import { and, asc, eq, sql } from "drizzle-orm";
-import { requireDb } from "@/lib/db/client";
+import { requireDb, rowsOf } from "@/lib/db/client";
 import { villas } from "@/lib/db/schema/projects";
 import { assetTypes } from "@/lib/db/schema/asset-types";
 
@@ -106,6 +106,6 @@ export async function countAssetsViaView() {
   const result = await db.execute<{ count: string }>(sql`
     SELECT COUNT(*)::text AS count FROM assets
   `);
-  const rows = (result as unknown as { rows: Array<{ count: string }> }).rows ?? [];
+  const rows = rowsOf<{ count: string }>(result);
   return Number(rows[0]?.count ?? "0");
 }

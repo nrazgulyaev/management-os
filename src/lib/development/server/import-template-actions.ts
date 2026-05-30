@@ -15,7 +15,7 @@
 
 import { and, desc, eq, max, sql } from "drizzle-orm";
 import { z } from "zod";
-import { requireDb } from "@/lib/db/client";
+import { requireDb, rowsOf } from "@/lib/db/client";
 import {
   importTemplates,
   type ImportTemplate,
@@ -150,7 +150,7 @@ export async function listImportTemplates(): Promise<
      WHERE rn = 1
      ORDER BY last_used_at DESC NULLS LAST, name ASC
   `);
-  const list = (rows as unknown as { rows: Array<{
+  const list = rowsOf<{
     id: string;
     name: string;
     version: number;
@@ -162,7 +162,7 @@ export async function listImportTemplates(): Promise<
     use_count: number;
     updated_at: string;
     created_at: string;
-  }> }).rows ?? [];
+  }>(rows);
   return list.map((r) => ({
     id: r.id,
     name: r.name,

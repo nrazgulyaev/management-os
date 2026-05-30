@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 
 /**
@@ -117,14 +117,14 @@ export async function getDevAgentConfigs(): Promise<DevAgentConfigRow[]> {
       lastTestStatus: string | null;
     }
   >();
-  for (const r of (rows as unknown as { rows: Array<{
+  for (const r of rowsOf<{
     agent_key: string;
     is_enabled: boolean;
     provider: string | null;
     model: string | null;
     api_key_set_at: string | null;
     last_test_status: string | null;
-  }> }).rows ?? []) {
+  }>(rows)) {
     byKey.set(r.agent_key, {
       isEnabled: r.is_enabled,
       provider: r.provider,
@@ -181,14 +181,14 @@ export async function getRecentAgentOutputs(limit = 8): Promise<AgentInboxRow[]>
      LIMIT ${limit}
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       output_code: string;
       agent_key: string;
       title: string;
       summary: string;
       status: string;
       created_at: string;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     outputCode: r.output_code,
     agentKey: r.agent_key,
@@ -272,14 +272,12 @@ export async function getDevAiKpis(): Promise<DevAiKpis> {
       (SELECT COALESCE(SUM(is_error), 0)::text FROM all_runs_24h) AS errors_24h
   `);
   const r =
-    (rows as unknown as {
-      rows: Array<{
+    rowsOf<{
         runs_24h: string;
         avg_latency: string;
         tokens_mtd: string;
         errors_24h: string;
-      }>;
-    }).rows?.[0] ?? null;
+      }>(rows)[0] ?? null;
   const total = Number(r?.runs_24h ?? "0");
   const errors = Number(r?.errors_24h ?? "0");
   return {

@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { eq, and, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { owners } from "@/lib/db/schema/ownership";
 import { appUsersOwners } from "@/lib/db/schema/access-grants";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -128,7 +128,7 @@ export async function getOwnerOrgId(ownerId: string): Promise<string | null> {
          AND os.status = 'active'
        LIMIT 1
     `);
-    const rows = (r as unknown as { rows: Array<{ org_id: string | null }> }).rows ?? [];
+    const rows = rowsOf<{ org_id: string | null }>(r);
     if (rows[0]?.org_id) return rows[0].org_id;
   } catch {
     // Column doesn't exist — fall through.

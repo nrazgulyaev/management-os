@@ -1,7 +1,7 @@
 import "server-only";
 
 import { and, desc, eq, sql } from "drizzle-orm";
-import { requireDb } from "@/lib/db/client";
+import { requireDb, rowsOf } from "@/lib/db/client";
 import { revenueStreams } from "@/lib/db/schema/revenue-streams";
 
 export async function listRevenueStreams(filters?: {
@@ -57,6 +57,6 @@ export async function getProjectRevenueLastYear(projectId: string) {
     GROUP BY date_trunc('month', period_start)
     ORDER BY period_start
   `);
-  return (result as unknown as { rows: Array<Record<string, string>> }).rows ??
+  return rowsOf<Record<string, string>>(result) ??
     [];
 }

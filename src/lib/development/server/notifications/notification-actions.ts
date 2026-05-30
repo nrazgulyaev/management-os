@@ -3,7 +3,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { z } from "zod";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { notificationDispatchLog } from "@/lib/db/schema/pwa";
 import { requireOrgId } from "@/features/auth/require-org";
 import { nextDispatchCode } from "../push/dispatch-helpers";
@@ -37,7 +37,7 @@ export async function schedulePushNotification(
      WHERE dispatch_code LIKE ${`ND-${yyyy}-%`}
   `);
   const seq = Number(
-    (seqRow as unknown as { rows: Array<{ n: string }> }).rows?.[0]?.n ?? "0",
+    rowsOf<{ n: string }>(seqRow)[0]?.n ?? "0",
   );
   const code = nextDispatchCode(yyyy, seq);
   await db.insert(notificationDispatchLog).values({

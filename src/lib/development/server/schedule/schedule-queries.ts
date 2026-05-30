@@ -1,7 +1,7 @@
 import "server-only";
 
 import { and, asc, eq, sql } from "drizzle-orm";
-import { requireDb } from "@/lib/db/client";
+import { requireDb, rowsOf } from "@/lib/db/client";
 import {
   projectTasks,
   taskDependencies,
@@ -105,5 +105,5 @@ export async function lookaheadTasks(
         OR t.status = 'in_progress'
       )
     ORDER BY t.is_on_critical_path DESC, t.planned_start ASC
-  `).then((r) => (r as unknown as { rows: Array<Record<string, string | boolean>> }).rows ?? []);
+  `).then((r) => rowsOf<Record<string, string | boolean>>(r));
 }

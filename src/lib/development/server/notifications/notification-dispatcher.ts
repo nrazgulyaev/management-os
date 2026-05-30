@@ -2,7 +2,7 @@ import "server-only";
 
 import webpush from "web-push";
 import { eq, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import {
   notificationDispatchLog,
   pushSubscriptions,
@@ -59,15 +59,13 @@ export async function dispatchPendingNotifications(): Promise<DispatchResult> {
      LIMIT 200
   `);
   const pending =
-    (pendingResult as unknown as {
-      rows: Array<{
+    rowsOf<{
         id: string;
         title: string;
         body: string;
         data_payload: unknown;
         target_subscription_id: string | null;
-      }>;
-    }).rows ?? [];
+      }>(pendingResult);
 
   let delivered = 0;
   let failed = 0;
