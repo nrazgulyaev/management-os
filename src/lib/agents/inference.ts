@@ -29,7 +29,7 @@ import { sql, eq, and, desc } from "drizzle-orm";
 import { streamText, generateText, stepCountIs, type LanguageModel } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { requireDb } from "@/lib/db/client";
+import { requireDb, rowsOf } from "@/lib/db/client";
 import {
   platformAgentConfigs,
   orgAgentSubscriptions,
@@ -149,7 +149,7 @@ export async function streamAgentResponse(
        AND started_at >= date_trunc('month', now())
   `);
   const spentRows =
-    (spentRow as unknown as { rows?: Array<{ spent: string }> }).rows ?? [];
+    rowsOf<{ spent: string }>(spentRow);
   const spentUsdMinor = Number(spentRows[0]?.spent ?? "0");
 
   if (!testMode && spentUsdMinor >= monthlyBudgetUsdMinor) {
@@ -551,7 +551,7 @@ export async function runAgentWithTools(
        AND started_at >= date_trunc('month', now())
   `);
   const spentUsdMinor = Number(
-    (spentRows as unknown as { rows?: Array<{ spent: string }> }).rows?.[0]
+    rowsOf<{ spent: string }>(spentRows)[0]
       ?.spent ?? "0",
   );
   if (spentUsdMinor >= monthlyBudgetUsdMinor) {

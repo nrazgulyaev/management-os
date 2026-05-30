@@ -1,7 +1,7 @@
 import "server-only";
 
 import { eq, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import {
   agentConfigurations,
   agentInvocationLog,
@@ -270,7 +270,7 @@ export async function runAgent<TOutput>(
   `);
   const seq =
     Number(
-      (seqRow as unknown as { rows: Array<{ n: string }> }).rows?.[0]?.n ?? "0",
+      rowsOf<{ n: string }>(seqRow)[0]?.n ?? "0",
     ) + 1;
   const outputCode = `AGT-OUT-${yyyy}-${String(seq).padStart(4, "0")}`;
 

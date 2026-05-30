@@ -3,7 +3,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { z } from "zod";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { offlineActionQueue } from "@/lib/db/schema/pwa";
 import { requireOrgId } from "@/features/auth/require-org";
 import { nextOfflineActionCode } from "../push/dispatch-helpers";
@@ -64,9 +64,7 @@ export async function submitOfflineAction(
      LIMIT 1
   `);
   const dupRow =
-    (existing as unknown as {
-      rows: Array<{ action_code: string; sync_status: string }>;
-    }).rows?.[0] ?? null;
+    rowsOf<{ action_code: string; sync_status: string }>(existing)[0] ?? null;
   if (dupRow) {
     return {
       ok: true,
@@ -81,7 +79,7 @@ export async function submitOfflineAction(
      WHERE action_code LIKE ${`OFFLINE-${yyyy}-%`}
   `);
   const seq = Number(
-    (seqRow as unknown as { rows: Array<{ n: string }> }).rows?.[0]?.n ?? "0",
+    rowsOf<{ n: string }>(seqRow)[0]?.n ?? "0",
   );
   const code = nextOfflineActionCode(yyyy, seq);
 

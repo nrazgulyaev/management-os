@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import {
   computeWaterfallSteps,
   renderWaterfallSvg,
@@ -35,8 +35,7 @@ export default async function CashflowWaterfallPage() {
      ORDER BY created_at DESC
      LIMIT 1
   `);
-  const proj = (row as unknown as { rows: Array<{ projections: Array<{ inflow: number; outflow: number; cumulativeCash: number }> }> })
-    .rows?.[0]?.projections;
+  const proj = rowsOf<{ projections: Array<{ inflow: number; outflow: number; cumulativeCash: number }> }>(row)[0]?.projections;
 
   let bars: WaterfallBar[] = [];
   if (proj && proj.length > 0) {

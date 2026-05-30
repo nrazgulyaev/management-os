@@ -1,7 +1,7 @@
 import "server-only";
 
 import { and, asc, desc, eq, sql } from "drizzle-orm";
-import { requireDb } from "@/lib/db/client";
+import { requireDb, rowsOf } from "@/lib/db/client";
 import {
   devOsInventoryItems,
   devOsInventoryLocations,
@@ -132,6 +132,6 @@ export async function listLowStockItems() {
       AND b.quantity_on_hand <= i.reorder_point
     ORDER BY i.sku, l.location_code
   `);
-  return (result as unknown as { rows: Array<Record<string, string>> }).rows ??
+  return rowsOf<Record<string, string>>(result) ??
     [];
 }

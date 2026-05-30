@@ -2,7 +2,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { rateLimitBuckets } from "@/lib/db/schema/saas";
 import {
   checkRateLimit,
@@ -53,13 +53,11 @@ export async function checkAndIncrementRateLimit(args: {
       AND window_start >= ${dayStart.toISOString()}::timestamptz
   `);
   const row =
-    (counts as unknown as {
-      rows: Array<{
+    rowsOf<{
         minute_count: string;
         hour_count: string;
         day_count: string;
-      }>;
-    }).rows?.[0] ?? null;
+      }>(counts)[0] ?? null;
 
   const verdict = checkRateLimit(args.config, {
     minuteCount: Number(row?.minute_count ?? "0"),

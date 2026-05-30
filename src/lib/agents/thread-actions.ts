@@ -23,7 +23,7 @@
 
 import { revalidatePath } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
-import { requireDb } from "@/lib/db/client";
+import { requireDb, rowsOf } from "@/lib/db/client";
 import {
   platformAgentConfigs,
   orgAgentSubscriptions,
@@ -155,12 +155,12 @@ export async function listUserThreads(
   `);
 
   const list =
-    (rows as unknown as { rows?: Array<{
+    rowsOf<{
       id: string;
       title: string | null;
       updated_at: string;
       last_preview: string | null;
-    }> }).rows ?? [];
+    }>(rows);
 
   return list.map((r) => ({
     id: r.id,
@@ -242,12 +242,12 @@ export async function getMessageCitations(
   `);
 
   const list =
-    (rows as unknown as { rows?: Array<{
+    rowsOf<{
       chunk_id: string;
       content: string;
       document_id: string;
       filename: string | null;
-    }> }).rows ?? [];
+    }>(rows);
 
   // Preserve the request-order so footnote numbers line up with the
   // order the inference module retrieved them in.

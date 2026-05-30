@@ -5,7 +5,7 @@ import {
   Card,
   HandoffBadge,
 } from "@/components/dashboard/primitives";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 
 /**
@@ -45,11 +45,11 @@ async function getWarehouseKpis() {
       (SELECT COUNT(DISTINCT category)::text FROM dev_os_inventory_items
         WHERE organization_id = ${orgId} AND is_active = TRUE) AS category_count
   `);
-  const r = (rows as unknown as { rows: Array<{
+  const r = rowsOf<{
     sku_count: string;
     low_stock: string;
     category_count: string;
-  }> }).rows?.[0];
+  }>(rows)[0];
   return {
     skuCount: Number(r?.sku_count ?? "0"),
     lowStockCount: Number(r?.low_stock ?? "0"),

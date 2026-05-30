@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
 import { ExportButton } from "@/components/development/bulk-import/export-button";
 
@@ -59,7 +59,7 @@ async function getProjectScheduleSummary(): Promise<ProjectScheduleRow[]> {
     GROUP BY p.id, p.slug, p.name
     ORDER BY p.name
   `);
-  return ((result as unknown as { rows: ProjectScheduleRow[] }).rows ?? []) as ProjectScheduleRow[];
+  return (rowsOf<ProjectScheduleRow>(result)) as ProjectScheduleRow[];
 }
 
 export default async function GlobalSchedulePage() {

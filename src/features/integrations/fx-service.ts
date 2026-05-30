@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 
 /**
  * Sprint INTEGRATIONS-1 — Alpha Vantage FX service.
@@ -107,7 +107,7 @@ async function readFromCache(
      ORDER BY fetched_at DESC
      LIMIT 1
   `);
-  const r = (rows as unknown as { rows: Array<{ rate: string; fetched_at: string }> }).rows?.[0];
+  const r = rowsOf<{ rate: string; fetched_at: string }>(rows)[0];
   if (!r) return null;
   const rate = Number(r.rate);
   if (!Number.isFinite(rate) || rate <= 0) return null;
