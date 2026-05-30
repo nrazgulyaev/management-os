@@ -34,7 +34,6 @@
         "src/app/(platform-app)/platform/agents/page.tsx",
         "src/app/api/cron/statements-monthly/route.ts",
         "src/app/api/onboarding/start/route.ts",
-        "src/features/ai-agents/ai-hub-cabinet-queries.ts",
         "src/features/dynamic-pricing/services.ts",
         "src/features/finance/statement-generation.ts",
         "src/features/integrations/fx-service.ts",
