@@ -1,10 +1,102 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"],
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript"
+  ],
   "rules": {
     "@typescript-eslint/no-unused-vars": [
       "warn",
-      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
     ],
-    "react/no-unescaped-entities": "off"
-  }
+    "react/no-unescaped-entities": "off",
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "TSAsExpression > TSTypeLiteral > TSPropertySignature[key.name='rows']",
+        "message": "postgres-js db.execute() returns an Array, not { rows }. `(x as { rows }).rows` reads undefined -> silent []. Use rowsOf<T>(result) from @/lib/db/client. (SHAPE-BUG-SWEEP-1)"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/app/(dashboard)/dashboard/investors/page.tsx",
+        "src/app/(dashboard)/dashboard/system/health/page.tsx",
+        "src/app/(development-app)/development-os/marketing/dashboard/page.tsx",
+        "src/app/(development-app)/development-os/marketing/lead-sources/[[]key[]]/page.tsx",
+        "src/app/(development-app)/development-os/reports/cashflow-waterfall/page.tsx",
+        "src/app/(development-app)/development-os/schedule/page.tsx",
+        "src/app/(development-app)/development-os/settings/users-and-roles/page.tsx",
+        "src/app/(development-app)/development-os/warehouse/page.tsx",
+        "src/app/(platform-app)/platform/agents/[[]id[]]/page.tsx",
+        "src/app/(platform-app)/platform/agents/page.tsx",
+        "src/app/api/cron/statements-monthly/route.ts",
+        "src/app/api/onboarding/start/route.ts",
+        "src/features/ai-agents/ai-hub-cabinet-queries.ts",
+        "src/features/dynamic-pricing/services.ts",
+        "src/features/finance/statement-generation.ts",
+        "src/features/front-office/room-board.ts",
+        "src/features/guest-ai-concierge/concierge-cabinet-queries.ts",
+        "src/features/integrations/fx-service.ts",
+        "src/features/investor-portal/investor-portal-queries.ts",
+        "src/features/notifications/delivery.ts",
+        "src/features/owner-portal/owner-context.ts",
+        "src/features/team/actions.ts",
+        "src/lib/agents/inference.ts",
+        "src/lib/agents/thread-actions.ts",
+        "src/lib/development/server/ai/agent-runner.ts",
+        "src/lib/development/server/api/rate-limiting-actions.ts",
+        "src/lib/development/server/assets/asset-queries.ts",
+        "src/lib/development/server/cabinets/ai-agents-cabinet-queries.ts",
+        "src/lib/development/server/cabinets/dev-overview-queries.ts",
+        "src/lib/development/server/cabinets/marketing-cabinet-queries.ts",
+        "src/lib/development/server/cabinets/procurement-cabinet-queries.ts",
+        "src/lib/development/server/cabinets/qs-cabinet-queries.ts",
+        "src/lib/development/server/cabinets/sales-cabinet-queries.ts",
+        "src/lib/development/server/cabinets/warehouse-cabinet-queries.ts",
+        "src/lib/development/server/cron/ai-memory-aggregator-job.ts",
+        "src/lib/development/server/cron/baseline-variance-recompute-job.ts",
+        "src/lib/development/server/cron/buyer-progress-reminder-job.ts",
+        "src/lib/development/server/cron/cashflow-autogenerate-job.ts",
+        "src/lib/development/server/cron/content-publish-scheduler-job.ts",
+        "src/lib/development/server/cron/critical-path-recompute-job.ts",
+        "src/lib/development/server/cron/daily-construction-digest-job.ts",
+        "src/lib/development/server/cron/executive-metrics-daily-job.ts",
+        "src/lib/development/server/cron/failed-subscriptions-cleanup-job.ts",
+        "src/lib/development/server/cron/inventory-low-stock-alert-job.ts",
+        "src/lib/development/server/cron/investor-request-escalation-job.ts",
+        "src/lib/development/server/cron/manager-performance-recompute-job.ts",
+        "src/lib/development/server/cron/missed-followup-detector-job.ts",
+        "src/lib/development/server/cron/offline-queue-stats-job.ts",
+        "src/lib/development/server/cron/productivity-aggregation-job.ts",
+        "src/lib/development/server/cron/profitability-recompute-job.ts",
+        "src/lib/development/server/cron/project-cycle-advisory-job.ts",
+        "src/lib/development/server/cron/qa-qc-deadline-alert-job.ts",
+        "src/lib/development/server/cron/resource-conflict-detector-job.ts",
+        "src/lib/development/server/cron/risk-elevation-alert-job.ts",
+        "src/lib/development/server/cron/risk-radar-weekly-job.ts",
+        "src/lib/development/server/cron/wallet-recompute-job.ts",
+        "src/lib/development/server/cron/weekly-construction-plan-job.ts",
+        "src/lib/development/server/import-template-actions.ts",
+        "src/lib/development/server/inventory/inventory-queries.ts",
+        "src/lib/development/server/notifications/notification-actions.ts",
+        "src/lib/development/server/notifications/notification-dispatcher.ts",
+        "src/lib/development/server/offline-sync/sync-actions.ts",
+        "src/lib/development/server/revenue-streams/revenue-stream-queries.ts",
+        "src/lib/development/server/schedule/schedule-queries.ts"
+      ],
+      "rules": {
+        "no-restricted-syntax": [
+          "warn",
+          {
+            "selector": "TSAsExpression > TSTypeLiteral > TSPropertySignature[key.name='rows']",
+            "message": "postgres-js db.execute() returns an Array, not { rows }. `(x as { rows }).rows` reads undefined -> silent []. Use rowsOf<T>(result) from @/lib/db/client. (SHAPE-BUG-SWEEP-1)"
+          }
+        ]
+      }
+    }
+  ]
 }
