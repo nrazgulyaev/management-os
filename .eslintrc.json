@@ -46,7 +46,6 @@
         "src/lib/development/server/api/rate-limiting-actions.ts",
         "src/lib/development/server/assets/asset-queries.ts",
         "src/lib/development/server/cabinets/ai-agents-cabinet-queries.ts",
-        "src/lib/development/server/cabinets/warehouse-cabinet-queries.ts",
         "src/lib/development/server/cron/ai-memory-aggregator-job.ts",
         "src/lib/development/server/cron/baseline-variance-recompute-job.ts",
         "src/lib/development/server/cron/buyer-progress-reminder-job.ts",
