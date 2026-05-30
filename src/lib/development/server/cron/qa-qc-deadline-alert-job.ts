@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 
 /**
@@ -49,8 +49,7 @@ export async function runDevOsQaQcDeadlineAlert(
     ORDER BY deadline_at ASC
   `);
   const rows =
-    (result as unknown as { rows: Array<Record<string, string | number | null>> })
-      .rows ?? [];
+    rowsOf<Record<string, string | number | null>>(result);
 
   for (const row of rows) {
     await handle.event(

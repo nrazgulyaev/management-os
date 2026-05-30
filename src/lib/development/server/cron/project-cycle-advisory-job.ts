@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 import {
   computeProjectCycleAdvisory,
@@ -43,7 +43,7 @@ export async function runDevOsProjectCycleAdvisory(
      WHERE is_active = TRUE
   `);
   const cashOnHand = Number(
-    (cashRow as unknown as { rows: Array<{ cash: string }> }).rows?.[0]?.cash ?? "0",
+    rowsOf<{ cash: string }>(cashRow)[0]?.cash ?? "0",
   );
 
   // Active projects with their completion estimates.
@@ -63,14 +63,12 @@ export async function runDevOsProjectCycleAdvisory(
     LIMIT 20
   `);
   const projectRows =
-    (projectsRows as unknown as {
-      rows: Array<{
+    rowsOf<{
         id: string;
         expected_completion: string | null;
         progress_pct: string;
         monthly_burn: string;
-      }>;
-    }).rows ?? [];
+      }>(projectsRows);
 
   const now = new Date();
   const oneYearFromNow = new Date(
@@ -102,9 +100,7 @@ export async function runDevOsProjectCycleAdvisory(
     ORDER BY role_type, tracking_period_end DESC
   `);
   const teamRoles = (
-    (capacityRows as unknown as {
-      rows: Array<{ role: string; total_capacity: string; utilized: string }>;
-    }).rows ?? []
+    rowsOf<{ role: string; total_capacity: string; utilized: string }>(capacityRows)
   ).map((r) => ({
     role: r.role,
     totalCapacity: Number(r.total_capacity),
@@ -112,17 +108,15 @@ export async function runDevOsProjectCycleAdvisory(
   }));
 
   // Latest payroll commitment.
-  const [{ rows: payrollRows = [] } = { rows: [] }] = [
-    (await db.execute<{ amount: string; headcount: string }>(sql`
+  const payrollRows = rowsOf<{ amount: string; headcount: string }>(
+    await db.execute<{ amount: string; headcount: string }>(sql`
       SELECT total_payroll_amount_minor::text AS amount,
              total_headcount::text AS headcount
         FROM payroll_periods
        ORDER BY period_start DESC
        LIMIT 1
-    `)) as unknown as {
-      rows: Array<{ amount: string; headcount: string }>;
-    },
-  ];
+    `),
+  );
   const monthlyPayroll = Number(payrollRows[0]?.amount ?? "0");
 
   const context: ProjectCycleInput = {
@@ -141,11 +135,11 @@ export async function runDevOsProjectCycleAdvisory(
 
   const advisory = computeProjectCycleAdvisory(context);
 
-  const [{ rows: countRows = [] } = { rows: [] }] = [
-    (await db.execute<{ count: string }>(sql`
+  const countRows = rowsOf<{ count: string }>(
+    await db.execute<{ count: string }>(sql`
       SELECT COUNT(*)::text AS count FROM project_cycle_recommendations
-    `)) as unknown as { rows: Array<{ count: string }> },
-  ];
+    `),
+  );
   const year = new Date().getFullYear();
   const seq = String(Number(countRows[0]?.count ?? "0") + 1).padStart(3, "0");
   const code = `PCR-${year}-${seq}`;

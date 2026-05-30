@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 import { persistExecutiveSnapshot } from "../executive/metrics-actions";
 
@@ -43,14 +43,12 @@ export async function runDevOsExecutiveMetricsDaily(
      WHERE is_active = TRUE
   `);
   const cashRows =
-    (cashRow as unknown as {
-      rows: Array<{
+    rowsOf<{
         account_id: string;
         name: string;
         balance: string;
         currency: string;
-      }>;
-    }).rows ?? [];
+      }>(cashRow);
 
   // Project counts (group by status).
   const projRow = await db.execute<{ status: string; n: string }>(sql`
@@ -59,8 +57,7 @@ export async function runDevOsExecutiveMetricsDaily(
      GROUP BY status
   `);
   const projRows =
-    (projRow as unknown as { rows: Array<{ status: string; n: string }> })
-      .rows ?? [];
+    rowsOf<{ status: string; n: string }>(projRow);
   const _projects = projRows.map((r) => ({
     projectId: "",
     status: ((): "on_track" | "at_risk" | "delayed" | "completed" | "paused" => {
@@ -107,15 +104,13 @@ export async function runDevOsExecutiveMetricsDaily(
      LIMIT 1
   `);
   const cfRow =
-    (cf as unknown as {
-      rows: Array<{
+    rowsOf<{
         cash_at_30: string;
         cash_at_60: string;
         cash_at_90: string;
         runway_weeks: string;
         gap_count: string;
-      }>;
-    }).rows?.[0] ?? null;
+      }>(cf)[0] ?? null;
 
   const persistResult = await persistExecutiveSnapshot({
     snapshotType: "daily",

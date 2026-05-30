@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 
 /**
@@ -36,7 +36,7 @@ export async function runDevOsFailedSubscriptionsCleanup(
     SELECT COUNT(*)::text AS updated FROM bumped
   `);
   const deactivated = Number(
-    (result as unknown as { rows: Array<{ updated: string }> }).rows?.[0]
+    rowsOf<{ updated: string }>(result)[0]
       ?.updated ?? "0",
   );
 

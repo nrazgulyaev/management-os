@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 
 /**
@@ -48,7 +48,7 @@ export async function runDevOsInventoryLowStockAlert(
     ORDER BY i.sku, l.location_code
   `);
   const rows =
-    (result as unknown as { rows: Array<Record<string, string>> }).rows ?? [];
+    rowsOf<Record<string, string>>(result);
 
   for (const row of rows) {
     const onHand = Number(row.quantity_on_hand);

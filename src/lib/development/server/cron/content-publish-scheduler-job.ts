@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 
 /**
@@ -41,7 +41,7 @@ export async function runDevOsContentPublishScheduler(
     SELECT COUNT(*)::text AS count FROM ready
   `);
   const marked = Number(
-    (result as unknown as { rows: Array<{ count: string }> }).rows?.[0]
+    rowsOf<{ count: string }>(result)[0]
       ?.count ?? "0",
   );
 

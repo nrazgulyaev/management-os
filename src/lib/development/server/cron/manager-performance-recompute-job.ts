@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 import { persistManagerPerformanceSnapshot } from "../conversation-review/manager-performance-actions";
 
@@ -38,8 +38,7 @@ export async function runDevOsManagerPerformanceRecompute(
      GROUP BY assigned_manager_id
   `);
   const managers =
-    (managerRows as unknown as { rows: Array<{ id: string; n: string }> })
-      .rows ?? [];
+    rowsOf<{ id: string; n: string }>(managerRows);
 
   let snapshots = 0;
   for (const m of managers) {

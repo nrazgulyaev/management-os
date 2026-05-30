@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { verifyCronAuthFromRequest } from "@/features/jobs/auth";
 import { generateStatementForOwnerVilla } from "@/features/finance/statement-generation";
 import { ownerStatements } from "@/lib/db/schema/finance";
@@ -69,7 +69,7 @@ async function runOnce(periodMonth: string): Promise<RunResult[]> {
      WHERE b.status IN ('confirmed','checked_in','checked_out')
        AND date_trunc('month', b.check_in)::date = ${periodMonth}::date
   `);
-  const orgs = (orgRows as unknown as { rows: Array<{ id: string; name: string | null }> }).rows ?? [];
+  const orgs = rowsOf<{ id: string; name: string | null }>(orgRows);
 
   const results: RunResult[] = [];
   for (const org of orgs) {
@@ -84,7 +84,7 @@ async function runOnce(periodMonth: string): Promise<RunResult[]> {
          AND b.status IN ('confirmed','checked_in','checked_out')
          AND date_trunc('month', b.check_in)::date = ${periodMonth}::date
     `);
-    const rows = (targets as unknown as { rows: Array<{ owner_id: string; villa_id: string }> }).rows ?? [];
+    const rows = rowsOf<{ owner_id: string; villa_id: string }>(targets);
     const result: RunResult = {
       organizationId: org.id,
       organizationName: org.name,

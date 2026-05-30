@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 
 /**
@@ -43,9 +43,7 @@ export async function runDevOsProfitabilityRecompute(
     HAVING COUNT(v.id) > 0
   `);
   const rows =
-    (result as unknown as {
-      rows: Array<{ project_id: string; asset_count: string }>;
-    }).rows ?? [];
+    rowsOf<{ project_id: string; asset_count: string }>(result);
 
   let totalAssets = 0;
   for (const row of rows) {

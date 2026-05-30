@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 import {
   ruleTransactionMissingTax,
@@ -50,14 +50,12 @@ export async function runDevOsRiskRadarWeekly(
      LIMIT 500
   `);
   const txInputs =
-    (txRows as unknown as {
-      rows: Array<{
+    rowsOf<{
         transaction_id: string;
         amount_minor: string;
         age_days: string;
         has_tax: string;
-      }>;
-    }).rows?.map((r) => ({
+      }>(txRows).map((r) => ({
       transactionId: r.transaction_id,
       amountMinor: Number(r.amount_minor),
       ageDays: Number(r.age_days),
@@ -93,7 +91,7 @@ export async function runDevOsRiskRadarWeekly(
      WHERE alert_code LIKE ${`ALERT-${yyyy}-%`}
   `);
   let seq = Number(
-    (seqRow as unknown as { rows: Array<{ n: string }> }).rows?.[0]?.n ?? "0",
+    rowsOf<{ n: string }>(seqRow)[0]?.n ?? "0",
   );
 
   let persisted = 0;

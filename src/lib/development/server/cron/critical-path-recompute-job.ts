@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 import { recomputeProjectCriticalPath } from "../schedule/schedule-actions";
 
@@ -36,7 +36,7 @@ export async function runDevOsCriticalPathRecompute(
       JOIN project_tasks t ON t.work_package_id = wp.id
   `);
   const rows =
-    (result as unknown as { rows: Array<{ project_id: string }> }).rows ?? [];
+    rowsOf<{ project_id: string }>(result);
 
   let recomputed = 0;
   let failed = 0;

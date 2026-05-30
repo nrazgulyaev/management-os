@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 
 /**
@@ -48,9 +48,7 @@ export async function runDevOsProductivityAggregation(
   `);
 
   const rows =
-    (result as unknown as {
-      rows: Array<{ trade: string; hours: string; qty: string; rate: string }>;
-    }).rows ?? [];
+    rowsOf<{ trade: string; hours: string; qty: string; rate: string }>(result);
 
   await handle.event(
     "info",
