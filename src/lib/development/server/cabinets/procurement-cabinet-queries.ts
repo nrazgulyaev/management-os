@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 
 export interface ProcurementCabinetData {
@@ -76,14 +76,12 @@ export async function loadProcurementCabinet(): Promise<ProcurementCabinetData> 
         WHERE actual_delivery_date >= CURRENT_DATE - INTERVAL '7 days') AS recent_deliveries
   `);
   const s =
-    (summary as unknown as {
-      rows: Array<{
+    rowsOf<{
         pending: string;
         quotes: string;
         pos_open: string;
         recent_deliveries: string;
-      }>;
-    }).rows?.[0] ?? null;
+      }>(summary)[0] ?? null;
 
   const latest = await db.execute<{ output_code: string }>(sql`
     SELECT output_code FROM agent_outputs
@@ -142,25 +140,21 @@ export async function loadProcurementCabinet(): Promise<ProcurementCabinetData> 
     posAwaitingDeliveryCount: Number(s?.pos_open ?? "0"),
     recentDeliveriesCount: Number(s?.recent_deliveries ?? "0"),
     latestProcurementAnalystOutputCode:
-      (latest as unknown as { rows: Array<{ output_code: string }> }).rows?.[0]
+      rowsOf<{ output_code: string }>(latest)[0]
         ?.output_code ?? null,
     prsLast7Days:
-      (prDailyRows as unknown as {
-        rows: Array<{ iso_date: string; count: string }>;
-      }).rows?.map((r) => ({
+      rowsOf<{ iso_date: string; count: string }>(prDailyRows).map((r) => ({
         isoDate: r.iso_date,
         count: Number(r.count ?? "0"),
       })) ?? [],
     topPendingPrs:
-      (pendingPrs as unknown as {
-        rows: Array<{
+      rowsOf<{
           id: string;
           request_code: string;
           material_name: string;
           status: string;
           submitted_at: string;
-        }>;
-      }).rows?.map((r) => ({
+        }>(pendingPrs).map((r) => ({
         id: r.id,
         prCode: r.request_code ?? null,
         title: r.material_name ?? null,
@@ -168,22 +162,19 @@ export async function loadProcurementCabinet(): Promise<ProcurementCabinetData> 
         submittedAt: r.submitted_at ?? null,
       })) ?? [],
     spendMtd: (() => {
-      const raw = (spend as unknown as { rows: Array<{ spend: string }> })
-        .rows?.[0]?.spend;
+      const raw = rowsOf<{ spend: string }>(spend)[0]?.spend;
       if (!raw) return null;
       const cents = Number(raw);
       if (!Number.isFinite(cents)) return null;
       return cents / 100;
     })(),
     recentProcurementAnalystOutputs:
-      (recentOutputs as unknown as {
-        rows: Array<{
+      rowsOf<{
           output_code: string;
           title: string;
           summary: string;
           created_at: string;
-        }>;
-      }).rows?.map((r) => ({
+        }>(recentOutputs).map((r) => ({
         outputCode: r.output_code,
         title: r.title,
         summary: r.summary,
@@ -263,7 +254,7 @@ export async function listOpenPurchaseRequests(): Promise<ProcurementPrRow[]> {
      LIMIT 12
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       request_code: string;
       material_name: string;
@@ -273,7 +264,7 @@ export async function listOpenPurchaseRequests(): Promise<ProcurementPrRow[]> {
       currency: string | null;
       urgency: string;
       status: string;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     id: r.id,
     requestCode: r.request_code,
@@ -329,7 +320,7 @@ export async function listPosInTransit(): Promise<ProcurementPoRow[]> {
      LIMIT 12
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       po_code: string;
       vendor_name: string | null;
@@ -338,7 +329,7 @@ export async function listPosInTransit(): Promise<ProcurementPoRow[]> {
       total_minor: string | null;
       currency: string | null;
       status: string;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     id: r.id,
     poCode: r.po_code,
@@ -397,7 +388,7 @@ export async function listInvoicesAwaitingApproval(): Promise<ProcurementInvoice
      LIMIT 12
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       invoice_number: string;
       vendor_name: string | null;
@@ -407,7 +398,7 @@ export async function listInvoicesAwaitingApproval(): Promise<ProcurementInvoice
       due_date: string | null;
       status: string;
       days_to_due: string | null;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => ({
     id: r.id,
     invoiceNumber: r.invoice_number,
