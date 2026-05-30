@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ListTableCard, NoItemsYet } from "@/components/ui/primitives";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { startImpersonatingInvestor } from "@/features/investor-portal/impersonation-actions";
 
@@ -66,8 +66,7 @@ export default async function InvestorsPage() {
      WHERE i.organization_id = ${ctx.appUser.organizationId}::uuid
      ORDER BY i.investor_code ASC
   `);
-  const investors =
-    (rows as unknown as { rows: InvestorRow[] }).rows ?? [];
+  const investors = rowsOf<InvestorRow>(rows);
 
   function fmtUsd(minor: string): string {
     const v = Number(minor) / 100;

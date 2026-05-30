@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import type { RoomDayStatus } from "@/components/award";
 
 export interface RoomBoardRow {
@@ -51,10 +51,11 @@ export async function loadFrontOfficeRoomBoard(
      ORDER BY v.unit_code ASC
      LIMIT 24
   `);
-  const villas =
-    (villaRows as unknown as {
-      rows: Array<{ id: string; unit_code: string; project_name: string | null }>;
-    }).rows ?? [];
+  const villas = rowsOf<{
+    id: string;
+    unit_code: string;
+    project_name: string | null;
+  }>(villaRows);
 
   if (villas.length === 0) return { dates, rows: [] };
 
@@ -71,15 +72,12 @@ export async function loadFrontOfficeRoomBoard(
        AND check_out >= ${start}
   `);
 
-  const bookings =
-    (bookingRows as unknown as {
-      rows: Array<{
-        villa_id: string;
-        check_in: string;
-        check_out: string;
-        status: string;
-      }>;
-    }).rows ?? [];
+  const bookings = rowsOf<{
+    villa_id: string;
+    check_in: string;
+    check_out: string;
+    status: string;
+  }>(bookingRows);
 
   const byVilla = new Map<string, RoomBoardRow>();
   for (const v of villas) {
