@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 
 /**
  * Sprint TASK-6-DATA-PART-2 — Mgmt OS Concierge cabinet reads.
@@ -45,12 +45,12 @@ export async function getConciergeKpis(): Promise<ConciergeKpis> {
         WHERE created_at >= date_trunc('day', CURRENT_TIMESTAMP)
           AND safety_status = 'refused'), '0') AS refusals_today
   `);
-  const r = (rows as unknown as { rows: Array<{
+  const r = rowsOf<{
     active_sessions: string;
     messages_today: string;
     handoffs_open: string;
     refusals_today: string;
-  }> }).rows?.[0];
+  }>(rows)[0];
   return {
     activeSessions: Number(r?.active_sessions ?? "0"),
     messagesToday: Number(r?.messages_today ?? "0"),
@@ -98,18 +98,16 @@ export async function listConciergeSessionsForCabinet(limit = 6): Promise<Concie
      ORDER BY s.last_message_at DESC NULLS LAST
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      status: string;
-      last_message_at: string | null;
-      language: string | null;
-      booking_code: string | null;
-      villa_code: string | null;
-      guest_name: string | null;
-      message_count: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    status: string;
+    last_message_at: string | null;
+    language: string | null;
+    booking_code: string | null;
+    villa_code: string | null;
+    guest_name: string | null;
+    message_count: string;
+  }>(rows).map((r) => ({
     id: r.id,
     guestName: r.guest_name?.replace(/^\[DEMO2\] /, "").trim() || null,
     villaCode: r.villa_code,
@@ -161,18 +159,16 @@ export async function listConciergeHandoffsForCabinet(limit = 5): Promise<Concie
      ORDER BY h.created_at DESC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      session_id: string | null;
-      villa_code: string | null;
-      guest_name: string | null;
-      summary: string | null;
-      priority: string | null;
-      status: string;
-      created_at: string;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    session_id: string | null;
+    villa_code: string | null;
+    guest_name: string | null;
+    summary: string | null;
+    priority: string | null;
+    status: string;
+    created_at: string;
+  }>(rows).map((r) => ({
     id: r.id,
     sessionId: r.session_id,
     villaCode: r.villa_code,
@@ -220,15 +216,13 @@ export async function listSafetyEventsForCabinet(limit = 5): Promise<SafetyEvent
      ORDER BY m.created_at DESC
      LIMIT ${limit}
   `);
-  return (
-    (rows as unknown as { rows: Array<{
-      id: string;
-      villa_code: string | null;
-      safety_status: string;
-      created_at: string;
-      body: string | null;
-    }> }).rows ?? []
-  ).map((r) => ({
+  return rowsOf<{
+    id: string;
+    villa_code: string | null;
+    safety_status: string;
+    created_at: string;
+    body: string | null;
+  }>(rows).map((r) => ({
     id: r.id,
     villaCode: r.villa_code,
     eventLabel: r.safety_status.replace(/_/g, " "),
