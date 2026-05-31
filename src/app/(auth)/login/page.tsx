@@ -19,7 +19,6 @@ const PRODUCT_COPY: Record<string, ProductCopy> = {
     workspaceLabel: "Arconique Management OS",
     quickLinks: [
       { href: "/dashboard", label: "Admin dashboard" },
-      { href: "/owner", label: "Owner portal" },
       { href: "/field", label: "Staff field" },
       { href: "/stay/demo", label: "Guest stay" },
     ],
@@ -51,7 +50,6 @@ const DEFAULT_COPY: ProductCopy = {
   workspaceLabel: "Arconique Management OS",
   quickLinks: [
     { href: "/dashboard", label: "Admin dashboard" },
-    { href: "/owner", label: "Owner portal" },
     { href: "/field", label: "Staff field" },
     { href: "/stay/demo", label: "Guest stay" },
   ],
@@ -80,11 +78,14 @@ export default async function LoginPage({
         <Logo />
         <div className="flex-1 flex items-center">
           <div className="max-w-sm w-full mx-auto">
-            <span className="text-label">{copy.workspaceLabel}</span>
-            <h1 className="text-display text-[44px] md:text-[56px] leading-[1.0] font-medium mt-4 text-ink tracking-tight">
-              Welcome back.
+            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-terra">
+              {copy.workspaceLabel}
+            </span>
+            <h1 className="text-display font-normal text-[44px] md:text-[52px] leading-[1.0] mt-4 text-ink tracking-tight">
+              Welcome{" "}
+              <em className="italic font-normal text-terra">back.</em>
             </h1>
-            <p className="mt-3 text-ink-secondary">
+            <p className="mt-3 text-ink-secondary max-w-sm">
               Sign in to your staff, owner, or investor workspace.
             </p>
 
