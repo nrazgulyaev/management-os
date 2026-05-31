@@ -29,7 +29,6 @@
         "src/app/(platform-app)/platform/agents/page.tsx",
         "src/app/api/onboarding/start/route.ts",
         "src/features/dynamic-pricing/services.ts",
-        "src/features/finance/statement-generation.ts",
         "src/features/notifications/delivery.ts",
         "src/features/team/actions.ts"
       ],

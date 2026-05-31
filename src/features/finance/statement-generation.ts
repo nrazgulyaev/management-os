@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 import { ownerStatements, statementLines, statementPeriods } from "@/lib/db/schema/finance";
 
@@ -122,7 +122,7 @@ async function loadContext(
        AND os.status = 'active'
      LIMIT 1
   `);
-  const r = (rows as unknown as { rows: Array<{ share_percent: string; management_model: string }> }).rows?.[0];
+  const r = rowsOf<{ share_percent: string; management_model: string }>(rows)[0];
   if (!r) return null;
   return {
     ownerId,
@@ -174,7 +174,7 @@ async function loadBookings(
      ORDER BY b.check_in ASC
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       booking_code: string;
       notes: string | null;
@@ -183,7 +183,7 @@ async function loadBookings(
       gross: string;
       channel_fee: string;
       currency: string;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => {
     const isUsd = r.currency === "USD";
     const grossUnits = Number(r.gross || 0);
@@ -246,7 +246,7 @@ async function loadVillaExpenses(
      LIMIT 50
   `);
   return (
-    (rows as unknown as { rows: Array<{
+    rowsOf<{
       id: string;
       description: string;
       category_name: string;
@@ -254,7 +254,7 @@ async function loadVillaExpenses(
       amount_minor: string;
       currency: string;
       fx_rate: string | null;
-    }> }).rows ?? []
+    }>(rows)
   ).map((r) => {
     let amountIdrMinor = BigInt(r.amount_minor ?? "0");
     if (r.currency !== "IDR") {
@@ -277,7 +277,7 @@ async function resolveProjectId(
   const rows = await db.execute<{ project_id: string | null }>(sql`
     SELECT project_id::text AS project_id FROM villas WHERE id = ${villaId}::uuid LIMIT 1
   `);
-  const r = (rows as unknown as { rows: Array<{ project_id: string | null }> }).rows?.[0];
+  const r = rowsOf<{ project_id: string | null }>(rows)[0];
   return r?.project_id ?? null;
 }
 
@@ -487,7 +487,7 @@ export async function generateAllPendingStatements(
        AND b.status IN ('confirmed','checked_in','checked_out')
        AND date_trunc('month', b.check_in)::date = ${periodMonth}::date
   `);
-  const targets = (rows as unknown as { rows: Array<{ owner_id: string; villa_id: string }> }).rows ?? [];
+  const targets = rowsOf<{ owner_id: string; villa_id: string }>(rows);
 
   const results: GeneratedStatementSummary[] = [];
   for (const t of targets) {
