@@ -113,18 +113,20 @@ export function SubscriptionLanding() {
               alignItems: "center",
             }}
           >
-            <Link
+            {/* CORS-CROSS-SUBDOMAIN-1: plain <a> (not next/link) for
+                cross-subdomain targets — avoids CORS-blocked RSC prefetch. */}
+            <a
               href="https://management.arconique.com"
               className="btn btn-ghost btn-sm hide-mobile"
             >
               Management OS →
-            </Link>
-            <Link
+            </a>
+            <a
               href="https://development.arconique.com"
               className="btn btn-ghost btn-sm hide-mobile"
             >
               Development OS →
-            </Link>
+            </a>
             <Link href="#pricing" className="btn btn-ink btn-sm">
               Start trial
             </Link>
@@ -184,18 +186,19 @@ export function SubscriptionLanding() {
             <Link href="#pricing" className="btn btn-ink btn-lg">
               See pricing →
             </Link>
-            <Link
+            {/* CORS-CROSS-SUBDOMAIN-1: plain <a> for cross-subdomain. */}
+            <a
               href="https://management.arconique.com"
               className="btn btn-ghost btn-lg"
             >
               Tour Management OS
-            </Link>
-            <Link
+            </a>
+            <a
               href="https://development.arconique.com"
               className="btn btn-ghost btn-lg"
             >
               Tour Development OS
-            </Link>
+            </a>
           </div>
           <div
             data-reveal
@@ -999,13 +1002,14 @@ export function SubscriptionLanding() {
                   flexWrap: "wrap",
                 }}
               >
-                <Link
+                {/* CORS-CROSS-SUBDOMAIN-1: plain <a> for cross-subdomain. */}
+                <a
                   href="https://management.arconique.com"
                   className="btn btn-gold btn-lg"
                 >
                   Start with Management →
-                </Link>
-                <Link
+                </a>
+                <a
                   href="https://development.arconique.com"
                   className="btn btn-ghost btn-lg"
                   style={{
@@ -1015,7 +1019,7 @@ export function SubscriptionLanding() {
                   }}
                 >
                   Start with Development
-                </Link>
+                </a>
               </div>
             </div>
             <div
@@ -1395,12 +1399,14 @@ function ProductCard(props: ProductCardProps) {
             gap: 8,
           }}
         >
-          <Link href={props.landingHref} className="btn btn-ink">
+          {/* CORS-CROSS-SUBDOMAIN-1: landing/demo hrefs are cross-subdomain
+              (management./development.arconique.com) — plain <a>, no prefetch. */}
+          <a href={props.landingHref} className="btn btn-ink">
             Visit landing →
-          </Link>
-          <Link href={props.demoHref} className="btn btn-ghost">
+          </a>
+          <a href={props.demoHref} className="btn btn-ghost">
             Open demo cabinets
-          </Link>
+          </a>
         </div>
         <div
           className="mono"
@@ -1565,13 +1571,14 @@ function PricingCard(props: PricingCardProps) {
           <li key={f}>· {f}</li>
         ))}
       </ul>
-      <Link
+      {/* CORS-CROSS-SUBDOMAIN-1: ctaHref is cross-subdomain — plain <a>. */}
+      <a
         href={props.ctaHref}
         className={`btn ${props.ctaClass}`}
         style={{ marginTop: "auto", justifyContent: "center" }}
       >
         {props.ctaLabel}
-      </Link>
+      </a>
     </div>
   );
 }
@@ -1857,9 +1864,18 @@ function FooterCol({ label, items }: FooterColProps) {
       >
         {items.map(([name, href]) => (
           <li key={name}>
-            <Link href={href} style={{ color: "var(--ink-2)" }}>
-              {name}
-            </Link>
+            {/* CORS-CROSS-SUBDOMAIN-1: external (cross-subdomain) hrefs use a
+                plain <a> to avoid CORS-blocked RSC prefetch; internal anchors
+                stay as next/link. */}
+            {href.startsWith("http") ? (
+              <a href={href} style={{ color: "var(--ink-2)" }}>
+                {name}
+              </a>
+            ) : (
+              <Link href={href} style={{ color: "var(--ink-2)" }}>
+                {name}
+              </Link>
+            )}
           </li>
         ))}
       </ul>

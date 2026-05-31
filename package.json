@@ -35,6 +35,7 @@
     "seed:arconique-demo": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-arconique-demo.ts",
     "seed:arconique-demo-2": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-arconique-demo-2.ts",
     "seed:statements": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-statements.ts",
+    "seed:owner-portal-demo": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-owner-portal-demo.ts",
     "seed:demo-3": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-arconique-demo-3.ts",
     "seed:demo-3-investor": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-arconique-demo-3-investor.ts",
     "seed:investor-2-ledger": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-investor-2-ledger.ts",

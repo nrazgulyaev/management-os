@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 /**
  * Sprint _handoff/ Task 2 — apex picker.
  *
@@ -16,12 +14,17 @@ import Link from "next/link";
  * No `data-product` attribute on this page — both palettes appear
  * side-by-side, so the picker brings its own colors inline rather
  * than depending on the product-scoped vars from globals.css.
+ *
+ * CORS-CROSS-SUBDOMAIN-1: each half is a plain <a> external anchor
+ * (not next/link) so Next.js doesn't RSC-prefetch across origins —
+ * that prefetch is CORS-blocked and only adds console noise; clicks
+ * already work via full navigation.
  */
 export function ApexPicker() {
   return (
     <div className="apex-picker">
       <style>{apexPickerStyles}</style>
-      <Link
+      <a
         href="https://management.arconique.com"
         className="apex-half apex-mgmt"
       >
@@ -82,9 +85,9 @@ export function ApexPicker() {
           <span className="apex-btn apex-btn-primary">Open Management OS →</span>
           <span className="apex-small">management.arconique.com</span>
         </div>
-      </Link>
+      </a>
 
-      <Link
+      <a
         href="https://development.arconique.com"
         className="apex-half apex-dev"
       >
@@ -141,7 +144,7 @@ export function ApexPicker() {
           </span>
           <span className="apex-small apex-small-dev">development.arconique.com</span>
         </div>
-      </Link>
+      </a>
     </div>
   );
 }

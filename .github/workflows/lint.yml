@@ -1,0 +1,48 @@
+name: Lint (shape-rule, changed files)
+
+# CI-LINT-GATE-1 — Enforce the postgres-js `.rows` shape-bug ESLint rule in CI.
+# Full-repo `next lint` OOMs in CI, so this lints ONLY the .ts/.tsx files
+# changed in the PR. The shape rule is `error` (see .eslintrc.json), so any new
+# `(x as unknown as { rows }).rows` cast in changed code fails the check.
+#
+# NOTE: ESLint 9 defaults to flat config; this repo uses a legacy .eslintrc.json,
+# so we set ESLINT_USE_FLAT_CONFIG=false to make `eslint` read it.
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  eslint-changed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need base history to diff changed files
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint changed .ts/.tsx files
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          ESLINT_USE_FLAT_CONFIG: "false"
+        run: |
+          set -euo pipefail
+          git fetch origin "$BASE_REF" --depth=1
+          # Files added/copied/modified/renamed on this branch vs the merge-base with base.
+          mapfile -t FILES < <(git diff --name-only --diff-filter=ACMR "origin/$BASE_REF...HEAD" -- '*.ts' '*.tsx')
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "No changed .ts/.tsx files — nothing to lint."
+            exit 0
+          fi
+          printf 'Linting %d changed file(s):\n' "${#FILES[@]}"
+          printf '  %s\n' "${FILES[@]}"
+          # Errors (incl. the shape rule) fail the job; pre-existing warn-baseline
+          # files stay non-blocking. --max-warnings is generous so unrelated lint
+          # noise on a touched file doesn't false-fail the gate.
+          npx eslint --max-warnings=100 -- "${FILES[@]}"

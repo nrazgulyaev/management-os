@@ -4,6 +4,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { env, isSupabaseAuthConfigured } from "@/lib/env";
+import { logger } from "@/lib/observability/logger";
 
 /**
  * Sprint ARCH-1 — cross-subdomain SSO.
@@ -54,9 +55,17 @@ export async function getSupabaseServer(): Promise<SupabaseClient | null> {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, adjustCookieOptions(options));
             });
-          } catch {
-            // Server Components cannot mutate cookies — ignore safely.
-            // Sign-in/out flows must run inside a Server Action or Route Handler.
+          } catch (err) {
+            // AUTH-COOKIE-SWALLOW-1: a cookie write here is *expected* to fail
+            // during a Server Component render (cookies are immutable in RSC) —
+            // sign-in/out flows must run inside a Server Action or Route Handler.
+            // We must NOT rethrow (that would break legitimate RSC reads), but we
+            // no longer swallow it silently: log so a genuine write failure in a
+            // Server Action context is at least visible.
+            logger.warn("supabase setAll: cookie write skipped (expected in RSC render)", {
+              area: "auth",
+              error: err instanceof Error ? err.message : String(err),
+            });
           }
         },
       },

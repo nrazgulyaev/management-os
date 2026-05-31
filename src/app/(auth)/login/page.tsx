@@ -19,7 +19,10 @@ const PRODUCT_COPY: Record<string, ProductCopy> = {
     workspaceLabel: "Arconique Management OS",
     quickLinks: [
       { href: "/dashboard", label: "Admin dashboard" },
-      { href: "/owner", label: "Owner portal" },
+      // OWNER-DEMO-LINK-1: removed "Owner portal" demo link — /owner requires
+      // an authenticated owner session, so an unauthenticated visitor just got
+      // bounced back to /login (misleading). Re-add only when wired to a real
+      // demo-owner sign-in.
       { href: "/field", label: "Staff field" },
       { href: "/stay/demo", label: "Guest stay" },
     ],
@@ -51,7 +54,7 @@ const DEFAULT_COPY: ProductCopy = {
   workspaceLabel: "Arconique Management OS",
   quickLinks: [
     { href: "/dashboard", label: "Admin dashboard" },
-    { href: "/owner", label: "Owner portal" },
+    // OWNER-DEMO-LINK-1: removed "Owner portal" demo link (see note above).
     { href: "/field", label: "Staff field" },
     { href: "/stay/demo", label: "Guest stay" },
   ],
