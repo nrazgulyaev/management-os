@@ -124,7 +124,6 @@ async function resolveDataProduct(): Promise<string | null> {
     if (
       product === "management" ||
       product === "development" ||
-      product === "owner" ||
       product === "subscription"
     ) {
       return product;

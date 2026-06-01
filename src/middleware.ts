@@ -337,7 +337,7 @@ export function middleware(request: NextRequest) {
 
   // ---- Preview/local `?product=` palette override (dev QA only) ----
   // On *.vercel.app + localhost ONLY, allow forcing the product palette via
-  // `?product=management|development|owner|subscription` so a preview deploy
+  // `?product=management|development|subscription` so a preview deploy
   // can be eyeballed per product. Deliberately IGNORED on real *.arconique.com
   // hosts — there `x-product` comes solely from the subdomain (the security
   // boundary). Reversible: delete this block to remove the override.
@@ -346,7 +346,6 @@ export function middleware(request: NextRequest) {
     if (
       forced === "management" ||
       forced === "development" ||
-      forced === "owner" ||
       forced === "subscription"
     ) {
       const res = NextResponse.next();
