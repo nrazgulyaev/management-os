@@ -175,6 +175,9 @@
   --color-accent: var(--accent);
   --color-accent-weak: var(--accent-weak);
   --color-accent-contrast: var(--accent-contrast);
+  --color-on-accent: var(--on-accent);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-soft: var(--accent-soft);
   --color-gold: var(--gold);
   --color-gold-weak: var(--gold-weak);
 
@@ -283,7 +286,9 @@
 
   /* Redesign card radii. --radius-card-lg and --radius-card-hero-lg
      had no callers and were pruned. */
-  --radius-card:           18px;
+  --radius-card:           var(--r-card, 18px);
+  --radius-card-lg:        var(--r-card-lg, 22px);
+  --radius-hero:           var(--r-hero, 28px);
   --radius-card-hero:      32px;
 
   /* Redesign shadows — driver for `.shadow-redesign-card/soft/pop`
@@ -297,7 +302,8 @@
   --shadow-redesign-pop:   0 12px 36px rgba(60,50,35,0.12),
                            0 2px 6px rgba(60,50,35,0.06);
 }
-:root[data-product="management"] {
+:root[data-product="management"],
+:root[data-product="owner"] {
   --cream:        #F4EFE6;
   --cream-deep:   #ECE5D5;
   --cream-warm:   #FAF7F1;
@@ -331,6 +337,15 @@
 
   --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset, 0 12px 30px -18px rgba(20,32,28,0.18);
   --shadow-soft:  0 18px 40px -24px rgba(20,32,28,0.22);
+
+  /* foundations/01 PR1 — brand accent (terra) + canonical radii (design-system.html) */
+  --accent:       var(--terra);
+  --accent-deep:  #A44627;
+  --accent-soft:  var(--terra-soft);
+  --on-accent:    var(--cream-warm);
+  --r-card:       18px;
+  --r-card-lg:    22px;
+  --r-hero:       28px;
 }
 
 :root[data-product="development"] {
@@ -351,6 +366,7 @@
   --carbon:     #14130E;
   --amber:      #FF6B35;
   --amber-soft: #FFB088;
+  --amber-deep: #D8541F;
   --steel:      #3D5A7A;
   --steel-soft: #7E9DBF;
   --lime:       #C9DC4A;
@@ -364,6 +380,15 @@
   --pastel-mint:   #CBDFC8;
   --pastel-cream:  #ECE5D5;
   --pastel-rose:   #EFC6BD;
+
+  /* foundations/01 PR1 — brand accent (amber) + canonical radii (design-system.html) */
+  --accent:       var(--amber);
+  --accent-deep:  var(--amber-deep);
+  --accent-soft:  var(--amber-soft);
+  --on-accent:    var(--carbon);
+  --r-card:       14px;
+  --r-card-lg:    18px;
+  --r-hero:       22px;
 }
 
 :root[data-product="subscription"] {
@@ -404,7 +429,8 @@
    var set on each data-product block below. Mono splits the same way.
    ============================================================ */
 
-:root[data-product="management"] {
+:root[data-product="management"],
+:root[data-product="owner"] {
   --display-font: var(--font-newsreader);
   --mono-font: var(--font-jetbrains);
 }
