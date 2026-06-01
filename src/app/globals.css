@@ -22,6 +22,7 @@
 @import "../styles/typography.css";
 
 @import "../styles/components/primitives.css";
+@import "../styles/components/forms.css";
 @import "../styles/components/shell.css";
 @import "../styles/components/empty-state.css";
 @import "../styles/components/pager.css";

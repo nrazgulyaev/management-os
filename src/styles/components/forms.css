@@ -1,0 +1,100 @@
+/* =============================================================
+   src/styles/components/forms.css
+
+   foundations/01 PR2 — form primitive classes, ported verbatim from
+   the canonical design-handoff/cabinets/chrome.css "Forms" block
+   (lines 802-890). Token-only (no literals). Scoped under
+   [data-product] like every other primitive, so the per-product
+   palette (focus ring = --accent, etc.) resolves automatically.
+
+   React wrappers: src/components/ui/{field,input,textarea,select,checkbox}.tsx
+   ============================================================= */
+
+[data-product] .field { display: flex; flex-direction: column; gap: 6px; }
+[data-product] .field-label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+[data-product] .input,
+[data-product] .select,
+[data-product] .textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper, var(--panel));
+  font-family: var(--sans-font);
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+[data-product] .textarea { min-height: 96px; resize: vertical; }
+[data-product] .input:focus,
+[data-product] .select:focus,
+[data-product] .textarea:focus {
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+[data-product] .input::placeholder,
+[data-product] .textarea::placeholder { color: var(--ink-4); }
+[data-product] .field-help { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+[data-product] .field-error { font-size: 12px; color: var(--danger); margin-top: 2px; }
+
+[data-product] .check {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--sans-font); font-size: 14px; color: var(--ink);
+  cursor: pointer;
+}
+[data-product] .check input { appearance: none; -webkit-appearance: none; }
+[data-product] .check .box {
+  width: 18px; height: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--paper, var(--panel));
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+[data-product] .check input:checked + .box {
+  background: var(--ink); border-color: var(--ink);
+}
+[data-product] .check input:checked + .box::after {
+  content: "";
+  width: 9px; height: 5px;
+  border-left: 2px solid var(--inverted-fg);
+  border-bottom: 2px solid var(--inverted-fg);
+  transform: rotate(-45deg) translate(0, -2px);
+}
+
+[data-product] .radio .box { border-radius: 999px; }
+[data-product] .radio input:checked + .box {
+  background: var(--paper, var(--panel));
+  border-color: var(--accent);
+}
+[data-product] .radio input:checked + .box::after {
+  content: ""; width: 9px; height: 9px;
+  border: 0; transform: none; background: var(--accent);
+  border-radius: 999px;
+}
+
+[data-product] .toggle {
+  position: relative; width: 38px; height: 22px;
+  background: var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+[data-product] .toggle::after {
+  content: ""; position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  background: var(--paper, var(--panel));
+  border-radius: 999px;
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+[data-product] .toggle.on { background: var(--accent); }
+[data-product] .toggle.on::after { transform: translateX(16px); }
