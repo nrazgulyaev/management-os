@@ -335,6 +335,27 @@ export function middleware(request: NextRequest) {
 
   const isApiRoute = pathname === "/api" || pathname.startsWith("/api/");
 
+  // ---- Preview/local `?product=` palette override (dev QA only) ----
+  // On *.vercel.app + localhost ONLY, allow forcing the product palette via
+  // `?product=management|development|owner|subscription` so a preview deploy
+  // can be eyeballed per product. Deliberately IGNORED on real *.arconique.com
+  // hosts — there `x-product` comes solely from the subdomain (the security
+  // boundary). Reversible: delete this block to remove the override.
+  if (!isApiRoute && isLocalOrPreviewHost(hostname)) {
+    const forced = request.nextUrl.searchParams.get("product");
+    if (
+      forced === "management" ||
+      forced === "development" ||
+      forced === "owner" ||
+      forced === "subscription"
+    ) {
+      const res = NextResponse.next();
+      res.headers.set("x-product", forced);
+      res.headers.set("x-tenant-host", hostname);
+      return res;
+    }
+  }
+
   // ---- Layer 1: product subdomain ----
   const product = detectProductSubdomain(hostname);
   if (product) {
