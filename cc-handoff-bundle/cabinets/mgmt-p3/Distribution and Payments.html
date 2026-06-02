@@ -1,0 +1,1805 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arconique · Distribution & Payments cluster (Mgmt P3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style id="chrome-css">/* ===== ds/tokens.css ===== */
+/* ============================================================
+   Arconique Design System — tokens
+   Layer B (product-scoped). Layer A legacy is being deprecated.
+   ============================================================ */
+
+/* Management OS — warm hospitality */
+[data-product="management"],
+[data-product="owner"] {
+  /* Surfaces */
+  --cream:        #F4EFE6;
+  --cream-deep:   #ECE5D5;
+  --cream-warm:   #FAF7F1;
+  --paper:        #FFFCF7;
+
+  /* Ink */
+  --ink:          #14201C;
+  --ink-2:        #2A3934;
+  --ink-3:        #4A5A55;
+  --ink-4:        #7E8A85;
+
+  /* Brand */
+  --forest:       #1F3A33;
+  --forest-deep:  #122621;
+  --forest-fade:  #2E4F47;
+  --terra:        #C4583C;
+  --terra-soft:   #E48A6E;
+  --gold:         #BC9A5C;
+  --gold-soft:    #DCC691;
+  --sage:         #88A89A;
+
+  /* Lines */
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --line-strong:  #C2B89E;
+
+  /* Semantic */
+  --ok:           #4F7A5D;
+  --warn:         #C58A2E;
+  --danger:       #B14132;
+  --info:         #3D5A7A;
+
+  /* Accent pastels (bento cards, status pills) */
+  --mint:         #D8E8D6;
+  --mint-deep:    #B6D3B2;
+  --peach:        #F6D9CB;
+  --peach-deep:   #EDB89F;
+  --butter:       #F5E9B8;
+  --butter-deep:  #E8D77E;
+  --sky:          #D4E2EC;
+  --sky-deep:     #A8C1D4;
+
+  /* Type */
+  --display-font: 'Newsreader', Georgia, 'Iowan Old Style', serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-card: 18px;
+  --r-card-lg: 22px;
+  --r-hero: 28px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 12px 30px -18px rgba(20,32,28,0.18);
+  --shadow-soft:  0 18px 40px -24px rgba(20,32,28,0.22);
+  --shadow-pop:   0 24px 56px -28px rgba(20,32,28,0.28),
+                  0 2px 6px rgba(20,32,28,0.06);
+
+  /* Accent role (used by .btn-primary semantics) */
+  --accent:           var(--terra);
+  --accent-deep:      #A44627;
+  --accent-soft:      var(--terra-soft);
+  --on-accent:        var(--cream-warm);
+  --inverted-bg:      var(--forest);
+  --inverted-bg-deep: var(--forest-deep);
+  --inverted-fg:      var(--cream-warm);
+}
+
+/* Owner Portal — same palette, slightly calmer */
+[data-product="owner"] {
+  /* Owner is for non-technical users, used 2–4× per month.
+     Inherits Mgmt palette. The differentiation is density/sizing —
+     applied at the component level, not via different tokens. */
+}
+
+/* Development OS — engineering grade */
+[data-product="development"] {
+  /* Surfaces */
+  --bg:           #F1ECE0;
+  --bg-2:         #F8F4EA;
+  --bg-3:         #FFFCF4;
+  --panel:        #FFFFFF;
+
+  /* Compatibility aliases (cards/topbars look up --paper/--cream too) */
+  --paper:        var(--panel);
+  --cream:        var(--bg);
+  --cream-warm:   var(--bg-2);
+  --cream-deep:   var(--bg-2);
+
+  /* Lines */
+  --line:         #E5DECC;
+  --line-2:       #D8CFB7;
+  --line-3:       #BAAF92;
+  --line-soft:    #ECE6D5;
+  --line-strong:  var(--line-3);
+
+  /* Ink */
+  --concrete:     #2A2A26;
+  --concrete-2:   #4A4A42;
+  --concrete-3:   #6E6E64;
+  --ink:          #14130E;
+  --ink-2:        #3D3B33;
+  --ink-3:        #6E6B5E;
+  --ink-4:        #95917F;
+  --carbon:       #14130E;
+
+  /* Brand */
+  --amber:        #FF6B35;
+  --amber-soft:   #FFB088;
+  --amber-deep:   #D8541F;
+  --steel:        #3D5A7A;
+  --steel-soft:   #7E9DBF;
+  --lime:         #C9DC4A;
+
+  /* Semantic */
+  --ok:           #4F8A5D;
+  --warn:         #C58A2E;
+  --danger:       #C2474E;
+  --info:         var(--steel);
+
+  /* Pastels (status/event tags) */
+  --pastel-peach:  #F6D2BC;
+  --pastel-sky:    #C9DCEA;
+  --pastel-butter: #F0DE96;
+  --pastel-mint:   #CBDFC8;
+  --pastel-cream:  #ECE5D5;
+  --pastel-rose:   #EFC6BD;
+
+  /* Type */
+  --display-font: 'Space Grotesk', system-ui, sans-serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-card: 14px;
+  --r-card-lg: 18px;
+  --r-hero: 22px;
+  --r-pill: 999px;
+
+  /* Shadows — more graphical, less soft */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 8px 22px -14px rgba(20,19,14,0.20);
+  --shadow-soft:  0 18px 38px -22px rgba(20,19,14,0.24);
+  --shadow-pop:   0 24px 50px -26px rgba(20,19,14,0.30),
+                  0 2px 6px rgba(20,19,14,0.07);
+
+  /* Accent role */
+  --accent:           var(--amber);
+  --accent-deep:      var(--amber-deep);
+  --accent-soft:      var(--amber-soft);
+  --on-accent:        var(--carbon);
+  --inverted-bg:      var(--carbon);
+  --inverted-bg-deep: #050402;
+  --inverted-fg:      #FFFFFF;
+}
+
+/* ============================================================
+   Documentation page chrome — neutral, NOT product-scoped
+   ============================================================ */
+:root {
+  --doc-bg:       #0F0F0E;
+  --doc-bg-2:     #16161A;
+  --doc-bg-3:     #1D1D22;
+  --doc-line:     #2A2A2F;
+  --doc-line-2:   #3A3A40;
+  --doc-fg:       #E8E5DE;
+  --doc-fg-2:     #B2AFA8;
+  --doc-fg-3:     #807D77;
+  --doc-accent:   #E4D9B8;
+
+  --doc-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --doc-sans:    'Inter', system-ui, sans-serif;
+}
+
+
+/* ===== ds/primitives.css ===== */
+/* ============================================================
+   Arconique Design System — primitives
+   Buttons, cards, badges, chips, KPI, pulse, type utilities.
+   Lives under [data-product=…]; the documentation chrome
+   (sections.css) provides the outer surface.
+   ============================================================ */
+
+/* ---------- Type utilities ---------- */
+[data-product] .display {
+  font-family: var(--display-font);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  color: var(--ink);
+}
+[data-product="development"] .display {
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+[data-product] .display em {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 400;
+}
+
+[data-product] .label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+[data-product="development"] .label,
+[data-product="owner"] .label { letter-spacing: 0.18em; }
+
+[data-product] .mono {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+}
+[data-product] .num {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+[data-product] .body {
+  font-family: var(--sans-font);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ---------- */
+[data-product] .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease,
+              border-color 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+[data-product] .btn-lg { padding: 14px 22px; font-size: 15px; }
+[data-product] .btn-sm { padding: 7px 14px; font-size: 13px; }
+[data-product] .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Primary — uses inverted bg per product */
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product="management"] .btn-primary:hover,
+[data-product="owner"] .btn-primary:hover { background: var(--forest); }
+[data-product="development"] .btn-primary:hover { background: #25241D; }
+
+/* Accent — terra (Mgmt/Owner), amber (Dev) */
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); }
+[data-product] .btn-accent:hover { background: var(--accent-deep); }
+
+/* Secondary — light card with border */
+[data-product="management"] .btn-secondary,
+[data-product="owner"] .btn-secondary {
+  background: var(--cream-warm); color: var(--ink); border-color: var(--line);
+}
+[data-product="management"] .btn-secondary:hover,
+[data-product="owner"] .btn-secondary:hover { background: var(--paper); border-color: var(--ink-2); }
+[data-product="development"] .btn-secondary {
+  background: var(--bg-3); color: var(--ink); border-color: var(--line-2);
+}
+[data-product="development"] .btn-secondary:hover { background: var(--bg-2); border-color: var(--line-3); }
+
+/* Ghost */
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); }
+[data-product="management"] .btn-ghost:hover,
+[data-product="owner"] .btn-ghost:hover { background: var(--cream-deep); color: var(--ink); }
+[data-product="development"] .btn-ghost:hover { background: var(--bg-2); color: var(--ink); }
+
+/* Danger */
+[data-product] .btn-danger { background: var(--danger); color: var(--cream-warm); }
+[data-product] .btn-danger:hover { filter: brightness(0.92); }
+
+/* Round arrow / sticker buttons */
+[data-product] .ra-btn {
+  width: 46px; height: 46px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; cursor: pointer; transition: transform 0.15s ease, background 0.18s ease;
+  background: var(--ink); color: var(--inverted-fg);
+}
+[data-product] .ra-btn:hover { transform: translateX(2px); }
+[data-product] .ra-btn.light {
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line);
+}
+[data-product] .ra-btn.accent { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- Cards ---------- */
+[data-product="management"] .card,
+[data-product="owner"] .card {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+}
+[data-product="development"] .card,
+[data-product="development"] .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+}
+[data-product] .card-lg { border-radius: var(--r-card-lg); }
+[data-product] .card-hero { border-radius: var(--r-hero); }
+[data-product] .card-pad { padding: 20px; }
+[data-product] .card-pad-lg { padding: 28px; }
+
+/* Inverted hero band */
+[data-product] .card-inverted {
+  background: var(--inverted-bg);
+  color: var(--inverted-fg);
+  border-color: var(--inverted-bg);
+}
+[data-product] .card-inverted .label { color: rgba(255,255,255,0.55); }
+
+/* ---------- Badges ---------- */
+[data-product] .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-family: var(--mono-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  background: var(--paper);
+}
+[data-product] .badge-ok     { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
+[data-product] .badge-warn   { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+[data-product] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product] .badge-info   { background: color-mix(in oklab, var(--info) 12%, transparent); color: var(--info); border-color: color-mix(in oklab, var(--info) 35%, transparent); }
+[data-product] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product="management"] .badge-gold,
+[data-product="owner"] .badge-gold { background: rgba(188,154,92,0.15); color: #8c6f33; border-color: rgba(188,154,92,0.35); }
+[data-product] .badge-ink {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .badge-soft {
+  background: var(--cream-warm, var(--bg-2)); color: var(--ink-2); border-color: var(--line-soft, var(--line-2));
+}
+
+/* ---------- Chips ---------- */
+[data-product] .chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+[data-product="development"] .chip { background: var(--bg-2); border-color: var(--line-2); }
+[data-product] .chip-dot::before {
+  content: ""; width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent); display: inline-block;
+}
+[data-product] .chip-ink { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .chip-active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+/* ---------- Pulse dot ---------- */
+[data-product] .pulse-dot {
+  width: 7px; height: 7px; border-radius: 999px; display: inline-block;
+  background: var(--ok);
+  animation: ds-pulse 2.4s ease-in-out infinite;
+}
+[data-product] .pulse-dot.accent { background: var(--accent); color: var(--accent); }
+@keyframes ds-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; }
+}
+
+/* ---------- Avatar ---------- */
+[data-product] .avatar {
+  width: 32px; height: 32px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-fg);
+  font-family: var(--sans-font);
+  font-size: 11px; font-weight: 500;
+  background: linear-gradient(135deg, var(--gold-soft, var(--amber-soft)), var(--accent));
+}
+[data-product] .avatar-lg { width: 44px; height: 44px; font-size: 14px; }
+[data-product] .avatar-sm { width: 24px; height: 24px; font-size: 10px; }
+
+/* ---------- KPI tile ---------- */
+[data-product] .kpi {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft, var(--line));
+  background: var(--paper, var(--panel));
+}
+[data-product] .kpi .label { font-size: 10.5px; }
+[data-product] .kpi .v {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  margin-top: 4px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.05;
+}
+[data-product] .kpi .sub {
+  margin-top: 3px;
+  font-family: var(--sans-font);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+[data-product] .kpi.accent .v { color: var(--accent); }
+[data-product] .kpi.ok .v { color: var(--ok); }
+[data-product] .kpi.warn .v { color: var(--warn); }
+[data-product] .kpi.gold .v { color: var(--gold, var(--amber)); }
+[data-product] .kpi-lg .v { font-size: 36px; }
+[data-product] .kpi-lg { padding: 22px 22px; }
+
+/* Owner has a calmer, bigger KPI variant for statement clarity */
+[data-product="owner"] .kpi-narrative {
+  padding: 28px 28px;
+  border-radius: var(--r-card-lg);
+}
+[data-product="owner"] .kpi-narrative .label { font-size: 11px; }
+[data-product="owner"] .kpi-narrative .v {
+  font-family: var(--display-font);
+  font-feature-settings: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-top: 10px;
+}
+[data-product="owner"] .kpi-narrative .sub {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+/* ---------- Section heading ---------- */
+[data-product] .section-heading { margin-bottom: 22px; }
+[data-product] .section-heading .eyebrow { margin-bottom: 8px; }
+[data-product] .section-heading h2,
+[data-product] .section-heading h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .section-heading h2,
+[data-product="development"] .section-heading h1 { font-weight: 500; letter-spacing: -0.025em; }
+[data-product] .section-heading p {
+  margin: 10px 0 0;
+  color: var(--ink-3);
+  font-size: 15px;
+  max-width: 680px;
+  line-height: 1.55;
+}
+[data-product="owner"] .section-heading h2,
+[data-product="owner"] .section-heading h1 { font-size: 44px; }
+[data-product="owner"] .section-heading p { font-size: 16px; }
+
+/* ---------- Page header (with breadcrumbs) ---------- */
+[data-product] .page-header {
+  display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 22px;
+}
+[data-product] .page-header .left { flex: 1; min-width: 0; }
+[data-product] .page-header .crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+[data-product] .page-header .crumb a { color: var(--ink-3); text-decoration: none; }
+[data-product] .page-header .crumb a:hover { color: var(--ink); }
+[data-product] .page-header h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .page-header h1 { font-weight: 500; }
+[data-product] .page-header .actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+
+/* ===== ds/layout.css ===== */
+/* ============================================================
+   Arconique Design System — layout (sidebar, topbar, tables)
+   ============================================================ */
+
+/* ---------- App shell wrapper used in previews ---------- */
+[data-product] .app-shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  height: 580px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  overflow: hidden;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-content {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-body {
+  padding: 22px 28px;
+  overflow: auto;
+  flex: 1;
+}
+
+/* ---------- Sidebar ---------- */
+[data-product] .sidebar {
+  border-right: 1px solid var(--line-soft, var(--line));
+  display: flex; flex-direction: column;
+  background: var(--paper, var(--panel));
+  overflow-y: auto;
+}
+[data-product] .sidebar::-webkit-scrollbar { width: 6px; }
+[data-product] .sidebar::-webkit-scrollbar-thumb {
+  background: var(--line); border-radius: 999px;
+}
+[data-product] .sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 18px 14px;
+  text-decoration: none; color: var(--ink);
+}
+[data-product] .sb-brand .logo {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-bg);
+}
+[data-product] .sb-brand .wordmark {
+  font-family: var(--display-font);
+  font-size: 20px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace {
+  margin: 0 18px 12px;
+  padding: 10px 12px;
+  background: var(--cream-deep, var(--bg-2));
+  border-radius: 10px;
+}
+[data-product] .sb-workspace .label { font-size: 9.5px; }
+[data-product] .sb-workspace .name {
+  font-family: var(--display-font);
+  font-size: 16px;
+  margin-top: 2px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace .sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+[data-product] .sb-group {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .sb-group:last-child { border-bottom: 0; }
+[data-product] .sb-group-title {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 10px 18px 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+[data-product] .sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 18px;
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer; border: 0; background: transparent;
+  width: 100%; text-align: left;
+  border-left: 2px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease;
+  text-decoration: none;
+}
+[data-product="management"] .sb-item:hover,
+[data-product="owner"] .sb-item:hover { background: var(--cream-warm); }
+[data-product="development"] .sb-item:hover { background: var(--bg-2); }
+[data-product] .sb-item.on {
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product="management"] .sb-item.on,
+[data-product="owner"] .sb-item.on {
+  background: var(--cream-warm);
+  border-left-color: var(--accent);
+}
+[data-product="development"] .sb-item.on {
+  background: var(--bg-2);
+  border-left-color: var(--accent);
+}
+[data-product] .sb-badge {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+[data-product] .sb-item.on .sb-badge {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Topbar ---------- */
+[data-product] .topbar {
+  position: sticky; top: 0; z-index: 30;
+  padding: 12px 28px;
+  display: flex; align-items: center; gap: 16px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--cream, var(--bg)) 92%, transparent);
+}
+[data-product] .tb-crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+[data-product] .tb-crumb b { color: var(--ink); font-weight: 500; }
+[data-product] .tb-spacer { flex: 1; }
+[data-product] .tb-search {
+  position: relative;
+  width: 280px;
+}
+[data-product] .tb-search input {
+  width: 100%;
+  padding: 7px 38px 7px 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  outline: none;
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper, var(--panel));
+}
+[data-product] .tb-search .sx {
+  position: absolute; left: 10px; top: 8px;
+  color: var(--ink-4);
+}
+[data-product] .tb-search .kbd {
+  position: absolute; right: 8px; top: 6px;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-3);
+}
+[data-product] .tb-bell {
+  position: relative;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-2);
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+[data-product] .tb-bell:hover { background: var(--cream-deep, var(--bg-2)); }
+[data-product] .tb-bell .dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent);
+}
+[data-product] .tb-user {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+[data-product] .tb-user .meta {
+  display: flex; flex-direction: column;
+  line-height: 1.15;
+}
+[data-product] .tb-user .name { font-size: 13px; font-weight: 500; color: var(--ink); }
+[data-product] .tb-user .role { font-size: 10.5px; color: var(--ink-3); }
+
+/* ---------- Tables ---------- */
+[data-product] table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans-font);
+  font-size: 13px;
+}
+[data-product] table.data th,
+[data-product] table.data td {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] table.data th {
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+[data-product="management"] table.data th,
+[data-product="owner"] table.data th {
+  background: var(--cream);
+  border-bottom-color: var(--line-soft);
+}
+[data-product="development"] table.data th {
+  background: var(--bg-2);
+  border-bottom-color: var(--line-2);
+}
+[data-product] table.data tbody tr:hover {
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 60%, transparent);
+}
+[data-product] table.data td.num,
+[data-product] table.data th.num {
+  text-align: right;
+  font-family: var(--mono-font);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] table.data .row-title {
+  font-family: var(--display-font);
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+/* Mgmt-soft variant: airier rows, serif row titles */
+[data-product="management"] table.guests,
+[data-product="owner"] table.guests {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--sans-font);
+}
+[data-product="management"] table.guests th,
+[data-product="management"] table.guests td,
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft);
+}
+[data-product="management"] table.guests th,
+[data-product="owner"] table.guests th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: var(--cream);
+}
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td { padding: 18px 22px; }
+[data-product="management"] table.guests tbody tr:hover,
+[data-product="owner"] table.guests tbody tr:hover { background: var(--cream); }
+
+/* ---------- Forms ---------- */
+[data-product] .field { display: flex; flex-direction: column; gap: 6px; }
+[data-product] .field-label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+[data-product] .input,
+[data-product] .select,
+[data-product] .textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper, var(--panel));
+  font-family: var(--sans-font);
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+[data-product] .textarea { min-height: 96px; resize: vertical; }
+[data-product] .input:focus,
+[data-product] .select:focus,
+[data-product] .textarea:focus {
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+[data-product] .input::placeholder,
+[data-product] .textarea::placeholder { color: var(--ink-4); }
+[data-product] .field-help { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+[data-product] .field-error { font-size: 12px; color: var(--danger); margin-top: 2px; }
+
+[data-product] .check {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--sans-font); font-size: 14px; color: var(--ink);
+  cursor: pointer;
+}
+[data-product] .check input { appearance: none; -webkit-appearance: none; }
+[data-product] .check .box {
+  width: 18px; height: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--paper, var(--panel));
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+[data-product] .check input:checked + .box {
+  background: var(--ink); border-color: var(--ink);
+}
+[data-product] .check input:checked + .box::after {
+  content: "";
+  width: 9px; height: 5px;
+  border-left: 2px solid var(--inverted-fg);
+  border-bottom: 2px solid var(--inverted-fg);
+  transform: rotate(-45deg) translate(0, -2px);
+}
+
+[data-product] .radio .box { border-radius: 999px; }
+[data-product] .radio input:checked + .box {
+  background: var(--paper, var(--panel));
+  border-color: var(--accent);
+}
+[data-product] .radio input:checked + .box::after {
+  content: ""; width: 9px; height: 9px;
+  border: 0; transform: none; background: var(--accent);
+  border-radius: 999px;
+}
+
+[data-product] .toggle {
+  position: relative; width: 38px; height: 22px;
+  background: var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+[data-product] .toggle::after {
+  content: ""; position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  background: var(--paper, var(--panel));
+  border-radius: 999px;
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+[data-product] .toggle.on { background: var(--accent); }
+[data-product] .toggle.on::after { transform: translateX(16px); }
+
+/* ---------- Filter bar ---------- */
+[data-product] .filter-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--paper, var(--panel));
+  margin-bottom: 14px;
+}
+[data-product] .filter-bar .divider {
+  width: 1px; height: 22px; background: var(--line); margin: 0 2px;
+}
+
+/* ---------- Empty state ---------- */
+[data-product] .empty {
+  padding: 40px 28px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-card);
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 50%, transparent);
+  text-align: center;
+}
+[data-product] .empty .glyph {
+  width: 44px; height: 44px; margin: 0 auto 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 999px;
+}
+[data-product] .empty .title {
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+[data-product] .empty .copy {
+  font-size: 13px;
+  color: var(--ink-3);
+  max-width: 360px;
+  margin: 0 auto 14px;
+  line-height: 1.5;
+}
+
+/* ---------- Pagination ---------- */
+[data-product] .pagination {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono-font);
+  font-size: 12px;
+}
+[data-product] .pagination button {
+  min-width: 30px; height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper, var(--panel));
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .pagination button:hover { border-color: var(--ink-2); color: var(--ink); }
+[data-product] .pagination button.on {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .pagination .meta {
+  margin-left: 12px; color: var(--ink-3);
+}
+
+/* ---------- Modal ---------- */
+[data-product] .modal-backdrop {
+  position: relative;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  padding: 36px 28px;
+  border-radius: var(--r-card);
+  display: flex; align-items: flex-start; justify-content: center;
+}
+[data-product] .modal {
+  width: 480px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border-radius: var(--r-card-lg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  box-shadow: var(--shadow-pop);
+}
+[data-product] .modal-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+}
+[data-product] .modal-header h3 {
+  margin: 0;
+  font-family: var(--display-font); font-weight: 400; font-size: 19px;
+  color: var(--ink);
+}
+[data-product] .modal-header p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
+[data-product] .modal-body { padding: 18px 22px; }
+[data-product] .modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* ---------- Command palette preview ---------- */
+[data-product] .cmdk {
+  width: 540px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+[data-product] .cmdk-input {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  font-family: var(--sans-font);
+  font-size: 15px;
+  color: var(--ink-2);
+  display: flex; align-items: center; gap: 10px;
+}
+[data-product] .cmdk-input .sx { color: var(--ink-4); }
+[data-product] .cmdk-group {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .cmdk-group:last-child { border-bottom: 0; }
+[data-product] .cmdk-group-title {
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 8px 18px 4px;
+}
+[data-product] .cmdk-item {
+  padding: 8px 18px;
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--sans-font); font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .cmdk-item.on,
+[data-product] .cmdk-item:hover { background: var(--cream-warm, var(--bg-2)); color: var(--ink); }
+[data-product] .cmdk-item .hint {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+
+/* ---------- Detail page skeleton ---------- */
+[data-product] .detail-shell {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 18px;
+}
+[data-product] .detail-shell .related { display: flex; flex-direction: column; gap: 14px; }
+[data-product] .detail-tabs {
+  display: flex; align-items: center; gap: 4px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 18px;
+}
+[data-product] .detail-tabs .tab {
+  padding: 10px 14px;
+  border: 0; background: transparent;
+  font-family: var(--sans-font);
+  font-size: 13.5px; color: var(--ink-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+[data-product] .detail-tabs .tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- Mobile preview frame ---------- */
+.mobile-frame {
+  width: 360px;
+  border: 1px solid var(--line, #DAD2C0);
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--cream, var(--bg, #F4EFE6));
+  box-shadow: 0 16px 40px -18px rgba(15,15,14,0.22),
+              0 2px 6px rgba(15,15,14,0.06);
+  height: 640px;
+  display: flex; flex-direction: column;
+}
+.mobile-frame .mobile-status {
+  height: 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  font-family: var(--mono-font, monospace);
+  font-size: 11px;
+  color: var(--ink, #14201C);
+}
+.mobile-frame .mobile-body {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Mobile tabbar */
+[data-product] .mobile-tabbar {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+}
+[data-product] .mobile-tabbar .tb {
+  flex: 1;
+  padding: 8px 0 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  cursor: pointer;
+  border: 0; background: transparent;
+}
+[data-product] .mobile-tabbar .tb.on {
+  color: var(--ink);
+}
+[data-product] .mobile-tabbar .tb.on .ico {
+  color: var(--accent);
+}
+[data-product] .mobile-tabbar .ico {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+
+/* ===== ds/meta.css ===== */
+/* ============================================================
+   Documentation page chrome — neutral surface that hosts
+   the product previews. NOT product-scoped.
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--doc-sans);
+  background: var(--doc-bg);
+  color: var(--doc-fg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100vh;
+}
+
+/* ---------- App layout ---------- */
+.ds-app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- Left rail (TOC) ---------- */
+.ds-toc {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--doc-line);
+  padding: 24px 16px 32px;
+  background: var(--doc-bg-2);
+}
+.ds-toc .ds-mark {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  padding: 4px 8px 16px;
+}
+.ds-toc .ds-mark .glyph {
+  width: 6px; height: 6px;
+  background: var(--doc-accent);
+  border-radius: 2px;
+  display: inline-block;
+}
+.ds-toc h1 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0 0 22px;
+  padding: 0 8px;
+  color: var(--doc-fg);
+  letter-spacing: -0.005em;
+}
+.ds-toc .ds-toc-group {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 18px;
+}
+.ds-toc .ds-toc-group-title {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  padding: 8px 8px 6px;
+}
+.ds-toc .ds-toc-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  text-decoration: none;
+  border-radius: 6px;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+}
+.ds-toc .ds-toc-item:hover {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+}
+.ds-toc .ds-toc-item.on {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+  border-left-color: var(--doc-accent);
+}
+.ds-toc .ds-toc-item .num {
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  color: var(--doc-fg-3);
+  width: 18px;
+}
+
+/* ---------- Right side ---------- */
+.ds-main {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--doc-bg);
+}
+
+/* ---------- Product tab bar ---------- */
+.ds-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1px solid var(--doc-line);
+  background: var(--doc-bg);
+  padding: 0 32px;
+}
+.ds-tab {
+  padding: 18px 18px;
+  font-family: var(--doc-sans);
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  border: 0; background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex; align-items: center; gap: 10px;
+}
+.ds-tab:hover { color: var(--doc-fg); }
+.ds-tab.on {
+  color: var(--doc-fg);
+  border-bottom-color: var(--doc-accent);
+}
+.ds-tab .swatch {
+  width: 10px; height: 10px;
+  border-radius: 999px;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+}
+.ds-tab .tag {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  margin-left: 6px;
+}
+.ds-tab.on .tag { color: var(--doc-fg-2); }
+.ds-tabs .ds-meta {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 4px;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.ds-tabs .ds-meta .pill {
+  padding: 4px 10px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 999px;
+  color: var(--doc-fg-2);
+}
+
+/* ---------- Content area ---------- */
+.ds-content {
+  padding: 0 32px 96px;
+}
+
+/* ---------- Section ---------- */
+.ds-section {
+  padding: 56px 0 24px;
+  border-bottom: 1px solid var(--doc-line);
+}
+.ds-section:last-child { border-bottom: 0; }
+.ds-section-head {
+  display: flex; align-items: flex-end; gap: 18px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.ds-section-head .ds-section-eyebrow {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.ds-section-head h2 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 28px;
+  margin: 0;
+  letter-spacing: -0.015em;
+  color: var(--doc-fg);
+}
+.ds-section-head p {
+  margin: 8px 0 0;
+  max-width: 580px;
+  color: var(--doc-fg-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.ds-section-head .ds-section-meta {
+  margin-left: auto;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  display: flex; gap: 14px;
+  align-items: center;
+}
+
+/* ---------- Sub-section ---------- */
+.ds-sub {
+  margin-bottom: 36px;
+}
+.ds-sub-head {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 14px;
+}
+.ds-sub-head h3 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0;
+  color: var(--doc-fg);
+}
+.ds-sub-head .code {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  padding: 1px 6px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 4px;
+}
+.ds-sub-head p {
+  margin: 0;
+  color: var(--doc-fg-2);
+  font-size: 13px;
+}
+
+/* ---------- Preview surface (the warm card the product previews sit on) ---------- */
+.ds-preview {
+  background: var(--cream, var(--bg, #F4EFE6));
+  border-radius: 14px;
+  padding: 28px;
+  border: 1px solid var(--doc-line);
+  position: relative;
+  overflow: hidden;
+}
+.ds-preview.tight { padding: 18px; }
+.ds-preview.flush { padding: 0; }
+.ds-preview .ds-preview-tag {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  background: rgba(15,15,14,0.05);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* ---------- Code snippet ---------- */
+.ds-code {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 12px 14px;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+  border-radius: 8px;
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.ds-code .kw { color: #c5b889; }
+.ds-code .str { color: #b6cd97; }
+.ds-code .com { color: var(--doc-fg-3); font-style: italic; }
+
+/* ---------- Spec list (key = value rows) ---------- */
+.ds-spec {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 6px 18px;
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 14px 0 0;
+}
+.ds-spec dt { color: var(--doc-fg-3); }
+.ds-spec dd { margin: 0; color: var(--doc-fg); }
+
+/* ---------- Two/three column grid for showcase ---------- */
+.ds-grid { display: grid; gap: 14px; }
+.ds-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.ds-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.ds-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.ds-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+.ds-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.ds-grid.cols-mobile { grid-template-columns: 1fr 360px; gap: 28px; align-items: start; }
+
+/* ---------- Color swatch ---------- */
+.swatch-card {
+  display: flex; flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+}
+.swatch-card .chip {
+  height: 80px;
+  background: var(--c);
+  display: flex; align-items: flex-end;
+  padding: 10px 12px;
+  color: var(--cfg, #fff);
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.swatch-card .meta {
+  padding: 8px 12px 10px;
+}
+.swatch-card .name {
+  font-family: var(--doc-sans);
+  font-size: 12.5px;
+  color: var(--doc-fg);
+  margin-bottom: 1px;
+}
+.swatch-card .var {
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Type specimen ---------- */
+.type-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--doc-line);
+  align-items: baseline;
+}
+.type-row:last-child { border-bottom: 0; }
+.type-row .meta {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.type-row .meta .name { color: var(--doc-fg-2); margin-bottom: 2px; }
+.type-row .specimen { color: var(--ink, var(--doc-fg)); }
+
+/* ---------- Token row (radii, shadows) ---------- */
+.token-row {
+  display: grid;
+  grid-template-columns: 64px 140px 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--doc-line);
+}
+.token-row:last-child { border-bottom: 0; }
+.token-row .visual {
+  width: 64px; height: 64px;
+  background: var(--cream, var(--bg, #F4EFE6));
+  border: 1px solid var(--line, #DAD2C0);
+  display: flex; align-items: center; justify-content: center;
+}
+.token-row .name {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+}
+.token-row .value {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Inline label inside the meta dark area ---------- */
+.ds-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--doc-line-2);
+  color: var(--doc-fg-2);
+}
+.ds-tag.accent {
+  background: var(--doc-accent);
+  color: var(--doc-bg);
+  border-color: var(--doc-accent);
+}
+
+/* ---------- Mobile preview row ---------- */
+.ds-mobile-row {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.ds-mobile-row .ds-mobile-notes {
+  padding-top: 16px;
+}
+.ds-mobile-row .ds-mobile-notes h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--doc-fg);
+}
+.ds-mobile-row .ds-mobile-notes p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  line-height: 1.55;
+}
+
+/* ---------- Small viewport gracefully ---------- */
+@media (max-width: 1280px) {
+  .ds-grid.cols-mobile,
+  .ds-mobile-row { grid-template-columns: 1fr; }
+  .ds-grid.cols-5, .ds-grid.cols-6 { grid-template-columns: repeat(3, 1fr); }
+  .ds-content { padding: 0 22px 80px; }
+  .ds-tabs { padding: 0 22px; }
+}
+@media (max-width: 900px) {
+  .ds-app { grid-template-columns: 1fr; }
+  .ds-toc {
+    position: relative; height: auto;
+    border-right: 0; border-bottom: 1px solid var(--doc-line);
+  }
+  .ds-grid.cols-3, .ds-grid.cols-4, .ds-grid.cols-5, .ds-grid.cols-6 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ds-content { padding: 0 16px 64px; }
+  .ds-tabs { padding: 0 16px; overflow-x: auto; }
+  .ds-tabs .ds-meta { display: none; }
+}</style>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: #0b0c0a; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  #app { height: 100vh; display: flex; flex-direction: column; }
+  .nav { flex: 0 0 auto; display: flex; align-items: center; gap: 16px; padding: 9px 16px; background: #121311; border-bottom: 1px solid #26271f; }
+  .nav-brand { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #6f7066; white-space: nowrap; }
+  .nav-brand .dot { width: 6px; height: 6px; border-radius: 2px; background: #C4583C; }
+  .nav-tabs { display: flex; gap: 3px; background: #1b1c18; border: 1px solid #2a2b22; border-radius: 999px; padding: 3px; }
+  .nav-tab { border: 0; background: transparent; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; color: #9a9b90; padding: 6px 14px; border-radius: 999px; white-space: nowrap; }
+  .nav-tab:hover { color: #e8e5de; }
+  .nav-tab.on { background: #2c2d24; color: #fff; }
+  .nav-meta { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #62635a; letter-spacing: .12em; }
+  .stage { flex: 1; min-height: 0; overflow: hidden; background: #000; }
+  .screen { height: 100%; display: none; }
+  .screen.on { display: block; }
+  .app-shell.full { display: grid; height: 100%; border: 0; border-radius: 0; grid-template-columns: 248px 1fr; }
+  [data-product] .shell-body { padding: 26px 30px 60px; }
+  .gs-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  .gs-2col { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: start; }
+  .gs-card-h { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
+  .gs-card-h h3 { margin: 0; font-family: var(--display-font); font-weight: 400; font-size: 20px; color: var(--ink); }
+  .gs-card-h .meta { margin-left: auto; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: .04em; }
+  /* funnel */
+  .gs-funnel { display: flex; gap: 0; align-items: stretch; }
+  .gs-step { flex: 1; padding: 14px 16px; background: var(--cream-warm); border: 1px solid var(--line-soft); position: relative; }
+  .gs-step:first-child { border-radius: var(--r-card) 0 0 var(--r-card); }
+  .gs-step:last-child { border-radius: 0 var(--r-card) var(--r-card) 0; }
+  .gs-step + .gs-step { border-left: 0; }
+  .gs-step .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: .14em; color: var(--ink-3); }
+  .gs-step .v { font-family: var(--display-font); font-size: 30px; color: var(--ink); margin-top: 4px; line-height: 1; }
+  .gs-step .c { font-family: var(--mono-font); font-size: 10px; color: var(--ink-4); margin-top: 4px; }
+  .gs-step.hot { background: color-mix(in oklab, var(--terra) 10%, var(--paper)); border-color: color-mix(in oklab, var(--terra) 30%, var(--line)); }
+  .gs-step.hot .v { color: var(--terra); }
+  .gs-prov { display: flex; align-items: center; gap: 12px; padding: 13px 15px; border: 1px solid var(--line-soft); border-radius: var(--r-card); background: var(--paper); margin-bottom: 9px; }
+  .gs-prov .pl { width: 36px; height: 36px; border-radius: 9px; background: var(--cream-deep); display: inline-flex; align-items: center; justify-content: center; font-family: var(--display-font); color: var(--ink-2); }
+  .gs-prov .nm { font-size: 13.5px; color: var(--ink); font-weight: 500; }
+  .gs-prov .sub { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+  .gs-foot { padding: 9px 16px; background: #121311; border-top: 1px solid #26271f; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #62635a; }
+  .gs-foot b { color: #9a9b90; font-weight: 500; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="nav">
+    <div class="nav-brand"><span class="dot"></span>Mgmt P3 · Distribution &amp; Payments</div>
+    <div class="nav-tabs">
+      <button class="nav-tab on" data-s="direct">Direct bookings</button>
+      <button class="nav-tab" data-s="payments">Payments</button>
+      <button class="nav-tab" data-s="fulfil">Service fulfilment</button>
+      <button class="nav-tab" data-s="integr">Integrations</button>
+    </div>
+    <div class="nav-meta">redesign · Layer B · management</div>
+  </div>
+  <div class="stage">
+
+    <!-- DIRECT BOOKINGS -->
+    <section class="screen on" id="s-direct" data-screen-label="Direct bookings">
+      <div class="app-shell full" data-product="management">
+        <aside class="sidebar">
+          <a class="sb-brand"><span class="logo"><svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M16 4 L28 14 H24 L16 8 L8 14 H4 Z" fill="currentColor"/><path d="M16 13 L25 20 H21.5 L16 16 L10.5 20 H7 Z" fill="currentColor" opacity=".6"/></svg></span><span class="wordmark">Arconique</span></a>
+          <div class="sb-workspace"><div class="label">Workspace</div><div class="name">Whitmore VG</div><div class="sub">22 villas · Asia/Singapore</div></div>
+          <div class="sb-group"><div class="sb-group-title">Revenue</div>
+            <a class="sb-item on">Direct bookings</a><a class="sb-item">Dynamic pricing</a><a class="sb-item">Service fulfilment</a><a class="sb-item">Owner intelligence</a></div>
+          <div class="sb-group"><div class="sb-group-title">Finance</div><a class="sb-item">Finance</a><a class="sb-item">Payments</a></div>
+        </aside>
+        <div class="shell-content">
+          <div class="topbar"><div class="tb-crumb">Revenue <span style="color:var(--ink-4)">/</span> <b>Direct bookings</b></div><div class="tb-spacer"></div>
+            <div class="tb-search"><span class="sx"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></span><input placeholder="Search requests, holds…" /><span class="kbd">⌘K</span></div>
+            <div class="tb-user"><span class="avatar">EW</span><div class="meta"><span class="name">Emma Whitmore</span><span class="role">Operations</span></div></div></div>
+          <div class="shell-body">
+            <div class="section-heading" style="margin-bottom:22px"><div class="eyebrow label" style="color:var(--terra)">Direct bookings · commission-free pipeline</div><h1>Holds to <em>confirmed</em>.</h1><p>Inbound enquiries become holds, deposits, and confirmed stays — every step reconciled against the channel calendar.</p></div>
+            <div class="card card-pad" style="margin-bottom:18px">
+              <div class="gs-card-h"><h3>Conversion funnel · 30d</h3><span class="meta">DIRECT CHANNEL</span></div>
+              <div class="gs-funnel">
+                <div class="gs-step"><div class="l">Enquiries</div><div class="v">64</div><div class="c">instagram · whatsapp</div></div>
+                <div class="gs-step"><div class="l">Holds</div><div class="v">41</div><div class="c">48h expiry</div></div>
+                <div class="gs-step hot"><div class="l">Deposit pending</div><div class="v">12</div><div class="c">needs nudge</div></div>
+                <div class="gs-step"><div class="l">Confirmed</div><div class="v">23</div><div class="c">$61k value</div></div>
+              </div>
+            </div>
+            <div class="gs-2col">
+              <div class="card card-pad">
+                <div class="gs-card-h"><h3>Pending requests</h3><span class="meta">7 OPEN</span></div>
+                <table class="data"><thead><tr><th>Guest</th><th>Villa · dates</th><th>Channel</th><th class="num">Value</th><th>Stage</th></tr></thead><tbody>
+                  <tr><td class="row-title">A. Petrova</td><td class="mono">seminyak-05 · 20–26 Jun</td><td>Instagram</td><td class="num">$4.2k</td><td><span class="badge badge-warn">Hold · 31h left</span></td></tr>
+                  <tr><td class="row-title">J. Mwangi</td><td class="mono">ubud-02 · 18–21 Jun</td><td>WhatsApp</td><td class="num">$1.9k</td><td><span class="badge badge-info">Deposit sent</span></td></tr>
+                  <tr><td class="row-title">Família Sousa</td><td class="mono">canggu-04 · 25 Jun–2 Jul</td><td>Direct</td><td class="num">$6.1k</td><td><span class="badge">Enquiry</span></td></tr>
+                </tbody></table>
+              </div>
+              <div class="card card-pad">
+                <div class="gs-card-h"><h3>Reconciliation</h3></div>
+                <p class="body" style="font-size:13px;margin:0 0 14px">3 direct bookings await calendar match against OTA feeds — clear before they double-book.</p>
+                <div class="kpi warn" style="margin-bottom:10px"><div class="label">Unmatched</div><div class="v">3</div><div class="sub">vs channel calendar</div></div>
+                <button class="btn btn-accent" style="width:100%;justify-content:center">Open reconciliation</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAYMENTS -->
+    <section class="screen" id="s-payments" data-screen-label="Payments">
+      <div class="app-shell full" data-product="management">
+        <aside class="sidebar">
+          <a class="sb-brand"><span class="logo"><svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M16 4 L28 14 H24 L16 8 L8 14 H4 Z" fill="currentColor"/><path d="M16 13 L25 20 H21.5 L16 16 L10.5 20 H7 Z" fill="currentColor" opacity=".6"/></svg></span><span class="wordmark">Arconique</span></a>
+          <div class="sb-workspace"><div class="label">Workspace</div><div class="name">Whitmore VG</div><div class="sub">22 villas · Asia/Singapore</div></div>
+          <div class="sb-group"><div class="sb-group-title">Finance</div><a class="sb-item">Finance</a><a class="sb-item on">Payments</a><a class="sb-item">Webhooks</a></div>
+        </aside>
+        <div class="shell-content">
+          <div class="topbar"><div class="tb-crumb">Finance <span style="color:var(--ink-4)">/</span> <b>Payments</b></div><div class="tb-spacer"></div>
+            <span class="chip">manual stub · only provider wired</span>
+            <div class="tb-user"><span class="avatar">EW</span><div class="meta"><span class="name">Emma Whitmore</span><span class="role">Finance</span></div></div></div>
+          <div class="shell-body">
+            <div class="section-heading" style="margin-bottom:22px"><div class="eyebrow label" style="color:var(--terra)">Payments · providers + webhooks</div><h1>Deposits &amp; <em>envelopes</em>.</h1><p>Provider configuration and idempotent webhook events. Today the manual stub records deposits as pending; admins flip them to paid to gate conversion.</p></div>
+            <div class="gs-kpis">
+              <div class="kpi"><div class="label">Pending deposits</div><div class="v">12</div><div class="sub">awaiting payment</div></div>
+              <div class="kpi ok"><div class="label">Paid</div><div class="v">23</div><div class="sub">incl. manual</div></div>
+              <div class="kpi gold"><div class="label">Collected · MTD</div><div class="v">$61k</div><div class="sub">direct channel</div></div>
+              <div class="kpi warn"><div class="label">Failed / expired</div><div class="v">4</div><div class="sub">hold lapsed</div></div>
+            </div>
+            <div class="gs-2col">
+              <div class="card card-pad">
+                <div class="gs-card-h"><h3>Webhook envelopes</h3><span class="meta">IDEMPOTENT · LAST 24H</span></div>
+                <table class="data"><thead><tr><th>Event</th><th>Provider</th><th>Ref</th><th>Received</th><th>Status</th></tr></thead><tbody>
+                  <tr><td class="mono" style="font-size:12px">deposit.paid</td><td>manual</td><td class="mono" style="color:var(--ink-3)">dep_771</td><td class="mono">09:14</td><td><span class="badge badge-ok">Processed</span></td></tr>
+                  <tr><td class="mono" style="font-size:12px">deposit.created</td><td>manual</td><td class="mono" style="color:var(--ink-3)">dep_774</td><td class="mono">10:02</td><td><span class="badge badge-ok">Processed</span></td></tr>
+                  <tr><td class="mono" style="font-size:12px">deposit.expired</td><td>manual</td><td class="mono" style="color:var(--ink-3)">dep_760</td><td class="mono">11:30</td><td><span class="badge badge-soft">Replayed</span></td></tr>
+                </tbody></table>
+              </div>
+              <div class="card card-pad">
+                <div class="gs-card-h"><h3>Providers</h3></div>
+                <div class="gs-prov"><span class="pl">M</span><span style="flex:1"><span class="nm">Manual stub</span><span class="sub">Active · admin-marked paid</span></span><span class="badge badge-ok">On</span></div>
+                <div class="gs-prov"><span class="pl">S</span><span style="flex:1"><span class="nm">Stripe</span><span class="sub">Not configured</span></span><span class="badge badge-soft">Off</span></div>
+                <div class="gs-prov"><span class="pl">X</span><span style="flex:1"><span class="nm">Xendit (IDR)</span><span class="sub">Not configured</span></span><span class="badge badge-soft">Off</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVICE FULFILMENT -->
+    <section class="screen" id="s-fulfil" data-screen-label="Service fulfilment">
+      <div class="app-shell full" data-product="management">
+        <aside class="sidebar">
+          <a class="sb-brand"><span class="logo"><svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M16 4 L28 14 H24 L16 8 L8 14 H4 Z" fill="currentColor"/><path d="M16 13 L25 20 H21.5 L16 16 L10.5 20 H7 Z" fill="currentColor" opacity=".6"/></svg></span><span class="wordmark">Arconique</span></a>
+          <div class="sb-workspace"><div class="label">Workspace</div><div class="name">Whitmore VG</div><div class="sub">22 villas · Asia/Singapore</div></div>
+          <div class="sb-group"><div class="sb-group-title">Revenue</div><a class="sb-item">Direct bookings</a><a class="sb-item on">Service fulfilment</a></div>
+        </aside>
+        <div class="shell-content">
+          <div class="topbar"><div class="tb-crumb">Revenue <span style="color:var(--ink-4)">/</span> <b>Service fulfilment</b></div><div class="tb-spacer"></div>
+            <button class="btn btn-secondary btn-sm">Run finance bridge</button>
+            <div class="tb-user"><span class="avatar">EW</span><div class="meta"><span class="name">Emma Whitmore</span><span class="role">Operations</span></div></div></div>
+          <div class="shell-body">
+            <div class="section-heading" style="margin-bottom:22px"><div class="eyebrow label" style="color:var(--terra)">Service fulfilment · vendor dispatch</div><h1>Request to <em>margin</em>.</h1><p>Triage guest requests, dispatch vendors, track ETAs, capture invoices + ratings, bridge to finance — without leaking guest contact or owner finance to vendors.</p></div>
+            <div class="gs-kpis">
+              <div class="kpi accent"><div class="label">Triage</div><div class="v">5</div><div class="sub">need routing</div></div>
+              <div class="kpi warn"><div class="label">Awaiting vendor</div><div class="v">3</div><div class="sub">2 over ETA</div></div>
+              <div class="kpi"><div class="label">Scheduled today</div><div class="v">6</div><div class="sub">across 5 vendors</div></div>
+              <div class="kpi gold"><div class="label">Margin · MTD</div><div class="v">$1.9k</div><div class="sub">completed only</div></div>
+            </div>
+            <div class="card card-pad">
+              <div class="gs-card-h"><h3>Triage queue</h3><span class="meta">14 OPEN · SLA-SORTED</span></div>
+              <table class="data"><thead><tr><th>Request</th><th>Guest · villa</th><th>Vendor</th><th>ETA</th><th class="num">Margin</th><th>Status</th></tr></thead><tbody>
+                <tr><td class="row-title">Private chef · dinner</td><td>Tan · canggu-04</td><td>Sari Catering</td><td class="mono">today 18:00</td><td class="num">IDR 320k</td><td><span class="badge badge-warn">Awaiting vendor</span></td></tr>
+                <tr><td class="row-title">Airport transfer</td><td>Okafor · uluwatu-01</td><td>BlueBird</td><td class="mono">12 Jun 11:00</td><td class="num">IDR 90k</td><td><span class="badge badge-ok">Scheduled</span></td></tr>
+                <tr><td class="row-title">Spa · 90min</td><td>Haryanto · ubud-02</td><td class="" style="color:var(--ink-4)">—</td><td class="mono" style="color:var(--ink-4)">—</td><td class="num">—</td><td><span class="badge badge-accent">Triage</span></td></tr>
+                <tr><td class="row-title">Grocery run</td><td>Lindqvist · seminyak-05</td><td>Karsa Errands</td><td class="mono">done</td><td class="num">IDR 60k</td><td><span class="badge badge-info">Bridge pending</span></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTEGRATIONS -->
+    <section class="screen" id="s-integr" data-screen-label="Integrations">
+      <div class="app-shell full" data-product="management">
+        <aside class="sidebar">
+          <a class="sb-brand"><span class="logo"><svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M16 4 L28 14 H24 L16 8 L8 14 H4 Z" fill="currentColor"/><path d="M16 13 L25 20 H21.5 L16 16 L10.5 20 H7 Z" fill="currentColor" opacity=".6"/></svg></span><span class="wordmark">Arconique</span></a>
+          <div class="sb-workspace"><div class="label">Workspace</div><div class="name">Whitmore VG</div><div class="sub">22 villas · Asia/Singapore</div></div>
+          <div class="sb-group"><div class="sb-group-title">Integrations</div><a class="sb-item on">Calendar feeds</a><a class="sb-item">Conflicts <span class="sb-badge">2</span></a><a class="sb-item">Automation rules</a></div>
+        </aside>
+        <div class="shell-content">
+          <div class="topbar"><div class="tb-crumb">Integrations <span style="color:var(--ink-4)">/</span> <b>Calendar feeds</b></div><div class="tb-spacer"></div>
+            <button class="btn btn-secondary btn-sm">Sync all</button>
+            <span class="chip"><span class="pulse-dot"></span>last sync 38s ago</span>
+            <div class="tb-user"><span class="avatar">EW</span><div class="meta"><span class="name">Emma Whitmore</span><span class="role">Operations</span></div></div></div>
+          <div class="shell-body">
+            <div class="section-heading" style="margin-bottom:22px"><div class="eyebrow label" style="color:var(--terra)">Integrations · channel calendar sync</div><h1>Feeds &amp; <em>conflicts</em>.</h1><p>Booking-channel iCal feeds, sync runs, double-book conflicts, and automation rules — one health surface for every connected channel.</p></div>
+            <div class="gs-kpis">
+              <div class="kpi ok"><div class="label">Active feeds</div><div class="v">17</div><div class="sub">across 22 villas</div></div>
+              <div class="kpi warn"><div class="label">Feeds w/ errors</div><div class="v">1</div><div class="sub">Agoda · auth</div></div>
+              <div class="kpi accent"><div class="label">Open conflicts</div><div class="v">2</div><div class="sub">needs resolve</div></div>
+              <div class="kpi"><div class="label">Automation rules</div><div class="v">6</div><div class="sub">block / notify</div></div>
+            </div>
+            <div class="gs-2col">
+              <div class="card card-pad">
+                <div class="gs-card-h"><h3>Calendar feeds</h3><span class="meta">17 ACTIVE</span></div>
+                <table class="data"><thead><tr><th>Feed</th><th>Villa</th><th class="num">Events</th><th>Last sync</th><th>Status</th></tr></thead><tbody>
+                  <tr><td class="row-title">Airbnb · canggu-04</td><td class="mono">canggu-04</td><td class="num">28</td><td class="mono">38s ago</td><td><span class="badge badge-ok">Active</span></td></tr>
+                  <tr><td class="row-title">Booking.com · uluwatu-02</td><td class="mono">uluwatu-02</td><td class="num">41</td><td class="mono">2m ago</td><td><span class="badge badge-ok">Active</span></td></tr>
+                  <tr><td class="row-title">Agoda · seminyak-07</td><td class="mono">seminyak-07</td><td class="num">0</td><td class="mono" style="color:var(--danger)">auth failed</td><td><span class="badge badge-danger">Error</span></td></tr>
+                </tbody></table>
+              </div>
+              <div class="card card-pad">
+                <div class="gs-card-h"><h3>Open conflicts</h3><span class="meta">2</span></div>
+                <div class="gs-prov" style="border-left:3px solid var(--danger)"><span style="flex:1"><span class="nm">Double-book · canggu-04</span><span class="sub">Airbnb 14–18 vs direct 16–20 Jun</span></span><span class="badge badge-danger">Open</span></div>
+                <div class="gs-prov" style="border-left:3px solid var(--warn)"><span style="flex:1"><span class="nm">Orphan event · ubud-02</span><span class="sub">imported, no matching booking</span></span><span class="badge badge-warn">Review</span></div>
+                <button class="btn btn-accent" style="width:100%;justify-content:center;margin-top:6px">Resolve conflicts</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+  <div class="gs-foot">Cluster <b>C2 · Distribution &amp; Payments</b> — 4 cabinets redesigned in Layer B · routes: /direct-bookings · /payments · /service-fulfilment · /integrations &nbsp;·&nbsp; all built in <b>main</b>, polish pass</div>
+</div>
+<script>
+  document.querySelectorAll('.nav-tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      var s = t.getAttribute('data-s');
+      document.querySelectorAll('.nav-tab').forEach(function(x){ x.classList.toggle('on', x===t); });
+      document.querySelectorAll('.screen').forEach(function(sc){ sc.classList.toggle('on', sc.id==='s-'+s); });
+      try { localStorage.setItem('c2-screen', s); } catch(e){}
+    });
+  });
+  try { var saved = localStorage.getItem('c2-screen'); if (saved) { var b = document.querySelector('.nav-tab[data-s="'+saved+'"]'); if (b) b.click(); } } catch(e){}
+</script>
+</body>
+</html>

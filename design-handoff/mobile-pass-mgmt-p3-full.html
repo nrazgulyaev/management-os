@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mobile pass · Auth + P3 clusters + Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --doc-bg:#0F1014; --doc-bg-2:#16171C; --doc-bg-3:#1F2129;
+  --doc-line:rgba(255,255,255,0.06); --doc-line-2:rgba(255,255,255,0.10);
+  --doc-fg:#E6E5E0; --doc-fg-2:#BBB9B0; --doc-fg-3:#8B8B85; --doc-accent:#C4583C;
+  --doc-mono:"JetBrains Mono",ui-monospace,monospace; --doc-sans:"Inter",system-ui,sans-serif;
+}
+[data-product="management"]{
+  --paper:#FAF6EE; --cream:#F4EFE6; --cream-warm:#ECE5D5; --cream-deep:#E5DECC;
+  --ink:#14201C; --ink-2:#2F3D38; --ink-3:#5C6B65; --ink-4:#8E9A95;
+  --line:#DAD2C0; --line-soft:#E5DECC;
+  --accent:#C4583C; --accent-soft:#E8B8A4; --on-accent:#FFF8F0;
+  --inverted-bg:#1F3A33; --inverted-fg:#F4EFE6; --forest:#1F3A33;
+  --ok:#4F7A5D; --warn:#C18A2E; --danger:#B53826; --info:#3A6B9C; --gold:#8c6f33; --gold-soft:#DCC691;
+  --mint:#D8E8D6; --sky:#D4E2EC; --peach:#F6D9CB; --butter:#F5E9B8;
+  --display-font:"Newsreader",Georgia,serif; --sans-font:"Inter",system-ui,sans-serif; --mono-font:"JetBrains Mono",monospace;
+  --r-pill:999px; --r-card:14px; --r-card-lg:20px;
+}
+[data-product="development"]{
+  --paper:#FFFFFF; --cream:#F1ECE0; --cream-warm:#F8F4EA; --cream-deep:#ECE6D5; --panel:#FFFFFF; --bg-2:#F8F4EA; --bg-3:#FFFCF4;
+  --ink:#14130E; --ink-2:#3D3B33; --ink-3:#6E6B5E; --ink-4:#95917F;
+  --line:#E5DECC; --line-soft:#ECE6D5; --line-2:#D8CFB7;
+  --accent:#FF6B35; --accent-soft:#FFB088; --on-accent:#14130E; --steel:#3D5A7A;
+  --inverted-bg:#14130E; --inverted-fg:#FFFFFF;
+  --ok:#4F8A5D; --warn:#C58A2E; --danger:#C2474E; --info:#3D5A7A; --gold:#BC9A5C; --gold-soft:#FFB088;
+  --display-font:"Space Grotesk",system-ui,sans-serif; --sans-font:"Inter",system-ui,sans-serif; --mono-font:"IBM Plex Mono",monospace;
+  --r-pill:999px; --r-card:14px; --r-card-lg:18px;
+}
+[data-product="platform"]{
+  --paper:#141922; --cream:#0E1116; --cream-warm:#141922; --cream-deep:#1A212C; --panel:#141922;
+  --ink:#E7ECF2; --ink-2:#B7C0CC; --ink-3:#8591A0; --ink-4:#5E6A78;
+  --line:#26303C; --line-soft:#1E2731; --line-2:#2C3744;
+  --accent:#5B9DFF; --accent-soft:#9CC2FF; --on-accent:#08111F; --steel:#5B9DFF;
+  --inverted-bg:#080B10; --inverted-fg:#E7ECF2;
+  --ok:#4FB477; --warn:#D6A23A; --danger:#E0575F; --info:#5B9DFF; --gold:#E0B341; --gold-soft:#9CC2FF;
+  --display-font:"Space Grotesk",system-ui,sans-serif; --sans-font:"Inter",system-ui,sans-serif; --mono-font:"IBM Plex Mono",monospace;
+  --r-pill:999px; --r-card:14px; --r-card-lg:18px;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--doc-bg); color:var(--doc-fg); font-family:var(--doc-sans); -webkit-font-smoothing:antialiased; }
+.page { min-height:100vh; padding:56px 40px 96px; }
+.page-head { max-width:1500px; margin:0 auto 48px; }
+.eyebrow { font-family:var(--doc-mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--doc-accent); display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.eyebrow .glyph { width:6px; height:6px; background:var(--doc-accent); border-radius:2px; }
+h1.title { font-weight:600; font-size:38px; line-height:1.05; letter-spacing:-.02em; margin:0; font-family:var(--doc-sans); }
+h1.title em { color:var(--doc-accent); font-style:italic; font-weight:400; }
+.lede { max-width:760px; margin:16px 0 0; font-size:14.5px; color:var(--doc-fg-2); line-height:1.65; }
+.meta-row { display:flex; gap:28px; flex-wrap:wrap; margin-top:24px; padding-top:20px; border-top:1px solid var(--doc-line); font-size:13px; }
+.meta-row > div { display:flex; flex-direction:column; gap:4px; }
+.meta-row .k { font-family:var(--doc-mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--doc-fg-3); }
+.meta-row .v { color:var(--doc-fg); }
+.boards { max-width:1500px; margin:0 auto; display:flex; flex-direction:column; gap:64px; }
+.sect { padding-top:30px; border-top:1px solid var(--doc-line); }
+.sect-h { display:flex; align-items:baseline; gap:16px; margin-bottom:8px; flex-wrap:wrap; }
+.sect-h .n { font-family:var(--doc-mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--doc-fg-3); padding:5px 10px; border:1px solid var(--doc-line-2); border-radius:4px; }
+.sect-h h2 { margin:0; font-weight:600; font-size:25px; letter-spacing:-.015em; }
+.sect-h .sub { font-family:var(--doc-mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; margin-left:auto; padding:4px 10px; border-radius:999px; border:1px solid var(--doc-line-2); color:var(--doc-fg-2); }
+.sect-lede { max-width:780px; font-size:14px; color:var(--doc-fg-2); line-height:1.6; margin:0 0 28px; }
+.rail { display:flex; gap:30px; flex-wrap:wrap; }
+.frame-col { display:flex; flex-direction:column; gap:12px; }
+.frame-tag { display:flex; align-items:center; gap:10px; font-family:var(--doc-mono); font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--doc-fg-3); }
+.frame-tag .name { color:var(--doc-fg); }
+.frame-tag .role { padding:2px 7px; border:1px solid var(--doc-line-2); border-radius:4px; color:var(--doc-fg-2); font-size:9px; }
+
+/* phone */
+.phone { width:332px; height:710px; border-radius:42px; background:#0A0B0F; padding:9px; box-shadow:0 20px 60px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06); position:relative; }
+.phone-notch { position:absolute; top:15px; left:50%; transform:translateX(-50%); width:104px; height:26px; background:#0A0B0F; border-radius:13px; z-index:3; }
+.scr { width:100%; height:100%; border-radius:33px; background:var(--cream); overflow:hidden; display:flex; flex-direction:column; }
+.stat { height:36px; display:flex; align-items:center; justify-content:space-between; padding:13px 22px 3px; font-family:var(--mono-font); font-size:12px; color:var(--ink); font-weight:500; flex-shrink:0; }
+.body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.tbar { display:flex; align-items:center; gap:10px; padding:7px 15px 11px; border-bottom:1px solid var(--line-soft); flex-shrink:0; }
+.tbar .ti { flex:1; font-family:var(--display-font); font-size:17px; color:var(--ink); line-height:1.1; }
+.tbar .ti .sub { display:block; font-family:var(--mono-font); font-size:9.5px; text-transform:uppercase; letter-spacing:.14em; color:var(--ink-3); margin-top:2px; }
+.tbar .av { width:30px; height:30px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:500; color:var(--inverted-fg); background:linear-gradient(135deg,var(--gold-soft),var(--accent)); }
+.scroll { flex:1; overflow-y:auto; padding:0 0 12px; }
+.tabbar { display:flex; border-top:1px solid var(--line-soft); background:var(--paper); padding-bottom:13px; flex-shrink:0; }
+.tabbar .tb { flex:1; padding:9px 0 5px; display:flex; flex-direction:column; align-items:center; gap:4px; font-family:var(--mono-font); font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-4); background:transparent; border:0; }
+.tabbar .tb.on { color:var(--ink); }
+.tabbar .tb.on .i { color:var(--accent); }
+.tabbar .i { width:21px; height:21px; display:inline-flex; align-items:center; justify-content:center; }
+.sech { display:flex; align-items:center; gap:8px; padding:13px 15px 7px; font-family:var(--mono-font); font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-3); }
+.sech .more { margin-left:auto; color:var(--ink-4); font-family:var(--sans-font); font-size:11px; text-transform:none; letter-spacing:0; }
+
+/* components */
+[data-product] .badge { display:inline-flex; align-items:center; padding:2px 7px; border-radius:999px; font-family:var(--mono-font); font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; border:1px solid var(--line); background:var(--paper); color:var(--ink-3); }
+[data-product] .badge-ok { background:color-mix(in oklab,var(--ok) 14%,transparent); color:var(--ok); border-color:color-mix(in oklab,var(--ok) 35%,transparent); }
+[data-product] .badge-warn { background:color-mix(in oklab,var(--warn) 14%,transparent); color:var(--warn); border-color:color-mix(in oklab,var(--warn) 35%,transparent); }
+[data-product] .badge-danger { background:color-mix(in oklab,var(--danger) 14%,transparent); color:var(--danger); border-color:color-mix(in oklab,var(--danger) 35%,transparent); }
+[data-product] .badge-accent { background:color-mix(in oklab,var(--accent) 14%,transparent); color:var(--accent); border-color:color-mix(in oklab,var(--accent) 35%,transparent); }
+[data-product] .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:11px 16px; border-radius:var(--r-pill); font-family:var(--sans-font); font-size:14px; font-weight:500; border:1px solid transparent; cursor:pointer; line-height:1; background:transparent; width:100%; }
+[data-product] .btn-accent { background:var(--accent); color:var(--on-accent); }
+[data-product] .btn-secondary { background:var(--cream-warm); color:var(--ink); border-color:var(--line); }
+[data-product] .field { display:block; margin:0 15px 12px; }
+[data-product] .field .lab { font-family:var(--mono-font); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); display:block; margin-bottom:5px; }
+[data-product] .field .inp { width:100%; height:42px; border:1px solid var(--line); border-radius:10px; background:var(--paper); padding:0 13px; font-family:var(--sans-font); font-size:14px; color:var(--ink-3); display:flex; align-items:center; }
+.mcard { margin:0 15px 10px; border:1px solid var(--line-soft); border-radius:var(--r-card); background:var(--paper); padding:13px 14px; }
+.mcard.warn { border-left:3px solid var(--warn); }
+.mcard.danger { border-left:3px solid var(--danger); }
+.mcard.accent { border-left:3px solid var(--accent); }
+.mrow { display:flex; align-items:center; gap:11px; padding:11px 15px; border-bottom:1px solid var(--line-soft); }
+.mrow .ic { width:34px; height:34px; border-radius:9px; background:var(--cream-deep); color:var(--ink-2); display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; font-family:var(--mono-font); font-size:11px; }
+.mrow .ti { flex:1; min-width:0; }
+.mrow .ti .t { font-size:13.5px; color:var(--ink); font-weight:500; }
+.mrow .ti .s { font-family:var(--mono-font); font-size:10.5px; color:var(--ink-3); margin-top:2px; }
+.kpis { display:grid; grid-template-columns:1fr 1fr; gap:9px; padding:13px 15px 4px; }
+.kpi { border:1px solid var(--line-soft); border-radius:12px; background:var(--paper); padding:12px 13px; }
+.kpi .l { font-family:var(--mono-font); font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); }
+.kpi .v { font-family:var(--mono-font); font-size:24px; color:var(--ink); margin-top:4px; font-variant-numeric:tabular-nums; line-height:1; }
+.kpi .v.accent { color:var(--accent); } .kpi .v.ok { color:var(--ok); } .kpi .v.warn { color:var(--warn); } .kpi .v.danger { color:var(--danger); }
+.kpi .s { font-size:10.5px; color:var(--ink-4); margin-top:3px; }
+.kpi.wide { grid-column:span 2; }
+.hero { margin:13px 15px 4px; border-radius:16px; background:var(--inverted-bg); color:var(--inverted-fg); padding:17px; position:relative; overflow:hidden; }
+.hero .l { font-family:var(--mono-font); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.6); }
+.hero .v { font-family:var(--display-font); font-size:32px; margin-top:6px; line-height:1; }
+.hero .v em { color:var(--gold-soft); font-style:italic; }
+.hero .s { font-size:12px; color:rgba(255,255,255,.7); margin-top:8px; }
+.note { margin:0 40px; font-size:13.5px; color:var(--doc-fg-2); line-height:1.6; max-width:780px; }
+</style>
+</head>
+<body>
+<div class="page"><div class="page-head">
+<div class="eyebrow"><span class="glyph"></span>Mobile pass · Mgmt P3 — full</div>
+<h1 class="title">Every mgmt P3 cabinet, <em>on a phone</em>.</h1>
+<p class="lede">The complete mobile variant for all 20 Management-OS secondary cabinets across clusters C1–C5. Tables collapse to tap-through cards; the desktop sidebar becomes a fixed bottom tabbar + More sheet. Management theme throughout (cream + terra).</p>
+<div class="meta-row"><div><span class="k">Clusters</span><span class="v">C1–C5 · 20 cabinets</span></div><div><span class="k">Theme</span><span class="v">management</span></div><div><span class="k">Pattern</span><span class="v">tabbar · cards · sheets</span></div></div>
+</div><div class="boards"><section class="sect"><div class="sect-h"><span class="n">C1 · guest stays</span><h2>Guest Stays · 4</h2><span class="sub">cream + terra</span></div><div class="rail"><div class="frame-col"><div class="frame-tag"><span class="name">Guest stays</span><span class="role">Access</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Guest stays<span class="sub">Access</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Active tokens</div><div class="v accent">38</div></div><div class="kpi"><div class="l">Check-ins 14d</div><div class="v">11</div></div></div><div class="sech">Active stays</div><div class="mrow"><span class="ic">TF</span><div class="ti"><div class="t">Tan Family</div><div class="s">canggu-04 · 14–18 Jun</div></div><span class="badge badge-ok">In-house</span></div><div class="mrow"><span class="ic">LQ</span><div class="ti"><div class="t">Lindqvist +2</div><div class="s">seminyak-05</div></div><span class="badge badge-warn">Pre-arr</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">▦</span>Stays</button><button class="tb"><span class="i">◷</span>Svc</button><button class="tb"><span class="i">✦</span>Jrny</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Guest services</span><span class="role">Catalog</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Guest services<span class="sub">Catalog</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Open orders</div><div class="v accent">9</div></div><div class="kpi"><div class="l">Upsell MTD</div><div class="v ok">$3.4k</div></div></div><div class="sech">Recent orders</div><div class="mrow"><span class="ic">$</span><div class="ti"><div class="t">Private chef</div><div class="s">Tan · canggu-04</div></div><span class="badge badge-warn">Vendor</span></div><div class="mrow"><span class="ic">$</span><div class="ti"><div class="t">Airport transfer</div><div class="s">Okafor</div></div><span class="badge badge-ok">Confirmed</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">▦</span>Stays</button><button class="tb on"><span class="i">◷</span>Svc</button><button class="tb"><span class="i">✦</span>Jrny</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Guest journey</span><span class="role">Automation</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Guest journey<span class="sub">Automation</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Active rules</div><div class="v">14</div></div><div class="kpi"><div class="l">Pending runs</div><div class="v accent">23</div></div></div><div class="sech">Live rules</div><div class="mrow"><span class="ic">−</span><div class="ti"><div class="t">Welcome + guide</div><div class="s">−72h · email</div></div><span class="badge badge-ok">on</span></div><div class="mrow"><span class="ic">+</span><div class="ti"><div class="t">Mid-stay spa</div><div class="s">mid · CTA</div></div><span class="badge badge-warn">paused</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">▦</span>Stays</button><button class="tb"><span class="i">◷</span>Svc</button><button class="tb on"><span class="i">✦</span>Jrny</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">AI concierge</span><span class="role">HITL</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">AI concierge<span class="sub">HITL</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Sessions</div><div class="v">11</div></div><div class="kpi"><div class="l">Autonomous</div><div class="v ok">82%</div></div></div><div class="sech">Needs attention</div><div class="mrow"><span class="ic">!</span><div class="ti"><div class="t">Tan · canggu-04</div><div class="s">"AC warm"</div></div><span class="badge badge-warn">Escalated</span></div><div class="mrow"><span class="ic">✓</span><div class="ti"><div class="t">Okafor · uluwatu</div><div class="s">beach club</div></div><span class="badge badge-ok">Auto</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">▦</span>Stays</button><button class="tb"><span class="i">◷</span>Svc</button><button class="tb on"><span class="i">✦</span>AI</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div></div></section>
+<section class="sect"><div class="sect-h"><span class="n">C2 · distribution</span><h2>Distribution & Payments · 4</h2><span class="sub">cream + terra</span></div><div class="rail"><div class="frame-col"><div class="frame-tag"><span class="name">Direct bookings</span><span class="role">Pipeline</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Direct bookings<span class="sub">Pipeline</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Holds</div><div class="v accent">41</div></div><div class="kpi"><div class="l">Deposit pend</div><div class="v warn">12</div></div></div><div class="sech">Pending requests</div><div class="mrow"><span class="ic">AP</span><div class="ti"><div class="t">A. Petrova</div><div class="s">seminyak-05</div></div><span class="badge badge-warn">Hold 31h</span></div><div class="mrow"><span class="ic">JM</span><div class="ti"><div class="t">J. Mwangi</div><div class="s">ubud-02</div></div><span class="badge badge-accent">Deposit</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">▦</span>Direct</button><button class="tb"><span class="i">$</span>Pay</button><button class="tb"><span class="i">◷</span>Fulfil</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Payments</span><span class="role">Deposits</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Payments<span class="sub">Deposits</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Pending</div><div class="v">12</div></div><div class="kpi"><div class="l">Collected</div><div class="v ok">$61k</div></div></div><div class="sech">Webhooks</div><div class="mrow"><span class="ic">M</span><div class="ti"><div class="t">deposit.paid</div><div class="s">manual · 09:14</div></div><span class="badge badge-ok">OK</span></div><div class="mrow"><span class="ic">M</span><div class="ti"><div class="t">deposit.expired</div><div class="s">replayed</div></div><span class="badge badge-ok">Done</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">▦</span>Direct</button><button class="tb on"><span class="i">$</span>Pay</button><button class="tb"><span class="i">◷</span>Fulfil</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Fulfilment</span><span class="role">Vendor</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Fulfilment<span class="sub">Vendor</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Triage</div><div class="v accent">5</div></div><div class="kpi"><div class="l">Margin MTD</div><div class="v ok">$1.9k</div></div></div><div class="sech">Triage queue</div><div class="mrow"><span class="ic">⌁</span><div class="ti"><div class="t">Private chef</div><div class="s">Tan · canggu-04</div></div><span class="badge badge-warn">Vendor</span></div><div class="mrow"><span class="ic">⌁</span><div class="ti"><div class="t">Spa 90min</div><div class="s">Haryanto</div></div><span class="badge badge-accent">Triage</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">▦</span>Direct</button><button class="tb"><span class="i">$</span>Pay</button><button class="tb on"><span class="i">◷</span>Fulfil</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Integrations</span><span class="role">Feeds</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Integrations<span class="sub">Feeds</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Active feeds</div><div class="v ok">17</div></div><div class="kpi"><div class="l">Conflicts</div><div class="v accent">2</div></div></div><div class="sech">Open conflicts</div><div class="mrow"><span class="ic">!</span><div class="ti"><div class="t">Double-book canggu-04</div><div class="s">Airbnb vs direct</div></div><span class="badge badge-danger">Open</span></div><div class="mrow"><span class="ic">?</span><div class="ti"><div class="t">Orphan ubud-02</div><div class="s">no booking</div></div><span class="badge badge-warn">Review</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">▦</span>Feeds</button><button class="tb"><span class="i">!</span>Conf</button><button class="tb"><span class="i">⟳</span>Auto</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div></div></section>
+<section class="sect"><div class="sect-h"><span class="n">C3 · portfolio</span><h2>Portfolio · 3</h2><span class="sub">cream + terra</span></div><div class="rail"><div class="frame-col"><div class="frame-tag"><span class="name">Villas</span><span class="role">Portfolio</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Villas<span class="sub">Portfolio</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Total</div><div class="v">22</div></div><div class="kpi"><div class="l">Active 30d</div><div class="v ok">19</div></div></div><div class="sech">All villas</div><div class="mrow"><div class="ti"><div class="t">Tirta · Canggu 04</div><div class="s">tirta-canggu-04</div></div><span class="badge badge-ok">Occupied</span></div><div class="mrow"><div class="ti"><div class="t">Sukha · Uluwatu 01</div><div class="s">sukha-uluwatu-01</div></div><span class="badge badge-ok">Ready</span></div><div class="mrow"><div class="ti"><div class="t">AH · Ubud 02</div><div class="s">ah-ubud-02</div></div><span class="badge badge-danger">Maint</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">◫</span>Proj</button><button class="tb on"><span class="i">▦</span>Villas</button><button class="tb"><span class="i">◐</span>Owners</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Projects</span><span class="role">Estates</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Projects<span class="sub">Estates</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Projects</div><div class="v">3</div></div><div class="kpi"><div class="l">Villas</div><div class="v">22</div></div></div><div class="sech">Estates</div><div class="mrow"><div class="ti"><div class="t">Tirta Estates</div><div class="s">Canggu · 8 villas</div></div><span class="badge badge-ok">Managed</span></div><div class="mrow"><div class="ti"><div class="t">Sukha Cliff</div><div class="s">Uluwatu · 6</div></div><span class="badge badge-gold">Active</span></div><div class="mrow"><div class="ti"><div class="t">Aman House</div><div class="s">Ubud · 3</div></div><span class="badge badge-accent">U/C</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">◫</span>Proj</button><button class="tb"><span class="i">▦</span>Villas</button><button class="tb"><span class="i">◐</span>Owners</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Shares</span><span class="role">Allocations</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Shares<span class="sub">Allocations</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Groups</div><div class="v">22</div></div><div class="kpi"><div class="l">Over 100%</div><div class="v danger">1</div></div></div><div class="sech">Needs review</div><div class="mrow"><div class="ti"><div class="t">tirta-uluwatu-02</div><div class="s">104% · overlap</div></div><span class="badge badge-danger">104%</span></div><div class="mrow"><div class="ti"><div class="t">Estate Seminyak</div><div class="s">under-alloc</div></div><span class="badge badge-warn">85%</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">◫</span>Proj</button><button class="tb"><span class="i">▦</span>Villas</button><button class="tb on"><span class="i">◑</span>Shares</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div></div></section>
+<section class="sect"><div class="sect-h"><span class="n">C4 · security & system</span><h2>Security & System · 5</h2><span class="sub">cream + terra</span></div><div class="rail"><div class="frame-col"><div class="frame-tag"><span class="name">Security</span><span class="role">Overview</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Security<span class="sub">Overview</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Incidents</div><div class="v">2</div></div><div class="kpi"><div class="l">Cameras</div><div class="v ok">94%</div></div></div><div class="sech">Recent events</div><div class="mrow"><span class="ic">!</span><div class="ti"><div class="t">Failed login ×5</div><div class="s">09:14 · critical</div></div></div><div class="mrow"><span class="ic">⟳</span><div class="ti"><div class="t">MFA reset</div><div class="s">07:02 · medium</div></div></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">⛨</span>Sec</button><button class="tb"><span class="i">◷</span>Jobs</button><button class="tb"><span class="i">▤</span>Audit</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Jobs</span><span class="role">Cron</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Jobs<span class="sub">Cron</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Definitions</div><div class="v">9</div></div><div class="kpi"><div class="l">Failed</div><div class="v warn">1</div></div></div><div class="sech">Job runs</div><div class="mrow"><div class="ti"><div class="t">Calendar sync</div><div class="s">*/15 · ok 410ms</div></div><span class="badge badge-ok">OK</span></div><div class="mrow"><div class="ti"><div class="t">Finance bridge</div><div class="s">hourly · ok</div></div><span class="badge badge-ok">OK</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">⛨</span>Sec</button><button class="tb on"><span class="i">◷</span>Jobs</button><button class="tb"><span class="i">▤</span>Audit</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Notifications</span><span class="role">Inbox</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Notifications<span class="sub">Inbox</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Queued</div><div class="v accent">5</div></div><div class="kpi"><div class="l">Sent 24h</div><div class="v ok">62</div></div></div><div class="sech">Recent</div><div class="mrow"><div class="ti"><div class="t">Statement ready</div><div class="s">Tan Trust · email</div></div><span class="badge badge-ok">Sent</span></div><div class="mrow"><div class="ti"><div class="t">Review request</div><div class="s">bounced</div></div><span class="badge badge-danger">Bounce</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">⛨</span>Sec</button><button class="tb on"><span class="i">◔</span>Notif</button><button class="tb"><span class="i">▤</span>Audit</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Audit log</span><span class="role">Append-only</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Audit log<span class="sub">Append-only</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="sech">Recent activity</div><div class="mrow"><div class="ti"><div class="t">booking.create</div><div class="s">Emma · 09:14</div></div><span class="badge badge-ok">create</span></div><div class="mrow"><div class="ti"><div class="t">share.update</div><div class="s">Raka · 08:51</div></div><span class="badge ">update</span></div><div class="mrow"><div class="ti"><div class="t">statement.archive</div><div class="s">System · 08:30</div></div><span class="badge badge-warn">archive</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">⛨</span>Sec</button><button class="tb"><span class="i">◷</span>Jobs</button><button class="tb on"><span class="i">▤</span>Audit</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Settings</span><span class="role">Workspace</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Settings<span class="sub">Workspace</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Database</div><div class="v ok">OK</div></div><div class="kpi"><div class="l">Mode</div><div class="v ok">Live</div></div></div><div class="sech">Configuration</div><div class="mrow"><div class="ti"><div class="t">Supabase Auth</div><div class="s">email + MFA</div></div><span class="badge badge-ok">On</span></div><div class="mrow"><div class="ti"><div class="t">Subscription</div><div class="s">Pro · renews 1 Jul</div></div><span class="badge badge-ok">Active</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">⛨</span>Sec</button><button class="tb on"><span class="i">⚙</span>Sys</button><button class="tb"><span class="i">▤</span>Audit</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div></div></section>
+<section class="sect"><div class="sect-h"><span class="n">C5 · availability & intel</span><h2>Availability & Intelligence · 4</h2><span class="sub">cream + terra</span></div><div class="rail"><div class="frame-col"><div class="frame-tag"><span class="name">AI assistants</span><span class="role">Roadmap</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">AI assistants<span class="sub">Roadmap</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Live</div><div class="v ok">4</div></div><div class="kpi"><div class="l">Spend MTD</div><div class="v gold">$84</div></div></div><div class="sech">Agents</div><div class="mrow"><span class="ic">✦</span><div class="ti"><div class="t">concierge-handoff</div><div class="s">9 runs · 82% auto</div></div><span class="badge badge-ok">Live</span></div><div class="mrow"><span class="ic">✦</span><div class="ti"><div class="t">housekeeping</div><div class="s">next-day plan</div></div><span class="badge badge-ok">Live</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">✦</span>AI</button><button class="tb"><span class="i">▦</span>Avail</button><button class="tb"><span class="i">✓</span>Ready</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Availability</span><span class="role">Calendar</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Availability<span class="sub">Calendar</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Avail 7d</div><div class="v ok">9</div></div><div class="kpi"><div class="l">Maint/OOO</div><div class="v warn">3</div></div></div><div class="sech">Active blocks</div><div class="mrow"><div class="ti"><div class="t">canggu-04</div><div class="s">booking 14–18</div></div><span class="badge badge-accent">Book</span></div><div class="mrow"><div class="ti"><div class="t">ubud-02</div><div class="s">out of order</div></div><span class="badge badge-danger">OOO</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">✦</span>AI</button><button class="tb on"><span class="i">▦</span>Avail</button><button class="tb"><span class="i">✓</span>Ready</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Readiness</span><span class="role">Append-only</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Readiness<span class="sub">Append-only</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Ready</div><div class="v ok">12</div></div><div class="kpi"><div class="l">OOO/maint</div><div class="v danger">2</div></div></div><div class="sech">Current state</div><div class="mrow"><div class="ti"><div class="t">canggu-04</div><div class="s">since 14:02</div></div><span class="badge badge-accent">occupied</span></div><div class="mrow"><div class="ti"><div class="t">seminyak-05</div><div class="s">ETA 14:30</div></div><span class="badge badge-warn">cleaning</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">✦</span>AI</button><button class="tb"><span class="i">▦</span>Avail</button><button class="tb on"><span class="i">✓</span>Ready</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Daily digests</span><span class="role">Brief</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Daily digests<span class="sub">Brief</span></div><span class="av">EW</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Unread</div><div class="v accent">3</div></div><div class="kpi"><div class="l">Agents</div><div class="v ok">4</div></div></div><div class="sech">Today</div><div class="mrow"><span class="ic">✦</span><div class="ti"><div class="t">Front office brief</div><div class="s">07:00 · 4 arrivals</div></div><span class="badge badge-accent">New</span></div><div class="mrow"><span class="ic">✦</span><div class="ti"><div class="t">Security overnight</div><div class="s">06:30 · quiet</div></div><span class="badge badge-accent">New</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">✦</span>AI</button><button class="tb on"><span class="i">◔</span>Dig</button><button class="tb"><span class="i">▤</span>Docs</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div></div></section>
+</div></div></body></html>

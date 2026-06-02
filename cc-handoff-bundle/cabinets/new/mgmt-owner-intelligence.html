@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mgmt OS · Owner intelligence (v2)</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+[data-product="management"]{--paper:#FBF7EE;--canvas:#F4ECD8;--panel:#FFF;--panel-2:#F8F2E2;--panel-deep:#EDE2C5;--ink:#14201C;--ink-3:#4A574F;--ink-4:#6B7864;--ink-5:#91987F;--line:#DAD2C0;--line-soft:#E5DDC7;--terra:#B5552B;--forest:#406853;--amber:#C68E36;--ok:#5F8B62;--warn:#C49845;--danger:#B45239;--display:"Newsreader",serif;--sans:"Inter",sans-serif;--mono:"JetBrains Mono",monospace}
+:root{--doc-bg:#14201C;--doc-bg-2:#1B2B26;--doc-bg-3:#243731;--doc-fg:#ECE0BF;--doc-fg-2:#C1B89F;--doc-fg-3:#8A8473;--doc-accent:#D4866B;--doc-line:rgba(255,255,255,0.06);--doc-line-2:rgba(255,255,255,0.10)}
+*{box-sizing:border-box}body{margin:0;background:var(--doc-bg);color:var(--doc-fg);font-family:var(--sans)}
+.ds-app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.ds-toc{border-right:1px solid var(--doc-line);padding:36px 22px;background:var(--doc-bg-2);position:sticky;top:0;height:100vh;overflow-y:auto}
+.ds-mark{display:flex;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);margin-bottom:22px;align-items:center}
+.ds-mark .glyph{width:7px;height:7px;background:var(--doc-accent);border-radius:2px}
+.ds-toc h1{margin:0 0 22px;font-weight:500;font-size:19px;color:var(--doc-fg)}
+.ds-toc-group{margin-top:22px}.ds-toc-group-title{font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);margin-bottom:10px}
+.ds-toc ul{margin:0;padding:0;list-style:none}
+.ds-toc a{display:block;padding:6px 8px;text-decoration:none;color:var(--doc-fg-2);font-size:13px;border-radius:4px}
+.ds-toc a .ix{font-family:var(--mono);font-size:10.5px;color:var(--doc-fg-3);margin-right:8px}
+.ds-toc .back{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--doc-line)}
+.ds-toc .back a{color:var(--doc-accent);font-size:12.5px}
+.ds-main{padding:56px 64px 96px;max-width:1300px}
+.cab-cover{margin-bottom:56px;padding-bottom:28px;border-bottom:1px solid var(--doc-line)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--doc-accent);display:flex;gap:12px;align-items:center;margin-bottom:18px}
+.eyebrow .glyph{width:6px;height:6px;background:var(--doc-accent);border-radius:2px}
+.cab-cover h1{margin:0;font-weight:500;font-size:44px;line-height:1.05;letter-spacing:-0.025em}
+.cab-cover h1 em{color:var(--doc-accent);font-style:italic;font-weight:400}
+.cab-cover p{max-width:720px;margin:18px 0 0;font-size:14.5px;color:var(--doc-fg-2);line-height:1.65}
+.ds-section{margin-bottom:76px}
+.ds-section-head{display:flex;gap:28px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--doc-line)}
+.ds-section-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);display:flex;gap:10px;margin-bottom:6px}
+.ds-section h2{margin:0;font-weight:500;font-size:26px;color:var(--doc-fg)}
+.ds-section p{max-width:760px;margin:8px 0 0;font-size:13.5px;color:var(--doc-fg-2);line-height:1.65}
+.ds-section p code{font-family:var(--mono);font-size:12.5px;background:var(--doc-bg-3);padding:1px 6px;border-radius:4px;color:var(--doc-accent)}
+.artboard{margin-top:20px;border:1px solid var(--doc-line);border-radius:18px;background:var(--canvas);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.4)}
+.cap{display:flex;gap:10px;margin-top:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-3)}
+.cap .pill{padding:3px 9px;border-radius:999px;border:1px solid var(--doc-line-2);color:var(--doc-accent)}
+.var-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:14px}
+.var-card{border:1px solid var(--doc-line);border-radius:14px;background:var(--canvas);overflow:hidden}
+.var-card .v-h{padding:12px 16px;background:var(--doc-bg-3);border-bottom:1px solid var(--doc-line);display:flex;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-2)}
+.var-card .v-h .num{background:var(--doc-bg);padding:2px 8px;border-radius:4px;color:var(--doc-accent)}
+.mobile-row{display:grid;grid-template-columns:360px 1fr;gap:32px;align-items:start}
+.mobile-frame{width:360px;border:1px solid var(--doc-line);border-radius:30px;overflow:hidden;background:var(--canvas)}
+.mobile-status{padding:10px 22px 6px;display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink);font-weight:600}
+.mobile-notes ol{margin:0;padding-left:20px}
+.mobile-notes li{margin-bottom:6px;font-size:13px;line-height:1.55;color:var(--doc-fg-2)}
+.mobile-notes li strong{color:var(--doc-fg)}
+.notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:18px}
+.notes-card{background:var(--doc-bg-2);border:1px solid var(--doc-line);border-radius:12px;padding:18px 20px}
+.notes-card h3{margin:0 0 12px;font-size:14px;font-weight:500;color:var(--doc-fg)}
+.notes-card dl>div{display:grid;grid-template-columns:130px 1fr;gap:14px;padding:8px 0;border-bottom:1px solid var(--doc-line);font-size:12.5px}
+.notes-card dl>div:last-child{border-bottom:0}
+.notes-card dt{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-3)}
+.notes-card dd{margin:0;color:var(--doc-fg-2);line-height:1.55}
+.notes-card dd code{font-family:var(--mono);font-size:11px;color:var(--doc-fg);background:var(--doc-bg-3);padding:1px 6px;border-radius:3px}
+
+[data-product="management"]{font-family:var(--sans);color:var(--ink)}
+[data-product] .topbar{display:flex;align-items:center;gap:16px;padding:14px 24px;background:var(--ink);color:var(--paper)}
+[data-product] .topbar .brand{font-family:var(--display);font-size:18px}
+[data-product] .topbar .brand .sub{font-family:var(--mono);font-size:9.5px;color:rgba(251,247,238,0.55);letter-spacing:0.16em;text-transform:uppercase;display:block;margin-top:1px}
+[data-product] .topbar .right{margin-left:auto;display:flex;gap:14px;align-items:center;font-family:var(--mono);font-size:11px;color:rgba(251,247,238,0.6)}
+[data-product] .topbar .me .avatar{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--terra);color:white;align-items:center;justify-content:center;font-size:11px;font-weight:600;margin-right:6px}
+[data-product] .page-h{padding:22px 28px;background:var(--canvas);border-bottom:1px solid var(--line);display:flex;gap:22px;align-items:baseline}
+[data-product] .page-h .crumb{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase}
+[data-product] .page-h h2{margin:6px 0 0;font-family:var(--display);font-size:30px;font-weight:400;color:var(--ink)}
+[data-product] .page-h h2 em{color:var(--terra);font-style:italic}
+[data-product] .page-h .sub{margin-top:4px;font-size:13.5px;color:var(--ink-3)}
+[data-product] .page-h .right{margin-left:auto;display:flex;gap:8px}
+[data-product] .btn{padding:9px 14px;border-radius:8px;font-size:13.5px;font-weight:500;border:1px solid var(--line);background:var(--panel);color:var(--ink-3);cursor:pointer}
+[data-product] .btn-primary{background:var(--terra);color:white;border-color:var(--terra)}
+[data-product] .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);padding:16px 28px;background:var(--canvas);border-bottom:1px solid var(--line)}
+[data-product] .kpi{padding:14px 18px;border-right:1px solid var(--line)}
+[data-product] .kpi:last-child{border-right:0}
+[data-product] .kpi .l{font-family:var(--mono);font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3)}
+[data-product] .kpi .v{font-family:var(--display);font-size:26px;color:var(--ink);margin-top:3px}
+[data-product] .kpi .v.warn{color:var(--warn)}
+[data-product] .kpi .v.terra{color:var(--terra)}
+[data-product] .kpi .v.ok{color:var(--ok)}
+[data-product] .kpi .ctx{font-family:var(--mono);font-size:10.5px;color:var(--ink-4);margin-top:3px}
+
+[data-product] .body-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+[data-product] .col{padding:22px 28px;border-right:1px solid var(--line)}
+[data-product] .col:last-child{border-right:0}
+[data-product] .col h3{margin:0 0 12px;font-family:var(--display);font-size:22px;font-weight:400;color:var(--ink);display:flex;align-items:baseline;gap:10px}
+[data-product] .col h3 em{color:var(--terra);font-style:italic}
+
+[data-product] .insight{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin-bottom:10px;display:grid;grid-template-columns:36px 1fr;gap:12px}
+[data-product] .insight.up{border-left:3px solid var(--ok);padding-left:13px}
+[data-product] .insight.down{border-left:3px solid var(--warn);padding-left:13px}
+[data-product] .insight.flag{border-left:3px solid var(--danger);padding-left:13px}
+[data-product] .insight .ic{width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--display);font-size:16px}
+[data-product] .insight.up .ic{background:color-mix(in oklab,var(--ok) 14%,transparent);color:var(--ok)}
+[data-product] .insight.down .ic{background:color-mix(in oklab,var(--warn) 14%,transparent);color:var(--warn)}
+[data-product] .insight.flag .ic{background:color-mix(in oklab,var(--danger) 14%,transparent);color:var(--danger)}
+[data-product] .insight .nm{font-size:13.5px;font-weight:500;color:var(--ink)}
+[data-product] .insight .body{font-size:12px;color:var(--ink-3);margin-top:3px;line-height:1.5}
+[data-product] .insight .body strong{color:var(--ink)}
+
+[data-product] .owner-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:7px;display:grid;grid-template-columns:1fr 60px 80px;gap:10px;align-items:center}
+[data-product] .owner-card.churn{border-left:3px solid var(--danger);padding-left:11px;background:color-mix(in oklab,var(--danger) 5%,var(--panel))}
+[data-product] .owner-card.attn{border-left:3px solid var(--warn);padding-left:11px;background:color-mix(in oklab,var(--warn) 5%,var(--panel))}
+[data-product] .owner-card .nm{font-size:13px;color:var(--ink);font-weight:500}
+[data-product] .owner-card .nm .meta{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-4);margin-top:1px;font-weight:400}
+[data-product] .owner-card .tier{font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:3px;letter-spacing:0.08em;text-transform:uppercase;text-align:center}
+[data-product] .owner-card .tier.a{background:var(--ink);color:var(--paper)}
+[data-product] .owner-card .tier.b{background:color-mix(in oklab,var(--terra) 18%,transparent);color:var(--terra)}
+[data-product] .owner-card .tier.c{background:var(--panel-deep);color:var(--ink-3)}
+[data-product] .owner-card .risk{font-family:var(--mono);font-size:11px;text-align:right}
+[data-product] .owner-card .risk.high{color:var(--danger)}
+[data-product] .owner-card .risk.mid{color:var(--warn)}
+[data-product] .owner-card .risk.low{color:var(--ok)}
+[data-product] .owner-card .risk .sub{display:block;font-size:9.5px;color:var(--ink-4)}
+
+[data-product] .det-h{padding:22px 28px;background:var(--canvas);border-bottom:1px solid var(--line)}
+[data-product] .det-h .crumb{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase}
+[data-product] .det-h h2{margin:6px 0 0;font-family:var(--display);font-size:28px;font-weight:400;color:var(--ink)}
+[data-product] .det-h h2 em{color:var(--danger);font-style:italic}
+[data-product] .det-h .meta{margin-top:10px;display:flex;gap:18px;font-family:var(--mono);font-size:11px;color:var(--ink-3);flex-wrap:wrap}
+[data-product] .det-h .meta strong{color:var(--ink-3)}
+[data-product] .det-body{display:grid;grid-template-columns:1fr 1fr;gap:0}
+[data-product] .det-col{padding:22px 28px;border-right:1px solid var(--line)}
+[data-product] .det-col:last-child{border-right:0}
+[data-product] .det-col h3{margin:0 0 12px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+[data-product] .det-col h3.r{margin-top:22px}
+[data-product] .kv{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+[data-product] .kv .row{display:grid;grid-template-columns:120px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px}
+[data-product] .kv .row:last-child{border-bottom:0}
+[data-product] .kv .k{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:0.10em;text-transform:uppercase}
+[data-product] .kv .v{color:var(--ink)}
+[data-product] .kv .v.danger{color:var(--danger)}
+
+[data-product] .m-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ink);color:var(--paper)}
+[data-product] .m-bar .brand{font-family:var(--display);font-size:13px}
+[data-product] .m-bar .av{margin-left:auto;width:22px;height:22px;border-radius:50%;background:var(--terra);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600}
+[data-product] .m-h{padding:12px 14px;background:var(--canvas);border-bottom:1px solid var(--line)}
+[data-product] .m-h h3{margin:0;font-family:var(--display);font-size:18px;font-weight:400;color:var(--ink)}
+[data-product] .m-h h3 em{color:var(--terra);font-style:italic}
+[data-product] .m-h .sub{margin-top:3px;font-size:11.5px;color:var(--ink-3)}
+[data-product] .m-list{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+[data-product] .m-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+[data-product] .m-card.high{border-left:3px solid var(--danger);padding-left:10px}
+[data-product] .m-card.up{border-left:3px solid var(--ok);padding-left:10px}
+[data-product] .m-card .ti{font-size:12.5px;font-weight:500;color:var(--ink)}
+[data-product] .m-card .body{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:3px;line-height:1.5}
+[data-product] .m-card .body strong{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Mgmt OS · phase 2.6</div>
+    <h1>Owner intelligence</h1>
+    <div class="back"><a href="../../design/index.html">← back to design hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Sections</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#hero"><span class="ix">01</span>Hero · insights + risk</a></li>
+        <li><a href="#variants"><span class="ix">02</span>Variants · segments</a></li>
+        <li><a href="#detail"><span class="ix">03</span>Owner drill-in</a></li>
+        <li><a href="#mobile"><span class="ix">04</span>Mobile · insight feed</a></li>
+        <li><a href="#schema"><span class="ix">05</span>Schema · agents · routes</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <section id="cover" class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Mgmt OS · phase 2.6 · Owner intelligence</span></div>
+      <h1>Owner intelligence — <em>insights · risk · segmentation</em>.</h1>
+      <p>AI-powered owner relationship surface backed by <code>src/features/owner-intelligence/</code>. Three layers: <strong style="color:var(--doc-fg)">AI-flagged insights</strong>, <strong style="color:var(--doc-fg)">retention risk per owner</strong> (tier + score), <strong style="color:var(--doc-fg)">segmentation rollup</strong>. Cross-cabinet: Owners (07) for action, Finance (06) for statement context.</p>
+    </section>
+
+    <section id="hero" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Insights feed + per-owner risk</h2>
+        </div>
+      </div>
+      <div class="artboard">
+        <div data-product="management">
+          <div class="topbar"><div class="brand">Arconique<span class="sub">mgmt · whitmore vg</span></div><div class="right"><span>14 owners</span><span class="me"><span class="avatar">EM</span>Emma W.</span></div></div>
+          <div class="page-h"><div><div class="crumb">workspace / owner intelligence</div><h2>Insights <em>· 6 active</em></h2><div class="sub">2 churn-risk · 1 upgrade · 3 info · refreshed 06:00</div></div><div class="right"><button class="btn">Run analysis</button><button class="btn btn-primary">Brief owners</button></div></div>
+          <div class="kpi-row">
+            <div class="kpi"><div class="l">owners</div><div class="v">14</div><div class="ctx">2 attention</div></div>
+            <div class="kpi"><div class="l">avg tenure</div><div class="v terra">2.4y</div><div class="ctx">0.4–6.2 range</div></div>
+            <div class="kpi"><div class="l">CSAT 90d</div><div class="v ok">4.6</div><div class="ctx">61 ratings</div></div>
+            <div class="kpi"><div class="l">churn high</div><div class="v warn">2</div><div class="ctx">action rec</div></div>
+            <div class="kpi"><div class="l">upgrade opp</div><div class="v ok">1</div><div class="ctx">Whitmore</div></div>
+          </div>
+          <div class="body-grid">
+            <div class="col">
+              <h3>Insights <em>· today</em></h3>
+              <div class="insight up"><div class="ic">↗</div><div><div class="nm">Whitmore VG · revenue +18% YoY 2 quarters</div><div class="body">Strongest performer · <strong>Premium tier eligible</strong> · brief: pricing AI gains, transparency, q3 expansion</div></div></div>
+              <div class="insight flag"><div class="ic">!</div><div><div class="nm">Kishida Holdings KK · churn HIGH (0.82)</div><div class="body">Inquired exit 2w ago · CSAT 4.5→3.8 · <strong>billing 8d unpaid</strong> · founder call this week</div></div></div>
+              <div class="insight flag"><div class="ic">!</div><div><div class="nm">Sukha Residences · churn RISING (0.61)</div><div class="body">Engagement −40% · 11d no signin · 3 unresolved tickets · energy spike on S-U-01</div></div></div>
+              <div class="insight down"><div class="ic">↘</div><div><div class="nm">Tan Family Trust · revenue −12% last quarter</div><div class="body">2 villas longer vacancy gaps · pricing over-priced for SG · rate plan review</div></div></div>
+              <div class="insight up"><div class="ic">★</div><div><div class="nm">Coral Cay · perfect 12mo CSAT 5.0</div><div class="body">Never complained · <strong>referral opportunity</strong> · request 2-3 intros next QBR</div></div></div>
+            </div>
+            <div class="col">
+              <h3>Retention risk <em>· per owner</em></h3>
+              <div class="owner-card churn"><div class="nm">Kishida Holdings KK<span class="meta">JP · 2 villas · 1.2y</span></div><div><span class="tier b">B</span></div><div class="risk high">0.82<span class="sub">HIGH</span></div></div>
+              <div class="owner-card attn"><div class="nm">Sukha Residences<span class="meta">ID · 6 villas · 3.4y</span></div><div><span class="tier a">A</span></div><div class="risk mid">0.61<span class="sub">rising</span></div></div>
+              <div class="owner-card"><div class="nm">Whitmore Villas Group<span class="meta">SG · 22 villas · 6.2y</span></div><div><span class="tier a">A</span></div><div class="risk low">0.08<span class="sub">low</span></div></div>
+              <div class="owner-card"><div class="nm">Tan Family Trust<span class="meta">SG · 8 villas · 4.1y</span></div><div><span class="tier a">A</span></div><div class="risk low">0.18<span class="sub">low</span></div></div>
+              <div class="owner-card"><div class="nm">Coral Cay Holdings<span class="meta">SG · 4 villas · 2.8y</span></div><div><span class="tier b">B</span></div><div class="risk low">0.04<span class="sub">low</span></div></div>
+              <div class="owner-card"><div class="nm">Bali Boutique Stays<span class="meta">ID · 4 villas · 1.8y</span></div><div><span class="tier b">B</span></div><div class="risk low">0.22<span class="sub">low</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cap"><span class="pill">desktop · production</span><span>insight types up/down/flag/star · model v3</span></div>
+    </section>
+
+    <section id="variants" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Variants</span></div>
+          <h2>Segmentation views</h2>
+          <p><strong style="color:var(--doc-fg)">A</strong> = insights+risk (default). <strong style="color:var(--doc-fg)">B</strong> = tier matrix (A/B/C × tenure). <strong style="color:var(--doc-fg)">C</strong> = churn cohort (high-risk filter + LTV projection).</p>
+        </div>
+      </div>
+      <div class="var-grid">
+        <div class="var-card">
+          <div class="v-h"><span class="num">B</span><span class="name">Tier matrix</span></div>
+          <div data-product="management">
+            <div style="padding:18px 20px;">
+              <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;"><span></span><span>long-term ≥3y</span><span>new &lt;3y</span></div>
+              <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;margin-bottom:6px;"><span style="font-family:var(--display);font-size:14px;color:var(--ink);padding-top:8px;">A</span><div style="padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;"><strong style="color:var(--ink);">3 owners</strong> · $58k MRR · 68%</div><div style="padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;"><strong style="color:var(--ink);">1 owner</strong> · $8.4k · 10%</div></div>
+              <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;margin-bottom:6px;"><span style="font-family:var(--display);font-size:14px;color:var(--ink);padding-top:8px;">B</span><div style="padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;"><strong style="color:var(--ink);">4 owners</strong> · $12.8k · 15%</div><div style="padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;"><strong style="color:var(--ink);">4 owners</strong> · $5.2k · 6%</div></div>
+              <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;"><span style="font-family:var(--display);font-size:14px;color:var(--ink);padding-top:8px;">C</span><div style="padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--ink-3);font-size:12px;">—</div><div style="padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;"><strong style="color:var(--ink);">2 owners</strong> · $1.1k · 1%</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="var-card">
+          <div class="v-h"><span class="num">C</span><span class="name">Churn cohort</span></div>
+          <div data-product="management">
+            <div style="padding:18px 20px;">
+              <div style="font-family:var(--display);font-size:14px;color:var(--ink);margin-bottom:8px;">High-risk · 2 owners · $14.8k MRR at risk</div>
+              <div style="background:var(--panel);border-left:3px solid var(--danger);padding:10px 12px;border-radius:6px;margin-bottom:6px;"><strong style="color:var(--ink);">Kishida</strong> · 0.82 · $8.4k MRR · <span style="color:var(--danger);">90d LTV $25k</span></div>
+              <div style="background:var(--panel);border-left:3px solid var(--warn);padding:10px 12px;border-radius:6px;margin-bottom:14px;"><strong style="color:var(--ink);">Sukha</strong> · 0.61 · $6.4k MRR · <span style="color:var(--warn);">180d LTV $42k</span></div>
+              <div style="font-family:var(--mono);font-size:11px;color:var(--ink-3);line-height:1.6;">Total at-risk LTV · <strong style="color:var(--ink);">$67k over 6mo</strong><br>Save 1 = ROI vs onboarding 2 new</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cap"><span class="pill">desktop · variants</span><span>A default · B tier matrix · C churn cohort with LTV</span></div>
+    </section>
+
+    <section id="detail" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Detail</span></div>
+          <h2>Owner drill-in · single owner investigation</h2>
+          <p>Click any owner → <code>/owner-intel/[ownerId]</code>. Score breakdown, signals, mitigation actions.</p>
+        </div>
+      </div>
+      <div class="artboard">
+        <div data-product="management">
+          <div class="topbar"><div class="brand">Arconique<span class="sub">mgmt · owner intel</span></div><div class="right"><span class="me"><span class="avatar">EM</span>Emma W.</span></div></div>
+          <div class="det-h"><div class="crumb">owner intel / kishida holdings KK</div><h2>Kishida Holdings KK <em>· churn 0.82 HIGH</em></h2><div class="meta"><span>JP · 2 villas · 1.2y</span><span>MRR <strong>$8.4k</strong></span><span>last signin <strong>14d</strong></span><span>CSAT <strong>3.8 ↓</strong></span></div></div>
+          <div class="det-body">
+            <div class="det-col">
+              <h3>Score breakdown</h3>
+              <div class="kv">
+                <div class="row"><span class="k">engagement</span><span class="v danger">−40% (last 60d)</span></div>
+                <div class="row"><span class="k">csat trend</span><span class="v danger">4.5 → 3.8</span></div>
+                <div class="row"><span class="k">billing</span><span class="v danger">8d unpaid</span></div>
+                <div class="row"><span class="k">support tickets</span><span class="v">4 unresolved</span></div>
+                <div class="row"><span class="k">exit inquiry</span><span class="v danger">yes · 2w ago</span></div>
+                <div class="row"><span class="k">tenure</span><span class="v">1.2y · below avg</span></div>
+              </div>
+              <h3 class="r">Signals timeline</h3>
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--ink-3);line-height:1.6;">
+                <strong style="color:var(--ink);">2w ago</strong> · portfolio exit inquiry via inbox<br>
+                <strong style="color:var(--ink);">3w ago</strong> · CSAT dropped 4.5 → 3.8<br>
+                <strong style="color:var(--ink);">5w ago</strong> · stopped opening monthly statements<br>
+                <strong style="color:var(--ink);">8w ago</strong> · 2 support tickets opened, none resolved
+              </div>
+            </div>
+            <div class="det-col">
+              <h3>Save plan</h3>
+              <div style="background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:8px;padding:12px 14px;font-size:12.5px;color:var(--ink-3);line-height:1.55;">
+                <strong style="color:var(--ink);">1.</strong> Founder call this week (Emma) · acknowledge concerns<br>
+                <strong style="color:var(--ink);">2.</strong> Statement walkthrough · transparency depth<br>
+                <strong style="color:var(--ink);">3.</strong> Resolve 4 open tickets · 48h SLA<br>
+                <strong style="color:var(--ink);">4.</strong> Offer 1-month service comp ($840)<br>
+                <strong style="color:var(--ink);">5.</strong> Q3 review meeting with custom pricing analysis
+              </div>
+              <h3 class="r">Actions</h3>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="btn btn-primary" style="width:100%;justify-content:center;">Schedule founder call</button>
+                <button class="btn" style="width:100%;justify-content:center;">Open support tickets</button>
+                <button class="btn" style="width:100%;justify-content:center;">Offer service comp</button>
+                <button class="btn" style="width:100%;justify-content:center;">Mark intervention started</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cap"><span class="pill">desktop · detail</span><span>score breakdown · signals timeline · 5-step save plan · 4 actions</span></div>
+    </section>
+
+    <section id="mobile" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Mobile</span></div>
+          <h2>Phone · insight feed</h2>
+        </div>
+      </div>
+      <div class="mobile-row">
+        <div class="mobile-frame">
+          <div class="mobile-status"><span>08:42</span><span>5G · 88%</span></div>
+          <div data-product="management">
+            <div class="m-bar"><span class="brand">Arconique</span><span class="av">EM</span></div>
+            <div class="m-h"><h3>Owner intel <em>· 6 insights</em></h3><div class="sub">2 churn · 1 upgrade · 3 info</div></div>
+            <div class="m-list">
+              <div class="m-card high"><div class="ti">Kishida · churn 0.82</div><div class="body"><strong>HIGH</strong> · exit inquiry · billing unpaid · <strong>schedule founder call</strong></div></div>
+              <div class="m-card high"><div class="ti">Sukha · churn rising 0.61</div><div class="body">Engagement −40% · 3 tickets · energy spike</div></div>
+              <div class="m-card up"><div class="ti">Whitmore +18% YoY</div><div class="body">Premium tier eligible</div></div>
+              <div class="m-card up"><div class="ti">Coral Cay · CSAT 5.0</div><div class="body">Referral opportunity · ask at next QBR</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-notes">
+          <h4 style="font-size:14px;font-weight:500;color:var(--doc-fg);margin:0 0 6px;">Mobile principles</h4>
+          <ol>
+            <li><strong>Insight feed first</strong> · urgency-sorted.</li>
+            <li><strong>Tap → owner drill-in</strong> with save plan.</li>
+            <li><strong>1-tap "schedule call"</strong> on high-risk.</li>
+            <li><strong>Push at 06:00</strong> · new insights.</li>
+            <li><strong>Read-only segmentation</strong> on phone.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="cap"><span class="pill">mobile · feed</span><span>insight feed · 1-tap save action · 06:00 push</span></div>
+    </section>
+
+    <section id="schema" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">05</span><span>—</span><span>Implementation</span></div>
+          <h2>Schema · agents · routes</h2>
+          <p>Backed by <code>src/features/owner-intelligence/</code> · new tables: <code>owner_insights</code>, <code>owner_risk_scores</code>, <code>owner_save_plans</code>.</p>
+        </div>
+      </div>
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Tables · new for 2.6</h3>
+          <dl>
+            <div><dt>owner_insights</dt><dd><code>id · owner_id · type (up/down/flag/star) · title · body · confidence · generated_at · dismissed_at · acted_on_at</code></dd></div>
+            <div><dt>owner_risk_scores</dt><dd><code>owner_id · score · level (low/mid/high) · model_version · signals_jsonb · computed_at</code></dd></div>
+            <div><dt>owner_save_plans</dt><dd><code>owner_id · started_at · steps_jsonb · current_step · outcome · outcome_at</code></dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Existing reads</h3>
+          <dl>
+            <div><dt>owners</dt><dd>cabinet 07 · tier from derive-tier.ts</dd></div>
+            <div><dt>owner_statements</dt><dd>cabinet 06 · open rate signal</dd></div>
+            <div><dt>guest_ai_concierge</dt><dd>CSAT signals</dd></div>
+            <div><dt>support_tickets</dt><dd>unresolved count</dd></div>
+            <div><dt>billing</dt><dd>payment status</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Routes</h3>
+          <dl>
+            <div><dt>/owner-intel</dt><dd>hero · insights + risk</dd></div>
+            <div><dt>/owner-intel/tier-matrix</dt><dd>variant B</dd></div>
+            <div><dt>/owner-intel/cohort</dt><dd>variant C · churn cohort</dd></div>
+            <div><dt>/owner-intel/[ownerId]</dt><dd>detail · drill-in + save plan</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Agents</h3>
+          <dl>
+            <div><dt>owner-intelligence</dt><dd>existing folder · generates insights · computes risk scores · model v3</dd></div>
+            <div><dt>save-plan-recommender</dt><dd>history-based save plan suggestions for high-risk owners</dd></div>
+            <div><dt>brief-composer</dt><dd>composes owner-facing brief from insights for quarterly review meetings</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+</body>
+</html>

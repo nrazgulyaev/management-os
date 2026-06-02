@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase 2.5 · Platform super-admin · hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="super-admin-tokens">
+/* ============================================================
+   Arconique Platform · Super-admin tokens (Phase 2.5)
+   
+   Palette intent: HIGH-TRUST · NEUTRAL · INK-ON-PAPER
+   Differentiation from product cabinets:
+     - Mgmt/Owner = cream + terra (warm hospitality)
+     - Dev        = sand + amber  (engineering grade)
+     - Super-admin = paper + steel (operator trust)
+   
+   This file is inlined per cabinet (the preview-server quirk).
+   In repo: src/styles/tokens-super-admin.css.
+   ============================================================ */
+
+[data-product="super-admin"] {
+  /* Surfaces — cooler, less yellow than Mgmt cream */
+  --paper:        #F8F9FB;
+  --canvas:       #EEF1F5;
+  --panel:        #FFFFFF;
+  --panel-2:      #F2F4F7;
+  --panel-deep:   #E5E9EE;
+
+  /* Ink — near-black, slightly cool */
+  --ink:          #0B0F14;
+  --ink-2:        #1F2937;
+  --ink-3:        #4B5563;
+  --ink-4:        #6B7280;
+  --ink-5:        #9CA3AF;
+
+  /* Lines */
+  --line:         #D6DBE2;
+  --line-soft:    #E5E8ED;
+  --line-strong:  #B8C0CC;
+
+  /* Accent — steel-indigo. Used sparingly; super-admin is mostly monochrome */
+  --accent:       #3F4F8F;
+  --accent-soft:  #B8C2DF;
+  --accent-deep:  #2A3868;
+  --on-accent:    #FFFFFF;
+
+  /* Inverse — for header rails, primary buttons */
+  --inverted-bg:  #0B0F14;
+  --inverted-fg:  #F8F9FB;
+  --inverted-bg-2: #1F2937;
+
+  /* Semantic — cooler tones than product cabinets */
+  --ok:           #2D7A3E;
+  --warn:         #B47611;
+  --danger:       #B33A2C;
+  --info:         #2D5680;
+
+  /* High-trust callouts */
+  --trust:        #2A3868;        /* identity/auth/audit highlights */
+  --caution:      #944B1F;        /* impersonate, suspend, billing */
+  --caution-soft: #F4E1D0;
+
+  --r-pill:    999px;
+  --r-card:    10px;
+  --r-card-lg: 14px;
+  --r-hero:    18px;
+  --r-sm:      5px;
+
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font:    "Inter", system-ui, sans-serif;
+  --mono-font:    "JetBrains Mono", ui-monospace, monospace;
+
+  --shadow-card: 0 1px 2px rgba(11,15,20,0.05), 0 1px 1px rgba(11,15,20,0.03);
+  --shadow-pop:  0 12px 32px rgba(11,15,20,0.12), 0 2px 6px rgba(11,15,20,0.06);
+}
+
+/* Documentation chrome — dark canvas behind cabinet artboards */
+:root {
+  --doc-bg:        #0B0F14;
+  --doc-bg-2:      #131822;
+  --doc-bg-3:      #1B2330;
+  --doc-line:      rgba(255,255,255,0.06);
+  --doc-line-2:    rgba(255,255,255,0.10);
+  --doc-fg:        #E6E8EC;
+  --doc-fg-2:      #B4B9C2;
+  --doc-fg-3:      #7E8590;
+  --doc-accent:    #B8C2DF;
+  --doc-mono:      "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans:      "Inter", system-ui, sans-serif;
+}
+</style>
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--doc-bg);
+  color: var(--doc-fg);
+  font-family: var(--doc-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.page { min-height: 100vh; padding: 64px 48px 96px; }
+.page-head { max-width: 1400px; margin: 0 auto 64px; }
+.eyebrow {
+  font-family: var(--doc-mono); font-size: 11px;
+  letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--doc-accent);
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 22px;
+}
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+
+h1.title {
+  margin: 0;
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 48px;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  color: var(--doc-fg);
+  max-width: 980px;
+}
+h1.title em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+
+.lede {
+  max-width: 760px;
+  margin: 22px 0 0;
+  font-size: 15.5px;
+  color: var(--doc-fg-2);
+  line-height: 1.65;
+}
+
+.meta-row {
+  display: flex; gap: 32px; flex-wrap: wrap;
+  margin-top: 36px; padding-top: 24px;
+  border-top: 1px solid var(--doc-line);
+  font-size: 13px;
+}
+.meta-row > div { display: flex; flex-direction: column; gap: 4px; }
+.meta-row .k {
+  font-family: var(--doc-mono);
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.meta-row .v { color: var(--doc-fg); }
+.meta-row a { color: var(--doc-accent); text-decoration: none; }
+
+/* Sections */
+.sect { max-width: 1400px; margin: 0 auto 64px; }
+.sect-h {
+  display: flex; align-items: baseline; gap: 18px;
+  margin-bottom: 22px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--doc-line);
+}
+.sect-h .n {
+  font-family: var(--doc-mono); font-size: 11px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+  padding: 5px 10px; border: 1px solid var(--doc-line-2); border-radius: 4px;
+}
+.sect-h h2 {
+  margin: 0;
+  font-family: var(--doc-sans);
+  font-size: 26px; font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--doc-fg);
+}
+.sect-h .sub { margin-left: auto; font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg-3); }
+
+/* Cabinet card grid */
+.cab-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.cab-card {
+  background: var(--doc-bg-2);
+  border: 1px solid var(--doc-line);
+  border-radius: 14px;
+  padding: 22px 22px 18px;
+  text-decoration: none;
+  color: inherit;
+  display: flex; flex-direction: column;
+  min-height: 240px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.cab-card:hover {
+  border-color: var(--doc-line-2);
+  transform: translateY(-1px);
+}
+.cab-card.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.cab-card .num {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--doc-fg-3);
+  margin-bottom: 12px;
+}
+.cab-card h3 {
+  margin: 0;
+  font-family: var(--doc-sans);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--doc-fg);
+  line-height: 1.15;
+}
+.cab-card .desc {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  color: var(--doc-fg-2);
+  line-height: 1.55;
+  flex: 1;
+}
+.cab-card .meta {
+  margin-top: 16px; padding-top: 14px;
+  border-top: 1px solid var(--doc-line);
+  display: flex; gap: 12px; align-items: center;
+}
+.cab-card .meta .pill {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--doc-line-2);
+  color: var(--doc-fg-3);
+}
+.cab-card .meta .pill.ready { color: var(--doc-accent); border-color: rgba(184,194,223,0.4); }
+.cab-card .meta .pill.draft { color: #D9A859; border-color: rgba(217,168,89,0.4); }
+.cab-card .meta .pill.todo { color: var(--doc-fg-3); }
+.cab-card .meta .arrow { margin-left: auto; color: var(--doc-accent); font-size: 18px; }
+
+/* Palette preview */
+.palette-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 10px;
+  padding: 18px;
+  background: var(--doc-bg-2);
+  border: 1px solid var(--doc-line);
+  border-radius: 12px;
+}
+.swatch {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.swatch .chip {
+  width: 100%; aspect-ratio: 2 / 1;
+  border-radius: 6px;
+  border: 1px solid var(--doc-line);
+}
+.swatch .l {
+  font-family: var(--doc-mono);
+  font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.swatch .v {
+  font-family: var(--doc-mono); font-size: 10.5px; color: var(--doc-fg);
+}
+
+/* Sequence list */
+.seq-list { display: flex; flex-direction: column; gap: 4px; }
+.seq-row {
+  display: grid; grid-template-columns: 40px 1fr auto auto;
+  gap: 18px; align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--doc-line);
+  font-size: 14px;
+}
+.seq-row .n { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg-3); }
+.seq-row .nm { color: var(--doc-fg); }
+.seq-row .est { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg-3); }
+.seq-row .st { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); color: var(--doc-fg-3); }
+.seq-row .st.ready { color: var(--doc-accent); border-color: rgba(184,194,223,0.4); }
+.seq-row .st.draft { color: #D9A859; border-color: rgba(217,168,89,0.4); }
+</style>
+</head>
+<body data-screen-label="Phase 2.5 hub">
+
+<div class="page" data-product="super-admin">
+
+  <header class="page-head">
+    <div class="eyebrow"><span class="glyph"></span><span>Arconique · Phase 2.5 · Platform super-admin</span></div>
+    <h1 class="title">The control room — <em>operator's view of every org</em>.</h1>
+    <p class="lede">Super-admin is for the Sales team onboarding new organisations and the tech lead operating the platform. Nine cabinets, ink-on-paper palette, monochrome with steel-indigo accent — visually distinct from Mgmt (cream/terra) and Dev (sand/amber) so an operator never confuses "I'm acting AS an org" with "I'm acting ON an org". <strong style="color:var(--doc-fg);">Phase 2.5 is complete — 9 desktop cabinets + mobile pass with 18 artboards.</strong></p>
+    <div class="meta-row">
+      <div><span class="k">Phase</span><span class="v">2.5 · platform.arconique.com</span></div>
+      <div><span class="k">Audience</span><span class="v">Sales (onboarding + demo) · Tech lead (ops)</span></div>
+      <div><span class="k">Cabinets</span><span class="v">9 · ink-on-paper · steel accent</span></div>
+      <div><span class="k">Mobile</span><span class="v">Complete · cabinet 10 · 18 artboards</span></div>
+      <div><span class="k">Format</span><span class="v">1 HTML per cabinet · same as Phase 2.4</span></div>
+    </div>
+  </header>
+
+  <!-- Palette preview -->
+  <section class="sect">
+    <div class="sect-h"><span class="n">tokens</span><h2>Palette · ink-on-paper, steel accent</h2><span class="sub">cabinets/super-admin/tokens.css</span></div>
+    <div class="palette-row">
+      <div class="swatch"><div class="chip" style="background:#F8F9FB;"></div><div class="l">paper</div><div class="v">#F8F9FB</div></div>
+      <div class="swatch"><div class="chip" style="background:#EEF1F5;"></div><div class="l">canvas</div><div class="v">#EEF1F5</div></div>
+      <div class="swatch"><div class="chip" style="background:#0B0F14;border-color:transparent;"></div><div class="l">ink</div><div class="v">#0B0F14</div></div>
+      <div class="swatch"><div class="chip" style="background:#4B5563;border-color:transparent;"></div><div class="l">ink-3</div><div class="v">#4B5563</div></div>
+      <div class="swatch"><div class="chip" style="background:#3F4F8F;border-color:transparent;"></div><div class="l">accent</div><div class="v">#3F4F8F</div></div>
+      <div class="swatch"><div class="chip" style="background:#944B1F;border-color:transparent;"></div><div class="l">caution</div><div class="v">#944B1F</div></div>
+      <div class="swatch"><div class="chip" style="background:#2D7A3E;border-color:transparent;"></div><div class="l">ok</div><div class="v">#2D7A3E</div></div>
+      <div class="swatch"><div class="chip" style="background:#B33A2C;border-color:transparent;"></div><div class="l">danger</div><div class="v">#B33A2C</div></div>
+    </div>
+    <p style="margin:14px 0 0;font-size:13.5px;color:var(--doc-fg-2);line-height:1.6;max-width:880px;">
+      <strong style="color:var(--doc-fg);">Caution colour</strong> (warm rust) is reserved for high-stakes actions: <em>impersonate</em>, <em>suspend organisation</em>, <em>refund</em>, <em>force-cancel subscription</em>. It's the only warm hue in the entire palette — eyes go straight to it. <strong style="color:var(--doc-fg);">Steel-indigo accent</strong> is for trust signals: identity badges, audit-log timestamps, primary CTAs. Everything else stays in monochrome ink.
+    </p>
+  </section>
+
+  <!-- Cabinet grid -->
+  <section class="sect">
+    <div class="sect-h"><span class="n">cabinets</span><h2>Nine cabinets + mobile</h2><span class="sub">10 ready · phase complete</span></div>
+    <div class="cab-grid">
+
+      <a class="cab-card" href="01-organizations.html">
+        <div class="num">01 · core</div>
+        <h3>Organizations</h3>
+        <p class="desc">List + detail of every org on the platform. Onboard, suspend/reactivate, impersonate-as. The screen Sales lives on.</p>
+        <div class="meta"><span class="pill ready">desktop ready</span><span class="arrow">→</span></div>
+      </a>
+
+      <a class="cab-card" href="02-users.html">
+        <div class="num">02 · core</div>
+        <h3>Users</h3>
+        <p class="desc">Cross-org user search. Reset password, reset MFA, audit sign-ins, see all orgs a user belongs to.</p>
+        <div class="meta"><span class="pill ready">desktop ready</span><span class="arrow">→</span></div>
+      </a>
+
+      <a class="cab-card" href="03-plans.html">
+        <div class="num">03 · monetisation</div>
+        <h3>Plans &amp; pricing</h3>
+        <p class="desc">Define tariffs, limits, trial windows. Roll out new plans to specific orgs or globally.</p>
+        <div class="meta"><span class="pill ready">desktop ready</span><span class="arrow">→</span></div>
+      </a>
+
+      <a class="cab-card" href="04-billing.html">
+        <div class="num">04 · monetisation</div>
+        <h3>Billing &amp; invoices</h3>
+        <p class="desc">All invoices across all orgs. Failed-payments triage queue. Refund / credit flow. Editable dunning policy.</p>
+        <div class="meta"><span class="pill ready">desktop ready</span><span class="arrow">→</span></div>
+      </a>
+
+      <a class="cab-card" href="05-feature-flags.html">
+        <div class="num">05 · rollout</div>
+        <h3>Feature flags</h3>
+        <p class="desc">Five-stage flags with per-org overrides. Rollout matrix (orgs × flags), schedule, kill-switch.</p>
+        <div class="meta"><span class="pill ready">desktop ready</span><span class="arrow">→</span></div>
+      </a>
+
+      <a class="cab-card" href="06-support-inbox.html">
+        <div class="num">06 · ops</div>
+        <h3>Support inbox</h3>
+        <p class="desc">3-pane workspace — ticket list, thread, AI-suggested replies with retrieved context. Triage policy + tier-aware SLA.</p>
+        <div class="meta"><span class="pill ready">desktop ready</span><span class="arrow">→</span></div>
+      </a>
+
+      <a class="cab-card" href="07-audit-log.html">
+        <div class="num">07 · ops</div>
+        <h3>Audit log</h3>
+        <p class="desc">Append-only cross-org timeline of every privileged action. Facet-filtered forensics + diff view per action.</p>
+        <div class="meta"><span class="pill ready">desktop ready</span><span class="arrow">→</span></div>
+      </a>
+
+      <a class="cab-card" href="08-system-health.html">
+        <div class="num">08 · infra</div>
+        <h3>System health</h3>
+        <p class="desc">Services grid with live sparklines, unified job-queue feed, channel-sync error panel. The 09:00 dashboard.</p>
+        <div class="meta"><span class="pill ready">desktop ready</span><span class="arrow">→</span></div>
+      </a>
+
+      <a class="cab-card" href="09-ai-overview.html">
+        <div class="num">09 · infra</div>
+        <h3>AI agent overview</h3>
+        <p class="desc">28 agents · spend index, per-org spend matrix, agent detail with model picker + throttle + kill.</p>
+        <div class="meta"><span class="pill ready">desktop ready</span><span class="arrow">→</span></div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- Mobile pass card -->
+  <section class="sect">
+    <div class="sect-h"><span class="n">mobile</span><h2>Mobile pass</h2><span class="sub">18 artboards · all 9 cabinets</span></div>
+    <div class="cab-grid" style="grid-template-columns: 1fr;">
+      <a class="cab-card" href="10-mobile.html" style="min-height: auto; flex-direction: row; align-items: center; gap: 22px;">
+        <div style="flex-shrink: 0;">
+          <div class="num">10 · mobile pass</div>
+          <h3 style="margin-top: 6px;">The phone version of the control room</h3>
+        </div>
+        <p class="desc" style="margin: 0; flex: 1; border: 0; padding: 0;">18 mobile artboards across all 9 cabinets. Focused screens for what operators actually do away from the desk — status overview, triage queues, support replies, kill-switches, audit skim. Heavy admin (plan editor, dunning policy, flag matrix) stays desktop-only.</p>
+        <div class="meta" style="border: 0; padding: 0; margin: 0;"><span class="pill ready">ready</span><span class="arrow">→</span></div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- Sequence -->
+  <section class="sect">
+    <div class="sect-h"><span class="n">sequence</span><h2>Delivery order</h2></div>
+    <div class="seq-list">
+      <div class="seq-row"><span class="n">01</span><span class="nm">Organizations · list + detail + impersonate + suspend</span><span class="est">~1 session</span><span class="st ready">ready</span></div>
+      <div class="seq-row"><span class="n">02</span><span class="nm">Users · cross-org search + reset flows</span><span class="est">~1 session</span><span class="st ready">ready</span></div>
+      <div class="seq-row"><span class="n">03</span><span class="nm">Plans &amp; pricing · plan editor + assignment</span><span class="est">~1 session</span><span class="st ready">ready</span></div>
+      <div class="seq-row"><span class="n">04</span><span class="nm">Billing &amp; invoices · failed-payments triage</span><span class="est">~1 session</span><span class="st ready">ready</span></div>
+      <div class="seq-row"><span class="n">05</span><span class="nm">Feature flags · rollout matrix</span><span class="est">~1 session</span><span class="st ready">ready</span></div>
+      <div class="seq-row"><span class="n">06</span><span class="nm">Support inbox · ticket triage + AI replies</span><span class="est">~1 session</span><span class="st ready">ready</span></div>
+      <div class="seq-row"><span class="n">07</span><span class="nm">Audit log · cross-org timeline</span><span class="est">~1 session</span><span class="st ready">ready</span></div>
+      <div class="seq-row"><span class="n">08</span><span class="nm">System health · job queue + agent runs + sync errors</span><span class="est">~1 session</span><span class="st ready">ready</span></div>
+      <div class="seq-row"><span class="n">09</span><span class="nm">AI agent overview · per-org spend + throttling</span><span class="est">~1 session</span><span class="st ready">ready</span></div>
+      <div class="seq-row"><span class="n">10</span><span class="nm">Mobile pass · 18 artboards across all 9 cabinets</span><span class="est">~1 session</span><span class="st ready">ready</span></div>
+    </div>
+  </section>
+
+  <!-- Token propagation propagation script -->
+  <script>
+    // Carry preview-token onto internal links so hub-to-cabinet navigation
+    // doesn't 401. Same pattern we use elsewhere.
+    (function () {
+      function isInternal(href) {
+        if (!href) return false;
+        if (/^(https?:|mailto:|tel:|#)/i.test(href)) return false;
+        return true;
+      }
+      document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href]');
+        if (!a) return;
+        if (a.target && a.target !== '' && a.target !== '_self') return;
+        var href = a.getAttribute('href');
+        if (!isInternal(href)) return;
+        var search = window.location.search;
+        if (!search) return;
+        if (href.indexOf('?') !== -1) return;
+        var hashIdx = href.indexOf('#');
+        var base = hashIdx === -1 ? href : href.slice(0, hashIdx);
+        var hash = hashIdx === -1 ? '' : href.slice(hashIdx);
+        a.setAttribute('href', base + search + hash);
+      }, true);
+    })();
+  </script>
+
+</div>
+</body>
+</html>

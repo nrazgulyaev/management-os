@@ -10,6 +10,7 @@ import {
   generateAllPendingStatements,
   generateStatementForOwnerVilla,
 } from "@/features/finance/statement-generation";
+import { AUTO_ACK_DAYS } from "@/features/owner-statements/state-machine";
 
 /**
  * STATEMENT-1 — Statement workflow server actions.
@@ -128,16 +129,29 @@ export async function markStatementSent(
     emailReason = "no_api_key";
   }
 
+  // First send arms the owner lifecycle (FC-OWNER-STATEMENTS §1, first row):
+  // the owner view unlocks at `pending` and the 14d auto-ack timer starts.
+  // A resend must NOT reset an owner who already viewed/acknowledged/disputed,
+  // so we only arm when `sentAt` was null.
+  const now = new Date();
+  const firstSend = statement.sentAt == null;
   await db
     .update(ownerStatements)
     .set({
       status: "sent",
-      sentAt: new Date(),
+      sentAt: now,
       sentToEmail,
-      updatedAt: new Date(),
+      updatedAt: now,
+      ...(firstSend
+        ? {
+            ownerState: "pending",
+            autoAckAt: new Date(now.getTime() + AUTO_ACK_DAYS * 86_400_000),
+          }
+        : {}),
     })
     .where(eq(ownerStatements.id, statementId));
   revalidatePath("/dashboard/finance");
+  revalidatePath("/owner/statements");
   return { ok: true, emailReason };
 }
 

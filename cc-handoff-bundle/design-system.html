@@ -1,0 +1,3761 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arconique Design System · Phase 2.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+
+/* ===== ds/tokens.css ===== */
+/* ============================================================
+   Arconique Design System — tokens
+   Layer B (product-scoped). Layer A legacy is being deprecated.
+   ============================================================ */
+
+/* Management OS — warm hospitality */
+[data-product="management"],
+[data-product="owner"] {
+  /* Surfaces */
+  --cream:        #F4EFE6;
+  --cream-deep:   #ECE5D5;
+  --cream-warm:   #FAF7F1;
+  --paper:        #FFFCF7;
+
+  /* Ink */
+  --ink:          #14201C;
+  --ink-2:        #2A3934;
+  --ink-3:        #4A5A55;
+  --ink-4:        #7E8A85;
+
+  /* Brand */
+  --forest:       #1F3A33;
+  --forest-deep:  #122621;
+  --forest-fade:  #2E4F47;
+  --terra:        #C4583C;
+  --terra-soft:   #E48A6E;
+  --gold:         #BC9A5C;
+  --gold-soft:    #DCC691;
+  --sage:         #88A89A;
+
+  /* Lines */
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --line-strong:  #C2B89E;
+
+  /* Semantic */
+  --ok:           #4F7A5D;
+  --warn:         #C58A2E;
+  --danger:       #B14132;
+  --info:         #3D5A7A;
+
+  /* Accent pastels (bento cards, status pills) */
+  --mint:         #D8E8D6;
+  --mint-deep:    #B6D3B2;
+  --peach:        #F6D9CB;
+  --peach-deep:   #EDB89F;
+  --butter:       #F5E9B8;
+  --butter-deep:  #E8D77E;
+  --sky:          #D4E2EC;
+  --sky-deep:     #A8C1D4;
+
+  /* Type */
+  --display-font: 'Newsreader', Georgia, 'Iowan Old Style', serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-card: 18px;
+  --r-card-lg: 22px;
+  --r-hero: 28px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 12px 30px -18px rgba(20,32,28,0.18);
+  --shadow-soft:  0 18px 40px -24px rgba(20,32,28,0.22);
+  --shadow-pop:   0 24px 56px -28px rgba(20,32,28,0.28),
+                  0 2px 6px rgba(20,32,28,0.06);
+
+  /* Accent role (used by .btn-primary semantics) */
+  --accent:           var(--terra);
+  --accent-deep:      #A44627;
+  --accent-soft:      var(--terra-soft);
+  --on-accent:        var(--cream-warm);
+  --inverted-bg:      var(--forest);
+  --inverted-bg-deep: var(--forest-deep);
+  --inverted-fg:      var(--cream-warm);
+}
+
+/* Owner Portal — same palette, slightly calmer */
+[data-product="owner"] {
+  /* Owner is for non-technical users, used 2–4× per month.
+     Inherits Mgmt palette. The differentiation is density/sizing —
+     applied at the component level, not via different tokens. */
+}
+
+/* Development OS — engineering grade */
+[data-product="development"] {
+  /* Surfaces */
+  --bg:           #F1ECE0;
+  --bg-2:         #F8F4EA;
+  --bg-3:         #FFFCF4;
+  --panel:        #FFFFFF;
+
+  /* Compatibility aliases (cards/topbars look up --paper/--cream too) */
+  --paper:        var(--panel);
+  --cream:        var(--bg);
+  --cream-warm:   var(--bg-2);
+  --cream-deep:   var(--bg-2);
+
+  /* Lines */
+  --line:         #E5DECC;
+  --line-2:       #D8CFB7;
+  --line-3:       #BAAF92;
+  --line-soft:    #ECE6D5;
+  --line-strong:  var(--line-3);
+
+  /* Ink */
+  --concrete:     #2A2A26;
+  --concrete-2:   #4A4A42;
+  --concrete-3:   #6E6E64;
+  --ink:          #14130E;
+  --ink-2:        #3D3B33;
+  --ink-3:        #6E6B5E;
+  --ink-4:        #95917F;
+  --carbon:       #14130E;
+
+  /* Brand */
+  --amber:        #FF6B35;
+  --amber-soft:   #FFB088;
+  --amber-deep:   #D8541F;
+  --steel:        #3D5A7A;
+  --steel-soft:   #7E9DBF;
+  --lime:         #C9DC4A;
+
+  /* Semantic */
+  --ok:           #4F8A5D;
+  --warn:         #C58A2E;
+  --danger:       #C2474E;
+  --info:         var(--steel);
+
+  /* Pastels (status/event tags) */
+  --pastel-peach:  #F6D2BC;
+  --pastel-sky:    #C9DCEA;
+  --pastel-butter: #F0DE96;
+  --pastel-mint:   #CBDFC8;
+  --pastel-cream:  #ECE5D5;
+  --pastel-rose:   #EFC6BD;
+
+  /* Type */
+  --display-font: 'Space Grotesk', system-ui, sans-serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-card: 14px;
+  --r-card-lg: 18px;
+  --r-hero: 22px;
+  --r-pill: 999px;
+
+  /* Shadows — more graphical, less soft */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 8px 22px -14px rgba(20,19,14,0.20);
+  --shadow-soft:  0 18px 38px -22px rgba(20,19,14,0.24);
+  --shadow-pop:   0 24px 50px -26px rgba(20,19,14,0.30),
+                  0 2px 6px rgba(20,19,14,0.07);
+
+  /* Accent role */
+  --accent:           var(--amber);
+  --accent-deep:      var(--amber-deep);
+  --accent-soft:      var(--amber-soft);
+  --on-accent:        var(--carbon);
+  --inverted-bg:      var(--carbon);
+  --inverted-bg-deep: #050402;
+  --inverted-fg:      #FFFFFF;
+}
+
+/* ============================================================
+   Documentation page chrome — neutral, NOT product-scoped
+   ============================================================ */
+:root {
+  --doc-bg:       #0F0F0E;
+  --doc-bg-2:     #16161A;
+  --doc-bg-3:     #1D1D22;
+  --doc-line:     #2A2A2F;
+  --doc-line-2:   #3A3A40;
+  --doc-fg:       #E8E5DE;
+  --doc-fg-2:     #B2AFA8;
+  --doc-fg-3:     #807D77;
+  --doc-accent:   #E4D9B8;
+
+  --doc-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --doc-sans:    'Inter', system-ui, sans-serif;
+}
+
+
+/* ===== ds/primitives.css ===== */
+/* ============================================================
+   Arconique Design System — primitives
+   Buttons, cards, badges, chips, KPI, pulse, type utilities.
+   Lives under [data-product=…]; the documentation chrome
+   (sections.css) provides the outer surface.
+   ============================================================ */
+
+/* ---------- Type utilities ---------- */
+[data-product] .display {
+  font-family: var(--display-font);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  color: var(--ink);
+}
+[data-product="development"] .display {
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+[data-product] .display em {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 400;
+}
+
+[data-product] .label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+[data-product="development"] .label,
+[data-product="owner"] .label { letter-spacing: 0.18em; }
+
+[data-product] .mono {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+}
+[data-product] .num {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+[data-product] .body {
+  font-family: var(--sans-font);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ---------- */
+[data-product] .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease,
+              border-color 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+[data-product] .btn-lg { padding: 14px 22px; font-size: 15px; }
+[data-product] .btn-sm { padding: 7px 14px; font-size: 13px; }
+[data-product] .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Primary — uses inverted bg per product */
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product="management"] .btn-primary:hover,
+[data-product="owner"] .btn-primary:hover { background: var(--forest); }
+[data-product="development"] .btn-primary:hover { background: #25241D; }
+
+/* Accent — terra (Mgmt/Owner), amber (Dev) */
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); }
+[data-product] .btn-accent:hover { background: var(--accent-deep); }
+
+/* Secondary — light card with border */
+[data-product="management"] .btn-secondary,
+[data-product="owner"] .btn-secondary {
+  background: var(--cream-warm); color: var(--ink); border-color: var(--line);
+}
+[data-product="management"] .btn-secondary:hover,
+[data-product="owner"] .btn-secondary:hover { background: var(--paper); border-color: var(--ink-2); }
+[data-product="development"] .btn-secondary {
+  background: var(--bg-3); color: var(--ink); border-color: var(--line-2);
+}
+[data-product="development"] .btn-secondary:hover { background: var(--bg-2); border-color: var(--line-3); }
+
+/* Ghost */
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); }
+[data-product="management"] .btn-ghost:hover,
+[data-product="owner"] .btn-ghost:hover { background: var(--cream-deep); color: var(--ink); }
+[data-product="development"] .btn-ghost:hover { background: var(--bg-2); color: var(--ink); }
+
+/* Danger */
+[data-product] .btn-danger { background: var(--danger); color: var(--cream-warm); }
+[data-product] .btn-danger:hover { filter: brightness(0.92); }
+
+/* Round arrow / sticker buttons */
+[data-product] .ra-btn {
+  width: 46px; height: 46px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; cursor: pointer; transition: transform 0.15s ease, background 0.18s ease;
+  background: var(--ink); color: var(--inverted-fg);
+}
+[data-product] .ra-btn:hover { transform: translateX(2px); }
+[data-product] .ra-btn.light {
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line);
+}
+[data-product] .ra-btn.accent { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- Cards ---------- */
+[data-product="management"] .card,
+[data-product="owner"] .card {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+}
+[data-product="development"] .card,
+[data-product="development"] .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+}
+[data-product] .card-lg { border-radius: var(--r-card-lg); }
+[data-product] .card-hero { border-radius: var(--r-hero); }
+[data-product] .card-pad { padding: 20px; }
+[data-product] .card-pad-lg { padding: 28px; }
+
+/* Inverted hero band */
+[data-product] .card-inverted {
+  background: var(--inverted-bg);
+  color: var(--inverted-fg);
+  border-color: var(--inverted-bg);
+}
+[data-product] .card-inverted .label { color: rgba(255,255,255,0.55); }
+
+/* ---------- Badges ---------- */
+[data-product] .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-family: var(--mono-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  background: var(--paper);
+}
+[data-product] .badge-ok     { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
+[data-product] .badge-warn   { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+[data-product] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product] .badge-info   { background: color-mix(in oklab, var(--info) 12%, transparent); color: var(--info); border-color: color-mix(in oklab, var(--info) 35%, transparent); }
+[data-product] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product="management"] .badge-gold,
+[data-product="owner"] .badge-gold { background: rgba(188,154,92,0.15); color: #8c6f33; border-color: rgba(188,154,92,0.35); }
+[data-product] .badge-ink {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .badge-soft {
+  background: var(--cream-warm, var(--bg-2)); color: var(--ink-2); border-color: var(--line-soft, var(--line-2));
+}
+
+/* ---------- Chips ---------- */
+[data-product] .chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+[data-product="development"] .chip { background: var(--bg-2); border-color: var(--line-2); }
+[data-product] .chip-dot::before {
+  content: ""; width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent); display: inline-block;
+}
+[data-product] .chip-ink { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .chip-active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+/* ---------- Pulse dot ---------- */
+[data-product] .pulse-dot {
+  width: 7px; height: 7px; border-radius: 999px; display: inline-block;
+  background: var(--ok);
+  animation: ds-pulse 2.4s ease-in-out infinite;
+}
+[data-product] .pulse-dot.accent { background: var(--accent); color: var(--accent); }
+@keyframes ds-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; }
+}
+
+/* ---------- Avatar ---------- */
+[data-product] .avatar {
+  width: 32px; height: 32px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-fg);
+  font-family: var(--sans-font);
+  font-size: 11px; font-weight: 500;
+  background: linear-gradient(135deg, var(--gold-soft, var(--amber-soft)), var(--accent));
+}
+[data-product] .avatar-lg { width: 44px; height: 44px; font-size: 14px; }
+[data-product] .avatar-sm { width: 24px; height: 24px; font-size: 10px; }
+
+/* ---------- KPI tile ---------- */
+[data-product] .kpi {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft, var(--line));
+  background: var(--paper, var(--panel));
+}
+[data-product] .kpi .label { font-size: 10.5px; }
+[data-product] .kpi .v {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  margin-top: 4px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.05;
+}
+[data-product] .kpi .sub {
+  margin-top: 3px;
+  font-family: var(--sans-font);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+[data-product] .kpi.accent .v { color: var(--accent); }
+[data-product] .kpi.ok .v { color: var(--ok); }
+[data-product] .kpi.warn .v { color: var(--warn); }
+[data-product] .kpi.gold .v { color: var(--gold, var(--amber)); }
+[data-product] .kpi-lg .v { font-size: 36px; }
+[data-product] .kpi-lg { padding: 22px 22px; }
+
+/* Owner has a calmer, bigger KPI variant for statement clarity */
+[data-product="owner"] .kpi-narrative {
+  padding: 28px 28px;
+  border-radius: var(--r-card-lg);
+}
+[data-product="owner"] .kpi-narrative .label { font-size: 11px; }
+[data-product="owner"] .kpi-narrative .v {
+  font-family: var(--display-font);
+  font-feature-settings: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-top: 10px;
+}
+[data-product="owner"] .kpi-narrative .sub {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+/* ---------- Section heading ---------- */
+[data-product] .section-heading { margin-bottom: 22px; }
+[data-product] .section-heading .eyebrow { margin-bottom: 8px; }
+[data-product] .section-heading h2,
+[data-product] .section-heading h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .section-heading h2,
+[data-product="development"] .section-heading h1 { font-weight: 500; letter-spacing: -0.025em; }
+[data-product] .section-heading p {
+  margin: 10px 0 0;
+  color: var(--ink-3);
+  font-size: 15px;
+  max-width: 680px;
+  line-height: 1.55;
+}
+[data-product="owner"] .section-heading h2,
+[data-product="owner"] .section-heading h1 { font-size: 44px; }
+[data-product="owner"] .section-heading p { font-size: 16px; }
+
+/* ---------- Page header (with breadcrumbs) ---------- */
+[data-product] .page-header {
+  display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 22px;
+}
+[data-product] .page-header .left { flex: 1; min-width: 0; }
+[data-product] .page-header .crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+[data-product] .page-header .crumb a { color: var(--ink-3); text-decoration: none; }
+[data-product] .page-header .crumb a:hover { color: var(--ink); }
+[data-product] .page-header h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .page-header h1 { font-weight: 500; }
+[data-product] .page-header .actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+
+/* ===== ds/layout.css ===== */
+/* ============================================================
+   Arconique Design System — layout (sidebar, topbar, tables)
+   ============================================================ */
+
+/* ---------- App shell wrapper used in previews ---------- */
+[data-product] .app-shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  height: 580px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  overflow: hidden;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-content {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-body {
+  padding: 22px 28px;
+  overflow: auto;
+  flex: 1;
+}
+
+/* ---------- Sidebar ---------- */
+[data-product] .sidebar {
+  border-right: 1px solid var(--line-soft, var(--line));
+  display: flex; flex-direction: column;
+  background: var(--paper, var(--panel));
+  overflow-y: auto;
+}
+[data-product] .sidebar::-webkit-scrollbar { width: 6px; }
+[data-product] .sidebar::-webkit-scrollbar-thumb {
+  background: var(--line); border-radius: 999px;
+}
+[data-product] .sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 18px 14px;
+  text-decoration: none; color: var(--ink);
+}
+[data-product] .sb-brand .logo {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-bg);
+}
+[data-product] .sb-brand .wordmark {
+  font-family: var(--display-font);
+  font-size: 20px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace {
+  margin: 0 18px 12px;
+  padding: 10px 12px;
+  background: var(--cream-deep, var(--bg-2));
+  border-radius: 10px;
+}
+[data-product] .sb-workspace .label { font-size: 9.5px; }
+[data-product] .sb-workspace .name {
+  font-family: var(--display-font);
+  font-size: 16px;
+  margin-top: 2px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace .sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+[data-product] .sb-group {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .sb-group:last-child { border-bottom: 0; }
+[data-product] .sb-group-title {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 10px 18px 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+[data-product] .sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 18px;
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer; border: 0; background: transparent;
+  width: 100%; text-align: left;
+  border-left: 2px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease;
+  text-decoration: none;
+}
+[data-product="management"] .sb-item:hover,
+[data-product="owner"] .sb-item:hover { background: var(--cream-warm); }
+[data-product="development"] .sb-item:hover { background: var(--bg-2); }
+[data-product] .sb-item.on {
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product="management"] .sb-item.on,
+[data-product="owner"] .sb-item.on {
+  background: var(--cream-warm);
+  border-left-color: var(--accent);
+}
+[data-product="development"] .sb-item.on {
+  background: var(--bg-2);
+  border-left-color: var(--accent);
+}
+[data-product] .sb-badge {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+[data-product] .sb-item.on .sb-badge {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Topbar ---------- */
+[data-product] .topbar {
+  position: sticky; top: 0; z-index: 30;
+  padding: 12px 28px;
+  display: flex; align-items: center; gap: 16px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--cream, var(--bg)) 92%, transparent);
+}
+[data-product] .tb-crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+[data-product] .tb-crumb b { color: var(--ink); font-weight: 500; }
+[data-product] .tb-spacer { flex: 1; }
+[data-product] .tb-search {
+  position: relative;
+  width: 280px;
+}
+[data-product] .tb-search input {
+  width: 100%;
+  padding: 7px 38px 7px 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  outline: none;
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper, var(--panel));
+}
+[data-product] .tb-search .sx {
+  position: absolute; left: 10px; top: 8px;
+  color: var(--ink-4);
+}
+[data-product] .tb-search .kbd {
+  position: absolute; right: 8px; top: 6px;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-3);
+}
+[data-product] .tb-bell {
+  position: relative;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-2);
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+[data-product] .tb-bell:hover { background: var(--cream-deep, var(--bg-2)); }
+[data-product] .tb-bell .dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent);
+}
+[data-product] .tb-user {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+[data-product] .tb-user .meta {
+  display: flex; flex-direction: column;
+  line-height: 1.15;
+}
+[data-product] .tb-user .name { font-size: 13px; font-weight: 500; color: var(--ink); }
+[data-product] .tb-user .role { font-size: 10.5px; color: var(--ink-3); }
+
+/* ---------- Tables ---------- */
+[data-product] table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans-font);
+  font-size: 13px;
+}
+[data-product] table.data th,
+[data-product] table.data td {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] table.data th {
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+[data-product="management"] table.data th,
+[data-product="owner"] table.data th {
+  background: var(--cream);
+  border-bottom-color: var(--line-soft);
+}
+[data-product="development"] table.data th {
+  background: var(--bg-2);
+  border-bottom-color: var(--line-2);
+}
+[data-product] table.data tbody tr:hover {
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 60%, transparent);
+}
+[data-product] table.data td.num,
+[data-product] table.data th.num {
+  text-align: right;
+  font-family: var(--mono-font);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] table.data .row-title {
+  font-family: var(--display-font);
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+/* Mgmt-soft variant: airier rows, serif row titles */
+[data-product="management"] table.guests,
+[data-product="owner"] table.guests {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--sans-font);
+}
+[data-product="management"] table.guests th,
+[data-product="management"] table.guests td,
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft);
+}
+[data-product="management"] table.guests th,
+[data-product="owner"] table.guests th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: var(--cream);
+}
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td { padding: 18px 22px; }
+[data-product="management"] table.guests tbody tr:hover,
+[data-product="owner"] table.guests tbody tr:hover { background: var(--cream); }
+
+/* ---------- Forms ---------- */
+[data-product] .field { display: flex; flex-direction: column; gap: 6px; }
+[data-product] .field-label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+[data-product] .input,
+[data-product] .select,
+[data-product] .textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper, var(--panel));
+  font-family: var(--sans-font);
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+[data-product] .textarea { min-height: 96px; resize: vertical; }
+[data-product] .input:focus,
+[data-product] .select:focus,
+[data-product] .textarea:focus {
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+[data-product] .input::placeholder,
+[data-product] .textarea::placeholder { color: var(--ink-4); }
+[data-product] .field-help { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+[data-product] .field-error { font-size: 12px; color: var(--danger); margin-top: 2px; }
+
+[data-product] .check {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--sans-font); font-size: 14px; color: var(--ink);
+  cursor: pointer;
+}
+[data-product] .check input { appearance: none; -webkit-appearance: none; }
+[data-product] .check .box {
+  width: 18px; height: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--paper, var(--panel));
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+[data-product] .check input:checked + .box {
+  background: var(--ink); border-color: var(--ink);
+}
+[data-product] .check input:checked + .box::after {
+  content: "";
+  width: 9px; height: 5px;
+  border-left: 2px solid var(--inverted-fg);
+  border-bottom: 2px solid var(--inverted-fg);
+  transform: rotate(-45deg) translate(0, -2px);
+}
+
+[data-product] .radio .box { border-radius: 999px; }
+[data-product] .radio input:checked + .box {
+  background: var(--paper, var(--panel));
+  border-color: var(--accent);
+}
+[data-product] .radio input:checked + .box::after {
+  content: ""; width: 9px; height: 9px;
+  border: 0; transform: none; background: var(--accent);
+  border-radius: 999px;
+}
+
+[data-product] .toggle {
+  position: relative; width: 38px; height: 22px;
+  background: var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+[data-product] .toggle::after {
+  content: ""; position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  background: var(--paper, var(--panel));
+  border-radius: 999px;
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+[data-product] .toggle.on { background: var(--accent); }
+[data-product] .toggle.on::after { transform: translateX(16px); }
+
+/* ---------- Filter bar ---------- */
+[data-product] .filter-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--paper, var(--panel));
+  margin-bottom: 14px;
+}
+[data-product] .filter-bar .divider {
+  width: 1px; height: 22px; background: var(--line); margin: 0 2px;
+}
+
+/* ---------- Empty state ---------- */
+[data-product] .empty {
+  padding: 40px 28px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-card);
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 50%, transparent);
+  text-align: center;
+}
+[data-product] .empty .glyph {
+  width: 44px; height: 44px; margin: 0 auto 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 999px;
+}
+[data-product] .empty .title {
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+[data-product] .empty .copy {
+  font-size: 13px;
+  color: var(--ink-3);
+  max-width: 360px;
+  margin: 0 auto 14px;
+  line-height: 1.5;
+}
+
+/* ---------- Pagination ---------- */
+[data-product] .pagination {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono-font);
+  font-size: 12px;
+}
+[data-product] .pagination button {
+  min-width: 30px; height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper, var(--panel));
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .pagination button:hover { border-color: var(--ink-2); color: var(--ink); }
+[data-product] .pagination button.on {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .pagination .meta {
+  margin-left: 12px; color: var(--ink-3);
+}
+
+/* ---------- Modal ---------- */
+[data-product] .modal-backdrop {
+  position: relative;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  padding: 36px 28px;
+  border-radius: var(--r-card);
+  display: flex; align-items: flex-start; justify-content: center;
+}
+[data-product] .modal {
+  width: 480px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border-radius: var(--r-card-lg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  box-shadow: var(--shadow-pop);
+}
+[data-product] .modal-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+}
+[data-product] .modal-header h3 {
+  margin: 0;
+  font-family: var(--display-font); font-weight: 400; font-size: 19px;
+  color: var(--ink);
+}
+[data-product] .modal-header p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
+[data-product] .modal-body { padding: 18px 22px; }
+[data-product] .modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* ---------- Command palette preview ---------- */
+[data-product] .cmdk {
+  width: 540px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+[data-product] .cmdk-input {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  font-family: var(--sans-font);
+  font-size: 15px;
+  color: var(--ink-2);
+  display: flex; align-items: center; gap: 10px;
+}
+[data-product] .cmdk-input .sx { color: var(--ink-4); }
+[data-product] .cmdk-group {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .cmdk-group:last-child { border-bottom: 0; }
+[data-product] .cmdk-group-title {
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 8px 18px 4px;
+}
+[data-product] .cmdk-item {
+  padding: 8px 18px;
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--sans-font); font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .cmdk-item.on,
+[data-product] .cmdk-item:hover { background: var(--cream-warm, var(--bg-2)); color: var(--ink); }
+[data-product] .cmdk-item .hint {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+
+/* ---------- Detail page skeleton ---------- */
+[data-product] .detail-shell {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 18px;
+}
+[data-product] .detail-shell .related { display: flex; flex-direction: column; gap: 14px; }
+[data-product] .detail-tabs {
+  display: flex; align-items: center; gap: 4px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 18px;
+}
+[data-product] .detail-tabs .tab {
+  padding: 10px 14px;
+  border: 0; background: transparent;
+  font-family: var(--sans-font);
+  font-size: 13.5px; color: var(--ink-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+[data-product] .detail-tabs .tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- Mobile preview frame ---------- */
+.mobile-frame {
+  width: 360px;
+  border: 1px solid var(--line, #DAD2C0);
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--cream, var(--bg, #F4EFE6));
+  box-shadow: 0 16px 40px -18px rgba(15,15,14,0.22),
+              0 2px 6px rgba(15,15,14,0.06);
+  height: 640px;
+  display: flex; flex-direction: column;
+}
+.mobile-frame .mobile-status {
+  height: 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  font-family: var(--mono-font, monospace);
+  font-size: 11px;
+  color: var(--ink, #14201C);
+}
+.mobile-frame .mobile-body {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Mobile tabbar */
+[data-product] .mobile-tabbar {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+}
+[data-product] .mobile-tabbar .tb {
+  flex: 1;
+  padding: 8px 0 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  cursor: pointer;
+  border: 0; background: transparent;
+}
+[data-product] .mobile-tabbar .tb.on {
+  color: var(--ink);
+}
+[data-product] .mobile-tabbar .tb.on .ico {
+  color: var(--accent);
+}
+[data-product] .mobile-tabbar .ico {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+
+/* ===== ds/meta.css ===== */
+/* ============================================================
+   Documentation page chrome — neutral surface that hosts
+   the product previews. NOT product-scoped.
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--doc-sans);
+  background: var(--doc-bg);
+  color: var(--doc-fg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100vh;
+}
+
+/* ---------- App layout ---------- */
+.ds-app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- Left rail (TOC) ---------- */
+.ds-toc {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--doc-line);
+  padding: 24px 16px 32px;
+  background: var(--doc-bg-2);
+}
+.ds-toc .ds-mark {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  padding: 4px 8px 16px;
+}
+.ds-toc .ds-mark .glyph {
+  width: 6px; height: 6px;
+  background: var(--doc-accent);
+  border-radius: 2px;
+  display: inline-block;
+}
+.ds-toc h1 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0 0 22px;
+  padding: 0 8px;
+  color: var(--doc-fg);
+  letter-spacing: -0.005em;
+}
+.ds-toc .ds-toc-group {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 18px;
+}
+.ds-toc .ds-toc-group-title {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  padding: 8px 8px 6px;
+}
+.ds-toc .ds-toc-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  text-decoration: none;
+  border-radius: 6px;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+}
+.ds-toc .ds-toc-item:hover {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+}
+.ds-toc .ds-toc-item.on {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+  border-left-color: var(--doc-accent);
+}
+.ds-toc .ds-toc-item .num {
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  color: var(--doc-fg-3);
+  width: 18px;
+}
+
+/* ---------- Right side ---------- */
+.ds-main {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--doc-bg);
+}
+
+/* ---------- Product tab bar ---------- */
+.ds-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1px solid var(--doc-line);
+  background: var(--doc-bg);
+  padding: 0 32px;
+}
+.ds-tab {
+  padding: 18px 18px;
+  font-family: var(--doc-sans);
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  border: 0; background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex; align-items: center; gap: 10px;
+}
+.ds-tab:hover { color: var(--doc-fg); }
+.ds-tab.on {
+  color: var(--doc-fg);
+  border-bottom-color: var(--doc-accent);
+}
+.ds-tab .swatch {
+  width: 10px; height: 10px;
+  border-radius: 999px;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+}
+.ds-tab .tag {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  margin-left: 6px;
+}
+.ds-tab.on .tag { color: var(--doc-fg-2); }
+.ds-tabs .ds-meta {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 4px;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.ds-tabs .ds-meta .pill {
+  padding: 4px 10px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 999px;
+  color: var(--doc-fg-2);
+}
+
+/* ---------- Content area ---------- */
+.ds-content {
+  padding: 0 32px 96px;
+}
+
+/* ---------- Section ---------- */
+.ds-section {
+  padding: 56px 0 24px;
+  border-bottom: 1px solid var(--doc-line);
+}
+.ds-section:last-child { border-bottom: 0; }
+.ds-section-head {
+  display: flex; align-items: flex-end; gap: 18px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.ds-section-head .ds-section-eyebrow {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.ds-section-head h2 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 28px;
+  margin: 0;
+  letter-spacing: -0.015em;
+  color: var(--doc-fg);
+}
+.ds-section-head p {
+  margin: 8px 0 0;
+  max-width: 580px;
+  color: var(--doc-fg-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.ds-section-head .ds-section-meta {
+  margin-left: auto;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  display: flex; gap: 14px;
+  align-items: center;
+}
+
+/* ---------- Sub-section ---------- */
+.ds-sub {
+  margin-bottom: 36px;
+}
+.ds-sub-head {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 14px;
+}
+.ds-sub-head h3 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0;
+  color: var(--doc-fg);
+}
+.ds-sub-head .code {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  padding: 1px 6px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 4px;
+}
+.ds-sub-head p {
+  margin: 0;
+  color: var(--doc-fg-2);
+  font-size: 13px;
+}
+
+/* ---------- Preview surface (the warm card the product previews sit on) ---------- */
+.ds-preview {
+  background: var(--cream, var(--bg, #F4EFE6));
+  border-radius: 14px;
+  padding: 28px;
+  border: 1px solid var(--doc-line);
+  position: relative;
+  overflow: hidden;
+}
+.ds-preview.tight { padding: 18px; }
+.ds-preview.flush { padding: 0; }
+.ds-preview .ds-preview-tag {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  background: rgba(15,15,14,0.05);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* ---------- Code snippet ---------- */
+.ds-code {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 12px 14px;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+  border-radius: 8px;
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.ds-code .kw { color: #c5b889; }
+.ds-code .str { color: #b6cd97; }
+.ds-code .com { color: var(--doc-fg-3); font-style: italic; }
+
+/* ---------- Spec list (key = value rows) ---------- */
+.ds-spec {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 6px 18px;
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 14px 0 0;
+}
+.ds-spec dt { color: var(--doc-fg-3); }
+.ds-spec dd { margin: 0; color: var(--doc-fg); }
+
+/* ---------- Two/three column grid for showcase ---------- */
+.ds-grid { display: grid; gap: 14px; }
+.ds-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.ds-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.ds-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.ds-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+.ds-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.ds-grid.cols-mobile { grid-template-columns: 1fr 360px; gap: 28px; align-items: start; }
+
+/* ---------- Color swatch ---------- */
+.swatch-card {
+  display: flex; flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+}
+.swatch-card .chip {
+  height: 80px;
+  background: var(--c);
+  display: flex; align-items: flex-end;
+  padding: 10px 12px;
+  color: var(--cfg, #fff);
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.swatch-card .meta {
+  padding: 8px 12px 10px;
+}
+.swatch-card .name {
+  font-family: var(--doc-sans);
+  font-size: 12.5px;
+  color: var(--doc-fg);
+  margin-bottom: 1px;
+}
+.swatch-card .var {
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Type specimen ---------- */
+.type-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--doc-line);
+  align-items: baseline;
+}
+.type-row:last-child { border-bottom: 0; }
+.type-row .meta {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.type-row .meta .name { color: var(--doc-fg-2); margin-bottom: 2px; }
+.type-row .specimen { color: var(--ink, var(--doc-fg)); }
+
+/* ---------- Token row (radii, shadows) ---------- */
+.token-row {
+  display: grid;
+  grid-template-columns: 64px 140px 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--doc-line);
+}
+.token-row:last-child { border-bottom: 0; }
+.token-row .visual {
+  width: 64px; height: 64px;
+  background: var(--cream, var(--bg, #F4EFE6));
+  border: 1px solid var(--line, #DAD2C0);
+  display: flex; align-items: center; justify-content: center;
+}
+.token-row .name {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+}
+.token-row .value {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Inline label inside the meta dark area ---------- */
+.ds-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--doc-line-2);
+  color: var(--doc-fg-2);
+}
+.ds-tag.accent {
+  background: var(--doc-accent);
+  color: var(--doc-bg);
+  border-color: var(--doc-accent);
+}
+
+/* ---------- Mobile preview row ---------- */
+.ds-mobile-row {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.ds-mobile-row .ds-mobile-notes {
+  padding-top: 16px;
+}
+.ds-mobile-row .ds-mobile-notes h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--doc-fg);
+}
+.ds-mobile-row .ds-mobile-notes p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  line-height: 1.55;
+}
+
+/* ---------- Small viewport gracefully ---------- */
+@media (max-width: 1280px) {
+  .ds-grid.cols-mobile,
+  .ds-mobile-row { grid-template-columns: 1fr; }
+  .ds-grid.cols-5, .ds-grid.cols-6 { grid-template-columns: repeat(3, 1fr); }
+  .ds-content { padding: 0 22px 80px; }
+  .ds-tabs { padding: 0 22px; }
+}
+@media (max-width: 900px) {
+  .ds-app { grid-template-columns: 1fr; }
+  .ds-toc {
+    position: relative; height: auto;
+    border-right: 0; border-bottom: 1px solid var(--doc-line);
+  }
+  .ds-grid.cols-3, .ds-grid.cols-4, .ds-grid.cols-5, .ds-grid.cols-6 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ds-content { padding: 0 16px 64px; }
+  .ds-tabs { padding: 0 16px; overflow-x: auto; }
+  .ds-tabs .ds-meta { display: none; }
+}
+
+
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>
+
+// ===== ds/ds-data.js =====
+/* ============================================================
+   ds-data.js — shared data for documentation
+   Lists of swatches, type specimens, primitive variants, etc.
+   Exposed on window so all the JSX files can read it.
+   ============================================================ */
+(function () {
+  const PRODUCTS = [
+    {
+      id: "management",
+      label: "Management",
+      tag: "warm hospitality",
+      swatch: "#C4583C",
+      workspace: "Eternal Estates · Bali",
+      workspaceSub: "12 villas · GMT+8",
+      brand: "Arconique",
+      brandTag: "MGMT",
+      navGroups: [
+        { title: "WORKSPACE", items: [{ label: "Overview", on: true }] },
+        { title: "PORTFOLIO", items: [
+          { label: "Projects" }, { label: "Villas" },
+          { label: "Owners" }, { label: "Ownership shares" },
+        ] },
+        { title: "BOOKINGS", items: [
+          { label: "Bookings", badge: "27" },
+          { label: "Calendar" }, { label: "Channels" },
+          { label: "Guests" },
+        ] },
+        { title: "GUEST STAYS", items: [
+          { label: "Overview" }, { label: "Villa guides" },
+          { label: "Concierge" },
+        ] },
+        { title: "OPERATIONS", items: [
+          { label: "Command center" }, { label: "Housekeeping" },
+          { label: "Maintenance" },
+        ] },
+        { title: "FINANCE", items: [
+          { label: "Finance" }, { label: "Statement transparency" },
+        ] },
+      ],
+    },
+    {
+      id: "development",
+      label: "Development",
+      tag: "engineering grade",
+      swatch: "#FF6B35",
+      workspace: "Ahau Gardens · Phase 2",
+      workspaceSub: "8 units · Site live",
+      brand: "Arconique",
+      brandTag: "DEV",
+      navGroups: [
+        { title: "COMMAND CENTER", items: [{ label: "Overview", on: true }] },
+        { title: "CABINETS", items: [
+          { label: "Project manager" }, { label: "CFO / Accountant" },
+          { label: "QS / Cost analyst" }, { label: "Procurement" },
+          { label: "Site supervisor" },
+        ] },
+        { title: "AI AGENTS", items: [
+          { label: "Hub", badge: "9" },
+          { label: "Inbox" }, { label: "QS Cost Analyst" },
+        ] },
+        { title: "BUILD · SELL", items: [
+          { label: "Projects" }, { label: "Assets" },
+          { label: "Site reports" }, { label: "Sales & buyers" },
+        ] },
+        { title: "CAPITAL", items: [
+          { label: "Finance" }, { label: "Investors" },
+          { label: "Distributions" },
+        ] },
+      ],
+    },
+    {
+      id: "owner",
+      label: "Owner Portal",
+      tag: "investor view · Mgmt palette",
+      swatch: "#C4583C",
+      workspace: "Emma Whitmore",
+      workspaceSub: "EV-07 · Eternal Estates",
+      brand: "Arconique",
+      brandTag: "OWNER",
+      navGroups: [
+        { title: "WORKSPACE", items: [{ label: "Portfolio", on: true }] },
+        { title: "MY VILLA", items: [
+          { label: "EV-07 overview" }, { label: "Calendar" },
+          { label: "Bookings" }, { label: "Health report" },
+        ] },
+        { title: "FINANCIALS", items: [
+          { label: "Statements", badge: "3" },
+          { label: "Revenue" }, { label: "Distributions" },
+        ] },
+        { title: "STAYS", items: [
+          { label: "My stays" }, { label: "Request a stay" },
+        ] },
+        { title: "ACCOUNT", items: [
+          { label: "Inbox" }, { label: "Preferences" },
+        ] },
+      ],
+    },
+  ];
+
+  /* ----- Color tokens visible per product ----- */
+  const COLORS = {
+    management: {
+      Surfaces: [
+        { v: "--cream", c: "#F4EFE6", name: "Canvas" },
+        { v: "--cream-deep", c: "#ECE5D5", name: "Deep" },
+        { v: "--cream-warm", c: "#FAF7F1", name: "Warm" },
+        { v: "--paper", c: "#FFFCF7", name: "Paper" },
+      ],
+      Ink: [
+        { v: "--ink", c: "#14201C", name: "Body", fg: "#FAF7F1" },
+        { v: "--ink-2", c: "#2A3934", name: "Secondary", fg: "#FAF7F1" },
+        { v: "--ink-3", c: "#4A5A55", name: "Tertiary", fg: "#FAF7F1" },
+        { v: "--ink-4", c: "#7E8A85", name: "Quaternary", fg: "#FAF7F1" },
+      ],
+      Brand: [
+        { v: "--terra", c: "#C4583C", name: "Terra · primary", fg: "#FAF7F1" },
+        { v: "--terra-soft", c: "#E48A6E", name: "Terra soft" },
+        { v: "--forest", c: "#1F3A33", name: "Forest", fg: "#FAF7F1" },
+        { v: "--forest-deep", c: "#122621", name: "Forest deep", fg: "#FAF7F1" },
+        { v: "--gold", c: "#BC9A5C", name: "Gold" },
+        { v: "--gold-soft", c: "#DCC691", name: "Gold soft" },
+        { v: "--sage", c: "#88A89A", name: "Sage" },
+      ],
+      Semantic: [
+        { v: "--ok", c: "#4F7A5D", name: "OK", fg: "#FAF7F1" },
+        { v: "--warn", c: "#C58A2E", name: "Warn", fg: "#FAF7F1" },
+        { v: "--danger", c: "#B14132", name: "Danger", fg: "#FAF7F1" },
+        { v: "--info", c: "#3D5A7A", name: "Info", fg: "#FAF7F1" },
+      ],
+      Lines: [
+        { v: "--line", c: "#DAD2C0", name: "Default" },
+        { v: "--line-soft", c: "#E5DECC", name: "Soft" },
+        { v: "--line-strong", c: "#C2B89E", name: "Strong" },
+      ],
+      Pastels: [
+        { v: "--mint", c: "#D8E8D6", name: "Mint" },
+        { v: "--peach", c: "#F6D9CB", name: "Peach" },
+        { v: "--butter", c: "#F5E9B8", name: "Butter" },
+        { v: "--sky", c: "#D4E2EC", name: "Sky" },
+      ],
+    },
+    development: {
+      Surfaces: [
+        { v: "--bg", c: "#F1ECE0", name: "Canvas" },
+        { v: "--bg-2", c: "#F8F4EA", name: "Warm" },
+        { v: "--bg-3", c: "#FFFCF4", name: "Cool" },
+        { v: "--panel", c: "#FFFFFF", name: "Panel" },
+      ],
+      Ink: [
+        { v: "--ink", c: "#14130E", name: "Body", fg: "#FFFCF4" },
+        { v: "--ink-2", c: "#3D3B33", name: "Secondary", fg: "#FFFCF4" },
+        { v: "--ink-3", c: "#6E6B5E", name: "Tertiary", fg: "#FFFCF4" },
+        { v: "--ink-4", c: "#95917F", name: "Quaternary", fg: "#FFFCF4" },
+        { v: "--carbon", c: "#14130E", name: "Carbon (band)", fg: "#FFFCF4" },
+      ],
+      Brand: [
+        { v: "--amber", c: "#FF6B35", name: "Amber · primary", fg: "#14130E" },
+        { v: "--amber-soft", c: "#FFB088", name: "Amber soft" },
+        { v: "--amber-deep", c: "#D8541F", name: "Amber deep", fg: "#FFFCF4" },
+        { v: "--steel", c: "#3D5A7A", name: "Steel · secondary", fg: "#FFFCF4" },
+        { v: "--steel-soft", c: "#7E9DBF", name: "Steel soft" },
+        { v: "--lime", c: "#C9DC4A", name: "Lime · highlight" },
+      ],
+      Semantic: [
+        { v: "--ok", c: "#4F8A5D", name: "OK", fg: "#FFFCF4" },
+        { v: "--warn", c: "#C58A2E", name: "Warn", fg: "#FFFCF4" },
+        { v: "--danger", c: "#C2474E", name: "Danger", fg: "#FFFCF4" },
+      ],
+      Lines: [
+        { v: "--line", c: "#E5DECC", name: "Default" },
+        { v: "--line-2", c: "#D8CFB7", name: "Mid" },
+        { v: "--line-3", c: "#BAAF92", name: "Strong" },
+      ],
+      Pastels: [
+        { v: "--pastel-peach", c: "#F6D2BC", name: "Peach" },
+        { v: "--pastel-sky", c: "#C9DCEA", name: "Sky" },
+        { v: "--pastel-butter", c: "#F0DE96", name: "Butter" },
+        { v: "--pastel-mint", c: "#CBDFC8", name: "Mint" },
+        { v: "--pastel-cream", c: "#ECE5D5", name: "Cream" },
+        { v: "--pastel-rose", c: "#EFC6BD", name: "Rose" },
+      ],
+    },
+    /* Owner inherits Management — display the same palette */
+    owner: null,
+  };
+
+  /* ----- Type specimens ----- */
+  const TYPE_SCALE = {
+    management: [
+      { name: "Display 1", spec: "Newsreader 400 · 64/68 · -0.02em", fontSize: 64, lineHeight: 1.05, ls: "-0.02em", family: "display", sample: "Calm operations." },
+      { name: "Display 2", spec: "Newsreader 400 · 44/48 · -0.02em", fontSize: 44, lineHeight: 1.08, ls: "-0.02em", family: "display", sample: "Owner statements that read like a letter." },
+      { name: "Display 3", spec: "Newsreader 400 · 28/32 · -0.015em", fontSize: 28, lineHeight: 1.1, ls: "-0.015em", family: "display", sample: "Today · arrivals" },
+      { name: "Heading", spec: "Newsreader 400 · 19/24 · -0.01em", fontSize: 19, lineHeight: 1.25, ls: "-0.01em", family: "display", sample: "Eternal Estates · Bali" },
+      { name: "Body", spec: "Inter 400 · 14/22", fontSize: 14, lineHeight: 1.55, ls: "0", family: "sans", sample: "Emma Whitmore arrives 14 March for 7 nights. Concierge cleared the airport pickup with Putu." },
+      { name: "Body sm", spec: "Inter 400 · 13/20", fontSize: 13, lineHeight: 1.55, ls: "0", family: "sans", sample: "Six-month gross IDR 2.4B across 12 villas, weighted to Direct + Airbnb." },
+      { name: "Label", spec: "JetBrains Mono 400 · 11 · 0.16em up", fontSize: 11, lineHeight: 1.4, ls: "0.16em", upper: true, family: "mono", sample: "Mar 14 · GMT+8" },
+      { name: "Num", spec: "JetBrains Mono 500 · 26 · tnum", fontSize: 26, lineHeight: 1, ls: "-0.01em", family: "mono", sample: "IDR 2.4B" },
+    ],
+    development: [
+      { name: "Display 1", spec: "Space Grotesk 500 · 64/64 · -0.025em", fontSize: 64, lineHeight: 1.0, ls: "-0.025em", family: "display", sample: "BOQ done in a morning." },
+      { name: "Display 2", spec: "Space Grotesk 500 · 44/48 · -0.025em", fontSize: 44, lineHeight: 1.05, ls: "-0.025em", family: "display", sample: "Cost variance · live" },
+      { name: "Display 3", spec: "Space Grotesk 500 · 28/32 · -0.02em", fontSize: 28, lineHeight: 1.1, ls: "-0.02em", family: "display", sample: "Ahau Gardens · Phase 2" },
+      { name: "Heading", spec: "Space Grotesk 500 · 19/24", fontSize: 19, lineHeight: 1.25, ls: "-0.01em", family: "display", sample: "QS desk · 142 items" },
+      { name: "Body", spec: "Inter 400 · 14/22", fontSize: 14, lineHeight: 1.55, ls: "0", family: "sans", sample: "RFQ-0142 — concrete · 320 m³ across A1/A2 footings. Three bids received, midpoint IDR 18.4M/m³." },
+      { name: "Body sm", spec: "Inter 400 · 13/20", fontSize: 13, lineHeight: 1.55, ls: "0", family: "sans", sample: "Variance −2.4 % vs frozen BOQ; cost analyst flagged formwork uplift." },
+      { name: "Label", spec: "IBM Plex Mono 400 · 11 · 0.18em up", fontSize: 11, lineHeight: 1.4, ls: "0.18em", upper: true, family: "mono", sample: "RFQ-0142 · DRAFT" },
+      { name: "Num", spec: "IBM Plex Mono 500 · 26 · tnum", fontSize: 26, lineHeight: 1, ls: "-0.01em", family: "mono", sample: "IDR 2.96B" },
+    ],
+    owner: [
+      { name: "Hero", spec: "Newsreader 400 · 68/72 · -0.02em", fontSize: 68, lineHeight: 1.05, ls: "-0.02em", family: "display", sample: "Your March in Bali." },
+      { name: "Display 2", spec: "Newsreader 400 · 44/52 · -0.02em", fontSize: 44, lineHeight: 1.15, ls: "-0.02em", family: "display", sample: "Net to you: IDR 87.4 M" },
+      { name: "Heading", spec: "Newsreader 400 · 22/30", fontSize: 22, lineHeight: 1.3, ls: "-0.01em", family: "display", sample: "Three guests stayed at EV-07 this month." },
+      { name: "Body", spec: "Inter 400 · 16/26 — calmer", fontSize: 16, lineHeight: 1.6, ls: "0", family: "sans", sample: "Your villa hosted 22 nights in March — split across two long bookings and one weekend stay from your friend Marie." },
+      { name: "Body sm", spec: "Inter 400 · 14/22", fontSize: 14, lineHeight: 1.55, ls: "0", family: "sans", sample: "Statements are auto-sent on the 5th of each month." },
+      { name: "Label", spec: "JetBrains Mono 400 · 11 · 0.18em up", fontSize: 11, lineHeight: 1.4, ls: "0.18em", upper: true, family: "mono", sample: "March 2026 · DRAFT" },
+      { name: "Money", spec: "Newsreader 400 · 56 — display, not mono", fontSize: 56, lineHeight: 1.0, ls: "-0.02em", family: "display", sample: "IDR 87.4 M" },
+    ],
+  };
+
+  /* ----- Radii ----- */
+  const RADII = {
+    management: [
+      { name: "--r-xs", value: "4px" }, { name: "--r-sm", value: "8px" },
+      { name: "--r-md", value: "12px" },
+      { name: "--r-card", value: "18px (default)" },
+      { name: "--r-card-lg", value: "22px" },
+      { name: "--r-hero", value: "28px" },
+      { name: "--r-pill", value: "999px" },
+    ],
+    development: [
+      { name: "--r-xs", value: "4px" }, { name: "--r-sm", value: "8px" },
+      { name: "--r-md", value: "10px" },
+      { name: "--r-card", value: "14px (default — tighter than Mgmt)" },
+      { name: "--r-card-lg", value: "18px" },
+      { name: "--r-hero", value: "22px" },
+      { name: "--r-pill", value: "999px" },
+    ],
+    owner: null, // inherits management
+  };
+
+  const SHADOWS = {
+    management: [
+      { name: "--shadow-card", desc: "Default card — soft inset highlight + drop", css: "0 1px 0 rgba(255,255,255,0.6) inset, 0 12px 30px -18px rgba(20,32,28,0.18)" },
+      { name: "--shadow-soft", desc: "Floating panels, dropdowns", css: "0 18px 40px -24px rgba(20,32,28,0.22)" },
+      { name: "--shadow-pop", desc: "Modals, command palette", css: "0 24px 56px -28px rgba(20,32,28,0.28), 0 2px 6px rgba(20,32,28,0.06)" },
+    ],
+    development: [
+      { name: "--shadow-card", desc: "Default — graphical, less soft", css: "0 1px 0 rgba(255,255,255,0.6) inset, 0 8px 22px -14px rgba(20,19,14,0.20)" },
+      { name: "--shadow-soft", desc: "Floating panels", css: "0 18px 38px -22px rgba(20,19,14,0.24)" },
+      { name: "--shadow-pop", desc: "Modals", css: "0 24px 50px -26px rgba(20,19,14,0.30), 0 2px 6px rgba(20,19,14,0.07)" },
+    ],
+    owner: null,
+  };
+
+  /* ----- TOC sections ----- */
+  const SECTIONS = [
+    { group: "Foundations", items: [
+      { id: "color", label: "Color" },
+      { id: "type", label: "Type" },
+      { id: "radii", label: "Radii & shadows" },
+    ] },
+    { group: "Layout", items: [
+      { id: "shell", label: "App shell" },
+      { id: "topbar", label: "Topbar" },
+      { id: "sidebar", label: "Sidebar" },
+    ] },
+    { group: "Primitives", items: [
+      { id: "kpi", label: "KPI tile" },
+      { id: "card", label: "Card" },
+      { id: "button", label: "Button" },
+      { id: "badge", label: "Badge" },
+      { id: "chip", label: "Chip" },
+      { id: "pulse", label: "Pulse & avatar" },
+    ] },
+    { group: "Data", items: [
+      { id: "table", label: "Table" },
+      { id: "form", label: "Form controls" },
+    ] },
+    { group: "Patterns", items: [
+      { id: "section-heading", label: "Section heading" },
+      { id: "page-header", label: "Page header" },
+      { id: "filter", label: "Filter bar" },
+      { id: "empty", label: "Empty state" },
+      { id: "pagination", label: "Pagination" },
+      { id: "command", label: "Command palette" },
+      { id: "modal", label: "Modal" },
+      { id: "detail", label: "Detail-page skeleton" },
+    ] },
+    { group: "Mobile", items: [
+      { id: "mobile-nav", label: "Tabbar & sidebar collapse" },
+      { id: "mobile-kpi", label: "Mobile KPI" },
+    ] },
+  ];
+
+  window.DS_PRODUCTS = PRODUCTS;
+  window.DS_COLORS = COLORS;
+  window.DS_TYPE_SCALE = TYPE_SCALE;
+  window.DS_RADII = RADII;
+  window.DS_SHADOWS = SHADOWS;
+  window.DS_SECTIONS = SECTIONS;
+})();
+
+
+</script>
+<script type="text/babel">
+
+// ===== ds/ds-icons.jsx =====
+/* ============================================================
+   ds-icons.jsx — tiny inline-SVG icon set used by the previews.
+   Keeps stroke at 1.5 for legibility at small sizes.
+   Exposed as `window.DSIcon`.
+   ============================================================ */
+
+const DSIcon = ({ name, size = 14, strokeWidth = 1.5 }) => {
+  const props = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+  };
+  switch (name) {
+    case "logo":
+      return (
+        <svg {...props} fill="currentColor" stroke="none">
+          <path d="M12 2 L4 22 L9 22 L12 11 L15 22 L20 22 Z" />
+        </svg>
+      );
+    case "home":
+      return (<svg {...props}><path d="M3 11 L12 4 L21 11 L21 21 L14 21 L14 14 L10 14 L10 21 L3 21 Z" /></svg>);
+    case "portfolio":
+      return (<svg {...props}><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M9 6 V4 H15 V6" /></svg>);
+    case "cal":
+      return (<svg {...props}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 9 H21 M8 3 V7 M16 3 V7" /></svg>);
+    case "ops":
+      return (<svg {...props}><circle cx="12" cy="12" r="3.5" /><path d="M12 4.5 V2 M12 22 V19.5 M19.5 12 H22 M2 12 H4.5 M17.66 6.34 L19.07 4.93 M4.93 19.07 L6.34 17.66 M17.66 17.66 L19.07 19.07 M4.93 4.93 L6.34 6.34" /></svg>);
+    case "guest":
+      return (<svg {...props}><circle cx="12" cy="8" r="4" /><path d="M4 21 C5 16 8.5 14 12 14 C15.5 14 19 16 20 21" /></svg>);
+    case "wrench":
+      return (<svg {...props}><path d="M14.7 6.3 A4 4 0 1 0 9.3 11.7 L4 17 L7 20 L12.3 14.7 A4 4 0 0 0 14.7 6.3 Z" /></svg>);
+    case "pkg":
+      return (<svg {...props}><path d="M3 7 L12 3 L21 7 L21 17 L12 21 L3 17 Z M3 7 L12 11 M21 7 L12 11 M12 11 V21" /></svg>);
+    case "sparkles":
+      return (<svg {...props}><path d="M12 3 L13.5 9.5 L20 11 L13.5 12.5 L12 19 L10.5 12.5 L4 11 L10.5 9.5 Z M19 4 L19.7 5.7 L21.5 6.5 L19.7 7.3 L19 9 L18.3 7.3 L16.5 6.5 L18.3 5.7 Z" /></svg>);
+    case "shield":
+      return (<svg {...props}><path d="M12 3 L4 6 V12 C4 17 8 20.5 12 21 C16 20.5 20 17 20 12 V6 Z" /></svg>);
+    case "receipt":
+      return (<svg {...props}><path d="M6 3 H18 V21 L16 19.5 L14 21 L12 19.5 L10 21 L8 19.5 L6 21 Z M9 8 H15 M9 12 H15 M9 16 H13" /></svg>);
+    case "briefcase":
+      return (<svg {...props}><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M9 7 V5 H15 V7" /><path d="M3 13 H21" /></svg>);
+    case "chart":
+      return (<svg {...props}><path d="M4 19 V5 M4 19 H20 M8 14 V19 M12 10 V19 M16 6 V19" /></svg>);
+    case "hammer":
+      return (<svg {...props}><path d="M13 3 L21 11 L19 13 L17 11 L9 19 L5 15 L13 7 L11 5 Z" /></svg>);
+    case "msg":
+      return (<svg {...props}><path d="M4 5 H20 V17 H8 L4 21 Z" /></svg>);
+    case "cog":
+      return (<svg {...props}><circle cx="12" cy="12" r="3" /><path d="M12 2 V5 M12 19 V22 M22 12 H19 M5 12 H2 M19 5 L17 7 M7 17 L5 19 M19 19 L17 17 M7 7 L5 5" /></svg>);
+    case "search":
+      return (<svg {...props}><circle cx="11" cy="11" r="7" /><path d="M20 20 L16.5 16.5" /></svg>);
+    case "bell":
+      return (<svg {...props}><path d="M6 9 A6 6 0 0 1 18 9 V13 L20 16 H4 L6 13 Z M10 19 A2 2 0 0 0 14 19" /></svg>);
+    case "arrow-right":
+      return (<svg {...props}><path d="M5 12 H19 M13 6 L19 12 L13 18" /></svg>);
+    case "arrow-down":
+      return (<svg {...props}><path d="M12 5 V19 M6 13 L12 19 L18 13" /></svg>);
+    case "plus":
+      return (<svg {...props}><path d="M12 5 V19 M5 12 H19" /></svg>);
+    case "x":
+      return (<svg {...props}><path d="M6 6 L18 18 M6 18 L18 6" /></svg>);
+    case "check":
+      return (<svg {...props}><path d="M5 12 L10 17 L19 7" /></svg>);
+    case "filter":
+      return (<svg {...props}><path d="M4 6 H20 L14 13 V20 L10 18 V13 Z" /></svg>);
+    case "doc":
+      return (<svg {...props}><path d="M6 3 H14 L19 8 V21 H6 Z M14 3 V8 H19 M9 13 H16 M9 17 H14" /></svg>);
+    case "trend-up":
+      return (<svg {...props}><path d="M3 17 L9 11 L13 15 L21 7 M15 7 H21 V13" /></svg>);
+    case "moon":
+      return (<svg {...props}><path d="M21 13 A9 9 0 1 1 11 3 A7 7 0 0 0 21 13 Z" /></svg>);
+    case "compass":
+      return (<svg {...props}><circle cx="12" cy="12" r="9" /><path d="M16 8 L13 13 L8 16 L11 11 Z" fill="currentColor" stroke="none" /></svg>);
+    case "key":
+      return (<svg {...props}><circle cx="7" cy="14" r="4" /><path d="M11 14 L20 14 M17 14 V17 M20 14 V11" /></svg>);
+    case "user":
+      return (<svg {...props}><circle cx="12" cy="8" r="4" /><path d="M4 21 C5 16 8.5 14 12 14 C15.5 14 19 16 20 21" /></svg>);
+    case "lightning":
+      return (<svg {...props}><path d="M13 3 L4 14 H11 L9 21 L18 10 H11 Z" /></svg>);
+    case "dot-grid":
+      return (
+        <svg {...props}>
+          {[3, 12, 21].map(y => [3, 12, 21].map(x =>
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="1" fill="currentColor" stroke="none" />
+          ))}
+        </svg>
+      );
+    default:
+      return <svg {...props}><circle cx="12" cy="12" r="8" /></svg>;
+  }
+};
+
+window.DSIcon = DSIcon;
+
+
+// ===== ds/ds-common.jsx =====
+/* ============================================================
+   ds-common.jsx — shared layout primitives for the doc page
+   ============================================================ */
+
+const DSection = ({ id, eyebrow, num, title, lede, meta, children }) => (
+  <section id={id} className="ds-section">
+    <div className="ds-section-head">
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="ds-section-eyebrow">
+          <span style={{ color: "var(--doc-accent)" }}>{num}</span>
+          <span>—</span>
+          <span>{eyebrow}</span>
+        </div>
+        <h2>{title}</h2>
+        {lede && <p>{lede}</p>}
+      </div>
+      {meta && <div className="ds-section-meta">{meta}</div>}
+    </div>
+    {children}
+  </section>
+);
+
+const Sub = ({ title, code, desc, children, headRight }) => (
+  <div className="ds-sub">
+    <div className="ds-sub-head">
+      <h3>{title}</h3>
+      {code && <span className="code">{code}</span>}
+      {desc && <p>{desc}</p>}
+      {headRight && <div style={{ marginLeft: "auto" }}>{headRight}</div>}
+    </div>
+    {children}
+  </div>
+);
+
+const Preview = ({ tag, children, className = "", style }) => (
+  <div className={"ds-preview " + className} style={style}>
+    {tag && <div className="ds-preview-tag">{tag}</div>}
+    {children}
+  </div>
+);
+
+const Spec = ({ rows }) => (
+  <dl className="ds-spec">
+    {rows.map(([k, v]) => (
+      <React.Fragment key={k}>
+        <dt>{k}</dt>
+        <dd>{v}</dd>
+      </React.Fragment>
+    ))}
+  </dl>
+);
+
+window.DSection = DSection;
+window.Sub = Sub;
+window.Preview = Preview;
+window.Spec = Spec;
+
+
+// ===== ds/ds-foundations.jsx =====
+/* ============================================================
+   ds-foundations.jsx — Color, Type, Radii & shadows sections
+   ============================================================ */
+
+const ColorSection = ({ product }) => {
+  // Owner inherits Management
+  const palette = window.DS_COLORS[product === "owner" ? "management" : product];
+  if (!palette) return null;
+  const groups = Object.keys(palette);
+  return (
+    <DSection
+      id="color"
+      num="01"
+      eyebrow="Foundations"
+      title="Color"
+      lede={
+        product === "owner"
+          ? "Owner Portal reuses the Management palette verbatim — owners and operators see the same brand. Differentiation lives in density (sparser grids, narrative type), not new hues."
+          : product === "development"
+          ? "Engineering-grade neutrals on a warm canvas. Amber is the sole brand colour — used sparingly, never decoratively. Steel is reserved for technical secondary states; lime is a data-viz highlight only."
+          : "A warm hospitality palette. Cream surfaces, ink text, terra accent for primary action, forest for inverted bands, gold + sage for editorial pause. Pastels appear only inside the bento/status pills."
+      }
+      meta={
+        <>
+          <span className="ds-tag">{groups.length} groups</span>
+          <span className="ds-tag">{Object.values(palette).flat().length} tokens</span>
+        </>
+      }
+    >
+      {product === "owner" && (
+        <div style={{
+          padding: "16px 18px",
+          background: "var(--doc-bg-2)",
+          border: "1px solid var(--doc-line-2)",
+          borderRadius: 10,
+          marginBottom: 22,
+          fontFamily: "var(--doc-mono)",
+          fontSize: 11.5,
+          color: "var(--doc-fg-2)",
+          letterSpacing: "0.04em",
+        }}>
+          [data-product="owner"] resolves to the same CSS variables as [data-product="management"].
+          No new colour tokens are defined for Owner.
+        </div>
+      )}
+      {groups.map(g => (
+        <Sub key={g} title={g}>
+          <div className="ds-grid cols-4" style={{ gap: 10 }}>
+            {palette[g].map(c => (
+              <div className="swatch-card" key={c.v}>
+                <div className="chip" style={{ "--c": c.c, "--cfg": c.fg || "#14201C" }}>
+                  {c.c}
+                </div>
+                <div className="meta">
+                  <div className="name">{c.name}</div>
+                  <div className="var">{c.v}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Sub>
+      ))}
+    </DSection>
+  );
+};
+
+const TypeSection = ({ product }) => {
+  const scale = window.DS_TYPE_SCALE[product];
+  const familyName = {
+    management: "Newsreader + Inter + JetBrains Mono",
+    development: "Space Grotesk + Inter + IBM Plex Mono",
+    owner: "Newsreader + Inter + JetBrains Mono",
+  }[product];
+  return (
+    <DSection
+      id="type"
+      num="02"
+      eyebrow="Foundations"
+      title="Type"
+      lede={
+        product === "owner"
+          ? "Same typefaces as Management, but the entire scale is shifted up: hero 68 px, body 16 px. Money values are rendered in the display serif (not mono) — they read as language, not figures."
+          : product === "development"
+          ? "Space Grotesk for display at 500 weight (technical, decisive). Inter for body. IBM Plex Mono carries every number, code, identifier — a single sans/mono cadence."
+          : "Newsreader (variable serif) for display, with italics reserved for emphasis (`em` → terra). Inter for body, never used at >19 px. JetBrains Mono for labels and numbers."
+      }
+      meta={<span className="ds-tag">{familyName}</span>}
+    >
+      <div data-product={product}>
+        {scale.map((row, i) => (
+          <div className="type-row" key={i}>
+            <div className="meta">
+              <div className="name" style={{ color: "var(--doc-fg-2)" }}>{row.name}</div>
+              <div>{row.spec}</div>
+            </div>
+            <div
+              className="specimen"
+              style={{
+                fontFamily:
+                  row.family === "display" ? "var(--display-font)"
+                  : row.family === "mono" ? "var(--mono-font)"
+                  : "var(--sans-font)",
+                fontSize: row.fontSize,
+                lineHeight: row.lineHeight,
+                letterSpacing: row.ls,
+                textTransform: row.upper ? "uppercase" : "none",
+                fontWeight: row.family === "display" && product === "development" ? 500 : 400,
+                fontFeatureSettings: row.family === "mono" ? '"tnum"' : "normal",
+                color: "var(--ink)",
+              }}
+            >
+              {row.sample}
+            </div>
+          </div>
+        ))}
+      </div>
+    </DSection>
+  );
+};
+
+const RadiiShadowsSection = ({ product }) => {
+  const radii = window.DS_RADII[product === "owner" ? "management" : product];
+  const shadows = window.DS_SHADOWS[product === "owner" ? "management" : product];
+  return (
+    <DSection
+      id="radii"
+      num="03"
+      eyebrow="Foundations"
+      title="Radii & shadows"
+      lede={
+        product === "development"
+          ? "Tighter radii than Management — 14 px on cards instead of 18 px. Shadows are more graphical (shorter spread, slightly higher contrast)."
+          : "Soft radii — 18 px on cards by default. Shadows are low, warm, and almost imperceptible at rest; pop on modals and command palette only."
+      }
+    >
+      <Sub title="Radii">
+        <div data-product={product}>
+          {radii.map(r => (
+            <div className="token-row" key={r.name}>
+              <div
+                className="visual"
+                style={{
+                  borderRadius: r.name === "--r-pill" ? 32 : r.value.split(" ")[0],
+                  background: "var(--paper, var(--panel))",
+                }}
+              />
+              <div className="name">{r.name}</div>
+              <div className="value">{r.value}</div>
+            </div>
+          ))}
+        </div>
+      </Sub>
+      <Sub title="Shadows">
+        <div data-product={product}>
+          {shadows.map(s => (
+            <div className="token-row" key={s.name} style={{ gridTemplateColumns: "100px 160px 1fr" }}>
+              <div
+                className="visual"
+                style={{
+                  width: 100, height: 64,
+                  borderRadius: 14,
+                  background: "var(--paper, var(--panel))",
+                  border: "1px solid var(--line, var(--line-2))",
+                  boxShadow: s.css,
+                  marginRight: 0,
+                }}
+              />
+              <div>
+                <div className="name">{s.name}</div>
+                <div className="value">{s.desc}</div>
+              </div>
+              <div className="value" style={{ fontSize: 10.5, fontFamily: "var(--doc-mono)", color: "var(--doc-fg-3)" }}>
+                {s.css}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Sub>
+    </DSection>
+  );
+};
+
+window.ColorSection = ColorSection;
+window.TypeSection = TypeSection;
+window.RadiiShadowsSection = RadiiShadowsSection;
+
+
+// ===== ds/ds-layout-sections.jsx =====
+/* ============================================================
+   ds-layout-sections.jsx — App shell, Topbar, Sidebar
+   ============================================================ */
+
+const Sidebar = ({ product }) => {
+  const p = window.DS_PRODUCTS.find(x => x.id === product);
+  return (
+    <aside className="sidebar">
+      <a className="sb-brand" href="#">
+        <span className="logo"><DSIcon name="logo" size={20} /></span>
+        <span className="wordmark">{p.brand}</span>
+        <span className="badge" style={{ fontSize: 9, padding: "1px 6px", marginLeft: 4 }}>{p.brandTag}</span>
+      </a>
+      <div className="sb-workspace">
+        <div className="label">Workspace</div>
+        <div className="name">{p.workspace}</div>
+        <div className="sub">{p.workspaceSub}</div>
+      </div>
+      {p.navGroups.map(g => (
+        <div className="sb-group" key={g.title}>
+          <div className="sb-group-title">{g.title}</div>
+          {g.items.map((it, i) => (
+            <a className={"sb-item" + (it.on ? " on" : "")} href="#" key={i}>
+              {it.label}
+              {it.badge && <span className="sb-badge">{it.badge}</span>}
+            </a>
+          ))}
+        </div>
+      ))}
+    </aside>
+  );
+};
+
+const Topbar = ({ product, breadcrumbs = ["Workspace", "Overview"], userName = "Putu Adisana", userRole = "Operator", userInitials = "PA" }) => (
+  <header className="topbar">
+    <div className="tb-crumb">
+      {breadcrumbs.map((b, i) => (
+        <React.Fragment key={i}>
+          {i === breadcrumbs.length - 1 ? <b>{b}</b> : <span>{b}</span>}
+          {i < breadcrumbs.length - 1 && <span>/</span>}
+        </React.Fragment>
+      ))}
+    </div>
+    <div className="tb-spacer" />
+    <div className="tb-search">
+      <span className="sx"><DSIcon name="search" size={14} /></span>
+      <input placeholder={
+        product === "development" ? "Search project, RFQ, BOQ item…"
+        : product === "owner" ? "Search statements, stays…"
+        : "Search villa, booking, owner, guest…"
+      } />
+      <span className="kbd">⌘K</span>
+    </div>
+    <button className="tb-bell">
+      <DSIcon name="bell" size={16} />
+      <span className="dot" />
+    </button>
+    <div className="tb-user">
+      <span className="avatar avatar-sm">{userInitials}</span>
+      <div className="meta">
+        <span className="name">{userName}</span>
+        <span className="role">{userRole}</span>
+      </div>
+    </div>
+  </header>
+);
+
+const ShellSection = ({ product }) => (
+  <DSection
+    id="shell"
+    num="04"
+    eyebrow="Layout"
+    title="App shell"
+    lede={
+      product === "owner"
+        ? "Same 264-px sidebar + sticky topbar as Mgmt — Owners and Operators share the chrome. Content area sits at 28-px horizontal padding, generous gutters, ≤960 px max-width inside for statement-clarity."
+        : product === "development"
+        ? "264-px sidebar + sticky topbar. Cabinet content is denser — 18-px content padding, narrower gutters, no max-width cap (BOQ tables routinely span 1400+ px)."
+        : "264-px sticky sidebar on the left, sticky topbar across the top. Content area is product-padded (28 px on Mgmt) and respects a 1320 px max-width for editorial cabinets."
+    }
+    meta={<span className="ds-tag">264 + flex</span>}
+  >
+    <Preview className="flush" tag="LIVE">
+      <div data-product={product} className="app-shell">
+        <Sidebar product={product} />
+        <div className="shell-content">
+          <Topbar
+            product={product}
+            breadcrumbs={
+              product === "owner" ? ["Portfolio", "EV-07", "March 2026"]
+              : product === "development" ? ["Workspace", "Cabinets", "QS desk"]
+              : ["Workspace", "Bookings", "EV-07 · Whitmore"]
+            }
+            userName={product === "owner" ? "Emma Whitmore" : product === "development" ? "Sam Larsen" : "Putu Adisana"}
+            userRole={product === "owner" ? "Owner" : product === "development" ? "QS" : "Operator"}
+            userInitials={product === "owner" ? "EW" : product === "development" ? "SL" : "PA"}
+          />
+          <div className="shell-body">
+            <div style={{ maxWidth: 880 }}>
+              <div className="page-header">
+                <div className="left">
+                  <div className="crumb">
+                    <a href="#">{product === "owner" ? "Portfolio" : "Workspace"}</a>
+                    <span>›</span>
+                    <span>{product === "owner" ? "March 2026" : "Today"}</span>
+                  </div>
+                  <h1>
+                    {product === "owner" ? "Good morning, " : "Good morning, "}
+                    <em style={{ fontStyle: "italic", color: "var(--accent)" }}>
+                      {product === "owner" ? "Emma." : product === "development" ? "Sam." : "Putu."}
+                    </em>
+                  </h1>
+                </div>
+                <div className="actions">
+                  <button className="btn btn-secondary btn-sm">Export brief</button>
+                  <button className="btn btn-accent btn-sm">
+                    {product === "owner" ? "Request a stay" : product === "development" ? "New site report" : "New booking"} +
+                  </button>
+                </div>
+              </div>
+              <div className="ds-grid cols-4">
+                <div className="kpi accent">
+                  <div className="label">{product === "owner" ? "Net to you · YTD" : "Occupancy YTD"}</div>
+                  <div className="v">{product === "owner" ? "$92.4K" : "84%"}</div>
+                  <div className="sub">live</div>
+                </div>
+                <div className="kpi">
+                  <div className="label">{product === "owner" ? "Bookings" : "ADR"}</div>
+                  <div className="v">{product === "owner" ? "14" : "IDR 4.2M"}</div>
+                  <div className="sub">YTD</div>
+                </div>
+                <div className="kpi ok">
+                  <div className="label">{product === "owner" ? "Yield" : "RevPAR"}</div>
+                  <div className="v">{product === "owner" ? "7.1%" : "IDR 3.5M"}</div>
+                  <div className="sub">net</div>
+                </div>
+                <div className="kpi">
+                  <div className="label">{product === "owner" ? "Next stay" : "Open ops"}</div>
+                  <div className="v">{product === "owner" ? "Mar 28" : "3"}</div>
+                  <div className="sub">{product === "owner" ? "Marie + 2" : "needs attention"}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Preview>
+    <Spec rows={[
+      ["Sidebar width", "264px (collapses ≤ 900 px → MobileTabbar)"],
+      ["Topbar height", "auto, sticky, blur(10) backdrop"],
+      ["Content padding", product === "development" ? "18 px" : product === "owner" ? "32 px + max-w 960 px" : "28 px + max-w 1320 px"],
+      ["Active item indicator", "2-px border-left in --accent"],
+    ]} />
+  </DSection>
+);
+
+const TopbarSection = ({ product }) => (
+  <DSection
+    id="topbar"
+    num="05"
+    eyebrow="Layout"
+    title="Topbar"
+    lede="Mono breadcrumbs (last segment is the current page in ink). Search pill 280 px with ⌘K hint. Bell with unread dot. User chip splits with a left border."
+  >
+    <Preview tag="ISOLATED">
+      <div data-product={product} style={{ background: "var(--cream, var(--bg))", borderRadius: 10, border: "1px solid var(--line)" }}>
+        <Topbar product={product} />
+      </div>
+    </Preview>
+    <Spec rows={[
+      ["Breadcrumb font", "var(--mono-font) · 12.5 px · 0.14 em tracking"],
+      ["Search width", "280 px (full-width on mobile)"],
+      ["⌘K", "mounts global command palette (see Patterns §08)"],
+      ["Bell dot", "7-px circle in --accent when unread > 0"],
+    ]} />
+  </DSection>
+);
+
+const SidebarSection = ({ product }) => (
+  <DSection
+    id="sidebar"
+    num="06"
+    eyebrow="Layout"
+    title="Sidebar"
+    lede={
+      product === "owner"
+        ? "5 short groups (Workspace, My villa, Financials, Stays, Account). Owner has fewer routes — sidebar feels half as dense as Operator."
+        : product === "development"
+        ? "11 groups, ~80 items total. Group titles in mono 9.5 px, tracking 0.18 em. Cabinet section uses --briefcase glyph."
+        : "14 groups, ~70 items total. Items left-border on active. Optional badge right-aligned (counts on Bookings, Concierge inbox)."
+    }
+    meta={<span className="ds-tag">{window.DS_PRODUCTS.find(x => x.id === product).navGroups.length} groups</span>}
+  >
+    <Preview className="flush" tag="ISOLATED">
+      <div data-product={product} style={{ display: "flex", maxHeight: 540, overflow: "hidden" }}>
+        <Sidebar product={product} />
+        <div style={{ flex: 1, padding: 22, background: "var(--cream, var(--bg))" }}>
+          <div className="label" style={{ marginBottom: 12 }}>Content area placeholder</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ height: 12, background: "var(--line-soft, var(--line))", borderRadius: 4, width: "60%" }} />
+            <div style={{ height: 12, background: "var(--line-soft, var(--line))", borderRadius: 4, width: "85%" }} />
+            <div style={{ height: 12, background: "var(--line-soft, var(--line))", borderRadius: 4, width: "75%" }} />
+          </div>
+        </div>
+      </div>
+    </Preview>
+  </DSection>
+);
+
+window.Sidebar = Sidebar;
+window.Topbar = Topbar;
+window.ShellSection = ShellSection;
+window.TopbarSection = TopbarSection;
+window.SidebarSection = SidebarSection;
+
+
+// ===== ds/ds-primitives-sections.jsx =====
+/* ============================================================
+   ds-primitives-sections.jsx — KPI, Card, Button, Badge, Chip
+   ============================================================ */
+
+const KpiSection = ({ product }) => (
+  <DSection
+    id="kpi"
+    num="07"
+    eyebrow="Primitives"
+    title="KPI tile"
+    lede={
+      product === "owner"
+        ? "Owners get a calmer KPI: serif display value (44 px), more whitespace, fewer side-by-side. Money is the hero — read like prose, not a dashboard."
+        : "26-px mono value with tabular-nums. Label above, optional sub below. Tone modifiers tint the value: .accent (terra/amber), .ok (green), .warn (gold), .gold (Mgmt only)."
+    }
+  >
+    <Sub title="Default" code=".kpi">
+      <Preview>
+        <div data-product={product} className="ds-grid cols-4">
+          <div className="kpi">
+            <div className="label">Occupancy YTD</div>
+            <div className="v">84%</div>
+            <div className="sub">live · YTD</div>
+          </div>
+          <div className="kpi accent">
+            <div className="label">ADR</div>
+            <div className="v">IDR 4.2M</div>
+            <div className="sub">YTD avg</div>
+          </div>
+          <div className="kpi ok">
+            <div className="label">Net yield</div>
+            <div className="v">7.1%</div>
+            <div className="sub">vs 6.8% LY</div>
+          </div>
+          <div className="kpi gold">
+            <div className="label">Gross MTD</div>
+            <div className="v">IDR 2.4B</div>
+            <div className="sub">this month</div>
+          </div>
+        </div>
+      </Preview>
+    </Sub>
+    {product === "owner" && (
+      <Sub title="Narrative KPI" code=".kpi.kpi-narrative" desc="Used on the Owner statement landing — money speaks first.">
+        <Preview>
+          <div data-product="owner" className="ds-grid cols-2">
+            <div className="kpi kpi-narrative accent">
+              <div className="label">Net to you · March</div>
+              <div className="v">IDR 87.4M</div>
+              <div className="sub">Auto-sends on Apr 5. Two more drafts await sign-off.</div>
+            </div>
+            <div className="kpi kpi-narrative">
+              <div className="label">YTD payout</div>
+              <div className="v">$92,400</div>
+              <div className="sub">USD equiv. across 14 bookings · 7.1% net yield</div>
+            </div>
+          </div>
+        </Preview>
+      </Sub>
+    )}
+    <Spec rows={[
+      ["Border", "1 px var(--line-soft) (Mgmt) · var(--line) (Dev)"],
+      ["Radius", "14 px"],
+      ["Value font", product === "owner" ? "Display serif on .kpi-narrative · Mono elsewhere" : "Mono, 26 px, tnum"],
+      ["Tones", ".accent · .ok · .warn · .gold (Mgmt) · default"],
+    ]} />
+  </DSection>
+);
+
+const CardSection = ({ product }) => (
+  <DSection
+    id="card"
+    num="08"
+    eyebrow="Primitives"
+    title="Card"
+    lede="The default content surface. Card / panel are interchangeable; Dev historically uses .panel — same primitive, alias kept for prototype compatibility."
+  >
+    <Sub title="Default + padding variants">
+      <Preview>
+        <div data-product={product} className="ds-grid cols-3">
+          <div className="card card-pad">
+            <div className="label" style={{ marginBottom: 6 }}>Default</div>
+            <div style={{ fontFamily: "var(--display-font)", fontSize: 18, color: "var(--ink)" }}>
+              {product === "development" ? "Frozen BOQ" : "Today's brief"}
+            </div>
+            <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>
+              The standard surface for content. Padding is opt-in via .card-pad.
+            </p>
+          </div>
+          <div className="card card-pad-lg">
+            <div className="label" style={{ marginBottom: 6 }}>Pad-lg</div>
+            <div style={{ fontFamily: "var(--display-font)", fontSize: 18, color: "var(--ink)" }}>
+              More breathing room
+            </div>
+            <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>
+              For owner-facing cards, statement summaries, hero KPIs.
+            </p>
+          </div>
+          <div className="card card-lg card-pad" style={{ boxShadow: "var(--shadow-soft)" }}>
+            <div className="label" style={{ marginBottom: 6 }}>Lifted</div>
+            <div style={{ fontFamily: "var(--display-font)", fontSize: 18, color: "var(--ink)" }}>
+              shadow-soft
+            </div>
+            <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--ink-3)", lineHeight: 1.5 }}>
+              Floating dropdowns, hover-states on hero cards.
+            </p>
+          </div>
+        </div>
+      </Preview>
+    </Sub>
+    <Sub title="Inverted hero band" code=".card.card-inverted" desc={product === "development" ? "Carbon band — AI agent banners, hero statements." : "Forest band — used for AI Operations Copilot, hero statements, editorial breaks."}>
+      <Preview>
+        <div data-product={product}>
+          <div className="card card-inverted card-pad-lg" style={{ position: "relative", overflow: "hidden" }}>
+            <div style={{
+              position: "absolute", inset: 0, opacity: 0.18,
+              background: product === "development"
+                ? "radial-gradient(60% 60% at 100% 0%, var(--amber) 0%, transparent 60%)"
+                : "radial-gradient(60% 60% at 100% 0%, var(--gold) 0%, transparent 60%)",
+            }} />
+            <div style={{ position: "relative", maxWidth: 540 }}>
+              <div className="label">{product === "development" ? "AI · Cost Analyst" : "AI · Operations Copilot"}</div>
+              <h3 style={{
+                margin: "10px 0 12px",
+                fontFamily: "var(--display-font)",
+                fontWeight: product === "development" ? 500 : 400,
+                fontSize: 24,
+                lineHeight: 1.25,
+                color: "var(--inverted-fg)",
+              }}>
+                {product === "development"
+                  ? "Concrete bid #3 is 2.4% below your frozen BOQ midpoint. Recommend awarding."
+                  : product === "owner"
+                  ? "Your villa hosted 22 nights in March, well above the 18-night YTD pace."
+                  : "Three arrivals today. Two need airport pickup; one requested an early check-in."}
+              </h3>
+              <button className="btn btn-secondary btn-sm" style={{ background: "var(--cream-warm, var(--bg-2))" }}>
+                {product === "development" ? "Award & freeze" : product === "owner" ? "Open statement" : "Open brief"} →
+              </button>
+            </div>
+          </div>
+        </div>
+      </Preview>
+    </Sub>
+  </DSection>
+);
+
+const ButtonSection = ({ product }) => (
+  <DSection
+    id="button"
+    num="09"
+    eyebrow="Primitives"
+    title="Button"
+    lede="Pill-shape (radius 999), padding 11/18 default. Three sizes (sm/md/lg). Five intents: primary (dark ink), accent (terra/amber), secondary (light w/ border), ghost (transparent), danger."
+  >
+    <Sub title="Intents" code=".btn .btn-primary | .btn-accent | .btn-secondary | .btn-ghost | .btn-danger">
+      <Preview>
+        <div data-product={product} style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+          <button className="btn btn-primary">Primary action</button>
+          <button className="btn btn-accent">Accent</button>
+          <button className="btn btn-secondary">Secondary</button>
+          <button className="btn btn-ghost">Ghost</button>
+          <button className="btn btn-danger">Delete</button>
+          <button className="btn btn-primary" disabled>Disabled</button>
+        </div>
+      </Preview>
+    </Sub>
+    <Sub title="Sizes" code=".btn-sm · .btn (default) · .btn-lg">
+      <Preview>
+        <div data-product={product} style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+          <button className="btn btn-accent btn-sm">Small</button>
+          <button className="btn btn-accent">Default</button>
+          <button className="btn btn-accent btn-lg">Large</button>
+        </div>
+      </Preview>
+    </Sub>
+    <Sub title="With icons">
+      <Preview>
+        <div data-product={product} style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+          <button className="btn btn-primary">
+            <DSIcon name="plus" size={14} />
+            New booking
+          </button>
+          <button className="btn btn-secondary">
+            <DSIcon name="doc" size={14} />
+            Export PDF
+          </button>
+          <button className="btn btn-accent">
+            Continue
+            <DSIcon name="arrow-right" size={14} />
+          </button>
+        </div>
+      </Preview>
+    </Sub>
+    <Sub title="Round / arrow buttons" code=".ra-btn · sticker-style for hero cards">
+      <Preview>
+        <div data-product={product} style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <button className="ra-btn"><DSIcon name="arrow-right" size={18} /></button>
+          <button className="ra-btn accent"><DSIcon name="arrow-right" size={18} /></button>
+          <button className="ra-btn light"><DSIcon name="arrow-right" size={18} /></button>
+        </div>
+      </Preview>
+    </Sub>
+  </DSection>
+);
+
+const BadgeSection = ({ product }) => (
+  <DSection
+    id="badge"
+    num="10"
+    eyebrow="Primitives"
+    title="Badge"
+    lede="Mono caps, 11 px, 0.08 em tracking. Tonal background + matching border, 12 % opacity fills."
+  >
+    <Sub title="Tones" code=".badge .badge-ok | .badge-warn | .badge-danger | .badge-info | .badge-accent | .badge-gold | .badge-ink | .badge-soft">
+      <Preview>
+        <div data-product={product} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <span className="badge">Default</span>
+          <span className="badge badge-ok">OK</span>
+          <span className="badge badge-warn">Pending</span>
+          <span className="badge badge-danger">Overdue</span>
+          <span className="badge badge-info">Info</span>
+          <span className="badge badge-accent">{product === "development" ? "Amber" : "Terra"}</span>
+          {(product === "management" || product === "owner") && <span className="badge badge-gold">Gold</span>}
+          <span className="badge badge-ink">Active</span>
+          <span className="badge badge-soft">Draft</span>
+        </div>
+      </Preview>
+    </Sub>
+    <Sub title="In a row context" desc="Use as a single column in tables, or inline next to a name in lists.">
+      <Preview>
+        <div data-product={product} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--line-soft, var(--line))" }}>
+            <div style={{ fontFamily: "var(--display-font)", fontSize: 16, color: "var(--ink)", flex: 1 }}>
+              Emma Whitmore · EV-07
+            </div>
+            <span className="badge badge-ok">Cleared</span>
+            <span className="badge badge-gold">VIP</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--line-soft, var(--line))" }}>
+            <div style={{ fontFamily: "var(--display-font)", fontSize: 16, color: "var(--ink)", flex: 1 }}>
+              {product === "development" ? "RFQ-0142 · Concrete" : "Marie Hassan · EV-04"}
+            </div>
+            <span className="badge badge-warn">Awaiting</span>
+          </div>
+        </div>
+      </Preview>
+    </Sub>
+  </DSection>
+);
+
+const ChipPulseSection = ({ product }) => (
+  <DSection
+    id="chip"
+    num="11"
+    eyebrow="Primitives"
+    title="Chip"
+    lede="Filter chips and inline tags. Sans-serif (not mono like badges), softer presence. .chip-dot prepends an accent dot, .chip-active flips to filled accent."
+  >
+    <Sub title="Variants">
+      <Preview>
+        <div data-product={product} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <span className="chip">Default</span>
+          <span className="chip chip-dot">With dot</span>
+          <span className="chip chip-active">Selected</span>
+          <span className="chip chip-ink">Ink</span>
+          <span className="chip">
+            <DSIcon name="filter" size={12} />
+            With glyph
+          </span>
+          <span className="chip">
+            All channels
+            <DSIcon name="arrow-down" size={11} />
+          </span>
+        </div>
+      </Preview>
+    </Sub>
+
+    <div id="pulse" />
+    <Sub title="Pulse dot + avatar" desc="Pulse for live-data indicators. Avatar gradient is gold→accent.">
+      <Preview>
+        <div data-product={product} style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="pulse-dot" />
+            <span className="label" style={{ color: "var(--ok)" }}>live</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="pulse-dot accent" />
+            <span className="label">{product === "development" ? "site reporting" : "concierge online"}</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span className="avatar avatar-sm">PA</span>
+            <span className="avatar">EW</span>
+            <span className="avatar avatar-lg">{product === "development" ? "SL" : "BM"}</span>
+          </div>
+        </div>
+      </Preview>
+    </Sub>
+  </DSection>
+);
+
+window.KpiSection = KpiSection;
+window.CardSection = CardSection;
+window.ButtonSection = ButtonSection;
+window.BadgeSection = BadgeSection;
+window.ChipPulseSection = ChipPulseSection;
+
+
+// ===== ds/ds-data-sections.jsx =====
+/* ============================================================
+   ds-data-sections.jsx — Table + Form controls
+   ============================================================ */
+
+const TableSection = ({ product }) => {
+  const isDev = product === "development";
+  const isOwner = product === "owner";
+  return (
+    <DSection
+      id="table"
+      num="12"
+      eyebrow="Data"
+      title="Table"
+      lede={
+        isDev
+          ? "Dense, technical. Mono headers in caps, hover-row tint, right-aligned numerics with tnum. Used for BOQ, RFQ comparisons, ledgers."
+          : isOwner
+          ? "Airier than Mgmt. 18-px padding on cells, row titles in display serif, no border-bottom hover — Owner reads vs. operates."
+          : "Two diaglects share .data classname but tune density. Mgmt-soft adds cream header + serif row titles; Dev-dense compresses everything."
+      }
+    >
+      {!isOwner && (
+        <Sub title=".data — dense" desc="Default. Used in operator views, ledgers, exception lists.">
+          <Preview>
+            <div data-product={product}>
+              <table className="data">
+                <thead>
+                  <tr>
+                    {isDev ? (
+                      <>
+                        <th>Code</th><th>Item</th><th>Qty</th><th className="num">Unit cost</th>
+                        <th className="num">Total</th><th>Status</th>
+                      </>
+                    ) : (
+                      <>
+                        <th>Guest</th><th>Villa</th><th>Nights</th>
+                        <th>Source</th><th className="num">Net IDR</th><th>Status</th>
+                      </>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {isDev ? [
+                    ["A1-021", "Reinforced concrete, footings", "320 m³", "IDR 18.4M", "IDR 5.89B", { tone: "ok", t: "Frozen" }],
+                    ["A2-014", "Formwork, basement walls", "880 m²", "IDR 248K", "IDR 218M", { tone: "warn", t: "Pending" }],
+                    ["B1-008", "Structural steel, columns", "42 t", "IDR 22.1M", "IDR 928M", { tone: "ok", t: "Frozen" }],
+                    ["C1-031", "Roof membrane, EPDM", "1,180 m²", "IDR 320K", "IDR 378M", { tone: "danger", t: "Variance" }],
+                  ].map((r, i) => (
+                    <tr key={i}>
+                      <td className="mono">{r[0]}</td>
+                      <td>{r[1]}</td>
+                      <td className="num">{r[2]}</td>
+                      <td className="num">{r[3]}</td>
+                      <td className="num">{r[4]}</td>
+                      <td><span className={"badge badge-" + r[5].tone}>{r[5].t}</span></td>
+                    </tr>
+                  )) : [
+                    ["Emma Whitmore", "EV-07", 7, "Direct", "IDR 28.4M", { tone: "ok", t: "Cleared" }],
+                    ["Marie Hassan", "EV-04", 4, "Airbnb", "IDR 12.8M", { tone: "warn", t: "Awaiting" }],
+                    ["Takeda Family", "EV-11", 14, "Direct", "IDR 64.2M", { tone: "ok", t: "Cleared" }],
+                    ["Eden Lin", "EV-02", 3, "Booking", "IDR 8.4M", { tone: "ok", t: "Cleared" }],
+                  ].map((r, i) => (
+                    <tr key={i}>
+                      <td><span className="row-title">{r[0]}</span></td>
+                      <td className="mono">{r[1]}</td>
+                      <td className="num">{r[2]}n</td>
+                      <td>{r[3]}</td>
+                      <td className="num">{r[4]}</td>
+                      <td><span className={"badge badge-" + r[5].tone}>{r[5].t}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Preview>
+        </Sub>
+      )}
+      {(product === "management" || isOwner) && (
+        <Sub title={isOwner ? ".guests — owner-soft" : ".guests — soft / hospitality"} desc={isOwner ? "Owner statements read like a letter. 18+ px padding, no zebra, generous gutters." : "Larger padding (12/16), cream header, serif row titles. Used in guest-facing tables."}>
+          <Preview>
+            <div data-product={product}>
+              <table className="guests">
+                <thead>
+                  <tr>
+                    <th>Stay</th><th>Guest</th><th>Nights</th>
+                    <th>Source</th><th className="num">Net to you</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    [isOwner ? "Mar 4 → Mar 11" : "EV-07 · Mar 4", isOwner ? "Marie Hassan" : "Emma Whitmore", 7, "Direct", "IDR 28.4M"],
+                    [isOwner ? "Mar 14 → Mar 28" : "EV-04 · Mar 14", isOwner ? "Takeda Family" : "Marie Hassan", 14, isOwner ? "Direct" : "Airbnb", "IDR 64.2M"],
+                    [isOwner ? "Mar 30 → Apr 2" : "EV-11 · Mar 30", isOwner ? "You + family" : "Takeda Family", 3, isOwner ? "Owner stay" : "Direct", isOwner ? "—" : "IDR 8.4M"],
+                  ].map((r, i) => (
+                    <tr key={i}>
+                      <td><span style={{ fontFamily: "var(--display-font)", fontSize: 15, color: "var(--ink)" }}>{r[0]}</span></td>
+                      <td>{r[1]}</td>
+                      <td className="num">{r[2]}n</td>
+                      <td>{r[3]}</td>
+                      <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>{r[4]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Preview>
+        </Sub>
+      )}
+      <Spec rows={[
+        ["Default density", isDev ? "10/12 px cell padding" : isOwner ? "18/22 px cell padding" : "10/14 px (.data) · 12/16 px (.guests)"],
+        ["Header", "mono, uppercase, 10.5 px, 0.14 em tracking"],
+        ["Numeric cells", "td.num · th.num — right-aligned, mono, tnum"],
+        ["Row title", "var(--display-font), 14.5 px (Mgmt only)"],
+      ]} />
+    </DSection>
+  );
+};
+
+const FormSection = ({ product }) => (
+  <DSection
+    id="form"
+    num="13"
+    eyebrow="Data"
+    title="Form controls"
+    lede="One paired family of inputs for both products. Focus ring uses var(--accent) at 18 % opacity. Label is the mono caps eyebrow above the field."
+  >
+    <Sub title="Text input / Select / Textarea">
+      <Preview>
+        <div data-product={product} className="ds-grid cols-2">
+          <div className="field">
+            <label className="field-label">Guest name</label>
+            <input className="input" placeholder="Type a name…" defaultValue="" />
+            <span className="field-help">Searches across all stays.</span>
+          </div>
+          <div className="field">
+            <label className="field-label">Channel</label>
+            <select className="select" defaultValue="direct">
+              <option value="direct">Direct</option>
+              <option value="airbnb">Airbnb</option>
+              <option value="booking">Booking.com</option>
+            </select>
+          </div>
+          <div className="field" style={{ gridColumn: "1 / -1" }}>
+            <label className="field-label">Notes</label>
+            <textarea className="textarea" placeholder={
+              product === "development"
+                ? "Site supervisor notes — concrete pour delayed 4 h due to rain."
+                : "Concierge briefing — VIP arrival, requested orchid in-room."
+            } defaultValue="" />
+          </div>
+          <div className="field">
+            <label className="field-label">Arrival</label>
+            <input className="input" type="date" defaultValue="2026-03-14" />
+          </div>
+          <div className="field">
+            <label className="field-label">Net to owner (IDR M)</label>
+            <input className="input mono" defaultValue="28.4" />
+            <span className="field-error">Must match statement total within 0.5 %.</span>
+          </div>
+        </div>
+      </Preview>
+    </Sub>
+
+    <Sub title="Checkbox / Radio / Toggle">
+      <Preview>
+        <div data-product={product} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
+            <label className="check">
+              <input type="checkbox" defaultChecked /><span className="box" />
+              Send statement to owner
+            </label>
+            <label className="check">
+              <input type="checkbox" /><span className="box" />
+              Include guest-services line items
+            </label>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
+            <label className="check radio">
+              <input type="radio" name="r" defaultChecked /><span className="box" />
+              Auto-send on the 5th
+            </label>
+            <label className="check radio">
+              <input type="radio" name="r" /><span className="box" />
+              Hold for sign-off
+            </label>
+            <label className="check radio">
+              <input type="radio" name="r" /><span className="box" />
+              Draft only
+            </label>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontFamily: "var(--sans-font)", fontSize: 13.5, color: "var(--ink)" }}>
+              Notifications
+            </span>
+            <span className="toggle on" />
+            <span style={{ fontFamily: "var(--sans-font)", fontSize: 12, color: "var(--ink-3)" }}>
+              push enabled
+            </span>
+          </div>
+        </div>
+      </Preview>
+    </Sub>
+
+    <Sub title="Search input" desc="Pill-shape, mono ⌘K hint inline. Also lives in the topbar.">
+      <Preview>
+        <div data-product={product} className="tb-search" style={{ width: 360 }}>
+          <span className="sx"><DSIcon name="search" size={14} /></span>
+          <input placeholder="Search villa, booking, owner, guest…" defaultValue="" />
+          <span className="kbd">⌘K</span>
+        </div>
+      </Preview>
+    </Sub>
+  </DSection>
+);
+
+window.TableSection = TableSection;
+window.FormSection = FormSection;
+
+
+// ===== ds/ds-pattern-sections.jsx =====
+/* ============================================================
+   ds-pattern-sections.jsx — Section heading, Page header,
+   Filter, Empty, Pagination, Command palette, Modal, Detail
+   ============================================================ */
+
+const SectionHeadingSection = ({ product }) => (
+  <DSection
+    id="section-heading"
+    num="14"
+    eyebrow="Patterns"
+    title="Section heading"
+    lede="Used at the top of every content area below the topbar. Eyebrow label + display title + optional lede + right-aligned actions."
+  >
+    <Preview>
+      <div data-product={product}>
+        <div className="section-heading">
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 18 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="label">
+                {product === "owner" ? "March 2026 · DRAFT"
+                  : product === "development" ? "Ahau Gardens · Phase 2"
+                  : "Today · GMT+8"}
+              </div>
+              <h2 style={{ marginTop: 6 }}>
+                {product === "owner" ? <>Your March in <em>Bali.</em></>
+                  : product === "development" ? <>Cost variance, <em>live.</em></>
+                  : <>Good morning, <em>Putu.</em></>}
+              </h2>
+              <p>
+                {product === "owner"
+                  ? "Three guests stayed at EV-07 this month. Net to you settles at IDR 87.4 M, sent automatically on April 5."
+                  : product === "development"
+                  ? "Three RFQs ready to award. Concrete bid #3 came in 2.4 % below your frozen BOQ — recommend awarding by Friday."
+                  : "Three arrivals today. Two need airport pickup; one requested an early check-in. Concierge is online."}
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn btn-secondary btn-sm">Export brief</button>
+              <button className="btn btn-accent btn-sm">
+                {product === "owner" ? "Request a stay" : product === "development" ? "Award" : "New booking"} +
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Preview>
+  </DSection>
+);
+
+const PageHeaderSection = ({ product }) => (
+  <DSection
+    id="page-header"
+    num="15"
+    eyebrow="Patterns"
+    title="Page header (deep page)"
+    lede="Used at the top of every deep cabinet page. Breadcrumbs + title + actions. Bottom border separates from content."
+  >
+    <Preview>
+      <div data-product={product}>
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <a href="#">{product === "owner" ? "Portfolio" : "Workspace"}</a>
+              <span>›</span>
+              <a href="#">{product === "owner" ? "Statements" : product === "development" ? "Cabinets" : "Bookings"}</a>
+              <span>›</span>
+              <span>{product === "owner" ? "March 2026" : product === "development" ? "QS desk" : "EV-07 · Whitmore"}</span>
+            </div>
+            <h1>
+              {product === "owner" ? "March statement"
+                : product === "development" ? "QS desk · 142 items"
+                : "Emma Whitmore · EV-07"}
+            </h1>
+          </div>
+          <div className="actions">
+            <button className="btn btn-secondary btn-sm">
+              <DSIcon name="doc" size={14} />
+              Export PDF
+            </button>
+            {product === "development" && (
+              <button className="btn btn-secondary btn-sm">Import CSV</button>
+            )}
+            <button className="btn btn-accent btn-sm">
+              {product === "owner" ? "Approve" : product === "development" ? "Freeze BOQ" : "Edit booking"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Preview>
+  </DSection>
+);
+
+const FilterBarSection = ({ product }) => (
+  <DSection
+    id="filter"
+    num="16"
+    eyebrow="Patterns"
+    title="Filter bar"
+    lede="Sits above tables. Filter chips on the left, search + actions on the right. Active chips flip to filled accent."
+  >
+    <Preview>
+      <div data-product={product}>
+        <div className="filter-bar">
+          <span className="chip chip-active">All</span>
+          <span className="chip">{product === "development" ? "Frozen" : "Cleared"}</span>
+          <span className="chip">{product === "development" ? "Pending" : "Awaiting"}</span>
+          <span className="chip">{product === "development" ? "Variance" : "Overdue"}</span>
+          <span className="divider" />
+          <span className="chip">
+            <DSIcon name="cal" size={12} />
+            Mar 2026
+            <DSIcon name="arrow-down" size={11} />
+          </span>
+          <span className="chip">
+            {product === "development" ? "All projects" : "All villas"}
+            <DSIcon name="arrow-down" size={11} />
+          </span>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+            <div className="tb-search" style={{ width: 220 }}>
+              <span className="sx"><DSIcon name="search" size={13} /></span>
+              <input placeholder="Filter rows…" />
+            </div>
+            <button className="btn btn-secondary btn-sm">
+              <DSIcon name="filter" size={13} />
+              Saved views
+            </button>
+          </div>
+        </div>
+      </div>
+    </Preview>
+  </DSection>
+);
+
+const EmptyStateSection = ({ product }) => (
+  <DSection
+    id="empty"
+    num="17"
+    eyebrow="Patterns"
+    title="Empty state"
+    lede="Dashed border, muted background, centred copy. Never a wall of text — a glyph, a title, one sentence, one action."
+  >
+    <Preview>
+      <div data-product={product} className="ds-grid cols-2">
+        <div className="empty">
+          <div className="glyph"><DSIcon name="doc" size={20} /></div>
+          <h3 className="title">
+            {product === "owner" ? "No statements yet" : product === "development" ? "No site reports yet" : "No arrivals scheduled"}
+          </h3>
+          <p className="copy">
+            {product === "owner"
+              ? "Your first statement will land here once March wraps. Auto-sends on the 5th of the following month."
+              : product === "development"
+              ? "Site supervisors file reports from the field app. First one will appear here within hours of crew check-in."
+              : "Bookings for today haven't synced yet, or there genuinely aren't any. Try again after the 06:00 channel sync."}
+          </p>
+          <button className="btn btn-secondary btn-sm">
+            {product === "owner" ? "Notify me" : product === "development" ? "Open field app" : "Force sync"}
+          </button>
+        </div>
+        <div className="empty" style={{ borderStyle: "solid", borderColor: "var(--terra, var(--amber))", background: "color-mix(in srgb, var(--terra, var(--amber)) 6%, transparent)" }}>
+          <div className="glyph" style={{ background: "var(--accent)", color: "var(--on-accent)" }}>
+            <DSIcon name="lightning" size={20} />
+          </div>
+          <h3 className="title">
+            {product === "development" ? "Frozen BOQ ready" : "Statement awaiting sign-off"}
+          </h3>
+          <p className="copy">
+            {product === "development"
+              ? "Your QS finalised the BOQ this morning. Reviewing locks pricing for the next 30 days."
+              : product === "owner"
+              ? "Auto-send pauses 24 h before delivery so you can sign off. One action away."
+              : "Three statements are queued for the 5th. Reviewing locks the numbers."}
+          </p>
+          <button className="btn btn-accent btn-sm">
+            {product === "development" ? "Review BOQ" : "Open statement"} →
+          </button>
+        </div>
+      </div>
+    </Preview>
+  </DSection>
+);
+
+const PaginationSection = ({ product }) => (
+  <DSection
+    id="pagination"
+    num="18"
+    eyebrow="Patterns"
+    title="Pagination"
+    lede="Mono numerals, ink-fill on the active page. Always pair with a row-count summary."
+  >
+    <Preview>
+      <div data-product={product} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div className="label">Showing 1–24 of 142 rows</div>
+        <div className="pagination">
+          <button>‹</button>
+          <button className="on">1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>4</button>
+          <span style={{ color: "var(--ink-4)" }}>…</span>
+          <button>9</button>
+          <button>›</button>
+          <span className="meta">Page size 24</span>
+        </div>
+      </div>
+    </Preview>
+  </DSection>
+);
+
+const CommandPaletteSection = ({ product }) => (
+  <DSection
+    id="command"
+    num="19"
+    eyebrow="Patterns"
+    title="Command palette (⌘K)"
+    lede="Global navigation + actions overlay. Triggered from the topbar search or anywhere with ⌘K. Groups Pages / Actions / Records."
+  >
+    <Preview style={{ background: "color-mix(in srgb, var(--ink) 18%, var(--cream, var(--bg)))" }}>
+      <div data-product={product} style={{ display: "flex", justifyContent: "center", padding: "32px 0" }}>
+        <div className="cmdk">
+          <div className="cmdk-input">
+            <span className="sx"><DSIcon name="search" size={16} /></span>
+            <span>Search pages, actions, records…</span>
+            <span style={{ marginLeft: "auto", fontFamily: "var(--mono-font)", fontSize: 11, color: "var(--ink-3)" }}>esc</span>
+          </div>
+          <div className="cmdk-group">
+            <div className="cmdk-group-title">Pages</div>
+            <div className="cmdk-item on">
+              <DSIcon name="home" size={14} />
+              {product === "development" ? "Overview" : "Today's brief"}
+              <span className="hint">→</span>
+            </div>
+            <div className="cmdk-item">
+              <DSIcon name="cal" size={14} />
+              {product === "development" ? "Schedule" : "Bookings calendar"}
+              <span className="hint">G B</span>
+            </div>
+            <div className="cmdk-item">
+              <DSIcon name="receipt" size={14} />
+              {product === "owner" ? "Statements" : product === "development" ? "Finance" : "Finance · Statements"}
+              <span className="hint">G F</span>
+            </div>
+          </div>
+          <div className="cmdk-group">
+            <div className="cmdk-group-title">Actions</div>
+            <div className="cmdk-item">
+              <DSIcon name="plus" size={14} />
+              {product === "development" ? "New site report" : product === "owner" ? "Request a stay" : "New booking"}
+              <span className="hint">N</span>
+            </div>
+            <div className="cmdk-item">
+              <DSIcon name="doc" size={14} />
+              Export current view as PDF
+            </div>
+          </div>
+          <div className="cmdk-group">
+            <div className="cmdk-group-title">Records</div>
+            <div className="cmdk-item">
+              <DSIcon name="user" size={14} />
+              {product === "development" ? "RFQ-0142 · Concrete" : "Emma Whitmore"}
+              <span className="hint">↵</span>
+            </div>
+            <div className="cmdk-item">
+              <DSIcon name="user" size={14} />
+              {product === "development" ? "BOQ A1-021" : "EV-07 · Eternal Estates"}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Preview>
+  </DSection>
+);
+
+const ModalSection = ({ product }) => (
+  <DSection
+    id="modal"
+    num="20"
+    eyebrow="Patterns"
+    title="Modal"
+    lede="One paired pattern across 30+ forms in the codebase. Sizes sm / md / lg. Types: form / confirm / destructive. Footer always right-aligned, primary on the right."
+  >
+    <Preview style={{ padding: 0 }}>
+      <div data-product={product}>
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-header">
+              <div>
+                <h3>{product === "development" ? "Freeze BOQ?" : product === "owner" ? "Sign off March statement" : "Approve owner statement"}</h3>
+                <p>
+                  {product === "development"
+                    ? "Locking the BOQ stops any further line-item edits and starts the 30-day pricing window."
+                    : product === "owner"
+                    ? "Once you sign off, IDR 87.4 M will be wired to your nominated account on April 5."
+                    : "Emma Whitmore · EV-07 · IDR 87.4 M net. Locks the numbers and queues the email."}
+                </p>
+              </div>
+              <button className="tb-bell" style={{ padding: 4 }}>
+                <DSIcon name="x" size={16} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="field">
+                <label className="field-label">Send to</label>
+                <input className="input" defaultValue={product === "owner" ? "wire@whitmore.estate" : "emma@whitmore.estate"} />
+              </div>
+              <div className="field" style={{ marginTop: 12 }}>
+                <label className="check">
+                  <input type="checkbox" defaultChecked /><span className="box" />
+                  CC the operations team
+                </label>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost btn-sm">Cancel</button>
+              <button className="btn btn-accent btn-sm">
+                {product === "development" ? "Freeze BOQ" : product === "owner" ? "Sign off & send" : "Approve & send"} →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Preview>
+  </DSection>
+);
+
+const DetailPageSection = ({ product }) => (
+  <DSection
+    id="detail"
+    num="21"
+    eyebrow="Patterns"
+    title="Detail-page skeleton"
+    lede="Used by bookings/[id], villas/[id]/health, commitments/[id], boq/[code], invoices/[id]. Header + tabs + main panel + 280-px related rail."
+  >
+    <Preview className="flush">
+      <div data-product={product} style={{ background: "var(--cream, var(--bg))", padding: 22, borderRadius: 10 }}>
+        <div className="page-header" style={{ marginBottom: 18 }}>
+          <div className="left">
+            <div className="crumb">
+              <a href="#">{product === "development" ? "Cabinets" : "Bookings"}</a>
+              <span>›</span>
+              <span>{product === "development" ? "QS desk · A1-021" : "EV-07 · Whitmore"}</span>
+            </div>
+            <h1>{product === "development" ? "A1-021 · Concrete footings" : "Emma Whitmore"}</h1>
+          </div>
+          <div className="actions">
+            <button className="btn btn-secondary btn-sm">Edit</button>
+            <button className="btn btn-accent btn-sm">{product === "development" ? "Award" : "Approve"}</button>
+          </div>
+        </div>
+        <div className="detail-tabs">
+          <button className="tab on">Overview</button>
+          <button className="tab">{product === "development" ? "Bids" : "Timeline"}</button>
+          <button className="tab">{product === "development" ? "Variance" : "Statements"}</button>
+          <button className="tab">Activity</button>
+          <button className="tab">{product === "development" ? "Vendors" : "Notes"}</button>
+        </div>
+        <div className="detail-shell">
+          <div>
+            <div className="card card-pad" style={{ marginBottom: 14 }}>
+              <div className="label" style={{ marginBottom: 8 }}>Summary</div>
+              <div className="ds-grid cols-3" style={{ gap: 10 }}>
+                <div className="kpi">
+                  <div className="label">{product === "development" ? "Quantity" : "Nights"}</div>
+                  <div className="v">{product === "development" ? "320 m³" : "7"}</div>
+                </div>
+                <div className="kpi accent">
+                  <div className="label">{product === "development" ? "Frozen total" : "Net IDR"}</div>
+                  <div className="v">{product === "development" ? "IDR 5.89B" : "28.4M"}</div>
+                </div>
+                <div className="kpi ok">
+                  <div className="label">{product === "development" ? "Bids" : "Source"}</div>
+                  <div className="v" style={{ fontSize: 20 }}>{product === "development" ? "3" : "Direct"}</div>
+                </div>
+              </div>
+            </div>
+            <div className="card card-pad">
+              <div className="label" style={{ marginBottom: 10 }}>Activity</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[
+                  { time: "09:14", text: product === "development" ? "Bid received from PT Beton Surya · IDR 18.0M/m³" : "Concierge cleared airport pickup with Putu" },
+                  { time: "Mar 8", text: product === "development" ? "Quantity locked by QS — Sam Larsen" : "Booking confirmed via Direct channel" },
+                  { time: "Mar 5", text: product === "development" ? "RFQ-0142 issued to 5 vendors" : "Owner stay overlap resolved" },
+                ].map((a, i) => (
+                  <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <span className="label" style={{ width: 64, flexShrink: 0 }}>{a.time}</span>
+                    <span style={{ fontSize: 13, color: "var(--ink-2)", fontFamily: "var(--sans-font)", lineHeight: 1.5 }}>{a.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="related">
+            <div className="card card-pad">
+              <div className="label" style={{ marginBottom: 8 }}>{product === "development" ? "RFQ" : "Guest"}</div>
+              <div style={{ fontFamily: "var(--display-font)", fontSize: 17, color: "var(--ink)" }}>
+                {product === "development" ? "RFQ-0142" : "Whitmore, Emma"}
+              </div>
+              <div className="label" style={{ marginTop: 12 }}>{product === "development" ? "Project" : "Returning"}</div>
+              <div style={{ fontSize: 14, color: "var(--ink-2)", marginTop: 2 }}>
+                {product === "development" ? "Ahau Gardens · Phase 2" : "4th stay"}
+              </div>
+            </div>
+            <div className="card card-pad">
+              <div className="label" style={{ marginBottom: 8 }}>Related</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {(product === "development"
+                  ? ["BOQ A1-022", "BOQ A2-014", "Vendor: PT Beton Surya"]
+                  : ["EV-07 villa", "March statement", "Concierge thread"]
+                ).map(s => (
+                  <a key={s} href="#" style={{ fontSize: 13, color: "var(--ink-2)", textDecoration: "none", padding: "4px 0" }}>{s} →</a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Preview>
+  </DSection>
+);
+
+window.SectionHeadingSection = SectionHeadingSection;
+window.PageHeaderSection = PageHeaderSection;
+window.FilterBarSection = FilterBarSection;
+window.EmptyStateSection = EmptyStateSection;
+window.PaginationSection = PaginationSection;
+window.CommandPaletteSection = CommandPaletteSection;
+window.ModalSection = ModalSection;
+window.DetailPageSection = DetailPageSection;
+
+
+// ===== ds/ds-mobile-sections.jsx =====
+/* ============================================================
+   ds-mobile-sections.jsx — Mobile navigation + KPI grid
+   ============================================================ */
+
+const MobileFrame = ({ children, time = "9:41" }) => (
+  <div className="mobile-frame">
+    <div className="mobile-status">
+      <span>{time}</span>
+      <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <span style={{ width: 14, height: 8, border: "1px solid currentColor", borderRadius: 2, position: "relative", display: "inline-block" }}>
+          <span style={{ position: "absolute", inset: 1, background: "currentColor", borderRadius: 1, width: "70%" }} />
+        </span>
+      </span>
+    </div>
+    <div className="mobile-body">{children}</div>
+  </div>
+);
+
+const MobileTabbar = ({ product, active = "home" }) => {
+  const tabs = product === "owner"
+    ? [
+      { id: "home", label: "Portfolio", icon: "home" },
+      { id: "stmt", label: "Statements", icon: "receipt" },
+      { id: "cal", label: "Calendar", icon: "cal" },
+      { id: "inbox", label: "Inbox", icon: "msg" },
+      { id: "me", label: "Account", icon: "user" },
+    ]
+    : product === "development"
+    ? [
+      { id: "home", label: "Overview", icon: "home" },
+      { id: "proj", label: "Projects", icon: "hammer" },
+      { id: "ai", label: "Agents", icon: "sparkles" },
+      { id: "fin", label: "Finance", icon: "receipt" },
+      { id: "more", label: "More", icon: "cog" },
+    ]
+    : [
+      { id: "home", label: "Today", icon: "home" },
+      { id: "book", label: "Bookings", icon: "cal" },
+      { id: "conc", label: "Concierge", icon: "msg" },
+      { id: "fin", label: "Finance", icon: "receipt" },
+      { id: "more", label: "More", icon: "cog" },
+    ];
+  return (
+    <div className="mobile-tabbar">
+      {tabs.map(t => (
+        <button key={t.id} className={"tb" + (t.id === active ? " on" : "")}>
+          <span className="ico"><DSIcon name={t.icon} size={20} /></span>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const MobileNavSection = ({ product }) => (
+  <DSection
+    id="mobile-nav"
+    num="22"
+    eyebrow="Mobile"
+    title="Tabbar & sidebar collapse"
+    lede={
+      product === "owner"
+        ? "Owner Portal mobile is genuinely high-priority — owners check statements from a phone in an airport lounge. 5-tab bottom bar mirrors the 5 sidebar groups."
+        : "On ≤900 px the desktop sidebar hides entirely; a 5-tab bottom bar appears in its place. Topbar collapses search to full-width below the bell + user chip."
+    }
+  >
+    <Sub title="Live mobile preview">
+      <div className="ds-mobile-row">
+        <MobileFrame>
+          <div data-product={product} style={{ background: "var(--cream, var(--bg))", minHeight: "100%", display: "flex", flexDirection: "column" }}>
+            <header style={{ padding: "14px 18px 8px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid var(--line-soft, var(--line))" }}>
+              <div style={{ flex: 1 }}>
+                <div className="label" style={{ fontSize: 9 }}>
+                  {product === "owner" ? "Portfolio" : "Today · GMT+8"}
+                </div>
+                <div style={{ fontFamily: "var(--display-font)", fontSize: 22, color: "var(--ink)", marginTop: 2 }}>
+                  {product === "owner" ? "Good morning, Emma." : product === "development" ? "Overview" : "Good morning, Putu."}
+                </div>
+              </div>
+              <button className="tb-bell">
+                <DSIcon name="bell" size={16} />
+                <span className="dot" />
+              </button>
+            </header>
+            <div style={{ padding: "14px 14px 24px", flex: 1, overflow: "auto" }}>
+              <div className="tb-search" style={{ width: "100%", marginBottom: 14 }}>
+                <span className="sx"><DSIcon name="search" size={13} /></span>
+                <input placeholder={product === "owner" ? "Search…" : "Search villas, bookings…"} />
+                <span className="kbd">⌘K</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                <div className="kpi accent">
+                  <div className="label">{product === "owner" ? "Net March" : "ADR"}</div>
+                  <div className="v" style={{ fontSize: 22 }}>{product === "owner" ? "87.4M" : "4.2M"}</div>
+                </div>
+                <div className="kpi ok">
+                  <div className="label">{product === "owner" ? "Yield" : "Occ. YTD"}</div>
+                  <div className="v" style={{ fontSize: 22 }}>{product === "owner" ? "7.1%" : "84%"}</div>
+                </div>
+              </div>
+              <div className="card card-pad" style={{ marginBottom: 10 }}>
+                <div className="label" style={{ marginBottom: 4 }}>
+                  {product === "owner" ? "Next stay" : "Next arrival"}
+                </div>
+                <div style={{ fontFamily: "var(--display-font)", fontSize: 17, color: "var(--ink)" }}>
+                  {product === "owner" ? "Marie + 2 · Mar 28" : "Whitmore · EV-07 · 14:00"}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 4 }}>
+                  {product === "owner" ? "4 nights · Airbnb" : "Airport pickup confirmed"}
+                </div>
+              </div>
+              <div className="card card-pad">
+                <div className="label" style={{ marginBottom: 6 }}>
+                  {product === "owner" ? "March activity" : "Today"}
+                </div>
+                {[
+                  product === "owner" ? "3 stays cleared" : "2 check-ins by 14:00",
+                  product === "owner" ? "Statement awaits sign-off" : "Housekeeping on track",
+                  product === "owner" ? "1 message from concierge" : "Direct enquiry · respond",
+                ].map((t, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderTop: i === 0 ? "none" : "1px solid var(--line-soft, var(--line))" }}>
+                    <span className="pulse-dot accent" />
+                    <span style={{ fontSize: 13, color: "var(--ink-2)" }}>{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <MobileTabbar product={product} />
+          </div>
+        </MobileFrame>
+        <div className="ds-mobile-notes">
+          <h4>Hit-target rule</h4>
+          <p>Bottom-bar items are 56-px tall, label + icon. Never less than 44 px in any direction. Tappable card edges have 14 px of safe padding.</p>
+
+          <h4>Sidebar disappears at ≤ 900 px</h4>
+          <p>The 264-px desktop sidebar is hidden via <code>display:none</code>. The 5-tab MobileTabbar maps to the most-visited sections from the desktop sidebar (one per top group).</p>
+
+          <h4>Topbar collapses</h4>
+          <p>On phones the breadcrumb shortens to a single segment + chevron. Search drops below the user/bell row, full-width.</p>
+
+          <h4>{product === "owner" ? "Owner-Portal specifics" : product === "development" ? "Development-OS specifics" : "Management-OS specifics"}</h4>
+          <p>
+            {product === "owner"
+              ? "Mobile is the primary surface for owners. Type stays large (16 px body), KPI values become 22 px, statements switch to a single-column reading layout."
+              : product === "development"
+              ? "Field-app surfaces a separate (/field/*) UI for site supervisors — mobile here covers cabinet review, not data entry."
+              : "Operators do triage on phones (concierge, today's brief, exception inbox). Heavy ops happen on desktop."}
+          </p>
+        </div>
+      </div>
+    </Sub>
+  </DSection>
+);
+
+const MobileKpiSection = ({ product }) => (
+  <DSection
+    id="mobile-kpi"
+    num="23"
+    eyebrow="Mobile"
+    title="KPI grid on small screens"
+    lede="4-up KPIs become 2-up at ≤900 px and 1-up at ≤600 px. Value-font shrinks proportionally. Sub-text never wraps to more than 2 lines."
+  >
+    <Sub title="Three breakpoints side by side">
+      <Preview className="flush" tag="LIVE">
+        <div data-product={product} style={{ background: "var(--cream, var(--bg))", padding: 22, borderRadius: 10, display: "flex", gap: 22, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 320px" }}>
+            <div className="label" style={{ marginBottom: 10 }}>≥ 1100 px · 4-up</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+              {["Occupancy", "ADR", "RevPAR", "Gross"].map((l, i) => (
+                <div className={"kpi" + (i === 0 ? " accent" : "")} key={l}>
+                  <div className="label" style={{ fontSize: 9.5 }}>{l}</div>
+                  <div className="v" style={{ fontSize: 18 }}>{["84%", "4.2M", "3.5M", "2.4B"][i]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ width: 340 }}>
+            <div className="label" style={{ marginBottom: 10 }}>≤ 900 px · 2-up</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {["Occupancy", "ADR", "RevPAR", "Gross"].map((l, i) => (
+                <div className={"kpi" + (i === 0 ? " accent" : "")} key={l}>
+                  <div className="label" style={{ fontSize: 9.5 }}>{l}</div>
+                  <div className="v" style={{ fontSize: 20 }}>{["84%", "4.2M", "3.5M", "2.4B"][i]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ width: 220 }}>
+            <div className="label" style={{ marginBottom: 10 }}>≤ 600 px · 1-up</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8 }}>
+              {["Occupancy", "ADR"].map((l, i) => (
+                <div className={"kpi" + (i === 0 ? " accent" : "")} key={l}>
+                  <div className="label" style={{ fontSize: 9.5 }}>{l}</div>
+                  <div className="v" style={{ fontSize: 22 }}>{["84%", "IDR 4.2M"][i]}</div>
+                  <div className="sub" style={{ fontSize: 11 }}>YTD avg</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Preview>
+    </Sub>
+  </DSection>
+);
+
+window.MobileNavSection = MobileNavSection;
+window.MobileKpiSection = MobileKpiSection;
+
+
+// ===== ds/ds-app.jsx =====
+/* ============================================================
+   ds-app.jsx — entry: TOC, tabs, mount all sections
+   ============================================================ */
+
+const { useState, useEffect, useRef } = React;
+
+const TabBar = ({ product, setProduct }) => (
+  <div className="ds-tabs">
+    {window.DS_PRODUCTS.map(p => (
+      <button
+        key={p.id}
+        className={"ds-tab" + (p.id === product ? " on" : "")}
+        onClick={() => setProduct(p.id)}
+        style={{ "--swatch": p.swatch }}
+      >
+        <span className="swatch" />
+        <span>{p.label}</span>
+        <span className="tag">{p.tag}</span>
+      </button>
+    ))}
+    <div className="ds-meta">
+      <span className="pill">{window.DS_SECTIONS.flatMap(g => g.items).length} sections</span>
+      <span className="pill">Phase 2.0 · Foundation</span>
+    </div>
+  </div>
+);
+
+const TOC = ({ active, setActive }) => (
+  <nav className="ds-toc">
+    <div className="ds-mark">
+      <span className="glyph" />
+      <span>Arconique · DS</span>
+    </div>
+    <h1>Design System</h1>
+    {window.DS_SECTIONS.map(g => (
+      <div className="ds-toc-group" key={g.group}>
+        <div className="ds-toc-group-title">{g.group}</div>
+        {g.items.map(it => (
+          <a
+            key={it.id}
+            href={`#${it.id}`}
+            className={"ds-toc-item" + (active === it.id ? " on" : "")}
+            onClick={() => setActive(it.id)}
+          >
+            <span>{it.label}</span>
+          </a>
+        ))}
+      </div>
+    ))}
+    <div style={{
+      padding: "12px 8px",
+      fontFamily: "var(--doc-mono)",
+      fontSize: 10.5,
+      color: "var(--doc-fg-3)",
+      lineHeight: 1.6,
+      borderTop: "1px solid var(--doc-line)",
+      marginTop: 8,
+    }}>
+      Source of truth for Phase 2.<br />
+      Layer B tokens · [data-product] scoped.<br />
+      No dark mode in this wave.
+    </div>
+  </nav>
+);
+
+const Sections = ({ product }) => (
+  <>
+    <ColorSection product={product} />
+    <TypeSection product={product} />
+    <RadiiShadowsSection product={product} />
+    <ShellSection product={product} />
+    <TopbarSection product={product} />
+    <SidebarSection product={product} />
+    <KpiSection product={product} />
+    <CardSection product={product} />
+    <ButtonSection product={product} />
+    <BadgeSection product={product} />
+    <ChipPulseSection product={product} />
+    <TableSection product={product} />
+    <FormSection product={product} />
+    <SectionHeadingSection product={product} />
+    <PageHeaderSection product={product} />
+    <FilterBarSection product={product} />
+    <EmptyStateSection product={product} />
+    <PaginationSection product={product} />
+    <CommandPaletteSection product={product} />
+    <ModalSection product={product} />
+    <DetailPageSection product={product} />
+    <MobileNavSection product={product} />
+    <MobileKpiSection product={product} />
+  </>
+);
+
+const App = () => {
+  const [product, setProduct] = useState("management");
+  const [active, setActive] = useState("color");
+  const mainRef = useRef(null);
+
+  // Track scroll position to highlight active TOC item
+  useEffect(() => {
+    const onScroll = () => {
+      const ids = window.DS_SECTIONS.flatMap(g => g.items).map(i => i.id);
+      let current = ids[0];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const top = el.getBoundingClientRect().top;
+        if (top < 140) current = id;
+        else break;
+      }
+      if (current !== active) setActive(current);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [active]);
+
+  return (
+    <div className="ds-app">
+      <TOC active={active} setActive={setActive} />
+      <div className="ds-main" ref={mainRef}>
+        <TabBar product={product} setProduct={setProduct} />
+        <div className="ds-content">
+          <Sections product={product} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
+
+</script>
+</body>
+</html>

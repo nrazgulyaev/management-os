@@ -1,0 +1,1716 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mobile pass · Phase 2.4 primitives</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="chrome-tokens">
+/* ============================================================
+   Subset of cabinets/chrome.css — tokens needed for the primitives.
+   ============================================================ */
+:root {
+  --doc-bg:        #0F1014;
+  --doc-bg-2:      #16171C;
+  --doc-bg-3:      #1F2129;
+  --doc-line:      rgba(255,255,255,0.06);
+  --doc-line-2:    rgba(255,255,255,0.10);
+  --doc-fg:        #E6E5E0;
+  --doc-fg-2:      #BBB9B0;
+  --doc-fg-3:      #8B8B85;
+  --doc-accent:    #C4583C;
+  --doc-mono:      "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans:      "Inter", system-ui, sans-serif;
+}
+
+[data-product="management"], [data-product="owner"] {
+  --paper:        #FAF6EE;
+  --cream:        #F4EFE6;
+  --cream-warm:   #ECE5D5;
+  --cream-deep:   #E5DECC;
+  --ink:          #14201C;
+  --ink-2:        #2F3D38;
+  --ink-3:        #5C6B65;
+  --ink-4:        #8E9A95;
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --accent:       #C4583C;
+  --accent-soft:  #E8B8A4;
+  --accent-deep:  #A24628;
+  --on-accent:    #FFF8F0;
+  --forest:       #1F3A2E;
+  --inverted-bg:  #14201C;
+  --inverted-fg:  #F4EFE6;
+  --ok:           #2C8A5C;
+  --warn:         #C18A2E;
+  --danger:       #B53826;
+  --info:         #3A6B9C;
+  --sage:         #7E8E7A;
+  --terra:        #C4583C;
+
+  --r-pill:    999px;
+  --r-card:    14px;
+  --r-card-lg: 20px;
+  --r-hero:    28px;
+  --r-sm:      6px;
+  --r-xs:      4px;
+
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font:    "Inter", system-ui, sans-serif;
+  --mono-font:    "JetBrains Mono", ui-monospace, monospace;
+
+  --shadow-card: 0 2px 6px rgba(20,32,28,0.05), 0 1px 2px rgba(20,32,28,0.04);
+  --shadow-pop:  0 12px 32px rgba(20,32,28,0.14), 0 4px 8px rgba(20,32,28,0.06);
+}
+
+[data-product="owner"] {}
+
+[data-product="development"] {
+  --bg:           #F1ECE0;
+  --bg-2:         #E7E1D3;
+  --bg-3:         #DDD6C5;
+  --panel:        #F7F3E8;
+  --ink:          #1A1916;
+  --ink-2:        #2D2B25;
+  --ink-3:        #5A5A4F;
+  --ink-4:        #8A8A7E;
+  --line:         #C9C3B0;
+  --line-2:       #D8D3C2;
+  --line-3:       #B8B19E;
+  --line-soft:    #D8D3C2;
+  --accent:       #B07A28;
+  --accent-soft:  #E5C684;
+  --accent-deep:  #855B17;
+  --on-accent:    #1A1916;
+  --inverted-bg:  #1A1916;
+  --inverted-fg:  #F7F3E8;
+  --ok:           #2F7A4E;
+  --warn:         #B07A28;
+  --danger:       #A8331F;
+  --info:         #2E5680;
+  --amber:        #B07A28;
+  --carbon:       #1A1916;
+  --cream-warm:   #E7E1D3;
+  --cream-deep:   #D8D3C2;
+
+  --r-pill:    999px;
+  --r-card:    8px;
+  --r-card-lg: 14px;
+  --r-hero:    18px;
+  --r-sm:      4px;
+  --r-xs:      3px;
+
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font:    "Inter", system-ui, sans-serif;
+  --mono-font:    "JetBrains Mono", ui-monospace, monospace;
+
+  --shadow-card: 0 1px 2px rgba(26,25,22,0.06), 0 1px 1px rgba(26,25,22,0.04);
+  --shadow-pop:  0 8px 24px rgba(26,25,22,0.16), 0 2px 6px rgba(26,25,22,0.08);
+}
+
+/* ---------- Base body primitives needed inside mobile frames ---------- */
+[data-product] .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1;
+  text-decoration: none;
+  background: transparent;
+}
+[data-product] .btn-sm { padding: 7px 14px; font-size: 13px; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product="management"] .btn-secondary,
+[data-product="owner"] .btn-secondary {
+  background: var(--cream-warm); color: var(--ink); border-color: var(--line);
+}
+[data-product="development"] .btn-secondary {
+  background: var(--bg-3); color: var(--ink); border-color: var(--line-2);
+}
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); }
+
+[data-product] .label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 400;
+}
+[data-product] .mono {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+}
+
+/* ---------- DS extension page chrome ---------- */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--doc-bg);
+  color: var(--doc-fg);
+  font-family: var(--doc-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+a { color: inherit; }
+
+.page {
+  min-height: 100vh;
+  padding: 64px 48px 96px;
+}
+
+.page-head {
+  max-width: 1400px;
+  margin: 0 auto 56px;
+}
+.page-head .eyebrow {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--doc-accent);
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px;
+}
+.page-head .eyebrow .glyph {
+  width: 6px; height: 6px;
+  background: var(--doc-accent); border-radius: 2px;
+}
+.page-head h1 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 40px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.page-head h1 em {
+  color: var(--doc-accent);
+  font-style: italic;
+  font-weight: 400;
+}
+.page-head p {
+  max-width: 720px;
+  margin: 18px 0 0;
+  font-size: 14.5px;
+  color: var(--doc-fg-2);
+  line-height: 1.65;
+}
+.page-head .meta {
+  display: flex; gap: 28px; flex-wrap: wrap;
+  margin-top: 28px; padding-top: 22px;
+  border-top: 1px solid var(--doc-line);
+  font-size: 13px;
+}
+.page-head .meta div { display: flex; flex-direction: column; gap: 4px; }
+.page-head .meta .k {
+  font-family: var(--doc-mono);
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.page-head .meta .v { color: var(--doc-fg); }
+
+/* ---------- Artboard rail ---------- */
+.boards {
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.board {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 44px;
+  align-items: start;
+}
+.board-frame-col {
+  display: flex; flex-direction: column; gap: 16px;
+  position: sticky;
+  top: 24px;
+}
+.board-label {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.board-label .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 4px;
+  color: var(--doc-fg-2);
+  font-size: 10px;
+}
+.board-label .name { color: var(--doc-fg); }
+
+/* iOS-shaped frame */
+.phone {
+  width: 360px;
+  height: 740px;
+  border-radius: 44px;
+  background: #0A0B0F;
+  padding: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06);
+  position: relative;
+}
+.phone-screen {
+  width: 100%; height: 100%;
+  border-radius: 34px;
+  background: var(--cream);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.phone[data-product="development"] .phone-screen { background: var(--bg); }
+.phone-status {
+  height: 38px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px 4px;
+  font-family: var(--mono-font);
+  font-size: 12px;
+  color: var(--ink);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.phone-notch {
+  position: absolute;
+  top: 16px; left: 50%; transform: translateX(-50%);
+  width: 110px; height: 28px;
+  background: #0A0B0F;
+  border-radius: 14px;
+  z-index: 2;
+  pointer-events: none;
+}
+.phone-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+/* In-app topbar */
+.app-topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+  flex-shrink: 0;
+}
+.app-topbar .back {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px;
+  color: var(--ink);
+}
+.app-topbar .title {
+  flex: 1;
+  font-family: var(--display-font);
+  font-size: 17px;
+  color: var(--ink);
+  font-weight: 400;
+}
+[data-product="development"] .app-topbar .title { font-weight: 500; }
+.app-topbar .aux {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.app-topbar .aux .dot {
+  width: 6px; height: 6px; background: var(--accent); border-radius: 50%;
+}
+
+.app-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* Bottom tab bar */
+.app-tabbar {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--line-soft, var(--line-2));
+  background: var(--paper, var(--panel));
+  padding-bottom: 14px;
+  flex-shrink: 0;
+}
+.app-tabbar .tab {
+  flex: 1;
+  padding: 10px 0 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+  background: transparent; border: 0;
+}
+.app-tabbar .tab.on { color: var(--ink); }
+.app-tabbar .tab.on .ico { color: var(--accent); }
+.app-tabbar .ico {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* ---------- Notes column ---------- */
+.notes {
+  padding-top: 8px;
+}
+.notes h2 {
+  font-family: var(--doc-sans);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  margin: 0 0 6px;
+  color: var(--doc-fg);
+}
+.notes .sub {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--doc-accent);
+  margin-bottom: 18px;
+}
+.notes .lede {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--doc-fg-2);
+  margin: 0 0 24px;
+  max-width: 620px;
+}
+.notes dl {
+  margin: 0;
+  border-top: 1px solid var(--doc-line);
+}
+.notes dl > div {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 24px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--doc-line);
+}
+.notes dt {
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.notes dd {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--doc-fg-2);
+  line-height: 1.55;
+}
+.notes dd strong { color: var(--doc-fg); font-weight: 500; }
+.notes dd code {
+  background: var(--doc-bg-3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg);
+}
+
+/* ---------- Status pill on the frame col ---------- */
+.frame-meta {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.frame-meta .pill {
+  padding: 4px 10px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 999px;
+}
+.frame-meta .pill.ok    { color: #6FB893; border-color: rgba(111,184,147,0.35); }
+.frame-meta .pill.draft { color: var(--doc-accent); border-color: rgba(196,88,60,0.45); }
+.frame-meta .pill.warn  { color: #D9A859; border-color: rgba(217,168,89,0.40); }
+</style>
+
+<style id="primitive-css">
+/* ============================================================
+   Inlined primitive CSS from ds-2.4-primitives.html.
+   ChannelGrid · PricingCurve · StoryboardLog · PipelineBoard · WaterfallChart.
+   Mobile-specific overrides live further down.
+   ============================================================ */
+
+/* ---------- 1. ChannelGrid ---------- */
+[data-product] .channel-grid {
+  --col-w: 56px;
+  --row-h: 44px;
+  --row-label-w: 200px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  overflow: hidden;
+  font-family: var(--sans-font);
+  font-size: 12.5px;
+}
+[data-product="development"] .channel-grid { background: var(--panel); border-color: var(--line-2); }
+[data-product] .cg-head {
+  display: grid;
+  grid-template-columns: var(--row-label-w) repeat(var(--cols, 14), var(--col-w));
+  background: var(--cream-warm, var(--bg-2));
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+  position: sticky; top: 0; z-index: 2;
+}
+[data-product] .cg-head .corner {
+  padding: 10px 14px;
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  display: flex; align-items: center; gap: 8px;
+}
+[data-product] .cg-head .day {
+  padding: 6px 4px 8px;
+  text-align: center;
+  font-family: var(--mono-font);
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  color: var(--ink-3);
+}
+[data-product] .cg-head .day .dow { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-4); }
+[data-product] .cg-head .day .dn { font-size: 14px; color: var(--ink); font-feature-settings: "tnum"; }
+[data-product] .cg-head .day.today .dn { color: var(--accent); font-weight: 500; }
+[data-product] .cg-head .day.today { border-bottom: 2px solid var(--accent); margin-bottom: -1px; }
+[data-product] .cg-row {
+  display: grid;
+  grid-template-columns: var(--row-label-w) repeat(var(--cols, 14), var(--col-w));
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+[data-product] .cg-row:last-child { border-bottom: 0; }
+[data-product] .cg-row .label {
+  padding: 8px 14px 8px 14px;
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  font-size: 12.5px;
+  display: flex; align-items: center; gap: 8px;
+  color: var(--ink-2);
+  min-height: var(--row-h);
+}
+[data-product] .cg-row .label .ch {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ch, var(--ink-3));
+}
+[data-product] .cg-cell {
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  min-height: var(--row-h);
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+[data-product] .cg-cell .rate { font-feature-settings: "tnum"; color: var(--ink); }
+[data-product] .cg-cell .indicator {
+  position: absolute; top: 3px; right: 3px;
+  width: 5px; height: 5px; border-radius: 50%;
+}
+[data-product] .cg-cell.synced .indicator { background: var(--ok); }
+[data-product] .cg-cell.stale .indicator { background: var(--warn); }
+[data-product] .cg-cell.conflict .indicator { background: var(--danger); }
+[data-product] .cg-cell.booked {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  color: var(--ok);
+}
+
+/* ---------- 2. PricingCurve ---------- */
+[data-product] .pc-wrap {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 16px 14px 14px;
+}
+[data-product="development"] .pc-wrap { background: var(--panel); border-color: var(--line-2); }
+[data-product] .pc-svg-wrap { position: relative; }
+[data-product] .pc-svg-wrap svg { display: block; width: 100%; }
+
+/* ---------- 3. StoryboardLog (mobile-tuned) ---------- */
+[data-product] .sb-photo {
+  position: relative;
+  border-radius: var(--r-card-lg);
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(135deg, var(--ink-4) 0 2px, transparent 2px 14px),
+    var(--cream-deep, var(--bg-2));
+  aspect-ratio: 16 / 9;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+[data-product] .sb-photo.tall { aspect-ratio: 4 / 5; }
+[data-product] .sb-photo .pill {
+  position: absolute; left: 12px; top: 12px;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 3px 9px;
+  background: rgba(15,15,14,0.78);
+  color: rgba(255,255,255,0.92);
+  border-radius: var(--r-pill);
+}
+[data-product] .sb-photo .pill.alert { background: var(--danger); color: white; }
+[data-product] .sb-photo .stamp {
+  position: absolute; right: 12px; bottom: 12px;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  background: rgba(15,15,14,0.72);
+  color: rgba(255,255,255,0.85);
+  border-radius: 6px;
+}
+
+/* ---------- 4. PipelineBoard ---------- */
+[data-product] .pb-card {
+  padding: 12px 14px;
+  background: var(--paper);
+  border: 1px solid var(--line-soft, var(--line-2));
+  border-radius: var(--r-card);
+  display: flex; flex-direction: column; gap: 8px;
+}
+[data-product] .pb-card .row1 { display: flex; align-items: center; gap: 8px; }
+[data-product] .pb-card .row1 .who {
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+[data-product] .pb-card .row1 .amt {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 12.5px;
+  color: var(--ink);
+  font-feature-settings: "tnum";
+}
+[data-product] .pb-card .unit {
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product] .pb-card .row2 {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+[data-product] .pb-card .row2 .age { margin-left: auto; }
+[data-product] .pb-card .row2 .age.stale { color: var(--warn); }
+[data-product] .pb-card .probability {
+  height: 3px; background: var(--cream-deep, var(--bg-3));
+  border-radius: 999px; overflow: hidden;
+}
+[data-product] .pb-card .probability .fill {
+  height: 100%; background: var(--accent);
+  border-radius: 999px;
+}
+[data-product] .pb-card .probability.hot .fill { background: var(--ok); }
+[data-product] .pb-card .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+[data-product] .pb-card .tags .t {
+  font-family: var(--mono-font); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+</style>
+
+<style id="mobile-overrides">
+/* ============================================================
+   MOBILE-SPECIFIC overrides — Phase 2.4 primitives at ≤700px.
+   These are the audit deliverable. Copy into
+   src/styles/components-2.4.css when shipping.
+   ============================================================ */
+
+/* ---------- 01 · ChannelGrid mobile ---------- */
+[data-product] .channel-grid.mobile {
+  --col-w: 72px;
+  --row-h: 48px;
+  --row-label-w: 120px;
+  font-size: 13px;
+}
+[data-product] .channel-grid.mobile .cg-head .corner { padding: 8px 10px; }
+[data-product] .channel-grid.mobile .cg-row .label { padding: 8px 12px; font-size: 12.5px; }
+[data-product] .channel-grid.mobile .cg-cell { min-height: 48px; }
+[data-product] .channel-grid.mobile .cg-cell .rate { font-size: 13px; }
+
+/* Villa switcher (mobile-only chrome above the grid) */
+.mobile-villa-switch {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px 10px;
+}
+.mobile-villa-switch .v-name {
+  flex: 1;
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--ink);
+}
+[data-product="development"] .mobile-villa-switch .v-name { font-weight: 500; }
+.mobile-villa-switch .v-name .arr { color: var(--ink-3); margin-left: 4px; }
+.mobile-window-tabs {
+  display: inline-flex; gap: 4px;
+  padding: 3px;
+  background: var(--cream-warm, var(--bg-2));
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.mobile-window-tabs button {
+  padding: 5px 10px;
+  border: 0; background: transparent;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3);
+  border-radius: 999px; cursor: pointer;
+}
+.mobile-window-tabs button.on {
+  background: var(--ink); color: var(--inverted-fg);
+}
+
+/* ---------- 02 · PricingCurve mobile ---------- */
+.pc-mobile-head {
+  display: flex; align-items: flex-end; gap: 12px;
+  padding: 12px 16px 6px;
+}
+.pc-mobile-head h3 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--ink);
+  font-weight: 400;
+}
+[data-product="development"] .pc-mobile-head h3 { font-weight: 500; }
+.pc-mobile-head .ks {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  text-align: right;
+  line-height: 1.45;
+}
+.pc-mobile-head .ks strong { color: var(--ink); font-weight: 500; }
+.pc-mobile-overlays {
+  display: flex; gap: 6px; padding: 6px 16px 10px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.pc-mobile-overlays::-webkit-scrollbar { display: none; }
+.pc-mobile-overlays .pill {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--cream-warm, var(--bg-2));
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.pc-mobile-overlays .pill.on {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+.pc-mobile-overlays .pill .sw { width: 8px; height: 2px; background: var(--c); border-radius: 1px; }
+.pc-mobile-bottom-edit {
+  margin: 10px 12px 0;
+  padding: 12px 14px;
+  background: var(--ink);
+  color: var(--inverted-fg);
+  border-radius: var(--r-card-lg);
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--mono-font);
+  font-size: 12px;
+}
+.pc-mobile-bottom-edit .lbl {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.55);
+}
+.pc-mobile-bottom-edit .row { display: flex; flex-direction: column; gap: 1px; }
+.pc-mobile-bottom-edit .pad { flex: 1; }
+.pc-mobile-bottom-edit .btn-sm {
+  background: var(--accent); color: var(--on-accent);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 11px;
+}
+.pc-mobile-bottom-edit .ghost {
+  color: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.18);
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+}
+
+/* ---------- 03 · StoryboardLog mobile ---------- */
+.sb-day-mobile {
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+}
+.sb-day-mobile:last-child { border-bottom: 0; }
+.sb-day-mobile .day-head {
+  position: sticky; top: 0;
+  z-index: 1;
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 12px 16px 10px;
+  background: var(--bg, var(--cream));
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+.sb-day-mobile .day-head .date {
+  font-family: var(--display-font);
+  font-size: 22px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+[data-product="development"] .sb-day-mobile .day-head .date { font-weight: 500; }
+.sb-day-mobile .day-head .dow {
+  font-family: var(--mono-font);
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+.sb-day-mobile .day-head .weather {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.sb-day-mobile .day-head .weather strong { color: var(--ink-2); }
+.sb-day-mobile .frames {
+  padding: 14px 16px 22px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.sb-day-mobile .frame .caption {
+  font-family: var(--display-font);
+  font-size: 16px;
+  color: var(--ink);
+  line-height: 1.4;
+  margin: 10px 0 0;
+}
+[data-product="development"] .sb-day-mobile .frame .caption { font-weight: 500; }
+.sb-day-mobile .frame .narration {
+  font-size: 13px; line-height: 1.55;
+  color: var(--ink-2);
+  margin: 6px 0 0;
+}
+.sb-day-mobile .frame .meta-strip {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  margin-top: 8px;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.sb-day-mobile .frame .meta-strip .k {
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-right: 4px;
+}
+
+/* ---------- 04 · PipelineBoard mobile ---------- */
+.pb-mobile-stages {
+  display: flex; gap: 6px;
+  padding: 10px 16px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pb-mobile-stages::-webkit-scrollbar { display: none; }
+.pb-mobile-stages .stage {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.pb-mobile-stages .stage .ct {
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  padding: 0px 6px;
+  border-radius: 999px;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+.pb-mobile-stages .stage.on {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+.pb-mobile-stages .stage.on .ct {
+  background: rgba(255,255,255,0.18); color: var(--inverted-fg);
+}
+
+.pb-mobile-lane-head {
+  padding: 14px 16px 6px;
+  display: flex; align-items: flex-end; gap: 12px;
+}
+.pb-mobile-lane-head h3 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: 20px;
+  color: var(--ink);
+  font-weight: 400;
+}
+[data-product="development"] .pb-mobile-lane-head h3 { font-weight: 500; }
+.pb-mobile-lane-head .value {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: right;
+}
+.pb-mobile-lane-head .value strong { color: var(--ink); font-weight: 500; }
+.pb-mobile-cards {
+  padding: 6px 16px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.pb-swipe-hint {
+  margin: 0 16px 12px;
+  text-align: center;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+/* ---------- 05 · WaterfallChart mobile (vertical) ---------- */
+.wf-mobile {
+  padding: 0;
+}
+.wf-mobile .wf-head {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+.wf-mobile .wf-head h3 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--ink);
+  font-weight: 400;
+}
+[data-product="development"] .wf-mobile .wf-head h3 { font-weight: 500; }
+.wf-mobile .wf-head .sub {
+  font-family: var(--mono-font);
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-3); margin-top: 4px;
+}
+.wf-mobile .wf-rows {
+  padding: 12px 16px 8px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.wf-mobile .wf-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+.wf-mobile .wf-row:last-child { border-bottom: 0; }
+.wf-mobile .wf-row .top {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 6px;
+}
+.wf-mobile .wf-row .top .nm {
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.wf-mobile .wf-row.start .top .nm,
+.wf-mobile .wf-row.total .top .nm { color: var(--ink); font-weight: 500; }
+.wf-mobile .wf-row .top .sub {
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+}
+.wf-mobile .wf-row .top .v {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 13px;
+  color: var(--ink);
+  font-feature-settings: "tnum";
+  font-weight: 500;
+}
+.wf-mobile .wf-row.add .top .v { color: var(--ok); }
+.wf-mobile .wf-row.sub .top .v { color: var(--danger); }
+.wf-mobile .wf-row .barwrap {
+  height: 8px;
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.wf-mobile .wf-row .bar {
+  height: 100%;
+  width: var(--w, 50%);
+  background: var(--ink-3);
+  border-radius: 4px;
+}
+.wf-mobile .wf-row.start .bar,
+.wf-mobile .wf-row.total .bar { background: var(--ink); }
+.wf-mobile .wf-row.add .bar    { background: var(--ok); }
+.wf-mobile .wf-row.sub .bar    { background: var(--danger); }
+.wf-mobile .wf-row.neutral .bar { background: var(--accent); }
+.wf-mobile .wf-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--line-soft, var(--line-2));
+}
+.wf-mobile .wf-foot-kpi .l {
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+.wf-mobile .wf-foot-kpi .v {
+  font-family: var(--display-font);
+  font-size: 22px;
+  color: var(--ink);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+[data-product="development"] .wf-mobile .wf-foot-kpi .v { font-weight: 500; }
+.wf-mobile .wf-foot-kpi .v.accent { color: var(--accent); }
+
+/* ---------- Small viewport: stack notes under frame ---------- */
+@media (max-width: 1080px) {
+  .board { grid-template-columns: 1fr; gap: 32px; }
+  .board-frame-col { position: static; }
+}
+@media (max-width: 480px) {
+  .page { padding: 32px 16px 64px; }
+  .phone { transform: scale(0.92); transform-origin: top left; }
+}
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Mobile pass · Phase 2.4 primitives">
+
+  <header class="page-head">
+    <div class="eyebrow"><span class="glyph"></span><span>DS extension · Mobile pass · Phase 2.4 primitives</span></div>
+    <h1>Five primitives, <em>shrunken honestly</em>.</h1>
+    <p>Each Phase 2.4 primitive was designed desktop-first. This pass works out what they look like at 360-700&nbsp;px without compromising the underlying interaction model. The artboards below are the audit deliverable — copy the mobile-specific CSS into <code>src/styles/components-2.4.css</code> and the React components gain a <code>.mobile</code>-suffixed variant or an internal viewport hook.</p>
+    <div class="meta">
+      <div><span class="k">Status</span><span class="v">Draft — needs review</span></div>
+      <div><span class="k">Target viewport</span><span class="v">360-700&nbsp;px width</span></div>
+      <div><span class="k">Min hit target</span><span class="v">44&nbsp;×&nbsp;44&nbsp;px (Apple HIG)</span></div>
+      <div><span class="k">Frame</span><span class="v">iPhone 14 · 393 × 852 (scaled)</span></div>
+      <div><span class="k">Cabinet pass</span><span class="v">→ next batch (7 cabinets)</span></div>
+    </div>
+  </header>
+
+  <main class="boards">
+
+  <!-- ============================================================
+       01. ChannelGrid mobile
+       ============================================================ -->
+  <section class="board" id="cg" data-screen-label="01 ChannelGrid mobile">
+    <div class="board-frame-col">
+      <div class="board-label"><span class="num">01</span><span class="name">ChannelGrid · Mgmt · Channels</span></div>
+
+      <div class="phone" data-product="management">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+          <div class="phone-body">
+
+            <div class="app-topbar">
+              <div class="back">←</div>
+              <div class="title">Channels</div>
+              <div class="aux"><span class="dot"></span>3 syncing</div>
+            </div>
+
+            <div class="app-scroll">
+              <div class="mobile-villa-switch">
+                <div class="v-name">Tirta · Canggu<span class="arr"> ▾</span></div>
+                <div class="mobile-window-tabs">
+                  <button class="on">3d</button>
+                  <button>7d</button>
+                  <button>14d</button>
+                </div>
+              </div>
+
+              <div style="padding:0 12px 18px;">
+                <div class="channel-grid mobile" style="--cols:3;">
+                  <div class="cg-head">
+                    <div class="corner">channel</div>
+                    <div class="day today"><div class="dow">wed</div><div class="dn">11</div></div>
+                    <div class="day"><div class="dow">thu</div><div class="dn">12</div></div>
+                    <div class="day"><div class="dow">fri</div><div class="dn">13</div></div>
+                  </div>
+                  <div class="cg-row" style="--ch:#C4583C">
+                    <div class="label"><span class="ch"></span>Direct</div>
+                    <div class="cg-cell"><span class="rate">425</span></div>
+                    <div class="cg-cell"><span class="rate">425</span></div>
+                    <div class="cg-cell"><span class="rate">425</span></div>
+                  </div>
+                  <div class="cg-row" style="--ch:#FF5A5F">
+                    <div class="label"><span class="ch"></span>Airbnb</div>
+                    <div class="cg-cell synced"><span class="rate">475</span><span class="indicator"></span></div>
+                    <div class="cg-cell synced"><span class="rate">475</span><span class="indicator"></span></div>
+                    <div class="cg-cell synced"><span class="rate">475</span><span class="indicator"></span></div>
+                  </div>
+                  <div class="cg-row" style="--ch:#003580">
+                    <div class="label"><span class="ch"></span>Booking</div>
+                    <div class="cg-cell synced"><span class="rate">488</span><span class="indicator"></span></div>
+                    <div class="cg-cell booked"><span class="rate">—</span></div>
+                    <div class="cg-cell booked"><span class="rate">—</span></div>
+                  </div>
+                  <div class="cg-row" style="--ch:#00AAFF">
+                    <div class="label"><span class="ch"></span>Avito</div>
+                    <div class="cg-cell stale"><span class="rate">370</span><span class="indicator"></span></div>
+                    <div class="cg-cell stale"><span class="rate">370</span><span class="indicator"></span></div>
+                    <div class="cg-cell conflict"><span class="rate">390</span><span class="indicator"></span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="padding:0 16px 18px;">
+                <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;">Recent · 2h</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--paper);border:1px solid var(--line-soft);border-radius:12px;">
+                    <div style="width:6px;height:6px;background:var(--danger);border-radius:50%;flex-shrink:0;"></div>
+                    <div style="flex:1;font-size:12.5px;color:var(--ink-2);">Avito · fri Jun 13 · conflict — local 390, remote 380</div>
+                    <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-4);">2h</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--paper);border:1px solid var(--line-soft);border-radius:12px;">
+                    <div style="width:6px;height:6px;background:var(--ok);border-radius:50%;flex-shrink:0;"></div>
+                    <div style="flex:1;font-size:12.5px;color:var(--ink-2);">Airbnb · 3 cells synced · wed-fri</div>
+                    <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-4);">9m</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="app-tabbar">
+              <button class="tab on"><span class="ico">▦</span>Channels</button>
+              <button class="tab"><span class="ico">$</span>Pricing</button>
+              <button class="tab"><span class="ico">▢</span>Front</button>
+              <button class="tab"><span class="ico">⋯</span>More</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-meta">
+        <span class="pill draft">draft</span>
+        <span class="pill">Mgmt · cream</span>
+        <span class="pill">≤ 700px</span>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="sub">01 · Channels</div>
+      <h2>One villa, channels stacked, days as columns.</h2>
+      <p class="lede">Desktop's two-axis matrix collapses to one villa per view. A villa-switcher above the grid takes over what was the left-column hierarchy. Days slide horizontally inside the grid container — the user pages through 3-day windows instead of zooming.</p>
+
+      <dl>
+        <div><dt>Default window</dt><dd><strong>3-day</strong>. Wider windows (7d, 14d) require horizontal scroll inside the grid; the segmented control above sets the column count.</dd></div>
+        <div><dt>Villa hierarchy</dt><dd>One villa at a time. The header row's villa-name button opens a bottom sheet with the villa list (grouped by region). Switching scrolls the grid back to today.</dd></div>
+        <div><dt>Hit target</dt><dd>Cells are <strong>72&nbsp;× 48&nbsp;px</strong> (was 56&nbsp;× 44 on desktop). Below 44&nbsp;px tall the inline-edit popover stops feeling tappable.</dd></div>
+        <div><dt>Edit affordance</dt><dd>Tap a cell → full-width bottom sheet with the rate input + channel name + last-pushed timestamp. The hover-only desktop inline popover doesn't have a mobile equivalent — sheet is the right primitive.</dd></div>
+        <div><dt>Stay overlays</dt><dd>Multi-day stay pills are dropped from the mobile view; the underlying cell takes the <code>.booked</code> state instead. Tap the cell → stay detail.</dd></div>
+        <div><dt>Conflict signal</dt><dd>Same dot indicator as desktop (top-right of cell). Tapping a <code>.conflict</code> cell jumps straight to the 3-way resolver — no intermediate hover state to traverse.</dd></div>
+        <div><dt>Recent strip</dt><dd>Below the grid, last 10 sync events as a vertical list. Replaces the desktop legend (legend moves to a small "?" affordance on the topbar).</dd></div>
+        <div><dt>Owner palette</dt><dd>Mgmt and Owner share the cream palette — no separate variant needed.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       02. PricingCurve mobile
+       ============================================================ -->
+  <section class="board" id="pc" data-screen-label="02 PricingCurve mobile">
+    <div class="board-frame-col">
+      <div class="board-label"><span class="num">02</span><span class="name">PricingCurve · Mgmt · Dynamic pricing</span></div>
+
+      <div class="phone" data-product="management">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+          <div class="phone-body">
+
+            <div class="app-topbar">
+              <div class="back">←</div>
+              <div class="title">Pricing — Tirta</div>
+              <div class="aux">14d</div>
+            </div>
+
+            <div class="app-scroll">
+              <div class="pc-mobile-head">
+                <h3>Rate curve</h3>
+                <div class="ks">
+                  <div><strong>14d</strong>&nbsp;forward</div>
+                  <div>jun&nbsp;11 — jun&nbsp;24</div>
+                </div>
+              </div>
+              <div class="pc-mobile-overlays">
+                <span class="pill on"><span class="sw" style="--c:#fff;"></span>active</span>
+                <span class="pill"><span class="sw" style="--c:var(--ink-3);"></span>algo</span>
+                <span class="pill"><span class="sw" style="--c:var(--sage);"></span>comp</span>
+                <span class="pill"><span class="sw" style="--c:var(--ink-4);"></span>last yr</span>
+              </div>
+
+              <div style="padding:0 12px;">
+                <div class="pc-wrap">
+                  <div class="pc-svg-wrap">
+                    <svg viewBox="0 0 360 200" preserveAspectRatio="none" style="height:200px;">
+                      <!-- Grid -->
+                      <g stroke="#E5DECC" stroke-width="1">
+                        <line x1="32" y1="20" x2="360" y2="20" />
+                        <line x1="32" y1="70" x2="360" y2="70" />
+                        <line x1="32" y1="120" x2="360" y2="120" />
+                        <line x1="32" y1="170" x2="360" y2="170" />
+                      </g>
+                      <!-- Y labels -->
+                      <g font-family="JetBrains Mono" font-size="9" fill="#8E9A95">
+                        <text x="0" y="24">600</text>
+                        <text x="0" y="74">500</text>
+                        <text x="0" y="124">400</text>
+                        <text x="0" y="174">300</text>
+                      </g>
+                      <!-- Last year actual (dashed sage) -->
+                      <path d="M32,148 C80,140 110,142 150,138 180,128 200,118 230,118 260,118 290,114 330,108 350,104 360,98 360,98"
+                            fill="none" stroke="#7E8E7A" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.7" />
+                      <!-- Comp set median (dashed ink-4) -->
+                      <path d="M32,128 C70,122 100,124 140,118 175,108 200,98 230,96 260,94 290,90 330,84 350,82 360,80 360,80"
+                            fill="none" stroke="#8E9A95" stroke-width="1.5" stroke-dasharray="3 4" />
+                      <!-- Algo recommendation (solid ink-2) -->
+                      <path d="M32,118 C70,108 100,108 140,102 170,90 200,82 230,78 260,76 290,72 330,66 350,62 360,60 360,60"
+                            fill="none" stroke="#2F3D38" stroke-width="2" opacity="0.65" />
+                      <!-- Active rate (terra) -->
+                      <path d="M32,112 C70,98 100,100 140,90 168,72 195,64 230,62 260,60 290,54 330,46 350,42 360,40 360,40"
+                            fill="none" stroke="#C4583C" stroke-width="2.5" />
+                      <!-- Handles -->
+                      <circle cx="100" cy="100" r="6" fill="#FAF6EE" stroke="#C4583C" stroke-width="2" />
+                      <circle cx="180" cy="76" r="6" fill="#FAF6EE" stroke="#C4583C" stroke-width="2" />
+                      <circle cx="260" cy="60" r="8" fill="#C4583C" stroke="#FAF6EE" stroke-width="2" />
+                      <circle cx="320" cy="50" r="6" fill="#FAF6EE" stroke="#C4583C" stroke-width="2" />
+                      <!-- Today vertical line -->
+                      <line x1="48" y1="20" x2="48" y2="170" stroke="#C4583C" stroke-width="1" stroke-dasharray="2 3" opacity="0.5" />
+                      <text x="52" y="32" font-family="JetBrains Mono" font-size="9" fill="#C4583C">today</text>
+                    </svg>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-family:var(--mono-font);font-size:9.5px;color:var(--ink-4);margin-top:6px;padding:0 6px;">
+                    <span>wed 11</span><span>sat 14</span><span>tue 17</span><span>fri 20</span><span>mon 24</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pc-mobile-bottom-edit">
+                <div class="row">
+                  <span class="lbl">handle · sat 14</span>
+                  <span><strong style="font-size:14px;">512&nbsp;<span style="opacity:0.6;font-size:11px;">IDR&nbsp;k</span></strong></span>
+                </div>
+                <div class="row" style="text-align:right;margin-left:auto;">
+                  <span class="lbl">vs algo</span>
+                  <span style="color:#E8B8A4;">+38&nbsp;k</span>
+                </div>
+                <button class="ghost">revert</button>
+                <button class="btn-sm">commit</button>
+              </div>
+
+              <div style="padding:18px 16px 8px;">
+                <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;">Rules in play</div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2);">
+                    <span>Sat&nbsp;+&nbsp;Sun premium</span>
+                    <span style="font-family:var(--mono-font);color:var(--ink-3);">+15%</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2);">
+                    <span>Galungan window</span>
+                    <span style="font-family:var(--mono-font);color:var(--accent);">+22%</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2);">
+                    <span>Min&nbsp;LOS&nbsp;·&nbsp;3</span>
+                    <span style="font-family:var(--mono-font);color:var(--ink-3);">jun&nbsp;13—15</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="app-tabbar">
+              <button class="tab"><span class="ico">▦</span>Channels</button>
+              <button class="tab on"><span class="ico">$</span>Pricing</button>
+              <button class="tab"><span class="ico">▢</span>Front</button>
+              <button class="tab"><span class="ico">⋯</span>More</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-meta">
+        <span class="pill draft">draft</span>
+        <span class="pill">Mgmt · cream</span>
+        <span class="pill">SVG · scrub</span>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="sub">02 · Dynamic pricing</div>
+      <h2>Curve stays charted, edit moves to a bottom dock.</h2>
+      <p class="lede">Desktop's 900-wide curve compresses to ~330 with one less pixel of vertical room. The interaction model survives because the handle hit target is decoupled from the visual handle size — touching anywhere within 22&nbsp;px of a handle selects it, then a bottom dock takes over the edit surface (rather than a tooltip pinned to the cursor).</p>
+
+      <dl>
+        <div><dt>Default window</dt><dd><strong>14d</strong> on mobile (not 90). The forward view shows fewer days more legibly. Tap "14d" segment in the topbar to step to 30d / 60d / 90d with horizontal scroll inside the SVG.</dd></div>
+        <div><dt>Today marker</dt><dd>Vertical dashed terra line at <code>x = today</code>. Anchors the user when scrubbing.</dd></div>
+        <div><dt>Handles</dt><dd>Visual radius 6&nbsp;px, hit radius <strong>22&nbsp;px</strong>. Selected handle pops to radius 8 + solid fill. Drag-to-edit is dropped — the bottom dock replaces it. Mobile users <em>tap</em> a handle to select, then nudge with ±buttons or type a number.</dd></div>
+        <div><dt>Bottom edit dock</dt><dd>Sticky to the screen bottom while a handle is selected. Shows date, current value, delta vs algo, revert + commit. Dismisses on tap-outside or commit.</dd></div>
+        <div><dt>Overlay pills</dt><dd>Horizontal-scroll chips above the chart. Replaces desktop legend. Tap to toggle a line on/off — same toggle as desktop knobs.</dd></div>
+        <div><dt>Rules-in-play</dt><dd>Inline below the chart instead of as a side panel. Three to five visible, "see all" expands to a sheet.</dd></div>
+        <div><dt>Annotations</dt><dd>Event markers (holidays, conferences) collapse to small <code>·</code> dots on the X-axis. Tap → bottom sheet listing every annotation in the visible window.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       03. StoryboardLog mobile
+       ============================================================ -->
+  <section class="board" id="sb" data-screen-label="03 StoryboardLog mobile">
+    <div class="board-frame-col">
+      <div class="board-label"><span class="num">03</span><span class="name">StoryboardLog · Dev · Site supervisor</span></div>
+
+      <div class="phone" data-product="development">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+          <div class="phone-body">
+
+            <div class="app-topbar">
+              <div class="back">←</div>
+              <div class="title">Site · Villa Cendana</div>
+              <div class="aux">14 days</div>
+            </div>
+
+            <div class="app-scroll">
+
+              <div class="sb-day-mobile">
+                <div class="day-head">
+                  <div class="date">11</div>
+                  <div>
+                    <div class="dow">wed jun</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:2px;">Made Surya · foreman</div>
+                  </div>
+                  <div class="weather">31°C · <strong>partly cloudy</strong></div>
+                </div>
+                <div class="frames">
+                  <div class="frame">
+                    <div class="sb-photo">
+                      <span class="pill">block A · slab</span>
+                      <span class="stamp">08:14</span>
+                      photo · 1284 × 723
+                    </div>
+                    <div class="caption">Concrete pour for block&nbsp;A second-floor slab completed by 8:00.</div>
+                    <div class="narration">Vibrator passed twice. Mix slump 7&nbsp;cm — within spec (6-9). Curing started; foam blanket on by 11.</div>
+                    <div class="meta-strip">
+                      <div><span class="k">crew</span>9</div>
+                      <div><span class="k">m³</span>12.5</div>
+                      <div><span class="k">supplier</span>Cilegon</div>
+                    </div>
+                  </div>
+
+                  <div class="frame">
+                    <div class="sb-photo tall">
+                      <span class="pill alert">incident · 1</span>
+                      <span class="stamp">11:32</span>
+                      photo · vertical · 945 × 1260
+                    </div>
+                    <div class="caption">Hairline crack noticed on stair landing &mdash; flagged for engineer review.</div>
+                    <div class="narration">Doesn't propagate; epoxy injection scheduled tomorrow morning. Photo annotated.</div>
+                    <div class="meta-strip">
+                      <div><span class="k">severity</span>medium</div>
+                      <div><span class="k">assigned</span>I.&nbsp;Kadek</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sb-day-mobile">
+                <div class="day-head">
+                  <div class="date">10</div>
+                  <div>
+                    <div class="dow">tue jun</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:2px;">Made Surya · foreman</div>
+                  </div>
+                  <div class="weather">29°C · <strong>rain pm</strong></div>
+                </div>
+                <div class="frames">
+                  <div class="frame">
+                    <div class="sb-photo">
+                      <span class="pill">rebar · slab</span>
+                      <span class="stamp">14:50</span>
+                      photo · 1284 × 723
+                    </div>
+                    <div class="caption">Rebar tying for tomorrow's pour, 80% complete by lunch.</div>
+                    <div class="meta-strip">
+                      <div><span class="k">crew</span>11</div>
+                      <div><span class="k">tonnes</span>3.4</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="app-tabbar">
+              <button class="tab"><span class="ico">▦</span>Projects</button>
+              <button class="tab on"><span class="ico">▢</span>Site</button>
+              <button class="tab"><span class="ico">$</span>CFO</button>
+              <button class="tab"><span class="ico">⋯</span>More</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-meta">
+        <span class="pill ok">native fit</span>
+        <span class="pill">Dev · sand</span>
+        <span class="pill">feed</span>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="sub">03 · Site supervisor</div>
+      <h2>The format that was already a feed.</h2>
+      <p class="lede">The desktop 2-column layout (sticky day-meta on the left, scrollable frame column on the right) folds cleanly into a single vertical scroll. The day-meta becomes a sticky header bar at the top of each day's frames; the side-metadata card becomes a compact strip beneath the caption.</p>
+
+      <dl>
+        <div><dt>Day header</dt><dd>Sticky to the top of the scroll. Shows date glyph, day-of-week, foreman name, weather. Stays visible while the user reads through that day's frames.</dd></div>
+        <div><dt>Frame photo</dt><dd>Full-bleed within the screen padding. Preserves the desktop aspect-ratio variants: <code>16:9</code> default, <code>4:5</code> tall, <code>21:9</code> wide. The wide variant is rare on mobile — usually downgraded to 16:9 to keep the caption above the fold.</dd></div>
+        <div><dt>Photo pills</dt><dd>Top-left tag (block name, work-type) and bottom-right timestamp — same as desktop. Alert pills (incident, flag) keep the red/amber tones. Tap a photo → fullscreen view.</dd></div>
+        <div><dt>Caption + narration</dt><dd>Caption uses the display serif at 16&nbsp;px; narration drops to 13&nbsp;px sans. Side metadata becomes an inline strip (crew / m³ / supplier / etc.).</dd></div>
+        <div><dt>Capture button</dt><dd>Not shown in this artboard, but the foreman's "capture frame" entrypoint is a floating <code>+</code> FAB above the tab bar (bottom-right, 56&nbsp;× 56&nbsp;px). Tapping it opens the camera-first capture-flow.</dd></div>
+        <div><dt>Voice clips</dt><dd>If a frame has a voice note, a small play-button row appears above the caption. Tapping starts inline playback — no fullscreen needed.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       04. PipelineBoard mobile
+       ============================================================ -->
+  <section class="board" id="pb" data-screen-label="04 PipelineBoard mobile">
+    <div class="board-frame-col">
+      <div class="board-label"><span class="num">04</span><span class="name">PipelineBoard · Dev · Sales</span></div>
+
+      <div class="phone" data-product="development">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+          <div class="phone-body">
+
+            <div class="app-topbar">
+              <div class="back">←</div>
+              <div class="title">Sales · Cendana</div>
+              <div class="aux">23 leads</div>
+            </div>
+
+            <div class="app-scroll">
+
+              <div class="pb-mobile-stages">
+                <span class="stage">Lead<span class="ct">7</span></span>
+                <span class="stage">Discovery<span class="ct">5</span></span>
+                <span class="stage on">Tour<span class="ct">4</span></span>
+                <span class="stage">Offer<span class="ct">3</span></span>
+                <span class="stage">Reserve<span class="ct">2</span></span>
+                <span class="stage">Won<span class="ct">2</span></span>
+              </div>
+
+              <div class="pb-mobile-lane-head">
+                <h3>Tour</h3>
+                <div class="value">4 deals · <strong>14.2&nbsp;B&nbsp;IDR</strong></div>
+              </div>
+
+              <div class="pb-swipe-hint">swipe ← Lead · Discovery&nbsp;&nbsp;|&nbsp;&nbsp;Offer · Reserve → swipe</div>
+
+              <div class="pb-mobile-cards">
+                <div class="pb-card">
+                  <div class="row1">
+                    <span class="who">Vikram Iyer</span>
+                    <span class="amt">3.4 B</span>
+                  </div>
+                  <div class="unit">Cendana · Unit 4 · 3-bdrm</div>
+                  <div class="probability hot"><div class="fill" style="width:75%"></div></div>
+                  <div class="row2">
+                    <div class="tags">
+                      <span class="t">repeat</span>
+                      <span class="t">cash</span>
+                    </div>
+                    <span class="age">d 4</span>
+                  </div>
+                </div>
+
+                <div class="pb-card">
+                  <div class="row1">
+                    <span class="who">Anya Petrova</span>
+                    <span class="amt">2.8 B</span>
+                  </div>
+                  <div class="unit">Cendana · Unit 7 · 2-bdrm</div>
+                  <div class="probability"><div class="fill" style="width:55%"></div></div>
+                  <div class="row2">
+                    <div class="tags">
+                      <span class="t">EU</span>
+                      <span class="t">mortgage</span>
+                    </div>
+                    <span class="age stale">d 11</span>
+                  </div>
+                </div>
+
+                <div class="pb-card">
+                  <div class="row1">
+                    <span class="who">Hadi Susanto</span>
+                    <span class="amt">4.1 B</span>
+                  </div>
+                  <div class="unit">Cendana · Unit 2 · 4-bdrm</div>
+                  <div class="probability hot"><div class="fill" style="width:65%"></div></div>
+                  <div class="row2">
+                    <div class="tags">
+                      <span class="t">local</span>
+                    </div>
+                    <span class="age">d 6</span>
+                  </div>
+                </div>
+
+                <div class="pb-card">
+                  <div class="row1">
+                    <span class="who">Diane Ho</span>
+                    <span class="amt">3.9 B</span>
+                  </div>
+                  <div class="unit">Cendana · Unit 5 · 3-bdrm</div>
+                  <div class="probability"><div class="fill" style="width:40%"></div></div>
+                  <div class="row2">
+                    <div class="tags">
+                      <span class="t">SG</span>
+                      <span class="t">hot lead</span>
+                    </div>
+                    <span class="age">d 2</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="app-tabbar">
+              <button class="tab"><span class="ico">▦</span>Projects</button>
+              <button class="tab"><span class="ico">▢</span>Site</button>
+              <button class="tab on"><span class="ico">$</span>Sales</button>
+              <button class="tab"><span class="ico">⋯</span>More</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-meta">
+        <span class="pill draft">draft</span>
+        <span class="pill">Dev · sand</span>
+        <span class="pill">swipe-lanes</span>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="sub">04 · Sales pipeline</div>
+      <h2>Lane-as-screen, stages-as-tabs.</h2>
+      <p class="lede">Desktop's 5-lane Kanban can't survive at 360&nbsp;px without forcing each card below 60&nbsp;px wide. Instead, mobile shows <strong>one lane at a time</strong>, full screen width, with the stage strip across the top serving as both navigation and at-a-glance pipeline health. Horizontal swipe between lanes feels native; tapping a stage chip jumps directly.</p>
+
+      <dl>
+        <div><dt>Stage strip</dt><dd>Horizontal-scroll chips. Active lane is inverted (ink fill). Each chip shows a count badge — at-a-glance funnel shape.</dd></div>
+        <div><dt>Lane head</dt><dd>Display serif name + aggregate value strip. No "add lead" button at the top — the FAB handles new-lead creation.</dd></div>
+        <div><dt>Cards</dt><dd>Reuse the desktop card layout almost verbatim (it was already vertical and ~280&nbsp;px). Drag-to-reorder within a lane is preserved; cross-lane drag is replaced by a long-press menu (<em>move to →</em>).</dd></div>
+        <div><dt>Swipe between lanes</dt><dd>Horizontal swipe on the cards area pages to the prev / next lane. The hint strip ("swipe ← X | Y → swipe") is dropped after first three sessions per user.</dd></div>
+        <div><dt>Drag affordance on cards</dt><dd>Desktop's cursor:grab is meaningless. Replace with a 6&nbsp;× 24&nbsp;px drag handle on the right side of each card, only revealed when the lane enters reorder mode (long-press anywhere).</dd></div>
+        <div><dt>Filters</dt><dd>Top-right of the topbar — same as desktop. Filters apply across all lanes, count badges in the stage strip update live.</dd></div>
+        <div><dt>Won/Lost</dt><dd>Won is the rightmost regular lane. Lost is hidden by default; a small "+&nbsp;Lost (12)" chip appears at the end of the stage strip when there are lost deals in scope.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       05. WaterfallChart mobile
+       ============================================================ -->
+  <section class="board" id="wf" data-screen-label="05 WaterfallChart mobile">
+    <div class="board-frame-col">
+      <div class="board-label"><span class="num">05</span><span class="name">WaterfallChart · Dev · Investors</span></div>
+
+      <div class="phone" data-product="development">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+          <div class="phone-body">
+
+            <div class="app-topbar">
+              <div class="back">←</div>
+              <div class="title">Fund I · 2025 H1</div>
+              <div class="aux">distribution</div>
+            </div>
+
+            <div class="app-scroll">
+              <div class="wf-mobile">
+
+                <div class="wf-head">
+                  <h3>Distribution waterfall</h3>
+                  <div class="sub">Fund I · canggu west · IDR billions</div>
+                </div>
+
+                <div class="wf-rows">
+                  <div class="wf-row start">
+                    <div class="top">
+                      <span class="nm">Gross proceeds</span>
+                      <span class="sub">in</span>
+                      <span class="v">42.0&nbsp;B</span>
+                    </div>
+                    <div class="barwrap"><div class="bar" style="--w:100%"></div></div>
+                  </div>
+
+                  <div class="wf-row sub">
+                    <div class="top">
+                      <span class="nm">Mgmt fees · 2%</span>
+                      <span class="sub">deduct</span>
+                      <span class="v">−2.0&nbsp;B</span>
+                    </div>
+                    <div class="barwrap"><div class="bar" style="--w:8%;margin-left:92%;"></div></div>
+                  </div>
+
+                  <div class="wf-row sub">
+                    <div class="top">
+                      <span class="nm">Return of capital</span>
+                      <span class="sub">deduct</span>
+                      <span class="v">−24.0&nbsp;B</span>
+                    </div>
+                    <div class="barwrap"><div class="bar" style="--w:60%;margin-left:35%;"></div></div>
+                  </div>
+
+                  <div class="wf-row total">
+                    <div class="top">
+                      <span class="nm">Distributable</span>
+                      <span class="sub">subtotal</span>
+                      <span class="v">16.0&nbsp;B</span>
+                    </div>
+                    <div class="barwrap"><div class="bar" style="--w:38%"></div></div>
+                  </div>
+
+                  <div class="wf-row add">
+                    <div class="top">
+                      <span class="nm">Preferred return · 8%</span>
+                      <span class="sub">LPs first</span>
+                      <span class="v">+4.8&nbsp;B</span>
+                    </div>
+                    <div class="barwrap"><div class="bar" style="--w:12%"></div></div>
+                  </div>
+
+                  <div class="wf-row neutral">
+                    <div class="top">
+                      <span class="nm">GP catch-up</span>
+                      <span class="sub">100% to GP</span>
+                      <span class="v">1.2&nbsp;B</span>
+                    </div>
+                    <div class="barwrap"><div class="bar" style="--w:3%"></div></div>
+                  </div>
+
+                  <div class="wf-row neutral">
+                    <div class="top">
+                      <span class="nm">80 / 20 carry split</span>
+                      <span class="sub">remainder</span>
+                      <span class="v">10.0&nbsp;B</span>
+                    </div>
+                    <div class="barwrap"><div class="bar" style="--w:24%"></div></div>
+                  </div>
+
+                  <div class="wf-row total">
+                    <div class="top">
+                      <span class="nm">LP distribution</span>
+                      <span class="sub">net to LPs</span>
+                      <span class="v">12.8&nbsp;B</span>
+                    </div>
+                    <div class="barwrap"><div class="bar" style="--w:30%"></div></div>
+                  </div>
+
+                </div>
+
+                <div class="wf-footer">
+                  <div class="wf-foot-kpi">
+                    <div class="l">LP MOIC</div>
+                    <div class="v accent">1.85×</div>
+                  </div>
+                  <div class="wf-foot-kpi">
+                    <div class="l">LP IRR</div>
+                    <div class="v">22.4%</div>
+                  </div>
+                  <div class="wf-foot-kpi">
+                    <div class="l">GP carry</div>
+                    <div class="v">3.2&nbsp;B</div>
+                  </div>
+                  <div class="wf-foot-kpi">
+                    <div class="l">Hold</div>
+                    <div class="v">3.0&nbsp;yr</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="app-tabbar">
+              <button class="tab"><span class="ico">▦</span>Projects</button>
+              <button class="tab"><span class="ico">▢</span>Site</button>
+              <button class="tab on"><span class="ico">$</span>Investors</button>
+              <button class="tab"><span class="ico">⋯</span>More</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-meta">
+        <span class="pill draft">draft</span>
+        <span class="pill">Dev · sand</span>
+        <span class="pill">pivoted</span>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="sub">05 · Investors</div>
+      <h2>Pivot 90° — vertical cascade, bars track magnitude.</h2>
+      <p class="lede">Desktop's horizontal waterfall packs 7 bars into 900&nbsp;px and uses connecting dashed lines to show carry-forward. At 360&nbsp;px there's no room for that geometry. Mobile pivots the chart 90° — each step is a <strong>row</strong>, with name + sub-label on the left, signed value on the right, and a bar fill that encodes magnitude (proportional to gross proceeds).</p>
+
+      <dl>
+        <div><dt>Row geometry</dt><dd>Two-line top (name + value), one-line bar. Total row height ~52&nbsp;px including bottom padding. Subtotal/total rows use the ink fill; add steps use ok-green; deduct steps use danger-red.</dd></div>
+        <div><dt>Bar position</dt><dd>For <code>add</code> / <code>sub</code> steps the bar can be offset left (e.g. <code>margin-left: 92%</code>) so its visual end-point shows the carry-forward total at that step — visually it still reads as a cascade.</dd></div>
+        <div><dt>Subtotal emphasis</dt><dd>Subtotal rows ("Distributable", "LP distribution") use bolder name + ink bar — same visual weight as desktop's "total" bar variant.</dd></div>
+        <div><dt>Footer KPIs</dt><dd>4-up grid: MOIC, IRR, GP carry, hold years. MOIC uses accent colour (it's the headline metric). Same as desktop.</dd></div>
+        <div><dt>Interactivity</dt><dd>Each row is tappable → bottom sheet with the calculation breakdown (which params drove this step, which LPs are affected). Replaces desktop's hover tooltips.</dd></div>
+        <div><dt>Sharing</dt><dd>Long-press the chart → "share as image" generates a 1:1 social image (square, ink bg, light text). Useful when GP forwards distribution proof to an LP.</dd></div>
+        <div><dt>Tabbed scenarios</dt><dd>Above the chart on real pages: tabs for "actual" vs "model A" vs "model B" — same as desktop. Each tab swaps the data, rows re-render with a 200ms ease.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mobile pass · Dev P1 cabinets</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style>
+/* TOKENS */
+:root {
+  --doc-bg: #0F1014; --doc-bg-2: #16171C; --doc-bg-3: #1F2129;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E5E0; --doc-fg-2: #BBB9B0; --doc-fg-3: #8B8B85;
+  --doc-accent: #C4583C;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+[data-product="development"] {
+  --bg: #F1ECE0; --bg-2: #E7E1D3; --bg-3: #DDD6C5; --panel: #F7F3E8;
+  --paper: #F7F3E8; --cream: #F1ECE0; --cream-warm: #E7E1D3; --cream-deep: #D8D3C2;
+  --ink: #1A1916; --ink-2: #2D2B25; --ink-3: #5A5A4F; --ink-4: #8A8A7E;
+  --line: #C9C3B0; --line-2: #D8D3C2; --line-soft: #D8D3C2;
+  --accent: #B07A28; --accent-soft: #E5C684; --on-accent: #1A1916;
+  --inverted-bg: #1A1916; --inverted-fg: #F7F3E8;
+  --ok: #2F7A4E; --warn: #B07A28; --danger: #A8331F; --info: #2E5680;
+  --amber: #B07A28;
+  --r-pill: 999px; --r-card: 8px; --r-card-lg: 14px; --r-sm: 4px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+/* PAGE */
+.page { min-height: 100vh; padding: 64px 48px 96px; }
+.page-head { max-width: 1600px; margin: 0 auto 56px; }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+h1.title { font-weight: 500; font-size: 40px; line-height: 1.05; letter-spacing: -0.02em; margin: 0; }
+h1.title em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.lede { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+.meta-row { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--doc-line); font-size: 13px; }
+.meta-row > div { display: flex; flex-direction: column; gap: 4px; }
+.meta-row .k { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); }
+.meta-row .v { color: var(--doc-fg); }
+.meta-row a { color: var(--doc-accent); text-decoration: none; }
+
+.boards { display: flex; flex-direction: column; gap: 72px; max-width: 1600px; margin: 0 auto; }
+.cabinet { padding-top: 32px; border-top: 1px solid var(--doc-line); display: flex; flex-direction: column; gap: 32px; }
+.cabinet-head { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.cabinet-head .num { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); padding: 5px 10px; border: 1px solid var(--doc-line-2); border-radius: 4px; }
+.cabinet-head h2 { margin: 0; font-weight: 500; font-size: 28px; letter-spacing: -0.015em; }
+.cabinet-head .meta { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+.cabinet-head .meta .pill { padding: 4px 10px; border: 1px solid var(--doc-line-2); border-radius: 999px; font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #E5C684; border-color: rgba(229,198,132,0.35); }
+.cabinet-lede { max-width: 760px; font-size: 14.5px; line-height: 1.65; color: var(--doc-fg-2); margin: 0; }
+.cabinet-body { display: grid; grid-template-columns: 380px 380px 1fr; gap: 36px; align-items: start; }
+.frame-col { display: flex; flex-direction: column; gap: 14px; }
+.frame-tag { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--doc-fg-3); }
+.frame-tag .name { color: var(--doc-fg); }
+.frame-tag .role { padding: 2px 8px; border: 1px solid var(--doc-line-2); border-radius: 4px; color: var(--doc-fg-2); font-size: 9.5px; }
+
+/* PHONE */
+.phone { width: 360px; height: 740px; border-radius: 44px; background: #0A0B0F; padding: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06); position: relative; }
+.phone-screen { width: 100%; height: 100%; border-radius: 34px; background: var(--bg); overflow: hidden; display: flex; flex-direction: column; }
+.phone-status { height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px 4px; font-family: var(--mono-font); font-size: 12px; color: var(--ink); font-weight: 500; flex-shrink: 0; }
+.phone-notch { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: 110px; height: 28px; background: #0A0B0F; border-radius: 14px; z-index: 2; }
+.phone-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+.app-topbar { display: flex; align-items: center; gap: 10px; padding: 8px 16px 12px; border-bottom: 1px solid var(--line-soft); flex-shrink: 0; }
+.app-topbar .ico { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; color: var(--ink); }
+.app-topbar .title { flex: 1; font-family: var(--display-font); font-size: 17px; color: var(--ink); font-weight: 500; }
+.app-topbar .title .sub { display: block; font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-top: 1px; font-weight: 400; }
+.app-topbar .aux { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+
+.app-scroll { flex: 1; overflow-y: auto; }
+.app-tabbar { display: flex; align-items: stretch; border-top: 1px solid var(--line-soft); background: var(--panel); padding-bottom: 14px; flex-shrink: 0; }
+.app-tabbar .tab { flex: 1; padding: 10px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-4); background: transparent; border: 0; }
+.app-tabbar .tab.on { color: var(--ink); }
+.app-tabbar .tab.on .ico { color: var(--accent); }
+.app-tabbar .ico { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; }
+
+.sec-h { display: flex; align-items: center; gap: 8px; padding: 14px 16px 8px; font-family: var(--mono-font); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+.sec-h .ct { font-size: 9.5px; padding: 1px 6px; border-radius: 999px; background: var(--bg-3); color: var(--ink-3); }
+.sec-h .more { margin-left: auto; color: var(--ink-4); font-family: var(--sans-font); font-size: 11px; text-transform: none; letter-spacing: 0; }
+
+/* COMPONENTS */
+[data-product] .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.10em; border: 1px solid var(--line); background: var(--panel); color: var(--ink-3); }
+[data-product] .badge-ok     { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
+[data-product] .badge-warn   { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+[data-product] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product] .badge-info   { background: color-mix(in oklab, var(--info) 12%, transparent); color: var(--info); border-color: color-mix(in oklab, var(--info) 35%, transparent); }
+[data-product] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product] .badge-ink    { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: var(--r-pill); font-family: var(--sans-font); font-size: 14px; font-weight: 500; border: 1px solid transparent; cursor: pointer; line-height: 1; background: transparent; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product] .btn-secondary { background: var(--bg-3); color: var(--ink); border-color: var(--line-2); }
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); border: 1px solid var(--line); }
+[data-product] .btn-accent { background: var(--accent); color: var(--inverted-fg); }
+[data-product] .btn-ok { background: var(--ok); color: white; }
+
+.chips { display: flex; gap: 6px; padding: 8px 12px 6px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chips .chip { flex-shrink: 0; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+.chips .chip.on { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+.kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px; }
+.kpi-strip .kpi { background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r-card); padding: 8px 10px; }
+.kpi-strip .kpi .l { font-family: var(--mono-font); font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+.kpi-strip .kpi .v { font-family: var(--display-font); font-size: 20px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; font-weight: 500; }
+.kpi-strip .kpi .v.warn { color: var(--warn); }
+.kpi-strip .kpi .v.danger { color: var(--danger); }
+.kpi-strip .kpi .v.ok { color: var(--ok); }
+
+/* Project card */
+.p-card { margin: 0 12px 8px; padding: 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r-card-lg); display: flex; flex-direction: column; gap: 10px; }
+.p-card .row1 { display: flex; align-items: baseline; gap: 8px; }
+.p-card .row1 .nm { font-family: var(--display-font); font-size: 18px; color: var(--ink); font-weight: 500; letter-spacing: -0.01em; }
+.p-card .row1 .code { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); margin-left: auto; }
+.p-card .stage { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); display: flex; gap: 10px; align-items: center; }
+.p-card .stage .badge { padding: 2px 8px; }
+.p-card .progress { display: flex; gap: 4px; }
+.p-card .progress .seg { flex: 1; height: 6px; background: var(--bg-3); border-radius: 2px; }
+.p-card .progress .seg.done { background: var(--ink); }
+.p-card .progress .seg.on   { background: var(--accent); }
+.p-card .progress .seg.late { background: var(--danger); }
+.p-card .stage-row { display: flex; justify-content: space-between; font-family: var(--mono-font); font-size: 9.5px; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.14em; }
+.p-card .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-top: 4px; border-top: 1px solid var(--line-soft); }
+.p-card .stats .s .l { font-family: var(--mono-font); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-4); }
+.p-card .stats .s .v { font-family: var(--mono-font); font-size: 13px; color: var(--ink); margin-top: 2px; }
+.p-card .stats .s .v.danger { color: var(--danger); }
+.p-card .stats .s .v.warn   { color: var(--warn); }
+
+/* Phase detail */
+.ph-h { padding: 14px 16px 10px; border-bottom: 1px solid var(--line-soft); }
+.ph-h .crumb { font-family: var(--mono-font); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.14em; }
+.ph-h h3 { margin: 4px 0 0; font-family: var(--display-font); font-size: 22px; font-weight: 500; color: var(--ink); letter-spacing: -0.01em; line-height: 1.2; }
+.ph-h .sub { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+
+/* Phase row */
+.ph-row { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); align-items: center; }
+.ph-row .num { width: 28px; height: 28px; border-radius: 6px; background: var(--bg-2); display: inline-flex; align-items: center; justify-content: center; font-family: var(--mono-font); font-size: 11px; color: var(--ink-2); font-weight: 500; flex-shrink: 0; }
+.ph-row.done .num { background: var(--ok); color: white; }
+.ph-row.current .num { background: var(--ink); color: var(--inverted-fg); }
+.ph-row.late .num { background: var(--danger); color: white; }
+.ph-row .body .nm { font-family: var(--sans-font); font-size: 14px; color: var(--ink); font-weight: 500; }
+.ph-row .body .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+.ph-row .right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.ph-row .right .pct { font-family: var(--mono-font); font-size: 12px; color: var(--ink); }
+.ph-row .right .day { font-family: var(--mono-font); font-size: 9.5px; color: var(--ink-4); }
+
+/* CFO mini waterfall */
+.wf-mobile { padding: 10px 16px; }
+.wf-row { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.wf-row .top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.wf-row .top .nm { font-size: 13.5px; color: var(--ink-2); }
+.wf-row.start .top .nm, .wf-row.total .top .nm { color: var(--ink); font-weight: 500; }
+.wf-row .top .sub { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-4); }
+.wf-row .top .v { margin-left: auto; font-family: var(--mono-font); font-size: 13px; color: var(--ink); font-feature-settings: "tnum"; font-weight: 500; }
+.wf-row.add .top .v { color: var(--ok); }
+.wf-row.sub .top .v { color: var(--danger); }
+.wf-row .bar-wrap { height: 8px; background: var(--bg-3); border-radius: 4px; overflow: hidden; position: relative; }
+.wf-row .bar { height: 100%; width: var(--w, 50%); background: var(--ink-3); border-radius: 4px; margin-left: var(--off, 0%); }
+.wf-row.start .bar, .wf-row.total .bar { background: var(--ink); }
+.wf-row.add .bar { background: var(--ok); }
+.wf-row.sub .bar { background: var(--danger); }
+
+/* Capital call card */
+.cc-card { padding: 12px 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r-card-lg); margin: 0 12px 8px; }
+.cc-card .row1 { display: flex; align-items: baseline; gap: 10px; }
+.cc-card .row1 .code { font-family: var(--mono-font); font-size: 14px; color: var(--ink); font-weight: 500; }
+.cc-card .row1 .pr { font-family: var(--display-font); font-size: 16px; color: var(--ink); }
+.cc-card .row2 { display: flex; align-items: center; gap: 8px; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); margin-top: 6px; }
+.cc-card .row3 { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cc-card .row3 .s .l { font-family: var(--mono-font); font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-4); }
+.cc-card .row3 .s .v { font-family: var(--mono-font); font-size: 13px; color: var(--ink); margin-top: 2px; }
+.cc-card .row3 .s .v.ok { color: var(--ok); }
+.cc-card .row3 .s .v.warn { color: var(--warn); }
+.cc-card .row3 .progress { height: 4px; background: var(--bg-3); border-radius: 2px; margin-top: 4px; grid-column: 1 / -1; }
+.cc-card .row3 .progress .fill { height: 100%; background: var(--ok); border-radius: 2px; }
+
+/* BOQ — work package row */
+.wp-row { padding: 12px 16px; border-bottom: 1px solid var(--line-soft); background: var(--bg); }
+.wp-row .top { display: flex; align-items: baseline; gap: 10px; }
+.wp-row .top .code { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+.wp-row .top .nm { font-family: var(--display-font); font-size: 17px; color: var(--ink); font-weight: 500; letter-spacing: -0.01em; }
+.wp-row .top .arr { margin-left: auto; color: var(--ink-4); }
+.wp-row .ln { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 8px; align-items: center; }
+.wp-row .ln .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+.wp-row .var-pill { font-family: var(--mono-font); font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+.wp-row .var-pill.pos { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.wp-row .var-pill.neg { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+.wp-row .var-pill.flat { background: var(--bg-3); color: var(--ink-3); }
+.wp-row .bar { height: 6px; background: var(--bg-3); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.wp-row .bar .fill { height: 100%; background: var(--accent); border-radius: 3px; }
+.wp-row .bar .fill.over { background: var(--danger); }
+.wp-row .legend { display: flex; gap: 12px; margin-top: 6px; font-family: var(--mono-font); font-size: 10px; color: var(--ink-3); }
+
+/* Variance card */
+.var-card { padding: 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r-card-lg); margin: 0 12px 8px; }
+.var-card .row1 { display: flex; align-items: baseline; gap: 8px; }
+.var-card .row1 .code { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+.var-card .row1 .pct { margin-left: auto; font-family: var(--mono-font); font-size: 13px; padding: 2px 8px; border-radius: 999px; }
+.var-card .row1 .pct.pos { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.var-card .row1 .pct.neg { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+.var-card .nm { font-family: var(--display-font); font-size: 16px; color: var(--ink); font-weight: 500; margin-top: 4px; line-height: 1.3; letter-spacing: -0.01em; }
+.var-card .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; padding: 10px; background: var(--bg-2); border-radius: var(--r-card); }
+.var-card .cmp .col .l { font-family: var(--mono-font); font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-4); }
+.var-card .cmp .col .v { font-family: var(--mono-font); font-size: 14px; color: var(--ink); margin-top: 2px; font-weight: 500; }
+.var-card .cmp .col .v.neg { color: var(--danger); }
+.var-card .reason { padding: 8px 10px; background: var(--bg); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; margin-top: 10px; }
+.var-card .reason .l { font-family: var(--mono-font); font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent); display: block; margin-bottom: 4px; }
+.var-card .actions { display: flex; gap: 6px; margin-top: 12px; }
+.var-card .actions .btn { flex: 1; padding: 8px 10px; font-size: 12.5px; }
+
+/* RFQ card */
+.rfq-card { padding: 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r-card-lg); margin: 0 12px 8px; }
+.rfq-card .top { display: flex; align-items: baseline; gap: 8px; }
+.rfq-card .top .nm { font-family: var(--display-font); font-size: 16px; color: var(--ink); font-weight: 500; letter-spacing: -0.005em; flex: 1; line-height: 1.3; }
+.rfq-card .top .ddl { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); }
+.rfq-card .top .ddl.due { color: var(--warn); }
+.rfq-card .top .ddl.late { color: var(--danger); }
+.rfq-card .ln { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); margin-top: 4px; display: flex; gap: 10px; }
+.rfq-card .vendors { display: flex; gap: 4px; margin-top: 10px; }
+.rfq-card .vendors .v { flex: 1; height: 4px; background: var(--bg-3); border-radius: 2px; }
+.rfq-card .vendors .v.in { background: var(--ok); }
+.rfq-card .vendors .v.pending { background: var(--warn); }
+.rfq-card .progress-row { display: flex; justify-content: space-between; margin-top: 6px; font-family: var(--mono-font); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.14em; }
+
+/* Quote compare (mobile = stacked) */
+.qc-tabs { display: flex; gap: 4px; padding: 8px 12px; }
+.qc-tabs .tab { flex: 1; padding: 10px 8px; border-radius: 8px; background: var(--bg-2); border: 1px solid var(--line-2); display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+.qc-tabs .tab.on { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+.qc-tabs .tab.winner { background: color-mix(in srgb, var(--ok) 18%, var(--bg-2)); border-color: var(--ok); color: var(--ok); }
+.qc-tabs .tab.winner.on { background: var(--ok); color: white; }
+.qc-tabs .tab .nm { font-weight: 500; font-size: 12px; color: inherit; }
+.qc-tabs .tab .am { font-size: 10px; opacity: 0.7; }
+
+.qc-h { padding: 4px 16px 10px; }
+.qc-h .nm { font-family: var(--display-font); font-size: 20px; color: var(--ink); font-weight: 500; letter-spacing: -0.005em; }
+.qc-h .score { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); margin-top: 4px; display: flex; gap: 10px; }
+.qc-h .score .ok { color: var(--ok); }
+
+.qc-line { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line-soft); font-size: 13px; align-items: baseline; }
+.qc-line .nm { color: var(--ink); }
+.qc-line .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 2px; }
+.qc-line .amt { font-family: var(--mono-font); font-size: 12.5px; color: var(--ink); }
+.qc-line.total { background: var(--bg-2); }
+.qc-line.total .nm { font-weight: 500; }
+.qc-line.total .amt { font-size: 14px; }
+.qc-line.delta { background: color-mix(in srgb, var(--ok) 8%, var(--bg-2)); }
+.qc-line.delta .nm, .qc-line.delta .amt { color: var(--ok); }
+
+.qc-radar { padding: 14px 16px; background: var(--bg-2); border-top: 1px solid var(--line-soft); }
+.qc-radar .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+.qc-radar .scores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.qc-radar .scores .s { display: flex; justify-content: space-between; font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-2); }
+.qc-radar .scores .s .v { color: var(--ink); font-weight: 500; }
+
+/* CTA row */
+.cta-row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line-soft); background: var(--bg); flex-shrink: 0; }
+.cta-row .btn { flex: 1; }
+
+/* NOTES */
+.notes h3 { font-family: var(--doc-sans); font-size: 18px; font-weight: 500; margin: 0 0 6px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.notes p.l { font-size: 14px; line-height: 1.6; color: var(--doc-fg-2); margin: 0 0 18px; max-width: 460px; }
+.notes dl { margin: 0; border-top: 1px solid var(--doc-line); }
+.notes dl > div { display: grid; grid-template-columns: 130px 1fr; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--doc-line); }
+.notes dt { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes dd { margin: 0; font-size: 13px; color: var(--doc-fg-2); line-height: 1.55; }
+.notes dd strong { color: var(--doc-fg); font-weight: 500; }
+.notes dd code { background: var(--doc-bg-3); padding: 1px 6px; border-radius: 4px; font-family: var(--doc-mono); font-size: 11.5px; color: var(--doc-fg); }
+
+@media (max-width: 1320px) {
+  .cabinet-body { grid-template-columns: 380px 380px; }
+  .notes { grid-column: 1 / -1; }
+}
+@media (max-width: 820px) {
+  .cabinet-body { grid-template-columns: 1fr; justify-items: center; }
+  .notes { max-width: 420px; }
+}
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Mobile pass · Dev P1 cabinets">
+
+  <header class="page-head">
+    <div class="eyebrow"><span class="glyph"></span><span>DS extension · Mobile pass · Dev P1 cabinets</span></div>
+    <h1 class="title">Four Dev cabinets, <em>engineering-grade on a phone</em>.</h1>
+    <p class="lede">Dev P1 — Projects+PM, CFO/Finance, BOQ+QS, Procurement. Construction-industry density on a 360px screen. PM uses the phone on-site; CFO reviews capital calls from a meeting; QS approves a variance walking between sites; Procurement awards a PO from an airport.</p>
+    <div class="meta-row">
+      <div><span class="k">Status</span><span class="v">Draft</span></div>
+      <div><span class="k">Target</span><span class="v">360-700&nbsp;px</span></div>
+      <div><span class="k">Frame</span><span class="v">iPhone 14 · 393 × 852</span></div>
+      <div><span class="k">Series</span><span class="v"><a href="mobile-pass-2.4-primitives.html">primitives</a> · <a href="mobile-pass-2.4-cabinets.html">P2 cabinets</a> · <a href="mobile-pass-mgmt-p1.html">Mgmt P1</a> · <strong>Dev P1</strong> · Owner P1</span></div>
+    </div>
+  </header>
+
+  <main class="boards">
+    <div id="board-mount"></div>
+  </main>
+</div>
+
+<script>
+const PHONE = (inner) => `
+  <div class="phone" data-product="development">
+    <div class="phone-notch"></div>
+    <div class="phone-screen">
+      <div class="phone-status"><span>9:41</span><span>5G · 86%</span></div>
+      <div class="phone-body">${inner}</div>
+    </div>
+  </div>`;
+
+const TABBAR = (on) => `
+  <div class="app-tabbar">
+    <button class="tab ${on==='proj'?'on':''}"><span class="ico">▦</span>Projects</button>
+    <button class="tab ${on==='cfo'?'on':''}"><span class="ico">$</span>CFO</button>
+    <button class="tab ${on==='boq'?'on':''}"><span class="ico">≡</span>BOQ</button>
+    <button class="tab ${on==='proc'?'on':''}"><span class="ico">⌖</span>Procure</button>
+  </div>`;
+
+const TOP = (title, sub, aux) => `
+  <div class="app-topbar">
+    <div class="ico">←</div>
+    <div class="title">${title}<span class="sub">${sub}</span></div>
+    ${aux ? `<div class="aux">${aux}</div>` : ''}
+  </div>`;
+
+const TOP_DETAIL = (title, sub) => `
+  <div class="app-topbar">
+    <div class="ico">←</div>
+    <div class="title">${title}<span class="sub">${sub}</span></div>
+    <div class="ico">⋯</div>
+  </div>`;
+
+const TOP_FLOW = (title, sub) => `
+  <div class="app-topbar">
+    <div class="ico">×</div>
+    <div class="title">${title}<span class="sub">${sub}</span></div>
+    <div class="ico">⋯</div>
+  </div>`;
+
+const CABINET = (num, title, lede, mainTag, mainScreen, flowTag, flowScreen, notesH, notesL, notes) => `
+  <section class="cabinet">
+    <header class="cabinet-head">
+      <span class="num">${num}</span>
+      <h2>${title}</h2>
+      <div class="meta"><span class="pill">Dev · P1</span></div>
+    </header>
+    <p class="cabinet-lede">${lede}</p>
+    <div class="cabinet-body">
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">main</span><span class="name">${mainTag}</span></div>
+        ${PHONE(mainScreen)}
+      </div>
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">flow</span><span class="name">${flowTag}</span></div>
+        ${PHONE(flowScreen)}
+      </div>
+      <div class="notes">
+        <h3>${notesH}</h3>
+        <p class="l">${notesL}</p>
+        <dl>${notes.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      </div>
+    </div>
+  </section>`;
+
+// ----- 01. PROJECTS + PM -----
+const pj_main = `
+  ${TOP('Projects', '6 active · 2 at risk', '+')}
+  <div class="chips">
+    <span class="chip on">all 6</span>
+    <span class="chip">at risk · 2</span>
+    <span class="chip">handover q3 · 1</span>
+    <span class="chip">+ filter</span>
+  </div>
+  <div class="app-scroll">
+    <div class="kpi-strip" style="grid-template-columns:repeat(3,1fr);">
+      <div class="kpi"><div class="l">committed</div><div class="v" style="font-size:17px;">24.6M</div></div>
+      <div class="kpi"><div class="l">deployed</div><div class="v" style="font-size:17px;">14.2M</div></div>
+      <div class="kpi"><div class="l">avg progress</div><div class="v" style="font-size:17px;">58%</div></div>
+    </div>
+
+    <div class="p-card">
+      <div class="row1">
+        <div class="nm">EV-Phase-02</div>
+        <div class="code">EV-PH02</div>
+      </div>
+      <div class="stage">
+        <span class="badge badge-warn">behind &middot; 9d</span>
+        <span>Concrete frame</span>
+      </div>
+      <div class="progress">
+        <div class="seg done"></div><div class="seg done"></div><div class="seg done"></div>
+        <div class="seg done"></div><div class="seg on"></div>
+        <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+      </div>
+      <div class="stage-row"><span>kick-off</span><span style="color:var(--warn);">stage 5 of 8</span><span>handover</span></div>
+      <div class="stats">
+        <div class="s"><div class="l">spend</div><div class="v">1.42 M</div></div>
+        <div class="s"><div class="l">committed</div><div class="v">2.45 M</div></div>
+        <div class="s"><div class="l">variance</div><div class="v warn">+4.2%</div></div>
+      </div>
+    </div>
+
+    <div class="p-card">
+      <div class="row1">
+        <div class="nm">Ahimsa-Phase-01</div>
+        <div class="code">AH-PH01</div>
+      </div>
+      <div class="stage">
+        <span class="badge badge-ok">on track</span>
+        <span>MEP rough-in</span>
+      </div>
+      <div class="progress">
+        <div class="seg done"></div><div class="seg done"></div><div class="seg done"></div>
+        <div class="seg done"></div><div class="seg done"></div>
+        <div class="seg on"></div>
+        <div class="seg"></div><div class="seg"></div>
+      </div>
+      <div class="stage-row"><span>kick-off</span><span>stage 6 of 8</span><span>handover</span></div>
+      <div class="stats">
+        <div class="s"><div class="l">spend</div><div class="v">3.18 M</div></div>
+        <div class="s"><div class="l">committed</div><div class="v">4.20 M</div></div>
+        <div class="s"><div class="l">variance</div><div class="v" style="color:var(--ok);">−1.1%</div></div>
+      </div>
+    </div>
+
+    <div class="p-card">
+      <div class="row1">
+        <div class="nm">Lotus-Phase-01</div>
+        <div class="code">LT-PH01</div>
+      </div>
+      <div class="stage">
+        <span class="badge badge-danger">delayed &middot; 21d</span>
+        <span>Foundation</span>
+      </div>
+      <div class="progress">
+        <div class="seg done"></div><div class="seg done"></div>
+        <div class="seg late"></div>
+        <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+        <div class="seg"></div><div class="seg"></div>
+      </div>
+      <div class="stage-row"><span>kick-off</span><span style="color:var(--danger);">stage 3 of 8</span><span>handover</span></div>
+      <div class="stats">
+        <div class="s"><div class="l">spend</div><div class="v">0.62 M</div></div>
+        <div class="s"><div class="l">committed</div><div class="v">3.80 M</div></div>
+        <div class="s"><div class="l">variance</div><div class="v danger">+18%</div></div>
+      </div>
+    </div>
+
+    <div class="p-card">
+      <div class="row1">
+        <div class="nm">Sukha-Phase-01</div>
+        <div class="code">SK-PH01</div>
+      </div>
+      <div class="stage">
+        <span class="badge badge-ok">on track</span>
+        <span>Finishes</span>
+      </div>
+      <div class="progress">
+        <div class="seg done"></div><div class="seg done"></div><div class="seg done"></div>
+        <div class="seg done"></div><div class="seg done"></div><div class="seg done"></div>
+        <div class="seg on"></div><div class="seg"></div>
+      </div>
+      <div class="stage-row"><span>kick-off</span><span>stage 7 of 8</span><span style="color:var(--ok);">handover q3</span></div>
+      <div class="stats">
+        <div class="s"><div class="l">spend</div><div class="v">5.84 M</div></div>
+        <div class="s"><div class="l">committed</div><div class="v">6.10 M</div></div>
+        <div class="s"><div class="l">variance</div><div class="v" style="color:var(--ok);">+0.4%</div></div>
+      </div>
+    </div>
+  </div>
+  ${TABBAR('proj')}`;
+
+const pj_flow = `
+  ${TOP_DETAIL('EV-Phase-02', 'concrete frame · stage 5 of 8')}
+  <div class="ph-h">
+    <div class="crumb">Dev OS / EV-PH02</div>
+    <h3>EV-Phase-02 schedule</h3>
+    <div class="sub">behind by 9 days · stage 5 · concrete frame</div>
+  </div>
+  <div class="app-scroll">
+    <div class="sec-h">phases <span class="ct">8 total</span></div>
+
+    <div class="ph-row done">
+      <div class="num">1</div>
+      <div class="body">
+        <div class="nm">Land acquisition</div>
+        <div class="meta">closed nov 12 2024</div>
+      </div>
+      <div class="right">
+        <div class="pct">100%</div>
+        <div class="day">12&nbsp;d ago</div>
+      </div>
+    </div>
+    <div class="ph-row done">
+      <div class="num">2</div>
+      <div class="body">
+        <div class="nm">Design &amp; permits</div>
+        <div class="meta">finished feb 3 · 2 weeks late</div>
+      </div>
+      <div class="right">
+        <div class="pct">100%</div>
+        <div class="day">−14&nbsp;d</div>
+      </div>
+    </div>
+    <div class="ph-row done">
+      <div class="num">3</div>
+      <div class="body">
+        <div class="nm">Site prep + earthworks</div>
+        <div class="meta">closed mar 18</div>
+      </div>
+      <div class="right">
+        <div class="pct">100%</div>
+        <div class="day">on time</div>
+      </div>
+    </div>
+    <div class="ph-row done">
+      <div class="num">4</div>
+      <div class="body">
+        <div class="nm">Foundation + slab</div>
+        <div class="meta">closed apr 26 · variance −3 d</div>
+      </div>
+      <div class="right">
+        <div class="pct">100%</div>
+        <div class="day">on time</div>
+      </div>
+    </div>
+    <div class="ph-row late">
+      <div class="num">5</div>
+      <div class="body">
+        <div class="nm">Concrete frame</div>
+        <div class="meta">in progress · 9 days behind</div>
+      </div>
+      <div class="right">
+        <div class="pct">68%</div>
+        <div class="day" style="color:var(--danger);">+9&nbsp;d</div>
+      </div>
+    </div>
+    <div class="ph-row">
+      <div class="num">6</div>
+      <div class="body">
+        <div class="nm">MEP rough-in</div>
+        <div class="meta">planned jul 5 → aug 18</div>
+      </div>
+      <div class="right">
+        <div class="pct">—</div>
+        <div class="day">starts +24d</div>
+      </div>
+    </div>
+    <div class="ph-row">
+      <div class="num">7</div>
+      <div class="body">
+        <div class="nm">Finishes &amp; FF&amp;E</div>
+        <div class="meta">planned sep 1 → nov 4</div>
+      </div>
+      <div class="right">
+        <div class="pct">—</div>
+        <div class="day">—</div>
+      </div>
+    </div>
+    <div class="ph-row">
+      <div class="num">8</div>
+      <div class="body">
+        <div class="nm">Handover + snagging</div>
+        <div class="meta">target dec 12 (was dec 1)</div>
+      </div>
+      <div class="right">
+        <div class="pct">—</div>
+        <div class="day">+11&nbsp;d</div>
+      </div>
+    </div>
+
+    <div class="sec-h">recent updates <span class="ct">3 today</span></div>
+    <div style="padding:0 16px 14px;display:flex;flex-direction:column;gap:8px;">
+      <div style="padding:10px 12px;background:var(--panel);border:1px solid var(--line-2);border-radius:8px;">
+        <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">wed · 10:42 · Made Surya</div>
+        <div style="font-size:13.5px;color:var(--ink);margin-top:4px;line-height:1.45;">Pour for block A slab completed. Vibrator passed twice. Curing started.</div>
+      </div>
+      <div style="padding:10px 12px;background:var(--panel);border:1px solid var(--line-2);border-radius:8px;">
+        <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">wed · 08:21 · BOQ change</div>
+        <div style="font-size:13.5px;color:var(--ink);margin-top:4px;line-height:1.45;">QS approved variance on line WP-02.14 (rebar): +4.8% accepted.</div>
+      </div>
+    </div>
+  </div>
+  <div class="cta-row">
+    <button class="btn btn-ghost">Site reports</button>
+    <button class="btn btn-primary">Open BOQ →</button>
+  </div>`;
+
+const pj_notes = [
+  ['Portfolio card','One per active project. Stage chips inline (status badge + current phase). 8-segment progress bar with stage labels under it. Stats footer: spend / committed / variance.'],
+  ['Stage colours','done = ink, on = accent, late = danger. Three states only — keeps the cognitive load low.'],
+  ['Variance tone','+ over budget (warn/danger), − under (ok). Always shown as % of committed.'],
+  ['Detail crumb','EV-PH02 phase list. Phases use the same num-circle pattern as the bookings detail and other detail screens.'],
+  ['Late chips','Late phase has red num-circle + red day-offset on the right ("+9 d"). Forward phases inherit the cascade — phase 8\'s handover date shifts.'],
+  ['Updates feed','Recent site reports + BOQ events inline below the phase list. Single source for "what happened today on this project".'],
+  ['CTAs','Site reports jumps to that project\'s storyboard. Open BOQ jumps to the project\'s BOQ — these are the two most-asked-for jumps from project detail.']
+];
+
+// ----- 02. CFO / FINANCE -----
+const cfo_main = `
+  ${TOP('CFO console', '6 projects · USD primary', '⋯')}
+  <div class="chips">
+    <span class="chip on">YTD</span>
+    <span class="chip">all projects</span>
+    <span class="chip">USD</span>
+    <span class="chip">+ scope</span>
+  </div>
+  <div class="app-scroll">
+    <div class="kpi-strip" style="grid-template-columns:repeat(3,1fr);">
+      <div class="kpi"><div class="l">committed</div><div class="v" style="font-size:17px;">$24.6M</div></div>
+      <div class="kpi"><div class="l">deployed</div><div class="v" style="font-size:17px;">$14.2M</div></div>
+      <div class="kpi"><div class="l">runway</div><div class="v warn" style="font-size:17px;">9 mo</div></div>
+    </div>
+
+    <div class="sec-h">YTD waterfall <span class="ct">jan—may 2026</span></div>
+    <div class="wf-mobile">
+      <div class="wf-row start">
+        <div class="top">
+          <span class="nm">Capital called</span>
+          <span class="sub">in</span>
+          <span class="v">$28.4M</span>
+        </div>
+        <div class="bar-wrap"><div class="bar" style="--w:100%"></div></div>
+      </div>
+      <div class="wf-row sub">
+        <div class="top">
+          <span class="nm">Construction capex</span>
+          <span class="sub">−</span>
+          <span class="v">−$14.2M</span>
+        </div>
+        <div class="bar-wrap"><div class="bar" style="--w:50%;--off:50%;"></div></div>
+      </div>
+      <div class="wf-row sub">
+        <div class="top">
+          <span class="nm">Design &amp; consultants</span>
+          <span class="sub">−</span>
+          <span class="v">−$2.1M</span>
+        </div>
+        <div class="bar-wrap"><div class="bar" style="--w:7%;--off:42%;"></div></div>
+      </div>
+      <div class="wf-row sub">
+        <div class="top">
+          <span class="nm">G&amp;A + management</span>
+          <span class="sub">−</span>
+          <span class="v">−$1.4M</span>
+        </div>
+        <div class="bar-wrap"><div class="bar" style="--w:5%;--off:37%;"></div></div>
+      </div>
+      <div class="wf-row total">
+        <div class="top">
+          <span class="nm">Reserves on hand</span>
+          <span class="sub">net</span>
+          <span class="v">$10.7M</span>
+        </div>
+        <div class="bar-wrap"><div class="bar" style="--w:38%"></div></div>
+      </div>
+    </div>
+
+    <div class="sec-h">Capital calls <span class="ct">2 open</span><span class="more">all</span></div>
+    <div class="cc-card">
+      <div class="row1">
+        <div class="code">CC-04</div>
+        <div class="pr">EV-Phase-02 · slab pour</div>
+      </div>
+      <div class="row2">
+        <span class="badge badge-warn">partially received</span>
+        <span>· due apr 11 · 14d ago</span>
+      </div>
+      <div class="row3">
+        <div class="s"><div class="l">called</div><div class="v">$840K</div></div>
+        <div class="s"><div class="l">received</div><div class="v ok">$650K · 77%</div></div>
+        <div class="progress"><div class="fill" style="width:77%;"></div></div>
+      </div>
+    </div>
+    <div class="cc-card">
+      <div class="row1">
+        <div class="code">CC-05</div>
+        <div class="pr">AH-Phase-01 · MEP buy-out</div>
+      </div>
+      <div class="row2">
+        <span class="badge badge-info">issued</span>
+        <span>· due jun 25 · 14d</span>
+      </div>
+      <div class="row3">
+        <div class="s"><div class="l">called</div><div class="v">$1.20M</div></div>
+        <div class="s"><div class="l">received</div><div class="v">$0 · 0%</div></div>
+        <div class="progress"><div class="fill" style="width:0%;"></div></div>
+      </div>
+    </div>
+  </div>
+  ${TABBAR('cfo')}`;
+
+const cfo_flow = `
+  ${TOP_DETAIL('CC-04', 'EV-Phase-02 · slab pour')}
+  <div class="ph-h">
+    <div class="crumb">CFO / Capital calls</div>
+    <h3>Capital call · CC-04</h3>
+    <div class="sub">EV-Phase-02 · construction milestone · slab pour</div>
+  </div>
+
+  <div style="margin:10px 16px;padding:14px 16px;background:var(--ink);color:var(--inverted-fg);border-radius:14px;">
+    <div style="font-family:var(--mono-font);font-size:9.5px;text-transform:uppercase;letter-spacing:0.14em;color:rgba(255,255,255,0.55);">total called · USD</div>
+    <div style="font-family:var(--display-font);font-size:30px;margin-top:2px;font-variant-numeric:tabular-nums;font-weight:500;">$840,000</div>
+    <div style="font-family:var(--mono-font);font-size:11px;color:rgba(255,255,255,0.65);margin-top:4px;">due apr 11 · <span style="color:var(--accent-soft);">14d overdue</span> · 77% received</div>
+  </div>
+
+  <div style="padding:0 16px 4px;display:flex;gap:8px;font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;background:var(--ok);border-radius:50%;"></span>received&nbsp;4</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;background:var(--warn);border-radius:50%;"></span>pending&nbsp;1</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;background:var(--danger);border-radius:50%;"></span>overdue&nbsp;1</span>
+  </div>
+
+  <div class="app-scroll">
+    <div class="sec-h">allocations <span class="ct">6 LPs</span></div>
+    <div style="padding:0 16px;">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+        <div><div style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);font-weight:500;">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:6px;"></span>Sunset Holdings Pte</div>
+          <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">paid · apr 9 · 22% pro-rata</div></div>
+        <div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);text-align:right;">$185K</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+        <div><div style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);font-weight:500;">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:6px;"></span>Tan Family Trust</div>
+          <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">paid · apr 11 · 18% pro-rata</div></div>
+        <div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);text-align:right;">$151K</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+        <div><div style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);font-weight:500;">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:6px;"></span>Petra Iverson</div>
+          <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">paid · apr 10 · 14% pro-rata</div></div>
+        <div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);text-align:right;">$118K</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+        <div><div style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);font-weight:500;">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:6px;"></span>Hans Müller</div>
+          <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">paid · apr 14 · 11% pro-rata</div></div>
+        <div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);text-align:right;">$92K</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+        <div><div style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);font-weight:500;">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-right:6px;"></span>Aditya Mehta</div>
+          <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">pending · reminded apr 18 · 18% pro-rata</div></div>
+        <div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);text-align:right;">$151K</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+        <div><div style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);font-weight:500;">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--danger);margin-right:6px;"></span>Kishida Holdings</div>
+          <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">overdue 14d · last reminder apr 20 · 17%</div></div>
+        <div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);text-align:right;">$143K</div>
+      </div>
+    </div>
+
+    <div style="margin:14px 16px;padding:12px 14px;background:color-mix(in srgb, var(--danger) 6%, var(--panel));border:1px solid color-mix(in srgb, var(--danger) 30%, transparent);border-radius:10px;">
+      <div style="font-family:var(--mono-font);font-size:9.5px;text-transform:uppercase;letter-spacing:0.14em;color:var(--danger);margin-bottom:4px;">1 overdue</div>
+      <div style="font-size:13px;color:var(--ink-2);line-height:1.5;">Kishida Holdings is <strong style="font-family:var(--mono-font);">14d</strong> past due. Last reminder sent <strong style="font-family:var(--mono-font);">apr 20</strong>. Tap below to send escalation.</div>
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <button class="btn btn-ghost">PDF</button>
+    <button class="btn btn-primary">Send reminder →</button>
+  </div>`;
+
+const cfo_notes = [
+  ['Console KPIs','3-up: committed / deployed / runway. Runway is the headline — it\'s the GP\'s "should I worry" number.'],
+  ['Mini waterfall','Reuses the WaterfallChart mobile primitive (vertical, signed values). YTD across all 6 projects.'],
+  ['Capital call card','Per-call: code, project, status badge, due date, called vs received bar. Tap a card → detail.'],
+  ['CC detail · inverted','Top of the detail page uses the same ink-card pattern as the P2 investors waterfall — the headline number wants to be unmissable.'],
+  ['Status dots','Each LP allocation row has a left-side dot (ok/pending/overdue). Aggregate counts in a 3-bullet strip at the top.'],
+  ['Overdue band','Danger-tinted card at the bottom of detail. One specific overdue LP at a time — actionable, not statistical.'],
+  ['Send reminder','Bottom primary CTA. Opens a sub-sheet with the template letter + escalation flag.']
+];
+
+// ----- 03. BOQ + QS -----
+const boq_main = `
+  ${TOP('BOQ · EV-PH02', '142 lines · 7 WP · 58% committed', '⋯')}
+  <div class="chips">
+    <span class="chip on">all 7 WP</span>
+    <span class="chip">over-budget · 3</span>
+    <span class="chip">pending · 12</span>
+    <span class="chip">+ filter</span>
+  </div>
+  <div class="app-scroll">
+    <div class="kpi-strip" style="grid-template-columns:repeat(3,1fr);">
+      <div class="kpi"><div class="l">planned</div><div class="v" style="font-size:17px;">$2.45M</div></div>
+      <div class="kpi"><div class="l">committed</div><div class="v" style="font-size:17px;">$1.42M</div></div>
+      <div class="kpi"><div class="l">variance</div><div class="v warn" style="font-size:17px;">+4.2%</div></div>
+    </div>
+
+    <div class="wp-row">
+      <div class="top">
+        <span class="code">WP-01</span>
+        <span class="nm">Earthworks</span>
+        <span class="arr">›</span>
+      </div>
+      <div class="ln">
+        <div class="meta">12 lines · planned $148K · committed $146K</div>
+        <span class="var-pill flat">−1%</span>
+      </div>
+      <div class="bar"><div class="fill" style="width:98%;"></div></div>
+      <div class="legend"><span>100% committed</span><span style="margin-left:auto;color:var(--ok);">closed</span></div>
+    </div>
+
+    <div class="wp-row">
+      <div class="top">
+        <span class="code">WP-02</span>
+        <span class="nm">Concrete</span>
+        <span class="arr">›</span>
+      </div>
+      <div class="ln">
+        <div class="meta">28 lines · planned $612K · committed $590K</div>
+        <span class="var-pill neg">+4.8%</span>
+      </div>
+      <div class="bar"><div class="fill" style="width:96%;"></div></div>
+      <div class="legend"><span>active &middot; 3 awaiting reason</span></div>
+    </div>
+
+    <div class="wp-row">
+      <div class="top">
+        <span class="code">WP-03</span>
+        <span class="nm">Steel &amp; reinforcement</span>
+        <span class="arr">›</span>
+      </div>
+      <div class="ln">
+        <div class="meta">18 lines · planned $214K · committed $198K</div>
+        <span class="var-pill pos">−2.1%</span>
+      </div>
+      <div class="bar"><div class="fill" style="width:92%;"></div></div>
+      <div class="legend"><span>92% committed</span></div>
+    </div>
+
+    <div class="wp-row">
+      <div class="top">
+        <span class="code">WP-04</span>
+        <span class="nm">Masonry &amp; envelope</span>
+        <span class="arr">›</span>
+      </div>
+      <div class="ln">
+        <div class="meta">22 lines · planned $328K · committed $134K</div>
+        <span class="var-pill flat">—</span>
+      </div>
+      <div class="bar"><div class="fill" style="width:41%;"></div></div>
+      <div class="legend"><span>41% committed</span></div>
+    </div>
+
+    <div class="wp-row">
+      <div class="top">
+        <span class="code">WP-05</span>
+        <span class="nm">MEP rough-in</span>
+        <span class="arr">›</span>
+      </div>
+      <div class="ln">
+        <div class="meta">31 lines · planned $542K · committed $0</div>
+        <span class="var-pill flat">pending RFQ</span>
+      </div>
+      <div class="bar"><div class="fill" style="width:0%;"></div></div>
+      <div class="legend"><span>0% committed · stage 6 starts +24d</span></div>
+    </div>
+
+    <div class="wp-row">
+      <div class="top">
+        <span class="code">WP-06</span>
+        <span class="nm">Finishes</span>
+        <span class="arr">›</span>
+      </div>
+      <div class="ln">
+        <div class="meta">22 lines · planned $384K · committed $0</div>
+        <span class="var-pill flat">pending</span>
+      </div>
+      <div class="bar"><div class="fill" style="width:0%;"></div></div>
+      <div class="legend"><span>0% committed</span></div>
+    </div>
+
+    <div class="wp-row">
+      <div class="top">
+        <span class="code">WP-07</span>
+        <span class="nm">FF&amp;E + landscape</span>
+        <span class="arr">›</span>
+      </div>
+      <div class="ln">
+        <div class="meta">9 lines · planned $222K · committed $0</div>
+        <span class="var-pill flat">pending</span>
+      </div>
+      <div class="bar"><div class="fill" style="width:0%;"></div></div>
+      <div class="legend"><span>0% committed</span></div>
+    </div>
+  </div>
+  ${TABBAR('boq')}`;
+
+const boq_flow = `
+  ${TOP_FLOW('Variance · WP-02.14', 'concrete · rebar · ev-ph02')}
+  <div class="ph-h">
+    <div class="crumb">QS / variance review</div>
+    <h3>Variance review · 4 open</h3>
+    <div class="sub">$18K aggregate · 3 projects · 2 awaiting reason</div>
+  </div>
+
+  <div class="var-card">
+    <div class="row1">
+      <span class="code">WP-02.14 · EV-PH02</span>
+      <span class="pct neg">+4.8%</span>
+    </div>
+    <div class="nm">Rebar #16 · 380 m · grade 60</div>
+    <div class="cmp">
+      <div class="col">
+        <div class="l">BOQ planned</div>
+        <div class="v">$24,560</div>
+      </div>
+      <div class="col">
+        <div class="l">contractor quoted</div>
+        <div class="v neg">$25,740</div>
+      </div>
+    </div>
+    <div class="reason">
+      <span class="l">contractor reason</span>
+      Steel spot price +6.2% vs BOQ basis. Mill invoice attached (page 3, item 14). Equivalent grade unavailable at prior price.
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost">Reject</button>
+      <button class="btn btn-secondary">Investigate</button>
+      <button class="btn btn-ok">Accept</button>
+    </div>
+  </div>
+
+  <div class="var-card">
+    <div class="row1">
+      <span class="code">WP-02.07 · EV-PH02</span>
+      <span class="pct neg">+3.1%</span>
+    </div>
+    <div class="nm">Concrete C-30 · pump · 142 m³</div>
+    <div class="cmp">
+      <div class="col">
+        <div class="l">BOQ planned</div>
+        <div class="v">$42,180</div>
+      </div>
+      <div class="col">
+        <div class="l">contractor quoted</div>
+        <div class="v neg">$43,490</div>
+      </div>
+    </div>
+    <div class="reason" style="border-left-color:var(--warn);">
+      <span class="l" style="color:var(--warn);">awaiting reason · 3 days</span>
+      Contractor hasn't replied to QS's note (apr 16). Send escalation.
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost">Reject</button>
+      <button class="btn btn-secondary">Chase contractor</button>
+      <button class="btn btn-ok" style="opacity:0.4;">Accept</button>
+    </div>
+  </div>
+
+  <div class="var-card">
+    <div class="row1">
+      <span class="code">WP-03.08 · AH-PH01</span>
+      <span class="pct pos">−2.4%</span>
+    </div>
+    <div class="nm">Reinforcement mesh · BRC A142</div>
+    <div class="cmp">
+      <div class="col">
+        <div class="l">BOQ planned</div>
+        <div class="v">$8,400</div>
+      </div>
+      <div class="col">
+        <div class="l">contractor quoted</div>
+        <div class="v" style="color:var(--ok);">$8,200</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary">Investigate</button>
+      <button class="btn btn-ok">Accept</button>
+    </div>
+  </div>
+  `;
+
+const boq_notes = [
+  ['WP groups','One card per work package. Code + name + arrow. Variance pill in the right column. Bar shows committed-as-%-of-planned, fill turns danger if &gt; 100%.'],
+  ['Inline meta','"12 lines · planned $X · committed $Y" replaces the desktop sidebar columns. One line, scannable.'],
+  ['Tap-through','Tap a WP row → drill into its line items in the same scroll (replaces desktop\'s left-rail navigation).'],
+  ['Variance queue','QS cabinet entry. Cross-project — every flagged variance, oldest first. Each card has the comparison values, contractor reason (or "awaiting"), and 3 action buttons.'],
+  ['Action triad','Reject / Investigate / Accept. Accept is disabled when reason is "awaiting" — QS can\'t approve blind.'],
+  ['Reason callout','Accent left border for contractor-supplied; warn border for "awaiting reason". Visual difference at a glance — no need to read.'],
+  ['Mobile vs desktop','Desktop is a table with 8 columns. Mobile is a card per variance — vertical scroll. Trade-off: fewer at once, but each is fully reviewable without expanding.']
+];
+
+// ----- 04. PROCUREMENT -----
+const proc_main = `
+  ${TOP('RFQs & POs', '11 active · 3 due this week', '+')}
+  <div class="chips">
+    <span class="chip on">active</span>
+    <span class="chip">due ≤ 7d</span>
+    <span class="chip">EV-PH02</span>
+    <span class="chip">+ filter</span>
+  </div>
+  <div class="app-scroll">
+    <div class="sec-h">ready to award <span class="ct" style="background:color-mix(in srgb, var(--ok) 14%, transparent);color:var(--ok);">3</span></div>
+
+    <div class="rfq-card">
+      <div class="top">
+        <div class="nm">Copper piping · ½" potable · 380 m</div>
+        <div class="ddl late">passed 2d</div>
+      </div>
+      <div class="ln"><span>WP-05.14 MEP</span><span>·</span><span>AH-PHASE-01</span></div>
+      <div class="vendors">
+        <div class="v in"></div>
+        <div class="v in"></div>
+        <div class="v in"></div>
+      </div>
+      <div class="progress-row"><span>3 / 3 quotes in</span><span style="color:var(--ok);">best $42,180</span></div>
+    </div>
+
+    <div class="rfq-card">
+      <div class="top">
+        <div class="nm">Aluminum window frames · 8 units</div>
+        <div class="ddl">due 3d</div>
+      </div>
+      <div class="ln"><span>WP-04.08 envelope</span><span>·</span><span>EV-PHASE-02</span></div>
+      <div class="vendors">
+        <div class="v in"></div>
+        <div class="v in"></div>
+        <div class="v pending"></div>
+      </div>
+      <div class="progress-row"><span>2 / 3 quotes in</span><span>1 reminded</span></div>
+    </div>
+
+    <div class="rfq-card">
+      <div class="top">
+        <div class="nm">Italian tile · 24" × 24" porcelain · 410 m²</div>
+        <div class="ddl due">due 1d</div>
+      </div>
+      <div class="ln"><span>WP-06.02 finishes</span><span>·</span><span>SK-PHASE-01</span></div>
+      <div class="vendors">
+        <div class="v in"></div>
+        <div class="v in"></div>
+        <div class="v in"></div>
+      </div>
+      <div class="progress-row"><span>3 / 3 quotes in</span><span style="color:var(--ok);">best $38,200</span></div>
+    </div>
+
+    <div class="sec-h">quoting <span class="ct">4</span></div>
+
+    <div class="rfq-card">
+      <div class="top">
+        <div class="nm">HVAC condensers · split · 12 units</div>
+        <div class="ddl">due 6d</div>
+      </div>
+      <div class="ln"><span>WP-05.21 MEP</span><span>·</span><span>EV-PHASE-02</span></div>
+      <div class="vendors">
+        <div class="v in"></div>
+        <div class="v pending"></div>
+        <div class="v pending"></div>
+      </div>
+      <div class="progress-row"><span>1 / 3 quotes in</span><span>2 chasing</span></div>
+    </div>
+
+    <div class="rfq-card">
+      <div class="top">
+        <div class="nm">Switchgear &amp; distribution boards</div>
+        <div class="ddl">due 4d</div>
+      </div>
+      <div class="ln"><span>WP-05.18 MEP</span><span>·</span><span>AH-PHASE-01</span></div>
+      <div class="vendors">
+        <div class="v in"></div>
+        <div class="v in"></div>
+        <div class="v pending"></div>
+      </div>
+      <div class="progress-row"><span>2 / 3 quotes in</span><span>1 reminded</span></div>
+    </div>
+
+    <div class="rfq-card">
+      <div class="top">
+        <div class="nm">Solar panels · 8 kW residential</div>
+        <div class="ddl">due 12d</div>
+      </div>
+      <div class="ln"><span>WP-05.32 MEP</span><span>·</span><span>SK-PHASE-01</span></div>
+      <div class="vendors">
+        <div class="v pending"></div>
+        <div class="v pending"></div>
+        <div class="v pending"></div>
+      </div>
+      <div class="progress-row"><span>0 / 3 quotes in</span><span>just sent</span></div>
+    </div>
+  </div>
+  ${TABBAR('proc')}`;
+
+const proc_flow = `
+  ${TOP_FLOW('Quote compare', 'copper · ah-ph01 · 3 quotes')}
+  <div class="ph-h">
+    <div class="crumb">Procurement / Copper piping</div>
+    <h3>Copper · ½" potable · 380 m</h3>
+    <div class="sub">AH-PHASE-01 · WP-05.14 MEP · deadline passed</div>
+  </div>
+
+  <div class="qc-tabs">
+    <button class="tab winner on"><span class="nm">Bali Pipes</span><span class="am">$42,180</span></button>
+    <button class="tab"><span class="nm">Plumbtek</span><span class="am">$44,640</span></button>
+    <button class="tab"><span class="nm">CV Indah</span><span class="am">$46,920</span></button>
+  </div>
+
+  <div class="qc-h">
+    <div class="nm">Bali Pipes &middot; <span style="color:var(--ok);">winner</span></div>
+    <div class="score">
+      <span class="ok">score 87</span>
+      <span>· on-time 94%</span>
+      <span>· qa-pass 91%</span>
+    </div>
+  </div>
+
+  <div class="app-scroll">
+    <div class="qc-line">
+      <div><div class="nm">Copper pipe ½" · grade L · 380 m</div><div class="meta">@ $98 / m · IDR equiv 1,495 / m</div></div>
+      <div class="amt">$37,240</div>
+    </div>
+    <div class="qc-line">
+      <div><div class="nm">Fittings · elbows + tees · 84 pcs</div><div class="meta">brass · solder type</div></div>
+      <div class="amt">$2,840</div>
+    </div>
+    <div class="qc-line">
+      <div><div class="nm">Insulation · armaflex 13mm</div><div class="meta">100 m roll · 4 rolls</div></div>
+      <div class="amt">$1,260</div>
+    </div>
+    <div class="qc-line">
+      <div><div class="nm">Delivery + handling</div><div class="meta">Denpasar → site · 1 truck</div></div>
+      <div class="amt">$840</div>
+    </div>
+    <div class="qc-line total">
+      <div class="nm">Subtotal</div>
+      <div class="amt">$42,180</div>
+    </div>
+    <div class="qc-line delta">
+      <div class="nm">vs next-best (Plumbtek)</div>
+      <div class="amt">−$2,460 (5.8%)</div>
+    </div>
+    <div class="qc-line delta">
+      <div class="nm">vs BOQ plan</div>
+      <div class="amt">−$1,420 (3.3%)</div>
+    </div>
+
+    <div class="qc-radar">
+      <div class="l">vendor scorecard</div>
+      <div class="scores">
+        <div class="s"><span>price</span><span class="v">9.2 / 10</span></div>
+        <div class="s"><span>on-time</span><span class="v">9.4 / 10</span></div>
+        <div class="s"><span>QA-pass</span><span class="v">9.1 / 10</span></div>
+        <div class="s"><span>responsive</span><span class="v">7.0 / 10</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <button class="btn btn-ghost">Decline all</button>
+    <button class="btn btn-primary">Award PO →</button>
+  </div>`;
+
+const proc_notes = [
+  ['RFQ card','Item title (display), deadline + WP code + project. Vendors as a 3-segment bar — green if quote in, amber if pending.'],
+  ['Status grouping','Ready-to-award first (action surface), then quoting (waiting), then drafts. Deadline-passed RFQs flash as the top row.'],
+  ['Quote compare tabs','Desktop is 3-column. Mobile is tabs — one vendor at a time, winner tab is ok-green. Switch between to compare.'],
+  ['Header score','Vendor score 0-100 + 3 KPIs (on-time, qa-pass). Replaces desktop\'s separate scorecard panel.'],
+  ['Delta rows','Bottom of the line items: vs next-best, vs BOQ plan. ok-tinted background — these are the "is this a good deal?" rows.'],
+  ['Scorecard footer','Embedded at the bottom of detail. 4 KPIs in a 2×2 grid: price / on-time / QA / responsive.'],
+  ['Award CTA','Primary. Opens a confirmation sheet with PO terms summary, then issues the PO. Logs the award on the vendor scorecard.']
+];
+
+document.getElementById('board-mount').innerHTML = [
+  CABINET('01', 'Projects + PM',
+    '6 active projects, $24.6M committed. Each has 8 stages from land-acquisition to handover. PM checks "what\'s on fire" on the phone — at-risk filter, variance, schedule cascade.',
+    'Portfolio · 6 projects', pj_main, 'Detail · EV-Phase-02 schedule', pj_flow,
+    'Mobile patterns', 'Portfolio card has 4 zones (id row, status, 8-segment progress, stats footer). Detail is a phase-by-phase list with same num-circle pattern as other detail flows.',
+    pj_notes),
+  CABINET('02', 'CFO / Finance',
+    'Cross-project P&L, capital calls in flight, distributions (post-handover). The mobile-critical screen is capital-call detail — overdue allocations need chasing now.',
+    'Console · YTD waterfall', cfo_main, 'Capital call · CC-04 detail', cfo_flow,
+    'Mobile patterns', 'Waterfall reuses the P2 primitive (vertical rows). Capital call cards summarize received vs called. Detail uses inverted-ink hero + LP allocation rows with status dots.',
+    cfo_notes),
+  CABINET('03', 'BOQ + QS',
+    'The construction-industry ledger. ~142 line items per project, grouped into 7 work packages. PM watches commitment vs plan; QS reviews flagged variances and accepts / rejects / investigates.',
+    'BOQ · EV-PH02 · 7 WP', boq_main, 'Variance review queue', boq_flow,
+    'Mobile patterns', 'WP rows show planned/committed/variance inline. Bar fill = % committed; turns danger if over-budget. Variance review is a card stack with a 3-action button row.',
+    boq_notes),
+  CABINET('04', 'Procurement + Vendors',
+    'RFQ → quotes-in → award PO → delivery → vendor scorecard updates. PM compares 3 quotes side-by-side, awards from the phone.',
+    'RFQs · grouped by status', proc_main, 'Quote compare · award decision', proc_flow,
+    'Mobile patterns', 'RFQ card uses a 3-segment vendor bar (in/pending). Compare-screen replaces desktop\'s 3-column table with vendor tabs (winner tinted ok). Scorecard inlined at the bottom.',
+    proc_notes)
+].join('');
+</script>
+
+</body>
+</html>

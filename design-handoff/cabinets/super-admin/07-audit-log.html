@@ -1,0 +1,1135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase 2.5 · 07 · Audit log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="super-admin-tokens">
+[data-product="super-admin"] {
+  --paper: #F8F9FB; --canvas: #EEF1F5; --panel: #FFFFFF; --panel-2: #F2F4F7; --panel-deep: #E5E9EE;
+  --ink: #0B0F14; --ink-2: #1F2937; --ink-3: #4B5563; --ink-4: #6B7280; --ink-5: #9CA3AF;
+  --line: #D6DBE2; --line-soft: #E5E8ED; --line-strong: #B8C0CC;
+  --accent: #3F4F8F; --accent-soft: #B8C2DF; --accent-deep: #2A3868; --on-accent: #FFFFFF;
+  --inverted-bg: #0B0F14; --inverted-fg: #F8F9FB; --inverted-bg-2: #1F2937;
+  --ok: #2D7A3E; --warn: #B47611; --danger: #B33A2C; --info: #2D5680;
+  --trust: #2A3868; --caution: #944B1F;
+  --r-pill: 999px; --r-card: 10px; --r-card-lg: 14px; --r-hero: 18px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+}
+:root {
+  --doc-bg: #0B0F14; --doc-bg-2: #131822; --doc-bg-3: #1B2330;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E8EC; --doc-fg-2: #B4B9C2; --doc-fg-3: #7E8590;
+  --doc-accent: #B8C2DF; --doc-caution: #E8AC85;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc { border-right: 1px solid var(--doc-line); padding: 36px 22px; background: var(--doc-bg-2); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.ds-mark { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 22px; }
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 { margin: 0 0 22px; font-family: var(--doc-sans); font-weight: 500; font-size: 19px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 10px; }
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a { display: block; padding: 6px 8px; text-decoration: none; color: var(--doc-fg-2); font-size: 13px; border-radius: 4px; margin-bottom: 1px; }
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--doc-mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+.ds-toc .back { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-toc .back a { color: var(--doc-accent); font-size: 12.5px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1300px; }
+.cab-cover { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 44px; line-height: 1.05; letter-spacing: -0.025em; }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.ds-section { margin-bottom: 76px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-section h2 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 26px; letter-spacing: -0.015em; color: var(--doc-fg); }
+.ds-section p { max-width: 760px; margin: 8px 0 0; font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.artboard { margin-top: 20px; border: 1px solid var(--doc-line); border-radius: 18px; background: var(--canvas); overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.artboard-caption { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.artboard-caption .pill { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); color: var(--doc-accent); border-color: rgba(184,194,223,0.4); }
+.artboard-caption .pill.caution { color: var(--doc-caution); border-color: rgba(232,172,133,0.4); }
+
+.notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+.notes-card { background: var(--doc-bg-2); border: 1px solid var(--doc-line); border-radius: 12px; padding: 18px 20px; }
+.notes-card h3 { margin: 0 0 12px; font-family: var(--doc-sans); font-size: 14px; font-weight: 500; color: var(--doc-fg); }
+.notes-card dl { margin: 0; }
+.notes-card dl > div { display: grid; grid-template-columns: 140px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--doc-line); font-size: 12.5px; }
+.notes-card dl > div:last-child { border-bottom: 0; }
+.notes-card dt { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes-card dd { margin: 0; color: var(--doc-fg-2); line-height: 1.55; }
+.notes-card dd code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg); background: var(--doc-bg-3); padding: 1px 6px; border-radius: 3px; }
+
+/* ============================================================
+   Product chrome
+   ============================================================ */
+[data-product="super-admin"] { font-family: var(--sans-font); color: var(--ink); }
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border-radius: 6px; font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); cursor: pointer; line-height: 1; background: var(--panel); color: var(--ink-2); text-decoration: none; }
+[data-product] .btn:hover { background: var(--panel-2); }
+[data-product] .btn-sm { padding: 7px 11px; font-size: 12.5px; }
+[data-product] .btn-xs { padding: 4px 8px; font-size: 11px; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+[data-product] .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-3); }
+
+[data-product] .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: var(--r-pill); font-family: var(--mono-font); font-size: 10.5px; font-weight: 500; border: 1px solid var(--line); background: var(--panel); color: var(--ink-3); }
+
+[data-product] .app { background: var(--canvas); min-height: 720px; display: grid; grid-template-rows: auto 1fr; }
+[data-product] .app-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--inverted-bg); color: var(--inverted-fg); border-bottom: 1px solid var(--ink); }
+[data-product] .app-topbar .brand { font-family: var(--display-font); font-size: 18px; font-weight: 400; color: var(--inverted-fg); }
+[data-product] .app-topbar .brand .sub { font-family: var(--mono-font); font-size: 9.5px; color: rgba(248,249,251,0.55); letter-spacing: 0.18em; text-transform: uppercase; display: block; margin-top: 1px; }
+[data-product] .app-topbar .nav { display: flex; gap: 4px; margin-left: 24px; }
+[data-product] .app-topbar .nav a { padding: 6px 12px; border-radius: 5px; font-family: var(--mono-font); font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(248,249,251,0.6); text-decoration: none; }
+[data-product] .app-topbar .nav a.on { background: var(--inverted-bg-2); color: var(--inverted-fg); }
+[data-product] .app-topbar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-family: var(--mono-font); font-size: 11px; color: rgba(248,249,251,0.6); }
+[data-product] .app-topbar .me { display: flex; align-items: center; gap: 6px; }
+[data-product] .app-topbar .me .avatar { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: white; display: inline-flex; align-items: center; justify-content: center; font-family: var(--sans-font); font-size: 11px; font-weight: 600; }
+
+[data-product] .page-h { padding: 22px 24px 18px; display: flex; align-items: flex-start; gap: 20px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+[data-product] .page-h .left h1 { margin: 4px 0 0; font-family: var(--display-font); font-weight: 400; font-size: 30px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .page-h .left h1 em { color: var(--accent); font-style: italic; }
+[data-product] .page-h .left .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .page-h .left .sub { margin-top: 6px; font-size: 13.5px; color: var(--ink-3); line-height: 1.5; }
+[data-product] .page-h .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+[data-product] .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .kpi-row .kpi { padding: 14px 18px; border-right: 1px solid var(--line); }
+[data-product] .kpi-row .kpi:last-child { border-right: 0; }
+[data-product] .kpi-row .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 4px; }
+[data-product] .kpi-row .v { font-family: var(--display-font); font-size: 24px; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; }
+[data-product] .kpi-row .v.warn { color: var(--warn); }
+[data-product] .kpi-row .v.caution { color: var(--caution); }
+[data-product] .kpi-row .v.accent { color: var(--accent); }
+[data-product] .kpi-row .ctx { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 4px; }
+
+/* ============================================================
+   Timeline hero
+   ============================================================ */
+[data-product] .tl-wrap { background: var(--canvas); padding: 22px 28px 28px; }
+[data-product] .tl-h { display: flex; align-items: baseline; gap: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+[data-product] .tl-h h3 { margin: 0; font-family: var(--display-font); font-size: 22px; font-weight: 400; color: var(--ink); letter-spacing: -0.01em; }
+[data-product] .tl-h em { color: var(--accent); font-style: italic; }
+[data-product] .tl-h .meta { margin-left: auto; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .tl-h .meta strong { color: var(--ink); }
+
+[data-product] .day-grp { padding: 14px 0 0; }
+[data-product] .day-h {
+  font-family: var(--mono-font); font-size: 10.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 8px 0;
+  display: flex; align-items: baseline; gap: 14px;
+  border-bottom: 1px dashed var(--line);
+}
+[data-product] .day-h strong { color: var(--ink); font-weight: 500; }
+[data-product] .day-h .ct { margin-left: auto; }
+
+[data-product] .audit-rows { display: flex; flex-direction: column; }
+[data-product] .a-row {
+  display: grid;
+  grid-template-columns: 70px 24px 1fr 180px 110px;
+  gap: 14px; padding: 11px 4px;
+  border-bottom: 1px solid var(--line-soft);
+  align-items: baseline;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+[data-product] .a-row:hover { background: var(--panel); }
+[data-product] .a-row.caution { background: color-mix(in oklab, var(--caution) 4%, transparent); }
+[data-product] .a-row.caution:hover { background: color-mix(in oklab, var(--caution) 8%, transparent); }
+[data-product] .a-row .ts { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); padding-top: 2px; }
+[data-product] .a-row .ts.now { color: var(--accent); font-weight: 500; }
+
+[data-product] .a-row .marker { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-4); margin-top: 5px; justify-self: center; }
+[data-product] .a-row .marker.read   { background: var(--ink-5); }
+[data-product] .a-row .marker.write  { background: var(--accent); }
+[data-product] .a-row .marker.config { background: var(--info); }
+[data-product] .a-row .marker.auth   { background: var(--ok); }
+[data-product] .a-row .marker.money  { background: var(--caution); box-shadow: 0 0 0 3px color-mix(in oklab, var(--caution) 18%, transparent); }
+[data-product] .a-row .marker.danger { background: var(--danger); }
+[data-product] .a-row .marker.agent  { background: var(--ok); border: 2px solid white; box-shadow: 0 0 0 1px var(--ok); width: 8px; height: 8px; margin-top: 7px; }
+
+[data-product] .a-row .body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+[data-product] .a-row .body .ti {
+  font-size: 13.5px; color: var(--ink); line-height: 1.4;
+}
+[data-product] .a-row .body .ti .actor { font-weight: 500; }
+[data-product] .a-row .body .ti .action {
+  font-family: var(--mono-font); font-size: 12px;
+  padding: 1px 6px; background: var(--panel-2);
+  border-radius: 3px; color: var(--ink-2);
+}
+[data-product] .a-row .body .ti .action.caution { background: color-mix(in oklab, var(--caution) 12%, transparent); color: var(--caution); }
+[data-product] .a-row .body .ti .action.danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); }
+[data-product] .a-row .body .ti .target {
+  font-family: var(--mono-font); font-size: 12px;
+  color: var(--accent);
+}
+[data-product] .a-row .body .sub {
+  font-size: 11.5px; color: var(--ink-3);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+[data-product] .a-row .body .sub .sep { color: var(--ink-5); }
+[data-product] .a-row .body .sub code {
+  font-family: var(--mono-font); font-size: 10.5px;
+  background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  color: var(--ink-2);
+}
+[data-product] .a-row .body .sub .reason { font-style: italic; color: var(--ink-4); }
+
+[data-product] .a-row .org-cell {
+  font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-3);
+  display: flex; flex-direction: column; gap: 2px;
+}
+[data-product] .a-row .org-cell .nm { color: var(--ink); font-weight: 500; font-family: var(--sans-font); font-size: 12.5px; }
+[data-product] .a-row .org-cell.platform { color: var(--accent); }
+[data-product] .a-row .org-cell.platform .nm { color: var(--accent); }
+
+[data-product] .a-row .source-cell {
+  font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3);
+  display: flex; flex-direction: column; gap: 2px; text-align: right;
+}
+[data-product] .a-row .source-cell .src { color: var(--ink-2); letter-spacing: 0.08em; text-transform: uppercase; }
+[data-product] .a-row .source-cell .ip { font-size: 10px; color: var(--ink-4); }
+
+/* ============================================================
+   Filtered view: facets + table
+   ============================================================ */
+[data-product] .flt-wrap { display: grid; grid-template-columns: 260px 1fr; background: var(--canvas); }
+[data-product] .facets { background: var(--panel); border-right: 1px solid var(--line); padding: 18px 18px; display: flex; flex-direction: column; gap: 18px; }
+[data-product] .facets h4 { margin: 0; font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding-bottom: 8px; border-bottom: 1px solid var(--line-soft); }
+
+[data-product] .facet { display: flex; flex-direction: column; gap: 4px; }
+[data-product] .facet .opt {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 6px; border-radius: 4px;
+  font-size: 12.5px; color: var(--ink-2); cursor: pointer;
+}
+[data-product] .facet .opt:hover { background: var(--panel-2); }
+[data-product] .facet .opt .ck {
+  width: 14px; height: 14px; border-radius: 3px;
+  border: 1.5px solid var(--ink-4); flex-shrink: 0;
+}
+[data-product] .facet .opt.on .ck {
+  background: var(--ink); border-color: var(--ink); position: relative;
+}
+[data-product] .facet .opt.on .ck::after {
+  content: "✓"; position: absolute; top: -3px; left: 1px;
+  color: white; font-size: 11px; line-height: 1;
+}
+[data-product] .facet .opt .ct {
+  margin-left: auto; font-family: var(--mono-font); font-size: 10.5px;
+  color: var(--ink-4); padding: 1px 6px; background: var(--panel-2); border-radius: 999px;
+}
+
+[data-product] .facet .range {
+  display: flex; gap: 8px; align-items: center;
+  padding: 5px 0;
+}
+[data-product] .facet .range input {
+  width: 100%; padding: 6px 9px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px;
+  font-family: var(--mono-font); font-size: 11.5px; color: var(--ink);
+}
+
+/* Results table */
+[data-product] .res-wrap { background: var(--canvas); padding: 0 0 0; }
+[data-product] .res-bar {
+  padding: 12px 22px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono-font); font-size: 11px; color: var(--ink-3);
+}
+[data-product] .res-bar strong { color: var(--ink); font-weight: 500; }
+[data-product] .res-bar .chip-applied {
+  padding: 3px 8px; background: var(--ink); color: var(--inverted-fg);
+  border-radius: 4px; font-size: 10.5px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+[data-product] .res-bar .chip-applied .x { opacity: 0.6; cursor: pointer; }
+[data-product] .res-bar .spacer { flex: 1; }
+
+[data-product] .res-table { background: var(--panel); }
+[data-product] .res-table .head, [data-product] .res-table .row {
+  display: grid;
+  grid-template-columns: 120px 130px 1fr 150px 90px 36px;
+  gap: 12px; padding: 9px 22px; align-items: baseline;
+}
+[data-product] .res-table .head { background: var(--panel-2); border-bottom: 1px solid var(--line); }
+[data-product] .res-table .head .col { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .res-table .row { border-bottom: 1px solid var(--line-soft); font-size: 12.5px; cursor: pointer; transition: background 0.1s; }
+[data-product] .res-table .row:hover { background: var(--panel-2); }
+[data-product] .res-table .row.on { background: color-mix(in oklab, var(--accent) 5%, var(--panel)); box-shadow: inset 3px 0 0 var(--accent); }
+[data-product] .res-table .ts { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .res-table .actor { font-size: 12.5px; color: var(--ink); display: flex; flex-direction: column; gap: 2px; }
+[data-product] .res-table .actor .role { font-family: var(--mono-font); font-size: 10px; color: var(--ink-4); letter-spacing: 0.08em; text-transform: uppercase; }
+[data-product] .res-table .summary { font-size: 12.5px; color: var(--ink-2); line-height: 1.4; }
+[data-product] .res-table .summary code {
+  font-family: var(--mono-font); font-size: 11px;
+  background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  color: var(--ink-2);
+}
+[data-product] .res-table .summary code.caution { background: color-mix(in oklab, var(--caution) 12%, transparent); color: var(--caution); }
+[data-product] .res-table .org-cell { font-family: var(--mono-font); font-size: 11px; color: var(--ink-2); display: flex; flex-direction: column; gap: 2px; }
+[data-product] .res-table .org-cell .nm { font-family: var(--sans-font); font-size: 12.5px; color: var(--ink); font-weight: 500; }
+[data-product] .res-table .src { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; }
+[data-product] .res-table .ix { font-family: var(--mono-font); font-size: 14px; color: var(--ink-4); text-align: center; }
+
+/* ============================================================
+   Action detail (drilldown w/ diff)
+   ============================================================ */
+[data-product] .det-h2 { padding: 24px 28px 18px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .det-h2 .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .det-h2 h1 { margin: 6px 0 0; font-family: var(--mono-font); font-size: 22px; font-weight: 500; color: var(--ink); display: flex; align-items: center; gap: 14px; letter-spacing: -0.005em; }
+[data-product] .det-h2 h1 .badge.caution { background: var(--caution); color: white; border-color: var(--caution); font-family: var(--mono-font); font-size: 11px; }
+[data-product] .det-h2 .strip { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 24px; font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-3); }
+[data-product] .det-h2 .strip strong { color: var(--ink-2); font-weight: 500; }
+
+[data-product] .det-body { display: grid; grid-template-columns: 1fr 1.3fr; gap: 0; background: var(--canvas); }
+[data-product] .det-col { padding: 22px 24px; border-right: 1px solid var(--line); }
+[data-product] .det-col:last-child { border-right: 0; }
+[data-product] .det-col h3 { margin: 0 0 12px; font-family: var(--mono-font); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-3); font-weight: 500; }
+[data-product] .det-col h3.repeat { margin-top: 24px; }
+
+[data-product] .kv-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+[data-product] .kv-card .row { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; align-items: baseline; }
+[data-product] .kv-card .row:last-child { border-bottom: 0; }
+[data-product] .kv-card .k { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .kv-card .v { font-size: 12.5px; color: var(--ink); }
+[data-product] .kv-card .v.mono { font-family: var(--mono-font); font-size: 11.5px; }
+[data-product] .kv-card .v.caution { color: var(--caution); font-family: var(--mono-font); }
+
+/* Chain of evidence */
+[data-product] .chain { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .chain .step { display: flex; align-items: center; gap: 5px; }
+[data-product] .chain .step .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+[data-product] .chain .step.cur .dot { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent); }
+[data-product] .chain .arr { color: var(--ink-5); }
+
+/* Diff */
+[data-product] .diff { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+[data-product] .diff .d-h {
+  padding: 10px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line);
+  display: flex; align-items: baseline; gap: 12px;
+  font-family: var(--mono-font); font-size: 10.5px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+}
+[data-product] .diff .d-h .ti { color: var(--ink); font-weight: 500; }
+[data-product] .diff .d-h .meta { margin-left: auto; font-size: 10px; color: var(--ink-4); }
+
+[data-product] .diff pre {
+  margin: 0; padding: 14px 16px;
+  font-family: var(--mono-font); font-size: 12px; line-height: 1.6;
+  color: var(--ink-2); white-space: pre; overflow-x: auto;
+}
+[data-product] .diff pre .ln-rm  { display: block; background: color-mix(in oklab, var(--danger)  14%, transparent); color: var(--danger);  padding: 0 16px; margin: 0 -16px; }
+[data-product] .diff pre .ln-add { display: block; background: color-mix(in oklab, var(--ok)      14%, transparent); color: var(--ok);      padding: 0 16px; margin: 0 -16px; }
+[data-product] .diff pre .ln-hd  { display: block; color: var(--ink-4); padding: 0 16px; margin: 0 -16px; }
+[data-product] .diff pre .key { color: var(--ink-3); }
+[data-product] .diff pre .str { color: var(--accent); }
+[data-product] .diff pre .num { color: var(--accent-deep); }
+
+/* Linked items */
+[data-product] .link-row { display: flex; flex-direction: column; gap: 6px; }
+[data-product] .link-row .lnk {
+  padding: 9px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  display: grid; grid-template-columns: 90px 1fr auto; gap: 10px; align-items: baseline;
+  font-size: 12px;
+}
+[data-product] .link-row .lnk .src { font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent); padding-top: 2px; }
+[data-product] .link-row .lnk .ti { color: var(--ink); font-weight: 500; }
+[data-product] .link-row .lnk .ti .sn { display: block; font-family: var(--mono-font); font-size: 11px; font-weight: 400; color: var(--ink-3); margin-top: 2px; }
+[data-product] .link-row .lnk .go { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); }
+
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Phase 2.5</div>
+    <h1>Platform super-admin</h1>
+    <div class="back"><a href="hub.html">← back to hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">07 · Audit log</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#timeline"><span class="ix">01</span>Cross-org timeline</a></li>
+        <li><a href="#filtered"><span class="ix">02</span>Filtered view</a></li>
+        <li><a href="#detail"><span class="ix">03</span>Action detail · diff</a></li>
+        <li><a href="#schema"><span class="ix">04</span>Schema · retention</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Adjacent</div>
+      <ul>
+        <li><a href="06-support-inbox.html"><span class="ix">06</span>Support inbox</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <!-- COVER -->
+    <section id="cover" class="cab-cover" data-screen-label="Cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Phase 2.5 · cabinet 07 of 09</span></div>
+      <h1>Audit log · <em>every privileged action, append-only</em>.</h1>
+      <p>The forensic trail. Every action that touches money, identity, configuration, or another org's data writes a row here — from any cabinet, by any actor (super-admin, customer org user, or agent). Append-only by design; no edit, no delete, ever. Money-touching rows wear the warm caution dot so they pop out in a long scroll.</p>
+    </section>
+
+    <!-- 01 TIMELINE -->
+    <section id="timeline" class="ds-section" data-screen-label="01 Timeline">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Cross-org timeline · live feed</h2>
+          <p>Reverse-chronological. Day headers float; rows are dense by design — operators here are scanning for "anything I don't recognise". Marker colour encodes action class (read · write · config · auth · money · danger · agent-initiated). Money-touching rows get a faint caution tint behind them.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a><a>Flags</a><a>Support</a>
+                <a class="on">Audit</a>
+                <a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span>v 4.2.18</span><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / audit log</div>
+                  <h1>Audit log <em>· last 24 hours</em></h1>
+                  <div class="sub">218 actions · 14 money-touching · 3 caution-class · stream lag 1.8s</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Filter ⇲</button>
+                  <button class="btn">Subscribe (slack)</button>
+                  <button class="btn">Export · CSV</button>
+                </div>
+              </div>
+
+              <div class="kpi-row">
+                <div class="kpi"><div class="l">actions · 24h</div><div class="v">218</div><div class="ctx">~9 / hour avg</div></div>
+                <div class="kpi"><div class="l">money</div><div class="v caution">14</div><div class="ctx">refund · suspend · plan</div></div>
+                <div class="kpi"><div class="l">impersonate</div><div class="v warn">2</div><div class="ctx">both ended</div></div>
+                <div class="kpi"><div class="l">agent-initiated</div><div class="v">81%</div><div class="ctx">177 of 218</div></div>
+                <div class="kpi"><div class="l">retention</div><div class="v accent">∞</div><div class="ctx">append-only forever</div></div>
+              </div>
+
+              <div class="tl-wrap">
+                <div class="tl-h">
+                  <h3>Live feed <em>· 218 events</em></h3>
+                  <span class="meta">today is <strong>Thu 29 may 2025</strong> · tz UTC · stream lag <strong>1.8s</strong></span>
+                </div>
+
+                <!-- Today -->
+                <div class="day-grp">
+                  <div class="day-h"><strong>Today</strong><span>· thu 29 may 2025</span><span class="ct">87 events</span></div>
+                  <div class="audit-rows">
+
+                    <div class="a-row caution">
+                      <span class="ts now">14:38<br>now</span>
+                      <span class="marker money"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">Nikita R.</span> · <span class="action caution">refund.issue</span> · <span class="target">INV-2025-05-TAN</span></div>
+                        <div class="sub">
+                          $1,070.00 partial · Stripe re_3Q5xMP2eZv
+                          <span class="sep">·</span>
+                          <span class="reason">"Channel-sync outage 23–25 May meant ops team couldn't issue statements. Refund 50% as agreed."</span>
+                          <span class="sep">·</span>
+                          <code>2FA verified</code>
+                        </div>
+                      </div>
+                      <div class="org-cell"><div class="nm">Tan Family Trust</div>tanfamily · SG</div>
+                      <div class="source-cell"><span class="src">super-admin / billing</span><span class="ip">103.50.224.18</span></div>
+                    </div>
+
+                    <div class="a-row caution">
+                      <span class="ts">12:14</span>
+                      <span class="marker danger"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">Nikita R.</span> · <span class="action caution">flag.kill</span> · <span class="target">channel_sync_v2</span></div>
+                        <div class="sub">
+                          rollout was <code>35%</code> · state preserved
+                          <span class="sep">·</span>
+                          <span class="reason">"Conflict-resolver edge case hit by 4 customers in 6h — killing platform-wide while we root-cause"</span>
+                        </div>
+                      </div>
+                      <div class="org-cell platform"><div class="nm">platform · all orgs</div>scope=global</div>
+                      <div class="source-cell"><span class="src">super-admin / flags</span><span class="ip">103.50.224.18</span></div>
+                    </div>
+
+                    <div class="a-row caution">
+                      <span class="ts">11:42</span>
+                      <span class="marker money"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">Nikita R.</span> · <span class="action">impersonate.end</span> · session 8m</div>
+                        <div class="sub">
+                          read-only · viewed 4 pages
+                          <span class="sep">·</span>
+                          <code>session_id sa_8x21LM</code>
+                          <span class="sep">·</span>
+                          <span class="reason">"verifying statement explainer bug from ticket #4220"</span>
+                        </div>
+                      </div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="source-cell"><span class="src">super-admin / orgs</span><span class="ip">103.50.224.18</span></div>
+                    </div>
+
+                    <div class="a-row">
+                      <span class="ts">11:34</span>
+                      <span class="marker auth"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">Nikita R.</span> · <span class="action">impersonate.start</span> · <span class="target">whitmore</span></div>
+                        <div class="sub">
+                          mode <code>read-only</code> · 2FA verified
+                          <span class="sep">·</span>
+                          <span class="reason">"verifying statement explainer bug from ticket #4220"</span>
+                        </div>
+                      </div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="source-cell"><span class="src">super-admin / orgs</span><span class="ip">103.50.224.18</span></div>
+                    </div>
+
+                    <div class="a-row">
+                      <span class="ts">11:14</span>
+                      <span class="marker agent"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">dunning-runner</span> · <span class="action">dunning.step.fire</span> · <span class="target">INV-2025-Q2-BBS</span></div>
+                        <div class="sub">
+                          step <code>S3 · escalate</code> · email + sms + banner sent
+                          <span class="sep">·</span>
+                          <code>agent_run ar_3xLM21</code>
+                        </div>
+                      </div>
+                      <div class="org-cell"><div class="nm">Bali Boutique Stays</div>bbs · ID</div>
+                      <div class="source-cell"><span class="src">agent · cron</span><span class="ip">10.0.0.4 · internal</span></div>
+                    </div>
+
+                    <div class="a-row">
+                      <span class="ts">10:08</span>
+                      <span class="marker config"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">Made S.</span> · <span class="action">flag.override.add</span> · <span class="target">dynamic_pricing_v3_comp_set</span></div>
+                        <div class="sub">
+                          <code>force-on</code> for own org
+                          <span class="sep">·</span>
+                          <span class="reason">"customer asked for early access — CS ticket #2418"</span>
+                        </div>
+                      </div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="source-cell"><span class="src">super-admin / flags</span><span class="ip">202.94.78.221 · SG</span></div>
+                    </div>
+
+                    <div class="a-row">
+                      <span class="ts">09:14</span>
+                      <span class="marker write"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">Nikita R.</span> · <span class="action">flag.rollout.bump</span> · <span class="target">dynamic_pricing_v3_comp_set</span></div>
+                        <div class="sub">
+                          <code>25% → 35%</code>
+                          <span class="sep">·</span>
+                          <span class="reason">"no incidents over 4 days at 25%"</span>
+                        </div>
+                      </div>
+                      <div class="org-cell platform"><div class="nm">platform</div>scope=Atelier tier</div>
+                      <div class="source-cell"><span class="src">super-admin / flags</span><span class="ip">103.50.224.18</span></div>
+                    </div>
+
+                    <div class="a-row">
+                      <span class="ts">09:00</span>
+                      <span class="marker agent"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">statement-preparer</span> · <span class="action">statement.issue.batch</span> · 14 owners</div>
+                        <div class="sub">
+                          may 2025 statements · all sent
+                          <span class="sep">·</span>
+                          <code>agent_run ar_3xL091</code>
+                        </div>
+                      </div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="source-cell"><span class="src">agent · cron</span><span class="ip">10.0.0.4 · internal</span></div>
+                    </div>
+
+                    <div class="a-row">
+                      <span class="ts">08:38</span>
+                      <span class="marker auth"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">Emma Whitmore</span> · <span class="action">user.signin</span> · 2FA passed</div>
+                        <div class="sub">
+                          via owner-portal · session <code>os_92xLM</code>
+                        </div>
+                      </div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="source-cell"><span class="src">owner portal</span><span class="ip">103.50.224.18 · SG</span></div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <!-- Yesterday -->
+                <div class="day-grp">
+                  <div class="day-h"><strong>Yesterday</strong><span>· wed 28 may 2025</span><span class="ct">131 events</span></div>
+                  <div class="audit-rows">
+
+                    <div class="a-row caution">
+                      <span class="ts">16:48</span>
+                      <span class="marker money"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">Sarah K.</span> · <span class="action caution">plan.change</span> · Studio → Atelier</div>
+                        <div class="sub">
+                          annual cycle · prorated invoice issued
+                          <span class="sep">·</span>
+                          <code>diff 14 fields</code>
+                          <span class="sep">·</span>
+                          <span class="reason">"customer upgrade · CS ticket #2412"</span>
+                        </div>
+                      </div>
+                      <div class="org-cell"><div class="nm">Coral Cay Holdings</div>coralcay · SG</div>
+                      <div class="source-cell"><span class="src">super-admin / plans</span><span class="ip">103.50.224.20</span></div>
+                    </div>
+
+                    <div class="a-row">
+                      <span class="ts">14:02</span>
+                      <span class="marker write"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">Made S.</span> · <span class="action">villa.create</span> · <span class="target">tirta-canggu-09</span></div>
+                        <div class="sub">
+                          new villa onboarded · 4 channel listings activated
+                        </div>
+                      </div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="source-cell"><span class="src">mgmt-os / villas</span><span class="ip">202.94.78.221</span></div>
+                    </div>
+
+                    <div class="a-row">
+                      <span class="ts">11:20</span>
+                      <span class="marker config"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">Nikita R.</span> · <span class="action">policy.edit</span> · <span class="target">support.triage</span></div>
+                        <div class="sub">
+                          <code>v8 → v9</code> · Atelier SLA tightened
+                          <span class="sep">·</span>
+                          <code>diff 3 fields</code>
+                        </div>
+                      </div>
+                      <div class="org-cell platform"><div class="nm">platform</div>scope=global</div>
+                      <div class="source-cell"><span class="src">super-admin / support</span><span class="ip">103.50.224.18</span></div>
+                    </div>
+
+                    <div class="a-row">
+                      <span class="ts">09:42</span>
+                      <span class="marker agent"></span>
+                      <div class="body">
+                        <div class="ti"><span class="actor">id-ocr</span> · <span class="action">guest.id.parse</span> · KTP · 0.94 conf</div>
+                        <div class="sub">
+                          via front-office check-in
+                          <span class="sep">·</span>
+                          <code>agent_run ar_3xKp14</code>
+                        </div>
+                      </div>
+                      <div class="org-cell"><div class="nm">PT Senayan Estate</div>senayan · ID</div>
+                      <div class="source-cell"><span class="src">agent · trigger</span><span class="ip">10.0.0.4</span></div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>marker colours: read · write · config · auth · money · danger · agent</span>
+        <span>·</span>
+        <span>money-touching rows softly caution-tinted</span>
+      </div>
+    </section>
+
+    <!-- 02 FILTERED -->
+    <section id="filtered" class="ds-section" data-screen-label="02 Filtered view">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Forensic</span></div>
+          <h2>Filtered view · facets + structured results</h2>
+          <p>The view tech lead opens when a customer asks "who touched our org last week, and why?" Facets on the left (actor, org, action, source, time range) compose to a structured query. Results table is denser than the live timeline — same row click → action detail (sec 03).</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a><a>Flags</a><a>Support</a>
+                <a class="on">Audit</a>
+                <a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">audit log / filtered</div>
+                  <h1>Filtered <em>· Whitmore · last 7 days · money</em></h1>
+                  <div class="sub">Compose facets to scope. Permalink the URL to share a saved query with another operator.</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Reset</button>
+                  <button class="btn">Save view</button>
+                  <button class="btn">Export · CSV / JSON</button>
+                </div>
+              </div>
+
+              <div class="flt-wrap">
+
+                <!-- Facets -->
+                <div class="facets">
+                  <div class="facet">
+                    <h4>Time range</h4>
+                    <div style="margin-top: 8px; display:flex; flex-direction: column; gap: 6px;">
+                      <span class="opt on"><span class="ck"></span>Last 24h</span>
+                      <span class="opt on"><span class="ck"></span>Last 7 days</span>
+                      <span class="opt"><span class="ck"></span>Last 30 days</span>
+                      <span class="opt"><span class="ck"></span>This quarter</span>
+                      <span class="opt"><span class="ck"></span>All time</span>
+                    </div>
+                    <div class="range" style="margin-top: 8px;">
+                      <input class="mono" value="22 may 00:00" />
+                      <span style="color:var(--ink-4); font-family:var(--mono-font); font-size:11px;">→</span>
+                      <input class="mono" value="29 may 14:38" />
+                    </div>
+                  </div>
+
+                  <div class="facet">
+                    <h4>Action class</h4>
+                    <span class="opt on"><span class="ck"></span>money <span class="ct">14</span></span>
+                    <span class="opt"><span class="ck"></span>auth <span class="ct">42</span></span>
+                    <span class="opt"><span class="ck"></span>config <span class="ct">28</span></span>
+                    <span class="opt"><span class="ck"></span>write <span class="ct">96</span></span>
+                    <span class="opt"><span class="ck"></span>read <span class="ct">312</span></span>
+                  </div>
+
+                  <div class="facet">
+                    <h4>Actor</h4>
+                    <span class="opt"><span class="ck"></span>Nikita R · super-admin <span class="ct">38</span></span>
+                    <span class="opt"><span class="ck"></span>Sarah K · sales <span class="ct">21</span></span>
+                    <span class="opt"><span class="ck"></span>customer users <span class="ct">142</span></span>
+                    <span class="opt on"><span class="ck"></span>agents <span class="ct">289</span></span>
+                  </div>
+
+                  <div class="facet">
+                    <h4>Organisation</h4>
+                    <span class="opt on"><span class="ck"></span>Whitmore Villas Group <span class="ct">31</span></span>
+                    <span class="opt"><span class="ck"></span>PT Senayan Estate <span class="ct">28</span></span>
+                    <span class="opt"><span class="ck"></span>Tan Family Trust <span class="ct">14</span></span>
+                    <span class="opt"><span class="ck"></span>platform-wide <span class="ct">9</span></span>
+                  </div>
+
+                  <div class="facet">
+                    <h4>Source</h4>
+                    <span class="opt"><span class="ck"></span>super-admin <span class="ct">38</span></span>
+                    <span class="opt"><span class="ck"></span>mgmt-os <span class="ct">82</span></span>
+                    <span class="opt"><span class="ck"></span>dev-os <span class="ct">19</span></span>
+                    <span class="opt"><span class="ck"></span>owner-portal <span class="ct">14</span></span>
+                    <span class="opt"><span class="ck"></span>agent · cron <span class="ct">177</span></span>
+                    <span class="opt"><span class="ck"></span>agent · trigger <span class="ct">112</span></span>
+                  </div>
+                </div>
+
+                <!-- Results -->
+                <div class="res-wrap">
+                  <div class="res-bar">
+                    <span><strong>9 results</strong> · 7d · org=Whitmore · class=money OR agents</span>
+                    <span class="chip-applied">org · Whitmore <span class="x">✕</span></span>
+                    <span class="chip-applied">class · money <span class="x">✕</span></span>
+                    <span class="chip-applied">7d <span class="x">✕</span></span>
+                    <span class="spacer"></span>
+                    <span>sort: ts desc</span>
+                  </div>
+
+                  <div class="res-table">
+                    <div class="head">
+                      <div class="col">when</div>
+                      <div class="col">actor</div>
+                      <div class="col">action · target</div>
+                      <div class="col">organisation</div>
+                      <div class="col">source</div>
+                      <div></div>
+                    </div>
+
+                    <div class="row on">
+                      <div class="ts">29 may 14:38</div>
+                      <div class="actor">Nikita R.<span class="role">super-admin</span></div>
+                      <div class="summary"><code class="caution">refund.issue</code> · INV-2025-05-TAN · $1,070.00 partial</div>
+                      <div class="org-cell"><div class="nm">Tan Family Trust</div>tanfamily · SG</div>
+                      <div class="src">sa / billing</div>
+                      <div class="ix">›</div>
+                    </div>
+
+                    <div class="row">
+                      <div class="ts">29 may 11:42</div>
+                      <div class="actor">Nikita R.<span class="role">super-admin</span></div>
+                      <div class="summary"><code>impersonate.end</code> · session 8m · whitmore</div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="src">sa / orgs</div>
+                      <div class="ix">›</div>
+                    </div>
+
+                    <div class="row">
+                      <div class="ts">29 may 11:34</div>
+                      <div class="actor">Nikita R.<span class="role">super-admin</span></div>
+                      <div class="summary"><code>impersonate.start</code> · read-only · whitmore</div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="src">sa / orgs</div>
+                      <div class="ix">›</div>
+                    </div>
+
+                    <div class="row">
+                      <div class="ts">29 may 09:00</div>
+                      <div class="actor">statement-preparer<span class="role">agent</span></div>
+                      <div class="summary"><code>statement.issue.batch</code> · 14 owners · may 2025</div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="src">agent · cron</div>
+                      <div class="ix">›</div>
+                    </div>
+
+                    <div class="row">
+                      <div class="ts">28 may 14:02</div>
+                      <div class="actor">Made S.<span class="role">customer · ops</span></div>
+                      <div class="summary"><code>villa.create</code> · tirta-canggu-09 · 4 channel listings</div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="src">mgmt-os / villas</div>
+                      <div class="ix">›</div>
+                    </div>
+
+                    <div class="row">
+                      <div class="ts">27 may 09:14</div>
+                      <div class="actor">Emma W.<span class="role">customer · owner</span></div>
+                      <div class="summary"><code>statement.export</code> · may 2025 pdf bundle</div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="src">owner portal</div>
+                      <div class="ix">›</div>
+                    </div>
+
+                    <div class="row">
+                      <div class="ts">26 may 16:48</div>
+                      <div class="actor">dynamic-pricing<span class="role">agent</span></div>
+                      <div class="summary"><code>price.rule.apply</code> · 22 villas · +$340 daily uplift</div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="src">agent · cron</div>
+                      <div class="ix">›</div>
+                    </div>
+
+                    <div class="row">
+                      <div class="ts">26 may 09:00</div>
+                      <div class="actor">channel-sync<span class="role">agent</span></div>
+                      <div class="summary"><code>channel.sync.batch</code> · 22 villas × 4 channels</div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="src">agent · cron</div>
+                      <div class="ix">›</div>
+                    </div>
+
+                    <div class="row">
+                      <div class="ts">23 may 13:18</div>
+                      <div class="actor">Emma W.<span class="role">customer · owner</span></div>
+                      <div class="summary"><code>user.invite</code> · sandy@whitmore.co · role=ops_assistant</div>
+                      <div class="org-cell"><div class="nm">Whitmore Villas Group</div>whitmore · SG</div>
+                      <div class="src">owner portal</div>
+                      <div class="ix">›</div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>facet click → URL updates · permalink-able for handoff</span>
+        <span>·</span>
+        <span>row click → action detail (sec 03)</span>
+      </div>
+    </section>
+
+    <!-- 03 DETAIL -->
+    <section id="detail" class="ds-section" data-screen-label="03 Action detail">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-caution);">03</span><span>—</span><span>Forensic detail</span></div>
+          <h2>Single action · diff + chain of evidence</h2>
+          <p>One row, fully expanded. Left column = actor, scope, justification, source identity. Right = the actual diff (before/after JSON), plus the chain that led here (e.g. refund → invoice → support ticket). For money actions we also show the linked Stripe id so an auditor can verify externally.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a><a>Flags</a><a>Support</a>
+                <a class="on">Audit</a>
+                <a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="det-h2">
+                <div class="crumb"><a href="#timeline" style="color:inherit;text-decoration:none;">audit log</a> / au_3Q5xMP2eZv</div>
+                <h1>refund.issue <span class="badge caution">money · caution</span></h1>
+                <div class="strip">
+                  <span>au_id <strong>au_3Q5xMP2eZv</strong></span>
+                  <span>·</span>
+                  <span>ts <strong>29 may 2025 · 14:38:14 UTC</strong></span>
+                  <span>·</span>
+                  <span>actor <strong>Nikita R · super-admin</strong></span>
+                  <span>·</span>
+                  <span>org <strong>Tan Family Trust</strong></span>
+                  <span>·</span>
+                  <span>source <strong>super-admin / billing</strong></span>
+                </div>
+              </div>
+
+              <div class="det-body">
+
+                <!-- Left -->
+                <div class="det-col">
+                  <h3>Actor identity</h3>
+                  <div class="kv-card">
+                    <div class="row"><span class="k">user</span><span class="v">Nikita Razgulaev</span></div>
+                    <div class="row"><span class="k">role</span><span class="v">super-admin · all</span></div>
+                    <div class="row"><span class="k">user_id</span><span class="v mono">us_1xLM2eZv</span></div>
+                    <div class="row"><span class="k">session</span><span class="v mono">sess_92xLMpqRt</span></div>
+                    <div class="row"><span class="k">2fa</span><span class="v">authenticator · verified 0:14 before</span></div>
+                    <div class="row"><span class="k">ip</span><span class="v mono">103.50.224.18</span></div>
+                    <div class="row"><span class="k">ua</span><span class="v mono">Chrome 126 · macOS</span></div>
+                    <div class="row"><span class="k">device</span><span class="v">trusted · since 14 apr 2024</span></div>
+                  </div>
+
+                  <h3 class="repeat">Scope &amp; reason</h3>
+                  <div class="kv-card">
+                    <div class="row"><span class="k">scope</span><span class="v">org-bound · tanfamily</span></div>
+                    <div class="row"><span class="k">target</span><span class="v mono">INV-2025-05-TAN</span></div>
+                    <div class="row"><span class="k">amount</span><span class="v caution">$1,070.00 USD</span></div>
+                    <div class="row"><span class="k">mode</span><span class="v">partial · 50% prorated</span></div>
+                    <div class="row"><span class="k">stripe id</span><span class="v mono">re_3Q5xMP2eZv</span></div>
+                    <div class="row"><span class="k">category</span><span class="v">Service interruption — agreed proration</span></div>
+                    <div class="row"><span class="k">justification</span><span class="v" style="font-style: italic; color: var(--ink-3);">Channel-sync outage 23–25 May meant ops team couldn't issue statements. Refund 50% of monthly fee as agreed with founder over support thread #4189.</span></div>
+                  </div>
+
+                  <h3 class="repeat">Chain of evidence</h3>
+                  <div class="chain">
+                    <span class="step"><span class="dot"></span>ticket #4189</span><span class="arr">→</span>
+                    <span class="step"><span class="dot"></span>impersonate · 25 may</span><span class="arr">→</span>
+                    <span class="step"><span class="dot"></span>policy lookup</span><span class="arr">→</span>
+                    <span class="step"><span class="dot"></span>2fa verified</span><span class="arr">→</span>
+                    <span class="step cur"><span class="dot"></span>refund.issue</span><span class="arr">→</span>
+                    <span class="step"><span class="dot"></span>stripe re_3Q5xMP2eZv</span>
+                  </div>
+                </div>
+
+                <!-- Right -->
+                <div class="det-col">
+                  <h3>Diff · invoices.refunded_amount + refunds row created</h3>
+                  <div class="diff">
+                    <div class="d-h">
+                      <span class="ti">invoices · INV-2025-05-TAN</span>
+                      <span>·</span><span>update</span>
+                      <span class="meta">postgres · txn 8x21Lm · 12ms</span>
+                    </div>
+<pre><span class="ln-hd">@@ table invoices · row id=in_1Q5xMP2eZv @@</span>
+  {
+    "id": <span class="str">"in_1Q5xMP2eZv"</span>,
+    "org_id": <span class="str">"o_tanfamily"</span>,
+    "amount": <span class="num">2140.00</span>,
+    "currency": <span class="str">"USD"</span>,
+    "status": <span class="str">"paid"</span>,
+<span class="ln-rm">-   "refunded_amount": <span class="num">0.00</span>,</span>
+<span class="ln-add">+   "refunded_amount": <span class="num">1070.00</span>,</span>
+<span class="ln-rm">-   "refunds_count": <span class="num">0</span>,</span>
+<span class="ln-add">+   "refunds_count": <span class="num">1</span>,</span>
+<span class="ln-rm">-   "updated_at": <span class="str">"2025-05-25T08:01:14Z"</span></span>
+<span class="ln-add">+   "updated_at": <span class="str">"2025-05-29T14:38:14Z"</span></span>
+  }</pre>
+                  </div>
+
+                  <div class="diff" style="margin-top: 14px;">
+                    <div class="d-h">
+                      <span class="ti">refunds · new row</span>
+                      <span>·</span><span>insert</span>
+                      <span class="meta">postgres · txn 8x21Lm · 4ms</span>
+                    </div>
+<pre><span class="ln-hd">@@ table refunds · new row @@</span>
+<span class="ln-add">+ {</span>
+<span class="ln-add">+   "id": <span class="str">"re_3Q5xMP2eZv"</span>,</span>
+<span class="ln-add">+   "invoice_id": <span class="str">"in_1Q5xMP2eZv"</span>,</span>
+<span class="ln-add">+   "stripe_refund_id": <span class="str">"re_3Q5xMP2eZv7d"</span>,</span>
+<span class="ln-add">+   "amount": <span class="num">1070.00</span>,</span>
+<span class="ln-add">+   "mode": <span class="str">"partial"</span>,</span>
+<span class="ln-add">+   "reason_category": <span class="str">"service_interruption_proration"</span>,</span>
+<span class="ln-add">+   "justification": <span class="str">"Channel-sync outage 23–25 May..."</span>,</span>
+<span class="ln-add">+   "actor_user_id": <span class="str">"us_1xLM2eZv"</span>,</span>
+<span class="ln-add">+   "audit_log_id": <span class="str">"au_3Q5xMP2eZv"</span>,</span>
+<span class="ln-add">+   "created_at": <span class="str">"2025-05-29T14:38:14Z"</span></span>
+<span class="ln-add">+ }</span></pre>
+                  </div>
+
+                  <h3 class="repeat">Linked items</h3>
+                  <div class="link-row">
+                    <div class="lnk">
+                      <span class="src">support · 06</span>
+                      <span class="ti">ticket #4189 · channel-sync outage<span class="sn">justification originated here · resolved 26 may 09:42</span></span>
+                      <span class="go">↗</span>
+                    </div>
+                    <div class="lnk">
+                      <span class="src">billing · 04</span>
+                      <span class="ti">INV-2025-05-TAN<span class="sn">$2,140.00 · paid 25 may · refunded $1,070.00 · 50%</span></span>
+                      <span class="go">↗</span>
+                    </div>
+                    <div class="lnk">
+                      <span class="src">stripe · ext</span>
+                      <span class="ti">re_3Q5xMP2eZv7d<span class="sn">issued 14:38:18 · estimated arrival in customer account 1–3 business days</span></span>
+                      <span class="go">↗</span>
+                    </div>
+                    <div class="lnk">
+                      <span class="src">flag · 05</span>
+                      <span class="ti">channel_sync_v2<span class="sn">root cause for the outage · killed 12:14 today</span></span>
+                      <span class="go">↗</span>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill caution">forensic detail</span>
+        <span>read-only · this row is append-only and can never be edited</span>
+        <span>·</span>
+        <span>linked Stripe id for external auditor verification</span>
+      </div>
+    </section>
+
+    <!-- 04 SCHEMA -->
+    <section id="schema" class="ds-section" data-screen-label="04 Schema">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Spec</span></div>
+          <h2>Schema · retention · sources</h2>
+          <p>One table, partitioned by month, append-only at the database role level (super-admin DB user has no <code>UPDATE</code> or <code>DELETE</code> grants on it). Writers from every cabinet funnel through a single <code>writeAudit()</code> helper. Retention is forever — the legal cost of explaining a deleted audit row is higher than the storage cost.</p>
+        </div>
+      </div>
+
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Table · `audit_log`</h3>
+          <dl>
+            <div><dt>id</dt><dd><code>au_*</code> · ULID · sortable by time</dd></div>
+            <div><dt>ts</dt><dd>UTC timestamp · partition key (monthly)</dd></div>
+            <div><dt>actor</dt><dd><code>actor_type (user/agent/system) · actor_id · actor_label</code></dd></div>
+            <div><dt>scope</dt><dd><code>org_id (nullable for platform-wide) · resource_type · resource_id</code></dd></div>
+            <div><dt>action</dt><dd><code>verb (refund.issue, flag.kill, impersonate.start, …) · class (money/auth/config/write/read/danger)</code></dd></div>
+            <div><dt>diff</dt><dd><code>before_jsonb · after_jsonb · field_count</code> — null for read actions</dd></div>
+            <div><dt>justification</dt><dd>free-text · plain language · null for routine actions</dd></div>
+            <div><dt>source</dt><dd><code>cabinet · route · ip · ua · session_id</code></dd></div>
+            <div><dt>linked</dt><dd><code>external_ids_jsonb</code> — stripe ids, agent run ids, related audit ids</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Append-only enforcement</h3>
+          <dl>
+            <div><dt>db role</dt><dd>The platform DB role has <code>INSERT</code> + <code>SELECT</code> on <code>audit_log</code>. No <code>UPDATE</code> · no <code>DELETE</code>. Enforced at <code>pg_authid</code>.</dd></div>
+            <div><dt>writer</dt><dd>Single helper <code>src/lib/audit/write.ts</code> · every cabinet imports this. Direct SQL <code>INSERT</code> blocked by a CI grep.</dd></div>
+            <div><dt>partitioning</dt><dd>Monthly partitions · <code>audit_log_2025_05</code> etc. Old partitions detach to cold storage after 24 months but remain queryable on demand.</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Writers · who calls `writeAudit()`</h3>
+          <dl>
+            <div><dt>cabinet 01–09</dt><dd>Every super-admin action (impersonate, suspend, plan change, refund, flag bump, policy edit).</dd></div>
+            <div><dt>mgmt-os · dev-os</dt><dd>Customer-side privileged actions (villa.create, owner.invite, statement.adjust, role.change).</dd></div>
+            <div><dt>owner portal</dt><dd>Owner sign-in, payout update, 2FA enrolment, statement export.</dd></div>
+            <div><dt>agents</dt><dd>All cron + trigger runs that mutate data write a row. Read-only agent runs are NOT logged (would 10× the table).</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Query patterns</h3>
+          <dl>
+            <div><dt>live feed</dt><dd>Last 24h · indexed on <code>ts DESC</code> · streamed via Postgres LISTEN/NOTIFY · 1–2s lag.</dd></div>
+            <div><dt>org forensics</dt><dd>By <code>org_id + time range</code> · indexed on <code>(org_id, ts DESC)</code>. Common query: "all money actions on org X in last 30d".</dd></div>
+            <div><dt>actor forensics</dt><dd>By <code>actor_id + time range</code> · indexed. Used during ops investigations: "everything Nikita touched yesterday".</dd></div>
+            <div><dt>customer-facing audit</dt><dd>Owners can see their own org's actions in the owner-portal Settings page (read-only, filtered subset).</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<script>
+  (function () {
+    function isInternal(href) { if (!href) return false; if (/^(https?:|mailto:|tel:|#)/i.test(href)) return false; return true; }
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      if (a.target && a.target !== '' && a.target !== '_self') return;
+      var href = a.getAttribute('href');
+      if (!isInternal(href)) return;
+      var search = window.location.search;
+      if (!search) return;
+      if (href.indexOf('?') !== -1) return;
+      var hashIdx = href.indexOf('#');
+      var base = hashIdx === -1 ? href : href.slice(0, hashIdx);
+      var hash = hashIdx === -1 ? '' : href.slice(hashIdx);
+      a.setAttribute('href', base + search + hash);
+    }, true);
+  })();
+</script>
+
+</body>
+</html>

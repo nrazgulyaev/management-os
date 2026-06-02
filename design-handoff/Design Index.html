@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arconique · Design index</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#0E0F12; --bg-2:#16181D; --bg-3:#1E2128; --line:rgba(255,255,255,.07); --line-2:rgba(255,255,255,.12);
+  --fg:#E8E6E0; --fg-2:#B6B3AB; --fg-3:#83817B;
+  --mgmt:#C4583C; --dev:#FF6B35; --owner:#BC9A5C; --plat:#5B9DFF; --found:#88A89A; --mobile:#9C7BD0; --docs:#6E8BA8;
+  --mono:"JetBrains Mono",ui-monospace,monospace; --sans:"Inter",system-ui,sans-serif; --serif:"Newsreader",Georgia,serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
+a{color:inherit;text-decoration:none;}
+.wrap{max-width:1240px;margin:0 auto;padding:54px 40px 110px;}
+/* head */
+.head{margin-bottom:14px;}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--fg-3);display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+.eyebrow .dot{width:6px;height:6px;border-radius:2px;background:var(--mgmt);}
+h1{font-family:var(--serif);font-weight:400;font-size:46px;line-height:1.04;letter-spacing:-.02em;margin:0;}
+h1 em{font-style:italic;color:var(--mgmt);}
+.lede{max-width:760px;margin:16px 0 0;font-size:15px;color:var(--fg-2);line-height:1.6;}
+/* summary stat row */
+.stats{display:flex;flex-wrap:wrap;gap:0;margin:30px 0 8px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg-2);}
+.stats .s{flex:1;min-width:120px;padding:16px 20px;border-right:1px solid var(--line);}
+.stats .s:last-child{border-right:0;}
+.stats .v{font-family:var(--serif);font-size:30px;line-height:1;}
+.stats .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-3);margin-top:7px;}
+/* toc */
+.toc{position:sticky;top:0;z-index:10;display:flex;gap:6px;flex-wrap:wrap;padding:16px 0;margin:24px 0 8px;background:linear-gradient(180deg,var(--bg) 70%,transparent);}
+.toc a{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--fg-2);padding:6px 12px;border:1px solid var(--line-2);border-radius:999px;}
+.toc a:hover{color:var(--fg);border-color:var(--fg-3);}
+/* section */
+.sect{padding-top:42px;}
+.sect-h{display:flex;align-items:baseline;gap:14px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--line);}
+.sect-h .sw{width:11px;height:11px;border-radius:3px;align-self:center;}
+.sect-h h2{margin:0;font-family:var(--serif);font-weight:400;font-size:27px;letter-spacing:-.01em;}
+.sect-h .ct{font-family:var(--mono);font-size:11px;color:var(--fg-3);}
+.sect-h .desc{margin-left:auto;font-size:12.5px;color:var(--fg-3);max-width:380px;text-align:right;}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.grid.g3{grid-template-columns:repeat(3,1fr);}
+.card{display:flex;flex-direction:column;gap:6px;padding:15px 16px;border:1px solid var(--line);border-radius:12px;background:var(--bg-2);transition:border-color .15s,transform .15s,background .15s;min-height:92px;}
+.card:hover{border-color:var(--ac,var(--fg-3));transform:translateY(-2px);background:var(--bg-3);}
+.card .tag{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3);}
+.card .nm{font-size:15px;color:var(--fg);font-weight:500;line-height:1.25;}
+.card .sub{font-size:11.5px;color:var(--fg-3);line-height:1.45;margin-top:auto;}
+.card .arr{position:absolute;}
+.card.wide{grid-column:span 2;}
+.subhead{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-3);margin:22px 0 12px;display:flex;align-items:center;gap:10px;}
+.subhead::after{content:"";flex:1;height:1px;background:var(--line);}
+.note{font-size:12.5px;color:var(--fg-3);margin-top:14px;line-height:1.6;}
+@media(max-width:1000px){.grid,.grid.g3{grid-template-columns:repeat(2,1fr);}.wrap{padding:40px 22px 80px;}}
+@media(max-width:560px){.grid,.grid.g3{grid-template-columns:1fr;}.card.wide{grid-column:span 1;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="eyebrow"><span class="dot"></span>app.arconique.com · design index</div>
+    <h1>Everything we've <em>designed</em>.</h1>
+    <p class="lede">A single navigable map of every design artifact in the workspace — foundations, auth, all three product surfaces (Management OS, Development OS, Owner Portal), the Platform Admin console, mobile passes, and the feature-gap audits. Click any card to open it.</p>
+  </div>
+
+  <div class="stats">
+    <div class="s"><div class="v">3</div><div class="k">Products</div></div>
+    <div class="s"><div class="v">~70</div><div class="k">Cabinet screens</div></div>
+    <div class="s"><div class="v">6</div><div class="k">Auth platforms</div></div>
+    <div class="s"><div class="v">9</div><div class="k">Mobile passes</div></div>
+    <div class="s"><div class="v">24</div><div class="k">Gap audits</div></div>
+  </div>
+
+  <nav class="toc">
+    <a href="#found">Foundations</a>
+    <a href="#auth">Auth</a>
+    <a href="#mgmt">Management OS</a>
+    <a href="#dev">Development OS</a>
+    <a href="#owner">Owner Portal</a>
+    <a href="#platform">Platform Admin</a>
+    <a href="#mobile">Mobile</a>
+    <a href="#docs">Audits &amp; docs</a>
+  </nav>
+
+  <!-- FOUNDATIONS -->
+  <section class="sect" id="found">
+    <div class="sect-h"><span class="sw" style="background:var(--found)"></span><h2>Foundations</h2><span class="ct">design system</span><span class="desc">Tokens, type, primitives. Layer B is the target language.</span></div>
+    <div class="grid" style="--ac:var(--found)">
+      <a class="card" href="design-system.html"><span class="tag">DS · Phase 2.0</span><span class="nm">Design system</span><span class="sub">23 sections · Mgmt / Dev / Owner tabs</span></a>
+      <a class="card" href="ds-2.4-primitives.html"><span class="tag">DS · Phase 2.4</span><span class="nm">2.4 primitives</span><span class="sub">ChannelGrid · PricingCurve · Waterfall…</span></a>
+      <a class="card" href="management.html"><span class="tag">Landing</span><span class="nm">Management landing</span><span class="sub">Phase 1 handoff</span></a>
+      <a class="card" href="development.html"><span class="tag">Landing</span><span class="nm">Development landing</span><span class="sub">Phase 1 handoff</span></a>
+      <a class="card" href="subscription.html"><span class="tag">Landing</span><span class="nm">Subscription landing</span><span class="sub">marketing + pricing</span></a>
+      <a class="card" href="cabinets/index.html"><span class="tag">Hub</span><span class="nm">Cabinets hub</span><span class="sub">Phase 2 cabinet index</span></a>
+      <a class="card" href="design/index.html"><span class="tag">Hub</span><span class="nm">Nav / design hub</span><span class="sub">nav structure + mapping</span></a>
+      <a class="card" href="phase-2-4-hub.html"><span class="tag">Hub</span><span class="nm">Phase 2.4 hub</span><span class="sub">P2 cabinet launcher</span></a>
+    </div>
+  </section>
+
+  <!-- AUTH -->
+  <section class="sect" id="auth">
+    <div class="sect-h"><span class="sw" style="background:var(--mgmt)"></span><h2>Auth suite</h2><span class="ct">1 file · 6 platforms · 8 screens</span><span class="desc">Bespoke sign-in per platform + sign-up, forgot/reset, MFA, bootstrap. 3 panel tones.</span></div>
+    <div class="grid" style="--ac:var(--mgmt)">
+      <a class="card wide" href="auth/Auth%20Suite.html"><span class="tag">Phase 2.5 · clickable</span><span class="nm">Auth Suite →</span><span class="sub">Management · Owner · Development · Investor · Buyer · Platform — sign-in / sign-up / forgot / reset / MFA verify / admin bootstrap. Tone switcher: warm · premium · editorial.</span></a>
+    </div>
+  </section>
+
+  <!-- MANAGEMENT -->
+  <section class="sect" id="mgmt">
+    <div class="sect-h"><span class="sw" style="background:var(--mgmt)"></span><h2>Management OS</h2><span class="ct">P1 + P2 + P3 + new</span><span class="desc">Warm hospitality · cream + terra · Newsreader.</span></div>
+
+    <div class="subhead">P1 — core cabinets</div>
+    <div class="grid" style="--ac:var(--mgmt)">
+      <a class="card" href="cabinets/mgmt-p1/bookings.html"><span class="tag">P1</span><span class="nm">Bookings</span><span class="sub">list + calendar + detail · gold std</span></a>
+      <a class="card" href="cabinets/mgmt-p1/finance.html"><span class="tag">P1</span><span class="nm">Finance / Statements</span><span class="sub">31-page cabinet</span></a>
+      <a class="card" href="cabinets/mgmt-p1/operations.html"><span class="tag">P1</span><span class="nm">Operations</span><span class="sub">command center · 17 pages</span></a>
+      <a class="card" href="cabinets/mgmt-p1/owners.html"><span class="tag">P1</span><span class="nm">Owners</span><span class="sub">portfolio + detail</span></a>
+    </div>
+
+    <div class="subhead">P2 — revenue &amp; guest</div>
+    <div class="grid" style="--ac:var(--mgmt)">
+      <a class="card" href="cabinets/mgmt-p2/channels.html"><span class="tag">P2</span><span class="nm">Channels</span><span class="sub">cell-sync · conflicts</span></a>
+      <a class="card" href="cabinets/mgmt-p2/dynamic-pricing.html"><span class="tag">P2</span><span class="nm">Dynamic pricing</span><span class="sub">rule engine · comp set</span></a>
+      <a class="card" href="cabinets/mgmt-p2/front-office.html"><span class="tag">P2</span><span class="nm">Front office</span><span class="sub">check-in FSM</span></a>
+      <a class="card" href="cabinets/mgmt-p2/concierge.html"><span class="tag">P2</span><span class="nm">Concierge</span><span class="sub">comp-policy · escalation</span></a>
+    </div>
+
+    <div class="subhead">P3 — secondary clusters (5 files · 20 cabinets)</div>
+    <div class="grid" style="--ac:var(--mgmt)">
+      <a class="card" href="cabinets/mgmt-p3/Guest%20Stays.html"><span class="tag">C1</span><span class="nm">Guest Stays</span><span class="sub">stays · services · journey · AI</span></a>
+      <a class="card" href="cabinets/mgmt-p3/Distribution%20and%20Payments.html"><span class="tag">C2</span><span class="nm">Distribution &amp; Payments</span><span class="sub">direct · payments · fulfilment · integr.</span></a>
+      <a class="card" href="cabinets/mgmt-p3/Portfolio.html"><span class="tag">C3</span><span class="nm">Portfolio</span><span class="sub">villas · projects · shares</span></a>
+      <a class="card" href="cabinets/mgmt-p3/Security%20and%20System.html"><span class="tag">C4</span><span class="nm">Security &amp; System</span><span class="sub">security · jobs · notif · audit · settings</span></a>
+      <a class="card" href="cabinets/mgmt-p3/Availability%20and%20Intelligence.html"><span class="tag">C5</span><span class="nm">Availability &amp; Intelligence</span><span class="sub">AI · availability · readiness · digests</span></a>
+    </div>
+
+    <div class="subhead">New cabinets (workspace + orphan-data surfaces)</div>
+    <div class="grid" style="--ac:var(--mgmt)">
+      <a class="card" href="cabinets/new/mgmt-workspace.html"><span class="tag">new</span><span class="nm">Workspace overview</span><span class="sub">operator's first screen</span></a>
+      <a class="card" href="cabinets/new/mgmt-documents.html"><span class="tag">new</span><span class="nm">Documents</span><span class="sub">doc vault</span></a>
+      <a class="card" href="cabinets/new/mgmt-inventory-procurement.html"><span class="tag">new</span><span class="nm">Inventory &amp; procurement</span><span class="sub">stock command</span></a>
+      <a class="card" href="cabinets/new/mgmt-owner-intelligence.html"><span class="tag">new</span><span class="nm">Owner intelligence</span><span class="sub">risk ring · insights</span></a>
+      <a class="card" href="cabinets/new/mgmt-utilities.html"><span class="tag">new</span><span class="nm">Utilities</span><span class="sub">accounts · readings</span></a>
+    </div>
+  </section>
+
+  <!-- DEVELOPMENT -->
+  <section class="sect" id="dev">
+    <div class="sect-h"><span class="sw" style="background:var(--dev)"></span><h2>Development OS</h2><span class="ct">P1 + P2 + P3 + new</span><span class="desc">Engineering-grade · sand + amber · Space Grotesk.</span></div>
+
+    <div class="subhead">P1 — core cabinets</div>
+    <div class="grid" style="--ac:var(--dev)">
+      <a class="card" href="cabinets/dev-p1/projects.html"><span class="tag">P1</span><span class="nm">Projects + PM</span><span class="sub">41kb hub · 32 pages</span></a>
+      <a class="card" href="cabinets/dev-p1/cfo.html"><span class="tag">P1</span><span class="nm">CFO / Finance</span><span class="sub">waterfall · P&amp;L</span></a>
+      <a class="card" href="cabinets/dev-p1/boq-qs.html"><span class="tag">P1</span><span class="nm">BOQ + QS</span><span class="sub">variance · import</span></a>
+      <a class="card" href="cabinets/dev-p1/procurement.html"><span class="tag">P1</span><span class="nm">Procurement + Vendors</span><span class="sub">quote comparison</span></a>
+    </div>
+
+    <div class="subhead">P2 — sales &amp; capital</div>
+    <div class="grid g3" style="--ac:var(--dev)">
+      <a class="card" href="cabinets/dev-p2/sales.html"><span class="tag">P2</span><span class="nm">Sales</span><span class="sub">pipeline FSM · offers</span></a>
+      <a class="card" href="cabinets/dev-p2/investors.html"><span class="tag">P2</span><span class="nm">Investors</span><span class="sub">waterfall · XIRR · calls</span></a>
+      <a class="card" href="cabinets/dev-p2/site-supervisor.html"><span class="tag">P2</span><span class="nm">Site supervisor</span><span class="sub">site reports · weekly</span></a>
+    </div>
+
+    <div class="subhead">P3 — secondary clusters (4 files · 16 cabinets)</div>
+    <div class="grid" style="--ac:var(--dev)">
+      <a class="card" href="cabinets/dev-p3/Dev%20Finance.html"><span class="tag">C6</span><span class="nm">Dev Finance</span><span class="sub">CFO · cashflow · profit · banking</span></a>
+      <a class="card" href="cabinets/dev-p3/Dev%20Contracts.html"><span class="tag">C7</span><span class="nm">Dev Contracts</span><span class="sub">contracts · invoices · discounts · commit</span></a>
+      <a class="card" href="cabinets/dev-p3/Dev%20Knowledge%20and%20Docs.html"><span class="tag">C8</span><span class="nm">Knowledge &amp; Docs</span><span class="sub">drawings · methods · materials</span></a>
+      <a class="card" href="cabinets/dev-p3/Dev%20Ops.html"><span class="tag">C9</span><span class="nm">Dev Ops</span><span class="sub">marketing · inbox · cycle · productivity</span></a>
+    </div>
+
+    <div class="subhead">New cabinets</div>
+    <div class="grid" style="--ac:var(--dev)">
+      <a class="card" href="cabinets/new/dev-workspace.html"><span class="tag">new</span><span class="nm">Dev workspace</span><span class="sub">command center</span></a>
+      <a class="card" href="cabinets/new/dev-executive.html"><span class="tag">new</span><span class="nm">Dev executive</span><span class="sub">portfolio + risk</span></a>
+      <a class="card" href="cabinets/new/dev-marketing.html"><span class="tag">new</span><span class="nm">Dev marketing</span><span class="sub">leads · campaigns</span></a>
+      <a class="card" href="cabinets/new/dev-warehouse.html"><span class="tag">new</span><span class="nm">Dev warehouse</span><span class="sub">materials store</span></a>
+    </div>
+  </section>
+
+  <!-- OWNER -->
+  <section class="sect" id="owner">
+    <div class="sect-h"><span class="sw" style="background:var(--owner)"></span><h2>Owner Portal</h2><span class="ct">7 cabinets</span><span class="desc">Investor-calm · Mgmt palette · bigger type, more narrative.</span></div>
+    <div class="grid" style="--ac:var(--owner)">
+      <a class="card" href="cabinets/owner-p1/01-home.html"><span class="tag">P1</span><span class="nm">Home</span><span class="sub">portfolio at a glance</span></a>
+      <a class="card" href="cabinets/owner-p1/02-statement.html"><span class="tag">P1</span><span class="nm">Statements</span><span class="sub">monthly · PDF</span></a>
+      <a class="card" href="cabinets/owner-p1/03-villas.html"><span class="tag">P1</span><span class="nm">Villas</span><span class="sub">health · calendar · revenue</span></a>
+      <a class="card" href="cabinets/owner-p1/04-calendar.html"><span class="tag">P1</span><span class="nm">Calendar</span><span class="sub">personal stays · quota</span></a>
+      <a class="card" href="cabinets/owner-p1/05-inbox.html"><span class="tag">P1</span><span class="nm">Inbox</span><span class="sub">threads · concierge</span></a>
+      <a class="card" href="cabinets/owner-p1/06-documents.html"><span class="tag">P1</span><span class="nm">Documents</span><span class="sub">bundles</span></a>
+      <a class="card" href="cabinets/owner-p1/07-settings.html"><span class="tag">P1</span><span class="nm">Settings</span><span class="sub">payout · notifications</span></a>
+    </div>
+  </section>
+
+  <!-- PLATFORM -->
+  <section class="sect" id="platform">
+    <div class="sect-h"><span class="sw" style="background:var(--plat)"></span><h2>Platform Admin</h2><span class="ct">Phase 2.5</span><span class="desc">Operator console · dark cool-blue theme · aligned to real routes.</span></div>
+    <div class="grid" style="--ac:var(--plat)">
+      <a class="card wide" href="cabinets/super-admin/Platform%20Console.html"><span class="tag">Phase 2.5 · primary</span><span class="nm">Platform Console →</span><span class="sub">Organizations · Revenue · Usage · AI agents · Audit log — 5 surfaces, dark theme, aligned to /platform/* routes in main.</span></a>
+      <a class="card" href="cabinets/super-admin/hub.html"><span class="tag">draft</span><span class="nm">Super-admin hub</span><span class="sub">10-screen exploration</span></a>
+    </div>
+    <div class="note">Earlier 10-screen super-admin draft (organizations, users, plans, billing, feature-flags, support-inbox, audit-log, system-health, ai-overview, mobile) lives in <code>cabinets/super-admin/</code> — superseded by the Console above, kept for reference.</div>
+  </section>
+
+  <!-- MOBILE -->
+  <section class="sect" id="mobile">
+    <div class="sect-h"><span class="sw" style="background:var(--mobile)"></span><h2>Mobile passes</h2><span class="ct">9 files</span><span class="desc">Phone variants — first-class per the design rules.</span></div>
+    <div class="grid" style="--ac:var(--mobile)">
+      <a class="card" href="mobile-pass-mgmt-p1.html"><span class="tag">P1</span><span class="nm">Mgmt P1</span><span class="sub">core cabinets</span></a>
+      <a class="card" href="mobile-pass-dev-p1.html"><span class="tag">P1</span><span class="nm">Dev P1</span><span class="sub">core cabinets</span></a>
+      <a class="card" href="mobile-pass-owner-p1.html"><span class="tag">P1</span><span class="nm">Owner P1</span><span class="sub">7 owner cabinets</span></a>
+      <a class="card" href="mobile-pass-2.4-cabinets.html"><span class="tag">P2.4</span><span class="nm">2.4 cabinets</span><span class="sub">channels · pricing · …</span></a>
+      <a class="card" href="mobile-pass-2.4-primitives.html"><span class="tag">P2.4</span><span class="nm">2.4 primitives</span><span class="sub">mobile primitives</span></a>
+      <a class="card" href="mobile-pass-2.6-new-cabinets.html"><span class="tag">P2.6</span><span class="nm">New cabinets</span><span class="sub">workspace + orphan surfaces</span></a>
+      <a class="card" href="mobile-pass-2.6-2.7-clusters.html"><span class="tag">P2.5–2.7</span><span class="nm">Clusters (curated)</span><span class="sub">auth + key P3 + platform</span></a>
+      <a class="card" href="mobile-pass-mgmt-p3-full.html"><span class="tag">P3 full</span><span class="nm">Mgmt P3 · all 20</span><span class="sub">every secondary cabinet</span></a>
+      <a class="card" href="mobile-pass-dev-p3-full.html"><span class="tag">P3 full</span><span class="nm">Dev P3 · all 16</span><span class="sub">every secondary cabinet</span></a>
+    </div>
+  </section>
+
+  <!-- DOCS -->
+  <section class="sect" id="docs">
+    <div class="sect-h"><span class="sw" style="background:var(--docs)"></span><h2>Audits &amp; reference</h2><span class="ct">feature-gap series</span><span class="desc">Design ↔ code gap analysis, verified against the live repo.</span></div>
+    <div class="grid" style="--ac:var(--docs)">
+      <a class="card" href="feature-gaps/_design-coverage-2026-05-29.md"><span class="tag">map</span><span class="nm">Design coverage map</span><span class="sub">what's designed vs built vs gap</span></a>
+      <a class="card" href="feature-gaps/_ground-truth-2026-05-29.md"><span class="tag">ground truth</span><span class="nm">Route inventory</span><span class="sub">299 mgmt + 58 dev + 21 owner</span></a>
+      <a class="card" href="feature-gaps/00-rollup.md"><span class="tag">rollup</span><span class="nm">P0 rollup</span><span class="sub">cross-cabinet synthesis (STOP banner)</span></a>
+      <a class="card" href="feature-gaps/README.md"><span class="tag">legend</span><span class="nm">Audit series legend</span><span class="sub">01–23 cabinet audits</span></a>
+    </div>
+    <div class="note">The numbered audits <code>feature-gaps/01-front-office.md</code> … <code>23-mgmt-workspace.md</code> carry per-cabinet GROUND-TRUTH banners. Phase plan + decisions live in <code>CLAUDE.md</code> · <code>phase-2-scope-lock.md</code> · <code>analysis-report.md</code>.</div>
+  </section>
+
+</div>
+</body>
+</html>

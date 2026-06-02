@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Site supervisor + reports · Dev P2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../_chrome.css" />
+<link rel="stylesheet" href="../_2.4-primitives.css" />
+<style>
+.cab-cover { padding: 64px 32px 32px; }
+.cab-cover .eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.cab-cover .eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { font-family: var(--doc-sans); font-weight: 500; font-size: 44px; letter-spacing: -0.02em; line-height: 1.05; margin: 0; color: var(--doc-fg); }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 22px 0 0; font-size: 15px; color: var(--doc-fg-2); line-height: 1.6; }
+.cab-cover .meta { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--doc-line); }
+.cab-cover .meta div { display: flex; flex-direction: column; gap: 4px; }
+.cab-cover .meta .k { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); }
+.cab-cover .meta .v { font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg); }
+
+.cab-board-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(640px, 1fr)); gap: 20px; margin-top: 8px; }
+.cab-board { background: var(--doc-bg-3); border: 1px solid var(--doc-line-2); border-radius: 14px; overflow: hidden; }
+.cab-board .head { padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--doc-line-2); background: var(--doc-bg-2); }
+.cab-board .head .num { font-family: var(--doc-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; padding: 2px 8px; background: var(--doc-accent); color: var(--doc-bg); border-radius: 999px; }
+.cab-board .head .name { font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg); font-weight: 500; }
+.cab-board .head .desc { font-family: var(--doc-sans); font-size: 12px; color: var(--doc-fg-3); margin-left: auto; }
+</style>
+</head>
+<body data-screen-label="Site supervisor cabinet">
+
+<div class="ds-app">
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span><span>Arconique · Dev P2</span></div>
+    <h1>Site supervisor + reports</h1>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Cabinet</div>
+      <a class="ds-toc-item on" href="#hero"><span class="num">01</span><span>Hero · today's log</span></a>
+      <a class="ds-toc-item" href="#variants"><span class="num">02</span><span>Layout variants</span></a>
+      <a class="ds-toc-item" href="#capture"><span class="num">03</span><span>Mobile capture</span></a>
+      <a class="ds-toc-item" href="#incidents"><span class="num">04</span><span>Incident detail</span></a>
+      <a class="ds-toc-item" href="#weekly"><span class="num">05</span><span>Weekly report export</span></a>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Spec</div>
+      <a class="ds-toc-item" href="#schema"><span class="num">06</span><span>Schema · agents</span></a>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Reference</div>
+      <a class="ds-toc-item" href="../../ds-2.4-primitives.html"><span class="num">↗</span><span>DS extension 2.4</span></a>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <div class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Dev P2 · 1 of 3</span></div>
+      <h1>The site as a <em>film, not a spreadsheet</em>.</h1>
+      <p>
+        Daily site logs are how the construction lead, owners, and investors all see the same site without flying to Bali. We treat the log as a storyboard — full-bleed photos, captions, weather, incidents and QA flags inline.
+        Field staff capture on phone via a 30-second flow; supervisors review on desktop scrolling vertically through the week.
+      </p>
+      <div class="meta">
+        <div><span class="k">Status</span><span class="v">Design draft</span></div>
+        <div><span class="k">Sequence</span><span class="v">PR 5 of Phase 2.4</span></div>
+        <div><span class="k">Depends on</span><span class="v">Projects/PM cabinet (2.2) · StoryboardLog primitive</span></div>
+        <div><span class="k">Routes</span><span class="v">/development-os/site · /site/[projectId]/[date]</span></div>
+      </div>
+    </div>
+
+    <div class="ds-content">
+
+      <!-- ============ 01. Hero ============ -->
+      <section id="hero" class="ds-section" data-screen-label="01 Hero log">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">01</span><span>—</span><span>Hero</span></div>
+            <h2>Today + recent days · Canggu West</h2>
+            <p>Each day is a storyboard band — meta column on the left, 1-3 photo frames on the right with caption + side metadata. Sticky day-header on scroll. Filter by project at the top.</p>
+          </div>
+          <div class="ds-section-meta"><span class="ds-tag accent">Variant A — recommended</span></div>
+        </div>
+
+        <div class="ds-preview flush" style="background:#1A1A1F;padding:18px;">
+          <div class="app-shell" data-product="development" style="height:880px;">
+            <aside class="sidebar">
+              <a class="sb-brand" href="#"><span class="logo"><svg viewBox="0 0 22 22" width="22" height="22" fill="currentColor"><path d="M3 18 L11 4 L19 18 Z" /></svg></span><span class="wordmark">Arconique · dev</span></a>
+              <div class="sb-workspace"><div class="label">Project</div><div class="name">Canggu West · L1–L9</div><div class="sub">day 184 · 22 weeks left</div></div>
+              <div class="sb-group">
+                <div class="sb-group-title">Build</div>
+                <a class="sb-item" href="#"><span>Dashboard</span></a>
+                <a class="sb-item" href="#"><span>Projects</span></a>
+                <a class="sb-item on" href="#"><span>Site supervisor</span><span class="sb-badge">2</span></a>
+                <a class="sb-item" href="#"><span>BOQ + QS</span></a>
+                <a class="sb-item" href="#"><span>Procurement</span></a>
+                <a class="sb-item" href="#"><span>Schedule</span></a>
+              </div>
+              <div class="sb-group">
+                <div class="sb-group-title">Capital</div>
+                <a class="sb-item" href="#"><span>CFO / Finance</span></a>
+                <a class="sb-item" href="#"><span>Sales</span></a>
+                <a class="sb-item" href="#"><span>Investors</span></a>
+              </div>
+            </aside>
+
+            <div class="shell-content">
+              <div class="topbar">
+                <div class="tb-crumb"><span>Dev OS</span> / <span>Build</span> / <b>Site supervisor</b></div>
+                <div class="tb-spacer"></div>
+                <div class="tb-search"><span class="sx"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4"/></svg></span><input placeholder="Search by tag, date, milestone…" /><span class="kbd">⌘K</span></div>
+                <button class="tb-bell"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 8a5 5 0 1 1 10 0v3l2 3H3l2-3V8z"/></svg><span class="dot"></span></button>
+                <div class="tb-user"><div class="avatar avatar-sm">SK</div><div class="meta"><span class="name">S. Kartika</span><span class="role">Construction lead</span></div></div>
+              </div>
+
+              <div class="shell-body" style="padding:0;overflow:auto;">
+
+                <!-- Page header / filter bar -->
+                <div style="position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line-soft);padding:16px 28px 12px;">
+                  <div style="display:flex;align-items:flex-end;gap:14px;">
+                    <div>
+                      <div class="crumb" style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;">site log · daily</div>
+                      <h1 style="margin:6px 0 0;font-family:var(--display-font);font-weight:500;font-size:28px;color:var(--ink);letter-spacing:-0.02em;">Canggu West · daily log</h1>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
+                      <span class="chip"><span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">project</span> · Canggu West ▾</span>
+                      <span class="chip chip-active">past 7d</span>
+                      <span class="chip">past 30d</span>
+                      <span class="chip">events only</span>
+                      <button class="btn btn-secondary btn-sm">Export PDF</button>
+                      <button class="btn btn-primary btn-sm">+ Capture</button>
+                    </div>
+                  </div>
+
+                  <!-- KPI strip -->
+                  <div class="ds-grid cols-5" style="gap:8px;margin-top:14px;">
+                    <div class="kpi" style="padding:10px 12px;"><div class="label" style="font-size:9.5px;">day</div><div class="v" style="font-size:18px;">184<span style="font-size:11px;color:var(--ink-3);"> / 312</span></div></div>
+                    <div class="kpi" style="padding:10px 12px;"><div class="label" style="font-size:9.5px;">on schedule</div><div class="v ok" style="font-size:18px;color:var(--ok);">+2d</div></div>
+                    <div class="kpi warn" style="padding:10px 12px;"><div class="label" style="font-size:9.5px;">incidents · 7d</div><div class="v" style="font-size:18px;">3</div></div>
+                    <div class="kpi" style="padding:10px 12px;"><div class="label" style="font-size:9.5px;">qa flags · open</div><div class="v" style="font-size:18px;">2</div></div>
+                    <div class="kpi" style="padding:10px 12px;"><div class="label" style="font-size:9.5px;">photos · 7d</div><div class="v" style="font-size:18px;">84</div></div>
+                  </div>
+                </div>
+
+                <!-- Day 1: today -->
+                <div style="padding:0 28px;">
+                  <div class="sb-day" style="padding-top:24px;">
+                    <div class="meta">
+                      <div class="date">28 may</div>
+                      <div class="dow">tue · day 184</div>
+                      <div class="who">
+                        <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#FFB088,#FF6B35);">SP</div>
+                        <div>Sukmara P.<br><span class="role">foreman · west</span></div>
+                      </div>
+                      <div class="weather"><strong>32°C</strong> · clouded<br>rain 10:14–11:32 · stop work 1h 18m</div>
+                    </div>
+                    <div class="sb-frames">
+                      <div class="sb-frame">
+                        <div class="sb-photo wide">
+                          <span class="pill">07:42 · L2 slab · pour</span>
+                          <span class="stamp">3008×2256 · iphone 14</span>
+                          <span>[ site photo · slab pour wide shot ]</span>
+                        </div>
+                        <div class="body">
+                          <div>
+                            <h4 class="caption">First section of the L2 slab went down before the squall hit.</h4>
+                            <p class="narration">42 m³ delivered on time, vibration crew worked through to finish the strip before pouring stopped at 10:14. Patches at the column heads still need a second pass tomorrow morning.</p>
+                          </div>
+                          <div class="side">
+                            <div class="row"><span class="k">milestone</span><span class="v">L2 slab · west</span></div>
+                            <div class="row"><span class="k">qty</span><span class="v">42 / 86 m³</span></div>
+                            <div class="row"><span class="k">crew</span><span class="v">18 on site</span></div>
+                            <div class="row"><span class="k">tasks</span><span class="v">4 done · 1 carry</span></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="sb-frame">
+                        <div class="sb-photo">
+                          <span class="pill alert">11:08 · incident · rebar shortage</span>
+                          <span class="stamp">11:08 · gps ✓</span>
+                          <span>[ delivery short shot ]</span>
+                        </div>
+                        <div class="body">
+                          <div>
+                            <h4 class="caption">Krakatau delivery short by 1.8 t — column 4-C on hold.</h4>
+                            <p class="narration">Driver tally was short. Procurement reached out at 11:14; emergency truck en route from Denpasar yard, ETA 15:30. Rest of crew shifted to slab finishing.</p>
+                          </div>
+                          <div class="side" style="background:color-mix(in srgb, var(--danger) 8%, transparent);border-color:color-mix(in srgb, var(--danger) 25%, transparent);">
+                            <div class="row"><span class="k">severity</span><span class="v" style="color:var(--danger);">P1</span></div>
+                            <div class="row"><span class="k">short</span><span class="v">1.8 t · #16 rebar</span></div>
+                            <div class="row"><span class="k">eta</span><span class="v">15:30 · denpasar</span></div>
+                            <div class="row"><span class="k">opened</span><span class="v">RFI-217 ✓</span></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="sb-frame">
+                        <div class="sb-photo tall">
+                          <span class="pill flag">16:22 · QA flag · finish</span>
+                          <span class="stamp">close-up · gps ✓</span>
+                          <span>[ honeycomb voids detail ]</span>
+                        </div>
+                        <div class="body">
+                          <div>
+                            <h4 class="caption">QA flag · honeycomb voids on column 3-A east face.</h4>
+                            <p class="narration">Visual inspection found 4 voids 8–14mm on east face. Sent to QS for assessment — likely surface patch + epoxy, no structural impact expected. Awaiting QS sign-off.</p>
+                          </div>
+                          <div class="side">
+                            <div class="row"><span class="k">flag</span><span class="v" style="color:var(--warn);">visual</span></div>
+                            <div class="row"><span class="k">size</span><span class="v">8–14 mm</span></div>
+                            <div class="row"><span class="k">qs</span><span class="v">pending · B.K.</span></div>
+                            <div class="row"><span class="k">link</span><span class="v">qs-flag-118</span></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Day 2: yesterday (condensed) -->
+                  <div class="sb-day">
+                    <div class="meta">
+                      <div class="date">27 may</div>
+                      <div class="dow">mon · day 183</div>
+                      <div class="who">
+                        <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#FFB088,#FF6B35);">SP</div>
+                        <div>Sukmara P.<br><span class="role">foreman · west</span></div>
+                      </div>
+                      <div class="weather"><strong>30°C</strong> · clear<br>no stoppages</div>
+                    </div>
+                    <div class="sb-frames">
+                      <div class="sb-frame">
+                        <div class="sb-photo">
+                          <span class="pill">06:48 · L2 slab · prep</span>
+                          <span class="stamp">3008×2256</span>
+                          <span>[ rebar tied + formwork closed ]</span>
+                        </div>
+                        <div class="body">
+                          <div>
+                            <h4 class="caption">Formwork complete · slab pour scheduled for 07:00 tomorrow.</h4>
+                            <p class="narration">Last formwork bay closed by 16:40 yesterday; rebar tied and inspected by 12:20. Crew ready for the first pour at dawn.</p>
+                          </div>
+                          <div class="side">
+                            <div class="row"><span class="k">milestone</span><span class="v">L2 slab prep</span></div>
+                            <div class="row"><span class="k">crew</span><span class="v">22 on site</span></div>
+                            <div class="row"><span class="k">tasks</span><span class="v">7 done · 0 carry</span></div>
+                            <div class="row"><span class="k">incidents</span><span class="v">none</span></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 02. Variants ============ -->
+      <section id="variants" class="ds-section" data-screen-label="02 Variants">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">02</span><span>—</span><span>Layout variants</span></div>
+            <h2>Storyboard vs. dashboard</h2>
+            <p>Variant A above is the storyboard scroll. Variant B is a more dashboard-y "site at a glance" — for supervisors who need numbers, not pictures, when grading the day.</p>
+          </div>
+        </div>
+
+        <div class="cab-board-grid">
+          <div class="cab-board" style="grid-column:1/-1;">
+            <div class="head">
+              <span class="num">B</span>
+              <span class="name">Day-summary dashboard</span>
+              <span class="desc">KPI-first view · open the day in modal to see the storyboard</span>
+            </div>
+            <div class="body" data-product="development">
+              <div style="padding:22px;background:var(--bg);">
+
+                <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;">
+                  <h2 style="margin:0;font-family:var(--display-font);font-weight:500;font-size:22px;color:var(--ink);letter-spacing:-0.02em;">Site · week of 26 may</h2>
+                  <span style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-left:auto;">Canggu West · day 184 of 312</span>
+                </div>
+
+                <table class="data" style="background:var(--panel);border:1px solid var(--line-2);border-radius:12px;overflow:hidden;">
+                  <thead>
+                    <tr><th>Day</th><th>Status</th><th>Milestone</th><th class="num">Crew</th><th class="num">Tasks</th><th class="num">Stop (h)</th><th>Incidents</th><th>QA</th><th class="num">Photos</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr style="background:color-mix(in srgb,var(--accent) 5%,transparent);">
+                      <td><strong style="color:var(--ink);">tue 28 · today</strong></td>
+                      <td><span class="badge badge-warn">attention</span></td>
+                      <td>L2 slab · west · 42/86 m³</td>
+                      <td class="num">18</td>
+                      <td class="num">4/5</td>
+                      <td class="num">1.3</td>
+                      <td><span class="badge badge-danger">P1 rebar</span></td>
+                      <td><span class="badge badge-warn">flag-118</span></td>
+                      <td class="num">12</td>
+                    </tr>
+                    <tr>
+                      <td>mon 27</td>
+                      <td><span class="badge badge-ok">on track</span></td>
+                      <td>L2 slab prep · formwork close</td>
+                      <td class="num">22</td>
+                      <td class="num">7/7</td>
+                      <td class="num">0</td>
+                      <td><span style="color:var(--ink-3);">—</span></td>
+                      <td><span style="color:var(--ink-3);">—</span></td>
+                      <td class="num">8</td>
+                    </tr>
+                    <tr>
+                      <td>sun 26</td>
+                      <td><span class="badge badge-ok">on track</span></td>
+                      <td>Rebar inspection · QS sign</td>
+                      <td class="num">9</td>
+                      <td class="num">3/3</td>
+                      <td class="num">0</td>
+                      <td><span style="color:var(--ink-3);">—</span></td>
+                      <td><span class="badge badge-ok">✓ cleared</span></td>
+                      <td class="num">14</td>
+                    </tr>
+                    <tr>
+                      <td>sat 25</td>
+                      <td><span class="badge badge-warn">attention</span></td>
+                      <td>Column 4-C concrete</td>
+                      <td class="num">19</td>
+                      <td class="num">5/6</td>
+                      <td class="num">0.5</td>
+                      <td><span class="badge badge-soft">P3 minor</span></td>
+                      <td><span style="color:var(--ink-3);">—</span></td>
+                      <td class="num">11</td>
+                    </tr>
+                    <tr>
+                      <td>fri 24</td>
+                      <td><span class="badge badge-ok">on track</span></td>
+                      <td>Rebar prep west wing</td>
+                      <td class="num">20</td>
+                      <td class="num">6/6</td>
+                      <td class="num">0</td>
+                      <td><span style="color:var(--ink-3);">—</span></td>
+                      <td><span style="color:var(--ink-3);">—</span></td>
+                      <td class="num">18</td>
+                    </tr>
+                    <tr>
+                      <td>thu 23</td>
+                      <td><span class="badge badge-warn">attention</span></td>
+                      <td>Column 3-A pour</td>
+                      <td class="num">21</td>
+                      <td class="num">4/5</td>
+                      <td class="num">2.1</td>
+                      <td><span class="badge badge-soft">weather</span></td>
+                      <td><span class="badge badge-warn">flag-117</span></td>
+                      <td class="num">9</td>
+                    </tr>
+                    <tr>
+                      <td>wed 22</td>
+                      <td><span class="badge badge-ok">on track</span></td>
+                      <td>Formwork column 4</td>
+                      <td class="num">18</td>
+                      <td class="num">5/5</td>
+                      <td class="num">0</td>
+                      <td><span style="color:var(--ink-3);">—</span></td>
+                      <td><span style="color:var(--ink-3);">—</span></td>
+                      <td class="num">12</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div style="margin-top:10px;font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">
+                  ⊕ great for the weekly status meeting · ⊖ loses the human texture · keep it as <code>?view=table</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;padding:18px 22px;background:var(--doc-bg-3);border:1px solid var(--doc-line-2);border-radius:10px;font-family:var(--doc-mono);font-size:11.5px;color:var(--doc-fg-2);line-height:1.7;">
+          <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:8px;">Recommendation</div>
+          Ship <strong style="color:var(--doc-fg);">Variant A</strong>. The whole reason this cabinet exists is photos + context — investors and absentee owners need to feel the site, not parse a table. Variant B is a great status-meeting view; expose it via the "Week" toggle in the page header.
+        </div>
+      </section>
+
+      <!-- ============ 03. Mobile capture ============ -->
+      <section id="capture" class="ds-section" data-screen-label="03 Mobile capture">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">03</span><span>—</span><span>Mobile · capture flow</span></div>
+            <h2>The foreman's 30-second capture</h2>
+            <p>The only way the storyboard works is if it costs the foreman 30 seconds, max, per moment. Camera → caption → tag → done. Voice memo input transcribes for narration.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:32px;display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
+
+          <!-- Step 1: camera -->
+          <div class="mobile-frame" data-product="development">
+            <div class="mobile-status"><span>11:08</span><span>5G · 64%</span></div>
+            <div class="mobile-body" style="background:#0F0F0E;color:white;display:flex;flex-direction:column;">
+              <div style="padding:12px 16px;display:flex;align-items:center;gap:8px;">
+                <button style="background:transparent;border:0;color:white;font-size:18px;">×</button>
+                <span style="font-family:var(--mono-font);font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.14em;">capture · 1 of 3</span>
+                <span style="margin-left:auto;font-family:var(--mono-font);font-size:10px;color:var(--amber);">gps ✓</span>
+              </div>
+              <div style="flex:1;background:repeating-linear-gradient(135deg,#222 0 2px,#1a1a1a 2px 14px);position:relative;overflow:hidden;">
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:11px;color:#666;letter-spacing:0.14em;text-transform:uppercase;">live camera view</div>
+                <div style="position:absolute;bottom:0;left:0;right:0;padding:14px;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);">
+                  <div style="font-family:var(--mono-font);font-size:10px;color:rgba(255,255,255,0.7);">11:08 · canggu west · gps ✓</div>
+                </div>
+              </div>
+              <div style="padding:18px;background:#0F0F0E;display:flex;align-items:center;gap:14px;justify-content:center;">
+                <button style="width:36px;height:36px;border-radius:50%;background:#1a1a1a;border:1px solid #333;color:white;">⌖</button>
+                <button style="width:64px;height:64px;border-radius:50%;background:white;border:4px solid #FF6B35;"></button>
+                <button style="width:36px;height:36px;border-radius:50%;background:#1a1a1a;border:1px solid #333;color:white;">⟲</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: caption -->
+          <div class="mobile-frame" data-product="development">
+            <div class="mobile-status"><span>11:09</span><span>5G · 64%</span></div>
+            <div class="mobile-body" style="background:var(--bg);">
+              <div style="padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line-soft);">
+                <button class="btn-ghost" style="padding:4px;color:var(--ink-2);">‹</button>
+                <span style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;">capture · 2 of 3 · caption</span>
+              </div>
+              <div style="padding:14px;">
+                <div style="background:var(--panel);border:1px solid var(--line-soft);border-radius:12px;overflow:hidden;margin-bottom:14px;">
+                  <div style="aspect-ratio:16/9;background:repeating-linear-gradient(135deg,var(--ink-4) 0 2px,transparent 2px 14px),var(--bg-2);position:relative;">
+                    <div style="position:absolute;left:10px;top:10px;background:rgba(15,15,14,0.75);color:white;padding:3px 8px;border-radius:999px;font-family:var(--mono-font);font-size:10px;">11:08 · west wing</div>
+                  </div>
+                </div>
+                <div class="field" style="margin-bottom:10px;">
+                  <span class="field-label">caption</span>
+                  <input class="input" value="Rebar delivery short by 1.8t — column 4-C on hold." />
+                </div>
+                <div class="field" style="margin-bottom:10px;">
+                  <span class="field-label">narration · voice or text</span>
+                  <div style="display:flex;align-items:flex-end;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:90px;">
+                    <span style="flex:1;font-size:13px;color:var(--ink);line-height:1.5;">Driver tally was short. Procurement reaching out · emergency truck en route from Denpasar yard, ETA 15:30…</span>
+                    <button class="ra-btn" style="width:32px;height:32px;background:var(--amber);"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="2" width="4" height="8" rx="2"/><path d="M3 8a5 5 0 0 0 10 0M8 13v2"/></svg></button>
+                  </div>
+                  <span class="field-help">tap mic · transcript appears as you talk</span>
+                </div>
+              </div>
+              <div style="padding:14px;border-top:1px solid var(--line-soft);background:var(--panel);">
+                <button class="btn btn-primary" style="width:100%;">Next · tag &amp; severity ›</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: tag -->
+          <div class="mobile-frame" data-product="development">
+            <div class="mobile-status"><span>11:10</span><span>5G · 64%</span></div>
+            <div class="mobile-body" style="background:var(--bg);">
+              <div style="padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line-soft);">
+                <button class="btn-ghost" style="padding:4px;color:var(--ink-2);">‹</button>
+                <span style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;">capture · 3 of 3 · tag</span>
+              </div>
+              <div style="padding:14px;">
+                <div class="field" style="margin-bottom:14px;">
+                  <span class="field-label">kind</span>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                    <button class="btn btn-secondary btn-sm">milestone</button>
+                    <button class="btn btn-secondary btn-sm" style="background:var(--danger);color:white;border-color:var(--danger);">incident</button>
+                    <button class="btn btn-secondary btn-sm">qa flag</button>
+                    <button class="btn btn-secondary btn-sm">progress</button>
+                  </div>
+                </div>
+                <div class="field" style="margin-bottom:14px;">
+                  <span class="field-label">severity</span>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                    <button class="btn btn-secondary btn-sm" style="background:var(--danger);color:white;border-color:var(--danger);">P1</button>
+                    <button class="btn btn-secondary btn-sm">P2</button>
+                    <button class="btn btn-secondary btn-sm">P3</button>
+                    <button class="btn btn-secondary btn-sm">info</button>
+                  </div>
+                </div>
+                <div class="field" style="margin-bottom:14px;">
+                  <span class="field-label">milestone link</span>
+                  <select class="select"><option>L2 slab · west</option><option>Column 4-C</option><option>None</option></select>
+                </div>
+                <label class="check" style="margin-bottom:6px;"><input type="checkbox" checked /><span class="box"></span><span>Open RFI for procurement</span></label>
+                <label class="check"><input type="checkbox" /><span class="box"></span><span>Notify owners / investors</span></label>
+              </div>
+              <div style="padding:14px;border-top:1px solid var(--line-soft);background:var(--panel);">
+                <button class="btn btn-primary" style="width:100%;background:var(--amber);color:var(--carbon);">Post to today's log</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============ 04. Incident detail ============ -->
+      <section id="incidents" class="ds-section" data-screen-label="04 Incident detail">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">04</span><span>—</span><span>Detail</span></div>
+            <h2>Incident detail · with linked thread</h2>
+            <p>Each P1/P2 incident gets a permalink — used in RFIs to procurement, in QS dialogs, and in investor decks. Self-contained page with photo, decision log, and resolution.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:18px;">
+          <div data-product="development" style="background:var(--bg);padding:22px 26px;border-radius:12px;">
+            <div class="page-header" style="padding:0 0 18px;margin:0 0 16px;">
+              <div class="left">
+                <div class="crumb"><a href="#">Site supervisor</a> / <a href="#">28 may</a> / <span>INC-2218</span></div>
+                <h1 style="font-size:28px;font-weight:500;">Rebar delivery short · 1.8t #16 · column 4-C</h1>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <span class="badge badge-danger">P1 · open</span>
+                  <span class="badge badge-soft">11:08 · 28 may</span>
+                  <span class="badge badge-soft">RFI-217 ↗</span>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-secondary btn-sm">Notify investors</button>
+                <button class="btn btn-secondary btn-sm">Resolve…</button>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;">
+              <div>
+                <div class="card card-pad" style="margin-bottom:14px;">
+                  <div class="sb-photo wide" style="margin-bottom:14px;">
+                    <span class="pill alert">11:08 · incident</span>
+                    <span class="stamp">3008×2256 · gps ✓</span>
+                    <span>[ short delivery photo ]</span>
+                  </div>
+                  <h3 style="margin:0;font-family:var(--display-font);font-weight:500;font-size:20px;color:var(--ink);">What happened</h3>
+                  <p style="font-size:14px;color:var(--ink-2);line-height:1.6;">
+                    Krakatau Steel delivery truck (Krakatau #DEN-4218) arrived 09:42 with 26.4t of #16 deformed rebar against a PO of 28.2t. Driver tally short by 1.8t.
+                    The shortage was caught at offload by foreman Sukmara, who flagged it via the capture flow at 11:08. Column 4-C rebar tie-off was paused;
+                    crew shifted to slab finishing on L2 west to avoid total stoppage.
+                  </p>
+                </div>
+
+                <div class="card card-pad">
+                  <div class="label" style="font-size:9.5px;margin-bottom:14px;">Decision log</div>
+                  <div style="display:flex;flex-direction:column;gap:12px;">
+                    <div style="display:grid;grid-template-columns:80px 1fr;gap:14px;">
+                      <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">11:08</div>
+                      <div><div style="font-size:13px;color:var(--ink);">Incident logged by S.P. · severity P1 · RFI-217 auto-opened to procurement</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:80px 1fr;gap:14px;">
+                      <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">11:14</div>
+                      <div><div style="font-size:13px;color:var(--ink);">Procurement (B.K.) acknowledged · started Denpasar yard call</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:80px 1fr;gap:14px;">
+                      <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">11:42</div>
+                      <div>
+                        <div style="font-size:13px;color:var(--ink);">Emergency truck dispatched from Denpasar yard · 1.8t #16 rebar · driver Wayan A.</div>
+                        <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">ETA 15:30 · extra freight cost IDR 220k absorbed by Krakatau</div>
+                      </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:80px 1fr;gap:14px;">
+                      <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">11:55</div>
+                      <div><div style="font-size:13px;color:var(--ink);">Plan B agreed · column 4-C tie-off begins 16:00 · slab finishing continues meantime</div></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:80px 1fr;gap:14px;opacity:0.6;">
+                      <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">15:30</div>
+                      <div><div style="font-size:13px;color:var(--ink-3);">▸ awaiting · truck arrival + count verification + resume work</div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <div class="card card-pad" style="padding:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:8px;">Impact</div>
+                  <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-2);line-height:1.7;">
+                    Schedule · est 4h slip on column 4-C<br>
+                    Cost · IDR 220k extra freight (vendor absorbing)<br>
+                    Crew · 6 redirected to slab work
+                  </div>
+                </div>
+                <div class="card card-pad" style="padding:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:8px;">Links</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--accent);">
+                    <a href="#" style="color:var(--accent);text-decoration:none;">→ RFI-217 · procurement</a>
+                    <a href="#" style="color:var(--accent);text-decoration:none;">→ PO-44 · Krakatau · jun</a>
+                    <a href="#" style="color:var(--accent);text-decoration:none;">→ Milestone · L2 slab · west</a>
+                  </div>
+                </div>
+                <div class="card card-pad" style="padding:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:8px;">Owners notified</div>
+                  <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">not yet · resolution ETA 16:30 — will summarise at close-of-day</div>
+                  <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%;font-size:11px;">Send proactive note</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 05. Weekly report ============ -->
+      <section id="weekly" class="ds-section" data-screen-label="05 Weekly report">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">05</span><span>—</span><span>Export</span></div>
+            <h2>Weekly report · PDF for owners + investors</h2>
+            <p>Fri 17:00 auto-compose. Best-of-week storyboard moments + KPI strip + open items. Branded PDF sends via email; web version lives at <code style="font-family:var(--doc-mono);font-size:13px;background:var(--doc-bg-3);padding:2px 6px;border-radius:4px;">/site/[projectId]/week/[YYYY-WW]</code>.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:18px;">
+          <div data-product="development" style="background:var(--bg);padding:22px 26px;border-radius:12px;">
+            <div style="display:grid;grid-template-columns:1fr 320px;gap:18px;">
+
+              <!-- PDF preview -->
+              <div style="background:white;border:1px solid var(--line-2);border-radius:8px;padding:32px;box-shadow:0 18px 40px -24px rgba(0,0,0,0.4);">
+                <div style="display:flex;align-items:baseline;gap:14px;padding-bottom:18px;border-bottom:2px solid var(--ink);margin-bottom:18px;">
+                  <div>
+                    <div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.18em;">site report · week 22 · 2025</div>
+                    <div style="font-family:var(--display-font);font-size:24px;font-weight:500;color:var(--ink);margin-top:4px;letter-spacing:-0.02em;">Canggu West · 19—25 may</div>
+                  </div>
+                  <div style="margin-left:auto;text-align:right;font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);line-height:1.6;">
+                    Arconique Development<br>day 178 / 312 · 22w remaining
+                  </div>
+                </div>
+
+                <!-- Headline -->
+                <div style="padding:14px 18px;background:color-mix(in srgb,var(--ok) 6%,transparent);border-left:3px solid var(--ok);margin-bottom:14px;border-radius:0 8px 8px 0;">
+                  <div style="font-family:var(--display-font);font-size:17px;color:var(--ink);">L2 slab prep completed on schedule. One P3 weather stoppage. Two QA flags both cleared.</div>
+                </div>
+
+                <!-- KPI strip -->
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px;">
+                  <div style="padding:10px 12px;background:var(--bg-2);border-radius:6px;"><div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;">milestones done</div><div style="font-family:var(--mono-font);font-size:20px;color:var(--ink);margin-top:4px;">3/3</div></div>
+                  <div style="padding:10px 12px;background:var(--bg-2);border-radius:6px;"><div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;">schedule</div><div style="font-family:var(--mono-font);font-size:20px;color:var(--ok);margin-top:4px;">+2d</div></div>
+                  <div style="padding:10px 12px;background:var(--bg-2);border-radius:6px;"><div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;">incidents</div><div style="font-family:var(--mono-font);font-size:20px;color:var(--ink);margin-top:4px;">1 P3</div></div>
+                  <div style="padding:10px 12px;background:var(--bg-2);border-radius:6px;"><div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;">spend ytd</div><div style="font-family:var(--mono-font);font-size:20px;color:var(--ink);margin-top:4px;">62%</div></div>
+                </div>
+
+                <!-- Hero photo -->
+                <div style="aspect-ratio:21/9;background:repeating-linear-gradient(135deg,#7E8A85 0 2px,transparent 2px 14px),#ECE5D5;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-family:var(--mono-font);font-size:11px;text-transform:uppercase;letter-spacing:0.18em;margin-bottom:6px;">
+                  [ hero shot · week 22 · L2 slab complete ]
+                </div>
+                <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-bottom:18px;">L2 slab prep complete · fri 24 may 16:40</div>
+
+                <!-- 2 secondary shots -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                  <div>
+                    <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#7E8A85 0 2px,transparent 2px 14px),#ECE5D5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-family:var(--mono-font);font-size:10px;">[ rebar tied ]</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);margin-top:4px;">column 3-A · finish QA flag · cleared sun 26</div>
+                  </div>
+                  <div>
+                    <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,#7E8A85 0 2px,transparent 2px 14px),#ECE5D5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-family:var(--mono-font);font-size:10px;">[ formwork close ]</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);margin-top:4px;">formwork closed · last bay · fri 24 16:40</div>
+                  </div>
+                </div>
+
+                <div style="padding-top:14px;border-top:1px solid var(--line);font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">page 1 of 4 · auto-composed fri 16:42</div>
+              </div>
+
+              <!-- Send panel -->
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div class="card card-pad">
+                  <div class="label" style="font-size:9.5px;margin-bottom:10px;">Distribution</div>
+                  <label class="check" style="margin-bottom:6px;"><input type="checkbox" checked /><span class="box"></span><span>Owners · 14 recipients</span></label>
+                  <label class="check" style="margin-bottom:6px;"><input type="checkbox" checked /><span class="box"></span><span>Investors · 18 LPs</span></label>
+                  <label class="check" style="margin-bottom:6px;"><input type="checkbox" /><span class="box"></span><span>Public site (gated)</span></label>
+                  <label class="check"><input type="checkbox" /><span class="box"></span><span>Buyers in pipeline</span></label>
+                </div>
+                <div class="card card-pad">
+                  <div class="label" style="font-size:9.5px;margin-bottom:10px;">Schedule</div>
+                  <div style="font-size:13px;color:var(--ink-2);">Auto-send · fri 17:00 WITA</div>
+                  <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:4px;">in 12h 18m · review window open till 16:30</div>
+                </div>
+                <button class="btn btn-secondary">Open editor</button>
+                <button class="btn btn-primary" style="background:var(--amber);color:var(--carbon);">Approve · queue send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 06. Schema ============ -->
+      <section id="schema" class="ds-section" data-screen-label="06 Schema">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">06</span><span>—</span><span>Implementation</span></div>
+            <h2>Schema · agents · routes</h2>
+          </div>
+        </div>
+
+        <div class="ds-grid cols-2" style="gap:14px;">
+          <div class="card card-pad" style="background:var(--doc-bg-3);border:1px solid var(--doc-line-2);color:var(--doc-fg-2);font-family:var(--doc-mono);font-size:11.5px;line-height:1.7;">
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:10px;">Tables</div>
+            <div><span style="color:var(--doc-accent)">site_days</span> · project_id · date · author_id · weather_json · stop_hours · summary_md</div>
+            <div><span style="color:var(--doc-accent)">site_frames</span> · site_day_id · kind(milestone|incident|qa|progress) · severity(p1|p2|p3|info) · caption · narration · photo_ref · gps_lat/lng · taken_at · milestone_id?</div>
+            <div><span style="color:var(--doc-accent)">incidents</span> · frame_id · status(open|in_progress|resolved) · impact_json · linked_rfi_id?</div>
+            <div><span style="color:var(--doc-accent)">qa_flags</span> · frame_id · status(open|under_review|cleared|escalated) · qs_owner_id · resolution_notes</div>
+            <div><span style="color:var(--doc-accent)">decision_log</span> · incident_id · at · actor_id · note</div>
+            <div><span style="color:var(--doc-accent)">weekly_reports</span> · project_id · iso_week · payload_json · approved_by · sent_at</div>
+          </div>
+          <div class="card card-pad" style="background:var(--doc-bg-3);border:1px solid var(--doc-line-2);color:var(--doc-fg-2);font-family:var(--doc-mono);font-size:11.5px;line-height:1.7;">
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:10px;">Routes</div>
+            <div><span style="color:var(--doc-accent)">/development-os/site</span> · daily storyboard</div>
+            <div><span style="color:var(--doc-accent)">/site/[projectId]/[date]</span> · single day permalink</div>
+            <div><span style="color:var(--doc-accent)">/site/incident/[id]</span> · incident detail</div>
+            <div><span style="color:var(--doc-accent)">/site/qa/[id]</span> · QA flag detail</div>
+            <div><span style="color:var(--doc-accent)">/site/[projectId]/week/[YYYY-WW]</span> · weekly report web view</div>
+            <div><span style="color:var(--doc-accent)">/site/capture</span> · mobile capture flow (PWA standalone)</div>
+
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-top:14px;margin-bottom:10px;">AI agents</div>
+            <div><span style="color:var(--doc-accent)">caption-cleaner</span> · cleans voice transcripts · suggests milestone links</div>
+            <div><span style="color:var(--doc-accent)">incident-classifier</span> · suggests severity + opens RFI to procurement when shortage detected</div>
+            <div><span style="color:var(--doc-accent)">weekly-composer</span> · fri 16:30 · picks 3 hero frames · drafts summary · routes to lead for approve</div>
+            <div><span style="color:var(--doc-accent)">photo-organiser</span> · clusters duplicate shots · suggests deletions</div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;padding:18px 22px;background:var(--doc-bg-3);border:1px solid var(--doc-line-2);border-radius:10px;font-family:var(--doc-mono);font-size:11.5px;color:var(--doc-fg-2);line-height:1.7;">
+          <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:8px;">Critical UX rules</div>
+          1. The capture flow is the only ingestion path · no admin "upload from desktop" because we want gps + timestamp + author at source.<br>
+          2. P1 incidents auto-open an RFI to procurement (or technical, or QS depending on kind) — no manual step.<br>
+          3. QA flags require a QS sign-off before clearing. Foreman cannot self-close.<br>
+          4. Weekly report MUST be approved by construction lead before send · auto-send is queued, never instant.<br>
+          5. Photos uploaded without GPS get flagged for review · cannot enter the public weekly report.
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

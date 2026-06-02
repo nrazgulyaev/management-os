@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase 2.5 · 03 · Plans &amp; pricing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="super-admin-tokens">
+[data-product="super-admin"] {
+  --paper: #F8F9FB; --canvas: #EEF1F5; --panel: #FFFFFF; --panel-2: #F2F4F7; --panel-deep: #E5E9EE;
+  --ink: #0B0F14; --ink-2: #1F2937; --ink-3: #4B5563; --ink-4: #6B7280; --ink-5: #9CA3AF;
+  --line: #D6DBE2; --line-soft: #E5E8ED; --line-strong: #B8C0CC;
+  --accent: #3F4F8F; --accent-soft: #B8C2DF; --accent-deep: #2A3868; --on-accent: #FFFFFF;
+  --inverted-bg: #0B0F14; --inverted-fg: #F8F9FB; --inverted-bg-2: #1F2937;
+  --ok: #2D7A3E; --warn: #B47611; --danger: #B33A2C; --info: #2D5680;
+  --trust: #2A3868; --caution: #944B1F;
+  --r-pill: 999px; --r-card: 10px; --r-card-lg: 14px; --r-hero: 18px; --r-sm: 5px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+}
+:root {
+  --doc-bg: #0B0F14; --doc-bg-2: #131822; --doc-bg-3: #1B2330;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E8EC; --doc-fg-2: #B4B9C2; --doc-fg-3: #7E8590;
+  --doc-accent: #B8C2DF; --doc-caution: #E8AC85;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc { border-right: 1px solid var(--doc-line); padding: 36px 22px; background: var(--doc-bg-2); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.ds-mark { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 22px; }
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 { margin: 0 0 22px; font-family: var(--doc-sans); font-weight: 500; font-size: 19px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 10px; }
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a { display: block; padding: 6px 8px; text-decoration: none; color: var(--doc-fg-2); font-size: 13px; border-radius: 4px; margin-bottom: 1px; }
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--doc-mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+.ds-toc .back { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-toc .back a { color: var(--doc-accent); font-size: 12.5px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1300px; }
+.cab-cover { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 44px; line-height: 1.05; letter-spacing: -0.025em; }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.ds-section { margin-bottom: 76px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-section h2 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 26px; letter-spacing: -0.015em; color: var(--doc-fg); }
+.ds-section p { max-width: 760px; margin: 8px 0 0; font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.artboard { margin-top: 20px; border: 1px solid var(--doc-line); border-radius: 18px; background: var(--canvas); overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.artboard-caption { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.artboard-caption .pill { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); color: var(--doc-accent); border-color: rgba(184,194,223,0.4); }
+
+[data-product="super-admin"] { font-family: var(--sans-font); color: var(--ink); }
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border-radius: 6px; font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); cursor: pointer; line-height: 1; background: var(--panel); color: var(--ink-2); }
+[data-product] .btn-sm { padding: 7px 11px; font-size: 12.5px; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+[data-product] .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: var(--r-pill); font-family: var(--mono-font); font-size: 10.5px; font-weight: 500; border: 1px solid var(--line); background: var(--panel); color: var(--ink-3); }
+[data-product] .badge-active   { color: var(--ok);     border-color: color-mix(in oklab, var(--ok) 35%, transparent); background: color-mix(in oklab, var(--ok) 8%, var(--panel)); }
+[data-product] .badge-trust    { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); background: color-mix(in oklab, var(--accent) 8%, var(--panel)); }
+[data-product] .badge-warning  { color: var(--warn);   border-color: color-mix(in oklab, var(--warn) 35%, transparent); background: color-mix(in oklab, var(--warn) 8%, var(--panel)); }
+[data-product] .badge-archived { color: var(--ink-4);  border-color: var(--line); background: var(--panel-2); }
+[data-product] .badge-ink      { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+[data-product] .app { background: var(--canvas); min-height: 720px; display: grid; grid-template-rows: auto 1fr; }
+[data-product] .app-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--inverted-bg); color: var(--inverted-fg); border-bottom: 1px solid var(--ink); }
+[data-product] .app-topbar .brand { font-family: var(--display-font); font-size: 18px; }
+[data-product] .app-topbar .brand .sub { font-family: var(--mono-font); font-size: 9.5px; color: rgba(248,249,251,0.55); letter-spacing: 0.18em; text-transform: uppercase; display: block; margin-top: 1px; }
+[data-product] .app-topbar .nav { display: flex; gap: 4px; margin-left: 24px; }
+[data-product] .app-topbar .nav a { padding: 6px 12px; border-radius: 5px; font-family: var(--mono-font); font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(248,249,251,0.6); text-decoration: none; }
+[data-product] .app-topbar .nav a.on { background: var(--inverted-bg-2); color: var(--inverted-fg); }
+[data-product] .app-topbar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-family: var(--mono-font); font-size: 11px; color: rgba(248,249,251,0.6); }
+[data-product] .app-topbar .me { display: flex; align-items: center; gap: 6px; }
+[data-product] .app-topbar .me .avatar { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: white; display: inline-flex; align-items: center; justify-content: center; font-family: var(--sans-font); font-size: 11px; font-weight: 600; }
+[data-product] .page-h { padding: 22px 24px 18px; display: flex; align-items: flex-start; gap: 20px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+[data-product] .page-h .left h1 { margin: 4px 0 0; font-family: var(--display-font); font-weight: 400; font-size: 30px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .page-h .left h1 em { color: var(--accent); font-style: italic; }
+[data-product] .page-h .left .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .page-h .left .sub { margin-top: 6px; font-size: 13.5px; color: var(--ink-3); line-height: 1.5; }
+[data-product] .page-h .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+/* Plans grid (hero) */
+[data-product] .plans-grid {
+  padding: 24px;
+  display: grid; grid-template-columns: 1.2fr 1.2fr 1fr 0.9fr;
+  gap: 14px;
+}
+[data-product] .plan-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 20px 22px; display: flex; flex-direction: column;
+}
+[data-product] .plan-card.featured { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink) inset; }
+[data-product] .plan-card.draft { background: var(--panel-2); border-style: dashed; }
+[data-product] .plan-card .h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+[data-product] .plan-card .h .nm { font-family: var(--display-font); font-size: 24px; font-weight: 400; color: var(--ink); letter-spacing: -0.01em; }
+[data-product] .plan-card .h .badge { margin-left: auto; }
+[data-product] .plan-card .tag { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 16px; }
+[data-product] .plan-card .price { font-family: var(--display-font); font-size: 36px; color: var(--ink); line-height: 1; font-variant-numeric: tabular-nums; }
+[data-product] .plan-card .price .cur { font-family: var(--mono-font); font-size: 14px; color: var(--ink-3); margin-right: 4px; vertical-align: 10px; }
+[data-product] .plan-card .price .cyc { font-family: var(--sans-font); font-size: 13px; color: var(--ink-3); font-weight: 400; }
+[data-product] .plan-card .annual { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 6px; }
+[data-product] .plan-card .annual strong { color: var(--accent); font-weight: 500; }
+[data-product] .plan-card .divider { height: 1px; background: var(--line); margin: 18px 0 14px; }
+[data-product] .plan-card .limits .row { display: grid; grid-template-columns: 1fr auto; padding: 6px 0; font-size: 12.5px; align-items: baseline; }
+[data-product] .plan-card .limits .l { color: var(--ink-3); }
+[data-product] .plan-card .limits .v { font-family: var(--mono-font); color: var(--ink); }
+[data-product] .plan-card .meta { display: flex; justify-content: space-between; margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.14em; }
+[data-product] .plan-card .meta .ct { color: var(--ink); font-weight: 500; }
+
+/* Trial table */
+[data-product] .trial-h { padding: 18px 24px 10px; display: flex; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+[data-product] .trial-h h3 { margin: 0; font-family: var(--display-font); font-size: 20px; font-weight: 400; color: var(--ink); }
+[data-product] .trial-h .sub { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); margin-left: auto; }
+
+[data-product] .trial-table { background: var(--panel); }
+[data-product] .trial-table .head, [data-product] .trial-table .row { display: grid; grid-template-columns: 2fr 1fr 100px 110px 110px 90px; align-items: center; gap: 12px; padding: 10px 24px; }
+[data-product] .trial-table .head { background: var(--panel-2); border-bottom: 1px solid var(--line); font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+[data-product] .trial-table .row { border-bottom: 1px solid var(--line-soft); font-size: 13px; }
+[data-product] .trial-table .row.urgent { background: color-mix(in oklab, var(--warn) 5%, var(--panel)); }
+[data-product] .trial-table .row.danger { background: color-mix(in oklab, var(--danger) 5%, var(--panel)); }
+[data-product] .trial-table .org { font-family: var(--sans-font); font-weight: 500; color: var(--ink); }
+[data-product] .trial-table .org .meta { display: block; font-family: var(--mono-font); font-weight: 400; font-size: 11px; color: var(--ink-4); margin-top: 2px; }
+[data-product] .trial-table .num { font-family: var(--mono-font); color: var(--ink); text-align: right; }
+[data-product] .trial-table .when { font-family: var(--mono-font); font-size: 12px; color: var(--ink-3); }
+[data-product] .trial-table .when.warn { color: var(--warn); }
+[data-product] .trial-table .when.danger { color: var(--danger); }
+
+/* Detail (plan editor) */
+[data-product] .ed-page { padding: 0; }
+[data-product] .ed-h { display: grid; grid-template-columns: 1fr auto; gap: 20px; padding: 24px 28px 22px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .ed-h .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .ed-h h1 { margin: 6px 0 0; font-family: var(--display-font); font-size: 32px; font-weight: 400; color: var(--ink); letter-spacing: -0.02em; }
+[data-product] .ed-h .meta-strip { display: flex; gap: 24px; margin-top: 12px; font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-3); }
+[data-product] .ed-h .meta-strip strong { color: var(--ink-2); font-weight: 500; }
+[data-product] .ed-h .meta-strip .sep { color: var(--ink-5); }
+[data-product] .ed-h .actions { display: flex; gap: 8px; align-self: start; }
+
+[data-product] .ed-body { display: grid; grid-template-columns: 1.4fr 1fr; gap: 0; }
+[data-product] .ed-col { padding: 22px 28px; background: var(--canvas); border-right: 1px solid var(--line); }
+[data-product] .ed-col:last-child { border-right: 0; }
+
+[data-product] .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
+[data-product] .card h3 { margin: 0 0 12px; font-family: var(--display-font); font-weight: 400; font-size: 17px; color: var(--ink); letter-spacing: -0.005em; }
+[data-product] .card .desc { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; margin: -4px 0 14px; }
+[data-product] .field { display: grid; grid-template-columns: 160px 1fr; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); align-items: center; }
+[data-product] .field:last-child { border-bottom: 0; }
+[data-product] .field .lbl { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.12em; }
+[data-product] .field .val { font-family: var(--sans-font); font-size: 14px; color: var(--ink); }
+[data-product] .field .val.mono { font-family: var(--mono-font); font-size: 13px; }
+[data-product] .field .val .unit { font-family: var(--mono-font); font-size: 11px; color: var(--ink-4); margin-left: 6px; }
+[data-product] .field .input {
+  font-family: var(--mono-font); font-size: 13px; color: var(--ink);
+  padding: 6px 10px; background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 4px; display: inline-block;
+  min-width: 80px; text-align: right;
+}
+
+[data-product] .feature-row { display: grid; grid-template-columns: 1fr auto; padding: 10px 0; border-bottom: 1px solid var(--line-soft); align-items: center; font-size: 13px; }
+[data-product] .feature-row:last-child { border-bottom: 0; }
+[data-product] .feature-row .nm { color: var(--ink); }
+[data-product] .feature-row .nm .desc { display: block; font-size: 11px; color: var(--ink-4); margin-top: 2px; }
+[data-product] .feature-row .toggle { width: 38px; height: 22px; border-radius: 999px; background: var(--panel-deep); position: relative; flex-shrink: 0; }
+[data-product] .feature-row .toggle.on { background: var(--ink); }
+[data-product] .feature-row .toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--panel); box-shadow: 0 1px 3px rgba(11,15,20,0.2); transition: left 0.15s; }
+[data-product] .feature-row .toggle.on::after { left: 18px; }
+
+/* Subscribed orgs */
+[data-product] .sub-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); align-items: baseline; font-size: 13px; }
+[data-product] .sub-row .nm { color: var(--ink); font-weight: 500; }
+[data-product] .sub-row .since { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); }
+[data-product] .sub-row .mrr { font-family: var(--mono-font); font-size: 12.5px; color: var(--ink); text-align: right; }
+[data-product] .summary-row { display: grid; grid-template-columns: 1fr auto; padding: 9px 0; border-bottom: 1px solid var(--line-soft); font-size: 13px; align-items: baseline; }
+[data-product] .summary-row .l { color: var(--ink-3); font-family: var(--mono-font); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; }
+[data-product] .summary-row .v { font-family: var(--mono-font); font-size: 13.5px; color: var(--ink); }
+[data-product] .summary-row .v.accent { color: var(--accent); }
+
+.notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+.notes-card { background: var(--doc-bg-2); border: 1px solid var(--doc-line); border-radius: 12px; padding: 18px 20px; }
+.notes-card h3 { margin: 0 0 12px; font-family: var(--doc-sans); font-size: 14px; font-weight: 500; color: var(--doc-fg); letter-spacing: -0.005em; }
+.notes-card dl { margin: 0; }
+.notes-card dl > div { display: grid; grid-template-columns: 130px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--doc-line); font-size: 12.5px; }
+.notes-card dl > div:last-child { border-bottom: 0; }
+.notes-card dt { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes-card dd { margin: 0; color: var(--doc-fg-2); line-height: 1.55; }
+.notes-card dd code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg); background: var(--doc-bg-3); padding: 1px 6px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Phase 2.5</div>
+    <h1>Platform super-admin</h1>
+    <div class="back"><a href="hub.html">← back to hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">03 · Plans &amp; pricing</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#plans"><span class="ix">01</span>Plans grid + trials</a></li>
+        <li><a href="#editor"><span class="ix">02</span>Plan editor</a></li>
+        <li><a href="#schema"><span class="ix">03</span>Schema · gates</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Adjacent</div>
+      <ul>
+        <li><a href="02-users.html"><span class="ix">02</span>Users</a></li>
+        <li><a href="01-organizations.html"><span class="ix">01</span>Organizations</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <section id="cover" class="cab-cover" data-screen-label="Cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Phase 2.5 · cabinet 03 of 09</span></div>
+      <h1>Plans &amp; pricing · <em>the catalogue and the trial pipeline</em>.</h1>
+      <p>Two screens. <strong style="color:var(--doc-fg)">Plans grid</strong> — all three tiers visible side-by-side with their limits, features, and # subscribed orgs; trial pipeline below shows who's ending soon. <strong style="color:var(--doc-fg)">Plan editor</strong> — single-plan deep edit (pricing, limits, feature flags, trial settings). Pricing changes are versioned; existing subscriptions stay on the old version until renewal.</p>
+    </section>
+
+    <section id="plans" class="ds-section" data-screen-label="01 Plans grid + trials">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Plans grid + trial pipeline</h2>
+          <p>Three production plans + 1 draft. Grid shows monthly price + annual discount + limits + # subscribed orgs at a glance. Trial table below: orgs in trial sorted by days-to-expiry — Sales' watchlist.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav"><a>Organizations</a><a>Users</a><a class="on">Plans</a><a>Billing</a><a>Flags</a><a>Support</a><a>Audit</a><a>Health</a><a>AI</a></div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div class="page-h">
+              <div class="left">
+                <div class="crumb">super-admin / plans</div>
+                <h1>Plans &amp; pricing</h1>
+                <div class="sub">3 active plans · 1 draft · 47 active subscriptions · $58,420 / mo MRR</div>
+              </div>
+              <div class="right">
+                <button class="btn">Pricing history</button>
+                <button class="btn btn-primary">+ New plan</button>
+              </div>
+            </div>
+
+            <div class="plans-grid">
+
+              <div class="plan-card">
+                <div class="h">
+                  <span class="nm">Studio</span>
+                  <span class="badge badge-active">live</span>
+                </div>
+                <div class="tag">starter · solo owner / boutique</div>
+                <div class="price"><span class="cur">USD</span>98<span class="cyc"> / mo</span></div>
+                <div class="annual">annual <strong>$980 · 17% off</strong></div>
+                <div class="divider"></div>
+                <div class="limits">
+                  <div class="row"><span class="l">Villas</span><span class="v">up to 15</span></div>
+                  <div class="row"><span class="l">Users</span><span class="v">up to 5</span></div>
+                  <div class="row"><span class="l">Bookings / mo</span><span class="v">unlimited</span></div>
+                  <div class="row"><span class="l">AI agents</span><span class="v">basic</span></div>
+                  <div class="row"><span class="l">Owner portal</span><span class="v">included</span></div>
+                  <div class="row"><span class="l">Trial</span><span class="v">14d · no card</span></div>
+                </div>
+                <div class="meta">
+                  <span>v 1.2 · since mar 2025</span>
+                  <span class="ct">18 orgs</span>
+                </div>
+              </div>
+
+              <div class="plan-card featured">
+                <div class="h">
+                  <span class="nm">Atelier</span>
+                  <span class="badge badge-trust">most popular</span>
+                </div>
+                <div class="tag">growth · multi-villa group</div>
+                <div class="price"><span class="cur">USD</span>298<span class="cyc"> / mo</span></div>
+                <div class="annual">annual <strong>$2,980 · 17% off</strong></div>
+                <div class="divider"></div>
+                <div class="limits">
+                  <div class="row"><span class="l">Villas</span><span class="v">up to 100</span></div>
+                  <div class="row"><span class="l">Users</span><span class="v">up to 50</span></div>
+                  <div class="row"><span class="l">Bookings / mo</span><span class="v">unlimited</span></div>
+                  <div class="row"><span class="l">AI agents</span><span class="v">premium</span></div>
+                  <div class="row"><span class="l">Owner portal</span><span class="v">included</span></div>
+                  <div class="row"><span class="l">Trial</span><span class="v">14d · card req'd</span></div>
+                </div>
+                <div class="meta">
+                  <span>v 2.1 · since apr 2025</span>
+                  <span class="ct">26 orgs</span>
+                </div>
+              </div>
+
+              <div class="plan-card">
+                <div class="h">
+                  <span class="nm">Custom</span>
+                  <span class="badge badge-trust">enterprise</span>
+                </div>
+                <div class="tag">100+ villas · contract terms</div>
+                <div class="price" style="font-size:28px;">negotiated</div>
+                <div class="annual">avg <strong style="color:var(--ink-2);">$8,400 / mo</strong> · annual only</div>
+                <div class="divider"></div>
+                <div class="limits">
+                  <div class="row"><span class="l">Villas</span><span class="v">unlimited</span></div>
+                  <div class="row"><span class="l">Users</span><span class="v">unlimited</span></div>
+                  <div class="row"><span class="l">SLA</span><span class="v">99.9% / 1h</span></div>
+                  <div class="row"><span class="l">Dedicated CSM</span><span class="v">yes</span></div>
+                  <div class="row"><span class="l">SSO + audit</span><span class="v">included</span></div>
+                  <div class="row"><span class="l">Trial</span><span class="v">POC · 30d</span></div>
+                </div>
+                <div class="meta">
+                  <span>v 1.0 · since jan 2025</span>
+                  <span class="ct">3 orgs</span>
+                </div>
+              </div>
+
+              <div class="plan-card draft">
+                <div class="h">
+                  <span class="nm">Solo</span>
+                  <span class="badge badge-warning">draft</span>
+                </div>
+                <div class="tag">single-villa · price-sensitive</div>
+                <div class="price"><span class="cur">USD</span>38<span class="cyc"> / mo</span></div>
+                <div class="annual">annual not offered</div>
+                <div class="divider"></div>
+                <div class="limits">
+                  <div class="row"><span class="l">Villas</span><span class="v">1</span></div>
+                  <div class="row"><span class="l">Users</span><span class="v">up to 2</span></div>
+                  <div class="row"><span class="l">Owner portal</span><span class="v">not included</span></div>
+                  <div class="row"><span class="l">AI agents</span><span class="v">basic</span></div>
+                  <div class="row"><span class="l">Trial</span><span class="v">7d · no card</span></div>
+                </div>
+                <div class="meta">
+                  <span>v 0.3 · drafted today</span>
+                  <span class="ct">0 orgs</span>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="trial-h">
+              <h3>Trial pipeline</h3>
+              <span class="sub">6 active · 2 ending &lt; 48h · 4 ending this week</span>
+            </div>
+
+            <div class="trial-table">
+              <div class="head">
+                <div>org</div>
+                <div>plan</div>
+                <div style="text-align:right;">trial day</div>
+                <div>ends</div>
+                <div>conv. signal</div>
+                <div></div>
+              </div>
+              <div class="row danger">
+                <div class="org">Uluwatu Villa Collective<span class="meta">5 users · 4 villas added</span></div>
+                <div style="font-family:var(--mono-font);font-size:12px;">Studio</div>
+                <div class="num">12 / 14</div>
+                <div class="when danger">in 2 days</div>
+                <div><span class="badge badge-active">high</span></div>
+                <div><button class="btn btn-sm">Reach out</button></div>
+              </div>
+              <div class="row urgent">
+                <div class="org">Cendana Group<span class="meta">3 users · 2 villas added</span></div>
+                <div style="font-family:var(--mono-font);font-size:12px;">Atelier</div>
+                <div class="num">13 / 14</div>
+                <div class="when warn">in 36 hours</div>
+                <div><span class="badge badge-warning">low</span></div>
+                <div><button class="btn btn-sm">Reach out</button></div>
+              </div>
+              <div class="row">
+                <div class="org">Pulau Holdings<span class="meta">2 users · 1 villa added</span></div>
+                <div style="font-family:var(--mono-font);font-size:12px;">Studio</div>
+                <div class="num">8 / 14</div>
+                <div class="when">in 6 days</div>
+                <div><span class="badge">medium</span></div>
+                <div><button class="btn btn-sm">Reach out</button></div>
+              </div>
+              <div class="row">
+                <div class="org">Mahalakshmi Estate<span class="meta">1 user · 0 villas added</span></div>
+                <div style="font-family:var(--mono-font);font-size:12px;">Atelier</div>
+                <div class="num">5 / 14</div>
+                <div class="when">in 9 days</div>
+                <div><span class="badge badge-warning">stalled</span></div>
+                <div><button class="btn btn-sm">Reach out</button></div>
+              </div>
+              <div class="row">
+                <div class="org">Sanur Bayside<span class="meta">4 users · 6 villas added</span></div>
+                <div style="font-family:var(--mono-font);font-size:12px;">Atelier</div>
+                <div class="num">3 / 14</div>
+                <div class="when">in 11 days</div>
+                <div><span class="badge badge-active">high</span></div>
+                <div><button class="btn btn-sm">Reach out</button></div>
+              </div>
+              <div class="row">
+                <div class="org">Lombok Hideaway<span class="meta">2 users · 3 villas added</span></div>
+                <div style="font-family:var(--mono-font);font-size:12px;">Studio</div>
+                <div class="num">1 / 14</div>
+                <div class="when">in 13 days</div>
+                <div><span class="badge">medium</span></div>
+                <div><button class="btn btn-sm">Reach out</button></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>4 plans (3 live + 1 draft) · trial table sorted by days-to-expire</span>
+      </div>
+    </section>
+
+    <section id="editor" class="ds-section" data-screen-label="02 Plan editor">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Detail</span></div>
+          <h2>Plan editor · Atelier v2.1</h2>
+          <p>Edit pricing, limits, feature flags, trial settings. Saving creates a new version — existing subscribers stay on v2.1 until renewal; new sign-ups land on v2.2. Right column shows subscribed orgs + summary stats.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav"><a>Organizations</a><a>Users</a><a class="on">Plans</a><a>Billing</a><a>Flags</a><a>Support</a><a>Audit</a><a>Health</a><a>AI</a></div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div class="ed-page">
+              <div class="ed-h">
+                <div>
+                  <div class="crumb">plans / atelier</div>
+                  <h1>Atelier <em style="color:var(--ink-3);font-style:normal;font-size:20px;">· v2.1</em></h1>
+                  <div class="meta-strip">
+                    <span>plan_id <strong>atelier-v2</strong></span>
+                    <span class="sep">·</span>
+                    <span>since 12 apr 2025 · 47 days</span>
+                    <span class="sep">·</span>
+                    <span><strong>26 subscribed</strong> · $8,940 / mo MRR</span>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn">Discard</button>
+                  <button class="btn">Save as v2.2 (existing stay)</button>
+                  <button class="btn btn-primary">Save + migrate all</button>
+                </div>
+              </div>
+
+              <div class="ed-body">
+
+                <div class="ed-col">
+                  <div class="card">
+                    <h3>Pricing</h3>
+                    <div class="desc">Monthly + annual + currency variants. Annual offers a discount baked into the price.</div>
+                    <div class="field">
+                      <span class="lbl">currency</span>
+                      <span class="val mono">USD <span class="unit">primary</span></span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">monthly</span>
+                      <span class="val"><span class="input">298.00</span> <span class="unit">USD / month</span></span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">annual</span>
+                      <span class="val"><span class="input">2980.00</span> <span class="unit">USD / year · 17% off</span></span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">IDR variant</span>
+                      <span class="val"><span class="input">4,750,000</span> <span class="unit">IDR / mo · sync to FX</span></span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">SGD variant</span>
+                      <span class="val"><span class="input">398.00</span> <span class="unit">SGD / mo</span></span>
+                    </div>
+                  </div>
+
+                  <div class="card">
+                    <h3>Limits</h3>
+                    <div class="desc">Hard caps. Approaching 80% surfaces an "approaching limit" alert in the org's dashboard; hitting 100% blocks the next add.</div>
+                    <div class="field">
+                      <span class="lbl">villas</span>
+                      <span class="val"><span class="input">100</span></span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">users</span>
+                      <span class="val"><span class="input">50</span></span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">owner accounts</span>
+                      <span class="val"><span class="input">unlimited</span></span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">bookings / mo</span>
+                      <span class="val"><span class="input">unlimited</span></span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">storage</span>
+                      <span class="val"><span class="input">100</span> <span class="unit">GB · then $0.10/GB</span></span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">agent calls / mo</span>
+                      <span class="val"><span class="input">25,000</span> <span class="unit">then throttle</span></span>
+                    </div>
+                  </div>
+
+                  <div class="card">
+                    <h3>Features</h3>
+                    <div class="desc">Feature flags exposed to subscribed orgs. Toggles here cascade to all 26 orgs on v2.1 on save.</div>
+                    <div class="feature-row"><div class="nm">Owner Portal<span class="desc">Self-serve statements + calendar for property owners</span></div><div class="toggle on"></div></div>
+                    <div class="feature-row"><div class="nm">Dynamic Pricing<span class="desc">AI-driven nightly rate optimisation across channels</span></div><div class="toggle on"></div></div>
+                    <div class="feature-row"><div class="nm">Channel Manager (4+ channels)<span class="desc">Beyond the 2 channels in Studio</span></div><div class="toggle on"></div></div>
+                    <div class="feature-row"><div class="nm">AI Agents — Premium tier<span class="desc">All 16 production agents (vs basic 5 in Studio)</span></div><div class="toggle on"></div></div>
+                    <div class="feature-row"><div class="nm">White-label branding<span class="desc">Custom domain, logo, email templates</span></div><div class="toggle on"></div></div>
+                    <div class="feature-row"><div class="nm">SSO (Google · Microsoft)<span class="desc">Org-wide single sign-on</span></div><div class="toggle"></div></div>
+                    <div class="feature-row"><div class="nm">Audit log export<span class="desc">Quarterly CSV export of all org actions</span></div><div class="toggle"></div></div>
+                  </div>
+
+                  <div class="card">
+                    <h3>Trial</h3>
+                    <div class="field">
+                      <span class="lbl">length</span>
+                      <span class="val"><span class="input">14</span> <span class="unit">days</span></span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">card required</span>
+                      <span class="val">yes · auth-only, charge after trial</span>
+                    </div>
+                    <div class="field">
+                      <span class="lbl">extends to</span>
+                      <span class="val">21 days · 1× / Sales discretion</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ed-col">
+                  <div class="card">
+                    <h3>Summary · v2.1</h3>
+                    <div class="summary-row"><span class="l">subscribed orgs</span><span class="v">26</span></div>
+                    <div class="summary-row"><span class="l">MRR</span><span class="v accent">$8,940</span></div>
+                    <div class="summary-row"><span class="l">ARR</span><span class="v">$107,280</span></div>
+                    <div class="summary-row"><span class="l">avg tenure</span><span class="v">7.4 mo</span></div>
+                    <div class="summary-row"><span class="l">churn last 90d</span><span class="v">2 orgs</span></div>
+                    <div class="summary-row"><span class="l">upgrades to Custom</span><span class="v">3 orgs</span></div>
+                    <div class="summary-row"><span class="l">downgrades from</span><span class="v">0</span></div>
+                  </div>
+
+                  <div class="card">
+                    <h3>Subscribed orgs · 26</h3>
+                    <div class="sub-row"><span class="nm">Whitmore Villas</span><span class="since">14 apr 24</span><span class="mrr">$298</span></div>
+                    <div class="sub-row"><span class="nm">PT Senayan Estate</span><span class="since">22 nov 24</span><span class="mrr">$398/SGD</span></div>
+                    <div class="sub-row"><span class="nm">Tan Family Trust</span><span class="since">28 sep 24</span><span class="mrr">$398/SGD</span></div>
+                    <div class="sub-row"><span class="nm">Sanur Bayside</span><span class="since">apr 25 · trial</span><span class="mrr">—</span></div>
+                    <div class="sub-row"><span class="nm">Cendana Group</span><span class="since">apr 25 · trial</span><span class="mrr">—</span></div>
+                    <div class="sub-row"><span class="nm">Riantara Group</span><span class="since">18 mar 25</span><span class="mrr">4.75M IDR</span></div>
+                    <div class="sub-row"><span class="nm">Ahmadi Holdings</span><span class="since">04 feb 25</span><span class="mrr">$298</span></div>
+                    <div class="sub-row"><span class="nm">Marisol &amp; Co</span><span class="since">22 jan 25</span><span class="mrr">$398/SGD</span></div>
+                    <div class="sub-row" style="color:var(--ink-4);"><span class="nm">+ 18 more</span><span class="since"></span><span class="mrr">$5,420</span></div>
+                  </div>
+
+                  <div class="card">
+                    <h3>Versioning</h3>
+                    <div class="summary-row"><span class="l">v 2.1</span><span class="v">26 orgs · current</span></div>
+                    <div class="summary-row"><span class="l">v 2.0</span><span class="v">0 orgs · all migrated</span></div>
+                    <div class="summary-row"><span class="l">v 1.0</span><span class="v">0 orgs · sunset jan 25</span></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>2-col · editor + summary/orgs sidebar · version-on-save default</span>
+      </div>
+    </section>
+
+    <section id="schema" class="ds-section" data-screen-label="03 Schema · gates">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Implementation</span></div>
+          <h2>Schema · gates · feature-flag bridge</h2>
+        </div>
+      </div>
+
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Schema</h3>
+          <dl>
+            <div><dt>plans</dt><dd>✅ exists · <code>0085_subscription_plans</code></dd></div>
+            <div><dt>plan_versions</dt><dd>🟡 partial · v-col exists, no separate version table — add for "stay on v2.1 vs migrate to v2.2" semantics</dd></div>
+            <div><dt>plan_prices</dt><dd>🔴 new · one row per (plan_id, version, currency, cycle) — supports multi-currency variants</dd></div>
+            <div><dt>plan_limits</dt><dd>🔴 new · key-value pairs per (plan_id, version)</dd></div>
+            <div><dt>plan_features</dt><dd>🔴 new · feature_key → enabled per (plan_id, version). Bridge to Feature flags cabinet (05).</dd></div>
+            <div><dt>trials</dt><dd>✅ exists (via subscriptions.trial_ends_at) · the table here just visualises the column</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Endpoints</h3>
+          <dl>
+            <div><dt>POST /api/super-admin/plans</dt><dd>🔴 new · creates next-version + plan_prices/limits/features in one txn</dd></div>
+            <div><dt>POST /api/super-admin/plans/:id/migrate-subscribers</dt><dd>🔴 new · gated · 2FA · moves all subscribers from old version to new</dd></div>
+            <div><dt>POST /api/super-admin/trials/:orgId/extend</dt><dd>🔴 new · 1×, max 7 extra days, audited</dd></div>
+            <div><dt>GET /api/super-admin/plans/conv-signal</dt><dd>🔴 new · computes the trial conversion-signal heuristic (villas added × users active × days into trial)</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Agents</h3>
+          <dl>
+            <div><dt>trial-conversion-scorer</dt><dd>🔴 new · daily · writes <code>conv_signal</code> per trial org → high/medium/low/stalled</dd></div>
+            <div><dt>trial-extension-recommender</dt><dd>🔴 new · on trial day 12 · flags candidates where Sales should reach out before auto-expire</dd></div>
+            <div><dt>plan-fit-detector</dt><dd>🔴 new · daily · per active org · flags upgrade candidates (consistently near limit) and downgrade candidates (consistently under-utilising)</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Gates &amp; bridges</h3>
+          <dl>
+            <div><dt>feature-flag bridge</dt><dd>plan_features → cabinet 05 (Feature flags) consumes as the per-plan baseline. Per-org overrides layer on top.</dd></div>
+            <div><dt>billing bridge</dt><dd>plan_prices ↔ cabinet 04 (Billing) reads the price-per-cycle to compute the invoice amount.</dd></div>
+            <div><dt>2FA gate</dt><dd>Migrate-all + currency-add require 2FA. Editing limits + features within current version doesn't.</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  function isInternal(href) { if (!href) return false; if (/^(https?:|mailto:|tel:|#)/i.test(href)) return false; return true; }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]'); if (!a) return;
+    if (a.target && a.target !== '' && a.target !== '_self') return;
+    var href = a.getAttribute('href'); if (!isInternal(href)) return;
+    var search = window.location.search; if (!search) return;
+    if (href.indexOf('?') !== -1) return;
+    var hashIdx = href.indexOf('#');
+    var base = hashIdx === -1 ? href : href.slice(0, hashIdx);
+    var hash = hashIdx === -1 ? '' : href.slice(hashIdx);
+    a.setAttribute('href', base + search + hash);
+  }, true);
+})();
+</script>
+
+</body>
+</html>

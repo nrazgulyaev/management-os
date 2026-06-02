@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dev OS · Marketing staff (v2)</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+[data-product="development"]{--paper:#F8F2E2;--canvas:#ECE0BF;--panel:#FFF;--panel-2:#F4ECD8;--panel-deep:#E0D2A8;--ink:#1E1A12;--ink-2:#2E2820;--ink-3:#4E4636;--ink-4:#71684F;--ink-5:#948A6A;--line:#D4C594;--line-soft:#DECEA6;--amber:#C68E36;--amber-deep:#8E5F18;--steel:#4B6580;--ok:#5F8B62;--warn:#C49845;--danger:#B45239;--display:"Newsreader",serif;--sans:"Inter",sans-serif;--mono:"JetBrains Mono",monospace}
+:root{--doc-bg:#1E1A12;--doc-bg-2:#2A2418;--doc-bg-3:#362F20;--doc-fg:#ECE0BF;--doc-fg-2:#C1B89F;--doc-fg-3:#8A8473;--doc-accent:#E6BE6E;--doc-line:rgba(255,255,255,0.06);--doc-line-2:rgba(255,255,255,0.10)}
+*{box-sizing:border-box}body{margin:0;background:var(--doc-bg);color:var(--doc-fg);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+.ds-app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.ds-toc{border-right:1px solid var(--doc-line);padding:36px 22px;background:var(--doc-bg-2);position:sticky;top:0;height:100vh;overflow-y:auto}
+.ds-mark{display:flex;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);margin-bottom:22px;align-items:center}
+.ds-mark .glyph{width:7px;height:7px;background:var(--doc-accent);border-radius:2px}
+.ds-toc h1{margin:0 0 22px;font-weight:500;font-size:19px;color:var(--doc-fg)}
+.ds-toc-group{margin-top:22px}.ds-toc-group-title{font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);margin-bottom:10px}
+.ds-toc ul{margin:0;padding:0;list-style:none}
+.ds-toc a{display:block;padding:6px 8px;text-decoration:none;color:var(--doc-fg-2);font-size:13px;border-radius:4px}
+.ds-toc a:hover{background:var(--doc-bg-3);color:var(--doc-fg)}
+.ds-toc a .ix{font-family:var(--mono);font-size:10.5px;color:var(--doc-fg-3);margin-right:8px}
+.ds-toc .back{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--doc-line)}
+.ds-toc .back a{color:var(--doc-accent);font-size:12.5px}
+.ds-main{padding:56px 64px 96px;max-width:1300px}
+.cab-cover{margin-bottom:56px;padding-bottom:28px;border-bottom:1px solid var(--doc-line)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--doc-accent);display:flex;gap:12px;align-items:center;margin-bottom:18px}
+.eyebrow .glyph{width:6px;height:6px;background:var(--doc-accent);border-radius:2px}
+.cab-cover h1{margin:0;font-weight:500;font-size:44px;line-height:1.05;letter-spacing:-0.025em}
+.cab-cover h1 em{color:var(--doc-accent);font-style:italic;font-weight:400}
+.cab-cover p{max-width:720px;margin:18px 0 0;font-size:14.5px;color:var(--doc-fg-2);line-height:1.65}
+.ds-section{margin-bottom:76px}
+.ds-section-head{display:flex;gap:28px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--doc-line)}
+.ds-section-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);display:flex;gap:10px;margin-bottom:6px;align-items:center}
+.ds-section h2{margin:0;font-weight:500;font-size:26px;color:var(--doc-fg)}
+.ds-section p{max-width:760px;margin:8px 0 0;font-size:13.5px;color:var(--doc-fg-2);line-height:1.65}
+.ds-section p code{font-family:var(--mono);font-size:12.5px;background:var(--doc-bg-3);padding:1px 6px;border-radius:4px;color:var(--doc-accent)}
+.artboard{margin-top:20px;border:1px solid var(--doc-line);border-radius:18px;background:var(--canvas);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.4)}
+.artboard-caption{display:flex;gap:10px;margin-top:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-3)}
+.artboard-caption .pill{padding:3px 9px;border-radius:999px;border:1px solid var(--doc-line-2);color:var(--doc-accent)}
+.var-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:14px}
+.var-card{border:1px solid var(--doc-line);border-radius:14px;background:var(--canvas);overflow:hidden}
+.var-card .v-h{padding:12px 16px;background:var(--doc-bg-3);border-bottom:1px solid var(--doc-line);display:flex;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-2)}
+.var-card .v-h .num{background:var(--doc-bg);padding:2px 8px;border-radius:4px;color:var(--doc-accent)}
+.var-card .v-h .name{color:var(--doc-fg)}
+.mobile-row{display:grid;grid-template-columns:360px 1fr;gap:32px;align-items:start}
+.mobile-frame{width:360px;border:1px solid var(--doc-line);border-radius:30px;overflow:hidden;background:var(--canvas)}
+.mobile-status{padding:10px 22px 6px;display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink);font-weight:600}
+.mobile-notes h4{margin:0 0 6px;font-size:14px;font-weight:500;color:var(--doc-fg)}
+.mobile-notes ol{margin:0;padding-left:20px}
+.mobile-notes li{margin-bottom:6px;font-size:13px;line-height:1.55;color:var(--doc-fg-2)}
+.mobile-notes li strong{color:var(--doc-fg)}
+.notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:18px}
+.notes-card{background:var(--doc-bg-2);border:1px solid var(--doc-line);border-radius:12px;padding:18px 20px}
+.notes-card h3{margin:0 0 12px;font-size:14px;font-weight:500;color:var(--doc-fg)}
+.notes-card dl>div{display:grid;grid-template-columns:130px 1fr;gap:14px;padding:8px 0;border-bottom:1px solid var(--doc-line);font-size:12.5px}
+.notes-card dl>div:last-child{border-bottom:0}
+.notes-card dt{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-3)}
+.notes-card dd{margin:0;color:var(--doc-fg-2);line-height:1.55}
+.notes-card dd code{font-family:var(--mono);font-size:11px;color:var(--doc-fg);background:var(--doc-bg-3);padding:1px 6px;border-radius:3px}
+
+[data-product="development"]{font-family:var(--sans);color:var(--ink)}
+[data-product] .topbar{display:flex;align-items:center;gap:16px;padding:14px 24px;background:var(--ink);color:var(--paper)}
+[data-product] .topbar .brand{font-family:var(--display);font-size:18px}
+[data-product] .topbar .brand .sub{font-family:var(--mono);font-size:9.5px;color:rgba(248,242,226,0.55);letter-spacing:0.16em;text-transform:uppercase;display:block;margin-top:1px}
+[data-product] .topbar .role{margin-left:18px;padding:4px 10px;background:rgba(248,242,226,0.08);border-radius:6px;font-family:var(--mono);font-size:11px}
+[data-product] .topbar .right{margin-left:auto;display:flex;gap:14px;align-items:center;font-family:var(--mono);font-size:11px;color:rgba(248,242,226,0.6)}
+[data-product] .topbar .me .avatar{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--amber);color:white;align-items:center;justify-content:center;font-size:11px;font-weight:600;margin-right:6px}
+[data-product] .page-h{padding:22px 28px;background:var(--canvas);border-bottom:1px solid var(--line);display:flex;gap:22px;align-items:baseline}
+[data-product] .page-h .crumb{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase}
+[data-product] .page-h h2{margin:6px 0 0;font-family:var(--display);font-size:30px;font-weight:400;color:var(--ink)}
+[data-product] .page-h h2 em{color:var(--amber);font-style:italic}
+[data-product] .page-h .sub{margin-top:4px;font-size:13.5px;color:var(--ink-3)}
+[data-product] .page-h .right{margin-left:auto;display:flex;gap:8px}
+[data-product] .btn{padding:9px 14px;border-radius:8px;font-size:13.5px;font-weight:500;border:1px solid var(--line);background:var(--panel);color:var(--ink-2);cursor:pointer}
+[data-product] .btn-primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+[data-product] .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);padding:16px 28px;background:var(--canvas);border-bottom:1px solid var(--line)}
+[data-product] .kpi{padding:14px 18px;border-right:1px solid var(--line)}
+[data-product] .kpi:last-child{border-right:0}
+[data-product] .kpi .l{font-family:var(--mono);font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3)}
+[data-product] .kpi .v{font-family:var(--display);font-size:26px;color:var(--ink);margin-top:3px}
+[data-product] .kpi .v.ok{color:var(--ok)}
+[data-product] .kpi .v.amber{color:var(--amber)}
+[data-product] .kpi .ctx{font-family:var(--mono);font-size:10.5px;color:var(--ink-4);margin-top:3px}
+[data-product] .body-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:0}
+[data-product] .col{padding:22px 28px;border-right:1px solid var(--line)}
+[data-product] .col:last-child{border-right:0}
+[data-product] .col h3{margin:0 0 12px;font-family:var(--display);font-size:22px;font-weight:400;color:var(--ink);display:flex;align-items:baseline;gap:10px}
+[data-product] .col h3 em{color:var(--amber);font-style:italic}
+
+[data-product] .funnel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+[data-product] .funnel-row{display:grid;grid-template-columns:120px 1fr 80px;gap:12px;padding:9px 0;border-bottom:1px solid var(--line-soft);align-items:center}
+[data-product] .funnel-row:last-child{border-bottom:0}
+[data-product] .funnel-row .nm{font-size:12.5px;color:var(--ink);font-weight:500}
+[data-product] .funnel-row .nm .meta{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:1px;font-weight:400}
+[data-product] .funnel-row .bar{height:13px;background:var(--panel-deep);border-radius:4px;overflow:hidden}
+[data-product] .funnel-row .bar .fill{height:100%;background:var(--amber);border-radius:4px;display:flex;align-items:center;padding:0 8px;color:white;font-family:var(--mono);font-size:9.5px}
+[data-product] .funnel-row .num{font-family:var(--mono);font-size:12px;color:var(--ink);text-align:right}
+[data-product] .funnel-row .num .conv{display:block;font-size:9.5px;color:var(--ink-4);margin-top:1px}
+
+[data-product] .camp-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+[data-product] .camp-card.live{border-left:3px solid var(--ok);padding-left:11px}
+[data-product] .camp-card.draft{border-left:3px dashed var(--ink-5);padding-left:11px;opacity:0.85}
+[data-product] .camp-card .top{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
+[data-product] .camp-card .nm{font-size:13px;color:var(--ink);font-weight:500}
+[data-product] .camp-card .stage{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;letter-spacing:0.06em;text-transform:uppercase}
+[data-product] .camp-card .stage.live{background:color-mix(in oklab,var(--ok) 14%,transparent);color:var(--ok)}
+[data-product] .camp-card .stage.draft{background:var(--panel-deep);color:var(--ink-3)}
+[data-product] .camp-card .when{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--ink-4)}
+[data-product] .camp-card .meta{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);display:flex;gap:10px;flex-wrap:wrap}
+[data-product] .camp-card .meta strong{color:var(--ink)}
+
+[data-product] .src-row{display:grid;grid-template-columns:14px 1fr 70px 70px;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-soft);align-items:center;font-size:12.5px}
+[data-product] .src-row:last-child{border-bottom:0}
+[data-product] .src-row .dot{width:10px;height:10px;border-radius:2px}
+[data-product] .src-row .nm{color:var(--ink);font-weight:500}
+[data-product] .src-row .pct{font-family:var(--mono);font-size:11px;color:var(--ink);text-align:right}
+[data-product] .src-row .num{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);text-align:right}
+
+/* Pipeline 3-lane */
+[data-product] .pipeline{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+[data-product] .pipe{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:160px}
+[data-product] .pipe .h{font-family:var(--mono);font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px;display:flex;justify-content:space-between}
+[data-product] .pipe .h .ct{color:var(--ink);font-weight:500}
+[data-product] .pipe-card{padding:8px 10px;background:var(--panel-2);border-radius:5px;margin-bottom:5px;font-size:11.5px;color:var(--ink-2);line-height:1.4}
+[data-product] .pipe-card strong{display:block;color:var(--ink);margin-bottom:1px}
+[data-product] .pipe-card .when{display:block;font-family:var(--mono);font-size:9.5px;color:var(--ink-4);margin-top:2px}
+
+/* Campaign detail */
+[data-product] .det-h{padding:22px 28px;background:var(--canvas);border-bottom:1px solid var(--line)}
+[data-product] .det-h .crumb{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase}
+[data-product] .det-h h2{margin:6px 0 0;font-family:var(--display);font-size:28px;font-weight:400;color:var(--ink)}
+[data-product] .det-h h2 em{color:var(--amber);font-style:italic}
+[data-product] .det-h .meta{margin-top:10px;display:flex;gap:18px;font-family:var(--mono);font-size:11px;color:var(--ink-3);flex-wrap:wrap}
+[data-product] .det-h .meta strong{color:var(--ink-2)}
+[data-product] .det-body{display:grid;grid-template-columns:1.3fr 1fr;gap:0}
+[data-product] .det-col{padding:22px 28px;border-right:1px solid var(--line)}
+[data-product] .det-col:last-child{border-right:0}
+[data-product] .det-col h3{margin:0 0 14px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+[data-product] .det-col h3.repeat{margin-top:22px}
+[data-product] .chart-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+[data-product] .chart-box .lbl{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-bottom:8px;letter-spacing:0.12em;text-transform:uppercase}
+[data-product] .chart-box .bars{display:flex;align-items:flex-end;gap:2px;height:80px}
+[data-product] .chart-box .bars .b{flex:1;background:var(--amber);border-radius:1px;min-height:4px}
+[data-product] .chart-box .ax{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--mono);font-size:9.5px;color:var(--ink-4)}
+[data-product] .kv{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+[data-product] .kv .row{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px}
+[data-product] .kv .row:last-child{border-bottom:0}
+[data-product] .kv .k{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:0.10em;text-transform:uppercase}
+[data-product] .kv .v{color:var(--ink)}
+
+[data-product] .m-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ink);color:var(--paper)}
+[data-product] .m-bar .brand{font-family:var(--display);font-size:13px}
+[data-product] .m-bar .av{margin-left:auto;width:22px;height:22px;border-radius:50%;background:var(--amber);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600}
+[data-product] .m-h{padding:12px 14px;background:var(--canvas);border-bottom:1px solid var(--line)}
+[data-product] .m-h h3{margin:0;font-family:var(--display);font-size:18px;font-weight:400;color:var(--ink)}
+[data-product] .m-h h3 em{color:var(--amber);font-style:italic}
+[data-product] .m-h .sub{margin-top:3px;font-size:11.5px;color:var(--ink-3)}
+[data-product] .m-list{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+[data-product] .m-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px;border-left:3px solid var(--ok)}
+[data-product] .m-card.draft{border-left:3px dashed var(--ink-5);opacity:0.85}
+[data-product] .m-card .top{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+[data-product] .m-card .ti{font-size:12.5px;font-weight:500;color:var(--ink)}
+[data-product] .m-card .body{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);line-height:1.5}
+[data-product] .m-card .body strong{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Dev OS · phase 2.6</div>
+    <h1>Marketing staff</h1>
+    <div class="back"><a href="../../design/index.html">← back to design hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Sections</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#hero"><span class="ix">01</span>Hero · funnel + campaigns</a></li>
+        <li><a href="#variants"><span class="ix">02</span>Layout variants</a></li>
+        <li><a href="#detail"><span class="ix">03</span>Campaign detail</a></li>
+        <li><a href="#mobile"><span class="ix">04</span>Mobile · campaign feed</a></li>
+        <li><a href="#schema"><span class="ix">05</span>Schema · agents · routes</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <section id="cover" class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Dev OS · phase 2.6 · Marketing staff</span></div>
+      <h1>Marketing — <em>funnel · campaigns · content</em>.</h1>
+      <p>Cabinet for Marketing staff role. Replaces 6 scattered legacy items (Marketing dash · Lead sources · Campaigns · Content pipeline · Conversations · Manager performance). Surfaces 7-stage funnel from impression to closed-won, live campaigns with spend, 3-lane content pipeline.</p>
+    </section>
+
+    <!-- 01 HERO -->
+    <section id="hero" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Funnel + campaigns + lead sources</h2>
+          <p>5 KPI. Left = 7-stage funnel chart + live campaign cards. Right = lead sources rollup + 3-lane content pipeline.</p>
+        </div>
+      </div>
+      <div class="artboard">
+        <div data-product="development">
+          <div class="topbar"><div class="brand">Arconique<span class="sub">development · tirta</span></div><div class="role">Acting as: Marketing ▾</div><div class="right"><span class="me"><span class="avatar">SK</span>Sarah K</span></div></div>
+          <div class="page-h">
+            <div><div class="crumb">workspace / marketing</div><h2>Marketing <em>· may 2025</em></h2><div class="sub">2,840 impressions · 142 leads · 6 deals · 2 closing</div></div>
+            <div class="right"><button class="btn">+ Content</button><button class="btn btn-primary">+ Campaign</button></div>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi"><div class="l">impressions</div><div class="v">2,840</div><div class="ctx">↑18%</div></div>
+            <div class="kpi"><div class="l">leads</div><div class="v amber">142</div><div class="ctx">5% conv</div></div>
+            <div class="kpi"><div class="l">cost/lead</div><div class="v">$42</div><div class="ctx">target $50</div></div>
+            <div class="kpi"><div class="l">closing</div><div class="v ok">2</div><div class="ctx">$5.4M</div></div>
+            <div class="kpi"><div class="l">campaigns</div><div class="v">3</div><div class="ctx">2 IG · 1 print</div></div>
+          </div>
+          <div class="body-grid">
+            <div class="col">
+              <h3>Funnel <em>· may</em></h3>
+              <div class="funnel">
+                <div class="funnel-row"><div class="nm">Impressions</div><div class="bar"><div class="fill" style="width:100%">2840</div></div><div class="num">2,840</div></div>
+                <div class="funnel-row"><div class="nm">Clicks<span class="meta">14% CTR</span></div><div class="bar"><div class="fill" style="width:14%">398</div></div><div class="num">398<span class="conv">14%</span></div></div>
+                <div class="funnel-row"><div class="nm">Inquiries</div><div class="bar"><div class="fill" style="width:5%">142</div></div><div class="num">142<span class="conv">36%</span></div></div>
+                <div class="funnel-row"><div class="nm">Qualified</div><div class="bar"><div class="fill" style="width:3%">88</div></div><div class="num">88<span class="conv">62%</span></div></div>
+                <div class="funnel-row"><div class="nm">Tours</div><div class="bar"><div class="fill" style="width:1.5%">42</div></div><div class="num">42<span class="conv">48%</span></div></div>
+                <div class="funnel-row"><div class="nm">Contracts</div><div class="bar"><div class="fill" style="width:0.6%">14</div></div><div class="num">14<span class="conv">33%</span></div></div>
+                <div class="funnel-row"><div class="nm">Closed-won</div><div class="bar"><div class="fill" style="width:0.3%">7</div></div><div class="num">7<span class="conv">50%</span></div></div>
+              </div>
+              <h3 style="margin-top:22px;">Live campaigns <em>· 3</em></h3>
+              <div class="camp-card live"><div class="top"><span class="nm">"Tirta Living" IG carousel</span><span class="stage live">live 14d</span><span class="when">$1.8k/$4k</span></div><div class="meta"><span><strong>1,420</strong> impr</span><span><strong>184</strong> clicks</span><span>cost/lead <strong>$29</strong></span></div></div>
+              <div class="camp-card live"><div class="top"><span class="nm">"Bali equity story" LinkedIn</span><span class="stage live">live 7d</span><span class="when">$1.2k/$3k</span></div><div class="meta"><span><strong>980</strong> impr</span><span><strong>142</strong> clicks</span><span>cost/lead <strong>$25</strong></span></div></div>
+              <div class="camp-card live"><div class="top"><span class="nm">Print airport magazine</span><span class="stage live">live 30d</span><span class="when">$4k/$4k</span></div><div class="meta"><span><strong>32</strong> leads</span><span>cost/lead <strong>$125</strong></span></div></div>
+              <div class="camp-card draft"><div class="top"><span class="nm">Drone walkthrough · Uluwatu</span><span class="stage draft">draft</span><span class="when">jun 4</span></div><div class="meta"><span>footage queued for jun 2</span></div></div>
+            </div>
+            <div class="col">
+              <h3>Lead sources</h3>
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;">
+                <div class="src-row"><span class="dot" style="background:#C68E36;"></span><span class="nm">Instagram (paid)</span><span class="pct">42%</span><span class="num">62</span></div>
+                <div class="src-row"><span class="dot" style="background:#4B6580;"></span><span class="nm">LinkedIn</span><span class="pct">28%</span><span class="num">42</span></div>
+                <div class="src-row"><span class="dot" style="background:#5F8B62;"></span><span class="nm">Direct + referral</span><span class="pct">14%</span><span class="num">19</span></div>
+                <div class="src-row"><span class="dot" style="background:#B45239;"></span><span class="nm">Print airport</span><span class="pct">10%</span><span class="num">14</span></div>
+                <div class="src-row"><span class="dot" style="background:#91987F;"></span><span class="nm">Other</span><span class="pct">6%</span><span class="num">5</span></div>
+              </div>
+              <h3 style="margin-top:22px;">Content pipeline <em>· 14</em></h3>
+              <div class="pipeline">
+                <div class="pipe">
+                  <div class="h"><span>Draft</span><span class="ct">5</span></div>
+                  <div class="pipe-card"><strong>Uluwatu longform</strong>article<span class="when">jun 6</span></div>
+                  <div class="pipe-card"><strong>Investor newsletter Q2</strong><span class="when">jun 1</span></div>
+                  <div class="pipe-card"><strong>Drone script</strong>2-min</div>
+                  <div class="pipe-card"><strong>Site invite Jakarta</strong></div>
+                  <div class="pipe-card"><strong>Owner story · Whitmore</strong></div>
+                </div>
+                <div class="pipe">
+                  <div class="h"><span>Review</span><span class="ct">4</span></div>
+                  <div class="pipe-card"><strong>"Why Bali equity"</strong>1400w<span class="when">PM rev</span></div>
+                  <div class="pipe-card"><strong>Press kit Q2</strong><span class="when">CFO rev</span></div>
+                  <div class="pipe-card"><strong>YT short</strong>30s</div>
+                  <div class="pipe-card"><strong>IG construction reel</strong>15s</div>
+                </div>
+                <div class="pipe">
+                  <div class="h"><span>Published</span><span class="ct">5</span></div>
+                  <div class="pipe-card"><strong>"Tirta Living"</strong>5-slide<span class="when">may 14 · 1.4k</span></div>
+                  <div class="pipe-card"><strong>Founder Q&amp;A</strong><span class="when">may 19 · 84r</span></div>
+                  <div class="pipe-card"><strong>LinkedIn equity</strong><span class="when">may 21 · 980</span></div>
+                  <div class="pipe-card"><strong>Investor update apr</strong><span class="when">may 2 · 14LPs</span></div>
+                  <div class="pipe-card"><strong>Drone reel</strong><span class="when">may 24 · 612v</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">desktop · production</span><span>7-stage funnel · 3-lane pipeline · cross-link to Sales cabinet 10</span></div>
+    </section>
+
+    <!-- 02 VARIANTS -->
+    <section id="variants" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Variants</span></div>
+          <h2>Two alternative views</h2>
+          <p><strong style="color:var(--doc-fg)">A</strong> = funnel + campaigns (default). <strong style="color:var(--doc-fg)">B</strong> = attribution waterfall (where leads come from at each stage). <strong style="color:var(--doc-fg)">C</strong> = manager performance (per-rep stats).</p>
+        </div>
+      </div>
+      <div class="var-grid">
+        <div class="var-card">
+          <div class="v-h"><span class="num">B</span><span class="name">Attribution</span></div>
+          <div data-product="development">
+            <div style="padding:18px 20px;font-family:var(--mono);font-size:11px;color:var(--ink-2);line-height:1.7;">
+              <div style="font-family:var(--display);font-size:14px;color:var(--ink);margin-bottom:8px;">Closed-won attribution · may</div>
+              <div style="background:var(--panel);padding:10px 12px;border-radius:6px;margin-bottom:5px;"><strong>3 from Instagram</strong> · last-touch · ~$1.8M</div>
+              <div style="background:var(--panel);padding:10px 12px;border-radius:6px;margin-bottom:5px;"><strong>2 from referral</strong> · multi-touch (IG → site → call) · ~$2.4M</div>
+              <div style="background:var(--panel);padding:10px 12px;border-radius:6px;margin-bottom:5px;"><strong>1 from print</strong> · direct attribution · $580k</div>
+              <div style="background:var(--panel);padding:10px 12px;border-radius:6px;"><strong>1 from LinkedIn</strong> · investor-to-investor · $640k</div>
+            </div>
+          </div>
+        </div>
+        <div class="var-card">
+          <div class="v-h"><span class="num">C</span><span class="name">Manager performance</span></div>
+          <div data-product="development">
+            <div style="padding:18px 20px;">
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;"><span style="font-family:var(--display);">Sarah K</span><span style="font-family:var(--mono);font-size:11px;">62 leads · $1.8M ind · ★4.7</span></div>
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;"><span style="font-family:var(--display);">Aditya R</span><span style="font-family:var(--mono);font-size:11px;">48 leads · $1.2M ind · ★4.5</span></div>
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;"><span style="font-family:var(--display);">Made S</span><span style="font-family:var(--mono);font-size:11px;">22 leads · $640k ind · ★4.8</span></div>
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;"><span style="font-family:var(--display);">Pak Made</span><span style="font-family:var(--mono);font-size:11px;">10 leads · ★4.2</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">desktop · variants</span><span>A default · B for attribution · C for performance</span></div>
+    </section>
+
+    <!-- 03 DETAIL -->
+    <section id="detail" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Detail</span></div>
+          <h2>Campaign detail · daily chart + budget</h2>
+          <p>At <code>/marketing/campaign/[id]</code>. Daily impressions chart, spend vs budget, lead source breakdown, creative versions, A/B test results.</p>
+        </div>
+      </div>
+      <div class="artboard">
+        <div data-product="development">
+          <div class="topbar"><div class="brand">Arconique<span class="sub">development · marketing</span></div><div class="role">Acting as: Marketing</div><div class="right"><span class="me"><span class="avatar">SK</span>Sarah K</span></div></div>
+          <div class="det-h">
+            <div class="crumb">marketing / campaign / tirta-living-ig</div>
+            <h2>Tirta Living · IG carousel <em>· live</em></h2>
+            <div class="meta"><span>campaign <strong>CMP-2025-0042</strong></span><span>started <strong>15 may</strong></span><span>budget <strong>$4,000</strong></span><span>spent <strong>$1,820</strong></span><span>ROAS <strong>$24 / $1</strong></span></div>
+          </div>
+          <div class="det-body">
+            <div class="det-col">
+              <h3>Daily impressions</h3>
+              <div class="chart-box">
+                <div class="lbl">impressions · last 14d</div>
+                <div class="bars">
+                  <span class="b" style="height:42%"></span><span class="b" style="height:56%"></span><span class="b" style="height:64%"></span><span class="b" style="height:48%"></span><span class="b" style="height:72%"></span><span class="b" style="height:88%"></span><span class="b" style="height:78%"></span><span class="b" style="height:68%"></span><span class="b" style="height:82%"></span><span class="b" style="height:92%"></span><span class="b" style="height:100%"></span><span class="b" style="height:76%"></span><span class="b" style="height:64%"></span><span class="b" style="height:58%"></span>
+                </div>
+                <div class="ax"><span>14d ago</span><span>7d</span><span>today</span></div>
+              </div>
+              <h3 class="repeat">Creative versions · A/B</h3>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:12px;"><strong style="color:var(--ink);">Version A · founder-led</strong><br><span style="font-family:var(--mono);font-size:10.5px;color:var(--ink-3);">CTR 14.2% · 62 leads</span></div>
+                <div style="background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:12px;"><strong style="color:var(--ink);">Version B · interior-led</strong><br><span style="font-family:var(--mono);font-size:10.5px;color:var(--ink-3);">CTR 11.8% · 48 leads</span></div>
+              </div>
+            </div>
+            <div class="det-col">
+              <h3>Metrics</h3>
+              <div class="kv">
+                <div class="row"><span class="k">channel</span><span class="v">Instagram · paid</span></div>
+                <div class="row"><span class="k">format</span><span class="v">carousel · 5 slides</span></div>
+                <div class="row"><span class="k">audience</span><span class="v">SG + Jakarta · $250k+</span></div>
+                <div class="row"><span class="k">impressions</span><span class="v">1,420</span></div>
+                <div class="row"><span class="k">clicks</span><span class="v">184 · CTR 13%</span></div>
+                <div class="row"><span class="k">leads</span><span class="v">62 · qual rate 80%</span></div>
+                <div class="row"><span class="k">cost / lead</span><span class="v">$29</span></div>
+              </div>
+              <h3 class="repeat">Actions</h3>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="btn btn-primary" style="width:100%;justify-content:center;">Promote Version A · pause B</button>
+                <button class="btn" style="width:100%;justify-content:center;">Increase budget +$1k</button>
+                <button class="btn" style="width:100%;justify-content:center;">Duplicate for Uluwatu</button>
+                <button class="btn" style="width:100%;justify-content:center;">Pause campaign</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">desktop · detail</span><span>A/B testing built in · 4 action buttons</span></div>
+    </section>
+
+    <!-- 04 MOBILE -->
+    <section id="mobile" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Mobile</span></div>
+          <h2>Phone · campaign feed</h2>
+          <p>Mobile shows live campaigns + content pipeline. Tap card for read-only metrics. Editing on phone limited to "Pause" only.</p>
+        </div>
+      </div>
+      <div class="mobile-row">
+        <div class="mobile-frame">
+          <div class="mobile-status"><span>11:42</span><span>5G · 92%</span></div>
+          <div data-product="development">
+            <div class="m-bar"><span class="brand">Arconique</span><span class="av">SK</span></div>
+            <div class="m-h"><h3>Campaigns <em>· 3 live</em></h3><div class="sub">$3k spent · $7k remaining</div></div>
+            <div class="m-list">
+              <div class="m-card"><div class="top"><span class="ti">Tirta Living · IG</span></div><div class="body"><strong>1,420</strong> impr · <strong>184</strong> clicks · cost/lead <strong>$29</strong> · ROAS <strong>$24/$1</strong></div></div>
+              <div class="m-card"><div class="top"><span class="ti">Bali equity · LinkedIn</span></div><div class="body"><strong>980</strong> impr · <strong>142</strong> clicks · cost/lead <strong>$25</strong></div></div>
+              <div class="m-card"><div class="top"><span class="ti">Print airport</span></div><div class="body"><strong>32</strong> leads · cost/lead <strong>$125</strong> · ends jun 14</div></div>
+              <div class="m-card draft"><div class="top"><span class="ti">Drone Uluwatu · draft</span></div><div class="body">footage jun 2 · launch jun 4</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-notes">
+          <h4>Mobile principles</h4>
+          <ol>
+            <li><strong>Read-only metrics</strong> · pause-only editing.</li>
+            <li><strong>Tap card → A/B comparison</strong> view.</li>
+            <li><strong>Content drafts</strong> in More tab · read-only.</li>
+            <li><strong>Push at budget 80%</strong> for each campaign.</li>
+            <li><strong>No new campaigns</strong> on phone · desk required.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">mobile · campaigns</span><span>pause-only · A/B view · push at 80% budget</span></div>
+    </section>
+
+    <!-- 05 SCHEMA -->
+    <section id="schema" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">05</span><span>—</span><span>Implementation</span></div>
+          <h2>Schema · agents · routes</h2>
+          <p>Backed by <code>marketing_campaigns</code> + <code>marketing_lead_sources</code> + new content pipeline tables. Agent: <code>marketing-assistant</code> for content drafts and A/B suggestion.</p>
+        </div>
+      </div>
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Tables · new for 2.6</h3>
+          <dl>
+            <div><dt>marketing_campaigns</dt><dd><code>id · name · channel · status · budget_minor · spend_minor · started_at · ended_at · target_audience_jsonb</code></dd></div>
+            <div><dt>campaign_creatives</dt><dd><code>campaign_id · version (A/B) · format · asset_url · clicks · impressions · created_at</code></dd></div>
+            <div><dt>content_pipeline</dt><dd><code>id · title · lane (draft/review/published) · assignee_user_id · due_at · published_at · format</code></dd></div>
+            <div><dt>marketing_attribution</dt><dd><code>lead_id · campaign_id · source · last_touch_at · multi_touch_jsonb</code></dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Existing FKs</h3>
+          <dl>
+            <div><dt>leads</dt><dd>mig 0063 · target of attribution</dd></div>
+            <div><dt>marketing_lead_sources</dt><dd>mig 0063 · source enumeration</dd></div>
+            <div><dt>app_users</dt><dd>marketing staff · assignee</dd></div>
+            <div><dt>sales_pipeline_cards</dt><dd>cabinet 10 · closed-won attribution target</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Routes</h3>
+          <dl>
+            <div><dt>/marketing</dt><dd>hero · funnel + campaigns</dd></div>
+            <div><dt>/marketing/attribution</dt><dd>variant B</dd></div>
+            <div><dt>/marketing/performance</dt><dd>variant C</dd></div>
+            <div><dt>/marketing/campaign/[id]</dt><dd>detail · A/B + budget</dd></div>
+            <div><dt>/marketing/content</dt><dd>3-lane pipeline kanban</dd></div>
+            <div><dt>/marketing/leads</dt><dd>filtered leads view</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Agents</h3>
+          <dl>
+            <div><dt>marketing-assistant</dt><dd>helps draft content · suggests A/B variations · classifies leads by source</dd></div>
+            <div><dt>attribution-engine</dt><dd>cron daily · attributes leads to campaigns via last-touch + multi-touch model</dd></div>
+            <div><dt>campaign-optimizer (v2)</dt><dd>recommends budget shifts between campaigns based on cost/lead trend</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+</body>
+</html>

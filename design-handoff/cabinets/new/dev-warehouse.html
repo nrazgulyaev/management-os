@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dev OS · Warehouse manager (v2 · full depth)</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="dev-tokens">
+[data-product="development"] {
+  --paper: #F8F2E2; --canvas: #ECE0BF; --panel: #FFFFFF; --panel-2: #F4ECD8; --panel-deep: #E0D2A8;
+  --ink: #1E1A12; --ink-2: #2E2820; --ink-3: #4E4636; --ink-4: #71684F; --ink-5: #948A6A;
+  --line: #D4C594; --line-soft: #DECEA6; --line-strong: #B8A972;
+  --amber: #C68E36; --amber-deep: #8E5F18; --amber-soft: #E6BE6E;
+  --steel: #4B6580; --ok: #5F8B62; --warn: #C49845; --danger: #B45239;
+  --display: "Newsreader", Georgia, serif;
+  --sans: "Inter", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+:root {
+  --doc-bg: #1E1A12; --doc-bg-2: #2A2418; --doc-bg-3: #362F20;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #ECE0BF; --doc-fg-2: #C1B89F; --doc-fg-3: #8A8473;
+  --doc-accent: #E6BE6E;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+
+/* Doc shell */
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc { border-right: 1px solid var(--doc-line); padding: 36px 22px; background: var(--doc-bg-2); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.ds-mark { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 22px; }
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 { margin: 0 0 22px; font-family: var(--sans); font-weight: 500; font-size: 19px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 10px; }
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a { display: block; padding: 6px 8px; text-decoration: none; color: var(--doc-fg-2); font-size: 13px; border-radius: 4px; margin-bottom: 1px; }
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+.ds-toc .back { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-toc .back a { color: var(--doc-accent); font-size: 12.5px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1300px; }
+.cab-cover { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { margin: 0; font-family: var(--sans); font-weight: 500; font-size: 44px; line-height: 1.05; letter-spacing: -0.025em; }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.ds-section { margin-bottom: 76px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-section h2 { margin: 0; font-family: var(--sans); font-weight: 500; font-size: 26px; letter-spacing: -0.015em; color: var(--doc-fg); }
+.ds-section p { max-width: 760px; margin: 8px 0 0; font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65; }
+.ds-section p code { font-family: var(--mono); font-size: 12.5px; background: var(--doc-bg-3); padding: 1px 6px; border-radius: 4px; color: var(--doc-accent); }
+
+.artboard { margin-top: 20px; border: 1px solid var(--doc-line); border-radius: 18px; background: var(--canvas); overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.artboard-caption { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.artboard-caption .pill { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); color: var(--doc-accent); }
+
+.notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+.notes-card { background: var(--doc-bg-2); border: 1px solid var(--doc-line); border-radius: 12px; padding: 18px 20px; }
+.notes-card h3 { margin: 0 0 12px; font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--doc-fg); }
+.notes-card dl { margin: 0; }
+.notes-card dl > div { display: grid; grid-template-columns: 130px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--doc-line); font-size: 12.5px; }
+.notes-card dl > div:last-child { border-bottom: 0; }
+.notes-card dt { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes-card dd { margin: 0; color: var(--doc-fg-2); line-height: 1.55; }
+.notes-card dd code { font-family: var(--mono); font-size: 11px; color: var(--doc-fg); background: var(--doc-bg-3); padding: 1px 6px; border-radius: 3px; }
+
+/* Variant grid */
+.var-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 14px; }
+.var-card { border: 1px solid var(--doc-line); border-radius: 14px; background: var(--canvas); overflow: hidden; }
+.var-card .v-h { padding: 12px 16px; background: var(--doc-bg-3); border-bottom: 1px solid var(--doc-line); display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-2); }
+.var-card .v-h .num { background: var(--doc-bg); padding: 2px 8px; border-radius: 4px; color: var(--doc-accent); }
+.var-card .v-h .name { color: var(--doc-fg); }
+.var-card .v-h .desc { margin-left: auto; color: var(--doc-fg-3); }
+
+/* Mobile preview */
+.mobile-row { display: grid; grid-template-columns: 360px 1fr; gap: 32px; align-items: start; }
+.mobile-frame { width: 360px; border: 1px solid var(--doc-line); border-radius: 30px; overflow: hidden; background: var(--canvas); }
+.mobile-status { padding: 10px 22px 6px; display: flex; justify-content: space-between; font-family: var(--sans); font-size: 11.5px; color: var(--ink); font-weight: 600; background: var(--canvas); }
+.mobile-body { background: var(--canvas); min-height: 660px; }
+.mobile-notes { padding-top: 16px; color: var(--doc-fg-2); }
+.mobile-notes h4 { margin: 0 0 6px; font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--doc-fg); }
+.mobile-notes p { margin: 0 0 14px; font-size: 13px; line-height: 1.6; color: var(--doc-fg-2); }
+.mobile-notes ol { margin: 0; padding-left: 20px; }
+.mobile-notes li { margin-bottom: 6px; font-size: 13px; line-height: 1.55; color: var(--doc-fg-2); }
+.mobile-notes li strong { color: var(--doc-fg); }
+
+/* Product chrome (reused from v1) */
+[data-product="development"] { font-family: var(--sans); color: var(--ink); }
+[data-product] .topbar { display: flex; align-items: center; gap: 16px; padding: 14px 24px; background: var(--ink); color: var(--paper); }
+[data-product] .topbar .brand { font-family: var(--display); font-size: 18px; }
+[data-product] .topbar .brand .sub { font-family: var(--mono); font-size: 9.5px; color: rgba(248,242,226,0.55); letter-spacing: 0.16em; text-transform: uppercase; display: block; margin-top: 1px; }
+[data-product] .topbar .role { margin-left: 18px; padding: 4px 10px; background: rgba(248,242,226,0.08); border-radius: 6px; font-family: var(--mono); font-size: 11px; }
+[data-product] .topbar .role .chev { color: rgba(248,242,226,0.5); margin-left: 4px; }
+[data-product] .topbar .right { margin-left: auto; display: flex; gap: 14px; align-items: center; font-family: var(--mono); font-size: 11px; color: rgba(248,242,226,0.6); }
+[data-product] .topbar .me .avatar { display: inline-flex; width: 26px; height: 26px; border-radius: 50%; background: var(--amber); color: white; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; margin-right: 6px; }
+
+[data-product] .page-h { padding: 22px 28px 18px; background: var(--canvas); border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 22px; }
+[data-product] .page-h .crumb { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .page-h h2 { margin: 6px 0 0; font-family: var(--display); font-size: 30px; font-weight: 400; color: var(--ink); }
+[data-product] .page-h h2 em { color: var(--amber); font-style: italic; }
+[data-product] .page-h .sub { margin-top: 4px; font-size: 13.5px; color: var(--ink-3); }
+[data-product] .page-h .right { margin-left: auto; display: flex; gap: 8px; }
+[data-product] .btn { padding: 9px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); cursor: pointer; }
+[data-product] .btn-primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+[data-product] .btn-amber { background: var(--amber); color: white; border-color: var(--amber); }
+
+[data-product] .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); padding: 16px 28px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .kpi { padding: 14px 18px; border-right: 1px solid var(--line); }
+[data-product] .kpi:last-child { border-right: 0; }
+[data-product] .kpi .l { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .kpi .v { font-family: var(--display); font-size: 26px; color: var(--ink); margin-top: 3px; line-height: 1; }
+[data-product] .kpi .v.warn { color: var(--warn); }
+[data-product] .kpi .v.danger { color: var(--danger); }
+[data-product] .kpi .ctx { font-family: var(--mono); font-size: 10.5px; color: var(--ink-4); margin-top: 3px; }
+
+/* Hero · receiving queue + low-stock + movements (condensed) */
+[data-product] .body-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 0; }
+[data-product] .col { padding: 22px 28px; }
+[data-product] .col-l { border-right: 1px solid var(--line); }
+[data-product] .col h3 { margin: 0 0 14px; font-family: var(--display); font-size: 22px; font-weight: 400; color: var(--ink); display: flex; align-items: baseline; gap: 10px; }
+[data-product] .col h3 em { color: var(--amber); font-style: italic; }
+[data-product] .col h3 .meta { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.10em; }
+
+[data-product] .recv-list { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+[data-product] .recv-row { display: grid; grid-template-columns: 80px 1fr 80px 70px; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--line-soft); align-items: center; }
+[data-product] .recv-row.head { background: var(--panel-2); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .recv-row:last-child { border-bottom: 0; }
+[data-product] .recv-row.urgent { background: color-mix(in oklab, var(--danger) 5%, var(--panel)); }
+[data-product] .recv-row.warn { background: color-mix(in oklab, var(--warn) 5%, var(--panel)); }
+[data-product] .recv-row .when { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+[data-product] .recv-row .nm { font-size: 13px; color: var(--ink); font-weight: 500; }
+[data-product] .recv-row .nm .meta { display: block; font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-top: 1px; font-weight: 400; }
+[data-product] .recv-row .num { font-family: var(--mono); font-size: 11.5px; color: var(--ink); text-align: right; }
+[data-product] .recv-row .stage { font-family: var(--mono); font-size: 9px; padding: 2px 6px; border-radius: 3px; text-align: center; letter-spacing: 0.08em; text-transform: uppercase; }
+[data-product] .recv-row .stage.dock { background: color-mix(in oklab, var(--amber) 18%, transparent); color: var(--amber-deep); }
+[data-product] .recv-row .stage.qc { background: color-mix(in oklab, var(--steel) 18%, transparent); color: var(--steel); }
+[data-product] .recv-row .stage.held { background: color-mix(in oklab, var(--danger) 18%, transparent); color: var(--danger); }
+
+[data-product] .stock-list { display: flex; flex-direction: column; gap: 8px; }
+[data-product] .stock-row { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; display: grid; grid-template-columns: 1fr auto 80px; gap: 12px; align-items: center; }
+[data-product] .stock-row.danger { border-left: 3px solid var(--danger); padding-left: 11px; background: color-mix(in oklab, var(--danger) 4%, var(--panel)); }
+[data-product] .stock-row.warn { border-left: 3px solid var(--warn); padding-left: 11px; }
+[data-product] .stock-row .nm { font-size: 12.5px; font-weight: 500; color: var(--ink); }
+[data-product] .stock-row .nm .meta { display: block; font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-top: 1px; font-weight: 400; }
+[data-product] .stock-row .bar { width: 70px; height: 6px; background: var(--panel-deep); border-radius: 3px; overflow: hidden; }
+[data-product] .stock-row .bar .fill { height: 100%; background: var(--ok); }
+[data-product] .stock-row .bar .fill.warn { background: var(--warn); }
+[data-product] .stock-row .bar .fill.danger { background: var(--danger); }
+[data-product] .stock-row .qty { font-family: var(--mono); font-size: 11px; color: var(--ink); text-align: right; }
+
+/* PO detail · sec 03 */
+[data-product] .det-h { padding: 22px 28px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .det-h .crumb { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .det-h h2 { margin: 6px 0 0; font-family: var(--display); font-size: 28px; font-weight: 400; color: var(--ink); }
+[data-product] .det-h h2 em { color: var(--amber); font-style: italic; }
+[data-product] .det-h .meta { margin-top: 10px; display: flex; gap: 18px; font-family: var(--mono); font-size: 11px; color: var(--ink-3); flex-wrap: wrap; }
+[data-product] .det-h .meta strong { color: var(--ink-2); }
+
+[data-product] .det-body { display: grid; grid-template-columns: 1.4fr 1fr; gap: 0; }
+[data-product] .det-col { padding: 22px 28px; border-right: 1px solid var(--line); }
+[data-product] .det-col:last-child { border-right: 0; }
+[data-product] .det-col h3 { margin: 0 0 14px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+[data-product] .det-col h3.repeat { margin-top: 22px; }
+
+[data-product] .line-list { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+[data-product] .line-row { display: grid; grid-template-columns: 1fr 70px 60px 60px 70px; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); align-items: center; font-size: 12.5px; }
+[data-product] .line-row.head { background: var(--panel-2); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .line-row:last-child { border-bottom: 0; }
+[data-product] .line-row.short { background: color-mix(in oklab, var(--danger) 5%, var(--panel)); }
+[data-product] .line-row .sku { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+[data-product] .line-row .sku strong { display: block; font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 2px; }
+[data-product] .line-row .num { font-family: var(--mono); font-size: 11px; color: var(--ink); text-align: right; }
+[data-product] .line-row .num.warn { color: var(--danger); }
+[data-product] .line-row .check { font-family: var(--mono); font-size: 10px; padding: 2px 6px; border-radius: 3px; text-align: center; }
+[data-product] .line-row .check.ok { background: color-mix(in oklab, var(--ok) 14%, transparent); color: var(--ok); }
+[data-product] .line-row .check.fail { background: color-mix(in oklab, var(--danger) 14%, transparent); color: var(--danger); }
+
+[data-product] .kv { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+[data-product] .kv .row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
+[data-product] .kv .row:last-child { border-bottom: 0; }
+[data-product] .kv .k { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .kv .v { color: var(--ink); }
+[data-product] .kv .v.mono { font-family: var(--mono); font-size: 12px; }
+[data-product] .kv .v.warn { color: var(--warn); }
+[data-product] .kv .v.danger { color: var(--danger); }
+
+[data-product] .qc-chain { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; flex-wrap: wrap; }
+[data-product] .qc-chain .step { display: flex; align-items: center; gap: 5px; }
+[data-product] .qc-chain .step .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+[data-product] .qc-chain .step.on .dot { background: var(--amber); box-shadow: 0 0 0 3px color-mix(in oklab, var(--amber) 20%, transparent); }
+[data-product] .qc-chain .step.pending .dot { background: var(--ink-5); }
+[data-product] .qc-chain .step.fail .dot { background: var(--danger); }
+[data-product] .qc-chain .arr { color: var(--ink-5); }
+
+/* Mobile · sec 04 */
+[data-product] .m-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--ink); color: var(--paper); }
+[data-product] .m-bar .brand { font-family: var(--display); font-size: 13px; }
+[data-product] .m-bar .role { margin-left: 8px; padding: 2px 7px; background: rgba(248,242,226,0.1); border-radius: 4px; font-family: var(--mono); font-size: 9.5px; }
+[data-product] .m-bar .av { margin-left: auto; width: 22px; height: 22px; border-radius: 50%; background: var(--amber); color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 600; }
+
+[data-product] .m-h { padding: 12px 14px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .m-h h3 { margin: 0; font-family: var(--display); font-size: 18px; font-weight: 400; color: var(--ink); }
+[data-product] .m-h h3 em { color: var(--amber); font-style: italic; }
+[data-product] .m-h .sub { margin-top: 3px; font-size: 11.5px; color: var(--ink-3); }
+
+[data-product] .m-kpi { padding: 10px 14px; background: var(--canvas); border-bottom: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+[data-product] .m-kpi .k { padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+[data-product] .m-kpi .l { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .m-kpi .v { font-family: var(--display); font-size: 18px; color: var(--ink); margin-top: 2px; }
+[data-product] .m-kpi .v.warn { color: var(--warn); }
+[data-product] .m-kpi .v.danger { color: var(--danger); }
+
+[data-product] .m-recv { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+[data-product] .m-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
+[data-product] .m-card.urgent { border-left: 3px solid var(--danger); padding-left: 10px; }
+[data-product] .m-card .top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+[data-product] .m-card .ti { font-size: 12.5px; font-weight: 500; color: var(--ink); }
+[data-product] .m-card .when { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--ink-4); }
+[data-product] .m-card .body { font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
+[data-product] .m-card .body strong { color: var(--ink-2); }
+[data-product] .m-card .tags { display: flex; gap: 4px; margin-top: 4px; }
+[data-product] .m-card .tag { font-family: var(--mono); font-size: 9px; padding: 2px 6px; border-radius: 3px; background: var(--panel-2); color: var(--ink-3); letter-spacing: 0.06em; text-transform: uppercase; }
+[data-product] .m-card .tag.danger { background: color-mix(in oklab, var(--danger) 14%, transparent); color: var(--danger); }
+[data-product] .m-card .tag.warn { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); }
+
+[data-product] .m-tab { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: var(--panel); }
+[data-product] .m-tab .t { padding: 9px 4px 14px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-4); }
+[data-product] .m-tab .t.on { color: var(--ink); }
+[data-product] .m-tab .t .ico { font-size: 15px; }
+[data-product] .m-tab .t.on .ico { color: var(--amber); }
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Dev OS · phase 2.6</div>
+    <h1>Warehouse manager</h1>
+    <div class="back"><a href="../../design/index.html">← back to design hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Sections</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#hero"><span class="ix">01</span>Hero · production view</a></li>
+        <li><a href="#variants"><span class="ix">02</span>Layout variants</a></li>
+        <li><a href="#detail"><span class="ix">03</span>Receiving detail · PO drill-in</a></li>
+        <li><a href="#mobile"><span class="ix">04</span>Mobile · receiving flow</a></li>
+        <li><a href="#schema"><span class="ix">05</span>Schema · agents · routes</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Reference</div>
+      <ul>
+        <li><a href="../dev-p1/procurement.html"><span class="ix">↗</span>Procurement (15)</a></li>
+        <li><a href="dev-workspace.html"><span class="ix">↗</span>Dev Workspace</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <section id="cover" class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Dev OS · phase 2.6 · Warehouse manager</span></div>
+      <h1>Warehouse — <em>receiving · stock · movements</em>.</h1>
+      <p>Cabinet for the Warehouse manager role. Distinct from Procurement (cabinet 15) which owns RFQ → PO award: warehouse owns the <strong style="color:var(--doc-fg)">physical flow</strong> — receiving inbound POs at the dock, QC, putaway to bins, stock counts, picks for site teams, movements log. The two cabinets meet at the PO handoff: Procurement awards the PO, Warehouse receives it.</p>
+    </section>
+
+    <!-- 01 HERO -->
+    <section id="hero" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Production view — dock + stock + movements</h2>
+          <p>The landing for the Warehouse role. 5-KPI strip across the top (at dock · held · low-stock · picks today · movements today). Left column = <strong style="color:var(--doc-fg)">receiving queue (FIFO)</strong> with stage chips (dock · QC · held). Right column = <strong style="color:var(--doc-fg)">low-stock alerts</strong> with reorder bars + reorder action. Operator's daily mental model: <em>"what's at the dock, what's running out, what moved"</em>.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="development">
+          <div class="topbar">
+            <div class="brand">Arconique<span class="sub">development · tirta-canggu</span></div>
+            <div class="role">Acting as: Warehouse <span class="chev">▾</span></div>
+            <div class="right">
+              <span>shift 06:00-18:00</span>
+              <span class="me"><span class="avatar">WS</span>Wayan S.</span>
+            </div>
+          </div>
+
+          <div class="page-h">
+            <div>
+              <div class="crumb">workspace / warehouse</div>
+              <h2>Warehouse <em>· 5 inbound at dock</em></h2>
+              <div class="sub">3 ready for QC · 1 held · last pick 14:18 · last stock reset 06:00</div>
+            </div>
+            <div class="right">
+              <button class="btn">Scan code</button>
+              <button class="btn">+ Adjustment</button>
+              <button class="btn btn-primary">Receive PO</button>
+            </div>
+          </div>
+
+          <div class="kpi-row">
+            <div class="kpi"><div class="l">at dock</div><div class="v warn">5</div><div class="ctx">3 QC ready</div></div>
+            <div class="kpi"><div class="l">held</div><div class="v danger">1</div><div class="ctx">vendor mismatch</div></div>
+            <div class="kpi"><div class="l">low stock</div><div class="v warn">3</div><div class="ctx">1 stockout risk</div></div>
+            <div class="kpi"><div class="l">picks · today</div><div class="v">12</div><div class="ctx">2 site · 10 ops</div></div>
+            <div class="kpi"><div class="l">moves · today</div><div class="v">28</div><div class="ctx">14 in · 12 out · 2 adj</div></div>
+          </div>
+
+          <div class="body-grid">
+            <div class="col col-l">
+              <h3>Receiving queue <em>· at dock</em><span class="meta">FIFO</span></h3>
+              <div class="recv-list">
+                <div class="recv-row head"><div>arrived</div><div>PO · vendor</div><div>items</div><div>stage</div></div>
+                <div class="recv-row urgent">
+                  <div class="when">8h ago</div>
+                  <div class="nm">PO-2025-1042 · CV Mitra Beton<span class="meta">structural steel · 12 SKUs · $8.4k</span></div>
+                  <div class="num">142/156</div>
+                  <div><span class="stage held">held</span></div>
+                </div>
+                <div class="recv-row warn">
+                  <div class="when">2h ago</div>
+                  <div class="nm">PO-2025-1057 · PT Sumber Mat.<span class="meta">cement · 200 bags · $2.1k</span></div>
+                  <div class="num">200/200</div>
+                  <div><span class="stage qc">QC</span></div>
+                </div>
+                <div class="recv-row">
+                  <div class="when">1h ago</div>
+                  <div class="nm">PO-2025-1063 · Toko Pak Made<span class="meta">tools · $340</span></div>
+                  <div class="num">38/38</div>
+                  <div><span class="stage qc">QC</span></div>
+                </div>
+                <div class="recv-row">
+                  <div class="when">38m</div>
+                  <div class="nm">PO-2025-1071 · Karya Sentosa<span class="meta">tile adhesive · $1.8k</span></div>
+                  <div class="num">94/120</div>
+                  <div><span class="stage dock">at dock</span></div>
+                </div>
+                <div class="recv-row">
+                  <div class="when">14m</div>
+                  <div class="nm">PO-2025-1078 · Pak Ketut Light<span class="meta">LED · $3.6k</span></div>
+                  <div class="num">0/86</div>
+                  <div><span class="stage dock">at dock</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col">
+              <h3>Low stock <em>· 3</em><span class="meta">reorder</span></h3>
+              <div class="stock-list">
+                <div class="stock-row danger">
+                  <div class="nm">Cement Tipe I 50kg<span class="meta">CEM-T1-50 · used daily</span></div>
+                  <div class="bar"><div class="fill danger" style="width: 8%;"></div></div>
+                  <div class="qty">12<br>/150</div>
+                </div>
+                <div class="stock-row warn">
+                  <div class="nm">Rebar D16 6m<span class="meta">RBR-D16 · slabs</span></div>
+                  <div class="bar"><div class="fill warn" style="width: 24%;"></div></div>
+                  <div class="qty">48<br>/200</div>
+                </div>
+                <div class="stock-row warn">
+                  <div class="nm">Waterproof PU 5L<span class="meta">WTR-PU-5</span></div>
+                  <div class="bar"><div class="fill warn" style="width: 32%;"></div></div>
+                  <div class="qty">8<br>/25</div>
+                </div>
+                <div class="stock-row">
+                  <div class="nm">Drill bits HSS<span class="meta">TLS-DRL-HSS · ops</span></div>
+                  <div class="bar"><div class="fill" style="width: 78%;"></div></div>
+                  <div class="qty">39<br>/50</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop · production</span>
+        <span>FIFO queue · stage colour code · low-stock auto-reorder thresholds</span>
+      </div>
+    </section>
+
+    <!-- 02 LAYOUT VARIANTS -->
+    <section id="variants" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Variants</span></div>
+          <h2>Three ways to organise the warehouse view</h2>
+          <p>Same data, different organising metaphor. <strong style="color:var(--doc-fg)">Variant A (above)</strong> is the operator-default: queue + stock side-by-side. <strong style="color:var(--doc-fg)">Variant B</strong> below = vendor-grouped (good for "what did Sumber Mat send this week"). <strong style="color:var(--doc-fg)">Variant C</strong> = bin-map (good for putaway / picks planning). Pick A as ship-default; B and C surface via tabs.</p>
+        </div>
+      </div>
+
+      <div class="var-grid">
+        <div class="var-card">
+          <div class="v-h"><span class="num">B</span><span class="name">Vendor-grouped</span><span class="desc">group POs by source</span></div>
+          <div data-product="development">
+            <div style="padding: 18px 20px;">
+              <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <span style="font-family: var(--mono); font-size: 10px; padding: 4px 10px; background: var(--ink); color: var(--paper); border-radius: 4px; letter-spacing: 0.10em;">VENDORS · 5</span>
+                <span style="font-family: var(--mono); font-size: 10px; padding: 4px 10px; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink-3); border-radius: 4px;">SHIFT</span>
+              </div>
+              <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                  <strong style="font-family: var(--display); font-size: 16px; color: var(--ink);">CV Mitra Beton</strong>
+                  <span style="font-family: var(--mono); font-size: 10px; color: var(--danger);">1 held</span>
+                </div>
+                <div style="font-family: var(--mono); font-size: 11px; color: var(--ink-3); line-height: 1.6;">PO-1042 · 142/156 · $8.4k<br>last QC fail · 8h</div>
+              </div>
+              <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                  <strong style="font-family: var(--display); font-size: 16px; color: var(--ink);">PT Sumber Material</strong>
+                  <span style="font-family: var(--mono); font-size: 10px; color: var(--warn);">1 in QC</span>
+                </div>
+                <div style="font-family: var(--mono); font-size: 11px; color: var(--ink-3); line-height: 1.6;">PO-1057 · 200/200 · $2.1k<br>moisture test running</div>
+              </div>
+              <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                  <strong style="font-family: var(--display); font-size: 16px; color: var(--ink);">Karya Sentosa</strong>
+                  <span style="font-family: var(--mono); font-size: 10px; color: var(--amber);">1 at dock</span>
+                </div>
+                <div style="font-family: var(--mono); font-size: 11px; color: var(--ink-3); line-height: 1.6;">PO-1071 · 94/120 · 26 short<br>vendor escalated · awaiting</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="var-card">
+          <div class="v-h"><span class="num">C</span><span class="name">Bin map</span><span class="desc">putaway / pick planner</span></div>
+          <div data-product="development">
+            <div style="padding: 18px 20px;">
+              <div style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;">Bin A · structural</div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 14px;">
+                <div style="padding: 8px 6px; background: color-mix(in oklab, var(--danger) 18%, var(--panel)); border: 1px solid var(--danger); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--danger);">A-01<br>cement<br><strong>12</strong></div>
+                <div style="padding: 8px 6px; background: color-mix(in oklab, var(--warn) 14%, var(--panel)); border: 1px solid var(--warn); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--warn);">A-02<br>rebar<br><strong>48</strong></div>
+                <div style="padding: 8px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">A-03<br>aggregate<br><strong>full</strong></div>
+                <div style="padding: 8px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">A-04<br>—</div>
+              </div>
+              <div style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;">Bin B · finishing</div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 14px;">
+                <div style="padding: 8px 6px; background: color-mix(in oklab, var(--warn) 14%, var(--panel)); border: 1px solid var(--warn); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--warn);">B-01<br>w/proof<br><strong>8</strong></div>
+                <div style="padding: 8px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">B-02<br>tile<br><strong>OK</strong></div>
+                <div style="padding: 8px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">B-03<br>grout</div>
+                <div style="padding: 8px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">B-04<br>—</div>
+              </div>
+              <div style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;">Bin C · MEP</div>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
+                <div style="padding: 8px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">C-01<br>LED</div>
+                <div style="padding: 8px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">C-02<br>cable</div>
+                <div style="padding: 8px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">C-03<br>conduit</div>
+                <div style="padding: 8px 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">C-04<br>—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop · variants</span>
+        <span>A = ship default · B for vendor reconciliation · C for putaway / pick planner</span>
+      </div>
+    </section>
+
+    <!-- 03 DETAIL -->
+    <section id="detail" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Detail</span></div>
+          <h2>Receiving detail — PO drill-in with QC chain</h2>
+          <p>Click any row in the receiving queue → full PO detail at <code>/warehouse/receive/[poId]</code>. Shows <strong style="color:var(--doc-fg)">line-item checklist</strong> with received-vs-ordered diff, <strong style="color:var(--doc-fg)">QC chain</strong> (4-step: receive → inspect → photograph → putaway), <strong style="color:var(--doc-fg)">vendor + audit metadata</strong>. The "held" stage = a line failed QC or vendor mismatch and needs decision: accept / partial / return.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="development">
+          <div class="topbar">
+            <div class="brand">Arconique<span class="sub">development · tirta-canggu</span></div>
+            <div class="role">Acting as: Warehouse <span class="chev">▾</span></div>
+            <div class="right"><span class="me"><span class="avatar">WS</span>Wayan S.</span></div>
+          </div>
+
+          <div class="det-h">
+            <div class="crumb">warehouse / receiving / PO-2025-1042</div>
+            <h2>PO-2025-1042 <em>· held</em></h2>
+            <div class="meta">
+              <span>vendor <strong>CV Mitra Beton</strong></span>
+              <span>arrived <strong>8h ago · 14:02</strong></span>
+              <span>total <strong>$8,420</strong></span>
+              <span>items <strong>142 / 156 · 14 short</strong></span>
+              <span style="color: var(--danger);">held · vendor mismatch on line 04</span>
+            </div>
+          </div>
+
+          <div class="det-body">
+            <div class="det-col">
+              <h3>Line items · 12 SKUs</h3>
+              <div class="line-list">
+                <div class="line-row head"><div>SKU · description</div><div>ordered</div><div>recv</div><div>diff</div><div>QC</div></div>
+                <div class="line-row"><div class="sku"><strong>RBR-D16</strong>Rebar D16 6m</div><div class="num">40</div><div class="num">40</div><div class="num">0</div><div class="check ok">pass</div></div>
+                <div class="line-row"><div class="sku"><strong>RBR-D12</strong>Rebar D12 6m</div><div class="num">30</div><div class="num">30</div><div class="num">0</div><div class="check ok">pass</div></div>
+                <div class="line-row"><div class="sku"><strong>CEM-T1-50</strong>Cement Tipe I 50kg</div><div class="num">40</div><div class="num">40</div><div class="num">0</div><div class="check ok">pass</div></div>
+                <div class="line-row short"><div class="sku"><strong>STL-PLT-12</strong>Steel plate 12mm 1m</div><div class="num">14</div><div class="num">0</div><div class="num warn">−14</div><div class="check fail">held</div></div>
+                <div class="line-row"><div class="sku"><strong>STL-ANG-50</strong>Angle bar 50×50×6</div><div class="num">12</div><div class="num">12</div><div class="num">0</div><div class="check ok">pass</div></div>
+                <div class="line-row"><div class="sku"><strong>BLT-M16</strong>Bolt M16×80 anchor</div><div class="num">6</div><div class="num">6</div><div class="num">0</div><div class="check ok">pass</div></div>
+                <div class="line-row"><div class="sku"><strong>WLD-ROD-3</strong>Welding rod 3mm</div><div class="num">8 box</div><div class="num">8 box</div><div class="num">0</div><div class="check ok">pass</div></div>
+              </div>
+
+              <h3 class="repeat">QC chain</h3>
+              <div class="qc-chain">
+                <span class="step"><span class="dot"></span>receive</span><span class="arr">→</span>
+                <span class="step on"><span class="dot"></span>inspect</span><span class="arr">→</span>
+                <span class="step pending"><span class="dot"></span>photograph</span><span class="arr">→</span>
+                <span class="step pending"><span class="dot"></span>putaway</span>
+              </div>
+            </div>
+
+            <div class="det-col">
+              <h3>Vendor + delivery</h3>
+              <div class="kv">
+                <div class="row"><span class="k">PO id</span><span class="v mono">PO-2025-1042</span></div>
+                <div class="row"><span class="k">vendor</span><span class="v">CV Mitra Beton</span></div>
+                <div class="row"><span class="k">contact</span><span class="v">Pak Suparman · +62 813 5544 1287</span></div>
+                <div class="row"><span class="k">driver</span><span class="v">Pak Iwan · plate B 8841 KX</span></div>
+                <div class="row"><span class="k">arrived</span><span class="v mono">14:02 · 29 may 2025</span></div>
+                <div class="row"><span class="k">delivery note</span><span class="v mono">DN-MB-2025-0294</span></div>
+                <div class="row"><span class="k">payment</span><span class="v">cash on receipt</span></div>
+                <div class="row"><span class="k">status</span><span class="v danger">held · vendor mismatch</span></div>
+              </div>
+
+              <h3 class="repeat">Held reason</h3>
+              <div style="background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--danger); border-radius: 8px; padding: 12px 14px; font-size: 12.5px; color: var(--ink-2); line-height: 1.55;">
+                <strong style="color: var(--ink);">Steel plate 12mm — 14 units missing.</strong> Vendor delivery note says 14 plates but truck delivered 0. Driver claims back-order, will deliver tomorrow. Operator marked LINE 04 as <strong>HELD</strong>; full PO cannot close until resolved.
+              </div>
+
+              <h3 class="repeat">Decisions</h3>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn btn-amber" style="width: 100%; justify-content: center;">Accept partial — receive what arrived (142 / 156)</button>
+                <button class="btn" style="width: 100%; justify-content: center;">Wait for back-order tomorrow</button>
+                <button class="btn" style="width: 100%; justify-content: center;">Return whole shipment</button>
+                <button class="btn" style="width: 100%; justify-content: center; border-color: var(--ink); color: var(--ink);">Escalate to Procurement (cabinet 15)</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop · detail</span>
+        <span>full line-by-line QC · vendor + delivery metadata · 4 decisions</span>
+        <span>·</span>
+        <span>cross-cabinet to Procurement (15) for vendor escalation</span>
+      </div>
+    </section>
+
+    <!-- 04 MOBILE -->
+    <section id="mobile" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Mobile</span></div>
+          <h2>Phone · single-task receiving + scanning</h2>
+          <p>Mobile is where warehouse really lives — operator walks the dock with a phone in hand, scanning codes, photographing damage, marking received. Two screens shown: <strong style="color:var(--doc-fg)">receiving queue list</strong> and <strong style="color:var(--doc-fg)">in-progress receive flow</strong>. Tabbar at bottom: Today · Stock · Picks · More.</p>
+        </div>
+      </div>
+
+      <div class="mobile-row">
+        <div class="mobile-frame">
+          <div class="mobile-status"><span>14:42</span><span>5G · 86%</span></div>
+          <div class="mobile-body">
+            <div data-product="development">
+              <div class="m-bar">
+                <span class="brand">Arconique</span>
+                <span class="role">Warehouse</span>
+                <span class="av">WS</span>
+              </div>
+              <div class="m-h">
+                <h3>At dock <em>· 5</em></h3>
+                <div class="sub">1 held · 2 QC · 2 staging</div>
+              </div>
+              <div class="m-kpi">
+                <div class="k"><div class="l">at dock</div><div class="v warn">5</div></div>
+                <div class="k"><div class="l">held</div><div class="v danger">1</div></div>
+                <div class="k"><div class="l">stock</div><div class="v warn">3</div></div>
+              </div>
+              <div class="m-recv">
+                <div class="m-card urgent">
+                  <div class="top"><span class="ti">PO-2025-1042</span><span class="when">8h</span></div>
+                  <div class="body"><strong>CV Mitra Beton</strong> · steel 12mm short 14</div>
+                  <div class="tags"><span class="tag danger">held</span><span class="tag">142/156</span></div>
+                </div>
+                <div class="m-card">
+                  <div class="top"><span class="ti">PO-2025-1057</span><span class="when">2h</span></div>
+                  <div class="body"><strong>PT Sumber Material</strong> · 200 bags cement</div>
+                  <div class="tags"><span class="tag warn">QC</span><span class="tag">200/200</span></div>
+                </div>
+                <div class="m-card">
+                  <div class="top"><span class="ti">PO-2025-1063</span><span class="when">1h</span></div>
+                  <div class="body"><strong>Toko Pak Made</strong> · tools 38 units</div>
+                  <div class="tags"><span class="tag warn">QC</span></div>
+                </div>
+                <div class="m-card">
+                  <div class="top"><span class="ti">PO-2025-1071</span><span class="when">38m</span></div>
+                  <div class="body"><strong>Karya Sentosa</strong> · adhesive · short 26</div>
+                  <div class="tags"><span class="tag">at dock</span></div>
+                </div>
+                <div class="m-card">
+                  <div class="top"><span class="ti">PO-2025-1078</span><span class="when">14m</span></div>
+                  <div class="body"><strong>Pak Ketut Light</strong> · LED 86 units</div>
+                  <div class="tags"><span class="tag">at dock</span></div>
+                </div>
+              </div>
+              <div class="m-tab">
+                <div class="t on"><span class="ico">⌂</span>Today</div>
+                <div class="t"><span class="ico">⌖</span>Stock</div>
+                <div class="t"><span class="ico">⌬</span>Picks</div>
+                <div class="t"><span class="ico">⋯</span>More</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-notes">
+          <h4>Mobile principles</h4>
+          <p>Warehouse operators don't sit at a desk. The phone has to work one-handed, with a code scanner mode that fills the screen on tap.</p>
+          <ol>
+            <li><strong>List = priority order.</strong> Held items first, then FIFO. No filtering unless the operator asks.</li>
+            <li><strong>Tap card → expand with QC chain</strong> + buttons (Scan · Photo · Accept · Hold).</li>
+            <li><strong>Photo button uses native camera.</strong> Damaged-goods photos are required on Held; auto-attach to PO record.</li>
+            <li><strong>Stock is read-only on phone.</strong> Adjustments require manager approval (cabinet 15).</li>
+            <li><strong>Picks tab</strong> shows site team picks of the day → tap → walk-pick mode with bin order.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">mobile · receiving</span>
+        <span>code scanner one-tap · damaged-goods photo required · stock read-only on phone</span>
+      </div>
+    </section>
+
+    <!-- 05 SCHEMA -->
+    <section id="schema" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">05</span><span>—</span><span>Implementation</span></div>
+          <h2>Schema · agents · routes</h2>
+          <p>Backed by procurement's <code>purchase_orders</code> + new <code>warehouse_receipts</code> + <code>warehouse_movements</code> tables. No dedicated AI agent needed for v1 — pure operational cabinet. Routes under <code>/warehouse/*</code> in Dev OS app dir.</p>
+        </div>
+      </div>
+
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Tables · new for 2.6</h3>
+          <dl>
+            <div><dt>warehouse_receipts</dt><dd><code>id · po_id · arrived_at · received_at · receiving_user_id · status (dock/qc/held/recv/cancelled) · vendor_note_no · driver_name · driver_vehicle_plate</code></dd></div>
+            <div><dt>receipt_lines</dt><dd><code>receipt_id · sku · ordered_qty · received_qty · qc_status (pass/fail/pending) · qc_user_id · qc_at · notes</code></dd></div>
+            <div><dt>warehouse_movements</dt><dd><code>id · kind (in/out/adjustment/transfer) · sku · qty · bin_from · bin_to · destination (site_a/site_b/ops) · executed_at · executed_by</code></dd></div>
+            <div><dt>warehouse_bins</dt><dd><code>id · bin_code · zone · capacity_units · current_qty · last_stock_count_at</code></dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Existing FKs</h3>
+          <dl>
+            <div><dt>purchase_orders</dt><dd>cabinet 15 procurement · FK source for receipts</dd></div>
+            <div><dt>vendors</dt><dd>cabinet 15 procurement · FK source for vendor reconciliation</dd></div>
+            <div><dt>materials_catalog</dt><dd>shared with BOQ (cabinet 14) · SKU source</dd></div>
+            <div><dt>app_users</dt><dd>actor on receipts + movements</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Routes</h3>
+          <dl>
+            <div><dt>/warehouse</dt><dd>hero · production view</dd></div>
+            <div><dt>/warehouse/receive/[poId]</dt><dd>PO drill-in · QC + decisions</dd></div>
+            <div><dt>/warehouse/stock</dt><dd>full SKU list · count actions</dd></div>
+            <div><dt>/warehouse/picks</dt><dd>today's picks by destination</dd></div>
+            <div><dt>/warehouse/movements</dt><dd>movements log · filterable</dd></div>
+            <div><dt>/warehouse/bins</dt><dd>variant C bin-map view</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Agents · none for v1</h3>
+          <dl>
+            <div><dt>v1</dt><dd>pure operational cabinet · no AI in v1</dd></div>
+            <div><dt>v2 candidate</dt><dd><code>stock-forecaster</code> — predicts run-outs from movement velocity</dd></div>
+            <div><dt>v2 candidate</dt><dd><code>damage-photo-classifier</code> — at receipt, auto-tags damaged-goods photos</dd></div>
+            <div><dt>v2 candidate</dt><dd><code>putaway-optimiser</code> — suggests bin assignment based on pick frequency</dd></div>
+          </dl>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+</body>
+</html>

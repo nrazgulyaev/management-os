@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mobile pass · Auth + P3 clusters + Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --doc-bg:#0F1014; --doc-bg-2:#16171C; --doc-bg-3:#1F2129;
+  --doc-line:rgba(255,255,255,0.06); --doc-line-2:rgba(255,255,255,0.10);
+  --doc-fg:#E6E5E0; --doc-fg-2:#BBB9B0; --doc-fg-3:#8B8B85; --doc-accent:#C4583C;
+  --doc-mono:"JetBrains Mono",ui-monospace,monospace; --doc-sans:"Inter",system-ui,sans-serif;
+}
+[data-product="management"]{
+  --paper:#FAF6EE; --cream:#F4EFE6; --cream-warm:#ECE5D5; --cream-deep:#E5DECC;
+  --ink:#14201C; --ink-2:#2F3D38; --ink-3:#5C6B65; --ink-4:#8E9A95;
+  --line:#DAD2C0; --line-soft:#E5DECC;
+  --accent:#C4583C; --accent-soft:#E8B8A4; --on-accent:#FFF8F0;
+  --inverted-bg:#1F3A33; --inverted-fg:#F4EFE6; --forest:#1F3A33;
+  --ok:#4F7A5D; --warn:#C18A2E; --danger:#B53826; --info:#3A6B9C; --gold:#8c6f33; --gold-soft:#DCC691;
+  --mint:#D8E8D6; --sky:#D4E2EC; --peach:#F6D9CB; --butter:#F5E9B8;
+  --display-font:"Newsreader",Georgia,serif; --sans-font:"Inter",system-ui,sans-serif; --mono-font:"JetBrains Mono",monospace;
+  --r-pill:999px; --r-card:14px; --r-card-lg:20px;
+}
+[data-product="development"]{
+  --paper:#FFFFFF; --cream:#F1ECE0; --cream-warm:#F8F4EA; --cream-deep:#ECE6D5; --panel:#FFFFFF; --bg-2:#F8F4EA; --bg-3:#FFFCF4;
+  --ink:#14130E; --ink-2:#3D3B33; --ink-3:#6E6B5E; --ink-4:#95917F;
+  --line:#E5DECC; --line-soft:#ECE6D5; --line-2:#D8CFB7;
+  --accent:#FF6B35; --accent-soft:#FFB088; --on-accent:#14130E; --steel:#3D5A7A;
+  --inverted-bg:#14130E; --inverted-fg:#FFFFFF;
+  --ok:#4F8A5D; --warn:#C58A2E; --danger:#C2474E; --info:#3D5A7A; --gold:#BC9A5C; --gold-soft:#FFB088;
+  --display-font:"Space Grotesk",system-ui,sans-serif; --sans-font:"Inter",system-ui,sans-serif; --mono-font:"IBM Plex Mono",monospace;
+  --r-pill:999px; --r-card:14px; --r-card-lg:18px;
+}
+[data-product="platform"]{
+  --paper:#141922; --cream:#0E1116; --cream-warm:#141922; --cream-deep:#1A212C; --panel:#141922;
+  --ink:#E7ECF2; --ink-2:#B7C0CC; --ink-3:#8591A0; --ink-4:#5E6A78;
+  --line:#26303C; --line-soft:#1E2731; --line-2:#2C3744;
+  --accent:#5B9DFF; --accent-soft:#9CC2FF; --on-accent:#08111F; --steel:#5B9DFF;
+  --inverted-bg:#080B10; --inverted-fg:#E7ECF2;
+  --ok:#4FB477; --warn:#D6A23A; --danger:#E0575F; --info:#5B9DFF; --gold:#E0B341; --gold-soft:#9CC2FF;
+  --display-font:"Space Grotesk",system-ui,sans-serif; --sans-font:"Inter",system-ui,sans-serif; --mono-font:"IBM Plex Mono",monospace;
+  --r-pill:999px; --r-card:14px; --r-card-lg:18px;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--doc-bg); color:var(--doc-fg); font-family:var(--doc-sans); -webkit-font-smoothing:antialiased; }
+.page { min-height:100vh; padding:56px 40px 96px; }
+.page-head { max-width:1500px; margin:0 auto 48px; }
+.eyebrow { font-family:var(--doc-mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--doc-accent); display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.eyebrow .glyph { width:6px; height:6px; background:var(--doc-accent); border-radius:2px; }
+h1.title { font-weight:600; font-size:38px; line-height:1.05; letter-spacing:-.02em; margin:0; font-family:var(--doc-sans); }
+h1.title em { color:var(--doc-accent); font-style:italic; font-weight:400; }
+.lede { max-width:760px; margin:16px 0 0; font-size:14.5px; color:var(--doc-fg-2); line-height:1.65; }
+.meta-row { display:flex; gap:28px; flex-wrap:wrap; margin-top:24px; padding-top:20px; border-top:1px solid var(--doc-line); font-size:13px; }
+.meta-row > div { display:flex; flex-direction:column; gap:4px; }
+.meta-row .k { font-family:var(--doc-mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--doc-fg-3); }
+.meta-row .v { color:var(--doc-fg); }
+.boards { max-width:1500px; margin:0 auto; display:flex; flex-direction:column; gap:64px; }
+.sect { padding-top:30px; border-top:1px solid var(--doc-line); }
+.sect-h { display:flex; align-items:baseline; gap:16px; margin-bottom:8px; flex-wrap:wrap; }
+.sect-h .n { font-family:var(--doc-mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--doc-fg-3); padding:5px 10px; border:1px solid var(--doc-line-2); border-radius:4px; }
+.sect-h h2 { margin:0; font-weight:600; font-size:25px; letter-spacing:-.015em; }
+.sect-h .sub { font-family:var(--doc-mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; margin-left:auto; padding:4px 10px; border-radius:999px; border:1px solid var(--doc-line-2); color:var(--doc-fg-2); }
+.sect-lede { max-width:780px; font-size:14px; color:var(--doc-fg-2); line-height:1.6; margin:0 0 28px; }
+.rail { display:flex; gap:30px; flex-wrap:wrap; }
+.frame-col { display:flex; flex-direction:column; gap:12px; }
+.frame-tag { display:flex; align-items:center; gap:10px; font-family:var(--doc-mono); font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--doc-fg-3); }
+.frame-tag .name { color:var(--doc-fg); }
+.frame-tag .role { padding:2px 7px; border:1px solid var(--doc-line-2); border-radius:4px; color:var(--doc-fg-2); font-size:9px; }
+
+/* phone */
+.phone { width:332px; height:710px; border-radius:42px; background:#0A0B0F; padding:9px; box-shadow:0 20px 60px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06); position:relative; }
+.phone-notch { position:absolute; top:15px; left:50%; transform:translateX(-50%); width:104px; height:26px; background:#0A0B0F; border-radius:13px; z-index:3; }
+.scr { width:100%; height:100%; border-radius:33px; background:var(--cream); overflow:hidden; display:flex; flex-direction:column; }
+.stat { height:36px; display:flex; align-items:center; justify-content:space-between; padding:13px 22px 3px; font-family:var(--mono-font); font-size:12px; color:var(--ink); font-weight:500; flex-shrink:0; }
+.body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.tbar { display:flex; align-items:center; gap:10px; padding:7px 15px 11px; border-bottom:1px solid var(--line-soft); flex-shrink:0; }
+.tbar .ti { flex:1; font-family:var(--display-font); font-size:17px; color:var(--ink); line-height:1.1; }
+.tbar .ti .sub { display:block; font-family:var(--mono-font); font-size:9.5px; text-transform:uppercase; letter-spacing:.14em; color:var(--ink-3); margin-top:2px; }
+.tbar .av { width:30px; height:30px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:500; color:var(--inverted-fg); background:linear-gradient(135deg,var(--gold-soft),var(--accent)); }
+.scroll { flex:1; overflow-y:auto; padding:0 0 12px; }
+.tabbar { display:flex; border-top:1px solid var(--line-soft); background:var(--paper); padding-bottom:13px; flex-shrink:0; }
+.tabbar .tb { flex:1; padding:9px 0 5px; display:flex; flex-direction:column; align-items:center; gap:4px; font-family:var(--mono-font); font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-4); background:transparent; border:0; }
+.tabbar .tb.on { color:var(--ink); }
+.tabbar .tb.on .i { color:var(--accent); }
+.tabbar .i { width:21px; height:21px; display:inline-flex; align-items:center; justify-content:center; }
+.sech { display:flex; align-items:center; gap:8px; padding:13px 15px 7px; font-family:var(--mono-font); font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-3); }
+.sech .more { margin-left:auto; color:var(--ink-4); font-family:var(--sans-font); font-size:11px; text-transform:none; letter-spacing:0; }
+
+/* components */
+[data-product] .badge { display:inline-flex; align-items:center; padding:2px 7px; border-radius:999px; font-family:var(--mono-font); font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; border:1px solid var(--line); background:var(--paper); color:var(--ink-3); }
+[data-product] .badge-ok { background:color-mix(in oklab,var(--ok) 14%,transparent); color:var(--ok); border-color:color-mix(in oklab,var(--ok) 35%,transparent); }
+[data-product] .badge-warn { background:color-mix(in oklab,var(--warn) 14%,transparent); color:var(--warn); border-color:color-mix(in oklab,var(--warn) 35%,transparent); }
+[data-product] .badge-danger { background:color-mix(in oklab,var(--danger) 14%,transparent); color:var(--danger); border-color:color-mix(in oklab,var(--danger) 35%,transparent); }
+[data-product] .badge-accent { background:color-mix(in oklab,var(--accent) 14%,transparent); color:var(--accent); border-color:color-mix(in oklab,var(--accent) 35%,transparent); }
+[data-product] .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:11px 16px; border-radius:var(--r-pill); font-family:var(--sans-font); font-size:14px; font-weight:500; border:1px solid transparent; cursor:pointer; line-height:1; background:transparent; width:100%; }
+[data-product] .btn-accent { background:var(--accent); color:var(--on-accent); }
+[data-product] .btn-secondary { background:var(--cream-warm); color:var(--ink); border-color:var(--line); }
+[data-product] .field { display:block; margin:0 15px 12px; }
+[data-product] .field .lab { font-family:var(--mono-font); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); display:block; margin-bottom:5px; }
+[data-product] .field .inp { width:100%; height:42px; border:1px solid var(--line); border-radius:10px; background:var(--paper); padding:0 13px; font-family:var(--sans-font); font-size:14px; color:var(--ink-3); display:flex; align-items:center; }
+.mcard { margin:0 15px 10px; border:1px solid var(--line-soft); border-radius:var(--r-card); background:var(--paper); padding:13px 14px; }
+.mcard.warn { border-left:3px solid var(--warn); }
+.mcard.danger { border-left:3px solid var(--danger); }
+.mcard.accent { border-left:3px solid var(--accent); }
+.mrow { display:flex; align-items:center; gap:11px; padding:11px 15px; border-bottom:1px solid var(--line-soft); }
+.mrow .ic { width:34px; height:34px; border-radius:9px; background:var(--cream-deep); color:var(--ink-2); display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; font-family:var(--mono-font); font-size:11px; }
+.mrow .ti { flex:1; min-width:0; }
+.mrow .ti .t { font-size:13.5px; color:var(--ink); font-weight:500; }
+.mrow .ti .s { font-family:var(--mono-font); font-size:10.5px; color:var(--ink-3); margin-top:2px; }
+.kpis { display:grid; grid-template-columns:1fr 1fr; gap:9px; padding:13px 15px 4px; }
+.kpi { border:1px solid var(--line-soft); border-radius:12px; background:var(--paper); padding:12px 13px; }
+.kpi .l { font-family:var(--mono-font); font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); }
+.kpi .v { font-family:var(--mono-font); font-size:24px; color:var(--ink); margin-top:4px; font-variant-numeric:tabular-nums; line-height:1; }
+.kpi .v.accent { color:var(--accent); } .kpi .v.ok { color:var(--ok); } .kpi .v.warn { color:var(--warn); } .kpi .v.danger { color:var(--danger); }
+.kpi .s { font-size:10.5px; color:var(--ink-4); margin-top:3px; }
+.kpi.wide { grid-column:span 2; }
+.hero { margin:13px 15px 4px; border-radius:16px; background:var(--inverted-bg); color:var(--inverted-fg); padding:17px; position:relative; overflow:hidden; }
+.hero .l { font-family:var(--mono-font); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.6); }
+.hero .v { font-family:var(--display-font); font-size:32px; margin-top:6px; line-height:1; }
+.hero .v em { color:var(--gold-soft); font-style:italic; }
+.hero .s { font-size:12px; color:rgba(255,255,255,.7); margin-top:8px; }
+.note { margin:0 40px; font-size:13.5px; color:var(--doc-fg-2); line-height:1.6; max-width:780px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <div class="eyebrow"><span class="glyph"></span>Mobile pass · 2.5 – 2.7 new surfaces</div>
+    <h1 class="title">Mobile variants — <em>auth, P3 clusters, platform</em>.</h1>
+    <p class="lede">The Phase 2.5–2.7 work (auth suite, 9 secondary cabinet clusters, platform console) shipped desktop-first. Mobile is first-class per the design rules — this pass shows the phone variant for every surface an operator, owner, or admin actually opens on a phone: sign-in, on-property ops, finance alerts, the messaging inbox, and the platform churn glance. Desk-only analytics (waterfalls, big tables) collapse to summary cards + "open on desktop" affordances.</p>
+    <div class="meta-row">
+      <div><span class="k">Source</span><span class="v">auth/ · cabinets/mgmt-p3 · dev-p3 · super-admin</span></div>
+      <div><span class="k">Themes</span><span class="v">management · development · platform</span></div>
+      <div><span class="k">Frames</span><span class="v">8 curated · 4 surfaces</span></div>
+      <div><span class="k">Pattern</span><span class="v">fixed tabbar · sidebar → bottom-sheet</span></div>
+    </div>
+  </div>
+
+  <div class="boards">
+
+    <!-- AUTH -->
+    <section class="sect">
+      <div class="sect-h"><span class="n">A · auth</span><h2>Sign-in — every user's first screen</h2><span class="sub">single column · panel drops</span></div>
+      <p class="sect-lede">On desktop, auth is a 2-column split (form + brand panel). On mobile the brand panel collapses and the form takes the full screen — the most-used mobile surface in the whole product. Product theming still flows through (management shown; dev/owner/platform swap palette + copy).</p>
+      <div class="rail">
+        <div class="frame-col"><div class="frame-tag"><span class="name">Sign in</span><span class="role">management</span></div>
+          <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+            <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+            <div class="body">
+              <div class="scroll">
+                <div style="padding:30px 22px 0; display:flex; align-items:center; gap:10px;">
+                  <svg width="24" height="24" viewBox="0 0 32 32" fill="none"><path d="M16 4 L28 14 H24 L16 8 L8 14 H4 Z" fill="var(--accent)"/><path d="M16 13 L25 20 H21.5 L16 16 L10.5 20 H7 Z" fill="var(--accent)" opacity=".6"/></svg>
+                  <div style="line-height:1.1"><div style="font-family:var(--display-font); font-size:18px; color:var(--ink)">Arconique</div><div style="font-family:var(--mono-font); font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3)">Management OS</div></div>
+                </div>
+                <div style="padding:40px 22px 22px">
+                  <div style="font-family:var(--mono-font); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent)">Staff workspace</div>
+                  <div style="font-family:var(--display-font); font-size:38px; line-height:1; letter-spacing:-.025em; color:var(--ink); margin-top:12px">Welcome <em style="font-style:italic; color:var(--accent)">back.</em></div>
+                  <div style="font-size:14px; color:var(--ink-3); margin-top:11px; line-height:1.5">Sign in to run today's property — bookings, owners, front office.</div>
+                </div>
+                <div class="field"><span class="lab">Work email</span><div class="inp">you@company.com</div></div>
+                <div class="field"><span class="lab">Password</span><div class="inp">••••••••</div></div>
+                <div style="padding:4px 15px 0"><div class="btn btn-accent">Continue →</div></div>
+                <div style="display:flex; align-items:center; gap:10px; padding:14px 15px; color:var(--ink-4); font-family:var(--mono-font); font-size:10px; text-transform:uppercase; letter-spacing:.14em"><span style="flex:1; height:1px; background:var(--line)"></span>or<span style="flex:1; height:1px; background:var(--line)"></span></div>
+                <div style="padding:0 15px"><div class="btn btn-secondary">⛨ Continue with SSO</div></div>
+                <div style="padding:22px 15px 0; text-align:center; font-size:13px; color:var(--ink-3)">New here? <span style="color:var(--ink); text-decoration:underline; text-underline-offset:3px">Start a trial</span></div>
+              </div>
+            </div>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MGMT P3 -->
+    <section class="sect">
+      <div class="sect-h"><span class="n">B · mgmt p3</span><h2>Management secondary · on-property</h2><span class="sub">cream + terra</span></div>
+      <p class="sect-lede">The mgmt P3 cabinets an operator opens between villas: guest-stay access, the security/ops glance, and villa readiness before an arrival. Tables become tap-through cards; the desktop sidebar becomes the fixed bottom tabbar + a "More" sheet.</p>
+      <div class="rail">
+
+        <div class="frame-col"><div class="frame-tag"><span class="name">Guest stays</span><span class="role">C1</span></div>
+          <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+            <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+            <div class="body">
+              <div class="tbar"><div class="ti">Guest stays<span class="sub">Access &amp; tokens</span></div><span class="av">EW</span></div>
+              <div class="scroll">
+                <div class="kpis"><div class="kpi"><div class="l">Active tokens</div><div class="v accent">38</div></div><div class="kpi"><div class="l">Check-ins · 14d</div><div class="v">11</div></div></div>
+                <div class="sech">Active stays <span class="more">All →</span></div>
+                <div class="mrow"><span class="ic">TF</span><div class="ti"><div class="t">Tan Family</div><div class="s">canggu-04 · 14–18 Jun</div></div><span class="badge badge-ok">In-house</span></div>
+                <div class="mrow"><span class="ic">MO</span><div class="ti"><div class="t">M. Okafor</div><div class="s">uluwatu-01 · 12–15 Jun</div></div><span class="badge badge-ok">In-house</span></div>
+                <div class="mrow"><span class="ic">LQ</span><div class="ti"><div class="t">Lindqvist +2</div><div class="s">seminyak-05 · 15–22 Jun</div></div><span class="badge badge-warn">Pre-arr</span></div>
+                <div style="padding:13px 15px 0"><div class="btn btn-accent">+ New stay token</div></div>
+              </div>
+              <div class="tabbar"><button class="tb on"><span class="i">▦</span>Stays</button><button class="tb"><span class="i">◷</span>Services</button><button class="tb"><span class="i">✦</span>Journey</button><button class="tb"><span class="i">···</span>More</button></div>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="frame-col"><div class="frame-tag"><span class="name">Security</span><span class="role">C4</span></div>
+          <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+            <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+            <div class="body">
+              <div class="tbar"><div class="ti">Security<span class="sub">Overview</span></div><span class="av">EW</span></div>
+              <div class="scroll">
+                <div class="hero"><div class="l">Security · cabinet</div><div class="v">Site is <em>quiet</em>.</div><div class="s">2 events need a look</div></div>
+                <div class="kpis"><div class="kpi"><div class="l">Open incidents</div><div class="v">2</div></div><div class="kpi"><div class="l">Camera health</div><div class="v ok">94%</div></div><div class="kpi"><div class="l">Patrols today</div><div class="v">83%</div></div><div class="kpi"><div class="l">Auth · 7d</div><div class="v warn">41</div></div></div>
+                <div class="sech">Recent events</div>
+                <div class="mrow"><span class="ic" style="color:var(--danger)">!</span><div class="ti"><div class="t">Failed login ×5 · throttled</div><div class="s">09:14 · critical</div></div></div>
+                <div class="mrow"><span class="ic" style="color:var(--warn)">⟳</span><div class="ti"><div class="t">MFA reset requested</div><div class="s">07:02 · medium</div></div></div>
+              </div>
+              <div class="tabbar"><button class="tb on"><span class="i">⛨</span>Security</button><button class="tb"><span class="i">◷</span>Jobs</button><button class="tb"><span class="i">▤</span>Audit</button><button class="tb"><span class="i">···</span>More</button></div>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="frame-col"><div class="frame-tag"><span class="name">Readiness</span><span class="role">C5</span></div>
+          <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="management">
+            <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+            <div class="body">
+              <div class="tbar"><div class="ti">Readiness<span class="sub">Is the villa ready?</span></div><span class="av">EW</span></div>
+              <div class="scroll">
+                <div class="mcard warn"><div style="font-size:14px; color:var(--ink); font-weight:500; margin-bottom:4px">⚠ 2 arrivals today · not ready</div><div style="font-size:12px; color:var(--ink-3); line-height:1.5">Confirm cleaning + inspection before guest arrival.</div></div>
+                <div class="sech">Current state <span class="more">22 villas</span></div>
+                <div class="mrow"><div class="ti"><div class="t">tirta-canggu-04</div><div class="s">since 14 Jun 14:02</div></div><span class="badge badge-accent">occupied</span></div>
+                <div class="mrow"><div class="ti"><div class="t">sukha-uluwatu-01</div><div class="s">since 12 Jun 11:30</div></div><span class="badge badge-ok">ready</span></div>
+                <div class="mrow"><div class="ti"><div class="t">es-seminyak-05</div><div class="s">cleaner ETA 14:30</div></div><span class="badge badge-warn">cleaning</span></div>
+                <div class="mrow"><div class="ti"><div class="t">ah-ubud-02</div><div class="s">AC replacement</div></div><span class="badge badge-danger">maint</span></div>
+              </div>
+              <div class="tabbar"><button class="tb"><span class="i">✦</span>AI</button><button class="tb"><span class="i">▦</span>Avail</button><button class="tb on"><span class="i">✓</span>Ready</button><button class="tb"><span class="i">···</span>More</button></div>
+            </div>
+          </div></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- DEV P3 -->
+    <section class="sect">
+      <div class="sect-h"><span class="n">C · dev p3</span><h2>Development secondary · alerts &amp; inbox</h2><span class="sub">sand + amber</span></div>
+      <p class="sect-lede">A CFO checks the cash runway alert on a phone; sales/PM answer the unified inbox. The CFO waterfall + P&amp;L tables are desk-only — mobile shows the headline cash KPIs + the reserve-breach alert with an "open console" link.</p>
+      <div class="rail">
+
+        <div class="frame-col"><div class="frame-tag"><span class="name">CFO cash</span><span class="role">C6</span></div>
+          <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+            <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+            <div class="body">
+              <div class="tbar"><div class="ti">CFO console<span class="sub">Cash &amp; runway</span></div><span class="av">DK</span></div>
+              <div class="scroll">
+                <div class="kpis"><div class="kpi wide"><div class="l">Cash on hand</div><div class="v ok" style="font-size:30px">$2.41M</div><div class="s">across SPV banks</div></div><div class="kpi"><div class="l">AR open</div><div class="v accent">$840K</div></div><div class="kpi"><div class="l">Burn · 30d</div><div class="v">$540K</div></div></div>
+                <div class="mcard warn" style="margin-top:8px"><div style="font-size:13px; color:var(--ink); line-height:1.5">Forecast crosses <strong style="color:var(--accent)">$500K reserve</strong> in week 41. Capital call 05 likely by 15 May.</div></div>
+                <div class="sech">Cash · 8 weeks</div>
+                <div style="display:flex; align-items:flex-end; gap:5px; height:90px; padding:4px 15px 0">
+                  <div style="flex:1; height:88px; background:var(--steel); border-radius:3px 3px 0 0"></div><div style="flex:1; height:82px; background:var(--steel); border-radius:3px 3px 0 0"></div><div style="flex:1; height:78px; background:var(--steel); border-radius:3px 3px 0 0"></div><div style="flex:1; height:70px; background:var(--accent); opacity:.75; border-radius:3px 3px 0 0"></div><div style="flex:1; height:64px; background:var(--accent); opacity:.75; border-radius:3px 3px 0 0"></div><div style="flex:1; height:58px; background:var(--accent); opacity:.75; border-radius:3px 3px 0 0"></div><div style="flex:1; height:54px; background:var(--accent); opacity:.75; border-radius:3px 3px 0 0"></div><div style="flex:1; height:50px; background:var(--accent); opacity:.75; border-radius:3px 3px 0 0"></div>
+                </div>
+                <div style="padding:14px 15px 0"><div class="btn btn-secondary">Open full console →</div></div>
+              </div>
+              <div class="tabbar"><button class="tb on"><span class="i">$</span>CFO</button><button class="tb"><span class="i">◷</span>Cashflow</button><button class="tb"><span class="i">▦</span>Banking</button><button class="tb"><span class="i">···</span>More</button></div>
+            </div>
+          </div></div>
+        </div>
+
+        <div class="frame-col"><div class="frame-tag"><span class="name">Unified inbox</span><span class="role">C9</span></div>
+          <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+            <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+            <div class="body">
+              <div class="tbar"><div class="ti">Inbox<span class="sub">46 · 12 unread</span></div><span class="av">PD</span></div>
+              <div class="scroll">
+                <div class="chips" style="display:flex; gap:6px; padding:10px 12px 4px; overflow-x:auto"><span class="badge badge-accent">All</span><span class="badge">WhatsApp</span><span class="badge">IG</span><span class="badge">Email</span></div>
+                <div class="mrow"><span class="ic">WA</span><div class="ti"><div class="t">James Whitfield</div><div class="s">"When is the next payment due?"</div></div><span class="badge badge-warn">3</span></div>
+                <div class="mrow"><span class="ic">IG</span><div class="ti"><div class="t">@bali.investor</div><div class="s">"2BR available?"</div></div><span class="badge badge-warn">1</span></div>
+                <div class="mrow"><span class="ic">EM</span><div class="ti"><div class="t">L. Tanaka</div><div class="s">Re: contract amendment</div></div><span class="badge">read</span></div>
+                <div class="mrow"><span class="ic">TG</span><div class="ti"><div class="t">Anchor Fund</div><div class="s">Q2 distribution timing</div></div><span class="badge">read</span></div>
+                <div class="mrow"><span class="ic">SM</span><div class="ti"><div class="t">Mega Glass</div><div class="s">Delivery delayed to 28 May</div></div><span class="badge badge-warn">1</span></div>
+              </div>
+              <div class="tabbar"><button class="tb"><span class="i">◴</span>Mktg</button><button class="tb on"><span class="i">✉</span>Inbox</button><button class="tb"><span class="i">⟳</span>Cycle</button><button class="tb"><span class="i">···</span>More</button></div>
+            </div>
+          </div></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- PLATFORM -->
+    <section class="sect">
+      <div class="sect-h"><span class="n">D · platform</span><h2>Platform Admin · the on-call glance</h2><span class="sub">dark · cool blue</span></div>
+      <p class="sect-lede">The operator checks churn and trials-ending from a phone. Dark technical theme carries to mobile; the per-tier revenue table is desk-only, mobile leads with MRR + the status filter and the org list.</p>
+      <div class="rail">
+
+        <div class="frame-col"><div class="frame-tag"><span class="name">Organizations</span><span class="role">2.5</span></div>
+          <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="platform">
+            <div class="stat" style="color:var(--ink)"><span>9:41</span><span>5G · 86%</span></div>
+            <div class="body">
+              <div class="tbar"><div class="ti">Organizations<span class="sub">38 customers</span></div><span class="av">NR</span></div>
+              <div class="scroll">
+                <div class="kpis"><div class="kpi"><div class="l">Active</div><div class="v ok">26</div></div><div class="kpi"><div class="l">Trial</div><div class="v accent">9</div></div><div class="kpi"><div class="l">Grace</div><div class="v warn">2</div></div><div class="kpi"><div class="l">Churn 30d</div><div class="v danger">1</div></div></div>
+                <div class="chips" style="display:flex; gap:6px; padding:10px 15px 4px; overflow-x:auto"><span class="badge badge-accent">All</span><span class="badge">Active</span><span class="badge">Trial</span><span class="badge">Grace</span></div>
+                <div class="mrow"><div class="ti"><div class="t">Whitmore Villa Group</div><div class="s">Pro · $499 · mgmt</div></div><span class="badge badge-ok">Active</span></div>
+                <div class="mrow"><div class="ti"><div class="t">Bukit Dev Co</div><div class="s">Enterprise · $1,200</div></div><span class="badge badge-ok">Active</span></div>
+                <div class="mrow"><div class="ti"><div class="t">Seseh Estates</div><div class="s">Trial ends in 6d</div></div><span class="badge badge-accent">Trial</span></div>
+                <div class="mrow"><div class="ti"><div class="t">Ubud Holdings</div><div class="s">retry 3/4 · $249</div></div><span class="badge badge-warn">Grace</span></div>
+              </div>
+              <div class="tabbar"><button class="tb on"><span class="i">▦</span>Orgs</button><button class="tb"><span class="i">$</span>Revenue</button><button class="tb"><span class="i">✦</span>Agents</button><button class="tb"><span class="i">···</span>More</button></div>
+            </div>
+          </div></div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="sect">
+      <div class="sect-h"><span class="n">E · rule</span><h2>What stays desk-only</h2></div>
+      <p class="note">Deliberately not given a phone variant: the CFO capital-waterfall, the per-tier revenue table, the dynamic-pricing curve, the BOQ variance grid, and the platform audit export. These are review/analysis surfaces an operator uses sitting down — on mobile they collapse to a headline KPI + an "open on desktop" link rather than a cramped re-layout. Every <em>actionable</em> surface (sign-in, approvals, alerts, inbox, readiness, org status) gets a real mobile screen.</p>
+    </section>
+
+  </div>
+</div>
+</body>
+</html>

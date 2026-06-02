@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mgmt OS · Inventory &amp; procurement (v2)</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+[data-product="management"] {
+  --paper: #FBF7EE; --canvas: #F4ECD8; --panel: #FFFFFF; --panel-2: #F8F2E2; --panel-deep: #EDE2C5;
+  --ink: #14201C; --ink-2: #2C3935; --ink-3: #4A574F; --ink-4: #6B7864; --ink-5: #91987F;
+  --line: #DAD2C0; --line-soft: #E5DDC7; --line-strong: #B8B099;
+  --terra: #B5552B; --terra-deep: #813B1A; --terra-soft: #D4866B;
+  --forest: #406853; --amber: #C68E36; --ok: #5F8B62; --warn: #C49845; --danger: #B45239;
+  --display: "Newsreader", Georgia, serif;
+  --sans: "Inter", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+:root { --doc-bg: #14201C; --doc-bg-2: #1B2B26; --doc-bg-3: #243731; --doc-fg: #ECE0BF; --doc-fg-2: #C1B89F; --doc-fg-3: #8A8473; --doc-accent: #D4866B; --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10); }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc { border-right: 1px solid var(--doc-line); padding: 36px 22px; background: var(--doc-bg-2); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.ds-mark { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 22px; }
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 { margin: 0 0 22px; font-family: var(--sans); font-weight: 500; font-size: 19px; color: var(--doc-fg); }
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 10px; }
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a { display: block; padding: 6px 8px; text-decoration: none; color: var(--doc-fg-2); font-size: 13px; border-radius: 4px; margin-bottom: 1px; }
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+.ds-toc .back { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-toc .back a { color: var(--doc-accent); font-size: 12.5px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1300px; }
+.cab-cover { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { margin: 0; font-family: var(--sans); font-weight: 500; font-size: 44px; line-height: 1.05; letter-spacing: -0.025em; }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.ds-section { margin-bottom: 76px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-section h2 { margin: 0; font-family: var(--sans); font-weight: 500; font-size: 26px; color: var(--doc-fg); }
+.ds-section p { max-width: 760px; margin: 8px 0 0; font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65; }
+.ds-section p code { font-family: var(--mono); font-size: 12.5px; background: var(--doc-bg-3); padding: 1px 6px; border-radius: 4px; color: var(--doc-accent); }
+
+.artboard { margin-top: 20px; border: 1px solid var(--doc-line); border-radius: 18px; background: var(--canvas); overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.artboard-caption { display: flex; gap: 10px; margin-top: 14px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.artboard-caption .pill { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); color: var(--doc-accent); }
+
+.var-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 14px; }
+.var-card { border: 1px solid var(--doc-line); border-radius: 14px; background: var(--canvas); overflow: hidden; }
+.var-card .v-h { padding: 12px 16px; background: var(--doc-bg-3); border-bottom: 1px solid var(--doc-line); display: flex; gap: 10px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-2); }
+.var-card .v-h .num { background: var(--doc-bg); padding: 2px 8px; border-radius: 4px; color: var(--doc-accent); }
+.var-card .v-h .name { color: var(--doc-fg); }
+.var-card .v-h .desc { margin-left: auto; color: var(--doc-fg-3); }
+
+.mobile-row { display: grid; grid-template-columns: 360px 1fr; gap: 32px; align-items: start; }
+.mobile-frame { width: 360px; border: 1px solid var(--doc-line); border-radius: 30px; overflow: hidden; background: var(--canvas); }
+.mobile-status { padding: 10px 22px 6px; display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink); font-weight: 600; }
+.mobile-notes { padding-top: 16px; color: var(--doc-fg-2); }
+.mobile-notes h4 { margin: 0 0 6px; font-size: 14px; font-weight: 500; color: var(--doc-fg); }
+.mobile-notes p { margin: 0 0 14px; font-size: 13px; line-height: 1.6; }
+.mobile-notes ol { margin: 0; padding-left: 20px; }
+.mobile-notes li { margin-bottom: 6px; font-size: 13px; line-height: 1.55; }
+.mobile-notes li strong { color: var(--doc-fg); }
+
+.notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+.notes-card { background: var(--doc-bg-2); border: 1px solid var(--doc-line); border-radius: 12px; padding: 18px 20px; }
+.notes-card h3 { margin: 0 0 12px; font-size: 14px; font-weight: 500; color: var(--doc-fg); }
+.notes-card dl > div { display: grid; grid-template-columns: 130px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--doc-line); font-size: 12.5px; }
+.notes-card dl > div:last-child { border-bottom: 0; }
+.notes-card dt { font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes-card dd { margin: 0; color: var(--doc-fg-2); line-height: 1.55; }
+.notes-card dd code { font-family: var(--mono); font-size: 11px; color: var(--doc-fg); background: var(--doc-bg-3); padding: 1px 6px; border-radius: 3px; }
+
+/* Product chrome */
+[data-product="management"] { font-family: var(--sans); color: var(--ink); }
+[data-product] .topbar { display: flex; align-items: center; gap: 16px; padding: 14px 24px; background: var(--ink); color: var(--paper); }
+[data-product] .topbar .brand { font-family: var(--display); font-size: 18px; }
+[data-product] .topbar .brand .sub { font-family: var(--mono); font-size: 9.5px; color: rgba(251,247,238,0.55); letter-spacing: 0.16em; text-transform: uppercase; display: block; margin-top: 1px; }
+[data-product] .topbar .right { margin-left: auto; display: flex; gap: 14px; align-items: center; font-family: var(--mono); font-size: 11px; color: rgba(251,247,238,0.6); }
+[data-product] .topbar .me .avatar { display: inline-flex; width: 26px; height: 26px; border-radius: 50%; background: var(--terra); color: white; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; margin-right: 6px; }
+
+[data-product] .page-h { padding: 22px 28px; background: var(--canvas); border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 22px; }
+[data-product] .page-h .crumb { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .page-h h2 { margin: 6px 0 0; font-family: var(--display); font-size: 30px; font-weight: 400; color: var(--ink); }
+[data-product] .page-h h2 em { color: var(--terra); font-style: italic; }
+[data-product] .page-h .sub { margin-top: 4px; font-size: 13.5px; color: var(--ink-3); }
+[data-product] .page-h .right { margin-left: auto; display: flex; gap: 8px; }
+[data-product] .btn { padding: 9px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); cursor: pointer; }
+[data-product] .btn-primary { background: var(--terra); color: white; border-color: var(--terra); }
+[data-product] .btn-ink { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+[data-product] .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); padding: 16px 28px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .kpi { padding: 14px 18px; border-right: 1px solid var(--line); }
+[data-product] .kpi:last-child { border-right: 0; }
+[data-product] .kpi .l { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .kpi .v { font-family: var(--display); font-size: 26px; color: var(--ink); margin-top: 3px; }
+[data-product] .kpi .v.warn { color: var(--warn); }
+[data-product] .kpi .v.terra { color: var(--terra); }
+[data-product] .kpi .ctx { font-family: var(--mono); font-size: 10.5px; color: var(--ink-4); margin-top: 3px; }
+
+/* Hero · low-stock + POs + vendors (3-col) */
+[data-product] .body-grid-3 { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 0; }
+[data-product] .col { padding: 22px 28px; border-right: 1px solid var(--line); }
+[data-product] .col:last-child { border-right: 0; }
+[data-product] .col h3 { margin: 0 0 12px; font-family: var(--display); font-size: 20px; font-weight: 400; color: var(--ink); display: flex; align-items: baseline; gap: 8px; }
+[data-product] .col h3 em { color: var(--terra); font-style: italic; }
+[data-product] .col h3 .meta { margin-left: auto; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); }
+
+[data-product] .stock-row { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; margin-bottom: 7px; display: grid; grid-template-columns: 1fr auto 64px; gap: 10px; align-items: center; }
+[data-product] .stock-row.danger { border-left: 3px solid var(--danger); padding-left: 10px; background: color-mix(in oklab, var(--danger) 4%, var(--panel)); }
+[data-product] .stock-row.warn { border-left: 3px solid var(--warn); padding-left: 10px; }
+[data-product] .stock-row .nm { font-size: 12.5px; font-weight: 500; color: var(--ink); }
+[data-product] .stock-row .nm .meta { display: block; font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-top: 1px; font-weight: 400; }
+[data-product] .stock-row .bar { width: 60px; height: 5px; background: var(--panel-deep); border-radius: 3px; overflow: hidden; }
+[data-product] .stock-row .bar .fill { height: 100%; background: var(--ok); }
+[data-product] .stock-row .bar .fill.warn { background: var(--warn); }
+[data-product] .stock-row .bar .fill.danger { background: var(--danger); }
+[data-product] .stock-row .qty { font-family: var(--mono); font-size: 11px; color: var(--ink); text-align: right; }
+
+[data-product] .po-row { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; margin-bottom: 7px; }
+[data-product] .po-row.overdue { border-left: 3px solid var(--danger); padding-left: 10px; background: color-mix(in oklab, var(--danger) 4%, var(--panel)); }
+[data-product] .po-row .top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+[data-product] .po-row .id { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+[data-product] .po-row .st { margin-left: auto; font-family: var(--mono); font-size: 9px; padding: 2px 6px; border-radius: 3px; letter-spacing: 0.06em; text-transform: uppercase; }
+[data-product] .po-row .st.transit { background: color-mix(in oklab, var(--terra) 14%, transparent); color: var(--terra); }
+[data-product] .po-row .st.recv { background: color-mix(in oklab, var(--ok) 14%, transparent); color: var(--ok); }
+[data-product] .po-row .st.overdue { background: color-mix(in oklab, var(--danger) 14%, transparent); color: var(--danger); }
+[data-product] .po-row .nm { font-size: 12.5px; color: var(--ink); font-weight: 500; }
+[data-product] .po-row .body { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 3px; }
+[data-product] .po-row .body strong { color: var(--ink-2); }
+
+[data-product] .vend-row { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; margin-bottom: 7px; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+[data-product] .vend-row .nm { font-size: 12.5px; color: var(--ink); font-weight: 500; }
+[data-product] .vend-row .nm .meta { display: block; font-family: var(--mono); font-size: 10px; color: var(--ink-4); margin-top: 1px; font-weight: 400; }
+[data-product] .vend-row .rating { font-family: var(--mono); font-size: 11px; }
+[data-product] .vend-row .rating.high { color: var(--ok); }
+[data-product] .vend-row .rating.low { color: var(--warn); }
+
+/* PO detail (sec 03) */
+[data-product] .det-h { padding: 22px 28px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .det-h .crumb { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .det-h h2 { margin: 6px 0 0; font-family: var(--display); font-size: 28px; font-weight: 400; color: var(--ink); }
+[data-product] .det-h h2 em { color: var(--terra); font-style: italic; }
+[data-product] .det-h .meta { margin-top: 10px; display: flex; gap: 18px; font-family: var(--mono); font-size: 11px; color: var(--ink-3); flex-wrap: wrap; }
+[data-product] .det-h .meta strong { color: var(--ink-2); }
+
+[data-product] .det-body { display: grid; grid-template-columns: 1.3fr 1fr; gap: 0; }
+[data-product] .det-col { padding: 22px 28px; border-right: 1px solid var(--line); }
+[data-product] .det-col:last-child { border-right: 0; }
+[data-product] .det-col h3 { margin: 0 0 14px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+[data-product] .det-col h3.repeat { margin-top: 22px; }
+
+[data-product] .line-list { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+[data-product] .line-row { display: grid; grid-template-columns: 1fr 70px 70px 70px; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); align-items: center; font-size: 12.5px; }
+[data-product] .line-row.head { background: var(--panel-2); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .line-row:last-child { border-bottom: 0; }
+[data-product] .line-row .sku strong { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 2px; }
+[data-product] .line-row .sku .meta { font-family: var(--mono); font-size: 10px; color: var(--ink-4); }
+[data-product] .line-row .num { font-family: var(--mono); font-size: 11px; color: var(--ink); text-align: right; }
+[data-product] .line-row .num.cost { color: var(--terra); }
+
+[data-product] .kv { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+[data-product] .kv .row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
+[data-product] .kv .row:last-child { border-bottom: 0; }
+[data-product] .kv .k { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .kv .v { color: var(--ink); }
+[data-product] .kv .v.mono { font-family: var(--mono); font-size: 12px; }
+
+[data-product] .flow { display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; flex-wrap: wrap; }
+[data-product] .flow .step { display: flex; align-items: center; gap: 5px; }
+[data-product] .flow .step .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+[data-product] .flow .step.on .dot { background: var(--terra); box-shadow: 0 0 0 3px color-mix(in oklab, var(--terra) 20%, transparent); }
+[data-product] .flow .step.pending .dot { background: var(--ink-5); }
+[data-product] .flow .arr { color: var(--ink-5); }
+
+/* Mobile */
+[data-product] .m-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--ink); color: var(--paper); }
+[data-product] .m-bar .brand { font-family: var(--display); font-size: 13px; }
+[data-product] .m-bar .av { margin-left: auto; width: 22px; height: 22px; border-radius: 50%; background: var(--terra); color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 600; }
+[data-product] .m-h { padding: 12px 14px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .m-h h3 { margin: 0; font-family: var(--display); font-size: 18px; font-weight: 400; color: var(--ink); }
+[data-product] .m-h h3 em { color: var(--terra); font-style: italic; }
+[data-product] .m-h .sub { margin-top: 3px; font-size: 11.5px; color: var(--ink-3); }
+[data-product] .m-list { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+[data-product] .m-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
+[data-product] .m-card.danger { border-left: 3px solid var(--danger); padding-left: 10px; }
+[data-product] .m-card.warn { border-left: 3px solid var(--warn); padding-left: 10px; }
+[data-product] .m-card .top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+[data-product] .m-card .ti { font-size: 12.5px; font-weight: 500; color: var(--ink); }
+[data-product] .m-card .qty { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+[data-product] .m-card .body { font-size: 11.5px; color: var(--ink-3); line-height: 1.4; }
+[data-product] .m-card .actions { display: flex; gap: 6px; margin-top: 8px; }
+[data-product] .m-card .actions .b { flex: 1; padding: 7px 9px; border-radius: 5px; font-size: 11px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink-2); text-align: center; }
+[data-product] .m-card .actions .b.primary { background: var(--terra); color: white; border-color: var(--terra); }
+[data-product] .m-tab { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: var(--panel); }
+[data-product] .m-tab .t { padding: 9px 4px 14px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-4); }
+[data-product] .m-tab .t.on { color: var(--ink); }
+[data-product] .m-tab .t .ico { font-size: 15px; }
+[data-product] .m-tab .t.on .ico { color: var(--terra); }
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Mgmt OS · phase 2.6</div>
+    <h1>Inventory &amp; procurement</h1>
+    <div class="back"><a href="../../design/index.html">← back to design hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Sections</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#hero"><span class="ix">01</span>Hero · 3-column dashboard</a></li>
+        <li><a href="#variants"><span class="ix">02</span>Layout variants</a></li>
+        <li><a href="#detail"><span class="ix">03</span>PO detail · approve flow</a></li>
+        <li><a href="#mobile"><span class="ix">04</span>Mobile · 1-tap reorder</a></li>
+        <li><a href="#schema"><span class="ix">05</span>Schema · agents · routes</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Reference</div>
+      <ul>
+        <li><a href="../dev-p1/procurement.html"><span class="ix">↗</span>Dev Procurement (15)</a></li>
+        <li><a href="mgmt-workspace.html"><span class="ix">↗</span>Mgmt Workspace</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <section id="cover" class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Mgmt OS · phase 2.6 · Inventory &amp; procurement</span></div>
+      <h1>Inventory &amp; procurement — <em>villa supplies</em>.</h1>
+      <p>Mgmt-side cabinet for inventory of villa supplies (linens · amenities · F&amp;B · cleaning · maintenance parts). Parallel to Dev's procurement (cabinet 15) but <strong style="color:var(--doc-fg)">villa-ops scoped</strong>, not construction. Replaces 6 legacy items (Stock command · Items · Movements · Suppliers · Purchase requests · Purchase orders) with one focused surface.</p>
+    </section>
+
+    <!-- 01 HERO -->
+    <section id="hero" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>3-column dashboard · stock + POs + vendors</h2>
+          <p>The landing for the role. KPI strip across top, then 3 columns: <strong style="color:var(--doc-fg)">low-stock alerts</strong> with auto-reorder bars, <strong style="color:var(--doc-fg)">open POs</strong> with status chips (transit · delivered · overdue), <strong style="color:var(--doc-fg)">vendor scorecard</strong> with star ratings. Operator's daily check: <em>"what's running out, what's coming in, who's performing"</em>.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="management">
+          <div class="topbar">
+            <div class="brand">Arconique<span class="sub">management · whitmore vg</span></div>
+            <div class="right"><span>22 villas · 4 store rooms</span><span class="me"><span class="avatar">MS</span>Made S.</span></div>
+          </div>
+          <div class="page-h">
+            <div>
+              <div class="crumb">workspace / inventory &amp; procurement</div>
+              <h2>Inventory <em>· 5 low-stock alerts</em></h2>
+              <div class="sub">228 SKUs · 12 open POs · $4.2k pending · 14 vendors @ 4.2 avg</div>
+            </div>
+            <div class="right">
+              <button class="btn">Stock count</button>
+              <button class="btn">+ PR</button>
+              <button class="btn btn-primary">+ PO</button>
+            </div>
+          </div>
+          <div class="kpi-row">
+            <div class="kpi"><div class="l">SKUs</div><div class="v">228</div><div class="ctx">4 rooms</div></div>
+            <div class="kpi"><div class="l">low stock</div><div class="v warn">5</div><div class="ctx">2 reorder</div></div>
+            <div class="kpi"><div class="l">open POs</div><div class="v">12</div><div class="ctx">1 overdue</div></div>
+            <div class="kpi"><div class="l">spend MTD</div><div class="v terra">$8.4k</div><div class="ctx">/ $12k</div></div>
+            <div class="kpi"><div class="l">vendors</div><div class="v">14</div><div class="ctx">★ 4.2</div></div>
+          </div>
+          <div class="body-grid-3">
+            <div class="col">
+              <h3>Low stock <em>· 5</em></h3>
+              <div class="stock-row danger"><div class="nm">King sheets white<span class="meta">LNN-KING · 18 villas</span></div><div class="bar"><div class="fill danger" style="width: 14%;"></div></div><div class="qty">11/80</div></div>
+              <div class="stock-row danger"><div class="nm">Eco detergent 5L<span class="meta">CLN-DET · weekly</span></div><div class="bar"><div class="fill danger" style="width: 16%;"></div></div><div class="qty">2/12</div></div>
+              <div class="stock-row warn"><div class="nm">Coconut soap 250ml<span class="meta">AMN-SOAP · amenity</span></div><div class="bar"><div class="fill warn" style="width: 38%;"></div></div><div class="qty">23/60</div></div>
+              <div class="stock-row warn"><div class="nm">Sparkling water 1L<span class="meta">FNB-WTR · welcome</span></div><div class="bar"><div class="fill warn" style="width: 42%;"></div></div><div class="qty">60/144</div></div>
+              <div class="stock-row warn"><div class="nm">AC filter A12<span class="meta">MNT-FLT · monthly</span></div><div class="bar"><div class="fill warn" style="width: 35%;"></div></div><div class="qty">7/20</div></div>
+            </div>
+            <div class="col">
+              <h3>Open POs <em>· 5 shown</em></h3>
+              <div class="po-row"><div class="top"><span class="id">PO-0184</span><span class="st transit">in transit</span></div><div class="nm">Bali Linens</div><div class="body"><strong>60</strong> King sheets + <strong>24</strong> bath towels · <strong>$2,208</strong></div></div>
+              <div class="po-row"><div class="top"><span class="id">PO-0181</span><span class="st transit">in transit</span></div><div class="nm">EcoStore Bali</div><div class="body"><strong>10×5L</strong> detergent · <strong>$240</strong></div></div>
+              <div class="po-row"><div class="top"><span class="id">PO-0178</span><span class="st recv">delivered</span></div><div class="nm">Sensatia Botanicals</div><div class="body">amenity set Q2 · <strong>$1,680</strong></div></div>
+              <div class="po-row overdue"><div class="top"><span class="id">PO-0175</span><span class="st overdue">overdue 2d</span></div><div class="nm">Equil Indonesia</div><div class="body">144×water · <strong>$317</strong></div></div>
+              <div class="po-row"><div class="top"><span class="id">PO-0172</span><span class="st transit">awaiting</span></div><div class="nm">CV Mitra Teknik</div><div class="body">AC filters + caps · <strong>$420</strong></div></div>
+            </div>
+            <div class="col">
+              <h3>Top vendors <em>· 6</em></h3>
+              <div class="vend-row"><div class="nm">Sensatia Botanicals<span class="meta">amenities · 42 POs</span></div><div class="rating high">★ 4.9</div></div>
+              <div class="vend-row"><div class="nm">Bali Linens<span class="meta">linens · 38 POs</span></div><div class="rating high">★ 4.6</div></div>
+              <div class="vend-row"><div class="nm">EcoStore Bali<span class="meta">cleaning · 24 POs</span></div><div class="rating high">★ 4.5</div></div>
+              <div class="vend-row"><div class="nm">CV Mitra Teknik<span class="meta">maint · 18 POs</span></div><div class="rating">★ 4.1</div></div>
+              <div class="vend-row"><div class="nm">Toko Pak Made<span class="meta">general · 42 POs</span></div><div class="rating">★ 4.0</div></div>
+              <div class="vend-row"><div class="nm">Equil Indonesia<span class="meta">F&amp;B · 28 POs</span></div><div class="rating low">★ 3.6</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption">
+        <span class="pill">desktop · production</span>
+        <span>3-col scan · low-stock auto-thresholds · vendor scoring on-time × quality × price</span>
+      </div>
+    </section>
+
+    <!-- 02 VARIANTS -->
+    <section id="variants" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Variants</span></div>
+          <h2>Two ways to organise procurement</h2>
+          <p><strong style="color:var(--doc-fg)">Variant A (above)</strong> = 3-col dashboard (default). <strong style="color:var(--doc-fg)">Variant B</strong> below = SKU master list grouped by category (good for stock counts and master-data work). <strong style="color:var(--doc-fg)">Variant C</strong> = PO calendar with delivery dates (good for capacity planning). Ship A as default; B + C as filter chips.</p>
+        </div>
+      </div>
+
+      <div class="var-grid">
+        <div class="var-card">
+          <div class="v-h"><span class="num">B</span><span class="name">SKU master</span><span class="desc">by category</span></div>
+          <div data-product="management">
+            <div style="padding: 18px 20px; font-family: var(--mono); font-size: 11px;">
+              <div style="font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;">linens · 28 SKUs</div>
+              <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px;"><strong style="color: var(--ink); font-family: var(--sans); font-size: 13px;">King sheets white</strong><br>LNN-KING-WHT · par 80 · stock <span style="color: var(--danger);">11</span></div>
+              <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px;"><strong style="color: var(--ink); font-family: var(--sans); font-size: 13px;">Bath towel 700gsm</strong><br>LNN-BTH-WHT · par 120 · stock 86</div>
+              <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;"><strong style="color: var(--ink); font-family: var(--sans); font-size: 13px;">Pillow case 50×80</strong><br>LNN-PIL-50 · par 160 · stock 142</div>
+              <div style="font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;">amenities · 22 SKUs</div>
+              <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px;"><strong style="color: var(--ink); font-family: var(--sans); font-size: 13px;">Coconut soap 250ml</strong><br>AMN-SOAP-COC · par 60 · stock <span style="color: var(--warn);">23</span></div>
+              <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;"><strong style="color: var(--ink); font-family: var(--sans); font-size: 13px;">Bath salts 200g</strong><br>AMN-SALT-200 · par 40 · stock 36</div>
+            </div>
+          </div>
+        </div>
+        <div class="var-card">
+          <div class="v-h"><span class="num">C</span><span class="name">PO calendar</span><span class="desc">delivery view</span></div>
+          <div data-product="management">
+            <div style="padding: 18px 20px;">
+              <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px;">JUN 2025 · 12 deliveries scheduled</div>
+              <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+                <div style="text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3); padding: 4px;">MON</div>
+                <div style="text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3); padding: 4px;">TUE</div>
+                <div style="text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3); padding: 4px;">WED</div>
+                <div style="text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3); padding: 4px;">THU</div>
+                <div style="text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3); padding: 4px;">FRI</div>
+                <div style="text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3); padding: 4px;">SAT</div>
+                <div style="text-align: center; font-family: var(--mono); font-size: 9px; color: var(--ink-3); padding: 4px;">SUN</div>
+                <div style="background: var(--panel); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">2</div>
+                <div style="background: color-mix(in oklab, var(--terra) 14%, var(--panel)); border: 1px solid color-mix(in oklab, var(--terra) 30%, var(--line)); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--terra);"><div>3</div><div style="font-size: 8.5px; margin-top: 4px; color: var(--terra-deep);">BL · $2.2k</div></div>
+                <div style="background: var(--panel); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">4</div>
+                <div style="background: color-mix(in oklab, var(--terra) 14%, var(--panel)); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--terra);"><div>5</div><div style="font-size: 8.5px; margin-top: 4px;">ES · $240</div></div>
+                <div style="background: var(--panel); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">6</div>
+                <div style="background: var(--panel-deep); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--ink-4);">7</div>
+                <div style="background: var(--panel-deep); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--ink-4);">8</div>
+                <div style="background: var(--panel); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">9</div>
+                <div style="background: color-mix(in oklab, var(--terra) 14%, var(--panel)); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--terra);"><div>10</div><div style="font-size: 8.5px; margin-top: 4px;">SB · $1.7k</div></div>
+                <div style="background: var(--panel); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">11</div>
+                <div style="background: var(--panel); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--ink-3);">12</div>
+                <div style="background: color-mix(in oklab, var(--danger) 14%, var(--panel)); border: 1px solid var(--danger); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--danger);"><div>13</div><div style="font-size: 8.5px; margin-top: 4px;">EQ · overdue</div></div>
+                <div style="background: var(--panel-deep); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--ink-4);">14</div>
+                <div style="background: var(--panel-deep); border-radius: 4px; padding: 6px 4px; min-height: 56px; font-family: var(--mono); font-size: 9px; color: var(--ink-4);">15</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption">
+        <span class="pill">desktop · variants</span>
+        <span>A default · B for SKU master · C for delivery capacity planning</span>
+      </div>
+    </section>
+
+    <!-- 03 DETAIL -->
+    <section id="detail" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Detail</span></div>
+          <h2>PO detail · 5-step approve flow</h2>
+          <p>At <code>/inventory/po/[id]</code>. Single PO with line items, vendor metadata, and the approval flow: <strong style="color:var(--doc-fg)">draft → sent → received → reconciled → paid</strong>. Operator approves at each step; over $500 needs director sign-off.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="management">
+          <div class="topbar">
+            <div class="brand">Arconique<span class="sub">management · whitmore vg</span></div>
+            <div class="right"><span class="me"><span class="avatar">MS</span>Made S.</span></div>
+          </div>
+          <div class="det-h">
+            <div class="crumb">inventory / PO-2025-0184</div>
+            <h2>PO-2025-0184 <em>· in transit</em></h2>
+            <div class="meta">
+              <span>vendor <strong>Bali Linens</strong></span>
+              <span>created <strong>22 may</strong></span>
+              <span>delivery <strong>3 jun</strong></span>
+              <span>total <strong>$2,208</strong></span>
+              <span>approved by <strong>Made S</strong></span>
+            </div>
+          </div>
+          <div class="det-body">
+            <div class="det-col">
+              <h3>Line items · 2 SKUs</h3>
+              <div class="line-list">
+                <div class="line-row head"><div>SKU · description</div><div>qty</div><div>unit</div><div>total</div></div>
+                <div class="line-row"><div class="sku"><strong>King sheet set white</strong><span class="meta">LNN-KING-WHT · cotton 400tc</span></div><div class="num">60</div><div class="num cost">$32</div><div class="num cost">$1,920</div></div>
+                <div class="line-row"><div class="sku"><strong>Bath towel white 700gsm</strong><span class="meta">LNN-BTH-WHT</span></div><div class="num">24</div><div class="num cost">$12</div><div class="num cost">$288</div></div>
+              </div>
+              <h3 class="repeat">Approval flow</h3>
+              <div class="flow">
+                <span class="step"><span class="dot"></span>draft</span><span class="arr">→</span>
+                <span class="step"><span class="dot"></span>sent</span><span class="arr">→</span>
+                <span class="step on"><span class="dot"></span>in transit</span><span class="arr">→</span>
+                <span class="step pending"><span class="dot"></span>received</span><span class="arr">→</span>
+                <span class="step pending"><span class="dot"></span>reconciled</span><span class="arr">→</span>
+                <span class="step pending"><span class="dot"></span>paid</span>
+              </div>
+            </div>
+            <div class="det-col">
+              <h3>Vendor + delivery</h3>
+              <div class="kv">
+                <div class="row"><span class="k">vendor</span><span class="v">Bali Linens</span></div>
+                <div class="row"><span class="k">contact</span><span class="v">Ibu Putri · +62 813 5544 2200</span></div>
+                <div class="row"><span class="k">payment</span><span class="v">net 30 · invoice on delivery</span></div>
+                <div class="row"><span class="k">delivery</span><span class="v">3 jun · own truck</span></div>
+                <div class="row"><span class="k">PO no</span><span class="v mono">PO-2025-0184</span></div>
+                <div class="row"><span class="k">approved</span><span class="v">Made S · 22 may 14:02</span></div>
+              </div>
+              <h3 class="repeat">Director sign-off</h3>
+              <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 12.5px; color: var(--ink-2); line-height: 1.55;">
+                Under $500 threshold not required. Above $500 → director sign-off auto-queued in Workspace attention feed.
+              </div>
+              <h3 class="repeat">Decisions on arrival</h3>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn btn-primary" style="width: 100%; justify-content: center;">Mark received · full</button>
+                <button class="btn" style="width: 100%; justify-content: center;">Mark partial · short delivery</button>
+                <button class="btn" style="width: 100%; justify-content: center;">Dispute · open ticket</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption">
+        <span class="pill">desktop · detail</span>
+        <span>5-step flow · director sign-off &gt; $500 · 3 arrival decisions</span>
+      </div>
+    </section>
+
+    <!-- 04 MOBILE -->
+    <section id="mobile" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Mobile</span></div>
+          <h2>Phone · 1-tap reorder on low-stock</h2>
+          <p>Ops manager walks the store rooms with phone in hand. Low-stock screen has <strong style="color:var(--doc-fg)">1-tap reorder</strong>: tap card → confirms vendor + quantity → PO drafted (still requires approval at desk). No editing on phone.</p>
+        </div>
+      </div>
+
+      <div class="mobile-row">
+        <div class="mobile-frame">
+          <div class="mobile-status"><span>11:14</span><span>5G · 78%</span></div>
+          <div>
+            <div data-product="management">
+              <div class="m-bar"><span class="brand">Arconique</span><span class="av">MS</span></div>
+              <div class="m-h">
+                <h3>Low stock <em>· 5</em></h3>
+                <div class="sub">2 danger · 3 warn</div>
+              </div>
+              <div class="m-list">
+                <div class="m-card danger">
+                  <div class="top"><span class="ti">King sheets white</span><span class="qty">11/80</span></div>
+                  <div class="body">par 80 · used by 18 villas · Bali Linens lead 4d</div>
+                  <div class="actions"><button class="b">Details</button><button class="b primary">Reorder 60</button></div>
+                </div>
+                <div class="m-card danger">
+                  <div class="top"><span class="ti">Eco detergent 5L</span><span class="qty">2/12</span></div>
+                  <div class="body">weekly cleaning · EcoStore Bali lead 2d</div>
+                  <div class="actions"><button class="b">Details</button><button class="b primary">Reorder 10</button></div>
+                </div>
+                <div class="m-card warn">
+                  <div class="top"><span class="ti">Coconut soap 250ml</span><span class="qty">23/60</span></div>
+                  <div class="body">guest amenity · Sensatia lead 3d</div>
+                  <div class="actions"><button class="b">Details</button><button class="b">Review</button></div>
+                </div>
+                <div class="m-card warn">
+                  <div class="top"><span class="ti">Sparkling water 1L</span><span class="qty">60/144</span></div>
+                  <div class="body">welcome basket · Equil lead 5d</div>
+                  <div class="actions"><button class="b">Details</button><button class="b">Review</button></div>
+                </div>
+                <div class="m-card warn">
+                  <div class="top"><span class="ti">AC filter A12</span><span class="qty">7/20</span></div>
+                  <div class="body">monthly maint · CV Mitra lead 7d</div>
+                  <div class="actions"><button class="b">Details</button><button class="b">Review</button></div>
+                </div>
+              </div>
+              <div class="m-tab">
+                <div class="t on"><span class="ico">⌖</span>Stock</div>
+                <div class="t"><span class="ico">⌬</span>POs</div>
+                <div class="t"><span class="ico">★</span>Vendors</div>
+                <div class="t"><span class="ico">⋯</span>More</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-notes">
+          <h4>Mobile principles</h4>
+          <p>Ops manager works the store rooms on foot. Phone has to make reorder one tap, but never auto-place — always confirms.</p>
+          <ol>
+            <li><strong>1-tap reorder</strong> on danger items → draft PO with vendor's preferred quantity.</li>
+            <li><strong>Review</strong> on warn items → opens 2-screen wizard (qty + vendor pick).</li>
+            <li><strong>No editing</strong> SKUs / vendors on phone — desk only.</li>
+            <li><strong>Stock count mode</strong> in More tab → barcode scanner + line-by-line.</li>
+            <li><strong>Director approval pending</strong> shows in Workspace attention feed, not here.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="artboard-caption">
+        <span class="pill">mobile · reorder</span>
+        <span>1-tap draft · no auto-place · stock count via barcode in More</span>
+      </div>
+    </section>
+
+    <!-- 05 SCHEMA -->
+    <section id="schema" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">05</span><span>—</span><span>Implementation</span></div>
+          <h2>Schema · agents · routes</h2>
+          <p>Backed by existing <code>inventory_*</code> tables (mig 0006) + new <code>inventory_par_levels</code> + <code>inventory_reorder_drafts</code>. AI agent: <code>inventory-forecaster</code> for predicting run-outs.</p>
+        </div>
+      </div>
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Tables · new for 2.6</h3>
+          <dl>
+            <div><dt>inventory_par_levels</dt><dd><code>sku · room_id · par_qty · reorder_threshold · vendor_preferred_id · lead_days · cost_unit</code></dd></div>
+            <div><dt>inventory_reorder_drafts</dt><dd><code>id · sku · vendor_id · suggested_qty · drafted_at · drafted_by_user_id · approved_at · approved_po_id (nullable)</code></dd></div>
+            <div><dt>inventory_stock_counts</dt><dd><code>id · room_id · counted_at · counted_by_user_id · line_count · reconciliation_jsonb</code></dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Existing tables</h3>
+          <dl>
+            <div><dt>inventory_items</dt><dd>mig 0006 · SKU master</dd></div>
+            <div><dt>inventory_movements</dt><dd>mig 0006 · in/out/adj history</dd></div>
+            <div><dt>purchase_orders</dt><dd>mig 0006 + 0029 finance recon</dd></div>
+            <div><dt>vendors</dt><dd>mig 0006 · vendor master + scoring</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Routes</h3>
+          <dl>
+            <div><dt>/inventory</dt><dd>hero · 3-col dashboard</dd></div>
+            <div><dt>/inventory/stock</dt><dd>variant B · SKU master grouped</dd></div>
+            <div><dt>/inventory/calendar</dt><dd>variant C · delivery view</dd></div>
+            <div><dt>/inventory/po/[id]</dt><dd>detail · approve flow</dd></div>
+            <div><dt>/inventory/vendors</dt><dd>vendor scorecard + history</dd></div>
+            <div><dt>/inventory/count/[roomId]</dt><dd>stock count mode</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Agents</h3>
+          <dl>
+            <div><dt>inventory-forecaster</dt><dd>cron daily · reads <code>inventory_movements</code> velocity · predicts run-outs in next 14d · writes to <code>inventory_reorder_drafts</code> for human approval</dd></div>
+            <div><dt>vendor-scorer</dt><dd>cron weekly · recomputes on-time × quality × price · writes to <code>vendors.score</code></dd></div>
+            <div><dt>po-reconciler</dt><dd>on PO marked received · matches lines vs ordered · flags disputes via support ticket cabinet 06</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+</body>
+</html>

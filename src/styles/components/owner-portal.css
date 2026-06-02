@@ -279,7 +279,7 @@
 
    .net-hero            — 42px display net-to-you card
    .statement-row       — list row (pending elevated · gold border)
-   .owner-status        — 6-state pill (pending/viewed/acked/disputed/auto/revised)
+   .owner-status        — 6-state pill (pending/viewed/acknowledged/disputed/auto_acknowledged/superseded)
    .why-link            — inline "why this number?" link
    .why-drawer          — right-side explainer drawer
    ============================================================= */
@@ -364,11 +364,11 @@
   font-style: italic;
 }
 [data-product] .owner-status.auto_acknowledged .dot { background: var(--ink-3); }
-[data-product] .owner-status.revised {
+[data-product] .owner-status.superseded {
   background: color-mix(in oklab, var(--terra) 14%, transparent);
   color: var(--terra);
 }
-[data-product] .owner-status.revised .dot { background: var(--terra); }
+[data-product] .owner-status.superseded .dot { background: var(--terra); }
 
 /* ---------- StatementListRow ---------- */
 [data-product] .statement-row {

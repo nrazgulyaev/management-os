@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mobile pass · Auth + P3 clusters + Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --doc-bg:#0F1014; --doc-bg-2:#16171C; --doc-bg-3:#1F2129;
+  --doc-line:rgba(255,255,255,0.06); --doc-line-2:rgba(255,255,255,0.10);
+  --doc-fg:#E6E5E0; --doc-fg-2:#BBB9B0; --doc-fg-3:#8B8B85; --doc-accent:#C4583C;
+  --doc-mono:"JetBrains Mono",ui-monospace,monospace; --doc-sans:"Inter",system-ui,sans-serif;
+}
+[data-product="management"]{
+  --paper:#FAF6EE; --cream:#F4EFE6; --cream-warm:#ECE5D5; --cream-deep:#E5DECC;
+  --ink:#14201C; --ink-2:#2F3D38; --ink-3:#5C6B65; --ink-4:#8E9A95;
+  --line:#DAD2C0; --line-soft:#E5DECC;
+  --accent:#C4583C; --accent-soft:#E8B8A4; --on-accent:#FFF8F0;
+  --inverted-bg:#1F3A33; --inverted-fg:#F4EFE6; --forest:#1F3A33;
+  --ok:#4F7A5D; --warn:#C18A2E; --danger:#B53826; --info:#3A6B9C; --gold:#8c6f33; --gold-soft:#DCC691;
+  --mint:#D8E8D6; --sky:#D4E2EC; --peach:#F6D9CB; --butter:#F5E9B8;
+  --display-font:"Newsreader",Georgia,serif; --sans-font:"Inter",system-ui,sans-serif; --mono-font:"JetBrains Mono",monospace;
+  --r-pill:999px; --r-card:14px; --r-card-lg:20px;
+}
+[data-product="development"]{
+  --paper:#FFFFFF; --cream:#F1ECE0; --cream-warm:#F8F4EA; --cream-deep:#ECE6D5; --panel:#FFFFFF; --bg-2:#F8F4EA; --bg-3:#FFFCF4;
+  --ink:#14130E; --ink-2:#3D3B33; --ink-3:#6E6B5E; --ink-4:#95917F;
+  --line:#E5DECC; --line-soft:#ECE6D5; --line-2:#D8CFB7;
+  --accent:#FF6B35; --accent-soft:#FFB088; --on-accent:#14130E; --steel:#3D5A7A;
+  --inverted-bg:#14130E; --inverted-fg:#FFFFFF;
+  --ok:#4F8A5D; --warn:#C58A2E; --danger:#C2474E; --info:#3D5A7A; --gold:#BC9A5C; --gold-soft:#FFB088;
+  --display-font:"Space Grotesk",system-ui,sans-serif; --sans-font:"Inter",system-ui,sans-serif; --mono-font:"IBM Plex Mono",monospace;
+  --r-pill:999px; --r-card:14px; --r-card-lg:18px;
+}
+[data-product="platform"]{
+  --paper:#141922; --cream:#0E1116; --cream-warm:#141922; --cream-deep:#1A212C; --panel:#141922;
+  --ink:#E7ECF2; --ink-2:#B7C0CC; --ink-3:#8591A0; --ink-4:#5E6A78;
+  --line:#26303C; --line-soft:#1E2731; --line-2:#2C3744;
+  --accent:#5B9DFF; --accent-soft:#9CC2FF; --on-accent:#08111F; --steel:#5B9DFF;
+  --inverted-bg:#080B10; --inverted-fg:#E7ECF2;
+  --ok:#4FB477; --warn:#D6A23A; --danger:#E0575F; --info:#5B9DFF; --gold:#E0B341; --gold-soft:#9CC2FF;
+  --display-font:"Space Grotesk",system-ui,sans-serif; --sans-font:"Inter",system-ui,sans-serif; --mono-font:"IBM Plex Mono",monospace;
+  --r-pill:999px; --r-card:14px; --r-card-lg:18px;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--doc-bg); color:var(--doc-fg); font-family:var(--doc-sans); -webkit-font-smoothing:antialiased; }
+.page { min-height:100vh; padding:56px 40px 96px; }
+.page-head { max-width:1500px; margin:0 auto 48px; }
+.eyebrow { font-family:var(--doc-mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--doc-accent); display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.eyebrow .glyph { width:6px; height:6px; background:var(--doc-accent); border-radius:2px; }
+h1.title { font-weight:600; font-size:38px; line-height:1.05; letter-spacing:-.02em; margin:0; font-family:var(--doc-sans); }
+h1.title em { color:var(--doc-accent); font-style:italic; font-weight:400; }
+.lede { max-width:760px; margin:16px 0 0; font-size:14.5px; color:var(--doc-fg-2); line-height:1.65; }
+.meta-row { display:flex; gap:28px; flex-wrap:wrap; margin-top:24px; padding-top:20px; border-top:1px solid var(--doc-line); font-size:13px; }
+.meta-row > div { display:flex; flex-direction:column; gap:4px; }
+.meta-row .k { font-family:var(--doc-mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--doc-fg-3); }
+.meta-row .v { color:var(--doc-fg); }
+.boards { max-width:1500px; margin:0 auto; display:flex; flex-direction:column; gap:64px; }
+.sect { padding-top:30px; border-top:1px solid var(--doc-line); }
+.sect-h { display:flex; align-items:baseline; gap:16px; margin-bottom:8px; flex-wrap:wrap; }
+.sect-h .n { font-family:var(--doc-mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--doc-fg-3); padding:5px 10px; border:1px solid var(--doc-line-2); border-radius:4px; }
+.sect-h h2 { margin:0; font-weight:600; font-size:25px; letter-spacing:-.015em; }
+.sect-h .sub { font-family:var(--doc-mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; margin-left:auto; padding:4px 10px; border-radius:999px; border:1px solid var(--doc-line-2); color:var(--doc-fg-2); }
+.sect-lede { max-width:780px; font-size:14px; color:var(--doc-fg-2); line-height:1.6; margin:0 0 28px; }
+.rail { display:flex; gap:30px; flex-wrap:wrap; }
+.frame-col { display:flex; flex-direction:column; gap:12px; }
+.frame-tag { display:flex; align-items:center; gap:10px; font-family:var(--doc-mono); font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--doc-fg-3); }
+.frame-tag .name { color:var(--doc-fg); }
+.frame-tag .role { padding:2px 7px; border:1px solid var(--doc-line-2); border-radius:4px; color:var(--doc-fg-2); font-size:9px; }
+
+/* phone */
+.phone { width:332px; height:710px; border-radius:42px; background:#0A0B0F; padding:9px; box-shadow:0 20px 60px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06); position:relative; }
+.phone-notch { position:absolute; top:15px; left:50%; transform:translateX(-50%); width:104px; height:26px; background:#0A0B0F; border-radius:13px; z-index:3; }
+.scr { width:100%; height:100%; border-radius:33px; background:var(--cream); overflow:hidden; display:flex; flex-direction:column; }
+.stat { height:36px; display:flex; align-items:center; justify-content:space-between; padding:13px 22px 3px; font-family:var(--mono-font); font-size:12px; color:var(--ink); font-weight:500; flex-shrink:0; }
+.body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.tbar { display:flex; align-items:center; gap:10px; padding:7px 15px 11px; border-bottom:1px solid var(--line-soft); flex-shrink:0; }
+.tbar .ti { flex:1; font-family:var(--display-font); font-size:17px; color:var(--ink); line-height:1.1; }
+.tbar .ti .sub { display:block; font-family:var(--mono-font); font-size:9.5px; text-transform:uppercase; letter-spacing:.14em; color:var(--ink-3); margin-top:2px; }
+.tbar .av { width:30px; height:30px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:500; color:var(--inverted-fg); background:linear-gradient(135deg,var(--gold-soft),var(--accent)); }
+.scroll { flex:1; overflow-y:auto; padding:0 0 12px; }
+.tabbar { display:flex; border-top:1px solid var(--line-soft); background:var(--paper); padding-bottom:13px; flex-shrink:0; }
+.tabbar .tb { flex:1; padding:9px 0 5px; display:flex; flex-direction:column; align-items:center; gap:4px; font-family:var(--mono-font); font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-4); background:transparent; border:0; }
+.tabbar .tb.on { color:var(--ink); }
+.tabbar .tb.on .i { color:var(--accent); }
+.tabbar .i { width:21px; height:21px; display:inline-flex; align-items:center; justify-content:center; }
+.sech { display:flex; align-items:center; gap:8px; padding:13px 15px 7px; font-family:var(--mono-font); font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-3); }
+.sech .more { margin-left:auto; color:var(--ink-4); font-family:var(--sans-font); font-size:11px; text-transform:none; letter-spacing:0; }
+
+/* components */
+[data-product] .badge { display:inline-flex; align-items:center; padding:2px 7px; border-radius:999px; font-family:var(--mono-font); font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; border:1px solid var(--line); background:var(--paper); color:var(--ink-3); }
+[data-product] .badge-ok { background:color-mix(in oklab,var(--ok) 14%,transparent); color:var(--ok); border-color:color-mix(in oklab,var(--ok) 35%,transparent); }
+[data-product] .badge-warn { background:color-mix(in oklab,var(--warn) 14%,transparent); color:var(--warn); border-color:color-mix(in oklab,var(--warn) 35%,transparent); }
+[data-product] .badge-danger { background:color-mix(in oklab,var(--danger) 14%,transparent); color:var(--danger); border-color:color-mix(in oklab,var(--danger) 35%,transparent); }
+[data-product] .badge-accent { background:color-mix(in oklab,var(--accent) 14%,transparent); color:var(--accent); border-color:color-mix(in oklab,var(--accent) 35%,transparent); }
+[data-product] .btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:11px 16px; border-radius:var(--r-pill); font-family:var(--sans-font); font-size:14px; font-weight:500; border:1px solid transparent; cursor:pointer; line-height:1; background:transparent; width:100%; }
+[data-product] .btn-accent { background:var(--accent); color:var(--on-accent); }
+[data-product] .btn-secondary { background:var(--cream-warm); color:var(--ink); border-color:var(--line); }
+[data-product] .field { display:block; margin:0 15px 12px; }
+[data-product] .field .lab { font-family:var(--mono-font); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); display:block; margin-bottom:5px; }
+[data-product] .field .inp { width:100%; height:42px; border:1px solid var(--line); border-radius:10px; background:var(--paper); padding:0 13px; font-family:var(--sans-font); font-size:14px; color:var(--ink-3); display:flex; align-items:center; }
+.mcard { margin:0 15px 10px; border:1px solid var(--line-soft); border-radius:var(--r-card); background:var(--paper); padding:13px 14px; }
+.mcard.warn { border-left:3px solid var(--warn); }
+.mcard.danger { border-left:3px solid var(--danger); }
+.mcard.accent { border-left:3px solid var(--accent); }
+.mrow { display:flex; align-items:center; gap:11px; padding:11px 15px; border-bottom:1px solid var(--line-soft); }
+.mrow .ic { width:34px; height:34px; border-radius:9px; background:var(--cream-deep); color:var(--ink-2); display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; font-family:var(--mono-font); font-size:11px; }
+.mrow .ti { flex:1; min-width:0; }
+.mrow .ti .t { font-size:13.5px; color:var(--ink); font-weight:500; }
+.mrow .ti .s { font-family:var(--mono-font); font-size:10.5px; color:var(--ink-3); margin-top:2px; }
+.kpis { display:grid; grid-template-columns:1fr 1fr; gap:9px; padding:13px 15px 4px; }
+.kpi { border:1px solid var(--line-soft); border-radius:12px; background:var(--paper); padding:12px 13px; }
+.kpi .l { font-family:var(--mono-font); font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); }
+.kpi .v { font-family:var(--mono-font); font-size:24px; color:var(--ink); margin-top:4px; font-variant-numeric:tabular-nums; line-height:1; }
+.kpi .v.accent { color:var(--accent); } .kpi .v.ok { color:var(--ok); } .kpi .v.warn { color:var(--warn); } .kpi .v.danger { color:var(--danger); }
+.kpi .s { font-size:10.5px; color:var(--ink-4); margin-top:3px; }
+.kpi.wide { grid-column:span 2; }
+.hero { margin:13px 15px 4px; border-radius:16px; background:var(--inverted-bg); color:var(--inverted-fg); padding:17px; position:relative; overflow:hidden; }
+.hero .l { font-family:var(--mono-font); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:rgba(255,255,255,.6); }
+.hero .v { font-family:var(--display-font); font-size:32px; margin-top:6px; line-height:1; }
+.hero .v em { color:var(--gold-soft); font-style:italic; }
+.hero .s { font-size:12px; color:rgba(255,255,255,.7); margin-top:8px; }
+.note { margin:0 40px; font-size:13.5px; color:var(--doc-fg-2); line-height:1.6; max-width:780px; }
+</style>
+</head>
+<body>
+<div class="page"><div class="page-head">
+<div class="eyebrow"><span class="glyph"></span>Mobile pass · Dev P3 — full</div>
+<h1 class="title">Every dev P3 cabinet, <em>on a phone</em>.</h1>
+<p class="lede">The complete mobile variant for all 16 Development-OS secondary cabinets across clusters C6–C9. Heavy analysis surfaces (waterfall, P&amp;L, variance grids) lead with a headline KPI + "open console"; actionable surfaces (alerts, approvals, inbox, logging) get real screens. Development theme throughout (sand + amber, Space Grotesk).</p>
+<div class="meta-row"><div><span class="k">Clusters</span><span class="v">C6–C9 · 16 cabinets</span></div><div><span class="k">Theme</span><span class="v">development</span></div><div><span class="k">Pattern</span><span class="v">tabbar · cards · desk-link</span></div></div>
+</div><div class="boards"><section class="sect"><div class="sect-h"><span class="n">C6 · dev finance</span><h2>Dev Finance · 4</h2><span class="sub">sand + amber</span></div><div class="rail"><div class="frame-col"><div class="frame-tag"><span class="name">CFO console</span><span class="role">Cash</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">CFO console<span class="sub">Cash</span></div><span class="av">DK</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi wide"><div class="l">Cash on hand</div><div class="v ok" style="font-size:30px">$2.41M</div><div class="s">SPV banks</div></div><div class="kpi"><div class="l">AR open</div><div class="v accent">$840K</div></div><div class="kpi"><div class="l">Burn 30d</div><div class="v">$540K</div></div></div><div class="sech">Reserve alert</div><div class="mrow"><div class="ti"><div class="t">Crosses $500K reserve wk41</div><div class="s">capital call 05 by 15 May</div></div><span class="badge badge-warn">Watch</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">$</span>CFO</button><button class="tb"><span class="i">◷</span>Cash</button><button class="tb"><span class="i">▦</span>Bank</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Cashflow</span><span class="role">12-mo</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Cashflow<span class="sub">12-mo</span></div><span class="av">DK</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Cash today</div><div class="v ok">$1.2M</div></div><div class="kpi"><div class="l">Trough M9</div><div class="v warn">$340K</div></div></div><div class="sech">Forecast</div><div class="mrow"><div class="ti"><div class="t">Capital call · M4</div><div class="s">+$800K inflow</div></div><span class="badge badge-accent">Spike</span></div><div class="mrow"><div class="ti"><div class="t">Below reserve · M9</div><div class="s">$340K</div></div><span class="badge badge-danger">Risk</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">$</span>CFO</button><button class="tb on"><span class="i">◷</span>Cash</button><button class="tb"><span class="i">▦</span>Bank</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Profitability</span><span class="role">Per-unit</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Profitability<span class="sub">Per-unit</span></div><span class="av">DK</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Avg margin</div><div class="v ok">26.4%</div></div><div class="kpi"><div class="l">Below 10%</div><div class="v danger">2</div></div></div><div class="sech">Units</div><div class="mrow"><div class="ti"><div class="t">EP02-V07</div><div class="s">4br</div></div><span class="badge badge-ok">38%</span></div><div class="mrow"><div class="ti"><div class="t">AHP3-V01</div><div class="s">3br</div></div><span class="badge badge-warn">7.1%</span></div><div class="mrow"><div class="ti"><div class="t">ES10-V05</div><div class="s">2br</div></div><span class="badge badge-danger">−2.2%</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">◫</span>Profit</button><button class="tb"><span class="i">$</span>CFO</button><button class="tb"><span class="i">▦</span>Bank</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Banking</span><span class="role">Connections</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Banking<span class="sub">Connections</span></div><span class="av">DK</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Active</div><div class="v ok">4</div></div><div class="kpi"><div class="l">Stale</div><div class="v warn">1</div></div></div><div class="sech">Connections</div><div class="mrow"><span class="ic">R</span><div class="ti"><div class="t">Revolut</div><div class="s">USD · synced 09:14</div></div><span class="badge badge-ok">Active</span></div><div class="mrow"><span class="ic">M</span><div class="ti"><div class="t">Mandiri SPV</div><div class="s">CSV 4d ago</div></div><span class="badge badge-warn">Stale</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">$</span>CFO</button><button class="tb"><span class="i">◷</span>Cash</button><button class="tb on"><span class="i">▦</span>Bank</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div></div></section>
+<section class="sect"><div class="sect-h"><span class="n">C7 · dev contracts</span><h2>Dev Contracts · 4</h2><span class="sub">sand + amber</span></div><div class="rail"><div class="frame-col"><div class="frame-tag"><span class="name">Contracts</span><span class="role">Groups</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Contracts<span class="sub">Groups</span></div><span class="av">SL</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Pending sig</div><div class="v warn">4</div></div><div class="kpi"><div class="l">In payment</div><div class="v accent">7</div></div></div><div class="sech">Groups</div><div class="mrow"><div class="ti"><div class="t">James Whitfield</div><div class="s">EP02-V07 · $985K</div></div><span class="badge badge-accent">Paying</span></div><div class="mrow"><div class="ti"><div class="t">L. Tanaka</div><div class="s">EP02-V03</div></div><span class="badge badge-warn">Pending</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">▤</span>Cont</button><button class="tb"><span class="i">$</span>Inv</button><button class="tb"><span class="i">%</span>Disc</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Invoices</span><span class="role">Milestones</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Invoices<span class="sub">Milestones</span></div><span class="av">SL</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Unpaid</div><div class="v warn">9</div></div><div class="kpi"><div class="l">Overdue</div><div class="v danger">2</div></div></div><div class="sech">Invoices</div><div class="mrow"><div class="ti"><div class="t">INV-2025-041</div><div class="s">Whitfield · $197K</div></div><span class="badge badge-accent">Sent</span></div><div class="mrow"><div class="ti"><div class="t">INV-2025-038</div><div class="s">Tanaka · due 02 Jun</div></div><span class="badge badge-danger">Overdue</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">▤</span>Cont</button><button class="tb on"><span class="i">$</span>Inv</button><button class="tb"><span class="i">%</span>Disc</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Discounts</span><span class="role">Approvals</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Discounts<span class="sub">Approvals</span></div><span class="av">SL</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Pending</div><div class="v warn">2</div></div><div class="kpi"><div class="l">Tiers</div><div class="v">4</div></div></div><div class="sech">Awaiting review</div><div class="mrow"><div class="ti"><div class="t">M. Schneider</div><div class="s">AHP3 · 14%</div></div><span class="badge badge-warn">Pending</span></div><div class="mrow"><div class="ti"><div class="t">L. Tanaka</div><div class="s">bulk · 8%</div></div><span class="badge badge-warn">Escal</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">▤</span>Cont</button><button class="tb"><span class="i">$</span>Inv</button><button class="tb on"><span class="i">%</span>Disc</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Commitments</span><span class="role">Capital</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Commitments<span class="sub">Capital</span></div><span class="av">DK</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Committed</div><div class="v accent">$12.4M</div></div><div class="kpi"><div class="l">Drawn</div><div class="v">66%</div></div></div><div class="sech">Active</div><div class="mrow"><div class="ti"><div class="t">Meridian LP</div><div class="s">EP02 · 16%</div></div><span class="badge badge-ok">Active</span></div><div class="mrow"><div class="ti"><div class="t">Anchor Fund I</div><div class="s">ES10 · 15.5%</div></div><span class="badge badge-accent">Called</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">◐</span>Commit</button><button class="tb"><span class="i">◷</span>Calls</button><button class="tb"><span class="i">$</span>Distr</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div></div></section>
+<section class="sect"><div class="sect-h"><span class="n">C8 · knowledge & docs</span><h2>Dev Knowledge & Docs · 4</h2><span class="sub">sand + amber</span></div><div class="rail"><div class="frame-col"><div class="frame-tag"><span class="name">Knowledge</span><span class="role">Vault</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Knowledge<span class="sub">Vault</span></div><span class="av">WT</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Drawings</div><div class="v">284</div></div><div class="kpi"><div class="l">Methods</div><div class="v ok">42</div></div></div><div class="sech">Recent revs</div><div class="mrow"><div class="ti"><div class="t">A-101 Block B L2</div><div class="s">EP02 · REV 14</div></div><span class="badge badge-ok">IFC</span></div><div class="mrow"><div class="ti"><div class="t">M-104 MEP</div><div class="s">EP02 · REV 6</div></div><span class="badge badge-warn">Review</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">▦</span>Know</button><button class="tb"><span class="i">◫</span>Draw</button><button class="tb"><span class="i">▤</span>SOPs</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Drawings</span><span class="role">Rev control</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Drawings<span class="sub">Rev control</span></div><span class="av">WT</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">IFC</div><div class="v ok">241</div></div><div class="kpi"><div class="l">Under rev</div><div class="v warn">18</div></div></div><div class="sech">Catalog</div><div class="mrow"><span class="ic">A</span><div class="ti"><div class="t">A-101</div><div class="s">Architectural</div></div><span class="badge badge-ok">IFC</span></div><div class="mrow"><span class="ic">S</span><div class="ti"><div class="t">S-204</div><div class="s">Structural</div></div><span class="badge badge-ok">IFC</span></div><div class="mrow"><span class="ic">M</span><div class="ti"><div class="t">M-104</div><div class="s">Mechanical</div></div><span class="badge badge-warn">Review</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">▦</span>Know</button><button class="tb on"><span class="i">◫</span>Draw</button><button class="tb"><span class="i">▤</span>SOPs</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Method stmts</span><span class="role">SOPs</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Method stmts<span class="sub">SOPs</span></div><span class="av">WT</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Active</div><div class="v ok">42</div></div><div class="kpi"><div class="l">Under rev</div><div class="v warn">3</div></div></div><div class="sech">Catalog</div><div class="mrow"><div class="ti"><div class="t">Mass concrete pour</div><div class="s">Concrete · v3</div></div><span class="badge badge-ok">Active</span></div><div class="mrow"><div class="ti"><div class="t">Electrical first fix</div><div class="s">MEP · v1</div></div><span class="badge badge-warn">Review</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">▦</span>Know</button><button class="tb"><span class="i">◫</span>Draw</button><button class="tb on"><span class="i">▤</span>SOPs</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Materials</span><span class="role">POs</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Materials<span class="sub">POs</span></div><span class="av">RN</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Open POs</div><div class="v accent">31</div></div><div class="kpi"><div class="l">Over ETA</div><div class="v danger">2</div></div></div><div class="sech">Purchase orders</div><div class="mrow"><div class="ti"><div class="t">PO-2025-118</div><div class="s">Sinar Baja · $184K</div></div><span class="badge badge-warn">Ordered</span></div><div class="mrow"><div class="ti"><div class="t">PO-2025-106</div><div class="s">Mega Glass · late</div></div><span class="badge badge-danger">Over ETA</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">▦</span>Mat</button><button class="tb"><span class="i">◷</span>Deliv</button><button class="tb"><span class="i">◐</span>Vend</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div></div></section>
+<section class="sect"><div class="sect-h"><span class="n">C9 · dev ops</span><h2>Dev Ops · 4</h2><span class="sub">sand + amber</span></div><div class="rail"><div class="frame-col"><div class="frame-tag"><span class="name">Marketing</span><span class="role">Pipeline</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Marketing<span class="sub">Pipeline</span></div><span class="av">PD</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Leads wk</div><div class="v ok">84</div></div><div class="kpi"><div class="l">Approval q</div><div class="v accent">5</div></div></div><div class="sech">Lead sources</div><div class="mrow"><div class="ti"><div class="t">Meta Ads</div><div class="s">28 leads · $60 CPL</div></div></div><div class="mrow"><div class="ti"><div class="t">Google</div><div class="s">22 leads · $56 CPL</div></div></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">◴</span>Mktg</button><button class="tb"><span class="i">✉</span>Inbox</button><button class="tb"><span class="i">⟳</span>Cycle</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Unified inbox</span><span class="role">46 · 12 unread</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Unified inbox<span class="sub">46 · 12 unread</span></div><span class="av">PD</span></div>
+  <div class="scroll"><div class="sech">Threads</div><div class="mrow"><span class="ic">WA</span><div class="ti"><div class="t">James Whitfield</div><div class="s">"next payment due?"</div></div><span class="badge badge-warn">3</span></div><div class="mrow"><span class="ic">IG</span><div class="ti"><div class="t">@bali.investor</div><div class="s">"2BR available?"</div></div><span class="badge badge-warn">1</span></div><div class="mrow"><span class="ic">SM</span><div class="ti"><div class="t">Mega Glass</div><div class="s">delivery delayed</div></div><span class="badge badge-warn">1</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">◴</span>Mktg</button><button class="tb on"><span class="i">✉</span>Inbox</button><button class="tb"><span class="i">⟳</span>Cycle</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Project cycle</span><span class="role">Advisory</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Project cycle<span class="sub">Advisory</span></div><span class="av">DK</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Unreviewed</div><div class="v warn">2</div></div><div class="kpi"><div class="l">Capacity</div><div class="v">78%</div></div></div><div class="sech">Recommendations</div><div class="mrow"><div class="ti"><div class="t">Start ES10 P2 wk44</div><div class="s">high confidence</div></div><span class="badge badge-warn">New</span></div><div class="mrow"><div class="ti"><div class="t">Defer AHP3 fit-out</div><div class="s">medium</div></div><span class="badge badge-warn">New</span></div></div>
+  <div class="tabbar"><button class="tb on"><span class="i">⟳</span>Cycle</button><button class="tb"><span class="i">◷</span>Prod</button><button class="tb"><span class="i">▦</span>Bulk</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div>
+<div class="frame-col"><div class="frame-tag"><span class="name">Productivity</span><span class="role">Per-trade</span></div>
+  <div class="phone"><div class="phone-notch"></div><div class="scr" data-product="development">
+  <div class="stat"><span>9:41</span><span>5G · 86%</span></div>
+  <div class="body"><div class="tbar"><div class="ti">Productivity<span class="sub">Per-trade</span></div><span class="av">WT</span></div>
+  <div class="scroll"><div class="kpis"><div class="kpi"><div class="l">Log rows</div><div class="v">512</div></div><div class="kpi"><div class="l">Trades</div><div class="v">8</div></div></div><div class="sech">Aggregations</div><div class="mrow"><div class="ti"><div class="t">Concrete</div><div class="s">1,840h · 0.332 m³/h</div></div></div><div class="mrow"><div class="ti"><div class="t">Tiling</div><div class="s">+12% vs estimate</div></div><span class="badge badge-ok">Best</span></div></div>
+  <div class="tabbar"><button class="tb"><span class="i">⟳</span>Cycle</button><button class="tb on"><span class="i">◷</span>Prod</button><button class="tb"><span class="i">▦</span>Bulk</button><button class="tb"><span class="i">···</span>More</button></div></div></div></div></div></div></section>
+</div></div></body></html>

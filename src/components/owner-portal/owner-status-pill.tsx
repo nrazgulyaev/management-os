@@ -1,26 +1,22 @@
 import * as React from "react";
+import type { OwnerStatementState } from "@/features/owner-statements/state-machine";
 
 /**
  * Phase 2.3 owner-02 — OwnerStatusPill.
  *
  * Owner-state for a statement (separate from the operational
- * `StatementStatus` in mgmt-02). 5 states:
+ * `StatementStatus` in mgmt-02). 6 states (single source of truth: the
+ * owner-statements state machine):
  *
- *   pending          gold elevated — needs the owner's attention
- *   viewed           neutral — opened but not yet acted on
- *   acknowledged     ok-green — explicitly accepted
- *   disputed         danger — opened a dispute thread
+ *   pending           gold elevated — needs the owner's attention
+ *   viewed            neutral — opened but not yet acted on
+ *   acknowledged      ok-green — explicitly accepted
+ *   disputed          danger — opened a dispute thread
  *   auto_acknowledged neutral italic — 14d timer elapsed
- *   revised          accent — replaced by a newer revision
+ *   superseded        accent — replaced by a revised statement (resolve→reissue)
  */
 
-export type OwnerStatementState =
-  | "pending"
-  | "viewed"
-  | "acknowledged"
-  | "disputed"
-  | "auto_acknowledged"
-  | "revised";
+export type { OwnerStatementState };
 
 const LABEL: Record<OwnerStatementState, string> = {
   pending: "Pending",
@@ -28,7 +24,7 @@ const LABEL: Record<OwnerStatementState, string> = {
   acknowledged: "Acknowledged",
   disputed: "Disputed",
   auto_acknowledged: "Auto-acked",
-  revised: "Revised",
+  superseded: "Superseded",
 };
 
 export interface OwnerStatusPillProps {

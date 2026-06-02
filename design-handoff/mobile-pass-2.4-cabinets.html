@@ -1,0 +1,2326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mobile pass · Phase 2.4 cabinets</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="chrome-tokens">
+:root {
+  --doc-bg:        #0F1014;
+  --doc-bg-2:      #16171C;
+  --doc-bg-3:      #1F2129;
+  --doc-line:      rgba(255,255,255,0.06);
+  --doc-line-2:    rgba(255,255,255,0.10);
+  --doc-fg:        #E6E5E0;
+  --doc-fg-2:      #BBB9B0;
+  --doc-fg-3:      #8B8B85;
+  --doc-accent:    #C4583C;
+  --doc-mono:      "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans:      "Inter", system-ui, sans-serif;
+}
+
+[data-product="management"], [data-product="owner"] {
+  --paper:        #FAF6EE;
+  --cream:        #F4EFE6;
+  --cream-warm:   #ECE5D5;
+  --cream-deep:   #E5DECC;
+  --ink:          #14201C;
+  --ink-2:        #2F3D38;
+  --ink-3:        #5C6B65;
+  --ink-4:        #8E9A95;
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --accent:       #C4583C;
+  --accent-soft:  #E8B8A4;
+  --accent-deep:  #A24628;
+  --on-accent:    #FFF8F0;
+  --forest:       #1F3A2E;
+  --inverted-bg:  #14201C;
+  --inverted-fg:  #F4EFE6;
+  --ok:           #2C8A5C;
+  --warn:         #C18A2E;
+  --danger:       #B53826;
+  --info:         #3A6B9C;
+  --sage:         #7E8E7A;
+  --terra:        #C4583C;
+  --r-pill:    999px;
+  --r-card:    14px;
+  --r-card-lg: 20px;
+  --r-hero:    28px;
+  --r-sm:      6px;
+  --r-xs:      4px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font:    "Inter", system-ui, sans-serif;
+  --mono-font:    "JetBrains Mono", ui-monospace, monospace;
+  --shadow-card: 0 2px 6px rgba(20,32,28,0.05), 0 1px 2px rgba(20,32,28,0.04);
+  --shadow-pop:  0 12px 32px rgba(20,32,28,0.14), 0 4px 8px rgba(20,32,28,0.06);
+}
+
+[data-product="development"] {
+  --bg:           #F1ECE0;
+  --bg-2:         #E7E1D3;
+  --bg-3:         #DDD6C5;
+  --panel:        #F7F3E8;
+  --ink:          #1A1916;
+  --ink-2:        #2D2B25;
+  --ink-3:        #5A5A4F;
+  --ink-4:        #8A8A7E;
+  --line:         #C9C3B0;
+  --line-2:       #D8D3C2;
+  --line-3:       #B8B19E;
+  --line-soft:    #D8D3C2;
+  --accent:       #B07A28;
+  --accent-soft:  #E5C684;
+  --accent-deep:  #855B17;
+  --on-accent:    #1A1916;
+  --inverted-bg:  #1A1916;
+  --inverted-fg:  #F7F3E8;
+  --ok:           #2F7A4E;
+  --warn:         #B07A28;
+  --danger:       #A8331F;
+  --info:         #2E5680;
+  --amber:        #B07A28;
+  --carbon:       #1A1916;
+  --cream-warm:   #E7E1D3;
+  --cream-deep:   #D8D3C2;
+  --r-pill:    999px;
+  --r-card:    8px;
+  --r-card-lg: 14px;
+  --r-hero:    18px;
+  --r-sm:      4px;
+  --r-xs:      3px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font:    "Inter", system-ui, sans-serif;
+  --mono-font:    "JetBrains Mono", ui-monospace, monospace;
+  --shadow-card: 0 1px 2px rgba(26,25,22,0.06), 0 1px 1px rgba(26,25,22,0.04);
+  --shadow-pop:  0 8px 24px rgba(26,25,22,0.16), 0 2px 6px rgba(26,25,22,0.08);
+}
+
+[data-product] .label {
+  font-family: var(--mono-font); text-transform: uppercase;
+  letter-spacing: 0.14em; color: var(--ink-3);
+  font-size: 11px; font-weight: 400;
+}
+[data-product] .mono { font-family: var(--mono-font); font-feature-settings: "tnum"; }
+[data-product] .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 16px; border-radius: var(--r-pill);
+  font-family: var(--sans-font); font-size: 14px; font-weight: 500;
+  border: 1px solid transparent; cursor: pointer; user-select: none;
+  white-space: nowrap; line-height: 1; text-decoration: none; background: transparent;
+}
+[data-product] .btn-sm { padding: 7px 14px; font-size: 13px; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product="management"] .btn-secondary,
+[data-product="owner"] .btn-secondary {
+  background: var(--cream-warm); color: var(--ink); border-color: var(--line);
+}
+[data-product="development"] .btn-secondary {
+  background: var(--bg-3); color: var(--ink); border-color: var(--line-2);
+}
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); }
+[data-product] .btn-danger { background: var(--danger); color: var(--cream-warm); }
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); }
+
+[data-product] .badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: var(--r-pill);
+  font-family: var(--mono-font); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.10em;
+  border: 1px solid var(--line); background: var(--paper);
+  color: var(--ink-3);
+}
+[data-product] .badge-ok     { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
+[data-product] .badge-warn   { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+[data-product] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product] .badge-ink    { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--doc-bg); color: var(--doc-fg);
+  font-family: var(--doc-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.page { min-height: 100vh; padding: 64px 48px 96px; }
+.page-head { max-width: 1600px; margin: 0 auto 56px; }
+.page-head .eyebrow {
+  font-family: var(--doc-mono); font-size: 11px;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--doc-accent);
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px;
+}
+.page-head .eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.page-head h1 {
+  font-family: var(--doc-sans); font-weight: 500;
+  font-size: 40px; line-height: 1.05; letter-spacing: -0.02em;
+  margin: 0;
+}
+.page-head h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.page-head p {
+  max-width: 720px; margin: 18px 0 0;
+  font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65;
+}
+.page-head .meta {
+  display: flex; gap: 28px; flex-wrap: wrap;
+  margin-top: 28px; padding-top: 22px;
+  border-top: 1px solid var(--doc-line);
+  font-size: 13px;
+}
+.page-head .meta div { display: flex; flex-direction: column; gap: 4px; }
+.page-head .meta .k { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); }
+.page-head .meta .v { color: var(--doc-fg); }
+
+.boards { display: flex; flex-direction: column; gap: 72px; max-width: 1600px; margin: 0 auto; }
+
+.cabinet {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  padding-top: 32px;
+  border-top: 1px solid var(--doc-line);
+}
+.cabinet-head {
+  display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap;
+}
+.cabinet-head .num {
+  font-family: var(--doc-mono); font-size: 11px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+  padding: 5px 10px; border: 1px solid var(--doc-line-2); border-radius: 4px;
+}
+.cabinet-head h2 {
+  margin: 0;
+  font-family: var(--doc-sans); font-weight: 500;
+  font-size: 28px; letter-spacing: -0.015em;
+  color: var(--doc-fg);
+}
+.cabinet-head .meta {
+  margin-left: auto;
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.cabinet-head .meta .pill {
+  padding: 4px 10px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 999px;
+  font-family: var(--doc-mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.cabinet-head .meta .pill.mgmt { color: #E8B8A4; border-color: rgba(232,184,164,0.35); }
+.cabinet-head .meta .pill.dev  { color: #E5C684; border-color: rgba(229,198,132,0.35); }
+.cabinet-lede {
+  max-width: 760px;
+  font-size: 14.5px; line-height: 1.65;
+  color: var(--doc-fg-2);
+  margin: 4px 0 0;
+}
+
+.cabinet-body {
+  display: grid;
+  grid-template-columns: 380px 380px 1fr;
+  gap: 36px;
+  align-items: start;
+}
+.frame-col {
+  display: flex; flex-direction: column; gap: 14px;
+  position: sticky; top: 24px;
+}
+.frame-tag {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--doc-mono); font-size: 10.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.frame-tag .name { color: var(--doc-fg); }
+.frame-tag .role {
+  padding: 2px 8px;
+  border: 1px solid var(--doc-line-2); border-radius: 4px;
+  color: var(--doc-fg-2);
+  font-size: 9.5px;
+}
+
+/* iOS-shaped frame (slightly smaller for double layout) */
+.phone {
+  width: 360px; height: 740px;
+  border-radius: 44px;
+  background: #0A0B0F;
+  padding: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06);
+  position: relative;
+}
+.phone-screen {
+  width: 100%; height: 100%;
+  border-radius: 34px;
+  background: var(--cream); overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.phone[data-product="development"] .phone-screen { background: var(--bg); }
+.phone-status {
+  height: 38px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px 4px;
+  font-family: var(--mono-font); font-size: 12px;
+  color: var(--ink); font-weight: 500; flex-shrink: 0;
+}
+.phone-notch {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  width: 110px; height: 28px; background: #0A0B0F; border-radius: 14px;
+  z-index: 2; pointer-events: none;
+}
+.phone-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+.app-topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+  flex-shrink: 0;
+}
+.app-topbar .back, .app-topbar .more {
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 999px; color: var(--ink);
+}
+.app-topbar .title {
+  flex: 1; font-family: var(--display-font);
+  font-size: 17px; color: var(--ink); font-weight: 400;
+}
+[data-product="development"] .app-topbar .title { font-weight: 500; }
+.app-topbar .title .sub {
+  display: block;
+  font-family: var(--mono-font); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3); margin-top: 1px;
+  font-weight: 400;
+}
+.app-topbar .aux {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--mono-font); font-size: 11px; color: var(--ink-3);
+}
+.app-topbar .aux .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+
+.app-scroll { flex: 1; overflow-y: auto; padding: 0; }
+
+.app-tabbar {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--line-soft, var(--line-2));
+  background: var(--paper, var(--panel));
+  padding-bottom: 14px;
+  flex-shrink: 0;
+}
+.app-tabbar .tab {
+  flex: 1; padding: 10px 0 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--mono-font); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--ink-4); background: transparent; border: 0;
+}
+.app-tabbar .tab.on { color: var(--ink); }
+.app-tabbar .tab.on .ico { color: var(--accent); }
+.app-tabbar .ico {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* Notes / spec column */
+.notes { padding-top: 4px; }
+.notes h3 {
+  font-family: var(--doc-sans); font-size: 18px;
+  font-weight: 500; letter-spacing: -0.005em;
+  margin: 0 0 6px; color: var(--doc-fg);
+}
+.notes p.lede {
+  font-size: 14px; line-height: 1.6;
+  color: var(--doc-fg-2);
+  margin: 0 0 18px;
+  max-width: 460px;
+}
+.notes dl { margin: 0; border-top: 1px solid var(--doc-line); }
+.notes dl > div {
+  display: grid; grid-template-columns: 130px 1fr;
+  gap: 18px; padding: 12px 0;
+  border-bottom: 1px solid var(--doc-line);
+}
+.notes dt {
+  font-family: var(--doc-mono); font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.notes dd { margin: 0; font-size: 13px; color: var(--doc-fg-2); line-height: 1.55; }
+.notes dd strong { color: var(--doc-fg); font-weight: 500; }
+.notes dd code {
+  background: var(--doc-bg-3); padding: 1px 6px; border-radius: 4px;
+  font-family: var(--doc-mono); font-size: 11.5px; color: var(--doc-fg);
+}
+
+@media (max-width: 1320px) {
+  .cabinet-body { grid-template-columns: 380px 380px; }
+  .notes { grid-column: 1 / -1; }
+  .frame-col { position: static; }
+}
+@media (max-width: 820px) {
+  .cabinet-body { grid-template-columns: 1fr; justify-items: center; }
+  .notes { max-width: 420px; }
+}
+
+/* ============================================================
+   Inlined Phase 2.4 primitive CSS (same as primitives page)
+   ============================================================ */
+
+/* ChannelGrid (subset) */
+[data-product] .channel-grid {
+  --col-w: 56px; --row-h: 44px; --row-label-w: 200px;
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--r-card); overflow: hidden;
+  font-family: var(--sans-font); font-size: 12.5px;
+}
+[data-product="development"] .channel-grid { background: var(--panel); border-color: var(--line-2); }
+[data-product] .cg-head {
+  display: grid;
+  grid-template-columns: var(--row-label-w) repeat(var(--cols, 14), var(--col-w));
+  background: var(--cream-warm, var(--bg-2));
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+  position: sticky; top: 0; z-index: 2;
+}
+[data-product] .cg-head .corner {
+  padding: 8px 10px; border-right: 1px solid var(--line-soft, var(--line-2));
+  font-family: var(--mono-font); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3);
+  display: flex; align-items: center; gap: 8px;
+}
+[data-product] .cg-head .day {
+  padding: 6px 4px 8px; text-align: center;
+  font-family: var(--mono-font);
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  color: var(--ink-3);
+}
+[data-product] .cg-head .day .dow { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-4); }
+[data-product] .cg-head .day .dn { font-size: 14px; color: var(--ink); font-feature-settings: "tnum"; }
+[data-product] .cg-head .day.today .dn { color: var(--accent); font-weight: 500; }
+[data-product] .cg-head .day.today { border-bottom: 2px solid var(--accent); margin-bottom: -1px; }
+[data-product] .cg-row {
+  display: grid;
+  grid-template-columns: var(--row-label-w) repeat(var(--cols, 14), var(--col-w));
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+[data-product] .cg-row:last-child { border-bottom: 0; }
+[data-product] .cg-row .label {
+  padding: 8px 12px;
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  font-size: 12.5px;
+  display: flex; align-items: center; gap: 8px;
+  color: var(--ink-2);
+}
+[data-product] .cg-row .label .ch { width: 7px; height: 7px; border-radius: 50%; background: var(--ch, var(--ink-3)); }
+[data-product] .cg-cell {
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  min-height: 48px; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono-font); font-size: 11px;
+  color: var(--ink-2);
+}
+[data-product] .cg-cell .rate { font-feature-settings: "tnum"; color: var(--ink); font-size: 13px; }
+[data-product] .cg-cell .indicator { position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; }
+[data-product] .cg-cell.synced .indicator { background: var(--ok); }
+[data-product] .cg-cell.stale .indicator  { background: var(--warn); }
+[data-product] .cg-cell.conflict .indicator { background: var(--danger); }
+[data-product] .cg-cell.booked { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+[data-product] .cg-cell.conflict { background: color-mix(in srgb, var(--danger) 8%, transparent); }
+</style>
+
+<style id="cabinet-mobile">
+/* Booking / today card */
+[data-product] .b-card {
+  padding: 12px 14px;
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+  display: flex; gap: 12px; align-items: center;
+}
+[data-product] .b-card .avatar {
+  width: 38px; height: 38px; border-radius: 999px;
+  background: var(--cream-warm); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display-font);
+  color: var(--ink-2);
+  font-size: 14px;
+}
+[data-product="development"] .b-card .avatar { background: var(--bg-3); }
+[data-product] .b-card .body { flex: 1; min-width: 0; }
+[data-product] .b-card .name {
+  font-family: var(--sans-font); font-size: 14px; font-weight: 500;
+  color: var(--ink); line-height: 1.2;
+}
+[data-product] .b-card .meta {
+  font-family: var(--mono-font); font-size: 11px;
+  color: var(--ink-3); margin-top: 2px;
+}
+[data-product] .b-card .meta .sep { color: var(--ink-4); margin: 0 4px; }
+[data-product] .b-card .right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  font-family: var(--mono-font); font-size: 11px;
+}
+[data-product] .b-card .right .when { color: var(--ink); }
+[data-product] .b-card .right .ago { color: var(--ink-4); font-size: 10px; }
+
+/* Section header inside scrollable column */
+.sec-h {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 16px 8px;
+  font-family: var(--mono-font); font-size: 10.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.sec-h .ct {
+  font-family: var(--mono-font); font-size: 9.5px;
+  padding: 1px 6px; border-radius: 999px;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+.sec-h .more {
+  margin-left: auto;
+  color: var(--ink-4);
+  font-family: var(--sans-font); font-size: 11px;
+  text-transform: none; letter-spacing: 0;
+}
+
+/* List padding */
+.app-list {
+  padding: 4px 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+/* KPI bar */
+.kpi-strip {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; padding: 10px 12px;
+}
+.kpi-strip .kpi {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+  padding: 10px 12px;
+}
+[data-product="development"] .kpi-strip .kpi { background: var(--panel); border-color: var(--line-2); }
+.kpi-strip .kpi .l {
+  font-family: var(--mono-font); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+.kpi-strip .kpi .v {
+  font-family: var(--display-font); font-size: 22px;
+  color: var(--ink); margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+[data-product="development"] .kpi-strip .kpi .v { font-weight: 500; }
+.kpi-strip .kpi .v.warn { color: var(--warn); }
+.kpi-strip .kpi .v.danger { color: var(--danger); }
+.kpi-strip .kpi .v.ok { color: var(--ok); }
+
+/* Bottom sheet container (renders as part of screen) */
+.sheet {
+  margin-top: auto;
+  background: var(--paper);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -8px 24px rgba(20,32,28,0.10);
+  padding: 6px 16px 16px;
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+[data-product="development"] .sheet { background: var(--panel); border-color: var(--line-2); }
+.sheet .handle {
+  width: 38px; height: 4px;
+  background: var(--ink-4); border-radius: 4px;
+  margin: 4px auto 12px;
+  opacity: 0.4;
+}
+.sheet h4 {
+  margin: 0 0 4px;
+  font-family: var(--display-font);
+  font-size: 17px; font-weight: 400; color: var(--ink);
+}
+[data-product="development"] .sheet h4 { font-weight: 500; }
+.sheet .sheet-sub {
+  font-family: var(--mono-font); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3); margin-bottom: 12px;
+}
+.sheet .sheet-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+.sheet .sheet-row:last-child { border-bottom: 0; }
+.sheet .sheet-row .k {
+  font-family: var(--mono-font); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3); width: 90px; flex-shrink: 0;
+}
+.sheet .sheet-row .v {
+  flex: 1;
+  font-family: var(--sans-font); font-size: 13.5px;
+  color: var(--ink);
+}
+.sheet .sheet-actions {
+  display: flex; gap: 8px;
+  margin-top: 12px;
+}
+.sheet .sheet-actions .btn { flex: 1; }
+
+/* Stepper */
+.stepper {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 16px 8px;
+}
+.stepper .step {
+  flex: 1; height: 4px;
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 4px;
+  position: relative;
+}
+.stepper .step.done { background: var(--ink); }
+.stepper .step.on   { background: var(--accent); }
+.stepper .step.on::after {
+  content: ""; position: absolute; right: 0; top: -3px;
+  width: 10px; height: 10px; background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.step-head {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 2px 16px 8px;
+}
+.step-head .num {
+  font-family: var(--mono-font); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+.step-head h4 {
+  margin: 0;
+  font-family: var(--display-font); font-size: 22px;
+  font-weight: 400; color: var(--ink);
+  letter-spacing: -0.005em;
+}
+[data-product="development"] .step-head h4 { font-weight: 500; letter-spacing: -0.015em; }
+
+/* Form field */
+.fld {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 10px 14px;
+  margin: 0 16px 10px;
+}
+[data-product="development"] .fld { background: var(--panel); border-color: var(--line-2); }
+.fld .lbl {
+  font-family: var(--mono-font); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+.fld .val {
+  display: block; margin-top: 4px;
+  font-family: var(--sans-font); font-size: 15px;
+  color: var(--ink);
+  border: 0; outline: 0; background: transparent; padding: 0; width: 100%;
+}
+.fld .val .ph { color: var(--ink-4); }
+.fld.checkable {
+  display: flex; align-items: center; gap: 12px;
+}
+.fld.checkable .lbl { font-size: 13.5px; text-transform: none; letter-spacing: 0; color: var(--ink); flex: 1; font-family: var(--sans-font); }
+.fld .check {
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--ink-4);
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.fld .check.on { background: var(--ink); border-color: var(--ink); color: var(--inverted-fg); }
+
+.cta-row {
+  display: flex; gap: 8px; padding: 12px 16px;
+  border-top: 1px solid var(--line-soft, var(--line-2));
+  background: var(--cream, var(--bg));
+  flex-shrink: 0;
+}
+.cta-row .btn { flex: 1; }
+.cta-row .ghost {
+  background: transparent; color: var(--ink-2);
+  border: 1px solid var(--line); padding: 9px 14px;
+}
+
+/* Concierge thread */
+.msg {
+  margin: 4px 16px;
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.msg.staff { justify-content: flex-end; }
+.msg .bubble {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  font-family: var(--sans-font); font-size: 13.5px;
+  line-height: 1.4; color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+}
+.msg.staff .bubble {
+  background: var(--ink); color: var(--inverted-fg);
+  border-color: var(--ink);
+}
+.msg.agent .bubble {
+  background: color-mix(in srgb, var(--accent) 10%, var(--paper));
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.msg .when {
+  font-family: var(--mono-font); font-size: 9.5px;
+  color: var(--ink-4);
+}
+.msg-divider {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px 6px;
+  font-family: var(--mono-font); font-size: 9.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-4);
+}
+.msg-divider::before, .msg-divider::after {
+  content: ""; flex: 1; height: 1px; background: var(--line-soft);
+}
+
+/* Capture flow camera preview */
+.cam {
+  height: 280px;
+  background: #14201C;
+  position: relative;
+  border-radius: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.4);
+  font-family: var(--mono-font); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.18em;
+  background-image:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 2px, transparent 2px 14px),
+    linear-gradient(180deg, #14201C 0%, #2F3D38 100%);
+}
+[data-product="development"] .cam {
+  background-image:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 2px, transparent 2px 14px),
+    linear-gradient(180deg, #1A1916 0%, #2D2B25 100%);
+}
+.cam .frame-guides {
+  position: absolute; inset: 24px;
+  border: 1px dashed rgba(255,255,255,0.18);
+}
+.cam .frame-guides::before,
+.cam .frame-guides::after {
+  content: "";
+  position: absolute; left: 33.33%; right: 33.33%;
+  top: 0; bottom: 0;
+  border-left: 1px dashed rgba(255,255,255,0.10);
+  border-right: 1px dashed rgba(255,255,255,0.10);
+}
+.cam .corner {
+  position: absolute; left: 16px; top: 16px;
+  display: flex; gap: 8px;
+}
+.cam .corner .pill {
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(0,0,0,0.6); color: white;
+  font-family: var(--mono-font); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  backdrop-filter: blur(6px);
+}
+.cam .voice-row {
+  position: absolute; left: 16px; right: 16px; bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0,0,0,0.6);
+  padding: 8px 12px; border-radius: 999px;
+  color: white; font-family: var(--mono-font); font-size: 11px;
+}
+.cam .voice-row .wf {
+  flex: 1; display: flex; align-items: center; gap: 2px;
+}
+.cam .voice-row .wf span {
+  display: inline-block; width: 2px; background: rgba(255,255,255,0.65);
+  border-radius: 1px;
+}
+
+/* Pipeline card style (compact mobile) */
+[data-product] .pb-card {
+  padding: 12px 14px;
+  background: var(--paper);
+  border: 1px solid var(--line-soft, var(--line-2));
+  border-radius: var(--r-card);
+  display: flex; flex-direction: column; gap: 8px;
+}
+[data-product] .pb-card .row1 { display: flex; align-items: center; gap: 8px; }
+[data-product] .pb-card .row1 .who { font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; color: var(--ink); }
+[data-product] .pb-card .row1 .amt { margin-left: auto; font-family: var(--mono-font); font-size: 12.5px; color: var(--ink); font-feature-settings: "tnum"; }
+[data-product] .pb-card .unit { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .pb-card .row2 { display: flex; align-items: center; gap: 8px; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+[data-product] .pb-card .probability { height: 3px; background: var(--cream-deep, var(--bg-3)); border-radius: 999px; overflow: hidden; }
+[data-product] .pb-card .probability .fill { height: 100%; background: var(--accent); border-radius: 999px; }
+[data-product] .pb-card .probability.hot .fill { background: var(--ok); }
+
+/* Investor LP row */
+.lp-row {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 14px;
+}
+.lp-row .name {
+  font-family: var(--sans-font); font-size: 14px;
+  font-weight: 500; color: var(--ink);
+}
+.lp-row .ctry {
+  font-family: var(--mono-font); font-size: 10.5px;
+  color: var(--ink-3); margin-top: 2px;
+}
+.lp-row .figs {
+  text-align: right;
+  font-family: var(--mono-font); font-size: 12.5px;
+  color: var(--ink);
+  font-feature-settings: "tnum";
+}
+.lp-row .moic {
+  text-align: right;
+  font-family: var(--mono-font); font-size: 10.5px;
+  color: var(--ok);
+}
+.lp-row .moic.warn { color: var(--warn); }
+
+/* Capital call detail */
+.cc-head {
+  padding: 14px 16px 6px;
+}
+.cc-head h3 {
+  margin: 0;
+  font-family: var(--display-font); font-size: 22px;
+  font-weight: 400; color: var(--ink);
+  letter-spacing: -0.01em;
+}
+[data-product="development"] .cc-head h3 { font-weight: 500; }
+.cc-head .sub {
+  font-family: var(--mono-font); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3); margin-top: 4px;
+}
+.cc-total {
+  margin: 10px 16px 8px;
+  padding: 14px 16px;
+  background: var(--ink); color: var(--inverted-fg);
+  border-radius: var(--r-card-lg);
+}
+.cc-total .lbl { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(255,255,255,0.55); }
+.cc-total .v { font-family: var(--display-font); font-size: 28px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+[data-product="development"] .cc-total .v { font-weight: 500; }
+.cc-alloc {
+  padding: 8px 16px 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.cc-alloc .row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  gap: 10px; align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+.cc-alloc .row:last-child { border-bottom: 0; }
+.cc-alloc .row .nm { font-family: var(--sans-font); font-size: 13px; color: var(--ink); font-weight: 500; }
+.cc-alloc .row .pct { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+.cc-alloc .row .amt { font-family: var(--mono-font); font-size: 12.5px; color: var(--ink); }
+.cc-alloc .row .st {
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ok);
+  margin-right: 6px;
+}
+.cc-alloc .row .st.pending { background: var(--warn); }
+.cc-alloc .row .st.overdue { background: var(--danger); }
+
+/* Site frame photo */
+.photo {
+  border-radius: var(--r-card);
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 2px, transparent 2px 14px),
+    var(--cream-deep, var(--bg-2));
+  aspect-ratio: 16 / 9;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  font-family: var(--mono-font); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.18em;
+  overflow: hidden;
+}
+
+/* Rule editor row */
+.r-row {
+  padding: 10px 14px;
+  margin: 0 16px 8px;
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+}
+[data-product="development"] .r-row { background: var(--panel); border-color: var(--line-2); }
+.r-row .head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px;
+}
+.r-row .head .nm {
+  font-family: var(--sans-font); font-size: 14px;
+  font-weight: 500; color: var(--ink);
+}
+.r-row .head .delta {
+  margin-left: auto;
+  font-family: var(--mono-font); font-size: 12px;
+  font-feature-settings: "tnum";
+}
+.r-row .delta.pos { color: var(--accent); }
+.r-row .delta.neg { color: var(--info); }
+.r-row .body {
+  font-family: var(--mono-font); font-size: 11px;
+  color: var(--ink-3); line-height: 1.5;
+}
+.r-row .body em { color: var(--ink-2); font-style: normal; font-weight: 500; }
+.r-row .meta-strip {
+  display: flex; gap: 12px; margin-top: 6px;
+  font-family: var(--mono-font); font-size: 10px;
+  color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.14em;
+}
+
+/* Buyer detail compact card */
+.bd-head {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+.bd-head .name {
+  font-family: var(--display-font); font-size: 24px;
+  color: var(--ink); font-weight: 400; letter-spacing: -0.01em;
+  margin: 0;
+}
+[data-product="development"] .bd-head .name { font-weight: 500; }
+.bd-head .ctry {
+  font-family: var(--mono-font); font-size: 11px;
+  color: var(--ink-3); margin-top: 4px;
+}
+.bd-head .chips {
+  display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;
+}
+.bd-row {
+  display: flex; justify-content: space-between; gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+  font-size: 13px;
+  align-items: baseline;
+}
+.bd-row .k {
+  font-family: var(--mono-font); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+.bd-row .v { color: var(--ink); font-family: var(--mono-font); font-size: 12.5px; font-feature-settings: "tnum"; }
+.bd-section-h {
+  padding: 14px 16px 6px;
+  font-family: var(--mono-font); font-size: 10.5px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Payment ladder */
+.pl-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto auto;
+  gap: 10px; align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+.pl-row .num {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono-font); font-size: 11px;
+  color: var(--ink-3);
+}
+.pl-row.done .num { background: var(--ok); color: white; border-color: var(--ok); }
+.pl-row.current .num { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+.pl-row .nm {
+  font-family: var(--sans-font); font-size: 13.5px;
+  color: var(--ink);
+}
+.pl-row .when {
+  font-family: var(--mono-font); font-size: 10.5px;
+  color: var(--ink-3);
+}
+.pl-row .amt {
+  font-family: var(--mono-font); font-size: 12.5px;
+  color: var(--ink);
+}
+
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Mobile pass · Phase 2.4 cabinets">
+
+  <header class="page-head">
+    <div class="eyebrow"><span class="glyph"></span><span>DS extension · Mobile pass · Phase 2.4 cabinets</span></div>
+    <h1>Seven cabinets, <em>main view + critical flow</em>.</h1>
+    <p>Each Phase 2.4 cabinet gets two mobile artboards: the primary view (list/grid/board) and the one flow where mobile UX makes or breaks the cabinet — conflict resolver, check-in FSM, capture flow, comp approval, rule editor, buyer offer, capital call. List views are mostly straightforward; flow screens are where the design needs to commit.</p>
+    <div class="meta">
+      <div><span class="k">Status</span><span class="v">Draft — needs review</span></div>
+      <div><span class="k">Target viewport</span><span class="v">360-700&nbsp;px width</span></div>
+      <div><span class="k">Frame</span><span class="v">iPhone 14 · 393 × 852 (scaled)</span></div>
+      <div><span class="k">Min hit target</span><span class="v">44&nbsp;×&nbsp;44&nbsp;px</span></div>
+      <div><span class="k">Previous pass</span><span class="v"><a href="mobile-pass-2.4-primitives.html" style="color:var(--doc-accent);">Primitives →</a></span></div>
+    </div>
+  </header>
+
+  <main class="boards">
+
+  <!-- ============================================================
+       01. Mgmt · Channels
+       ============================================================ -->
+  <section class="cabinet" data-screen-label="Cabinet 01 · Channels">
+    <header class="cabinet-head">
+      <span class="num">01</span>
+      <h2>Channels &amp; direct bookings</h2>
+      <div class="meta"><span class="pill mgmt">Mgmt · P2</span><span class="pill">grid + conflict</span></div>
+    </header>
+    <p class="cabinet-lede">Channels is the most desktop-heavy cabinet of the seven. The grid still works on mobile (single villa, 3-day window) but the killer mobile screen is the <strong>conflict resolver</strong> — when the user gets a push notification "Avito conflict on Tirta jun&nbsp;13", they need to resolve it from wherever they are. Three-way merge as a bottom sheet, not a desktop modal.</p>
+
+    <div class="cabinet-body">
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">main</span><span class="name">Grid · Tirta · 3-day</span></div>
+        <div class="phone" data-product="management">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">←</div>
+                <div class="title">Channels<span class="sub">tirta · 3d window</span></div>
+                <div class="aux"><span class="dot"></span>3</div>
+              </div>
+              <div class="app-scroll">
+                <div class="kpi-strip">
+                  <div class="kpi"><div class="l">synced</div><div class="v ok">94%</div></div>
+                  <div class="kpi"><div class="l">conflicts</div><div class="v danger">3</div></div>
+                  <div class="kpi"><div class="l">queue</div><div class="v warn">11</div></div>
+                </div>
+
+                <div style="padding:0 12px 14px;">
+                  <div class="channel-grid" style="--cols:3;--col-w:72px;--row-label-w:104px;font-size:13px;">
+                    <div class="cg-head">
+                      <div class="corner">channel</div>
+                      <div class="day today"><div class="dow">wed</div><div class="dn">11</div></div>
+                      <div class="day"><div class="dow">thu</div><div class="dn">12</div></div>
+                      <div class="day"><div class="dow">fri</div><div class="dn">13</div></div>
+                    </div>
+                    <div class="cg-row" style="--ch:#C4583C">
+                      <div class="label"><span class="ch"></span>Direct</div>
+                      <div class="cg-cell"><span class="rate">425</span></div>
+                      <div class="cg-cell"><span class="rate">425</span></div>
+                      <div class="cg-cell"><span class="rate">425</span></div>
+                    </div>
+                    <div class="cg-row" style="--ch:#FF5A5F">
+                      <div class="label"><span class="ch"></span>Airbnb</div>
+                      <div class="cg-cell synced"><span class="rate">475</span><span class="indicator"></span></div>
+                      <div class="cg-cell synced"><span class="rate">475</span><span class="indicator"></span></div>
+                      <div class="cg-cell synced"><span class="rate">475</span><span class="indicator"></span></div>
+                    </div>
+                    <div class="cg-row" style="--ch:#003580">
+                      <div class="label"><span class="ch"></span>Booking</div>
+                      <div class="cg-cell synced"><span class="rate">488</span><span class="indicator"></span></div>
+                      <div class="cg-cell booked"><span class="rate">—</span></div>
+                      <div class="cg-cell booked"><span class="rate">—</span></div>
+                    </div>
+                    <div class="cg-row" style="--ch:#00AAFF">
+                      <div class="label"><span class="ch"></span>Avito</div>
+                      <div class="cg-cell stale"><span class="rate">370</span><span class="indicator"></span></div>
+                      <div class="cg-cell stale"><span class="rate">370</span><span class="indicator"></span></div>
+                      <div class="cg-cell conflict"><span class="rate">390</span><span class="indicator"></span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sec-h">Activity <span class="ct">last 2h</span></div>
+                <div class="app-list">
+                  <div class="b-card">
+                    <div style="width:6px;height:38px;background:var(--danger);border-radius:3px;flex-shrink:0;"></div>
+                    <div class="body">
+                      <div class="name" style="font-size:13.5px;">Avito · conflict</div>
+                      <div class="meta">fri Jun 13 · local 390k <span class="sep">vs</span> remote 380k</div>
+                    </div>
+                    <div class="right"><div class="ago">2h</div></div>
+                  </div>
+                  <div class="b-card">
+                    <div style="width:6px;height:38px;background:var(--ok);border-radius:3px;flex-shrink:0;"></div>
+                    <div class="body">
+                      <div class="name" style="font-size:13.5px;">Airbnb · 3 cells synced</div>
+                      <div class="meta">wed-fri · all green</div>
+                    </div>
+                    <div class="right"><div class="ago">9m</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="app-tabbar">
+                <button class="tab on"><span class="ico">▦</span>Channels</button>
+                <button class="tab"><span class="ico">$</span>Pricing</button>
+                <button class="tab"><span class="ico">▢</span>Front</button>
+                <button class="tab"><span class="ico">⋯</span>More</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">flow</span><span class="name">Conflict resolver · 3-way</span></div>
+        <div class="phone" data-product="management">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">×</div>
+                <div class="title">Conflict<span class="sub">avito · fri jun 13</span></div>
+                <div class="more">⋯</div>
+              </div>
+
+              <div class="app-scroll">
+                <div style="padding:14px 16px 6px;">
+                  <p style="margin:0;font-size:14px;line-height:1.55;color:var(--ink-2);"><strong style="color:var(--ink);">Rate diverged between Arconique and Avito.</strong> Last successful sync was 4h&nbsp;36min ago.</p>
+                </div>
+
+                <div style="padding:6px 16px 0;">
+                  <!-- 3-way diff -->
+                  <div style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="display:grid;grid-template-columns:80px 1fr auto;gap:12px;align-items:center;padding:12px 14px;background:var(--paper);border:1px solid var(--line-soft);border-radius:14px;">
+                      <div class="label" style="font-size:9.5px;">last sync</div>
+                      <div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);font-feature-settings:'tnum';">380<span style="font-size:10px;color:var(--ink-4);margin-left:6px;">IDR k</span></div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-4);">04:53 jun&nbsp;11</div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:80px 1fr auto;gap:12px;align-items:center;padding:12px 14px;background:color-mix(in srgb, var(--accent) 8%, var(--paper));border:1.5px solid var(--accent);border-radius:14px;">
+                      <div class="label" style="font-size:9.5px;color:var(--accent);">Arconique</div>
+                      <div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);font-feature-settings:'tnum';">390<span style="font-size:10px;color:var(--ink-4);margin-left:6px;">IDR k</span> <span class="badge badge-accent" style="margin-left:6px;">+10</span></div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-4);">08:21 by Nita</div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:80px 1fr auto;gap:12px;align-items:center;padding:12px 14px;background:color-mix(in srgb, var(--danger) 6%, var(--paper));border:1px solid color-mix(in srgb, var(--danger) 30%, transparent);border-radius:14px;">
+                      <div class="label" style="font-size:9.5px;color:var(--danger);">Avito</div>
+                      <div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);font-feature-settings:'tnum';">380<span style="font-size:10px;color:var(--ink-4);margin-left:6px;">IDR k</span> <span class="badge badge-danger" style="margin-left:6px;">unchanged</span></div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-4);">remote</div>
+                    </div>
+                  </div>
+
+                  <div style="margin:18px 0 8px;font-family:var(--mono-font);font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);">Why this happened</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--ink-2);line-height:1.5;">
+                    <div>· You bumped Avito to <em style="font-family:var(--mono-font);font-style:normal;color:var(--ink);">390k</em> at 08:21 to match Booking.com.</div>
+                    <div>· Avito API rejected the push (transient: 503).</div>
+                    <div>· Auto-retry scheduled; next attempt in <em style="font-family:var(--mono-font);font-style:normal;color:var(--ink);">8min</em>.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sheet">
+                <div class="handle"></div>
+                <h4>Choose what wins</h4>
+                <div class="sheet-sub">3-way merge · only one writes through</div>
+                <div class="sheet-actions" style="flex-direction:column;gap:8px;">
+                  <button class="btn btn-primary" style="width:100%;">Keep Arconique · push 390 →</button>
+                  <button class="btn btn-secondary" style="width:100%;">Accept Avito · revert to 380</button>
+                  <button class="btn btn-ghost" style="width:100%;">Edit a new value…</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <h3>Mobile patterns</h3>
+        <p class="lede">Main screen reuses the <code>.channel-grid.mobile</code> primitive from the primitives pass. The new design work here is the <strong>conflict resolver as a bottom-sheet flow</strong>, opened from a notification or from tapping a <code>.conflict</code> cell.</p>
+        <dl>
+          <div><dt>Entrypoints</dt><dd>Push notification (deep-links here), or tap a red-dot cell in the grid. Both arrive at the same screen — no separate "from notif" variant.</dd></div>
+          <div><dt>3-way diff</dt><dd>Last-synced (neutral) · Arconique (accent) · Avito (red tint). Cards stack vertically — no horizontal layout at 360&nbsp;px.</dd></div>
+          <div><dt>Why-happened</dt><dd>A 3-line explanation directly below the diff. Replaces the desktop right-side rail.</dd></div>
+          <div><dt>Resolution</dt><dd>Three CTAs in a stack, full-width. No "discard" — closing the sheet leaves the conflict open.</dd></div>
+          <div><dt>Edit new value</dt><dd>Opens a sub-sheet with a numeric pad + commit button. Pushes to both Arconique and Avito on commit.</dd></div>
+          <div><dt>Topbar X vs ←</dt><dd>Conflict resolver uses <code>×</code> (modal-style dismiss) — there is no "back" history in this flow.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       02. Mgmt · Dynamic pricing
+       ============================================================ -->
+  <section class="cabinet" data-screen-label="Cabinet 02 · Dynamic pricing">
+    <header class="cabinet-head">
+      <span class="num">02</span>
+      <h2>Dynamic pricing</h2>
+      <div class="meta"><span class="pill mgmt">Mgmt · P2</span><span class="pill">curve + rules</span></div>
+    </header>
+    <p class="cabinet-lede">Pricing has two modes the owner toggles between: <em>look at the curve</em> (read-only audit) and <em>change a rule</em> (write). Mobile leans into the rules tab because that's the higher-stakes action — a wrong rule pushes bad rates across all channels in seconds. Rule editor is the flow that earns its mobile design.</p>
+
+    <div class="cabinet-body">
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">main</span><span class="name">Rule sets · active</span></div>
+        <div class="phone" data-product="management">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">←</div>
+                <div class="title">Pricing<span class="sub">tirta · 6 rules</span></div>
+                <div class="aux">+</div>
+              </div>
+
+              <div class="app-scroll">
+
+                <div style="padding:10px 12px;">
+                  <div style="display:inline-flex;gap:4px;padding:3px;background:var(--cream-warm);border:1px solid var(--line);border-radius:999px;width:100%;">
+                    <button style="flex:1;padding:7px 0;border:0;background:transparent;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);border-radius:999px;">Curve</button>
+                    <button style="flex:1;padding:7px 0;border:0;background:var(--ink);color:var(--inverted-fg);font-family:var(--mono-font);font-size:11px;border-radius:999px;">Rules · 6</button>
+                    <button style="flex:1;padding:7px 0;border:0;background:transparent;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);border-radius:999px;">Comps</button>
+                  </div>
+                </div>
+
+                <div class="sec-h">Active <span class="ct">applied today</span></div>
+
+                <div class="r-row">
+                  <div class="head">
+                    <span class="nm">Sat &amp; Sun premium</span>
+                    <span class="delta pos">+15%</span>
+                  </div>
+                  <div class="body">Trigger: <em>weekday in [sat, sun]</em>. Applies to: <em>all villas</em>.</div>
+                  <div class="meta-strip">
+                    <div>priority&nbsp;1</div>
+                    <div>perm</div>
+                  </div>
+                </div>
+
+                <div class="r-row">
+                  <div class="head">
+                    <span class="nm">Galungan window</span>
+                    <span class="delta pos">+22%</span>
+                  </div>
+                  <div class="body">Trigger: <em>date jun&nbsp;13 — jun&nbsp;19</em>. Applies to: <em>tirta, cendana, sanctuary</em>.</div>
+                  <div class="meta-strip">
+                    <div>priority&nbsp;2</div>
+                    <div>1 week</div>
+                  </div>
+                </div>
+
+                <div class="r-row">
+                  <div class="head">
+                    <span class="nm">Long-stay 14n+</span>
+                    <span class="delta neg">−8%</span>
+                  </div>
+                  <div class="body">Trigger: <em>los &gt;= 14</em>. Applies to: <em>all villas</em>.</div>
+                  <div class="meta-strip">
+                    <div>priority&nbsp;5</div>
+                    <div>perm</div>
+                  </div>
+                </div>
+
+                <div class="r-row">
+                  <div class="head">
+                    <span class="nm">Last-min discount</span>
+                    <span class="delta neg">−12%</span>
+                  </div>
+                  <div class="body">Trigger: <em>days_to_arrival &lt;= 3</em>. Applies to: <em>tirta only</em>.</div>
+                  <div class="meta-strip">
+                    <div>priority&nbsp;4</div>
+                    <div>perm</div>
+                  </div>
+                </div>
+
+                <div class="sec-h">Paused <span class="ct">2</span></div>
+
+                <div class="r-row" style="opacity:0.55;">
+                  <div class="head">
+                    <span class="nm">School holiday IDN</span>
+                    <span class="delta pos">+10%</span>
+                  </div>
+                  <div class="body">Resumes jul&nbsp;05. Paused by Nita 3 days ago.</div>
+                </div>
+
+              </div>
+              <div class="app-tabbar">
+                <button class="tab"><span class="ico">▦</span>Channels</button>
+                <button class="tab on"><span class="ico">$</span>Pricing</button>
+                <button class="tab"><span class="ico">▢</span>Front</button>
+                <button class="tab"><span class="ico">⋯</span>More</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">flow</span><span class="name">Rule editor · trigger step</span></div>
+        <div class="phone" data-product="management">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">×</div>
+                <div class="title">Edit rule<span class="sub">galungan window</span></div>
+                <div class="more">⋯</div>
+              </div>
+
+              <div class="stepper">
+                <div class="step done"></div>
+                <div class="step on"></div>
+                <div class="step"></div>
+                <div class="step"></div>
+              </div>
+              <div class="step-head">
+                <span class="num">02 of 04</span>
+                <h4>When does it trigger?</h4>
+              </div>
+
+              <div class="app-scroll">
+                <div style="padding:0 16px 8px;font-size:13.5px;line-height:1.55;color:var(--ink-2);">
+                  Set the date window or weekday mask. Multiple conditions are ANDed together.
+                </div>
+
+                <div class="fld">
+                  <div class="lbl">Date window</div>
+                  <div class="val">jun&nbsp;13 — jun&nbsp;19</div>
+                </div>
+
+                <div class="fld">
+                  <div class="lbl">Weekday mask</div>
+                  <div class="val">all days</div>
+                </div>
+
+                <div class="fld">
+                  <div class="lbl">Channel filter</div>
+                  <div class="val"><span class="ph">any (default)</span></div>
+                </div>
+
+                <div class="fld">
+                  <div class="lbl">Min lead time (days)</div>
+                  <div class="val">—</div>
+                </div>
+
+                <div class="fld checkable">
+                  <div class="check on">✓</div>
+                  <div class="lbl">Stack with weekend premium (recommended)</div>
+                </div>
+
+                <div class="fld checkable">
+                  <div class="check"></div>
+                  <div class="lbl">Override comp-set median lower bound</div>
+                </div>
+
+                <div style="margin:14px 16px 0;padding:12px 14px;background:color-mix(in srgb, var(--accent) 8%, var(--paper));border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);border-radius:14px;">
+                  <div class="label" style="font-size:9.5px;color:var(--accent);margin-bottom:4px;">Preview</div>
+                  <div style="font-size:13px;line-height:1.55;color:var(--ink);">If this rule were active today, <strong style="font-family:var(--mono-font);">8 nights</strong> across <strong style="font-family:var(--mono-font);">3 villas</strong> would shift from <span style="font-family:var(--mono-font);">425k</span> &rarr; <span style="font-family:var(--mono-font);color:var(--accent);">519k</span>.</div>
+                </div>
+              </div>
+
+              <div class="cta-row">
+                <button class="btn ghost">Back</button>
+                <button class="btn btn-primary">Continue →</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <h3>Mobile patterns</h3>
+        <p class="lede">Main view: stack the curve / rules / comps tabs as a top segmented control instead of three side panels. Default to Rules — the most common reason an owner opens pricing on mobile is to flip a rule on/off, not stare at the curve.</p>
+        <dl>
+          <div><dt>Top segment</dt><dd>Three-tab pill. Curve is read-only; Rules is the write surface; Comps is reference data.</dd></div>
+          <div><dt>Rule card</dt><dd>Name + signed delta. Body explains the condition in plain language. Tap-anywhere opens the editor. Paused rules are at 55% opacity, grouped below active.</dd></div>
+          <div><dt>Priority order</dt><dd>Long-press to reorder. Number-badge to right of the name shows priority. Higher number = lower priority (engine evaluates ascending).</dd></div>
+          <div><dt>4-step editor</dt><dd><strong>Name &amp; effect</strong> → <strong>Trigger</strong> → <strong>Scope</strong> → <strong>Review &amp; commit</strong>. Each step ≤ 6 fields. Linear, no jump-back beyond the prev button.</dd></div>
+          <div><dt>Preview band</dt><dd>Accent-tinted card at the bottom of each step. Live-computed against today's data so the owner sees exactly what changes <em>before</em> committing.</dd></div>
+          <div><dt>Commit</dt><dd>Final step's primary CTA is <em>Activate</em> (or <em>Save as draft</em>). Activation fans out to all linked channels and shows a sync-status toast.</dd></div>
+        </dl>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       03. Mgmt · Front office
+       ============================================================ -->
+  <section class="cabinet" data-screen-label="Cabinet 03 · Front office">
+    <header class="cabinet-head">
+      <span class="num">03</span>
+      <h2>Front office</h2>
+      <div class="meta"><span class="pill mgmt">Mgmt · P2</span><span class="pill">check-in FSM</span></div>
+    </header>
+    <p class="cabinet-lede">Front office is the most mobile-native cabinet of the seven — the staff using it are <em>walking</em> through the villa with the guest, scanning passports, signing forms. Today board is the dispatcher's homepage; the 4-step check-in FSM is the screen they're on for 8-12 minutes per arrival.</p>
+
+    <div class="cabinet-body">
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">main</span><span class="name">Today board · arrivals</span></div>
+        <div class="phone" data-product="management">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">←</div>
+                <div class="title">Today<span class="sub">wed jun 11 · bali time</span></div>
+                <div class="aux">8</div>
+              </div>
+
+              <div class="app-scroll">
+                <div class="kpi-strip" style="grid-template-columns: repeat(4, 1fr);gap:6px;padding:10px 12px;">
+                  <div class="kpi" style="padding:8px 10px;"><div class="l">arrive</div><div class="v" style="font-size:20px;">4</div></div>
+                  <div class="kpi" style="padding:8px 10px;"><div class="l">in-house</div><div class="v" style="font-size:20px;">11</div></div>
+                  <div class="kpi" style="padding:8px 10px;"><div class="l">depart</div><div class="v" style="font-size:20px;">3</div></div>
+                  <div class="kpi" style="padding:8px 10px;"><div class="l">late</div><div class="v warn" style="font-size:20px;">1</div></div>
+                </div>
+
+                <div class="sec-h">Arrivals <span class="ct">4 today</span><span class="more">filter</span></div>
+                <div class="app-list">
+                  <div class="b-card">
+                    <div class="avatar">VI</div>
+                    <div class="body">
+                      <div class="name">Vikram Iyer · party 4</div>
+                      <div class="meta">Tirta · 5 nights <span class="sep">·</span> arrive 14:30</div>
+                    </div>
+                    <div class="right">
+                      <span class="badge badge-accent">VIP</span>
+                      <div class="ago">in 4h</div>
+                    </div>
+                  </div>
+                  <div class="b-card">
+                    <div class="avatar">AP</div>
+                    <div class="body">
+                      <div class="name">Anya Petrova · party 2</div>
+                      <div class="meta">Cendana · 7 nights <span class="sep">·</span> arrive 16:00</div>
+                    </div>
+                    <div class="right">
+                      <span class="badge badge-warn">ID pending</span>
+                    </div>
+                  </div>
+                  <div class="b-card">
+                    <div class="avatar">JL</div>
+                    <div class="body">
+                      <div class="name">Jamie Lee · party 6</div>
+                      <div class="meta">Sanctuary · 4 nights</div>
+                    </div>
+                    <div class="right">
+                      <div class="when">ready</div>
+                      <div class="ago">in 7h</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sec-h">In house <span class="ct">3 needing turn</span></div>
+                <div class="app-list">
+                  <div class="b-card">
+                    <div class="avatar">HS</div>
+                    <div class="body">
+                      <div class="name">Hadi Susanto · night 3 of 5</div>
+                      <div class="meta">Tirta · daily mid-stay clean</div>
+                    </div>
+                    <div class="right">
+                      <span class="badge badge-warn">turn</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sec-h">Departures <span class="ct">3 today</span></div>
+                <div class="app-list">
+                  <div class="b-card">
+                    <div class="avatar">DH</div>
+                    <div class="body">
+                      <div class="name">Diane Ho · party 2</div>
+                      <div class="meta">Sanctuary · 11:00 expected</div>
+                    </div>
+                    <div class="right">
+                      <span class="badge badge-danger">late</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              <div class="app-tabbar">
+                <button class="tab"><span class="ico">▦</span>Channels</button>
+                <button class="tab"><span class="ico">$</span>Pricing</button>
+                <button class="tab on"><span class="ico">▢</span>Front</button>
+                <button class="tab"><span class="ico">⋯</span>More</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">flow</span><span class="name">Check-in · step 1 of 4 · identity</span></div>
+        <div class="phone" data-product="management">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">×</div>
+                <div class="title">Check-in<span class="sub">vikram iyer · tirta</span></div>
+                <div class="more">⋯</div>
+              </div>
+
+              <div class="stepper">
+                <div class="step on"></div>
+                <div class="step"></div>
+                <div class="step"></div>
+                <div class="step"></div>
+              </div>
+              <div class="step-head">
+                <span class="num">01 of 04</span>
+                <h4>Identity</h4>
+              </div>
+
+              <div class="app-scroll">
+                <div style="padding:0 16px 8px;font-size:13.5px;line-height:1.55;color:var(--ink-2);">
+                  Scan or photograph the passport for each adult guest. The AI agent extracts fields — verify and edit if needed.
+                </div>
+
+                <!-- Scanned passport thumb -->
+                <div style="margin:6px 16px 14px;padding:12px;background:var(--paper);border:1px solid var(--line);border-radius:14px;display:flex;gap:12px;align-items:center;">
+                  <div style="width:72px;height:90px;border-radius:6px;background:linear-gradient(135deg, #2A3F39 0%, #4D6259 100%);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.5);font-family:var(--mono-font);font-size:9px;letter-spacing:0.15em;text-transform:uppercase;">passport</div>
+                  <div style="flex:1;">
+                    <div class="label" style="font-size:9px;">scanned · agent extracted</div>
+                    <div style="font-family:var(--display-font);font-size:16px;color:var(--ink);margin-top:4px;">VIKRAM IYER</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:2px;">IND · M5821842 · M · DOB 1984-03-12</div>
+                  </div>
+                  <button class="btn btn-ghost btn-sm">edit</button>
+                </div>
+
+                <div class="fld">
+                  <div class="lbl">Full name (passport)</div>
+                  <div class="val">Vikram Iyer</div>
+                </div>
+
+                <div class="fld">
+                  <div class="lbl">Passport number</div>
+                  <div class="val">M5821842</div>
+                </div>
+
+                <div class="fld">
+                  <div class="lbl">Visa type</div>
+                  <div class="val">B211A · valid until oct 04</div>
+                </div>
+
+                <div class="fld checkable">
+                  <div class="check on">✓</div>
+                  <div class="lbl">Photo on file matches guest in front of me</div>
+                </div>
+
+                <button style="display:block;width:calc(100% - 32px);margin:6px 16px 0;padding:12px;border:1px dashed var(--line);background:transparent;border-radius:14px;font-family:var(--mono-font);font-size:11px;text-transform:uppercase;letter-spacing:0.16em;color:var(--ink-3);">+ add second adult</button>
+
+              </div>
+
+              <div class="cta-row">
+                <button class="btn ghost">Save &amp; pause</button>
+                <button class="btn btn-primary">Continue →</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <h3>Mobile patterns</h3>
+        <p class="lede">Today board is a triple list (arrivals / in-house / departures) — a classic mobile shape, no design innovation needed. The check-in FSM is the deliverable: <strong>linear 4 steps</strong>, each fits one screen, OCR-assisted, save-&amp;-pause supported.</p>
+        <dl>
+          <div><dt>Today board</dt><dd>KPI strip across the top (4-up: arrive / in-house / depart / late). Three list sections below; each shows max 3 cards with "view all" if more.</dd></div>
+          <div><dt>Card badge</dt><dd>VIP / ID-pending / turn / late are coloured pills at the right side. Replaces desktop's hover-only metadata.</dd></div>
+          <div><dt>Check-in steps</dt><dd>01 Identity · 02 Stay · 03 Sign · 04 Handover. Same labels as desktop FSM. Stepper bar at top shows progress; current step pulses.</dd></div>
+          <div><dt>OCR assist</dt><dd>Step 01 opens with passport-scan affordance. Agent extracts fields and pre-fills — the staff verifies, doesn't type.</dd></div>
+          <div><dt>Save &amp; pause</dt><dd>Every step has a left-side ghost button to bookmark the flow and return to it from the Today board ("3 in-progress"). The whole point of save-pause: staff can hand the phone to a colleague mid-flow.</dd></div>
+          <div><dt>Hit targets</dt><dd>Every interactive row is ≥ 48&nbsp;px tall. Checkable rows have a 22&nbsp;× 22 visual + 44&nbsp;px row hit area.</dd></div>
+          <div><dt>Multi-adult</dt><dd>Dashed "+ add second adult" appends another identity sub-card to the same step. Each adult is independently scannable.</dd></div>
+        </dl>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       04. Mgmt · Concierge
+       ============================================================ -->
+  <section class="cabinet" data-screen-label="Cabinet 04 · Concierge">
+    <header class="cabinet-head">
+      <span class="num">04</span>
+      <h2>Concierge</h2>
+      <div class="meta"><span class="pill mgmt">Mgmt · P2</span><span class="pill">comp approval</span></div>
+    </header>
+    <p class="cabinet-lede">Concierge work is conversational, time-sliced, and almost always done from a phone. The inbox is the home; the thread is where guests get served; the <strong>500k IDR comp policy gate</strong> is the moment that decides whether the staff member can act unilaterally or needs to escalate. That gate is the flow worth designing.</p>
+
+    <div class="cabinet-body">
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">main</span><span class="name">Inbox · urgent first</span></div>
+        <div class="phone" data-product="management">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">←</div>
+                <div class="title">Concierge<span class="sub">11 open · 2 urgent</span></div>
+                <div class="more">filter</div>
+              </div>
+
+              <div class="app-scroll">
+
+                <div class="sec-h" style="color:var(--danger);">Urgent <span class="ct" style="background:color-mix(in srgb, var(--danger) 14%, transparent);color:var(--danger);">2</span></div>
+                <div class="app-list">
+                  <div class="b-card" style="border-color:color-mix(in srgb, var(--danger) 30%, transparent);">
+                    <div class="avatar">HS</div>
+                    <div class="body">
+                      <div class="name">Hadi Susanto · room 3</div>
+                      <div class="meta" style="color:var(--danger);">AC not cooling — escalated 38min ago</div>
+                    </div>
+                    <div class="right">
+                      <span class="badge badge-danger">38m</span>
+                    </div>
+                  </div>
+                  <div class="b-card" style="border-color:color-mix(in srgb, var(--danger) 30%, transparent);">
+                    <div class="avatar">VI</div>
+                    <div class="body">
+                      <div class="name">Vikram Iyer</div>
+                      <div class="meta" style="color:var(--danger);">Booked spa cancelled by partner · needs alt</div>
+                    </div>
+                    <div class="right">
+                      <span class="badge badge-danger">32m</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sec-h">Open <span class="ct">9</span></div>
+                <div class="app-list">
+                  <div class="b-card">
+                    <div class="avatar">AP</div>
+                    <div class="body">
+                      <div class="name">Anya Petrova</div>
+                      <div class="meta">Late check-out · pool extension request</div>
+                    </div>
+                    <div class="right"><div class="ago">12m</div></div>
+                  </div>
+                  <div class="b-card">
+                    <div class="avatar">DH</div>
+                    <div class="body">
+                      <div class="name">Diane Ho</div>
+                      <div class="meta">Driver to Seminyak 19:00 · confirm rate</div>
+                    </div>
+                    <div class="right"><div class="ago">28m</div></div>
+                  </div>
+                  <div class="b-card">
+                    <div class="avatar">JL</div>
+                    <div class="body">
+                      <div class="name">Jamie Lee</div>
+                      <div class="meta">Asks about kids' beach club</div>
+                    </div>
+                    <div class="right"><div class="ago">1h</div></div>
+                  </div>
+                  <div class="b-card">
+                    <div class="avatar">RS</div>
+                    <div class="body">
+                      <div class="name">Robi Setiawan</div>
+                      <div class="meta">Wants a chef booking · tomorrow night</div>
+                    </div>
+                    <div class="right"><div class="ago">2h</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="app-tabbar">
+                <button class="tab"><span class="ico">▦</span>Channels</button>
+                <button class="tab"><span class="ico">▢</span>Front</button>
+                <button class="tab on"><span class="ico">✉</span>Concierge</button>
+                <button class="tab"><span class="ico">⋯</span>More</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">flow</span><span class="name">Thread + comp approval sheet</span></div>
+        <div class="phone" data-product="management">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">←</div>
+                <div class="title">Vikram Iyer<span class="sub">tirta · spa-cancel</span></div>
+                <div class="more">⋯</div>
+              </div>
+
+              <div class="app-scroll" style="padding:8px 0 4px;">
+
+                <div class="msg-divider">earlier · 19:14</div>
+
+                <div class="msg">
+                  <div class="bubble">Hi — our spa booking at Bodyworks was cancelled, they said overbooked. Anything you can suggest for tonight?</div>
+                </div>
+                <div style="display:flex;justify-content:flex-start;padding:0 16px;font-family:var(--mono-font);font-size:9.5px;color:var(--ink-4);">via WhatsApp · 19:14</div>
+
+                <div class="msg-divider">now</div>
+
+                <div class="msg agent">
+                  <div class="bubble">I see Bodyworks cancelled at 18:42. Three nearby options have evening slots: <strong>Sundara Spa</strong> (couples, 21:00), <strong>The Calm Sanctuary</strong> (two&nbsp;90-min, 20:30), <strong>Karma Beach Spa</strong> (single+couples, 21:30).</div>
+                </div>
+
+                <div class="msg staff">
+                  <div class="bubble">Let me check with Sundara &amp; offer comp for the inconvenience.</div>
+                </div>
+
+              </div>
+
+              <div class="sheet">
+                <div class="handle"></div>
+                <h4>Offer compensation</h4>
+                <div class="sheet-sub">Comp policy · 500k IDR threshold</div>
+
+                <div class="sheet-row">
+                  <span class="k">amount</span>
+                  <span class="v" style="font-family:var(--mono-font);">450&nbsp;000&nbsp;IDR</span>
+                </div>
+                <div class="sheet-row">
+                  <span class="k">as</span>
+                  <span class="v">voucher · valid 30d</span>
+                </div>
+                <div class="sheet-row">
+                  <span class="k">policy</span>
+                  <span class="v" style="display:flex;align-items:center;gap:6px;"><span class="badge badge-ok">within</span><span style="font-size:11.5px;color:var(--ink-3);">no approval needed</span></span>
+                </div>
+
+                <div class="sheet-actions">
+                  <button class="btn btn-secondary">Adjust amount</button>
+                  <button class="btn btn-primary">Send to guest →</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <h3>Mobile patterns</h3>
+        <p class="lede">Inbox is a single vertical list grouped by status (Urgent · Open · Resolved). Urgent rows get a red border + 30-min escalation timer per the comp-policy spec. Thread view layers a comp-approval sheet on top of the conversation — the staff doesn't context-switch to a separate "offer comp" screen.</p>
+        <dl>
+          <div><dt>Urgent rule</dt><dd>Any request with <code>escalated_at</code> set and unresolved &gt; 30&nbsp;min gets a red badge + danger border. Pulse animation on the badge.</dd></div>
+          <div><dt>Avatar</dt><dd>Initials in the cream/sand circle — no actual photos for guests (privacy + agnostic to source).</dd></div>
+          <div><dt>Thread bubbles</dt><dd>Guest = neutral paper bubble (left). Staff = ink bubble (right). Agent = accent-tinted (left) — same channel as guest, so the guest sees "concierge" not "AI".</dd></div>
+          <div><dt>Agent suggestions</dt><dd>Bold names in agent messages are tappable — opens a sub-sheet with the venue's detail and direct-book affordance.</dd></div>
+          <div><dt>Comp sheet</dt><dd>Bottom sheet, pre-filled with a suggested amount based on the request context. Policy line shows green pill <em>within</em> or amber <em>requires approval</em> based on the 500k threshold.</dd></div>
+          <div><dt>Above threshold</dt><dd>If amount &gt; 500k, the policy pill flips to amber "requires approval", primary CTA changes to <em>Request approval →</em>, and a manager dropdown appears.</dd></div>
+          <div><dt>Adjust amount</dt><dd>Numeric pad sub-sheet. Live-updates the policy pill so the staff sees when they cross the threshold.</dd></div>
+        </dl>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       05. Dev · Site supervisor
+       ============================================================ -->
+  <section class="cabinet" data-screen-label="Cabinet 05 · Site supervisor">
+    <header class="cabinet-head">
+      <span class="num">05</span>
+      <h2>Site supervisor &amp; reports</h2>
+      <div class="meta"><span class="pill dev">Dev · P2</span><span class="pill">capture flow</span></div>
+    </header>
+    <p class="cabinet-lede">Site work is camera-first. The foreman opens the app, taps the FAB, takes a photo, dictates a voice note, optionally flags an incident. Total time-on-screen: 30-90 seconds per frame. Mobile <em>is</em> the cabinet — desktop is for the supervisor reviewing later.</p>
+
+    <div class="cabinet-body">
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">main</span><span class="name">Storyboard · today</span></div>
+        <div class="phone" data-product="development">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">←</div>
+                <div class="title">Cendana<span class="sub">14d · 32 frames</span></div>
+                <div class="aux">+</div>
+              </div>
+
+              <div class="app-scroll">
+
+                <div style="position:sticky;top:0;z-index:1;display:flex;align-items:baseline;gap:12px;padding:12px 16px 10px;background:var(--bg);border-bottom:1px solid var(--line-soft);">
+                  <div style="font-family:var(--display-font);font-size:22px;color:var(--ink);font-weight:500;letter-spacing:-0.02em;line-height:1;">11</div>
+                  <div>
+                    <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.16em;color:var(--ink-3);">wed jun</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:2px;">Made Surya · foreman</div>
+                  </div>
+                  <div style="margin-left:auto;font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">31°C · <strong style="color:var(--ink-2);">partly cloudy</strong></div>
+                </div>
+
+                <div style="padding:14px 16px 22px;display:flex;flex-direction:column;gap:18px;">
+
+                  <div>
+                    <div class="photo">
+                      <div style="position:absolute;left:12px;top:12px;padding:3px 9px;background:rgba(15,15,14,0.78);color:white;font-family:var(--mono-font);font-size:9.5px;text-transform:uppercase;letter-spacing:0.14em;border-radius:999px;">block A · slab</div>
+                      <div style="position:absolute;right:12px;bottom:12px;padding:3px 8px;background:rgba(15,15,14,0.72);color:rgba(255,255,255,0.85);font-family:var(--mono-font);font-size:9.5px;letter-spacing:0.06em;border-radius:6px;">08:14</div>
+                      photo · 1284 × 723
+                    </div>
+                    <div style="font-family:var(--display-font);font-size:16px;color:var(--ink);line-height:1.4;font-weight:500;margin:10px 0 0;letter-spacing:-0.01em;">Concrete pour for block&nbsp;A second-floor slab completed by 8:00.</div>
+                    <div style="font-size:13px;line-height:1.55;color:var(--ink-2);margin:6px 0 0;">Vibrator passed twice. Slump 7&nbsp;cm — within spec. Curing started by 11.</div>
+                    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">
+                      <div><span style="color:var(--ink-4);text-transform:uppercase;letter-spacing:0.12em;margin-right:4px;">crew</span>9</div>
+                      <div><span style="color:var(--ink-4);text-transform:uppercase;letter-spacing:0.12em;margin-right:4px;">m³</span>12.5</div>
+                      <div><span style="color:var(--ink-4);text-transform:uppercase;letter-spacing:0.12em;margin-right:4px;">supplier</span>Cilegon</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="photo" style="aspect-ratio: 4 / 5;">
+                      <div style="position:absolute;left:12px;top:12px;padding:3px 9px;background:var(--danger);color:white;font-family:var(--mono-font);font-size:9.5px;text-transform:uppercase;letter-spacing:0.14em;border-radius:999px;">incident · 1</div>
+                      <div style="position:absolute;right:12px;bottom:12px;padding:3px 8px;background:rgba(15,15,14,0.72);color:rgba(255,255,255,0.85);font-family:var(--mono-font);font-size:9.5px;letter-spacing:0.06em;border-radius:6px;">11:32</div>
+                      photo · 945 × 1260
+                    </div>
+                    <div style="font-family:var(--display-font);font-size:16px;color:var(--ink);line-height:1.4;font-weight:500;margin:10px 0 0;letter-spacing:-0.01em;">Hairline crack on stair landing — flagged for engineer review.</div>
+                    <div style="font-size:13px;line-height:1.55;color:var(--ink-2);margin:6px 0 0;">Doesn't propagate; epoxy injection scheduled tomorrow morning.</div>
+                    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">
+                      <div><span style="color:var(--ink-4);text-transform:uppercase;letter-spacing:0.12em;margin-right:4px;">severity</span>medium</div>
+                      <div><span style="color:var(--ink-4);text-transform:uppercase;letter-spacing:0.12em;margin-right:4px;">assigned</span>I.&nbsp;Kadek</div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+              <!-- Floating capture FAB -->
+              <button style="position:absolute;right:20px;bottom:86px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:white;border:0;font-family:var(--mono-font);font-size:24px;box-shadow:0 8px 24px rgba(176,122,40,0.4);">+</button>
+
+              <div class="app-tabbar">
+                <button class="tab"><span class="ico">▦</span>Projects</button>
+                <button class="tab on"><span class="ico">▢</span>Site</button>
+                <button class="tab"><span class="ico">$</span>CFO</button>
+                <button class="tab"><span class="ico">⋯</span>More</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">flow</span><span class="name">Capture · photo + voice</span></div>
+        <div class="phone" data-product="development">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+
+              <div class="app-topbar" style="background:rgba(0,0,0,0.5);border-bottom-color:rgba(255,255,255,0.08);">
+                <div class="back" style="color:white;">×</div>
+                <div class="title" style="color:white;">Capture<span class="sub" style="color:rgba(255,255,255,0.65);">cendana · step 1 of 3</span></div>
+                <div class="more" style="color:white;">⚡</div>
+              </div>
+
+              <div class="cam">
+                <div class="frame-guides"></div>
+                <div class="corner">
+                  <span class="pill">cendana</span>
+                  <span class="pill">block A</span>
+                </div>
+                viewfinder
+                <div class="voice-row">
+                  <div style="width:8px;height:8px;background:var(--danger);border-radius:50%;animation:pulse 1.4s infinite;"></div>
+                  <div class="wf">
+                    <span style="height:10px"></span><span style="height:18px"></span><span style="height:8px"></span><span style="height:22px"></span><span style="height:14px"></span><span style="height:24px"></span><span style="height:16px"></span><span style="height:10px"></span><span style="height:20px"></span><span style="height:12px"></span><span style="height:18px"></span><span style="height:8px"></span><span style="height:22px"></span><span style="height:14px"></span><span style="height:16px"></span><span style="height:10px"></span><span style="height:20px"></span><span style="height:12px"></span><span style="height:18px"></span><span style="height:24px"></span>
+                  </div>
+                  <span>0:14</span>
+                </div>
+              </div>
+
+              <div style="padding:16px 16px 8px;">
+                <div class="label">Auto caption · agent transcribing…</div>
+                <div style="font-family:var(--display-font);font-size:16px;color:var(--ink);line-height:1.45;font-weight:500;margin-top:8px;">"Concrete pour for block&nbsp;A second-floor slab completed by 8:00…"</div>
+              </div>
+
+              <div style="padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap;">
+                <button style="padding:6px 12px;border:1px solid var(--line);background:var(--panel);border-radius:999px;font-family:var(--mono-font);font-size:10.5px;color:var(--ink-2);">block A</button>
+                <button style="padding:6px 12px;border:1px solid var(--line);background:var(--panel);border-radius:999px;font-family:var(--mono-font);font-size:10.5px;color:var(--ink-2);">slab</button>
+                <button style="padding:6px 12px;border:1px solid var(--line);background:var(--panel);border-radius:999px;font-family:var(--mono-font);font-size:10.5px;color:var(--ink-2);">+ tag</button>
+              </div>
+
+              <div style="padding:6px 16px;display:flex;align-items:center;gap:8px;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">
+                <span style="width:6px;height:6px;background:var(--ok);border-radius:50%;"></span>
+                gps · -8.6505, 115.1370 (auto)
+              </div>
+
+              <div style="padding:0 16px;display:flex;align-items:center;gap:8px;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">
+                <span style="width:6px;height:6px;background:var(--warn);border-radius:50%;"></span>
+                weather · 31°C partly cloudy (auto)
+              </div>
+
+              <div style="margin:14px 16px 0;padding:12px 14px;background:color-mix(in srgb, var(--danger) 8%, var(--panel));border:1px solid color-mix(in srgb, var(--danger) 30%, transparent);border-radius:10px;">
+                <div class="label" style="font-size:9.5px;color:var(--danger);margin-bottom:4px;">flag incident?</div>
+                <div style="font-size:13px;color:var(--ink-2);">Tap once if this frame shows a safety, schedule, or quality issue.</div>
+              </div>
+
+              <div class="cta-row">
+                <button class="btn ghost">discard</button>
+                <button class="btn btn-primary">save frame →</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <h3>Mobile patterns</h3>
+        <p class="lede">Storyboard scroll mirrors the primitive (sticky day-header, vertical photo feed). The capture flow is the marquee mobile screen — camera fills most of the screen, voice records while shooting, agent transcribes in the background, GPS + weather auto-attach.</p>
+        <dl>
+          <div><dt>FAB</dt><dd>56&nbsp;× 56&nbsp;px floating button, bottom-right, above tab bar. Project context is inherited from the storyboard the user is viewing.</dd></div>
+          <div><dt>Camera-first</dt><dd>Step 1 opens straight into the camera. No "give the app camera permission" interstitial after first grant.</dd></div>
+          <div><dt>Voice-while-shooting</dt><dd>Recording starts when the shutter is pressed; stops when the user taps the waveform. The transcript becomes the default caption.</dd></div>
+          <div><dt>Auto-tags</dt><dd>Pre-filled chips below the caption: project, area inferred from GPS, work-type guessed from photo content. Tap to remove, "+ tag" to add custom.</dd></div>
+          <div><dt>Auto-metadata</dt><dd>GPS + weather are fetched silently and shown as small confirm lines. User sees what the system captured; can override.</dd></div>
+          <div><dt>Incident flag</dt><dd>Single-tap escalation. Opens a sub-sheet to set severity + assignee. Saving the frame creates the linked incident row.</dd></div>
+          <div><dt>3-step total</dt><dd>01 capture · 02 caption + tags · 03 submit. Most frames complete in &lt; 60 sec.</dd></div>
+        </dl>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       06. Dev · Sales
+       ============================================================ -->
+  <section class="cabinet" data-screen-label="Cabinet 06 · Sales">
+    <header class="cabinet-head">
+      <span class="num">06</span>
+      <h2>Sales &amp; buyers</h2>
+      <div class="meta"><span class="pill dev">Dev · P2</span><span class="pill">offer modal</span></div>
+    </header>
+    <p class="cabinet-lede">Pipeline on mobile is the primitive in cabinet chrome (covered before). The high-value mobile screen is <strong>buyer detail with the offer modal</strong> — sales calls the buyer, agrees on terms, generates an offer from the parking lot, sends as PDF. All from the phone, often inside the buyer's car after a site tour.</p>
+
+    <div class="cabinet-body">
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">main</span><span class="name">Buyer detail · Vikram</span></div>
+        <div class="phone" data-product="development">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">←</div>
+                <div class="title">Buyer<span class="sub">cendana · tour stage</span></div>
+                <div class="more">⋯</div>
+              </div>
+
+              <div class="app-scroll">
+
+                <div class="bd-head">
+                  <h3 class="name">Vikram Iyer</h3>
+                  <div class="ctry">India · repeat · cash buyer</div>
+                  <div class="chips">
+                    <span class="badge badge-ok">hot</span>
+                    <span class="badge">tour · d 4</span>
+                    <span class="badge">unit 4 · 3-bdrm</span>
+                  </div>
+                </div>
+
+                <div class="bd-section-h">Pipeline</div>
+                <div style="display:flex;gap:4px;padding:4px 16px 12px;">
+                  <div style="flex:1;height:4px;background:var(--ink);border-radius:4px;"></div>
+                  <div style="flex:1;height:4px;background:var(--ink);border-radius:4px;"></div>
+                  <div style="flex:1;height:4px;background:var(--accent);border-radius:4px;"></div>
+                  <div style="flex:1;height:4px;background:var(--bg-3);border-radius:4px;"></div>
+                  <div style="flex:1;height:4px;background:var(--bg-3);border-radius:4px;"></div>
+                  <div style="flex:1;height:4px;background:var(--bg-3);border-radius:4px;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:0 16px 14px;font-family:var(--mono-font);font-size:9.5px;color:var(--ink-4);text-transform:uppercase;letter-spacing:0.14em;">
+                  <span>lead</span><span>disc.</span><span style="color:var(--accent);">tour</span><span>offer</span><span>reserve</span><span>won</span>
+                </div>
+
+                <div class="bd-row">
+                  <span class="k">expected</span><span class="v">3.4 B IDR</span>
+                </div>
+                <div class="bd-row">
+                  <span class="k">unit</span><span class="v">Cendana&nbsp;·&nbsp;Unit&nbsp;4</span>
+                </div>
+                <div class="bd-row">
+                  <span class="k">channel</span><span class="v">repeat</span>
+                </div>
+                <div class="bd-row">
+                  <span class="k">owner</span><span class="v">Pak Wayan</span>
+                </div>
+                <div class="bd-row">
+                  <span class="k">last touch</span><span class="v">2h ago · WhatsApp</span>
+                </div>
+                <div class="bd-row">
+                  <span class="k">next action</span><span class="v">send offer · today</span>
+                </div>
+
+                <div class="bd-section-h">Recent</div>
+                <div style="padding:0 16px 14px;display:flex;flex-direction:column;gap:8px;">
+                  <div style="padding:10px 12px;background:var(--panel);border:1px solid var(--line-2);border-radius:8px;">
+                    <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.16em;color:var(--ink-3);">wed&nbsp;·&nbsp;15:20</div>
+                    <div style="font-size:13.5px;color:var(--ink);margin-top:4px;line-height:1.45;">Site tour with Vikram + wife. Wife liked unit 4 pool sightline; concerns about traffic noise — wants to see at night.</div>
+                  </div>
+                  <div style="padding:10px 12px;background:var(--panel);border:1px solid var(--line-2);border-radius:8px;">
+                    <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.16em;color:var(--ink-3);">wed&nbsp;·&nbsp;13:08</div>
+                    <div style="font-size:13.5px;color:var(--ink);margin-top:4px;line-height:1.45;">Confirmed 3.4 B budget verbally. Wants 60/40 split on payment ladder.</div>
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="cta-row">
+                <button class="btn ghost">log call</button>
+                <button class="btn btn-primary">Generate offer →</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">flow</span><span class="name">Offer modal · payment ladder</span></div>
+        <div class="phone" data-product="development">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">×</div>
+                <div class="title">New offer<span class="sub">vikram · cendana u4</span></div>
+                <div class="more">⋯</div>
+              </div>
+
+              <div class="app-scroll">
+
+                <div class="fld">
+                  <div class="lbl">Price</div>
+                  <div class="val" style="font-family:var(--mono-font);">3,400,000,000 IDR</div>
+                </div>
+
+                <div class="fld">
+                  <div class="lbl">Currency</div>
+                  <div class="val">IDR · primary</div>
+                </div>
+
+                <div class="bd-section-h">Payment ladder</div>
+
+                <div class="pl-row done">
+                  <div class="num">1</div>
+                  <div class="nm">Reservation deposit · 10%</div>
+                  <div class="when">on signing</div>
+                  <div class="amt">340 M</div>
+                </div>
+                <div class="pl-row current">
+                  <div class="num">2</div>
+                  <div class="nm">Down payment · 50%</div>
+                  <div class="when">14 days</div>
+                  <div class="amt">1.7 B</div>
+                </div>
+                <div class="pl-row">
+                  <div class="num">3</div>
+                  <div class="nm">Construction milestone&nbsp;1 · 20%</div>
+                  <div class="when">roof topping out</div>
+                  <div class="amt">680 M</div>
+                </div>
+                <div class="pl-row">
+                  <div class="num">4</div>
+                  <div class="nm">Final · 20%</div>
+                  <div class="when">handover</div>
+                  <div class="amt">680 M</div>
+                </div>
+
+                <button style="display:block;width:calc(100% - 32px);margin:6px 16px;padding:10px;border:1px dashed var(--line);background:transparent;border-radius:8px;font-family:var(--mono-font);font-size:11px;text-transform:uppercase;letter-spacing:0.16em;color:var(--ink-3);">+ add tranche</button>
+
+                <div class="bd-section-h">Conditions</div>
+
+                <div class="fld checkable">
+                  <div class="check on">✓</div>
+                  <div class="lbl">Reservation valid for 7 days from issue</div>
+                </div>
+                <div class="fld checkable">
+                  <div class="check on">✓</div>
+                  <div class="lbl">Subject to NDA already signed</div>
+                </div>
+                <div class="fld checkable">
+                  <div class="check"></div>
+                  <div class="lbl">Furniture package add-on (250 M)</div>
+                </div>
+
+              </div>
+
+              <div class="cta-row">
+                <button class="btn ghost">save draft</button>
+                <button class="btn btn-primary">Send as PDF →</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <h3>Mobile patterns</h3>
+        <p class="lede">Buyer detail compresses to a single vertical scroll: name + chips, mini-pipeline strip, key fields, recent activity. Offer modal pre-fills from the buyer record — the salesperson tweaks tranches and conditions, hits send.</p>
+        <dl>
+          <div><dt>Mini-pipeline</dt><dd>6-segment bar at the top of detail. Current stage in accent, completed in ink, pending in muted. Below it: stage labels. Replaces the desktop full Kanban context.</dd></div>
+          <div><dt>Detail fields</dt><dd>Key-value rows for the 6 most-used fields (expected, unit, channel, owner, last touch, next action). Tap any row → field editor sheet.</dd></div>
+          <div><dt>Recent activity</dt><dd>Last 2-3 log entries inline. "View all" expands to a full timeline.</dd></div>
+          <div><dt>Offer modal · ladder</dt><dd>Each tranche is a row with a numbered circle (done / current / pending), label, trigger, amount. Tap a row → tranche editor sheet (amount, % or absolute, trigger date or milestone).</dd></div>
+          <div><dt>Add tranche</dt><dd>Dashed row at the bottom. Newly-added tranches insert before the current "current" row to keep the ladder ordered.</dd></div>
+          <div><dt>Conditions</dt><dd>Checkable list of policy clauses. Defaults pre-checked based on buyer status.</dd></div>
+          <div><dt>Send as PDF</dt><dd>Generates the canonical offer PDF and shares via system share sheet (WhatsApp, email, etc.). Also logs the send event onto the buyer's timeline.</dd></div>
+        </dl>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       07. Dev · Investors
+       ============================================================ -->
+  <section class="cabinet" data-screen-label="Cabinet 07 · Investors">
+    <header class="cabinet-head">
+      <span class="num">07</span>
+      <h2>Investors &amp; distributions</h2>
+      <div class="meta"><span class="pill dev">Dev · P2</span><span class="pill">capital call</span></div>
+    </header>
+    <p class="cabinet-lede">Investor cabinet is mostly numbers — LP positions, waterfalls, capital calls. The waterfall is the primitive (covered before). The LP table needs reflowing to mobile, and the <strong>capital call detail</strong> is the action screen — GP issues, LPs receive, statuses update over days.</p>
+
+    <div class="cabinet-body">
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">main</span><span class="name">LP positions · Fund I</span></div>
+        <div class="phone" data-product="development">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">←</div>
+                <div class="title">Fund I<span class="sub">canggu west · 14 LPs</span></div>
+                <div class="more">⋯</div>
+              </div>
+
+              <div class="app-scroll">
+
+                <div class="kpi-strip" style="grid-template-columns: repeat(3, 1fr);padding:10px 12px;">
+                  <div class="kpi"><div class="l">committed</div><div class="v" style="font-size:18px;">68B</div></div>
+                  <div class="kpi"><div class="l">called</div><div class="v" style="font-size:18px;">52B</div></div>
+                  <div class="kpi"><div class="l">DPI</div><div class="v ok" style="font-size:18px;">0.82</div></div>
+                </div>
+
+                <div style="padding:8px 12px;">
+                  <div style="display:inline-flex;gap:4px;padding:3px;background:var(--bg-2);border:1px solid var(--line);border-radius:999px;width:100%;">
+                    <button style="flex:1;padding:7px 0;border:0;background:var(--ink);color:var(--inverted-fg);font-family:var(--mono-font);font-size:11px;border-radius:999px;">LPs</button>
+                    <button style="flex:1;padding:7px 0;border:0;background:transparent;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);border-radius:999px;">Calls</button>
+                    <button style="flex:1;padding:7px 0;border:0;background:transparent;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);border-radius:999px;">Distributions</button>
+                  </div>
+                </div>
+
+                <div class="sec-h">All LPs <span class="ct">14</span><span class="more">sort: MOIC ↓</span></div>
+
+                <div class="lp-row">
+                  <div class="name">Petra Iverson</div>
+                  <div class="figs">6.4 B</div>
+                  <div class="ctry">NO · individual</div>
+                  <div class="moic">MOIC 1.92×</div>
+                </div>
+                <div class="lp-row">
+                  <div class="name">Sunset Holdings Pte</div>
+                  <div class="figs">12.0 B</div>
+                  <div class="ctry">SG · entity</div>
+                  <div class="moic">MOIC 1.85×</div>
+                </div>
+                <div class="lp-row">
+                  <div class="name">Hans Müller</div>
+                  <div class="figs">4.0 B</div>
+                  <div class="ctry">DE · individual</div>
+                  <div class="moic">MOIC 1.83×</div>
+                </div>
+                <div class="lp-row">
+                  <div class="name">Tan Family Trust</div>
+                  <div class="figs">8.5 B</div>
+                  <div class="ctry">SG · entity</div>
+                  <div class="moic">MOIC 1.78×</div>
+                </div>
+                <div class="lp-row">
+                  <div class="name">Aditya Mehta</div>
+                  <div class="figs">5.0 B</div>
+                  <div class="ctry">IN · individual</div>
+                  <div class="moic">MOIC 1.74×</div>
+                </div>
+                <div class="lp-row">
+                  <div class="name">Kishida Holdings</div>
+                  <div class="figs">3.2 B</div>
+                  <div class="ctry">JP · entity</div>
+                  <div class="moic warn">MOIC 1.55×</div>
+                </div>
+                <div class="lp-row">
+                  <div class="name">+ 8 more LPs</div>
+                  <div class="figs">29.0 B</div>
+                  <div class="ctry">…</div>
+                  <div class="moic">1.62 — 1.71×</div>
+                </div>
+
+              </div>
+              <div class="app-tabbar">
+                <button class="tab"><span class="ico">▦</span>Projects</button>
+                <button class="tab"><span class="ico">▢</span>Site</button>
+                <button class="tab on"><span class="ico">$</span>Investors</button>
+                <button class="tab"><span class="ico">⋯</span>More</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">flow</span><span class="name">Capital call · CC-04 detail</span></div>
+        <div class="phone" data-product="development">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-status"><span>9:41</span><span>5G&nbsp;·&nbsp;86%</span></div>
+            <div class="phone-body">
+              <div class="app-topbar">
+                <div class="back">←</div>
+                <div class="title">CC-04<span class="sub">fund I · issued mar 28</span></div>
+                <div class="more">⋯</div>
+              </div>
+
+              <div class="app-scroll">
+
+                <div class="cc-head">
+                  <h3>Capital call · CC-04</h3>
+                  <div class="sub">Construction milestone · roof topping</div>
+                </div>
+
+                <div class="cc-total">
+                  <div class="lbl">total called</div>
+                  <div class="v">8.4&nbsp;B&nbsp;IDR</div>
+                  <div style="font-family:var(--mono-font);font-size:10.5px;color:rgba(255,255,255,0.55);margin-top:6px;">due&nbsp;apr&nbsp;11 · 6.5 B received · <span style="color:var(--accent-soft);">1.9 B pending</span></div>
+                </div>
+
+                <div style="padding:0 16px;display:flex;gap:8px;font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.16em;color:var(--ink-3);">
+                  <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;background:var(--ok);border-radius:50%;"></span>received&nbsp;9</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;background:var(--warn);border-radius:50%;"></span>pending&nbsp;4</span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;background:var(--danger);border-radius:50%;"></span>overdue&nbsp;1</span>
+                </div>
+
+                <div class="cc-alloc">
+                  <div class="row">
+                    <div class="nm"><span class="st"></span>Petra Iverson</div>
+                    <div class="pct">9.4%</div>
+                    <div class="amt">792 M</div>
+                  </div>
+                  <div class="row">
+                    <div class="nm"><span class="st"></span>Sunset Holdings Pte</div>
+                    <div class="pct">17.6%</div>
+                    <div class="amt">1.48 B</div>
+                  </div>
+                  <div class="row">
+                    <div class="nm"><span class="st"></span>Hans Müller</div>
+                    <div class="pct">5.9%</div>
+                    <div class="amt">496 M</div>
+                  </div>
+                  <div class="row">
+                    <div class="nm"><span class="st pending"></span>Tan Family Trust</div>
+                    <div class="pct">12.5%</div>
+                    <div class="amt">1.05 B</div>
+                  </div>
+                  <div class="row">
+                    <div class="nm"><span class="st pending"></span>Aditya Mehta</div>
+                    <div class="pct">7.4%</div>
+                    <div class="amt">619 M</div>
+                  </div>
+                  <div class="row">
+                    <div class="nm"><span class="st overdue"></span>Kishida Holdings</div>
+                    <div class="pct">4.7%</div>
+                    <div class="amt">395 M</div>
+                  </div>
+                  <div class="row">
+                    <div class="nm" style="color:var(--ink-3);">+ 8 more LPs</div>
+                    <div class="pct">42.5%</div>
+                    <div class="amt">3.57 B</div>
+                  </div>
+                </div>
+
+                <div style="padding:14px 16px;">
+                  <div style="margin-top:4px;padding:12px 14px;background:color-mix(in srgb, var(--danger) 8%, var(--panel));border:1px solid color-mix(in srgb, var(--danger) 30%, transparent);border-radius:10px;">
+                    <div class="label" style="font-size:9.5px;color:var(--danger);margin-bottom:4px;">1 overdue</div>
+                    <div style="font-size:13px;color:var(--ink-2);line-height:1.5;">Kishida Holdings is <strong style="font-family:var(--mono-font);">14d</strong> past due. Last reminder sent <strong style="font-family:var(--mono-font);">apr 18</strong>. Tap to send escalation reminder.</div>
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="cta-row">
+                <button class="btn ghost">export PDF</button>
+                <button class="btn btn-primary">Send reminder →</button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <h3>Mobile patterns</h3>
+        <p class="lede">LP positions table reflows to one row per LP with name + country on the left, amount + MOIC on the right. The mobile sort is MOIC-desc by default — that's the question the GP usually has. Capital call detail keeps the inverted ink-card summary (works at any width) and stacks allocations as a single column.</p>
+        <dl>
+          <div><dt>KPI strip</dt><dd>3-up: committed / called / DPI. MOIC isn't in the strip — it's per-LP in the table.</dd></div>
+          <div><dt>Sub-tabs</dt><dd>LPs / Calls / Distributions. Default LPs; tapping Calls/Distributions opens corresponding lists.</dd></div>
+          <div><dt>LP row</dt><dd>Two columns: identity (name + country/type) and figures (commitment + MOIC). Tap a row → LP detail screen with positions, distributions history, contact, docs.</dd></div>
+          <div><dt>Overflow row</dt><dd>"+ 8 more LPs" with aggregated commitment + MOIC range. Tap to expand to full list (separately paginated).</dd></div>
+          <div><dt>Capital call total</dt><dd>Big inverted ink card: total called + due date + received/pending split. The most-asked-about number is at the top, not buried in a table.</dd></div>
+          <div><dt>Allocation status</dt><dd>Coloured dot before each LP name: ok / pending / overdue. Three-bullet strip above the list shows aggregate counts.</dd></div>
+          <div><dt>Overdue card</dt><dd>If &gt;= 1 LP overdue, accent-tinted block at the bottom with the offender's name + days late + last-reminder date. Single CTA → send escalation reminder. Replaces desktop "audit" tab.</dd></div>
+          <div><dt>Export PDF</dt><dd>Ghost CTA. Generates a per-LP statement bundle (one PDF per LP, zipped) and offers via share sheet.</dd></div>
+        </dl>
+      </div>
+
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<style>
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
+}
+</style>
+
+</body>
+</html>

@@ -9,7 +9,10 @@ import {
 } from "@/features/finance/services";
 import { StatementDetail } from "@/components/finance/statement-detail";
 import { StatementDisputeButton } from "@/components/owner/statement-dispute-button";
+import { StatementAcknowledgeButton } from "@/components/owner/statement-acknowledge-button";
+import { MarkStatementViewed } from "@/components/owner/mark-statement-viewed";
 import { getStatementDisputeState } from "@/features/owner-portal/get-statement-dispute-state";
+import { canAcknowledge, type OwnerStatementState } from "@/features/owner-statements/state-machine";
 import { AIPayoutExplainer } from "@/components/owner/ai-payout-explainer";
 import {
   getStatementExplanationSnapshot,
@@ -56,15 +59,32 @@ export default async function OwnerStatementDetail({
 
   // Owner-side dispute state (separate from the mgmt OwnerStatementRow).
   const disputeState = await getStatementDisputeState(id);
+  const ownerState = disputeState.ownerState as OwnerStatementState;
+  const terminalAckLabel =
+    ownerState === "acknowledged"
+      ? "ACKNOWLEDGED"
+      : ownerState === "auto_acknowledged"
+        ? "AUTO-ACKED"
+        : undefined;
 
   return (
     <div className="flex flex-col gap-12">
+      {/* #2 — mark viewed on open (idempotent; pending → viewed). */}
+      <MarkStatementViewed statementId={statement.id} />
       <SectionHeading
         eyebrow={`Portfolio · statements · ${statement.periodLabel}`}
         title={statement.periodLabel}
         subtitle={`${statement.villaCode ?? statement.projectName ?? "—"} · ${statement.managementModel}`}
         actions={
           <div className="flex items-center gap-3 flex-wrap">
+            <StatementAcknowledgeButton
+              statementId={statement.id}
+              statementCode={statement.statementCode}
+              netAmount={Number(statement.netPayoutMinor) / 100}
+              currency={statement.currency}
+              canAcknowledge={canAcknowledge(ownerState)}
+              terminalLabel={terminalAckLabel}
+            />
             <StatementDisputeButton
               statementId={statement.id}
               statementCode={statement.statementCode}
