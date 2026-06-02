@@ -1,41 +1,45 @@
 import * as React from "react";
 
 /**
- * Phase 2.3 owner-02 — NetHero.
- *
- * Statement-page hero card: large display number (USD or IDR) +
- * wire-status sub line. The owner's eye lands here first.
+ * owner-02 — NetHero (detail). Light card, mockup-faithful: big serif net
+ * number + sub line on the left, wire/payout meta on the right. Values arrive
+ * pre-formatted (the page owns money formatting via compactMoney).
  */
-
 export interface NetHeroProps {
-  amount: number;
-  currency: string;
-  /** Wire status (e.g. "Wired 01 May · ANZ ending 8842"). */
-  wire?: React.ReactNode;
-  /** Optional small period chip ("MARCH 2026"). */
-  periodLabel?: React.ReactNode;
+  /** e.g. "Net to you · March 2026". */
+  periodLabel: string;
+  /** Pre-formatted, e.g. "IDR 142.5M". */
+  valueText: string;
+  subText?: React.ReactNode;
+  wireLabel?: string;
+  wireWhen?: string;
+  wireRef?: string;
   className?: string;
 }
 
-function fmt(amount: number, currency: string): string {
-  const abs = Math.abs(amount);
-  if (currency === "IDR") {
-    if (abs >= 1_000_000_000) return `${currency} ${(amount / 1_000_000_000).toFixed(2)}B`;
-    if (abs >= 1_000_000) return `${currency} ${(amount / 1_000_000).toFixed(1)}M`;
-    return `${currency} ${amount.toLocaleString()}`;
-  }
-  if (abs >= 1_000_000) return `${currency} ${(amount / 1_000_000).toFixed(2)}M`;
-  if (abs >= 1_000) return `${currency} ${(amount / 1_000).toFixed(0)}K`;
-  return `${currency} ${amount.toLocaleString()}`;
-}
-
-export function NetHero({ amount, currency, wire, periodLabel, className }: NetHeroProps) {
+export function NetHero({
+  periodLabel,
+  valueText,
+  subText,
+  wireLabel,
+  wireWhen,
+  wireRef,
+  className,
+}: NetHeroProps) {
   return (
     <div className={`net-hero${className ? ` ${className}` : ""}`}>
-      {periodLabel && <div className="nh-period mono">{periodLabel}</div>}
-      <div className="nh-label mono">Net to you</div>
-      <div className="nh-value">{fmt(amount, currency)}</div>
-      {wire && <div className="nh-wire">{wire}</div>}
+      <div>
+        <div className="nh-label">{periodLabel}</div>
+        <div className="nh-value">{valueText}</div>
+        {subText && <div className="nh-sub">{subText}</div>}
+      </div>
+      {(wireLabel || wireWhen || wireRef) && (
+        <div className="nh-rhs">
+          {wireLabel && <div className="nh-pay">{wireLabel}</div>}
+          {wireWhen && <div className="nh-when">{wireWhen}</div>}
+          {wireRef && <div className="nh-ref">{wireRef}</div>}
+        </div>
+      )}
     </div>
   );
 }

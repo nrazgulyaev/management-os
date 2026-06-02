@@ -284,44 +284,154 @@
    .why-drawer          — right-side explainer drawer
    ============================================================= */
 
-/* ---------- NetHero ---------- */
+/* ---------- NetHero (owner-02 detail) — light card, mockup-faithful ---------- */
 [data-product] .net-hero {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 28px 30px;
-  background: var(--ink);
-  color: var(--cream-warm, #fff);
-  border-radius: 24px;
-}
-[data-product] .net-hero .nh-period {
-  font-family: var(--mono-font), monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.55);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: start;
+  padding: 24px 26px;
+  background: var(--cream-warm);
+  border: 1px solid var(--line-soft);
+  border-radius: 18px;
 }
 [data-product] .net-hero .nh-label {
   font-family: var(--mono-font), monospace;
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.55);
-  margin-top: 8px;
+  color: var(--ink-3);
 }
 [data-product] .net-hero .nh-value {
   font-family: var(--display-font), Georgia, serif;
-  font-size: 48px;
+  font-size: 44px;
   font-weight: 400;
   letter-spacing: -0.02em;
-  line-height: 1;
-  color: var(--cream-warm, #fff);
+  line-height: 1.05;
+  color: var(--ink);
   margin-top: 4px;
   font-variant-numeric: tabular-nums;
 }
-[data-product] .net-hero .nh-wire {
-  font-size: 13.5px;
-  color: rgba(255,255,255,0.7);
-  margin-top: 12px;
+[data-product] .net-hero .nh-sub {
+  font-size: 13px;
+  color: var(--ink-3);
+  margin-top: 8px;
+  line-height: 1.5;
 }
+[data-product] .net-hero .nh-rhs { text-align: right; }
+[data-product] .net-hero .nh-pay {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product] .net-hero .nh-when {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 20px;
+  color: var(--ink);
+  margin-top: 4px;
+}
+[data-product] .net-hero .nh-ref {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  margin-top: 4px;
+}
+@media (max-width: 640px) {
+  [data-product] .net-hero { grid-template-columns: 1fr; }
+  [data-product] .net-hero .nh-rhs { text-align: left; }
+}
+
+/* ---------- Section-category pills (owner "How the math worked") ---------- */
+[data-product] .sec-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+[data-product] .sec-pill::before {
+  content: ""; width: 5px; height: 5px; border-radius: 999px; background: currentColor;
+}
+[data-product] .sec-pill.revenue { color: var(--ok); background: color-mix(in oklab, var(--ok) 10%, transparent); }
+[data-product] .sec-pill.fees { color: var(--ink-3); background: var(--cream-deep, var(--bg-3)); }
+[data-product] .sec-pill.taxes { color: var(--gold, var(--warn)); background: color-mix(in oklab, var(--gold, var(--warn)) 12%, transparent); }
+[data-product] .sec-pill.expenses { color: var(--ink-2); background: var(--cream-deep, var(--bg-3)); }
+[data-product] .sec-pill.management { color: var(--terra); background: color-mix(in oklab, var(--terra) 10%, transparent); }
+[data-product] .sec-pill.reserve { color: var(--ink-3); background: transparent; border: 1px dashed var(--line-strong); }
+[data-product] .sec-pill.reserve::before { background: var(--ink-4); }
+
+/* ---------- "How the math worked" table — bold net row ---------- */
+[data-product] .statement-math tbody tr.math-net td {
+  background: var(--cream-warm);
+  border-top: 2px solid var(--ink);
+  padding: 18px 14px;
+}
+[data-product] .statement-math .math-net-label {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 22px; font-weight: 400; color: var(--ink);
+}
+[data-product] .statement-math .math-net-value {
+  font-family: var(--mono-font), monospace;
+  font-size: 26px; color: var(--terra); font-weight: 400;
+}
+[data-product] .statement-math td .why-link { margin-left: 10px; }
+[data-product] .statement-math td.num.pos { color: var(--ok); }
+[data-product] .statement-math td.num.neg { color: var(--ink-2); }
+
+/* ---------- Mobile category accordion ---------- */
+[data-product] .cat-accordion {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  overflow: hidden;
+}
+[data-product] .cat-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 14px;
+  background: transparent; border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  text-align: left; cursor: pointer;
+}
+[data-product] .cat-row:last-of-type { border-bottom: 0; }
+[data-product] .cat-row.open { background: var(--cream-warm); }
+[data-product] .cat-row .cat-lines { flex: 1; font-family: var(--mono-font), monospace; font-size: 12px; color: var(--ink-2); }
+[data-product] .cat-row .cat-amount { font-family: var(--mono-font), monospace; font-weight: 500; }
+[data-product] .cat-row .cat-amount.pos { color: var(--ok); }
+[data-product] .cat-row .cat-amount.neg { color: var(--ink-2); }
+[data-product] .cat-row .cat-chevron { color: var(--ink-3); width: 14px; text-align: center; }
+[data-product] .cat-detail {
+  padding: 4px 14px 12px;
+  background: var(--cream-warm);
+  border-bottom: 1px solid var(--line-soft);
+}
+[data-product] .cat-detail .cat-line {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 7px 0; font-size: 13px; color: var(--ink-2);
+}
+[data-product] .cat-detail .cat-line .num { font-family: var(--mono-font), monospace; white-space: nowrap; }
+
+/* ---------- Sticky owner action bar (Acknowledge / Dispute / Download) ---------- */
+[data-product] .owner-actionbar {
+  position: sticky; bottom: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 16px 20px;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -8px 24px -16px rgba(20, 32, 28, 0.2);
+}
+[data-product] .owner-actionbar .ab-note {
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px; letter-spacing: 0.08em; color: var(--ink-3);
+}
+[data-product] .owner-actionbar .ab-note b { color: var(--gold, var(--warn)); font-weight: 500; }
+[data-product] .owner-actionbar .ab-spacer { flex: 1; }
 
 /* ---------- OwnerStatusPill ---------- */
 [data-product] .owner-status {

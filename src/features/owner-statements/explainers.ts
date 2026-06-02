@@ -19,6 +19,35 @@ export interface Explainer {
   example?: React.ReactNode;
 }
 
+/**
+ * Map a statement line to its explainer key. Keyed off the owner bucket
+ * (line_type), with two refinements the granular `category` carries: PHR tax
+ * lines and pool-allocated shared costs get their own copy.
+ */
+export function explainerKeyForLine(line: {
+  lineType?: string | null;
+  category?: string | null;
+}): string {
+  const lt = (line.lineType ?? "").trim();
+  const cat = (line.category ?? "").toLowerCase();
+  switch (lt) {
+    case "revenue":
+      return "revenue";
+    case "fee":
+      return "fees";
+    case "tax":
+      return cat.includes("phr") ? "phr" : "taxes";
+    case "expense":
+      return cat.includes("shared") ? "shared" : "expenses";
+    case "management_fee":
+      return "mgmt";
+    case "reserve":
+      return "reserves";
+    default:
+      return "expenses";
+  }
+}
+
 export const EXPLAINERS: Record<string, Explainer> = {
   revenue: {
     title: "Booking revenue",
