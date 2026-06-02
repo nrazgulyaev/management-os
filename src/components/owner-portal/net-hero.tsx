@@ -1,9 +1,9 @@
 import * as React from "react";
 
 /**
- * owner-02 — NetHero (detail). Light card, mockup-faithful: big serif net
- * number + sub line on the left, wire/payout meta on the right. Values arrive
- * pre-formatted (the page owns money formatting via compactMoney).
+ * owner-02 — NetHero (detail), markup mirrors cabinets/owner-p1/02-statement.html:
+ * `.net-hero > .lhs(.label, h2, .sub) + .rhs(.pay, .when, .ref)`. Gradient card,
+ * 48px serif value. Values arrive pre-formatted (the page owns money formatting).
  */
 export interface NetHeroProps {
   /** e.g. "Net to you · March 2026". */
@@ -28,16 +28,16 @@ export function NetHero({
 }: NetHeroProps) {
   return (
     <div className={`net-hero${className ? ` ${className}` : ""}`}>
-      <div>
-        <div className="nh-label">{periodLabel}</div>
-        <div className="nh-value">{valueText}</div>
-        {subText && <div className="nh-sub">{subText}</div>}
+      <div className="lhs">
+        <div className="label">{periodLabel}</div>
+        <h2>{valueText}</h2>
+        {subText && <div className="sub">{subText}</div>}
       </div>
       {(wireLabel || wireWhen || wireRef) && (
-        <div className="nh-rhs">
-          {wireLabel && <div className="nh-pay">{wireLabel}</div>}
-          {wireWhen && <div className="nh-when">{wireWhen}</div>}
-          {wireRef && <div className="nh-ref">{wireRef}</div>}
+        <div className="rhs">
+          {wireLabel && <div className="pay">{wireLabel}</div>}
+          {wireWhen && <div className="when">{wireWhen}</div>}
+          {wireRef && <div className="ref">{wireRef}</div>}
         </div>
       )}
     </div>

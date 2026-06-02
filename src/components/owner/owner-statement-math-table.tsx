@@ -46,7 +46,7 @@ export function OwnerStatementMathTable({
             g.lines.map((l, i) => (
               <tr key={`${g.bucket}-${i}`}>
                 <td>
-                  <span className={`sec-pill ${g.bucket}`}>{g.label}</span>
+                  <span className={`sec-pill ${g.pill}`}>{g.label}</span>
                 </td>
                 <td>
                   {l.bold ? (

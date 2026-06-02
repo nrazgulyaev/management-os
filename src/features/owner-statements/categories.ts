@@ -45,6 +45,16 @@ export const BUCKET_LABEL: Record<StatementBucket, string> = {
   reserve: "Reserve",
 };
 
+/** CSS pill-class per bucket — matches the mockup's `.sec-pill.<x>` names. */
+export const BUCKET_PILL_CLASS: Record<StatementBucket, string> = {
+  revenue: "revenue",
+  fees: "fees",
+  taxes: "taxes",
+  expenses: "expenses",
+  management: "mgmt",
+  reserve: "reserves",
+};
+
 /** Owner-view sign: revenue is the only positive (+) bucket; the rest deduct. */
 export const BUCKET_SIGN: Record<StatementBucket, 1 | -1> = {
   revenue: 1,

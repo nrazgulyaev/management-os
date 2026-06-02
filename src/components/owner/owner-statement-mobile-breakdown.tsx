@@ -23,7 +23,7 @@ export function OwnerStatementMobileBreakdown({ groups }: { groups: ViewGroup[] 
               aria-expanded={isOpen}
               onClick={() => setOpen(isOpen ? null : g.bucket)}
             >
-              <span className={`sec-pill ${g.bucket}`}>{g.label}</span>
+              <span className={`sec-pill ${g.pill}`}>{g.label}</span>
               <span className="cat-lines">
                 {g.lineCount} line{g.lineCount === 1 ? "" : "s"}
               </span>

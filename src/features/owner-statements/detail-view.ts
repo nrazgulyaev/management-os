@@ -1,6 +1,7 @@
 import {
   groupLinesByBucket,
   BUCKET_SIGN,
+  BUCKET_PILL_CLASS,
   type StatementBucket,
 } from "./categories";
 import { explainerKeyForLine } from "./explainers";
@@ -24,6 +25,8 @@ export interface ViewLine {
 
 export interface ViewGroup {
   bucket: StatementBucket;
+  /** Mockup `.sec-pill.<pill>` class (e.g. management → "mgmt"). */
+  pill: string;
   label: string;
   lineCount: number;
   subtotalText: string;
@@ -64,6 +67,7 @@ export function buildStatementView(
     const positive = BUCKET_SIGN[g.bucket] === 1;
     return {
       bucket: g.bucket,
+      pill: BUCKET_PILL_CLASS[g.bucket],
       label: g.label,
       lineCount: g.lines.length,
       subtotalText: signedText(g.bucket, g.subtotalMinor, currency),

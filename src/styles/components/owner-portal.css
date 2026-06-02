@@ -284,88 +284,112 @@
    .why-drawer          — right-side explainer drawer
    ============================================================= */
 
-/* ---------- NetHero (owner-02 detail) — light card, mockup-faithful ---------- */
+/* ---------- Owner statement detail (owner-02) — mirrors cabinets/owner-p1/02-statement.html ---------- */
+[data-product] .owner-h1 {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0;
+}
+[data-product] .owner-h1 em { font-style: italic; color: var(--terra); }
+[data-product] .owner-narr {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--ink-2);
+  line-height: 1.55;
+  margin: 12px 0 0;
+  max-width: 680px;
+}
+
+/* Net-to-owner hero (the headline number) */
 [data-product] .net-hero {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 18px;
-  align-items: start;
-  padding: 24px 26px;
-  background: var(--cream-warm);
+  background: linear-gradient(160deg, var(--cream-warm), var(--paper));
   border: 1px solid var(--line-soft);
   border-radius: 18px;
+  padding: 32px 36px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: center;
 }
-[data-product] .net-hero .nh-label {
+[data-product] .net-hero .lhs .label {
   font-family: var(--mono-font), monospace;
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
-[data-product] .net-hero .nh-value {
+[data-product] .net-hero .lhs h2 {
+  margin: 8px 0 4px;
   font-family: var(--display-font), Georgia, serif;
-  font-size: 44px;
+  font-size: 48px;
   font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
   color: var(--ink);
-  margin-top: 4px;
-  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.025em;
 }
-[data-product] .net-hero .nh-sub {
-  font-size: 13px;
+[data-product] .net-hero .lhs .sub {
+  font-family: var(--sans-font);
+  font-size: 14px;
   color: var(--ink-3);
-  margin-top: 8px;
   line-height: 1.5;
 }
-[data-product] .net-hero .nh-rhs { text-align: right; }
-[data-product] .net-hero .nh-pay {
+[data-product] .net-hero .rhs { text-align: right; }
+[data-product] .net-hero .rhs .pay {
   font-family: var(--mono-font), monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.14em;
+  font-size: 11px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
-[data-product] .net-hero .nh-when {
+[data-product] .net-hero .rhs .when {
+  margin-top: 8px;
   font-family: var(--display-font), Georgia, serif;
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 400;
   color: var(--ink);
-  margin-top: 4px;
 }
-[data-product] .net-hero .nh-ref {
+[data-product] .net-hero .rhs .ref {
+  margin-top: 4px;
   font-family: var(--mono-font), monospace;
   font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--ink-3);
-  margin-top: 4px;
 }
 @media (max-width: 640px) {
-  [data-product] .net-hero { grid-template-columns: 1fr; }
-  [data-product] .net-hero .nh-rhs { text-align: left; }
+  [data-product] .net-hero { grid-template-columns: 1fr; padding: 24px; }
+  [data-product] .net-hero .rhs { text-align: left; }
+  [data-product] .net-hero .lhs h2 { font-size: 40px; }
 }
 
 /* ---------- Section-category pills (owner "How the math worked") ---------- */
 [data-product] .sec-pill {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
   padding: 2px 9px;
   border-radius: 999px;
   font-family: var(--mono-font), monospace;
   font-size: 10px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  border: 1px solid transparent;
   white-space: nowrap;
 }
-[data-product] .sec-pill::before {
-  content: ""; width: 5px; height: 5px; border-radius: 999px; background: currentColor;
-}
+[data-product] .sec-pill::before { content: ""; width: 6px; height: 6px; border-radius: 999px; }
 [data-product] .sec-pill.revenue { color: var(--ok); background: color-mix(in oklab, var(--ok) 10%, transparent); }
+[data-product] .sec-pill.revenue::before { background: var(--ok); }
 [data-product] .sec-pill.fees { color: var(--ink-3); background: var(--cream-deep, var(--bg-3)); }
+[data-product] .sec-pill.fees::before { background: var(--ink-3); }
 [data-product] .sec-pill.taxes { color: var(--gold, var(--warn)); background: color-mix(in oklab, var(--gold, var(--warn)) 12%, transparent); }
+[data-product] .sec-pill.taxes::before { background: var(--gold, var(--warn)); }
 [data-product] .sec-pill.expenses { color: var(--ink-2); background: var(--cream-deep, var(--bg-3)); }
-[data-product] .sec-pill.management { color: var(--terra); background: color-mix(in oklab, var(--terra) 10%, transparent); }
-[data-product] .sec-pill.reserve { color: var(--ink-3); background: transparent; border: 1px dashed var(--line-strong); }
-[data-product] .sec-pill.reserve::before { background: var(--ink-4); }
+[data-product] .sec-pill.expenses::before { background: var(--ink-2); }
+[data-product] .sec-pill.mgmt { color: var(--terra); background: color-mix(in oklab, var(--terra) 10%, transparent); }
+[data-product] .sec-pill.mgmt::before { background: var(--terra); }
+[data-product] .sec-pill.reserves { color: var(--ink-3); background: transparent; border: 1px dashed var(--line-strong); padding: 1px 8px; }
+[data-product] .sec-pill.reserves::before { background: var(--ink-4); }
 
 /* ---------- "How the math worked" table — bold net row ---------- */
 [data-product] .statement-math tbody tr.math-net td {
@@ -536,13 +560,13 @@
   padding: 0;
   font-family: var(--mono-font), monospace;
   font-size: 10.5px;
-  color: var(--ink-3);
+  color: var(--terra);
   letter-spacing: 0.06em;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
+  margin-left: 6px;
 }
-[data-product] .why-link:hover { color: var(--ink); }
+[data-product] .why-link:hover { text-decoration: underline; }
 
 .why-drawer-overlay {
   position: fixed; inset: 0;
