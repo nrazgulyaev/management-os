@@ -366,6 +366,61 @@
   [data-product] .net-hero .lhs h2 { font-size: 40px; }
 }
 
+/* ---------- Statement list rows (owner-02 Screen 1) ---------- */
+[data-product] .stmt-list { display: flex; flex-direction: column; gap: 14px; }
+[data-product] .stmt-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 20px;
+  align-items: center;
+  padding: 18px 26px;
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+[data-product] .stmt-row:hover { border-color: var(--ink-2); transform: translateY(-1px); }
+[data-product] .stmt-row.is-pending {
+  padding: 22px 26px;
+  border-color: color-mix(in oklab, var(--gold, var(--warn)) 26%, transparent);
+  box-shadow: 0 2px 12px -6px rgba(216, 179, 84, 0.3);
+}
+[data-product] .stmt-row .sr-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--cream-deep, var(--bg-3)); color: var(--ink-3);
+}
+[data-product] .stmt-row.is-pending .sr-icon { background: color-mix(in oklab, var(--gold, var(--warn)) 14%, transparent); color: #8A6B2D; }
+[data-product] .stmt-row.is-disputed .sr-icon { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); }
+[data-product] .stmt-row .sr-title {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 18px; font-weight: 400; color: var(--ink); line-height: 1.2;
+}
+[data-product] .stmt-row.is-pending .sr-title { font-size: 22px; }
+[data-product] .stmt-row .sr-meta {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px; color: var(--ink-3);
+  letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px;
+}
+[data-product] .stmt-row.is-pending .sr-meta { font-size: 11.5px; margin-top: 6px; }
+[data-product] .stmt-row .sr-right { text-align: right; }
+[data-product] .stmt-row .sr-amount {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 18px; font-weight: 400; color: var(--ink-2);
+}
+[data-product] .stmt-row.is-pending .sr-amount { font-size: 24px; color: var(--terra); }
+[data-product] .stmt-row .sr-usd {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.06em; margin-top: 3px;
+}
+@media (max-width: 640px) {
+  [data-product] .stmt-row { grid-template-columns: auto 1fr; gap: 14px; }
+  [data-product] .stmt-row .sr-right { text-align: left; grid-column: 2; }
+  [data-product] .stmt-row .owner-status { grid-column: 2; justify-self: start; }
+}
+
 /* ---------- Section-category pills (owner "How the math worked") ---------- */
 [data-product] .sec-pill {
   display: inline-flex; align-items: center; gap: 5px;

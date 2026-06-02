@@ -120,6 +120,11 @@ export interface OwnerStatementRow {
   sentAt: string | null;
   sentToEmail: string | null;
   contentHash: string | null;
+  /** Owner-side lifecycle state (FC-OWNER-STATEMENTS). Optional: only the list query populates these. */
+  ownerState?: string;
+  lineCount?: number;
+  ownerAckedAt?: string | null;
+  autoAckAt?: string | null;
 }
 
 export async function listMyStatements(
@@ -140,6 +145,10 @@ export async function listMyStatements(
     sent_at: string | null;
     sent_to_email: string | null;
     content_hash: string | null;
+    owner_state: string;
+    owner_acked_at: string | null;
+    auto_ack_at: string | null;
+    line_count: string;
   }>(sql`
     SELECT s.id::text                         AS id,
            s.statement_code                    AS statement_code,
@@ -151,7 +160,11 @@ export async function listMyStatements(
            s.approved_at::text                 AS approved_at,
            s.sent_at::text                     AS sent_at,
            s.sent_to_email                     AS sent_to_email,
-           s.content_hash                      AS content_hash
+           s.content_hash                      AS content_hash,
+           s.owner_state                       AS owner_state,
+           s.owner_acked_at::text              AS owner_acked_at,
+           s.auto_ack_at::text                 AS auto_ack_at,
+           (SELECT count(*) FROM statement_lines sl WHERE sl.statement_id = s.id)::text AS line_count
       FROM owner_statements s
       LEFT JOIN villas v ON v.id = s.villa_id
      WHERE s.owner_id = ${ownerId}::uuid
@@ -171,6 +184,10 @@ export async function listMyStatements(
     sent_at: string | null;
     sent_to_email: string | null;
     content_hash: string | null;
+    owner_state: string;
+    owner_acked_at: string | null;
+    auto_ack_at: string | null;
+    line_count: string;
   }>(rows).map((r) => {
     const [y, m] = r.period_month.split("-").map(Number);
     const monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en", {
@@ -190,6 +207,10 @@ export async function listMyStatements(
       sentAt: r.sent_at,
       sentToEmail: r.sent_to_email,
       contentHash: r.content_hash,
+      ownerState: r.owner_state,
+      ownerAckedAt: r.owner_acked_at,
+      autoAckAt: r.auto_ack_at,
+      lineCount: Number(r.line_count ?? "0"),
     };
   });
 }
