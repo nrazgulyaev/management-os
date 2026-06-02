@@ -1,0 +1,2165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Operations — Mgmt P1 · Phase 2.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style id="chrome-css">
+/* ===== ds/tokens.css ===== */
+/* ============================================================
+   Arconique Design System — tokens
+   Layer B (product-scoped). Layer A legacy is being deprecated.
+   ============================================================ */
+
+/* Management OS — warm hospitality */
+[data-product="management"],
+[data-product="owner"] {
+  /* Surfaces */
+  --cream:        #F4EFE6;
+  --cream-deep:   #ECE5D5;
+  --cream-warm:   #FAF7F1;
+  --paper:        #FFFCF7;
+
+  /* Ink */
+  --ink:          #14201C;
+  --ink-2:        #2A3934;
+  --ink-3:        #4A5A55;
+  --ink-4:        #7E8A85;
+
+  /* Brand */
+  --forest:       #1F3A33;
+  --forest-deep:  #122621;
+  --forest-fade:  #2E4F47;
+  --terra:        #C4583C;
+  --terra-soft:   #E48A6E;
+  --gold:         #BC9A5C;
+  --gold-soft:    #DCC691;
+  --sage:         #88A89A;
+
+  /* Lines */
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --line-strong:  #C2B89E;
+
+  /* Semantic */
+  --ok:           #4F7A5D;
+  --warn:         #C58A2E;
+  --danger:       #B14132;
+  --info:         #3D5A7A;
+
+  /* Accent pastels (bento cards, status pills) */
+  --mint:         #D8E8D6;
+  --mint-deep:    #B6D3B2;
+  --peach:        #F6D9CB;
+  --peach-deep:   #EDB89F;
+  --butter:       #F5E9B8;
+  --butter-deep:  #E8D77E;
+  --sky:          #D4E2EC;
+  --sky-deep:     #A8C1D4;
+
+  /* Type */
+  --display-font: 'Newsreader', Georgia, 'Iowan Old Style', serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-card: 18px;
+  --r-card-lg: 22px;
+  --r-hero: 28px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 12px 30px -18px rgba(20,32,28,0.18);
+  --shadow-soft:  0 18px 40px -24px rgba(20,32,28,0.22);
+  --shadow-pop:   0 24px 56px -28px rgba(20,32,28,0.28),
+                  0 2px 6px rgba(20,32,28,0.06);
+
+  /* Accent role (used by .btn-primary semantics) */
+  --accent:           var(--terra);
+  --accent-deep:      #A44627;
+  --accent-soft:      var(--terra-soft);
+  --on-accent:        var(--cream-warm);
+  --inverted-bg:      var(--forest);
+  --inverted-bg-deep: var(--forest-deep);
+  --inverted-fg:      var(--cream-warm);
+}
+
+/* Owner Portal — same palette, slightly calmer */
+[data-product="owner"] {
+  /* Owner is for non-technical users, used 2–4× per month.
+     Inherits Mgmt palette. The differentiation is density/sizing —
+     applied at the component level, not via different tokens. */
+}
+
+/* Development OS — engineering grade */
+[data-product="development"] {
+  /* Surfaces */
+  --bg:           #F1ECE0;
+  --bg-2:         #F8F4EA;
+  --bg-3:         #FFFCF4;
+  --panel:        #FFFFFF;
+
+  /* Compatibility aliases (cards/topbars look up --paper/--cream too) */
+  --paper:        var(--panel);
+  --cream:        var(--bg);
+  --cream-warm:   var(--bg-2);
+  --cream-deep:   var(--bg-2);
+
+  /* Lines */
+  --line:         #E5DECC;
+  --line-2:       #D8CFB7;
+  --line-3:       #BAAF92;
+  --line-soft:    #ECE6D5;
+  --line-strong:  var(--line-3);
+
+  /* Ink */
+  --concrete:     #2A2A26;
+  --concrete-2:   #4A4A42;
+  --concrete-3:   #6E6E64;
+  --ink:          #14130E;
+  --ink-2:        #3D3B33;
+  --ink-3:        #6E6B5E;
+  --ink-4:        #95917F;
+  --carbon:       #14130E;
+
+  /* Brand */
+  --amber:        #FF6B35;
+  --amber-soft:   #FFB088;
+  --amber-deep:   #D8541F;
+  --steel:        #3D5A7A;
+  --steel-soft:   #7E9DBF;
+  --lime:         #C9DC4A;
+
+  /* Semantic */
+  --ok:           #4F8A5D;
+  --warn:         #C58A2E;
+  --danger:       #C2474E;
+  --info:         var(--steel);
+
+  /* Pastels (status/event tags) */
+  --pastel-peach:  #F6D2BC;
+  --pastel-sky:    #C9DCEA;
+  --pastel-butter: #F0DE96;
+  --pastel-mint:   #CBDFC8;
+  --pastel-cream:  #ECE5D5;
+  --pastel-rose:   #EFC6BD;
+
+  /* Type */
+  --display-font: 'Space Grotesk', system-ui, sans-serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-card: 14px;
+  --r-card-lg: 18px;
+  --r-hero: 22px;
+  --r-pill: 999px;
+
+  /* Shadows — more graphical, less soft */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 8px 22px -14px rgba(20,19,14,0.20);
+  --shadow-soft:  0 18px 38px -22px rgba(20,19,14,0.24);
+  --shadow-pop:   0 24px 50px -26px rgba(20,19,14,0.30),
+                  0 2px 6px rgba(20,19,14,0.07);
+
+  /* Accent role */
+  --accent:           var(--amber);
+  --accent-deep:      var(--amber-deep);
+  --accent-soft:      var(--amber-soft);
+  --on-accent:        var(--carbon);
+  --inverted-bg:      var(--carbon);
+  --inverted-bg-deep: #050402;
+  --inverted-fg:      #FFFFFF;
+}
+
+/* ============================================================
+   Documentation page chrome — neutral, NOT product-scoped
+   ============================================================ */
+:root {
+  --doc-bg:       #0F0F0E;
+  --doc-bg-2:     #16161A;
+  --doc-bg-3:     #1D1D22;
+  --doc-line:     #2A2A2F;
+  --doc-line-2:   #3A3A40;
+  --doc-fg:       #E8E5DE;
+  --doc-fg-2:     #B2AFA8;
+  --doc-fg-3:     #807D77;
+  --doc-accent:   #E4D9B8;
+
+  --doc-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --doc-sans:    'Inter', system-ui, sans-serif;
+}
+
+
+/* ===== ds/primitives.css ===== */
+/* ============================================================
+   Arconique Design System — primitives
+   Buttons, cards, badges, chips, KPI, pulse, type utilities.
+   Lives under [data-product=…]; the documentation chrome
+   (sections.css) provides the outer surface.
+   ============================================================ */
+
+/* ---------- Type utilities ---------- */
+[data-product] .display {
+  font-family: var(--display-font);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  color: var(--ink);
+}
+[data-product="development"] .display {
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+[data-product] .display em {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 400;
+}
+
+[data-product] .label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+[data-product="development"] .label,
+[data-product="owner"] .label { letter-spacing: 0.18em; }
+
+[data-product] .mono {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+}
+[data-product] .num {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+[data-product] .body {
+  font-family: var(--sans-font);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ---------- */
+[data-product] .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease,
+              border-color 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+[data-product] .btn-lg { padding: 14px 22px; font-size: 15px; }
+[data-product] .btn-sm { padding: 7px 14px; font-size: 13px; }
+[data-product] .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Primary — uses inverted bg per product */
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product="management"] .btn-primary:hover,
+[data-product="owner"] .btn-primary:hover { background: var(--forest); }
+[data-product="development"] .btn-primary:hover { background: #25241D; }
+
+/* Accent — terra (Mgmt/Owner), amber (Dev) */
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); }
+[data-product] .btn-accent:hover { background: var(--accent-deep); }
+
+/* Secondary — light card with border */
+[data-product="management"] .btn-secondary,
+[data-product="owner"] .btn-secondary {
+  background: var(--cream-warm); color: var(--ink); border-color: var(--line);
+}
+[data-product="management"] .btn-secondary:hover,
+[data-product="owner"] .btn-secondary:hover { background: var(--paper); border-color: var(--ink-2); }
+[data-product="development"] .btn-secondary {
+  background: var(--bg-3); color: var(--ink); border-color: var(--line-2);
+}
+[data-product="development"] .btn-secondary:hover { background: var(--bg-2); border-color: var(--line-3); }
+
+/* Ghost */
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); }
+[data-product="management"] .btn-ghost:hover,
+[data-product="owner"] .btn-ghost:hover { background: var(--cream-deep); color: var(--ink); }
+[data-product="development"] .btn-ghost:hover { background: var(--bg-2); color: var(--ink); }
+
+/* Danger */
+[data-product] .btn-danger { background: var(--danger); color: var(--cream-warm); }
+[data-product] .btn-danger:hover { filter: brightness(0.92); }
+
+/* Round arrow / sticker buttons */
+[data-product] .ra-btn {
+  width: 46px; height: 46px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; cursor: pointer; transition: transform 0.15s ease, background 0.18s ease;
+  background: var(--ink); color: var(--inverted-fg);
+}
+[data-product] .ra-btn:hover { transform: translateX(2px); }
+[data-product] .ra-btn.light {
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line);
+}
+[data-product] .ra-btn.accent { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- Cards ---------- */
+[data-product="management"] .card,
+[data-product="owner"] .card {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+}
+[data-product="development"] .card,
+[data-product="development"] .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+}
+[data-product] .card-lg { border-radius: var(--r-card-lg); }
+[data-product] .card-hero { border-radius: var(--r-hero); }
+[data-product] .card-pad { padding: 20px; }
+[data-product] .card-pad-lg { padding: 28px; }
+
+/* Inverted hero band */
+[data-product] .card-inverted {
+  background: var(--inverted-bg);
+  color: var(--inverted-fg);
+  border-color: var(--inverted-bg);
+}
+[data-product] .card-inverted .label { color: rgba(255,255,255,0.55); }
+
+/* ---------- Badges ---------- */
+[data-product] .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-family: var(--mono-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  background: var(--paper);
+}
+[data-product] .badge-ok     { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
+[data-product] .badge-warn   { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+[data-product] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product] .badge-info   { background: color-mix(in oklab, var(--info) 12%, transparent); color: var(--info); border-color: color-mix(in oklab, var(--info) 35%, transparent); }
+[data-product] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product="management"] .badge-gold,
+[data-product="owner"] .badge-gold { background: rgba(188,154,92,0.15); color: #8c6f33; border-color: rgba(188,154,92,0.35); }
+[data-product] .badge-ink {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .badge-soft {
+  background: var(--cream-warm, var(--bg-2)); color: var(--ink-2); border-color: var(--line-soft, var(--line-2));
+}
+
+/* ---------- Chips ---------- */
+[data-product] .chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+[data-product="development"] .chip { background: var(--bg-2); border-color: var(--line-2); }
+[data-product] .chip-dot::before {
+  content: ""; width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent); display: inline-block;
+}
+[data-product] .chip-ink { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .chip-active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+/* ---------- Pulse dot ---------- */
+[data-product] .pulse-dot {
+  width: 7px; height: 7px; border-radius: 999px; display: inline-block;
+  background: var(--ok);
+  animation: ds-pulse 2.4s ease-in-out infinite;
+}
+[data-product] .pulse-dot.accent { background: var(--accent); color: var(--accent); }
+@keyframes ds-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; }
+}
+
+/* ---------- Avatar ---------- */
+[data-product] .avatar {
+  width: 32px; height: 32px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-fg);
+  font-family: var(--sans-font);
+  font-size: 11px; font-weight: 500;
+  background: linear-gradient(135deg, var(--gold-soft, var(--amber-soft)), var(--accent));
+}
+[data-product] .avatar-lg { width: 44px; height: 44px; font-size: 14px; }
+[data-product] .avatar-sm { width: 24px; height: 24px; font-size: 10px; }
+
+/* ---------- KPI tile ---------- */
+[data-product] .kpi {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft, var(--line));
+  background: var(--paper, var(--panel));
+}
+[data-product] .kpi .label { font-size: 10.5px; }
+[data-product] .kpi .v {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  margin-top: 4px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.05;
+}
+[data-product] .kpi .sub {
+  margin-top: 3px;
+  font-family: var(--sans-font);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+[data-product] .kpi.accent .v { color: var(--accent); }
+[data-product] .kpi.ok .v { color: var(--ok); }
+[data-product] .kpi.warn .v { color: var(--warn); }
+[data-product] .kpi.gold .v { color: var(--gold, var(--amber)); }
+[data-product] .kpi-lg .v { font-size: 36px; }
+[data-product] .kpi-lg { padding: 22px 22px; }
+
+/* Owner has a calmer, bigger KPI variant for statement clarity */
+[data-product="owner"] .kpi-narrative {
+  padding: 28px 28px;
+  border-radius: var(--r-card-lg);
+}
+[data-product="owner"] .kpi-narrative .label { font-size: 11px; }
+[data-product="owner"] .kpi-narrative .v {
+  font-family: var(--display-font);
+  font-feature-settings: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-top: 10px;
+}
+[data-product="owner"] .kpi-narrative .sub {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+/* ---------- Section heading ---------- */
+[data-product] .section-heading { margin-bottom: 22px; }
+[data-product] .section-heading .eyebrow { margin-bottom: 8px; }
+[data-product] .section-heading h2,
+[data-product] .section-heading h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .section-heading h2,
+[data-product="development"] .section-heading h1 { font-weight: 500; letter-spacing: -0.025em; }
+[data-product] .section-heading p {
+  margin: 10px 0 0;
+  color: var(--ink-3);
+  font-size: 15px;
+  max-width: 680px;
+  line-height: 1.55;
+}
+[data-product="owner"] .section-heading h2,
+[data-product="owner"] .section-heading h1 { font-size: 44px; }
+[data-product="owner"] .section-heading p { font-size: 16px; }
+
+/* ---------- Page header (with breadcrumbs) ---------- */
+[data-product] .page-header {
+  display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 22px;
+}
+[data-product] .page-header .left { flex: 1; min-width: 0; }
+[data-product] .page-header .crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+[data-product] .page-header .crumb a { color: var(--ink-3); text-decoration: none; }
+[data-product] .page-header .crumb a:hover { color: var(--ink); }
+[data-product] .page-header h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .page-header h1 { font-weight: 500; }
+[data-product] .page-header .actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+
+/* ===== ds/layout.css ===== */
+/* ============================================================
+   Arconique Design System — layout (sidebar, topbar, tables)
+   ============================================================ */
+
+/* ---------- App shell wrapper used in previews ---------- */
+[data-product] .app-shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  height: 580px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  overflow: hidden;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-content {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-body {
+  padding: 22px 28px;
+  overflow: auto;
+  flex: 1;
+}
+
+/* ---------- Sidebar ---------- */
+[data-product] .sidebar {
+  border-right: 1px solid var(--line-soft, var(--line));
+  display: flex; flex-direction: column;
+  background: var(--paper, var(--panel));
+  overflow-y: auto;
+}
+[data-product] .sidebar::-webkit-scrollbar { width: 6px; }
+[data-product] .sidebar::-webkit-scrollbar-thumb {
+  background: var(--line); border-radius: 999px;
+}
+[data-product] .sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 18px 14px;
+  text-decoration: none; color: var(--ink);
+}
+[data-product] .sb-brand .logo {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-bg);
+}
+[data-product] .sb-brand .wordmark {
+  font-family: var(--display-font);
+  font-size: 20px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace {
+  margin: 0 18px 12px;
+  padding: 10px 12px;
+  background: var(--cream-deep, var(--bg-2));
+  border-radius: 10px;
+}
+[data-product] .sb-workspace .label { font-size: 9.5px; }
+[data-product] .sb-workspace .name {
+  font-family: var(--display-font);
+  font-size: 16px;
+  margin-top: 2px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace .sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+[data-product] .sb-group {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .sb-group:last-child { border-bottom: 0; }
+[data-product] .sb-group-title {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 10px 18px 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+[data-product] .sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 18px;
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer; border: 0; background: transparent;
+  width: 100%; text-align: left;
+  border-left: 2px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease;
+  text-decoration: none;
+}
+[data-product="management"] .sb-item:hover,
+[data-product="owner"] .sb-item:hover { background: var(--cream-warm); }
+[data-product="development"] .sb-item:hover { background: var(--bg-2); }
+[data-product] .sb-item.on {
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product="management"] .sb-item.on,
+[data-product="owner"] .sb-item.on {
+  background: var(--cream-warm);
+  border-left-color: var(--accent);
+}
+[data-product="development"] .sb-item.on {
+  background: var(--bg-2);
+  border-left-color: var(--accent);
+}
+[data-product] .sb-badge {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+[data-product] .sb-item.on .sb-badge {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Topbar ---------- */
+[data-product] .topbar {
+  position: sticky; top: 0; z-index: 30;
+  padding: 12px 28px;
+  display: flex; align-items: center; gap: 16px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--cream, var(--bg)) 92%, transparent);
+}
+[data-product] .tb-crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+[data-product] .tb-crumb b { color: var(--ink); font-weight: 500; }
+[data-product] .tb-spacer { flex: 1; }
+[data-product] .tb-search {
+  position: relative;
+  width: 280px;
+}
+[data-product] .tb-search input {
+  width: 100%;
+  padding: 7px 38px 7px 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  outline: none;
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper, var(--panel));
+}
+[data-product] .tb-search .sx {
+  position: absolute; left: 10px; top: 8px;
+  color: var(--ink-4);
+}
+[data-product] .tb-search .kbd {
+  position: absolute; right: 8px; top: 6px;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-3);
+}
+[data-product] .tb-bell {
+  position: relative;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-2);
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+[data-product] .tb-bell:hover { background: var(--cream-deep, var(--bg-2)); }
+[data-product] .tb-bell .dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent);
+}
+[data-product] .tb-user {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+[data-product] .tb-user .meta {
+  display: flex; flex-direction: column;
+  line-height: 1.15;
+}
+[data-product] .tb-user .name { font-size: 13px; font-weight: 500; color: var(--ink); }
+[data-product] .tb-user .role { font-size: 10.5px; color: var(--ink-3); }
+
+/* ---------- Tables ---------- */
+[data-product] table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans-font);
+  font-size: 13px;
+}
+[data-product] table.data th,
+[data-product] table.data td {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] table.data th {
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+[data-product="management"] table.data th,
+[data-product="owner"] table.data th {
+  background: var(--cream);
+  border-bottom-color: var(--line-soft);
+}
+[data-product="development"] table.data th {
+  background: var(--bg-2);
+  border-bottom-color: var(--line-2);
+}
+[data-product] table.data tbody tr:hover {
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 60%, transparent);
+}
+[data-product] table.data td.num,
+[data-product] table.data th.num {
+  text-align: right;
+  font-family: var(--mono-font);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] table.data .row-title {
+  font-family: var(--display-font);
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+/* Mgmt-soft variant: airier rows, serif row titles */
+[data-product="management"] table.guests,
+[data-product="owner"] table.guests {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--sans-font);
+}
+[data-product="management"] table.guests th,
+[data-product="management"] table.guests td,
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft);
+}
+[data-product="management"] table.guests th,
+[data-product="owner"] table.guests th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: var(--cream);
+}
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td { padding: 18px 22px; }
+[data-product="management"] table.guests tbody tr:hover,
+[data-product="owner"] table.guests tbody tr:hover { background: var(--cream); }
+
+/* ---------- Forms ---------- */
+[data-product] .field { display: flex; flex-direction: column; gap: 6px; }
+[data-product] .field-label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+[data-product] .input,
+[data-product] .select,
+[data-product] .textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper, var(--panel));
+  font-family: var(--sans-font);
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+[data-product] .textarea { min-height: 96px; resize: vertical; }
+[data-product] .input:focus,
+[data-product] .select:focus,
+[data-product] .textarea:focus {
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+[data-product] .input::placeholder,
+[data-product] .textarea::placeholder { color: var(--ink-4); }
+[data-product] .field-help { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+[data-product] .field-error { font-size: 12px; color: var(--danger); margin-top: 2px; }
+
+[data-product] .check {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--sans-font); font-size: 14px; color: var(--ink);
+  cursor: pointer;
+}
+[data-product] .check input { appearance: none; -webkit-appearance: none; }
+[data-product] .check .box {
+  width: 18px; height: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--paper, var(--panel));
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+[data-product] .check input:checked + .box {
+  background: var(--ink); border-color: var(--ink);
+}
+[data-product] .check input:checked + .box::after {
+  content: "";
+  width: 9px; height: 5px;
+  border-left: 2px solid var(--inverted-fg);
+  border-bottom: 2px solid var(--inverted-fg);
+  transform: rotate(-45deg) translate(0, -2px);
+}
+
+[data-product] .radio .box { border-radius: 999px; }
+[data-product] .radio input:checked + .box {
+  background: var(--paper, var(--panel));
+  border-color: var(--accent);
+}
+[data-product] .radio input:checked + .box::after {
+  content: ""; width: 9px; height: 9px;
+  border: 0; transform: none; background: var(--accent);
+  border-radius: 999px;
+}
+
+[data-product] .toggle {
+  position: relative; width: 38px; height: 22px;
+  background: var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+[data-product] .toggle::after {
+  content: ""; position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  background: var(--paper, var(--panel));
+  border-radius: 999px;
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+[data-product] .toggle.on { background: var(--accent); }
+[data-product] .toggle.on::after { transform: translateX(16px); }
+
+/* ---------- Filter bar ---------- */
+[data-product] .filter-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--paper, var(--panel));
+  margin-bottom: 14px;
+}
+[data-product] .filter-bar .divider {
+  width: 1px; height: 22px; background: var(--line); margin: 0 2px;
+}
+
+/* ---------- Empty state ---------- */
+[data-product] .empty {
+  padding: 40px 28px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-card);
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 50%, transparent);
+  text-align: center;
+}
+[data-product] .empty .glyph {
+  width: 44px; height: 44px; margin: 0 auto 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 999px;
+}
+[data-product] .empty .title {
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+[data-product] .empty .copy {
+  font-size: 13px;
+  color: var(--ink-3);
+  max-width: 360px;
+  margin: 0 auto 14px;
+  line-height: 1.5;
+}
+
+/* ---------- Pagination ---------- */
+[data-product] .pagination {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono-font);
+  font-size: 12px;
+}
+[data-product] .pagination button {
+  min-width: 30px; height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper, var(--panel));
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .pagination button:hover { border-color: var(--ink-2); color: var(--ink); }
+[data-product] .pagination button.on {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .pagination .meta {
+  margin-left: 12px; color: var(--ink-3);
+}
+
+/* ---------- Modal ---------- */
+[data-product] .modal-backdrop {
+  position: relative;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  padding: 36px 28px;
+  border-radius: var(--r-card);
+  display: flex; align-items: flex-start; justify-content: center;
+}
+[data-product] .modal {
+  width: 480px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border-radius: var(--r-card-lg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  box-shadow: var(--shadow-pop);
+}
+[data-product] .modal-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+}
+[data-product] .modal-header h3 {
+  margin: 0;
+  font-family: var(--display-font); font-weight: 400; font-size: 19px;
+  color: var(--ink);
+}
+[data-product] .modal-header p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
+[data-product] .modal-body { padding: 18px 22px; }
+[data-product] .modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* ---------- Command palette preview ---------- */
+[data-product] .cmdk {
+  width: 540px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+[data-product] .cmdk-input {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  font-family: var(--sans-font);
+  font-size: 15px;
+  color: var(--ink-2);
+  display: flex; align-items: center; gap: 10px;
+}
+[data-product] .cmdk-input .sx { color: var(--ink-4); }
+[data-product] .cmdk-group {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .cmdk-group:last-child { border-bottom: 0; }
+[data-product] .cmdk-group-title {
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 8px 18px 4px;
+}
+[data-product] .cmdk-item {
+  padding: 8px 18px;
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--sans-font); font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .cmdk-item.on,
+[data-product] .cmdk-item:hover { background: var(--cream-warm, var(--bg-2)); color: var(--ink); }
+[data-product] .cmdk-item .hint {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+
+/* ---------- Detail page skeleton ---------- */
+[data-product] .detail-shell {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 18px;
+}
+[data-product] .detail-shell .related { display: flex; flex-direction: column; gap: 14px; }
+[data-product] .detail-tabs {
+  display: flex; align-items: center; gap: 4px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 18px;
+}
+[data-product] .detail-tabs .tab {
+  padding: 10px 14px;
+  border: 0; background: transparent;
+  font-family: var(--sans-font);
+  font-size: 13.5px; color: var(--ink-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+[data-product] .detail-tabs .tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- Mobile preview frame ---------- */
+.mobile-frame {
+  width: 360px;
+  border: 1px solid var(--line, #DAD2C0);
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--cream, var(--bg, #F4EFE6));
+  box-shadow: 0 16px 40px -18px rgba(15,15,14,0.22),
+              0 2px 6px rgba(15,15,14,0.06);
+  height: 640px;
+  display: flex; flex-direction: column;
+}
+.mobile-frame .mobile-status {
+  height: 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  font-family: var(--mono-font, monospace);
+  font-size: 11px;
+  color: var(--ink, #14201C);
+}
+.mobile-frame .mobile-body {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Mobile tabbar */
+[data-product] .mobile-tabbar {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+}
+[data-product] .mobile-tabbar .tb {
+  flex: 1;
+  padding: 8px 0 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  cursor: pointer;
+  border: 0; background: transparent;
+}
+[data-product] .mobile-tabbar .tb.on {
+  color: var(--ink);
+}
+[data-product] .mobile-tabbar .tb.on .ico {
+  color: var(--accent);
+}
+[data-product] .mobile-tabbar .ico {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+
+/* ===== ds/meta.css ===== */
+/* ============================================================
+   Documentation page chrome — neutral surface that hosts
+   the product previews. NOT product-scoped.
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--doc-sans);
+  background: var(--doc-bg);
+  color: var(--doc-fg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100vh;
+}
+
+/* ---------- App layout ---------- */
+.ds-app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- Left rail (TOC) ---------- */
+.ds-toc {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--doc-line);
+  padding: 24px 16px 32px;
+  background: var(--doc-bg-2);
+}
+.ds-toc .ds-mark {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  padding: 4px 8px 16px;
+}
+.ds-toc .ds-mark .glyph {
+  width: 6px; height: 6px;
+  background: var(--doc-accent);
+  border-radius: 2px;
+  display: inline-block;
+}
+.ds-toc h1 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0 0 22px;
+  padding: 0 8px;
+  color: var(--doc-fg);
+  letter-spacing: -0.005em;
+}
+.ds-toc .ds-toc-group {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 18px;
+}
+.ds-toc .ds-toc-group-title {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  padding: 8px 8px 6px;
+}
+.ds-toc .ds-toc-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  text-decoration: none;
+  border-radius: 6px;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+}
+.ds-toc .ds-toc-item:hover {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+}
+.ds-toc .ds-toc-item.on {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+  border-left-color: var(--doc-accent);
+}
+.ds-toc .ds-toc-item .num {
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  color: var(--doc-fg-3);
+  width: 18px;
+}
+
+/* ---------- Right side ---------- */
+.ds-main {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--doc-bg);
+}
+
+/* ---------- Product tab bar ---------- */
+.ds-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1px solid var(--doc-line);
+  background: var(--doc-bg);
+  padding: 0 32px;
+}
+.ds-tab {
+  padding: 18px 18px;
+  font-family: var(--doc-sans);
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  border: 0; background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex; align-items: center; gap: 10px;
+}
+.ds-tab:hover { color: var(--doc-fg); }
+.ds-tab.on {
+  color: var(--doc-fg);
+  border-bottom-color: var(--doc-accent);
+}
+.ds-tab .swatch {
+  width: 10px; height: 10px;
+  border-radius: 999px;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+}
+.ds-tab .tag {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  margin-left: 6px;
+}
+.ds-tab.on .tag { color: var(--doc-fg-2); }
+.ds-tabs .ds-meta {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 4px;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.ds-tabs .ds-meta .pill {
+  padding: 4px 10px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 999px;
+  color: var(--doc-fg-2);
+}
+
+/* ---------- Content area ---------- */
+.ds-content {
+  padding: 0 32px 96px;
+}
+
+/* ---------- Section ---------- */
+.ds-section {
+  padding: 56px 0 24px;
+  border-bottom: 1px solid var(--doc-line);
+}
+.ds-section:last-child { border-bottom: 0; }
+.ds-section-head {
+  display: flex; align-items: flex-end; gap: 18px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.ds-section-head .ds-section-eyebrow {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.ds-section-head h2 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 28px;
+  margin: 0;
+  letter-spacing: -0.015em;
+  color: var(--doc-fg);
+}
+.ds-section-head p {
+  margin: 8px 0 0;
+  max-width: 580px;
+  color: var(--doc-fg-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.ds-section-head .ds-section-meta {
+  margin-left: auto;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  display: flex; gap: 14px;
+  align-items: center;
+}
+
+/* ---------- Sub-section ---------- */
+.ds-sub {
+  margin-bottom: 36px;
+}
+.ds-sub-head {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 14px;
+}
+.ds-sub-head h3 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0;
+  color: var(--doc-fg);
+}
+.ds-sub-head .code {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  padding: 1px 6px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 4px;
+}
+.ds-sub-head p {
+  margin: 0;
+  color: var(--doc-fg-2);
+  font-size: 13px;
+}
+
+/* ---------- Preview surface (the warm card the product previews sit on) ---------- */
+.ds-preview {
+  background: var(--cream, var(--bg, #F4EFE6));
+  border-radius: 14px;
+  padding: 28px;
+  border: 1px solid var(--doc-line);
+  position: relative;
+  overflow: hidden;
+}
+.ds-preview.tight { padding: 18px; }
+.ds-preview.flush { padding: 0; }
+.ds-preview .ds-preview-tag {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  background: rgba(15,15,14,0.05);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* ---------- Code snippet ---------- */
+.ds-code {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 12px 14px;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+  border-radius: 8px;
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.ds-code .kw { color: #c5b889; }
+.ds-code .str { color: #b6cd97; }
+.ds-code .com { color: var(--doc-fg-3); font-style: italic; }
+
+/* ---------- Spec list (key = value rows) ---------- */
+.ds-spec {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 6px 18px;
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 14px 0 0;
+}
+.ds-spec dt { color: var(--doc-fg-3); }
+.ds-spec dd { margin: 0; color: var(--doc-fg); }
+
+/* ---------- Two/three column grid for showcase ---------- */
+.ds-grid { display: grid; gap: 14px; }
+.ds-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.ds-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.ds-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.ds-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+.ds-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.ds-grid.cols-mobile { grid-template-columns: 1fr 360px; gap: 28px; align-items: start; }
+
+/* ---------- Color swatch ---------- */
+.swatch-card {
+  display: flex; flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+}
+.swatch-card .chip {
+  height: 80px;
+  background: var(--c);
+  display: flex; align-items: flex-end;
+  padding: 10px 12px;
+  color: var(--cfg, #fff);
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.swatch-card .meta {
+  padding: 8px 12px 10px;
+}
+.swatch-card .name {
+  font-family: var(--doc-sans);
+  font-size: 12.5px;
+  color: var(--doc-fg);
+  margin-bottom: 1px;
+}
+.swatch-card .var {
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Type specimen ---------- */
+.type-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--doc-line);
+  align-items: baseline;
+}
+.type-row:last-child { border-bottom: 0; }
+.type-row .meta {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.type-row .meta .name { color: var(--doc-fg-2); margin-bottom: 2px; }
+.type-row .specimen { color: var(--ink, var(--doc-fg)); }
+
+/* ---------- Token row (radii, shadows) ---------- */
+.token-row {
+  display: grid;
+  grid-template-columns: 64px 140px 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--doc-line);
+}
+.token-row:last-child { border-bottom: 0; }
+.token-row .visual {
+  width: 64px; height: 64px;
+  background: var(--cream, var(--bg, #F4EFE6));
+  border: 1px solid var(--line, #DAD2C0);
+  display: flex; align-items: center; justify-content: center;
+}
+.token-row .name {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+}
+.token-row .value {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Inline label inside the meta dark area ---------- */
+.ds-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--doc-line-2);
+  color: var(--doc-fg-2);
+}
+.ds-tag.accent {
+  background: var(--doc-accent);
+  color: var(--doc-bg);
+  border-color: var(--doc-accent);
+}
+
+/* ---------- Mobile preview row ---------- */
+.ds-mobile-row {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.ds-mobile-row .ds-mobile-notes {
+  padding-top: 16px;
+}
+.ds-mobile-row .ds-mobile-notes h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--doc-fg);
+}
+.ds-mobile-row .ds-mobile-notes p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  line-height: 1.55;
+}
+
+/* ---------- Small viewport gracefully ---------- */
+@media (max-width: 1280px) {
+  .ds-grid.cols-mobile,
+  .ds-mobile-row { grid-template-columns: 1fr; }
+  .ds-grid.cols-5, .ds-grid.cols-6 { grid-template-columns: repeat(3, 1fr); }
+  .ds-content { padding: 0 22px 80px; }
+  .ds-tabs { padding: 0 22px; }
+}
+@media (max-width: 900px) {
+  .ds-app { grid-template-columns: 1fr; }
+  .ds-toc {
+    position: relative; height: auto;
+    border-right: 0; border-bottom: 1px solid var(--doc-line);
+  }
+  .ds-grid.cols-3, .ds-grid.cols-4, .ds-grid.cols-5, .ds-grid.cols-6 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ds-content { padding: 0 16px 64px; }
+  .ds-tabs { padding: 0 16px; overflow-x: auto; }
+  .ds-tabs .ds-meta { display: none; }
+}
+
+</style>
+<style>
+.shell-preview { display: flex; background: var(--cream, var(--bg)); border-radius: var(--r-card-lg); overflow: hidden; border: 1px solid var(--line); }
+.shell-preview > main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.frame-cap { font-family: var(--doc-mono); font-size: 10px; color: var(--doc-fg-3); text-transform: uppercase; letter-spacing: 0.18em; margin-top: 10px; text-align: center; }
+.spec-grid { display: grid; grid-template-columns: 200px 1fr; gap: 0; }
+.spec-grid > div { padding: 12px 16px; border-bottom: 1px solid var(--doc-line); font-size: 13px; }
+.spec-grid > div:nth-child(odd) { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg-3); text-transform: uppercase; letter-spacing: 0.14em; }
+.spec-grid > div:nth-child(even) { color: var(--doc-fg); }
+.spec-grid code { font-family: var(--doc-mono); font-size: 12px; color: var(--doc-accent); background: rgba(228,217,184,0.08); padding: 1px 6px; border-radius: 4px; }
+.spec-card-warm { background: #1D1D22; border: 1px solid var(--doc-line); border-radius: 14px; padding: 24px; margin-top: 20px; }
+.spec-card-warm h4 { margin: 0 0 4px; font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); }
+.spec-card-warm p { margin: 0; font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg-2); line-height: 1.6; }
+.tpl-nav { display: flex; flex-direction: column; gap: 2px; }
+.tpl-nav a { display: flex; align-items: center; gap: 10px; padding: 7px 8px; font-family: var(--doc-sans); font-size: 13px; color: var(--doc-fg-2); text-decoration: none; border-radius: 6px; border-left: 2px solid transparent; }
+.tpl-nav a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.tpl-nav a.on { background: var(--doc-bg-3); color: var(--doc-fg); border-left-color: var(--doc-accent); }
+.tpl-nav a .num { font-family: var(--doc-mono); font-size: 10px; color: var(--doc-fg-3); width: 18px; }
+.anchor-nav { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 14px 0; border-top: 1px solid var(--doc-line); border-bottom: 1px solid var(--doc-line); }
+.anchor-nav a { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg-2); text-decoration: none; padding: 4px 10px; border: 1px solid var(--doc-line); border-radius: 999px; letter-spacing: 0.1em; text-transform: uppercase; }
+.anchor-nav a:hover { color: var(--doc-fg); border-color: var(--doc-fg-2); }
+.ia { background: #1D1D22; border: 1px solid var(--doc-line); border-radius: 14px; padding: 24px; display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: start; }
+.ia .lhs h4 { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); margin: 0 0 8px; }
+.ia .lhs .v { font-family: var(--doc-sans); font-size: 13px; color: var(--doc-fg-2); line-height: 1.6; }
+.ia ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.ia li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; font-family: var(--doc-sans); font-size: 13px; color: var(--doc-fg-2); background: rgba(228,217,184,0.04); border-radius: 6px; }
+.ia li code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-accent); background: rgba(228,217,184,0.08); padding: 1px 6px; border-radius: 4px; }
+.ia li .badge { margin-left: auto; font-family: var(--doc-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--doc-fg-3); }
+.ia li .badge.live { color: #88B894; }
+.ia li .badge.new  { color: #D8B354; }
+
+/* Ops-specific: command-center hero grid */
+[data-product] .ops-hero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+}
+[data-product] .ops-tile {
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex; flex-direction: column;
+  min-height: 140px;
+}
+[data-product] .ops-tile.dark {
+  background: var(--ink);
+  color: var(--cream-warm);
+  border-color: var(--ink);
+}
+[data-product] .ops-tile .ft {
+  font-family: var(--mono-font); font-size: 10px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--ink-3);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+[data-product] .ops-tile.dark .ft { color: rgba(255,255,255,0.6); }
+[data-product] .ops-tile h3 {
+  margin: 8px 0 4px;
+  font-family: var(--display-font); font-weight: 400;
+  font-size: 32px; color: var(--ink);
+  line-height: 1;
+}
+[data-product] .ops-tile.dark h3 { color: var(--cream-warm); }
+[data-product] .ops-tile .ctx {
+  font-family: var(--sans-font); font-size: 12.5px;
+  color: var(--ink-3); line-height: 1.5;
+}
+[data-product] .ops-tile.dark .ctx { color: rgba(255,255,255,0.65); }
+[data-product] .ops-tile .foot {
+  margin-top: auto; padding-top: 12px;
+  border-top: 1px dashed var(--line);
+  font-family: var(--mono-font); font-size: 10.5px;
+  letter-spacing: 0.08em; color: var(--ink-4);
+  display: flex; gap: 12px; align-items: center;
+}
+[data-product] .ops-tile.dark .foot {
+  border-top-color: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.5);
+}
+
+/* Hero arrival list inside the dark tile */
+[data-product] .arrival-list {
+  list-style: none; padding: 0; margin: 8px 0 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+[data-product] .arrival-list li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 8px;
+  font-family: var(--sans-font); font-size: 13px;
+  color: var(--cream-warm);
+}
+[data-product] .arrival-list li .when {
+  font-family: var(--mono-font); font-size: 11px;
+  color: rgba(255,255,255,0.55); letter-spacing: 0.06em;
+  min-width: 52px;
+}
+[data-product] .arrival-list li .who {
+  flex: 1; min-width: 0; font-weight: 500;
+}
+[data-product] .arrival-list li .villa {
+  font-family: var(--mono-font); font-size: 10.5px;
+  color: rgba(255,255,255,0.7); letter-spacing: 0.08em;
+}
+
+/* SLA pill */
+[data-product] .sla-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--mono-font); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+[data-product] .sla-pill.ontrack { background: color-mix(in oklab, var(--ok) 10%, transparent); color: var(--ok); }
+[data-product] .sla-pill.atrisk { background: color-mix(in oklab, var(--gold) 14%, transparent); color: #8A6B2D; }
+[data-product] .sla-pill.breached { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); }
+[data-product] .sla-pill::before {
+  content: ""; width: 6px; height: 6px;
+  border-radius: 999px; background: currentColor;
+}
+
+/* Priority badge */
+[data-product] .pri-badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--mono-font); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  border: 1px solid transparent;
+}
+[data-product] .pri-badge.p0 { background: var(--ink); color: var(--cream-warm); }
+[data-product] .pri-badge.p1 { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 26%, transparent); }
+[data-product] .pri-badge.p2 { background: color-mix(in oklab, var(--gold) 14%, transparent); color: #8A6B2D; }
+[data-product] .pri-badge.p3 { background: var(--cream-deep); color: var(--ink-3); }
+
+/* Staff assignment chip */
+[data-product] .staff-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 999px;
+  background: var(--cream-warm, var(--bg-2));
+  border: 1px solid var(--line-soft, var(--line));
+  font-family: var(--sans-font); font-size: 11.5px;
+  color: var(--ink-2);
+}
+[data-product] .staff-chip .avi {
+  width: 18px; height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--mint), var(--ok));
+  color: var(--paper);
+  font-family: var(--mono-font); font-size: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 500;
+}
+[data-product] .staff-chip.unassigned {
+  border-style: dashed; color: var(--ink-3); background: transparent;
+}
+[data-product] .staff-chip.unassigned .avi {
+  background: transparent; border: 1px dashed var(--line-strong);
+  color: var(--ink-3);
+}
+</style>
+</head>
+<body>
+<div class="ds-app">
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span> Arconique · Phase 2.2</div>
+    <h1>Mgmt + Dev P1</h1>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Mgmt P1</div>
+      <nav class="tpl-nav">
+        <a href="bookings.html"><span class="num">01</span> Bookings</a>
+        <a href="finance.html"><span class="num">02</span> Finance · Statements</a>
+        <a href="owners.html"><span class="num">03</span> Owners</a>
+        <a href="operations.html" class="on"><span class="num">04</span> Operations</a>
+      </nav>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Dev P1</div>
+      <nav class="tpl-nav">
+        <a href="../dev-p1/projects.html"><span class="num">01</span> Projects + PM</a>
+        <a href="../dev-p1/cfo.html"><span class="num">02</span> CFO / Finance</a>
+        <a href="../dev-p1/boq-qs.html"><span class="num">03</span> BOQ + QS</a>
+        <a href="../dev-p1/procurement.html"><span class="num">04</span> Procurement</a>
+      </nav>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Reference</div>
+      <nav class="tpl-nav">
+        <a href="../../templates/index.html">↗ Templates (Phase 2.1)</a>
+        <a href="../../design-system.html">↗ Design system (Phase 2.0)</a>
+      </nav>
+    </div>
+  </aside>
+
+  <div class="ds-main">
+    <header class="ds-tabs">
+      <button class="ds-tab on" data-product-tab="management" style="--swatch:#C4583C">
+        <span class="swatch"></span> Management <span class="tag">MGMT</span>
+      </button>
+      <div class="ds-meta">
+        <span>Mgmt P1 · 04 · Operations</span>
+        <span class="pill">Command center</span>
+      </div>
+    </header>
+
+    <div class="ds-content">
+
+      <!-- INTRO -->
+      <section class="ds-section">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Mgmt P1 · 04</div>
+            <h2>Operations command center</h2>
+            <p>The "what's happening right now" screen. GM opens this every morning and again throughout the day. Today's arrivals + departures, maintenance tickets queued by priority, housekeeping turnovers, staff assignments, SLA at risk. Pure operational triage — nothing here is "research", everything is "act now or in the next 4 hours".</p>
+          </div>
+          <div class="ds-section-meta">
+            <span>GM · Ops Mgr · Housekeeping lead</span>
+            <span>•</span>
+            <span>opened 8–12×/day</span>
+          </div>
+        </div>
+
+        <div class="anchor-nav">
+          <a href="#ia">↓ IA</a>
+          <a href="#today">↓ Today (hero)</a>
+          <a href="#maintenance">↓ Maintenance queue</a>
+          <a href="#housekeeping">↓ Housekeeping board</a>
+          <a href="#sla">↓ SLA model</a>
+          <a href="#spec">↓ For Claude Code</a>
+        </div>
+
+        <div class="spec-card-warm">
+          <h4>Different from /dashboard</h4>
+          <p>The Mgmt OS home (<code style="background:rgba(228,217,184,0.08);padding:1px 6px;border-radius:4px;color:var(--doc-accent);font-size:12px">/dashboard</code>) is the Director's morning brief — KPIs, anomalies, financial pulse. <strong style="color:var(--doc-fg)">Operations</strong> is the GM's intra-day cockpit — task queues, today's arrivals, who's assigned what. Different audience, different cadence, different info density. They never overlap content; <code style="background:rgba(228,217,184,0.08);padding:1px 6px;border-radius:4px;color:var(--doc-accent);font-size:12px">/dashboard</code> hands off to Operations via "View today's ops →" tile.</p>
+        </div>
+      </section>
+
+      <!-- IA -->
+      <section class="ds-section" id="ia">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Anatomy</div>
+            <h2 style="font-size:22px">Information architecture</h2>
+          </div>
+        </div>
+
+        <div class="ia">
+          <div class="lhs"><h4>Routes</h4><div class="v">Top-level: <code style="font-family:var(--doc-mono);color:var(--doc-accent);background:rgba(228,217,184,0.08);padding:1px 6px;border-radius:4px;font-size:11px;">/dashboard/operations/*</code></div></div>
+          <ul>
+            <li><code>/dashboard/operations</code> · Single-page command center · 3 zones <span class="badge new">2.2</span></li>
+            <li><code>/dashboard/operations/maintenance/[id]</code> · Ticket detail <span class="badge new">2.2</span></li>
+            <li><code>/dashboard/operations/turnovers</code> · Housekeeping board (full-screen kanban) <span class="badge new">2.2</span></li>
+          </ul>
+        </div>
+
+        <div class="ia" style="margin-top:14px">
+          <div class="lhs"><h4>Agents</h4><div class="v">Agents that drive the operational feed.</div></div>
+          <ul>
+            <li><code>maintenance-triage</code> · Routes incoming tickets to contractors · Phase 2.1 catalog <span class="badge live">live · refactored 2.1</span></li>
+            <li><code>arrival-prep</code> · 24h pre-arrival checklist · same agent that powers Bookings detail <span class="badge new">2.2</span></li>
+            <li><code>turnover-allocator</code> · Assigns cleaners to turnovers based on geography + workload <span class="badge new">2.2</span></li>
+          </ul>
+        </div>
+
+        <div class="ia" style="margin-top:14px">
+          <div class="lhs"><h4>Modals</h4><div class="v">Quick-action flows.</div></div>
+          <ul>
+            <li><code>&lt;NewMaintenanceTicketModal&gt;</code> · form-md · priority + photo upload + auto-route <span class="badge new">2.2</span></li>
+            <li><code>&lt;AssignStaffModal&gt;</code> · form-sm · staff picker · used everywhere (turnovers, tickets, arrivals) <span class="badge new">2.2</span></li>
+            <li><code>&lt;ResolveTicketModal&gt;</code> · confirm · cost + photos + owner-visible toggle <span class="badge new">2.2</span></li>
+            <li><code>&lt;EscalateTicketModal&gt;</code> · form-sm · reassign to senior · bumps priority <span class="badge new">2.2</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- TODAY HERO -->
+      <section class="ds-section" id="today">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Zone 1</div>
+            <h2 style="font-size:22px">Today · hero strip</h2>
+            <p>Top section of the page. Dark "arrivals tonight" tile dominant (this is the urgent action), two supporting tiles for SLA + turnovers. Live channel-sync pulse top right.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" data-product="management" style="padding:20px;background:#1A1A1F;">
+          <div class="shell-preview">
+            <main>
+              <div class="page-header" style="padding:24px 28px 18px;margin:0;border-bottom:1px solid var(--line-soft);">
+                <div class="left">
+                  <div class="crumb"><span>Operations</span> <span style="color:var(--ink-4)">·</span> <span class="mono" style="font-size:11px;color:var(--ink-3);letter-spacing:0.1em;text-transform:uppercase">Mon 27 May · 09:42 GMT+8</span></div>
+                  <h1>Operations</h1>
+                </div>
+                <div class="actions">
+                  <button class="btn btn-ghost btn-sm">↗ Turnovers</button>
+                  <button class="btn btn-secondary btn-sm">+ New ticket</button>
+                  <button class="btn btn-accent btn-sm">Brief team →</button>
+                </div>
+              </div>
+
+              <div style="padding:18px 28px 0">
+                <div class="ops-hero">
+                  <div class="ops-tile dark">
+                    <div class="ft"><span class="pulse-dot ok"></span> TODAY · 2 ARRIVALS</div>
+                    <h3>Tonight, 4 guests across 2 villas.</h3>
+                    <ul class="arrival-list">
+                      <li><span class="when">14:00</span><span class="who">Whitmore party · 4 pax</span><span class="villa">EV-07</span></li>
+                      <li><span class="when">16:30</span><span class="who">Chen + Wei · 2 pax</span><span class="villa">EN-02</span></li>
+                      <li><span class="when">22:00</span><span class="who">Lopez departure (early)</span><span class="villa">AH-04</span></li>
+                    </ul>
+                    <div class="foot">
+                      <span>BRIEF SENT 06:00 ↗</span>
+                      <span style="margin-left:auto">⌘O TO REOPEN BRIEF</span>
+                    </div>
+                  </div>
+
+                  <div class="ops-tile">
+                    <div class="ft">SLA · OPEN TICKETS</div>
+                    <h3>4 / 1 / 0</h3>
+                    <div class="ctx">P3 open · P2 watch · P1 breached. One ticket at risk: AC unit @ EV-12 ticking 6h.</div>
+                    <div class="foot">
+                      <span>SCAN 02:34 AGO</span>
+                      <span style="margin-left:auto;color:var(--warn)">⚠ 1 AT RISK</span>
+                    </div>
+                  </div>
+
+                  <div class="ops-tile">
+                    <div class="ft">TURNOVERS TODAY</div>
+                    <h3>3</h3>
+                    <div class="ctx">EV-07 (done 11:00) · EN-02 (15:30) · AH-04 (post-departure).</div>
+                    <div class="foot">
+                      <span>2/3 CLEANED · 1 ASSIGNED</span>
+                      <span style="margin-left:auto;color:var(--ok)">ON TRACK</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="padding:20px 28px 28px">
+                <div style="font-family:var(--mono-font);font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px">Below the fold ↓</div>
+                <div style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink-3);line-height:1.6">Maintenance queue + Housekeeping board live below the hero. Scrolling continues into the operational backlog.</div>
+              </div>
+            </main>
+          </div>
+        </div>
+        <div class="frame-cap">Hero · 3 tiles · dark arrivals tile dominant · SLA + turnovers supporting · brief CTA top-right</div>
+      </section>
+
+      <!-- MAINTENANCE QUEUE -->
+      <section class="ds-section" id="maintenance">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Zone 2</div>
+            <h2 style="font-size:22px">Maintenance queue</h2>
+            <p>Card-list of open tickets sorted by SLA-at-risk first, then priority. Each row: priority badge + ticket title + villa + SLA pill + assignee chip + age. Inline-assign via clicking the staff chip.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" data-product="management" style="padding:20px;background:#1A1A1F;">
+          <div class="shell-preview" style="display:block">
+            <main>
+              <div style="padding:18px 28px;display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line-soft)">
+                <h3 style="margin:0;font-family:var(--display-font);font-weight:400;font-size:22px;color:var(--ink)">Maintenance · 5 open</h3>
+                <span style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);letter-spacing:0.1em;text-transform:uppercase">SORTED BY SLA RISK → PRIORITY</span>
+                <span style="margin-left:auto;display:inline-flex;gap:8px;align-items:center;font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);letter-spacing:0.1em;text-transform:uppercase"><span class="pulse-dot accent"></span>TRIAGE AGENT · LAST RUN 12M AGO</span>
+              </div>
+
+              <ul style="list-style:none;padding:14px 28px;margin:0;display:flex;flex-direction:column;gap:8px">
+                <!-- P1 breached -->
+                <li style="display:grid;grid-template-columns:48px 1fr auto auto auto;gap:14px;align-items:center;padding:12px 14px;background:color-mix(in oklab,var(--warn) 5%,transparent);border:1px solid color-mix(in oklab,var(--warn) 22%,transparent);border-radius:12px">
+                  <span class="pri-badge p1">P1</span>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:14px;color:var(--ink);font-weight:500">AC compressor failing — unit 3</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:3px;letter-spacing:0.06em">MT-1041 · EV-12 · GUEST IN-STAY · OPENED 02:38 AGO</div>
+                  </div>
+                  <span class="sla-pill breached">BREACHED · 6H</span>
+                  <span class="staff-chip"><span class="avi">PT</span>Putra A.</span>
+                  <button class="btn btn-accent btn-sm">Resolve →</button>
+                </li>
+
+                <!-- P2 at risk -->
+                <li style="display:grid;grid-template-columns:48px 1fr auto auto auto;gap:14px;align-items:center;padding:12px 14px;background:var(--paper);border:1px solid var(--line-soft);border-radius:12px">
+                  <span class="pri-badge p2">P2</span>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:14px;color:var(--ink);font-weight:500">Pool pump intermittent</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:3px;letter-spacing:0.06em">MT-1040 · EN-05 · 26 MAY 14:22</div>
+                  </div>
+                  <span class="sla-pill atrisk">AT RISK · 3H</span>
+                  <span class="staff-chip"><span class="avi" style="background:linear-gradient(135deg,var(--sky),var(--info))">WY</span>Wayan S.</span>
+                  <button class="btn btn-secondary btn-sm">Open</button>
+                </li>
+
+                <!-- P2 on track -->
+                <li style="display:grid;grid-template-columns:48px 1fr auto auto auto;gap:14px;align-items:center;padding:12px 14px;background:var(--paper);border:1px solid var(--line-soft);border-radius:12px">
+                  <span class="pri-badge p2">P2</span>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:14px;color:var(--ink);font-weight:500">Wifi router replacement</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:3px;letter-spacing:0.06em">MT-1039 · AH-02 · 26 MAY 09:12 · GUEST REQ.</div>
+                  </div>
+                  <span class="sla-pill ontrack">ON TRACK</span>
+                  <span class="staff-chip"><span class="avi" style="background:linear-gradient(135deg,var(--peach),var(--terra))">PJ</span>Putu J.</span>
+                  <button class="btn btn-secondary btn-sm">Open</button>
+                </li>
+
+                <!-- P3 unassigned -->
+                <li style="display:grid;grid-template-columns:48px 1fr auto auto auto;gap:14px;align-items:center;padding:12px 14px;background:var(--paper);border:1px solid var(--line-soft);border-radius:12px">
+                  <span class="pri-badge p3">P3</span>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:14px;color:var(--ink);font-weight:500">Garden lighting fixture cracked (cosmetic)</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:3px;letter-spacing:0.06em">MT-1038 · ES-S5 · 24 MAY</div>
+                  </div>
+                  <span class="sla-pill ontrack">ON TRACK</span>
+                  <span class="staff-chip unassigned"><span class="avi">?</span>Assign…</span>
+                  <button class="btn btn-secondary btn-sm">Open</button>
+                </li>
+
+                <!-- P3 on track -->
+                <li style="display:grid;grid-template-columns:48px 1fr auto auto auto;gap:14px;align-items:center;padding:12px 14px;background:var(--paper);border:1px solid var(--line-soft);border-radius:12px">
+                  <span class="pri-badge p3">P3</span>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:14px;color:var(--ink);font-weight:500">Linen replacement · pillow inserts × 6</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:3px;letter-spacing:0.06em">MT-1037 · EV-07 · 22 MAY · ROUTINE</div>
+                  </div>
+                  <span class="sla-pill ontrack">ON TRACK</span>
+                  <span class="staff-chip"><span class="avi" style="background:linear-gradient(135deg,var(--butter),var(--gold))">DS</span>Dewi S.</span>
+                  <button class="btn btn-secondary btn-sm">Open</button>
+                </li>
+              </ul>
+            </main>
+          </div>
+        </div>
+        <div class="frame-cap">Maintenance · 5 tickets · breached row tinted warn · inline-assign · sorted by SLA risk</div>
+      </section>
+
+      <!-- HOUSEKEEPING BOARD -->
+      <section class="ds-section" id="housekeeping">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Zone 3</div>
+            <h2 style="font-size:22px">Housekeeping turnovers</h2>
+            <p>Tight kanban: To-clean / In-progress / Inspected / Ready. Cleaner avatar on each card. Click any card → quick checklist modal. Embedded compact version on /operations; full view at /operations/turnovers.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" data-product="management" style="padding:20px;background:#1A1A1F;">
+          <div class="shell-preview" style="display:block">
+            <main>
+              <div style="padding:18px 28px;display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line-soft)">
+                <h3 style="margin:0;font-family:var(--display-font);font-weight:400;font-size:22px;color:var(--ink)">Turnovers · today</h3>
+                <span style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);letter-spacing:0.1em;text-transform:uppercase">3 SCHEDULED · 2 DONE · 1 IN PROGRESS</span>
+                <span style="margin-left:auto;display:inline-flex;gap:8px;align-items:center;font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);letter-spacing:0.1em;text-transform:uppercase">↗ FULL BOARD</span>
+              </div>
+
+              <div style="padding:18px 28px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                <!-- Column: To clean -->
+                <div>
+                  <div style="font-family:var(--mono-font);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px;display:flex;justify-content:space-between"><span>To clean</span><span style="color:var(--ink-4)">0</span></div>
+                  <div style="background:var(--cream-warm);border:1px dashed var(--line);border-radius:10px;padding:18px;font-family:var(--mono-font);font-size:11px;color:var(--ink-4);text-align:center;letter-spacing:0.1em">EMPTY</div>
+                </div>
+
+                <!-- Column: In progress -->
+                <div>
+                  <div style="font-family:var(--mono-font);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px;display:flex;justify-content:space-between"><span>In progress</span><span style="color:var(--accent)">1</span></div>
+                  <div style="background:var(--paper);border:1px solid var(--line-soft);border-radius:10px;padding:12px 14px">
+                    <div style="font-family:var(--display-font);font-size:14px;color:var(--ink);font-weight:400">EN-02</div>
+                    <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);letter-spacing:0.06em;margin-top:2px">START 14:00 · GUEST 16:30</div>
+                    <div style="margin-top:10px;display:flex;align-items:center;gap:6px">
+                      <span class="staff-chip"><span class="avi">WY</span>Wayan</span>
+                      <span style="margin-left:auto;font-family:var(--mono-font);font-size:10px;color:var(--accent);letter-spacing:0.08em">~50% DONE</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Column: Inspected -->
+                <div>
+                  <div style="font-family:var(--mono-font);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px;display:flex;justify-content:space-between"><span>Inspected</span><span style="color:var(--ink-4)">0</span></div>
+                  <div style="background:var(--cream-warm);border:1px dashed var(--line);border-radius:10px;padding:18px;font-family:var(--mono-font);font-size:11px;color:var(--ink-4);text-align:center;letter-spacing:0.1em">EMPTY</div>
+                </div>
+
+                <!-- Column: Ready -->
+                <div>
+                  <div style="font-family:var(--mono-font);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px;display:flex;justify-content:space-between"><span>Ready</span><span style="color:var(--ok)">2</span></div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <div style="background:var(--paper);border:1px solid var(--line-soft);border-radius:10px;padding:12px 14px">
+                      <div style="font-family:var(--display-font);font-size:14px;color:var(--ink);font-weight:400">EV-07 <span style="color:var(--ok)">✓</span></div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);letter-spacing:0.06em;margin-top:2px">DONE 11:08 · GUEST 14:00</div>
+                      <div style="margin-top:10px"><span class="staff-chip"><span class="avi" style="background:linear-gradient(135deg,var(--butter),var(--gold))">DS</span>Dewi</span></div>
+                    </div>
+                    <div style="background:var(--paper);border:1px solid var(--line-soft);border-radius:10px;padding:12px 14px">
+                      <div style="font-family:var(--display-font);font-size:14px;color:var(--ink);font-weight:400">AH-04 <span style="color:var(--ok)">✓</span></div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);letter-spacing:0.06em;margin-top:2px">DONE 09:42 · NO TODAY ARR</div>
+                      <div style="margin-top:10px"><span class="staff-chip"><span class="avi" style="background:linear-gradient(135deg,var(--sky),var(--info))">PJ</span>Putu</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+        <div class="frame-cap">Turnovers · 4-col kanban · drag-between-columns + click card to open quick checklist modal</div>
+      </section>
+
+      <!-- SLA MODEL -->
+      <section class="ds-section" id="sla">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> SLA</div>
+            <h2 style="font-size:22px">Priority × SLA model</h2>
+            <p>4 priorities · each with a target time to resolution. SLA status auto-computed every 5 min. Visible everywhere — list pills, hero tile counter, maintenance detail.</p>
+          </div>
+        </div>
+
+        <div class="spec-grid">
+          <div>P0 · Crisis</div><div>Guest safety / displacement risk. Target: 2h. Auto-pages GM. Examples: gas leak, locked-out guest, flooding.</div>
+          <div>P1 · Urgent</div><div>Active guest impact. Target: 8h. Examples: AC failure during stay, hot-water out, broken security.</div>
+          <div>P2 · Standard</div><div>Pre-stay / between-stay. Target: 48h. Examples: pool pump intermittent, wifi router, ironing board missing.</div>
+          <div>P3 · Routine</div><div>Cosmetic / scheduled. Target: 14 days. Examples: light fixture cracked, lawn re-seed, linen rotation.</div>
+          <div>Status computation</div><div>For each ticket: <code>age_h = now − created_at</code>. Status:<br>· <code>on-track</code> if <code>age_h &lt; target × 0.6</code><br>· <code>at-risk</code> if <code>age_h &gt;= target × 0.6 && &lt; target</code><br>· <code>breached</code> if <code>age_h &gt;= target</code></div>
+          <div>Breach side-effects</div><div>1. Visual: row tinted warn in list<br>2. Notification to GM + ticket owner<br>3. Logged to <code>sla_breaches</code> table<br>4. Counted in monthly SLA scorecard (Director's morning brief)</div>
+          <div>Why these targets</div><div>Calibrated to existing Bali contractor response times. Hard SLA &lt;2h for P0 requires on-call GM + contractor on retainer. Soft for P3 (14d) lets us batch with routine maintenance visits.</div>
+        </div>
+      </section>
+
+      <!-- FOR CLAUDE CODE -->
+      <section class="ds-section" id="spec">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> For Claude Code</div>
+            <h2 style="font-size:22px">Where this lands</h2>
+          </div>
+        </div>
+
+        <div class="spec-grid">
+          <div>Routes</div><div>
+            <code>src/app/(dashboard)/dashboard/operations/page.tsx</code> · single-page command center (new)<br>
+            <code>src/app/(dashboard)/dashboard/operations/maintenance/[id]/page.tsx</code> · ticket detail (new, uses template 05 assembly A)<br>
+            <code>src/app/(dashboard)/dashboard/operations/turnovers/page.tsx</code> · full housekeeping board (new)
+          </div>
+          <div>Hero tiles</div><div>New <code>&lt;OpsHero&gt;</code> in <code>src/components/operations/ops-hero.tsx</code>. Renders 3 tiles · dark arrivals tile is custom, supporting tiles use a polymorphic <code>&lt;OpsTile&gt;</code> primitive (label + big-num + context + footer).</div>
+          <div>Maintenance queue</div><div>New <code>&lt;MaintenanceQueue&gt;</code> · grid-row layout per ticket · inline staff-chip lets click-to-reassign (opens <code>&lt;AssignStaffModal&gt;</code>). Reads from existing <code>maintenance_tickets</code> table; just needs new view.</div>
+          <div>Housekeeping board</div><div>New <code>&lt;TurnoverBoard compact?&gt;</code> · <code>compact</code> on /operations (4 cols, height-capped 320px); full at /operations/turnovers. Use <code>@dnd-kit</code> (small new dep) for drag-between-columns. Existing schema: <code>turnovers</code> table with <code>status</code> enum.</div>
+          <div>SLA computation</div><div>New <code>src/features/maintenance/sla.ts</code> · pure fn <code>computeSlaStatus(ticket, now): "on-track" | "at-risk" | "breached"</code>. Server reads ticket + computes for every render. No persistence — derived state.</div>
+          <div>SLA Pill + Priority Badge</div><div>New <code>&lt;SlaPill status&gt;</code> + <code>&lt;PriorityBadge level&gt;</code> in <code>src/components/operations/</code>. Used in list, hero tile, ticket detail.</div>
+          <div>Staff chip</div><div>New <code>&lt;StaffChip staff?&gt;</code> · unassigned variant when staff null. Used in maintenance, turnovers, arrival cards. Click → <code>&lt;AssignStaffModal&gt;</code>.</div>
+          <div>Agents</div><div>
+            <code>maintenance-triage</code> · refactored from 2.1 catalog · auto-classifies severity + routes to contractor<br>
+            <code>turnover-allocator</code> · new · runs every 90s · assigns cleaners based on geography + workload<br>
+            <code>arrival-prep</code> · shared with Bookings cabinet · writes to <code>arrival_prep_checklist</code> table
+          </div>
+          <div>Modals</div><div>
+            <code>&lt;NewMaintenanceTicketModal&gt;</code> · form-md · priority + photo + villa + description<br>
+            <code>&lt;AssignStaffModal&gt;</code> · form-sm · typeahead staff picker · cross-cabinet reusable<br>
+            <code>&lt;ResolveTicketModal&gt;</code> · confirm · cost + 1-3 photos + owner-visible toggle + brief description<br>
+            <code>&lt;EscalateTicketModal&gt;</code> · form-sm · reassign + bump priority + reason
+          </div>
+          <div>Schema additions</div><div>
+            <code>maintenance_tickets</code> · existing (Phase 1)<br>
+            <code>turnovers</code> · existing (Phase 1)<br>
+            <code>sla_breaches</code> · new · FK ticket_id, breached_at, resolved_at?, breach_minutes (denormalised)<br>
+            <code>arrival_prep_checklist</code> · existing (per Bookings cabinet)<br>
+            <code>staff</code> · existing
+          </div>
+          <div>Telemetry</div><div><code>ticket_opened · ticket_assigned · ticket_resolved · ticket_breached · turnover_started · turnover_completed · brief_sent</code></div>
+          <div>NOT in 2.2</div><div>Mobile-optimised crew app (Field portal — Phase 2.5+) · live photo upload from cleaner mobile · GPS check-in for turnovers · automated supply reorder</div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function setProduct(p) {
+  document.querySelectorAll("[data-product-tab]").forEach(b => b.classList.toggle("on", b.dataset.productTab === p));
+  document.querySelectorAll(".ds-preview").forEach(d => d.setAttribute("data-product", p));
+}
+document.querySelectorAll("[data-product-tab]").forEach(b => b.addEventListener("click", () => setProduct(b.dataset.productTab)));
+setProduct("management");
+(function() {
+  const params = window.location.search;
+  if (!params) return;
+  document.querySelectorAll('a[href$=".html"], a[href*=".html#"]').forEach(a => {
+    const href = a.getAttribute('href');
+    if (!href || href.includes('?') || href.startsWith('http') || href.startsWith('#')) return;
+    const [path, hash] = href.split('#');
+    a.setAttribute('href', path + params + (hash ? '#' + hash : ''));
+  });
+})();
+</script>
+</body>
+</html>

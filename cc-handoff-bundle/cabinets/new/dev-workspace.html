@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dev OS · Workspace overview (v2)</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+[data-product="development"]{--paper:#F8F2E2;--canvas:#ECE0BF;--panel:#FFF;--panel-2:#F4ECD8;--panel-deep:#E0D2A8;--ink:#1E1A12;--ink-2:#2E2820;--ink-3:#4E4636;--ink-4:#71684F;--ink-5:#948A6A;--line:#D4C594;--line-soft:#DECEA6;--amber:#C68E36;--amber-deep:#8E5F18;--steel:#4B6580;--ok:#5F8B62;--warn:#C49845;--danger:#B45239;--display:"Newsreader",serif;--sans:"Inter",sans-serif;--mono:"JetBrains Mono",monospace}
+:root{--doc-bg:#1E1A12;--doc-bg-2:#2A2418;--doc-bg-3:#362F20;--doc-fg:#ECE0BF;--doc-fg-2:#C1B89F;--doc-fg-3:#8A8473;--doc-accent:#E6BE6E;--doc-line:rgba(255,255,255,0.06);--doc-line-2:rgba(255,255,255,0.10)}
+*{box-sizing:border-box}body{margin:0;background:var(--doc-bg);color:var(--doc-fg);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+.ds-app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.ds-toc{border-right:1px solid var(--doc-line);padding:36px 22px;background:var(--doc-bg-2);position:sticky;top:0;height:100vh;overflow-y:auto}
+.ds-mark{display:flex;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);margin-bottom:22px;align-items:center}
+.ds-mark .glyph{width:7px;height:7px;background:var(--doc-accent);border-radius:2px}
+.ds-toc h1{margin:0 0 22px;font-weight:500;font-size:19px;color:var(--doc-fg)}
+.ds-toc-group{margin-top:22px}.ds-toc-group-title{font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);margin-bottom:10px}
+.ds-toc ul{margin:0;padding:0;list-style:none}
+.ds-toc a{display:block;padding:6px 8px;text-decoration:none;color:var(--doc-fg-2);font-size:13px;border-radius:4px}
+.ds-toc a:hover{background:var(--doc-bg-3);color:var(--doc-fg)}
+.ds-toc a .ix{font-family:var(--mono);font-size:10.5px;color:var(--doc-fg-3);margin-right:8px}
+.ds-toc .back{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--doc-line)}
+.ds-toc .back a{color:var(--doc-accent);font-size:12.5px}
+.ds-main{padding:56px 64px 96px;max-width:1300px}
+.cab-cover{margin-bottom:56px;padding-bottom:28px;border-bottom:1px solid var(--doc-line)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--doc-accent);display:flex;gap:12px;align-items:center;margin-bottom:18px}
+.eyebrow .glyph{width:6px;height:6px;background:var(--doc-accent);border-radius:2px}
+.cab-cover h1{margin:0;font-weight:500;font-size:44px;line-height:1.05;letter-spacing:-0.025em}
+.cab-cover h1 em{color:var(--doc-accent);font-style:italic;font-weight:400}
+.cab-cover p{max-width:720px;margin:18px 0 0;font-size:14.5px;color:var(--doc-fg-2);line-height:1.65}
+.ds-section{margin-bottom:76px}
+.ds-section-head{display:flex;gap:28px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--doc-line)}
+.ds-section-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);display:flex;gap:10px;margin-bottom:6px;align-items:center}
+.ds-section h2{margin:0;font-weight:500;font-size:26px;color:var(--doc-fg)}
+.ds-section p{max-width:760px;margin:8px 0 0;font-size:13.5px;color:var(--doc-fg-2);line-height:1.65}
+.ds-section p code{font-family:var(--mono);font-size:12.5px;background:var(--doc-bg-3);padding:1px 6px;border-radius:4px;color:var(--doc-accent)}
+.artboard{margin-top:20px;border:1px solid var(--doc-line);border-radius:18px;background:var(--canvas);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.4)}
+.artboard-caption{display:flex;gap:10px;margin-top:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-3)}
+.artboard-caption .pill{padding:3px 9px;border-radius:999px;border:1px solid var(--doc-line-2);color:var(--doc-accent)}
+.var-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:14px}
+.var-card{border:1px solid var(--doc-line);border-radius:14px;background:var(--canvas);overflow:hidden}
+.var-card .v-h{padding:12px 16px;background:var(--doc-bg-3);border-bottom:1px solid var(--doc-line);display:flex;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-2)}
+.var-card .v-h .num{background:var(--doc-bg);padding:2px 8px;border-radius:4px;color:var(--doc-accent)}
+.var-card .v-h .name{color:var(--doc-fg)}
+.mobile-row{display:grid;grid-template-columns:360px 1fr;gap:32px;align-items:start}
+.mobile-frame{width:360px;border:1px solid var(--doc-line);border-radius:30px;overflow:hidden;background:var(--canvas)}
+.mobile-status{padding:10px 22px 6px;display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink);font-weight:600}
+.mobile-notes h4{margin:0 0 6px;font-size:14px;font-weight:500;color:var(--doc-fg)}
+.mobile-notes ol{margin:0;padding-left:20px}
+.mobile-notes li{margin-bottom:6px;font-size:13px;line-height:1.55;color:var(--doc-fg-2)}
+.mobile-notes li strong{color:var(--doc-fg)}
+.notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:18px}
+.notes-card{background:var(--doc-bg-2);border:1px solid var(--doc-line);border-radius:12px;padding:18px 20px}
+.notes-card h3{margin:0 0 12px;font-size:14px;font-weight:500;color:var(--doc-fg)}
+.notes-card dl>div{display:grid;grid-template-columns:130px 1fr;gap:14px;padding:8px 0;border-bottom:1px solid var(--doc-line);font-size:12.5px}
+.notes-card dl>div:last-child{border-bottom:0}
+.notes-card dt{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-3)}
+.notes-card dd{margin:0;color:var(--doc-fg-2);line-height:1.55}
+.notes-card dd code{font-family:var(--mono);font-size:11px;color:var(--doc-fg);background:var(--doc-bg-3);padding:1px 6px;border-radius:3px}
+
+[data-product="development"]{font-family:var(--sans);color:var(--ink)}
+[data-product] .topbar{display:flex;align-items:center;gap:16px;padding:14px 24px;background:var(--ink);color:var(--paper)}
+[data-product] .topbar .brand{font-family:var(--display);font-size:18px}
+[data-product] .topbar .brand .sub{font-family:var(--mono);font-size:9.5px;color:rgba(248,242,226,0.55);letter-spacing:0.16em;text-transform:uppercase;display:block;margin-top:1px}
+[data-product] .topbar .role{margin-left:18px;padding:4px 10px;background:rgba(248,242,226,0.08);border-radius:6px;font-family:var(--mono);font-size:11px}
+[data-product] .topbar .right{margin-left:auto;display:flex;gap:14px;align-items:center;font-family:var(--mono);font-size:11px;color:rgba(248,242,226,0.6)}
+[data-product] .topbar .me .avatar{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--amber);color:white;align-items:center;justify-content:center;font-size:11px;font-weight:600;margin-right:6px}
+[data-product] .page-h{padding:28px 32px 22px;background:var(--canvas);border-bottom:1px solid var(--line);display:flex;gap:24px;align-items:flex-end}
+[data-product] .page-h .greet{font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3)}
+[data-product] .page-h h1{margin:8px 0 0;font-family:var(--display);font-size:36px;font-weight:400;color:var(--ink)}
+[data-product] .page-h h1 em{color:var(--amber);font-style:italic}
+[data-product] .page-h .sub{margin-top:6px;font-size:13.5px;color:var(--ink-3)}
+[data-product] .page-h .right{margin-left:auto;display:flex;gap:8px}
+[data-product] .btn{padding:9px 14px;border-radius:8px;font-size:13.5px;font-weight:500;border:1px solid var(--line);background:var(--panel);color:var(--ink-2);cursor:pointer}
+[data-product] .btn-primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+[data-product] .kpi-hero{padding:22px 32px;background:var(--canvas);border-bottom:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+[data-product] .kpi{padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+[data-product] .kpi .l{font-family:var(--mono);font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3)}
+[data-product] .kpi .v{font-family:var(--display);font-size:28px;color:var(--ink);margin-top:3px}
+[data-product] .kpi .v.warn{color:var(--warn)}
+[data-product] .kpi .v.ok{color:var(--ok)}
+[data-product] .kpi .v.amber{color:var(--amber)}
+[data-product] .kpi .ctx{font-family:var(--mono);font-size:10.5px;color:var(--ink-4);margin-top:3px}
+[data-product] .main-grid{padding:24px 32px;display:grid;grid-template-columns:1.5fr 1fr;gap:22px}
+[data-product] .attn-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center}
+[data-product] .attn-card.urgent{border-left:4px solid var(--danger);padding-left:12px}
+[data-product] .attn-card.warn{border-left:4px solid var(--warn);padding-left:12px}
+[data-product] .attn-card.info{border-left:4px solid var(--amber);padding-left:12px}
+[data-product] .attn-card .ic{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--display);font-size:15px}
+[data-product] .attn-card.urgent .ic{background:color-mix(in oklab,var(--danger) 18%,transparent);color:var(--danger)}
+[data-product] .attn-card.warn .ic{background:color-mix(in oklab,var(--warn) 18%,transparent);color:var(--warn)}
+[data-product] .attn-card.info .ic{background:color-mix(in oklab,var(--amber) 16%,transparent);color:var(--amber)}
+[data-product] .attn-card .ti{font-size:13.5px;color:var(--ink);font-weight:500}
+[data-product] .attn-card .meta{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
+[data-product] .attn-card .arrow{color:var(--ink-4)}
+[data-product] .ai-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+[data-product] .ai-card h3{margin:0 0 10px;font-family:var(--display);font-size:18px;font-weight:400;color:var(--ink);display:flex;align-items:baseline}
+[data-product] .ai-card h3 em{color:var(--amber);font-style:italic}
+[data-product] .ai-card h3 .meta{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+[data-product] .ai-row{display:grid;grid-template-columns:20px 1fr auto;gap:8px;padding:8px 0;border-bottom:1px solid var(--line-soft);align-items:center;font-size:12px}
+[data-product] .ai-row:last-child{border-bottom:0}
+[data-product] .ai-row .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);justify-self:center}
+[data-product] .ai-row .dot.warn{background:var(--warn)}
+[data-product] .ai-row .dot.idle{background:var(--ink-5)}
+[data-product] .ai-row .nm{font-family:var(--mono);font-size:11.5px;color:var(--ink);font-weight:500}
+[data-product] .ai-row .ct{font-family:var(--mono);font-size:10.5px;color:var(--ink-2)}
+[data-product] .cab-map{padding:28px 32px;background:var(--panel-2);border-top:1px solid var(--line)}
+[data-product] .cab-map h2{margin:0 0 16px;font-family:var(--display);font-size:22px;font-weight:400;color:var(--ink)}
+[data-product] .cm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+[data-product] .cm-card{padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;text-decoration:none;color:inherit}
+[data-product] .cm-card.has-attn{background:color-mix(in oklab,var(--warn) 8%,var(--panel));border-color:color-mix(in oklab,var(--warn) 35%,var(--line))}
+[data-product] .cm-card .grp{font-family:var(--mono);font-size:9.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-4)}
+[data-product] .cm-card .nm{font-size:13px;font-weight:500;color:var(--ink);margin-top:2px}
+[data-product] .cm-card .ctx{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:2px}
+[data-product] .cm-card.has-attn .ctx{color:var(--warn);font-weight:500}
+
+[data-product] .role-grid{padding:20px 28px;background:var(--panel-2)}
+[data-product] .role-grid h3{margin:0 0 12px;font-family:var(--display);font-size:18px;font-weight:400;color:var(--ink)}
+[data-product] .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+[data-product] .role-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+[data-product] .role-card.active{border-left:3px solid var(--amber);padding-left:9px;background:color-mix(in oklab,var(--amber) 6%,var(--panel))}
+[data-product] .role-card .nm{font-family:var(--display);font-size:14px;color:var(--ink)}
+[data-product] .role-card .kpi-line{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:3px}
+
+[data-product] .m-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ink);color:var(--paper)}
+[data-product] .m-bar .brand{font-family:var(--display);font-size:13px}
+[data-product] .m-bar .role{margin-left:8px;padding:2px 7px;background:rgba(248,242,226,0.1);border-radius:4px;font-family:var(--mono);font-size:9.5px}
+[data-product] .m-bar .av{margin-left:auto;width:22px;height:22px;border-radius:50%;background:var(--amber);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600}
+[data-product] .m-h{padding:12px 14px;background:var(--canvas);border-bottom:1px solid var(--line)}
+[data-product] .m-h h3{margin:0;font-family:var(--display);font-size:18px;font-weight:400;color:var(--ink)}
+[data-product] .m-h h3 em{color:var(--amber);font-style:italic}
+[data-product] .m-h .sub{margin-top:3px;font-size:11.5px;color:var(--ink-3)}
+[data-product] .m-kpi{padding:10px 14px;background:var(--canvas);border-bottom:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+[data-product] .m-kpi .k{padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+[data-product] .m-kpi .l{font-family:var(--mono);font-size:8.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3)}
+[data-product] .m-kpi .v{font-family:var(--display);font-size:18px;color:var(--ink);margin-top:2px}
+[data-product] .m-kpi .v.warn{color:var(--warn)}
+[data-product] .m-list{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+[data-product] .m-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+[data-product] .m-card.urgent{border-left:3px solid var(--danger);padding-left:10px}
+[data-product] .m-card.warn{border-left:3px solid var(--warn);padding-left:10px}
+[data-product] .m-card .ti{font-size:12.5px;font-weight:500;color:var(--ink)}
+[data-product] .m-card .body{font-size:11.5px;color:var(--ink-3);margin-top:3px;line-height:1.4}
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Dev OS · phase 2.6</div>
+    <h1>Workspace Overview</h1>
+    <div class="back"><a href="../../design/index.html">← back to design hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Sections</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#hero"><span class="ix">01</span>Hero · PM role default</a></li>
+        <li><a href="#variants"><span class="ix">02</span>Role variants · 9 roles</a></li>
+        <li><a href="#detail"><span class="ix">03</span>Project drill-in</a></li>
+        <li><a href="#mobile"><span class="ix">04</span>Mobile · role-aware</a></li>
+        <li><a href="#schema"><span class="ix">05</span>Schema · agents · routes</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <section id="cover" class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Dev OS · phase 2.6 · Workspace</span></div>
+      <h1>Workspace Overview — <em>role-aware landing</em>.</h1>
+      <p>The Dev OS landing. <strong style="color:var(--doc-fg)">Role-aware</strong>: 9 roles (PM · CFO · QS · Procurement · Warehouse · Site supervisor · Marketing · Sales · Admin). KPI strip + attention feed adapt per role. Section 02 shows variants per role; section 03 = project drill-in for PM view.</p>
+    </section>
+
+    <section id="hero" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero · PM</span></div>
+          <h2>Production view · PM role default</h2>
+          <p>Shown when role = PM. 5 KPI tuned for PM concerns: schedule · cashflow · BOQ variance · open POs · P1 incidents.</p>
+        </div>
+      </div>
+      <div class="artboard">
+        <div data-product="development">
+          <div class="topbar"><div class="brand">Arconique<span class="sub">development · tirta</span></div><div class="role">Acting as: PM ▾</div><div class="right"><span>3 projects</span><span class="me"><span class="avatar">NR</span>Nikita R.</span></div></div>
+          <div class="page-h"><div><div class="greet">good morning · thu 29 may</div><h1>Nikita — <em>4 need you</em>.</h1><div class="sub">TC 78% sched · TU 64% · last weekly 2d</div></div><div class="right"><button class="btn">⌘ Quick</button><button class="btn btn-primary">+ Project</button></div></div>
+          <div class="kpi-hero">
+            <div class="kpi"><div class="l">sched · TC</div><div class="v warn">78%</div><div class="ctx">↓2pp plan</div></div>
+            <div class="kpi"><div class="l">cashflow</div><div class="v amber">$240k</div><div class="ctx">on track</div></div>
+            <div class="kpi"><div class="l">BOQ var</div><div class="v warn">+4.8%</div><div class="ctx">3 pending</div></div>
+            <div class="kpi"><div class="l">open POs</div><div class="v">12</div><div class="ctx">2 to award</div></div>
+            <div class="kpi"><div class="l">P1 · 7d</div><div class="v ok">0</div><div class="ctx">14 P2</div></div>
+          </div>
+          <div class="main-grid">
+            <div>
+              <h2 style="font-family:var(--display);font-size:22px;font-weight:400;color:var(--ink);margin:0 0 12px;"><em>4 attention</em> · PM view</h2>
+              <div class="attn-card urgent"><div class="ic">!</div><div><div class="ti">Concrete delivery delay · TC</div><div class="meta">Site reports · 2d slip risk</div></div><div class="arrow">→</div></div>
+              <div class="attn-card urgent"><div class="ic">$</div><div><div class="ti">Capital call unpaid · 8d</div><div class="meta">Kishida · $48k past due</div></div><div class="arrow">→</div></div>
+              <div class="attn-card warn"><div class="ic">∇</div><div><div class="ti">3 BOQ variances &gt;+5%</div><div class="meta">structural · waterproof · mechanical</div></div><div class="arrow">→</div></div>
+              <div class="attn-card info"><div class="ic">★</div><div><div class="ti">QS rec: re-quote rebar +18%</div><div class="meta">vs last 3 quotes</div></div><div class="arrow">→</div></div>
+            </div>
+            <div>
+              <div class="ai-card">
+                <h3><em>AI agents</em><span class="meta">8 · $24 today</span></h3>
+                <div class="ai-row"><span class="dot"></span><div class="nm">QS Cost Analyst</div><div class="ct">8 runs</div></div>
+                <div class="ai-row"><span class="dot"></span><div class="nm">Procurement</div><div class="ct">4</div></div>
+                <div class="ai-row"><span class="dot"></span><div class="nm">Daily Digest</div><div class="ct">1</div></div>
+                <div class="ai-row"><span class="dot warn"></span><div class="nm">Site Supervisor</div><div class="ct">1</div></div>
+                <div class="ai-row"><span class="dot"></span><div class="nm">Tax Assistant</div><div class="ct">2</div></div>
+                <div class="ai-row"><span class="dot idle"></span><div class="nm">Marketing</div><div class="ct">idle</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="cab-map">
+            <h2>Cabinet map · PM-priority</h2>
+            <div class="cm-grid">
+              <a class="cm-card has-attn" href="../dev-p1/projects.html"><div class="grp">Build · Sell</div><div class="nm">Projects</div><div class="ctx">3 active · 1 P2</div></a>
+              <a class="cm-card has-attn" href="../dev-p2/site-supervisor.html"><div class="grp">Build · Sell</div><div class="nm">Site reports</div><div class="ctx">1 P2 today</div></a>
+              <a class="cm-card has-attn" href="../dev-p1/boq-qs.html"><div class="grp">Cost</div><div class="nm">BOQ</div><div class="ctx">3 variances</div></a>
+              <a class="cm-card has-attn" href="../dev-p1/cfo.html"><div class="grp">Capital</div><div class="nm">CFO</div><div class="ctx">cashflow gap jun 14</div></a>
+              <a class="cm-card has-attn" href="../dev-p2/investors.html"><div class="grp">Capital</div><div class="nm">Investors</div><div class="ctx">1 unpaid call</div></a>
+              <a class="cm-card" href="../dev-p1/procurement.html"><div class="grp">Cost</div><div class="nm">Procurement</div><div class="ctx">12 POs · 2 award</div></a>
+              <a class="cm-card" href="dev-warehouse.html"><div class="grp">Cost</div><div class="nm">Warehouse</div><div class="ctx">5 inbound</div></a>
+              <a class="cm-card" href="../dev-p2/sales.html"><div class="grp">Sell</div><div class="nm">Sales</div><div class="ctx">6 leads · 2 closing</div></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">desktop · PM</span><span>cabinet map prioritised by role</span></div>
+    </section>
+
+    <section id="variants" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Role variants</span></div>
+          <h2>9 role-aware views · KPI + attention reorder per role</h2>
+          <p>Same workspace shell, different KPIs. CFO sees money, QS sees variance, Procurement sees POs, Warehouse sees receiving. The role switcher in topbar swaps the active set.</p>
+        </div>
+      </div>
+      <div class="artboard">
+        <div data-product="development">
+          <div class="role-grid">
+            <h3>Role views · 9 roles</h3>
+            <div class="roles">
+              <div class="role-card active"><div class="nm">PM</div><div class="kpi-line">schedule · cashflow · BOQ · POs · P1</div></div>
+              <div class="role-card"><div class="nm">CFO</div><div class="kpi-line">cashflow 90d · receivables · payables · IRR · runway</div></div>
+              <div class="role-card"><div class="nm">QS</div><div class="kpi-line">variance · open RFIs · methods drafts · audits</div></div>
+              <div class="role-card"><div class="nm">Procurement</div><div class="kpi-line">open RFQs · awards · vendor scores · materials</div></div>
+              <div class="role-card"><div class="nm">Warehouse</div><div class="kpi-line">at dock · held · low-stock · picks · movements</div></div>
+              <div class="role-card"><div class="nm">Site supervisor</div><div class="kpi-line">today's frames · P1 incidents · safety · weekly</div></div>
+              <div class="role-card"><div class="nm">Marketing</div><div class="kpi-line">impressions · leads · cost/lead · campaigns</div></div>
+              <div class="role-card"><div class="nm">Sales</div><div class="kpi-line">pipeline · tours · contracts · closed-won</div></div>
+              <div class="role-card"><div class="nm">Admin</div><div class="kpi-line">portfolio · risks · digests · approvals</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="var-grid">
+        <div class="var-card">
+          <div class="v-h"><span class="num">B</span><span class="name">CFO view</span></div>
+          <div data-product="development">
+            <div style="padding:18px 20px;">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                <div style="padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;">CASHFLOW 90d</div><div style="font-family:var(--display);font-size:22px;color:var(--ink);margin-top:3px;">$2.4M</div></div>
+                <div style="padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;">RECEIVABLES</div><div style="font-family:var(--display);font-size:22px;color:var(--ink);margin-top:3px;">$680k</div></div>
+                <div style="padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;">IRR</div><div style="font-family:var(--display);font-size:22px;color:var(--ok);margin-top:3px;">22.4%</div></div>
+              </div>
+              <div style="margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--ink-3);line-height:1.6;">Attention: 1 unpaid capital call · jun 14 cashflow gap · q2 tax filing prep</div>
+            </div>
+          </div>
+        </div>
+        <div class="var-card">
+          <div class="v-h"><span class="num">C</span><span class="name">Warehouse view</span></div>
+          <div data-product="development">
+            <div style="padding:18px 20px;">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                <div style="padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;">AT DOCK</div><div style="font-family:var(--display);font-size:22px;color:var(--warn);margin-top:3px;">5</div></div>
+                <div style="padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;">HELD</div><div style="font-family:var(--display);font-size:22px;color:var(--danger);margin-top:3px;">1</div></div>
+                <div style="padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;">LOW STOCK</div><div style="font-family:var(--display);font-size:22px;color:var(--warn);margin-top:3px;">3</div></div>
+              </div>
+              <div style="margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--ink-3);line-height:1.6;">Attention: PO-1042 held vendor mismatch · cement low-stock · 12 picks today</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">desktop · variants</span><span>9 role views · KPI + attention reorders</span></div>
+    </section>
+
+    <section id="detail" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Detail</span></div>
+          <h2>Project drill-in · single project view</h2>
+          <p>Click any project card → <code>/workspace/project/[id]</code>. Same workspace shell scoped to one project. KPIs filtered, attention filtered, cabinet map shows project-relevant cards only.</p>
+        </div>
+      </div>
+      <div class="artboard">
+        <div data-product="development">
+          <div class="topbar"><div class="brand">Arconique<span class="sub">development · tirta-canggu</span></div><div class="role">Acting as: PM</div><div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div></div>
+          <div class="page-h">
+            <div><div class="greet">project drill-in</div><h1>Tirta-Canggu <em>· 78% schedule</em></h1><div class="sub">build phase · handover aug 2025 · budget $3.2M/$4.4M · burn 72%</div></div>
+            <div class="right"><button class="btn">All projects</button><button class="btn btn-primary">Weekly report</button></div>
+          </div>
+          <div class="kpi-hero">
+            <div class="kpi"><div class="l">schedule</div><div class="v warn">78%</div><div class="ctx">↓2pp plan</div></div>
+            <div class="kpi"><div class="l">budget</div><div class="v">$3.2M</div><div class="ctx">/$4.4M · 72%</div></div>
+            <div class="kpi"><div class="l">P2 incidents</div><div class="v warn">1</div><div class="ctx">concrete delay</div></div>
+            <div class="kpi"><div class="l">open POs</div><div class="v">5</div><div class="ctx">$78k</div></div>
+            <div class="kpi"><div class="l">days to handover</div><div class="v">94</div><div class="ctx">aug 31</div></div>
+          </div>
+          <div style="padding:24px 32px;">
+            <div class="attn-card urgent"><div class="ic">!</div><div><div class="ti">Concrete delay · site team A blocked</div><div class="meta">2d slip risk if not resolved tomorrow</div></div><div class="arrow">→</div></div>
+            <div class="attn-card warn"><div class="ic">∇</div><div><div class="ti">Structural BOQ variance +6.2% · approval pending</div><div class="meta">over +5% threshold</div></div><div class="arrow">→</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">desktop · detail</span><span>workspace shell scoped to project · same KPI/attention pattern</span></div>
+    </section>
+
+    <section id="mobile" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Mobile</span></div>
+          <h2>Phone · role-aware workspace</h2>
+          <p>Same role switcher in mobile topbar. KPI strip adapts. Attention feed scrollable. Tap into cabinets via tabbar.</p>
+        </div>
+      </div>
+      <div class="mobile-row">
+        <div class="mobile-frame">
+          <div class="mobile-status"><span>09:14</span><span>5G · 91%</span></div>
+          <div data-product="development">
+            <div class="m-bar"><span class="brand">Arconique</span><span class="role">PM ▾</span><span class="av">NR</span></div>
+            <div class="m-h"><h3>Workspace <em>· 4 attn</em></h3><div class="sub">thu 29 may · 3 projects</div></div>
+            <div class="m-kpi">
+              <div class="k"><div class="l">sched</div><div class="v warn">78%</div></div>
+              <div class="k"><div class="l">cash</div><div class="v">$240k</div></div>
+              <div class="k"><div class="l">BOQ</div><div class="v warn">+4.8%</div></div>
+            </div>
+            <div class="m-list">
+              <div class="m-card urgent"><div class="ti">Concrete delay · TC</div><div class="body">Site reports · 2d slip risk</div></div>
+              <div class="m-card urgent"><div class="ti">Capital call unpaid 8d</div><div class="body">Kishida · $48k</div></div>
+              <div class="m-card warn"><div class="ti">3 BOQ variances pending</div><div class="body">need your sign-off</div></div>
+              <div class="m-card"><div class="ti">QS rec: re-quote rebar</div><div class="body">+18% vs last quotes</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-notes">
+          <h4>Mobile principles</h4>
+          <ol>
+            <li><strong>Role switcher in topbar</strong> · stays consistent with desktop.</li>
+            <li><strong>3-KPI mobile strip</strong> · most-critical for role.</li>
+            <li><strong>Attention feed</strong> · urgency-sorted, swipe to dismiss.</li>
+            <li><strong>Project drill-in</strong> via tap → scoped workspace.</li>
+            <li><strong>AI digest</strong> push at 06:00 daily.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">mobile · role-aware</span><span>role switcher persists · 3-KPI strip</span></div>
+    </section>
+
+    <section id="schema" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">05</span><span>—</span><span>Implementation</span></div>
+          <h2>Schema · agents · routes</h2>
+          <p>Composes data from across Dev OS cabinets. New table: <code>user_role_state</code> for the active-role selection persisted per user.</p>
+        </div>
+      </div>
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Tables · new for 2.6</h3>
+          <dl>
+            <div><dt>user_role_state</dt><dd><code>user_id · org_id · active_role · last_switched_at · personalisation_jsonb</code></dd></div>
+            <div><dt>workspace_attention_feed</dt><dd>materialised view UNION'ing cabinet attention sources · role-filtered query</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Composed reads</h3>
+          <dl>
+            <div><dt>projects health</dt><dd>cabinet 12 projects · health.ts pure fn</dd></div>
+            <div><dt>cashflow forecast</dt><dd>cabinet 13 CFO mat view</dd></div>
+            <div><dt>BOQ variance</dt><dd>cabinet 14 BOQ + QS</dd></div>
+            <div><dt>open POs</dt><dd>cabinet 15 procurement</dd></div>
+            <div><dt>P2 incidents</dt><dd>cabinet 09 site-supervisor</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Routes</h3>
+          <dl>
+            <div><dt>/workspace</dt><dd>hero · role-aware (active role from user_role_state)</dd></div>
+            <div><dt>/workspace/project/[id]</dt><dd>detail · scoped workspace</dd></div>
+            <div><dt>/workspace/role/[role]</dt><dd>switch + remember</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Agents</h3>
+          <dl>
+            <div><dt>workspace-attention-ranker</dt><dd>ranks attention items by urgency + role · refreshes every 30s</dd></div>
+            <div><dt>daily-digest</dt><dd>generates morning digest per role · pushes at 06:00</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+</body>
+</html>

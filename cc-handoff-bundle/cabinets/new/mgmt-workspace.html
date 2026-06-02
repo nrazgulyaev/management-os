@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mgmt OS · Workspace overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="mgmt-tokens">
+[data-product="management"] {
+  --paper: #FBF7EE; --canvas: #F4ECD8; --panel: #FFFFFF; --panel-2: #F8F2E2; --panel-deep: #EDE2C5;
+  --cream: #F4ECD8; --cream-warm: #ECE0BF;
+  --ink: #14201C; --ink-2: #2C3935; --ink-3: #4A574F; --ink-4: #6B7864; --ink-5: #91987F;
+  --line: #DAD2C0; --line-soft: #E5DDC7; --line-strong: #B8B099;
+  --terra: #B5552B; --terra-soft: #D4866B; --terra-deep: #813B1A; --on-terra: #FFFFFF;
+  --forest: #406853; --amber: #C68E36; --ok: #5F8B62; --warn: #C49845; --danger: #B45239;
+  --accent: #B5552B;
+  --r-pill: 999px; --r-card: 10px; --r-card-lg: 14px; --r-hero: 18px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+}
+:root {
+  --doc-bg: #14201C; --doc-bg-2: #1B2B26; --doc-bg-3: #243731;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #ECE0BF; --doc-fg-2: #C1B89F; --doc-fg-3: #8A8473;
+  --doc-accent: #D4866B;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc { border-right: 1px solid var(--doc-line); padding: 36px 22px; background: var(--doc-bg-2); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.ds-mark { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 22px; }
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 { margin: 0 0 22px; font-family: var(--doc-sans); font-weight: 500; font-size: 19px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 10px; }
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a { display: block; padding: 6px 8px; text-decoration: none; color: var(--doc-fg-2); font-size: 13px; border-radius: 4px; margin-bottom: 1px; }
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--doc-mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1400px; }
+.cab-cover { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 44px; line-height: 1.05; letter-spacing: -0.025em; }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.ds-section { margin-bottom: 76px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-section h2 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 26px; letter-spacing: -0.015em; color: var(--doc-fg); }
+.ds-section p { max-width: 760px; margin: 8px 0 0; font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.artboard { margin-top: 20px; border: 1px solid var(--doc-line); border-radius: 18px; background: var(--canvas); overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.artboard-caption { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.artboard-caption .pill { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); color: var(--doc-accent); }
+
+/* App chrome */
+[data-product="management"] { font-family: var(--sans-font); color: var(--ink); }
+[data-product] .app { background: var(--canvas); min-height: 720px; display: grid; grid-template-rows: auto 1fr; }
+[data-product] .app-topbar { display: flex; align-items: center; gap: 16px; padding: 14px 24px; background: var(--ink); color: var(--paper); border-bottom: 1px solid var(--ink); }
+[data-product] .app-topbar .brand { font-family: var(--display-font); font-size: 20px; font-weight: 400; }
+[data-product] .app-topbar .brand .sub { font-family: var(--mono-font); font-size: 10px; color: rgba(244,236,216,0.6); letter-spacing: 0.18em; text-transform: uppercase; display: block; margin-top: 1px; }
+[data-product] .app-topbar .crumb { margin-left: 20px; display: flex; align-items: center; gap: 8px; font-family: var(--mono-font); font-size: 11px; color: rgba(244,236,216,0.6); }
+[data-product] .app-topbar .crumb strong { color: var(--paper); font-weight: 500; }
+[data-product] .app-topbar .right { margin-left: auto; display: flex; align-items: center; gap: 16px; font-family: var(--mono-font); font-size: 11px; color: rgba(244,236,216,0.6); }
+[data-product] .app-topbar .me { display: flex; align-items: center; gap: 8px; }
+[data-product] .app-topbar .me .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--terra); color: white; display: inline-flex; align-items: center; justify-content: center; font-family: var(--sans-font); font-size: 11px; font-weight: 600; }
+[data-product] .app-topbar .me .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ok) 30%, transparent); margin-left: 4px; }
+
+[data-product] .page-h { padding: 28px 32px 22px; display: flex; align-items: flex-end; gap: 24px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .page-h .left { flex: 1; }
+[data-product] .page-h .greet { font-family: var(--mono-font); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .page-h h1 { margin: 8px 0 0; font-family: var(--display-font); font-weight: 400; font-size: 38px; color: var(--ink); letter-spacing: -0.02em; line-height: 1.1; }
+[data-product] .page-h h1 em { color: var(--terra); font-style: italic; }
+[data-product] .page-h .sub { margin-top: 8px; font-size: 14px; color: var(--ink-3); line-height: 1.5; }
+[data-product] .page-h .right { display: flex; gap: 8px; align-items: center; }
+
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border-radius: 8px; font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); cursor: pointer; line-height: 1; background: var(--panel); color: var(--ink-2); text-decoration: none; }
+[data-product] .btn-primary { background: var(--terra); color: var(--on-terra); border-color: var(--terra); }
+[data-product] .btn-ink { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* KPI hero */
+[data-product] .kpi-hero { padding: 22px 32px; background: var(--canvas); border-bottom: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+[data-product] .kpi { padding: 16px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; gap: 6px; }
+[data-product] .kpi .l { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .kpi .v { font-family: var(--display-font); font-size: 32px; color: var(--ink); line-height: 1; font-variant-numeric: tabular-nums; margin-top: 2px; }
+[data-product] .kpi .v.warn { color: var(--warn); }
+[data-product] .kpi .v.danger { color: var(--danger); }
+[data-product] .kpi .v.ok { color: var(--ok); }
+[data-product] .kpi .v.terra { color: var(--terra); }
+[data-product] .kpi .ctx { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 4px; }
+[data-product] .kpi .delta { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono-font); font-size: 10.5px; margin-top: 2px; }
+[data-product] .kpi .delta.up { color: var(--ok); }
+[data-product] .kpi .delta.down { color: var(--danger); }
+
+/* Main grid */
+[data-product] .main-grid { padding: 24px 32px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 22px; }
+
+/* Attention column */
+[data-product] .attn-h { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+[data-product] .attn-h h2 { margin: 0; font-family: var(--display-font); font-size: 24px; font-weight: 400; color: var(--ink); letter-spacing: -0.01em; }
+[data-product] .attn-h em { color: var(--terra); font-style: italic; }
+[data-product] .attn-h .meta { margin-left: auto; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+
+[data-product] .attn-list { display: flex; flex-direction: column; gap: 10px; }
+[data-product] .attn-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; grid-template-columns: 36px 1fr auto; gap: 14px; align-items: center; cursor: pointer; transition: border-color .15s; }
+[data-product] .attn-card:hover { border-color: var(--line-strong); }
+[data-product] .attn-card.urgent { border-left: 4px solid var(--danger); padding-left: 14px; }
+[data-product] .attn-card.warn { border-left: 4px solid var(--warn); padding-left: 14px; }
+[data-product] .attn-card.info { border-left: 4px solid var(--terra); padding-left: 14px; }
+
+[data-product] .attn-card .ico { width: 36px; height: 36px; border-radius: 8px; background: var(--panel-deep); color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; font-family: var(--display-font); font-size: 18px; }
+[data-product] .attn-card.urgent .ico { background: color-mix(in oklab, var(--danger) 18%, var(--panel)); color: var(--danger); }
+[data-product] .attn-card.warn .ico { background: color-mix(in oklab, var(--warn) 18%, var(--panel)); color: var(--warn); }
+[data-product] .attn-card.info .ico { background: color-mix(in oklab, var(--terra) 16%, var(--panel)); color: var(--terra); }
+
+[data-product] .attn-card .body { display: flex; flex-direction: column; gap: 3px; }
+[data-product] .attn-card .body .ti { font-size: 14px; color: var(--ink); font-weight: 500; line-height: 1.35; }
+[data-product] .attn-card .body .meta { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); margin-top: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+[data-product] .attn-card .body .meta .sep { color: var(--ink-5); }
+[data-product] .attn-card .body .meta .tag { padding: 1px 6px; border-radius: 3px; background: var(--panel-2); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+[data-product] .attn-card .arrow { font-family: var(--mono-font); font-size: 16px; color: var(--ink-4); }
+
+/* Today */
+[data-product] .today-strip { margin-top: 22px; padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+[data-product] .today-strip h3 { margin: 0 0 12px; font-family: var(--display-font); font-size: 18px; font-weight: 400; color: var(--ink); }
+[data-product] .today-strip h3 em { color: var(--terra); font-style: italic; }
+[data-product] .today-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+[data-product] .today-tile { padding: 12px 14px; background: var(--panel-2); border-radius: 8px; }
+[data-product] .today-tile .l { font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .today-tile .v { font-family: var(--display-font); font-size: 24px; color: var(--ink); margin-top: 4px; line-height: 1; }
+[data-product] .today-tile .ctx { font-family: var(--mono-font); font-size: 10px; color: var(--ink-4); margin-top: 3px; }
+
+/* Right column · agents + quick actions */
+[data-product] .agents-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+[data-product] .agents-card h3 { margin: 0 0 6px; font-family: var(--display-font); font-size: 20px; font-weight: 400; color: var(--ink); display: flex; align-items: baseline; gap: 10px; }
+[data-product] .agents-card h3 em { color: var(--terra); font-style: italic; }
+[data-product] .agents-card h3 .meta { margin-left: auto; font-family: var(--mono-font); font-size: 10px; color: var(--ink-3); letter-spacing: 0.10em; }
+[data-product] .agents-card .desc { font-size: 12.5px; color: var(--ink-3); margin-bottom: 14px; line-height: 1.5; }
+
+[data-product] .agent-row { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); align-items: center; }
+[data-product] .agent-row:last-child { border-bottom: 0; }
+[data-product] .agent-row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); justify-self: center; }
+[data-product] .agent-row .dot.warn { background: var(--warn); }
+[data-product] .agent-row .dot.idle { background: var(--ink-5); }
+[data-product] .agent-row .body .nm { font-family: var(--mono-font); font-size: 12px; color: var(--ink); font-weight: 500; }
+[data-product] .agent-row .body .meta { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+[data-product] .agent-row .ct { font-family: var(--mono-font); font-size: 11px; color: var(--ink-2); }
+
+[data-product] .quick-actions { margin-top: 22px; padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+[data-product] .quick-actions h3 { margin: 0 0 14px; font-family: var(--display-font); font-size: 20px; font-weight: 400; color: var(--ink); }
+[data-product] .qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+[data-product] .qa-btn { padding: 12px 14px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); cursor: pointer; text-align: left; }
+[data-product] .qa-btn:hover { background: var(--panel-deep); }
+[data-product] .qa-btn .ic { font-family: var(--display-font); font-size: 16px; color: var(--terra); }
+
+/* Cabinet map */
+[data-product] .cab-map { padding: 32px; background: var(--cream-warm); border-top: 1px solid var(--line); }
+[data-product] .cab-map h2 { margin: 0 0 18px; font-family: var(--display-font); font-weight: 400; font-size: 24px; color: var(--ink); }
+[data-product] .cab-map h2 em { color: var(--terra); font-style: italic; }
+[data-product] .cm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+[data-product] .cm-card { padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: border-color .15s, transform .15s; }
+[data-product] .cm-card:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+[data-product] .cm-card .grp { font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-4); }
+[data-product] .cm-card .nm { font-family: var(--sans-font); font-size: 14px; font-weight: 500; color: var(--ink); }
+[data-product] .cm-card .ctx { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+[data-product] .cm-card.has-attn { background: color-mix(in oklab, var(--warn) 8%, var(--panel)); border-color: color-mix(in oklab, var(--warn) 35%, var(--line)); }
+[data-product] .cm-card.has-attn .ctx { color: var(--warn); font-weight: 500; }
+
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Mgmt OS</div>
+    <h1>Workspace Overview</h1>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Sections</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#hero"><span class="ix">01</span>Hero · KPI + greeting</a></li>
+        <li><a href="#attention"><span class="ix">02</span>Needs attention feed</a></li>
+        <li><a href="#today"><span class="ix">03</span>Today · ops snapshot</a></li>
+        <li><a href="#agents"><span class="ix">04</span>AI agents activity</a></li>
+        <li><a href="#cabinets"><span class="ix">05</span>Cabinet map</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Reference</div>
+      <ul>
+        <li><a href="../../design/index.html"><span class="ix">↗</span>Design master hub</a></li>
+        <li><a href="../mgmt-p1/bookings.html"><span class="ix">↗</span>Bookings (gold)</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <section id="cover" class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Mgmt OS · new cabinet · Workspace</span></div>
+      <h1>Workspace Overview — <em>the operator's first screen</em>.</h1>
+      <p>The landing for Management OS. Replaces the empty "Overview" stub. Surfaces three things in priority order: <strong style="color:var(--doc-fg)">what needs attention right now</strong>, <strong style="color:var(--doc-fg)">today's ops snapshot</strong>, and <strong style="color:var(--doc-fg)">a map to every cabinet</strong> with badge counts. Designed as a hub — every card drills into the relevant Phase 2 cabinet.</p>
+    </section>
+
+    <section id="hero" class="ds-section" data-screen-label="01 Hero">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Greeting + 5-KPI strip</h2>
+          <p>Time-of-day greeting personalises the screen. KPIs are the 5 numbers that change daily: occupancy 30d, revenue MTD, open ops tasks, guest CSAT 7d, owner statements due. Each is a teaser linking to the relevant cabinet.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="management">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">management · whitmore vg</span></div>
+              <div class="crumb">Workspace <span style="color:rgba(244,236,216,0.4);">/</span> <strong>Overview</strong></div>
+              <div class="right">
+                <span>22 villas</span>
+                <span>· tz Asia/Singapore</span>
+                <span class="me"><span class="avatar">EM</span>Emma Whitmore<span class="pulse"></span></span>
+              </div>
+            </div>
+
+            <div class="page-h">
+              <div class="left">
+                <div class="greet">good morning · thu 29 may 2025</div>
+                <h1>Emma — <em>3 things need you</em>.</h1>
+                <div class="sub">Last sign-in 14:02 · last full sync 38s ago · all channel feeds healthy</div>
+              </div>
+              <div class="right">
+                <button class="btn">⌘ Quick action</button>
+                <button class="btn btn-primary">+ New booking</button>
+              </div>
+            </div>
+
+            <div class="kpi-hero">
+              <div class="kpi">
+                <div class="l">occupancy · 30d</div>
+                <div class="v">82%</div>
+                <div class="delta up">↑ 4pp · vs prev 30d</div>
+              </div>
+              <div class="kpi">
+                <div class="l">revenue · MTD</div>
+                <div class="v terra">$48.2k</div>
+                <div class="delta up">↑ 12% · vs may '24</div>
+              </div>
+              <div class="kpi">
+                <div class="l">ops tasks · open</div>
+                <div class="v warn">14</div>
+                <div class="ctx">3 overdue · 2 urgent</div>
+              </div>
+              <div class="kpi">
+                <div class="l">guest CSAT · 7d</div>
+                <div class="v ok">4.7</div>
+                <div class="ctx">11 ratings · 0 escalations</div>
+              </div>
+              <div class="kpi">
+                <div class="l">statements · jun</div>
+                <div class="v">14</div>
+                <div class="ctx">due 1 jun · auto-issue at 09:00</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="attention" class="ds-section" data-screen-label="02 Attention feed">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Triage feed</span></div>
+          <h2>Needs attention — sorted by urgency</h2>
+          <p>The triage queue. Combines: dunning escalations from billing, SLA-breaching support tickets, sync conflicts from channels, statement reconciliation warnings, ops tasks past due, owner-stay requests pending. Urgent items get the danger edge; warn items the amber edge; informational the terra.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="management">
+          <div class="app" style="min-height: auto;">
+
+            <div class="main-grid" style="grid-template-columns: 1.5fr 1fr;">
+
+              <!-- Left: attention list -->
+              <div>
+                <div class="attn-h">
+                  <h2><em>5 items</em> need attention</h2>
+                  <span class="meta">refreshed 14s ago</span>
+                </div>
+                <div class="attn-list">
+
+                  <div class="attn-card urgent">
+                    <div class="ico">!</div>
+                    <div class="body">
+                      <div class="ti">Booking.com sync paused — 3 villas frozen since 09:00</div>
+                      <div class="meta">
+                        <span>Channels</span><span class="sep">·</span>
+                        <span>tirta-canggu-04 · tirta-uluwatu-02 · tirta-seminyak-07</span>
+                        <span class="sep">·</span>
+                        <span class="tag" style="background:color-mix(in oklab, var(--danger) 14%, transparent); color:var(--danger);">SLA breach 6h</span>
+                      </div>
+                    </div>
+                    <div class="arrow">→</div>
+                  </div>
+
+                  <div class="attn-card urgent">
+                    <div class="ico">$</div>
+                    <div class="body">
+                      <div class="ti">Statement WG-may-2025 has 2 reconciliation warnings</div>
+                      <div class="meta">
+                        <span>Finance · Statements</span><span class="sep">·</span>
+                        <span>tirta-canggu-04 cleaning fee mismatch</span>
+                        <span class="sep">·</span>
+                        <span class="tag" style="background:color-mix(in oklab, var(--danger) 14%, transparent); color:var(--danger);">issues in 18h</span>
+                      </div>
+                    </div>
+                    <div class="arrow">→</div>
+                  </div>
+
+                  <div class="attn-card warn">
+                    <div class="ico">⏱</div>
+                    <div class="body">
+                      <div class="ti">3 operations tasks overdue · turnover delays today</div>
+                      <div class="meta">
+                        <span>Operations · Command center</span><span class="sep">·</span>
+                        <span>sukha-uluwatu-01 · ah-02 · es-s5</span>
+                        <span class="sep">·</span>
+                        <span class="tag">housekeeping · maintenance</span>
+                      </div>
+                    </div>
+                    <div class="arrow">→</div>
+                  </div>
+
+                  <div class="attn-card warn">
+                    <div class="ico">⌕</div>
+                    <div class="body">
+                      <div class="ti">Owner stay request — Tan Family, 14-18 jun, 3 villas</div>
+                      <div class="meta">
+                        <span>Owner stays · Requests</span><span class="sep">·</span>
+                        <span>within quota · counter-proposal needed for villa #3</span>
+                        <span class="sep">·</span>
+                        <span class="tag">your call</span>
+                      </div>
+                    </div>
+                    <div class="arrow">→</div>
+                  </div>
+
+                  <div class="attn-card info">
+                    <div class="ico">★</div>
+                    <div class="body">
+                      <div class="ti">AI agent flagged: dynamic-pricing comp drift on 4 villas</div>
+                      <div class="meta">
+                        <span>Revenue · Dynamic pricing</span><span class="sep">·</span>
+                        <span>comp set dropped 8% in 14d · consider Sat ceiling</span>
+                        <span class="sep">·</span>
+                        <span class="tag">recommendation</span>
+                      </div>
+                    </div>
+                    <div class="arrow">→</div>
+                  </div>
+
+                </div>
+
+                <!-- Today snapshot -->
+                <div class="today-strip" id="today" data-screen-label="03 Today">
+                  <h3>Today · <em>ops snapshot</em></h3>
+                  <div class="today-grid">
+                    <div class="today-tile">
+                      <div class="l">arrivals</div>
+                      <div class="v">4</div>
+                      <div class="ctx">3 confirmed · 1 ETA late</div>
+                    </div>
+                    <div class="today-tile">
+                      <div class="l">departures</div>
+                      <div class="v">3</div>
+                      <div class="ctx">2 done · 1 by 18:00</div>
+                    </div>
+                    <div class="today-tile">
+                      <div class="l">in-house</div>
+                      <div class="v">8</div>
+                      <div class="ctx">2 VIP · 1 anniversary</div>
+                    </div>
+                    <div class="today-tile">
+                      <div class="l">turnovers</div>
+                      <div class="v warn">3</div>
+                      <div class="ctx">1 delayed · cleaner ETA 14:30</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: agents + quick actions -->
+              <div>
+                <div class="agents-card" id="agents" data-screen-label="04 Agents">
+                  <h3><em>AI agents</em> · live<span class="meta">8 active</span></h3>
+                  <p class="desc">What's been autonomous in the last 24h. Click any agent for full run history + cost.</p>
+
+                  <div class="agent-row">
+                    <span class="dot"></span>
+                    <div class="body"><div class="nm">statement-preparer</div><div class="meta">drafting jun '25 batch · 14 owners</div></div>
+                    <div class="ct">14 runs</div>
+                  </div>
+                  <div class="agent-row">
+                    <span class="dot"></span>
+                    <div class="body"><div class="nm">draft-replier</div><div class="meta">6 support drafts · 92% conf avg</div></div>
+                    <div class="ct">6 runs</div>
+                  </div>
+                  <div class="agent-row">
+                    <span class="dot"></span>
+                    <div class="body"><div class="nm">dynamic-pricing</div><div class="meta">22 villa rates updated overnight</div></div>
+                    <div class="ct">22 runs</div>
+                  </div>
+                  <div class="agent-row">
+                    <span class="dot warn"></span>
+                    <div class="body"><div class="nm">conflict-investigator</div><div class="meta">1 P1 conflict · escalation drafted</div></div>
+                    <div class="ct">1 run</div>
+                  </div>
+                  <div class="agent-row">
+                    <span class="dot"></span>
+                    <div class="body"><div class="nm">triage-router</div><div class="meta">tickets classified · all routed</div></div>
+                    <div class="ct">9 runs</div>
+                  </div>
+                  <div class="agent-row">
+                    <span class="dot idle"></span>
+                    <div class="body"><div class="nm">visa-watcher</div><div class="meta">last run 07:00 · 4 flags pending</div></div>
+                    <div class="ct">idle</div>
+                  </div>
+                </div>
+
+                <div class="quick-actions">
+                  <h3>Quick actions</h3>
+                  <div class="qa-grid">
+                    <div class="qa-btn"><span class="ic">+</span>New booking</div>
+                    <div class="qa-btn"><span class="ic">∷</span>Issue statement</div>
+                    <div class="qa-btn"><span class="ic">⌖</span>Block dates</div>
+                    <div class="qa-btn"><span class="ic">★</span>Comp guest</div>
+                    <div class="qa-btn"><span class="ic">⊕</span>New task</div>
+                    <div class="qa-btn"><span class="ic">⌕</span>Search guest</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Cabinet map -->
+            <div class="cab-map" id="cabinets" data-screen-label="05 Cabinet map">
+              <h2><em>Every cabinet</em> · with badge counts</h2>
+              <div class="cm-grid">
+
+                <a class="cm-card" href="../mgmt-p1/bookings.html"><div class="grp">Bookings</div><div class="nm">Bookings</div><div class="ctx">247 live · 4 arrivals today</div></a>
+                <a class="cm-card" href="../mgmt-p1/bookings.html"><div class="grp">Bookings</div><div class="nm">Calendar</div><div class="ctx">82% occ · next 30d</div></a>
+                <a class="cm-card has-attn" href="../mgmt-p2/channels.html"><div class="grp">Bookings</div><div class="nm">Channels</div><div class="ctx">3 villas paused · b.com</div></a>
+                <a class="cm-card" href="../mgmt-p2/dynamic-pricing.html"><div class="grp">Bookings</div><div class="nm">Rate plans</div><div class="ctx">22 villas active</div></a>
+
+                <a class="cm-card" href="../mgmt-p2/front-office.html"><div class="grp">Front office</div><div class="nm">Today</div><div class="ctx">4 arr · 3 dep · 8 in-house</div></a>
+                <a class="cm-card has-attn" href="../mgmt-p1/operations.html"><div class="grp">Operations</div><div class="nm">Command center</div><div class="ctx">14 open · 3 overdue</div></a>
+                <a class="cm-card" href="../mgmt-p2/concierge.html"><div class="grp">Guest stays</div><div class="nm">Concierge</div><div class="ctx">11 active stays</div></a>
+                <a class="cm-card has-attn" href="../mgmt-p1/finance.html"><div class="grp">Finance</div><div class="nm">Finance</div><div class="ctx">2 reconciliation warnings</div></a>
+
+                <a class="cm-card" href="../mgmt-p1/owners.html"><div class="grp">Portfolio</div><div class="nm">Owners</div><div class="ctx">14 active · 2 attention</div></a>
+                <a class="cm-card" href="#"><div class="grp">Portfolio</div><div class="nm">Villas</div><div class="ctx">22 villas · 19 active 30d</div></a>
+                <a class="cm-card" href="../mgmt-p1/owners.html"><div class="grp">Portfolio</div><div class="nm">Projects</div><div class="ctx">3 active projects</div></a>
+                <a class="cm-card has-attn" href="#"><div class="grp">Owner stays</div><div class="nm">Requests</div><div class="ctx">1 pending · Tan Family</div></a>
+
+                <a class="cm-card" href="#"><div class="grp">Inventory</div><div class="nm">Stock command</div><div class="ctx">3 low · 1 stockout risk</div></a>
+                <a class="cm-card" href="#"><div class="grp">Utilities</div><div class="nm">Readings</div><div class="ctx">last sync 38s</div></a>
+                <a class="cm-card" href="#"><div class="grp">Intelligence</div><div class="nm">AI agents</div><div class="ctx">8 active · $84 today</div></a>
+                <a class="cm-card" href="#"><div class="grp">Settings</div><div class="nm">Settings</div><div class="ctx">per-org config</div></a>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>3-section layout · attention (urgency-sorted) · today snapshot · cabinet map with badge counts</span>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mobile pass · Owner P1 cabinets</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style>
+:root {
+  --doc-bg: #0F1014; --doc-bg-2: #16171C; --doc-bg-3: #1F2129;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E5E0; --doc-fg-2: #BBB9B0; --doc-fg-3: #8B8B85;
+  --doc-accent: #C4583C;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+[data-product="owner"] {
+  --paper: #FFFCF7; --cream: #F4EFE6; --cream-warm: #FAF7F1; --cream-deep: #ECE5D5;
+  --ink: #14201C; --ink-2: #2A3934; --ink-3: #4A5A55; --ink-4: #7E8A85;
+  --line: #DAD2C0; --line-soft: #E5DECC;
+  --accent: #C4583C; --accent-soft: #E48A6E; --on-accent: #FFF8F0;
+  --inverted-bg: #14201C; --inverted-fg: #F4EFE6;
+  --forest: #1F3A33;
+  --ok: #4F7A5D; --warn: #C58A2E; --danger: #B14132; --info: #3D5A7A;
+  --gold: #BC9A5C; --gold-soft: #DCC691;
+  --sage: #88A89A;
+  --mint: #D8E8D6; --peach: #F6D9CB; --butter: #F5E9B8; --sky: #D4E2EC;
+  --r-pill: 999px; --r-sm: 8px; --r-md: 12px; --r-card: 18px; --r-card-lg: 22px; --r-hero: 28px;
+  --display-font: 'Newsreader', Georgia, serif;
+  --sans-font: 'Inter', system-ui, sans-serif;
+  --mono-font: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+.page { min-height: 100vh; padding: 64px 48px 96px; }
+.page-head { max-width: 1600px; margin: 0 auto 56px; }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+h1.title { font-weight: 500; font-size: 40px; line-height: 1.05; letter-spacing: -0.02em; margin: 0; }
+h1.title em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.lede { max-width: 760px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+.meta-row { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--doc-line); font-size: 13px; }
+.meta-row > div { display: flex; flex-direction: column; gap: 4px; }
+.meta-row .k { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); }
+.meta-row .v { color: var(--doc-fg); }
+.meta-row a { color: var(--doc-accent); text-decoration: none; }
+
+.boards { display: flex; flex-direction: column; gap: 72px; max-width: 1600px; margin: 0 auto; }
+.cabinet { padding-top: 32px; border-top: 1px solid var(--doc-line); display: flex; flex-direction: column; gap: 32px; }
+.cabinet-head { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.cabinet-head .num { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); padding: 5px 10px; border: 1px solid var(--doc-line-2); border-radius: 4px; }
+.cabinet-head h2 { margin: 0; font-weight: 500; font-size: 28px; letter-spacing: -0.015em; }
+.cabinet-head .meta { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+.cabinet-head .meta .pill { padding: 4px 10px; border: 1px solid var(--doc-line-2); border-radius: 999px; font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #E8B8A4; border-color: rgba(232,184,164,0.35); }
+.cabinet-lede { max-width: 760px; font-size: 14.5px; line-height: 1.65; color: var(--doc-fg-2); margin: 0; }
+.cabinet-body { display: grid; grid-template-columns: 380px 380px 1fr; gap: 36px; align-items: start; }
+.frame-col { display: flex; flex-direction: column; gap: 14px; }
+.frame-tag { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--doc-fg-3); }
+.frame-tag .name { color: var(--doc-fg); }
+.frame-tag .role { padding: 2px 8px; border: 1px solid var(--doc-line-2); border-radius: 4px; color: var(--doc-fg-2); font-size: 9.5px; }
+
+.phone { width: 360px; height: 740px; border-radius: 44px; background: #0A0B0F; padding: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06); position: relative; }
+.phone-screen { width: 100%; height: 100%; border-radius: 34px; background: var(--cream-warm); overflow: hidden; display: flex; flex-direction: column; }
+.phone-status { height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px 4px; font-family: var(--mono-font); font-size: 12px; color: var(--ink); font-weight: 500; flex-shrink: 0; }
+.phone-notch { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: 110px; height: 28px; background: #0A0B0F; border-radius: 14px; z-index: 2; }
+.phone-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+.app-topbar { display: flex; align-items: center; gap: 10px; padding: 8px 16px 12px; border-bottom: 1px solid var(--line-soft); flex-shrink: 0; background: var(--cream-warm); }
+.app-topbar .ico { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; color: var(--ink); }
+.app-topbar .title { flex: 1; font-family: var(--display-font); font-size: 17px; color: var(--ink); font-weight: 400; }
+.app-topbar .title .sub { display: block; font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-top: 1px; }
+.app-topbar .aux { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+
+.app-scroll { flex: 1; overflow-y: auto; }
+.app-tabbar { display: flex; align-items: stretch; border-top: 1px solid var(--line-soft); background: var(--paper); padding-bottom: 14px; flex-shrink: 0; }
+.app-tabbar .tab { flex: 1; padding: 10px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-4); background: transparent; border: 0; }
+.app-tabbar .tab.on { color: var(--ink); }
+.app-tabbar .tab.on .ico { color: var(--accent); }
+.app-tabbar .ico { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* COMPONENTS */
+[data-product] .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.10em; border: 1px solid var(--line); background: var(--paper); color: var(--ink-3); }
+[data-product] .badge-ok     { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
+[data-product] .badge-warn   { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+[data-product] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product] .badge-gold   { background: rgba(188,154,92,0.14); color: var(--gold); border-color: rgba(188,154,92,0.35); }
+[data-product] .badge-ink    { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 18px; border-radius: var(--r-pill); font-family: var(--sans-font); font-size: 14px; font-weight: 500; border: 1px solid transparent; cursor: pointer; line-height: 1; background: transparent; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product] .btn-accent  { background: var(--accent); color: var(--on-accent); }
+[data-product] .btn-secondary { background: var(--cream-warm); color: var(--ink); border-color: var(--line); }
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); border: 1px solid var(--line); }
+[data-product] .btn-sm { padding: 8px 14px; font-size: 13px; }
+
+.cta-row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line-soft); background: var(--cream-warm); flex-shrink: 0; }
+.cta-row .btn { flex: 1; }
+
+/* HERO greet */
+.greet-h { padding: 26px 20px 18px; background: var(--cream-warm); }
+.greet-h .when { font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 10px; }
+.greet-h h1 { margin: 0; font-family: var(--display-font); font-size: 30px; font-weight: 400; color: var(--ink); line-height: 1.1; letter-spacing: -0.01em; }
+.greet-h h1 em { color: var(--accent); font-style: italic; }
+.greet-h .narr { margin: 10px 0 0; font-family: var(--display-font); font-size: 15px; color: var(--ink-2); line-height: 1.5; }
+
+/* Home hero tiles (stacked on mobile) */
+.tile-stack { padding: 14px 16px 4px; display: flex; flex-direction: column; gap: 10px; }
+.h-tile { padding: 16px 18px; background: var(--paper); border: 1px solid var(--line-soft); border-radius: var(--r-card); }
+.h-tile.dark { background: var(--forest); color: var(--cream-warm); border-color: var(--forest); }
+.h-tile.gold { border-color: color-mix(in oklab, var(--gold) 26%, transparent); box-shadow: 0 2px 12px -6px rgba(216,179,84,0.25); }
+.h-tile .l { font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink-3); }
+.h-tile.dark .l { color: rgba(244,239,230,0.65); }
+.h-tile h3 { margin: 6px 0 0; font-family: var(--display-font); font-size: 28px; font-weight: 400; color: var(--ink); letter-spacing: -0.01em; line-height: 1.1; }
+.h-tile.dark h3 { color: var(--cream-warm); }
+.h-tile .sub { font-family: var(--sans-font); font-size: 13px; color: var(--ink-3); margin-top: 6px; line-height: 1.45; }
+.h-tile.dark .sub { color: rgba(244,239,230,0.7); }
+.h-tile .foot { display: flex; align-items: center; gap: 8px; font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.h-tile.dark .foot { color: rgba(244,239,230,0.5); border-top-color: rgba(244,239,230,0.10); }
+
+.sec-h-owner { padding: 24px 20px 8px; display: flex; align-items: baseline; gap: 10px; }
+.sec-h-owner h3 { margin: 0; font-family: var(--display-font); font-size: 24px; font-weight: 400; color: var(--ink); letter-spacing: -0.005em; }
+.sec-h-owner .more { margin-left: auto; font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent); }
+
+/* Villa card (home) */
+.villa-card { margin: 0 16px 14px; background: var(--paper); border: 1px solid var(--line-soft); border-radius: var(--r-card-lg); overflow: hidden; }
+.villa-card .photo { aspect-ratio: 16 / 9; background: linear-gradient(140deg, var(--sage), var(--forest)); position: relative; }
+.villa-card .photo .name { position: absolute; left: 16px; bottom: 14px; font-family: var(--display-font); font-size: 22px; color: var(--cream-warm); font-weight: 400; line-height: 1.1; letter-spacing: -0.005em; text-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+.villa-card .photo .name .sub { display: block; font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; opacity: 0.8; margin-top: 4px; font-weight: 400; }
+.villa-card .stats { display: grid; grid-template-columns: repeat(3, 1fr); padding: 14px 16px; gap: 12px; }
+.villa-card .stats .s .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+.villa-card .stats .s .v { font-family: var(--display-font); font-size: 18px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* Up-next stay row */
+.stay-row { padding: 12px 16px; display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center; border-bottom: 1px solid var(--line-soft); }
+.stay-row .when { text-align: center; }
+.stay-row .when .d { font-family: var(--display-font); font-size: 22px; color: var(--ink); line-height: 1; }
+.stay-row .when .m { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-top: 2px; }
+.stay-row .body { min-width: 0; }
+.stay-row .body .nm { font-family: var(--display-font); font-size: 15px; color: var(--ink); line-height: 1.3; }
+.stay-row .body .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+.stay-row .nights { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); padding: 2px 8px; border-radius: 999px; background: var(--cream); }
+.stay-row.personal .nights { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+
+/* Statement list (owner) */
+.st-card { margin: 0 16px 12px; padding: 16px 18px; background: var(--paper); border: 1px solid var(--line-soft); border-radius: var(--r-card); display: flex; align-items: center; gap: 14px; }
+.st-card .when { width: 56px; flex-shrink: 0; text-align: center; }
+.st-card .when .mo { font-family: var(--display-font); font-size: 22px; color: var(--ink); line-height: 1; }
+.st-card .when .yr { font-family: var(--mono-font); font-size: 10px; color: var(--ink-3); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.14em; }
+.st-card .body { flex: 1; min-width: 0; }
+.st-card .body .amt { font-family: var(--display-font); font-size: 18px; color: var(--ink); }
+.st-card .body .narr { font-family: var(--sans-font); font-size: 12.5px; color: var(--ink-3); margin-top: 4px; line-height: 1.45; }
+.st-card .right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.st-card.review { border-color: color-mix(in oklab, var(--gold) 30%, transparent); background: color-mix(in srgb, var(--gold) 4%, var(--paper)); }
+
+/* Statement detail */
+.st-h-detail { padding: 22px 20px 18px; background: var(--cream-warm); }
+.st-h-detail .crumb { font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 8px; }
+.st-h-detail h1 { margin: 0; font-family: var(--display-font); font-size: 26px; font-weight: 400; color: var(--ink); line-height: 1.1; letter-spacing: -0.01em; }
+.st-h-detail h1 em { color: var(--accent); font-style: italic; }
+.st-h-detail .narr { margin: 10px 0 0; font-family: var(--display-font); font-size: 15px; color: var(--ink-2); line-height: 1.5; }
+.st-net { margin: 16px; padding: 22px 20px; background: linear-gradient(160deg, var(--cream-warm), var(--paper)); border: 1px solid var(--line-soft); border-radius: var(--r-card-lg); }
+.st-net .l { font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+.st-net h2 { margin: 6px 0 0; font-family: var(--display-font); font-size: 32px; font-weight: 400; color: var(--ink); letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
+.st-net .sub { font-family: var(--sans-font); font-size: 12.5px; color: var(--ink-3); margin-top: 8px; line-height: 1.5; }
+.st-grp { padding: 10px 16px 4px; display: flex; align-items: center; justify-content: space-between; }
+.st-grp .nm { font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+.st-grp .total { font-family: var(--mono-font); font-size: 13px; color: var(--ink); }
+.st-grp .total.pos { color: var(--ok); }
+.st-grp .total.neg { color: var(--danger); }
+.st-line { padding: 8px 16px; display: grid; grid-template-columns: 1fr auto; gap: 8px; font-size: 13px; align-items: baseline; }
+.st-line .desc { color: var(--ink-2); }
+.st-line .meta { font-family: var(--mono-font); font-size: 10px; color: var(--ink-4); margin-top: 2px; }
+.st-line .amt { font-family: var(--mono-font); font-size: 12.5px; color: var(--ink); }
+
+/* Calendar mini */
+.cal-mo { padding: 16px 16px 6px; }
+.cal-mo h2 { margin: 0; font-family: var(--display-font); font-size: 28px; font-weight: 400; color: var(--ink); letter-spacing: -0.01em; }
+.cal-mo .sub { font-family: var(--mono-font); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-top: 4px; }
+.cal-grid { padding: 8px 12px; }
+.cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; padding: 0 4px 4px; }
+.cal-dow .d { text-align: center; font-family: var(--mono-font); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-4); }
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-d { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-family: var(--mono-font); font-size: 12px; color: var(--ink); border-radius: 8px; position: relative; }
+.cal-d.muted { color: var(--ink-4); }
+.cal-d.today { background: var(--ink); color: var(--inverted-fg); }
+.cal-d.book { background: color-mix(in srgb, var(--sage) 35%, transparent); color: var(--ink); font-weight: 500; }
+.cal-d.book-start { border-radius: 8px 2px 2px 8px; }
+.cal-d.book-end { border-radius: 2px 8px 8px 2px; }
+.cal-d.book-mid { border-radius: 2px; }
+.cal-d.personal { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); font-weight: 500; }
+.cal-d.req { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--accent); border: 1px dashed var(--accent); }
+
+/* Personal stay request flow */
+.req-h { padding: 18px 20px 10px; background: var(--cream-warm); border-bottom: 1px solid var(--line-soft); }
+.req-h h1 { margin: 0; font-family: var(--display-font); font-size: 24px; font-weight: 400; color: var(--ink); letter-spacing: -0.01em; line-height: 1.2; }
+.req-h h1 em { color: var(--accent); font-style: italic; }
+.req-h .narr { margin: 8px 0 0; font-family: var(--display-font); font-size: 14px; color: var(--ink-2); line-height: 1.45; }
+
+.fld { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card); padding: 12px 16px; margin: 0 16px 10px; }
+.fld .lbl { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+.fld .val { display: block; margin-top: 4px; font-family: var(--sans-font); font-size: 15px; color: var(--ink); }
+.fld .val .ph { color: var(--ink-4); }
+.fld.checkable { display: flex; align-items: center; gap: 12px; }
+.fld.checkable .lbl { font-size: 13.5px; text-transform: none; letter-spacing: 0; color: var(--ink); flex: 1; font-family: var(--sans-font); }
+.fld .check { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--ink-4); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.fld .check.on { background: var(--ink); border-color: var(--ink); color: var(--inverted-fg); }
+
+/* Inbox row */
+.in-row { padding: 14px 16px; display: grid; grid-template-columns: 36px 1fr; gap: 12px; border-bottom: 1px solid var(--line-soft); align-items: center; }
+.in-row .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(140deg, var(--sage), var(--forest)); color: var(--cream-warm); display: inline-flex; align-items: center; justify-content: center; font-family: var(--display-font); font-size: 14px; font-weight: 400; }
+.in-row .avatar.agent { background: linear-gradient(140deg, var(--accent), var(--accent-soft)); }
+.in-row .body .top { display: flex; align-items: baseline; gap: 8px; }
+.in-row .body .nm { font-family: var(--sans-font); font-size: 14px; font-weight: 500; color: var(--ink); }
+.in-row .body .when { margin-left: auto; font-family: var(--mono-font); font-size: 10px; color: var(--ink-4); }
+.in-row .body .snip { font-family: var(--sans-font); font-size: 12.5px; color: var(--ink-3); margin-top: 2px; line-height: 1.4; }
+.in-row .body .snip strong { color: var(--ink); font-weight: 500; }
+.in-row.unread .body .nm { font-weight: 600; }
+.in-row.unread .body .snip strong { color: var(--ink); }
+.in-row.unread { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.in-row .dot { position: absolute; }
+
+/* Thread bubbles */
+.msg { margin: 4px 16px; display: flex; gap: 8px; align-items: flex-end; }
+.msg.me { justify-content: flex-end; }
+.msg .bubble { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-family: var(--sans-font); font-size: 14px; line-height: 1.4; color: var(--ink); background: var(--paper); border: 1px solid var(--line-soft); }
+.msg.me .bubble { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+.msg.agent .bubble { background: color-mix(in srgb, var(--accent) 10%, var(--paper)); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+.msg .when { font-family: var(--mono-font); font-size: 9.5px; color: var(--ink-4); padding: 0 16px; }
+.msg-divider { display: flex; align-items: center; gap: 10px; padding: 14px 16px 6px; font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-4); }
+.msg-divider::before, .msg-divider::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
+.composer { padding: 10px 12px; border-top: 1px solid var(--line-soft); background: var(--paper); display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.composer .text { flex: 1; padding: 10px 14px; background: var(--cream-warm); border: 1px solid var(--line); border-radius: 999px; font-family: var(--sans-font); font-size: 13.5px; color: var(--ink-4); }
+.composer .send { width: 38px; height: 38px; border-radius: 50%; background: var(--ink); color: var(--inverted-fg); display: inline-flex; align-items: center; justify-content: center; border: 0; font-size: 16px; }
+
+/* Document row */
+.doc-grp-h { padding: 18px 20px 8px; font-family: var(--display-font); font-size: 18px; color: var(--ink); font-weight: 400; }
+.doc-grp-h .sub { display: block; font-family: var(--mono-font); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.14em; margin-top: 4px; }
+.doc-row { padding: 12px 16px; display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; align-items: center; border-bottom: 1px solid var(--line-soft); }
+.doc-row .ic { width: 32px; height: 38px; border-radius: 4px; background: var(--cream); border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-family: var(--mono-font); font-size: 9px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.14em; flex-shrink: 0; }
+.doc-row .ic.pdf { background: color-mix(in srgb, var(--danger) 10%, var(--cream)); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 25%, var(--line)); }
+.doc-row .ic.contract { background: color-mix(in srgb, var(--gold) 14%, var(--cream)); color: var(--gold); border-color: color-mix(in srgb, var(--gold) 30%, var(--line)); }
+.doc-row .ic.zip { background: var(--cream-deep); color: var(--ink-3); }
+.doc-row .body .nm { font-family: var(--sans-font); font-size: 14px; color: var(--ink); font-weight: 500; line-height: 1.3; }
+.doc-row .body .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+.doc-row .right { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); }
+
+/* Settings */
+.set-section { padding: 18px 20px 6px; border-bottom: 1px solid var(--line-soft); }
+.set-section h3 { margin: 0; font-family: var(--display-font); font-size: 19px; color: var(--ink); font-weight: 400; letter-spacing: -0.005em; }
+.set-section h3.warn { color: var(--warn); }
+.set-section .sub { font-family: var(--sans-font); font-size: 13px; color: var(--ink-3); margin-top: 6px; line-height: 1.5; }
+.set-section .sub strong { color: var(--accent); }
+.set-row { padding: 12px 0; display: grid; grid-template-columns: 1fr; gap: 4px; border-bottom: 1px solid var(--line-soft); margin-top: 8px; }
+.set-row:last-child { border-bottom: 0; }
+.set-row .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+.set-row .v { font-family: var(--sans-font); font-size: 14px; color: var(--ink); display: flex; align-items: center; gap: 10px; }
+.set-row .v .right { margin-left: auto; font-family: var(--mono-font); font-size: 11px; color: var(--accent); }
+.toggle { width: 38px; height: 22px; border-radius: 999px; background: var(--cream-deep); position: relative; flex-shrink: 0; }
+.toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--paper); box-shadow: 0 1px 3px rgba(20,32,28,0.2); transition: left 0.2s; }
+.toggle.on { background: var(--ink); }
+.toggle.on::after { left: 18px; }
+
+/* 2FA gate */
+.gate-h { padding: 22px 20px 16px; background: var(--cream-warm); border-bottom: 1px solid var(--line-soft); }
+.gate-h .icon { width: 40px; height: 40px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; }
+.gate-h h2 { margin: 0; font-family: var(--display-font); font-size: 22px; font-weight: 400; color: var(--ink); letter-spacing: -0.005em; }
+.gate-h .narr { margin: 6px 0 0; font-family: var(--display-font); font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+
+.otp-row { display: flex; gap: 8px; padding: 16px 16px 6px; justify-content: center; }
+.otp-row .d { width: 44px; height: 56px; border-radius: 12px; background: var(--paper); border: 1.5px solid var(--line); display: inline-flex; align-items: center; justify-content: center; font-family: var(--display-font); font-size: 26px; color: var(--ink); }
+.otp-row .d.filled { border-color: var(--ink); }
+.otp-row .d.active { border-color: var(--accent); }
+
+.otp-hint { padding: 4px 16px 12px; text-align: center; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.14em; }
+.otp-hint .resend { color: var(--accent); }
+
+/* Notes */
+.notes h3 { font-family: var(--doc-sans); font-size: 18px; font-weight: 500; margin: 0 0 6px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.notes p.l { font-size: 14px; line-height: 1.6; color: var(--doc-fg-2); margin: 0 0 18px; max-width: 460px; }
+.notes dl { margin: 0; border-top: 1px solid var(--doc-line); }
+.notes dl > div { display: grid; grid-template-columns: 130px 1fr; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--doc-line); }
+.notes dt { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes dd { margin: 0; font-size: 13px; color: var(--doc-fg-2); line-height: 1.55; }
+.notes dd strong { color: var(--doc-fg); font-weight: 500; }
+.notes dd code { background: var(--doc-bg-3); padding: 1px 6px; border-radius: 4px; font-family: var(--doc-mono); font-size: 11.5px; color: var(--doc-fg); }
+
+@media (max-width: 1320px) {
+  .cabinet-body { grid-template-columns: 380px 380px; }
+  .notes { grid-column: 1 / -1; }
+}
+@media (max-width: 820px) {
+  .cabinet-body { grid-template-columns: 1fr; justify-items: center; }
+  .notes { max-width: 420px; }
+}
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Mobile pass · Owner P1 cabinets">
+
+  <header class="page-head">
+    <div class="eyebrow"><span class="glyph"></span><span>DS extension · Mobile pass · Owner P1 cabinets</span></div>
+    <h1 class="title">Seven cabinets, <em>narrative-density on a phone</em>.</h1>
+    <p class="lede">Owner Portal is used 2-4× per month. Half the traffic is mobile — owner gets an email, taps a link, lands on a statement or stay request. The voice is calmer than Mgmt, the type scale larger, the density lower. Same palette, different feel.</p>
+    <div class="meta-row">
+      <div><span class="k">Status</span><span class="v">Draft</span></div>
+      <div><span class="k">Target</span><span class="v">360-700&nbsp;px</span></div>
+      <div><span class="k">Frame</span><span class="v">iPhone 14 · 393 × 852</span></div>
+      <div><span class="k">Series</span><span class="v"><a href="mobile-pass-2.4-primitives.html">primitives</a> · <a href="mobile-pass-2.4-cabinets.html">P2 cabinets</a> · <a href="mobile-pass-mgmt-p1.html">Mgmt P1</a> · <a href="mobile-pass-dev-p1.html">Dev P1</a> · <strong>Owner P1</strong></span></div>
+    </div>
+  </header>
+
+  <main class="boards">
+    <div id="board-mount"></div>
+  </main>
+</div>
+
+<script>
+const PHONE = (inner) => `
+  <div class="phone" data-product="owner">
+    <div class="phone-notch"></div>
+    <div class="phone-screen">
+      <div class="phone-status"><span>9:41</span><span>5G · 86%</span></div>
+      <div class="phone-body">${inner}</div>
+    </div>
+  </div>`;
+
+const TABBAR = (on) => `
+  <div class="app-tabbar">
+    <button class="tab ${on==='home'?'on':''}"><span class="ico">⌂</span>Home</button>
+    <button class="tab ${on==='st'?'on':''}"><span class="ico">$</span>Statements</button>
+    <button class="tab ${on==='cal'?'on':''}"><span class="ico">▦</span>Calendar</button>
+    <button class="tab ${on==='in'?'on':''}"><span class="ico">✉</span>Inbox</button>
+    <button class="tab ${on==='more'?'on':''}"><span class="ico">⋯</span>More</button>
+  </div>`;
+
+const TOP = (title, sub, aux) => `
+  <div class="app-topbar">
+    <div class="ico">←</div>
+    <div class="title">${title}<span class="sub">${sub}</span></div>
+    ${aux ? `<div class="aux">${aux}</div>` : ''}
+  </div>`;
+
+const TOP_FLOW = (title, sub) => `
+  <div class="app-topbar">
+    <div class="ico">×</div>
+    <div class="title">${title}<span class="sub">${sub}</span></div>
+    <div class="ico">⋯</div>
+  </div>`;
+
+const CABINET = (num, title, lede, mainTag, mainScreen, flowTag, flowScreen, notesH, notesL, notes) => `
+  <section class="cabinet">
+    <header class="cabinet-head">
+      <span class="num">${num}</span>
+      <h2>${title}</h2>
+      <div class="meta"><span class="pill">Owner · P1</span></div>
+    </header>
+    <p class="cabinet-lede">${lede}</p>
+    <div class="cabinet-body">
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">main</span><span class="name">${mainTag}</span></div>
+        ${PHONE(mainScreen)}
+      </div>
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">flow</span><span class="name">${flowTag}</span></div>
+        ${PHONE(flowScreen)}
+      </div>
+      <div class="notes">
+        <h3>${notesH}</h3>
+        <p class="l">${notesL}</p>
+        <dl>${notes.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      </div>
+    </div>
+  </section>`;
+
+// ----- 01. HOME -----
+const home_main = `
+  <div class="greet-h">
+    <div class="when">mon · 27 may</div>
+    <h1>Welcome back, <em>Emma.</em></h1>
+    <p class="narr">Your March statement is ready for review — auto-acknowledges in 12 days. Eternal Villa 07 ran 81% in April.</p>
+  </div>
+  <div class="app-scroll">
+    <div class="tile-stack">
+      <div class="h-tile dark">
+        <div class="l">YTD net · 2026</div>
+        <h3>IDR 412M</h3>
+        <div class="sub">3 statements paid · ahead of plan by 6%</div>
+        <div class="foot">≈ USD 28,640 · wired to Wise</div>
+      </div>
+      <div class="h-tile gold">
+        <div class="l">Pending review</div>
+        <h3>March</h3>
+        <div class="sub">17 lines · IDR 142.5M net · auto-acks in 12d</div>
+        <div class="foot" style="border-top:0;padding-top:4px;">
+          <button class="btn btn-accent btn-sm" style="padding:6px 14px;">Review →</button>
+        </div>
+      </div>
+      <div class="h-tile">
+        <div class="l">Next statement</div>
+        <h3>5 Jun</h3>
+        <div class="sub">April auto-prepares first week of May.</div>
+        <div class="foot">Cadence · monthly</div>
+      </div>
+    </div>
+
+    <div class="sec-h-owner"><h3>Your villa</h3><span class="more">All villas (1) →</span></div>
+    <div class="villa-card">
+      <div class="photo">
+        <div class="name">Eternal Villa 07<span class="sub">canggu · 3-bedroom · pool</span></div>
+      </div>
+      <div class="stats">
+        <div class="s"><div class="l">YTD net</div><div class="v">412 M</div></div>
+        <div class="s"><div class="l">april occ</div><div class="v">81%</div></div>
+        <div class="s"><div class="l">avg adr</div><div class="v">1.42 M</div></div>
+      </div>
+    </div>
+
+    <div class="sec-h-owner"><h3>Upcoming · next 14&nbsp;d</h3><span class="more">Full calendar →</span></div>
+    <div class="stay-row">
+      <div class="when"><div class="d">28</div><div class="m">may</div></div>
+      <div class="body">
+        <div class="nm">Hadi Susanto · party 4</div>
+        <div class="meta">5 nights · direct · check-in 14:30</div>
+      </div>
+      <div class="nights">5 N</div>
+    </div>
+    <div class="stay-row personal">
+      <div class="when"><div class="d">04</div><div class="m">jun</div></div>
+      <div class="body">
+        <div class="nm">Your personal stay</div>
+        <div class="meta">3 nights · confirmed mar 12</div>
+      </div>
+      <div class="nights">3 N</div>
+    </div>
+    <div class="stay-row">
+      <div class="when"><div class="d">10</div><div class="m">jun</div></div>
+      <div class="body">
+        <div class="nm">Tan Family · party 6</div>
+        <div class="meta">7 nights · airbnb · returning</div>
+      </div>
+      <div class="nights">7 N</div>
+    </div>
+  </div>
+  ${TABBAR('home')}`;
+
+const home_flow = `
+  ${TOP('Eternal Villa 07', 'canggu · 3-bedroom', '⋯')}
+  <div class="app-scroll">
+    <div style="aspect-ratio: 16 / 10; background: linear-gradient(140deg, var(--sage), var(--forest)); position: relative;">
+      <div style="position:absolute;left:20px;bottom:20px;">
+        <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.16em;color:rgba(244,239,230,0.7);">your villa</div>
+        <div style="font-family:var(--display-font);font-size:28px;color:var(--cream-warm);margin-top:4px;letter-spacing:-0.01em;">Eternal Villa 07</div>
+      </div>
+    </div>
+
+    <div style="padding:18px 20px 8px;">
+      <p style="margin:0;font-family:var(--display-font);font-size:15px;color:var(--ink-2);line-height:1.6;">Three bedrooms, private pool, ocean glimpse. Acquired with Arconique under a 5-year management agreement signed Apr 2024 — managed end-to-end since Jun 2024.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;padding:12px 16px;">
+      <div class="h-tile" style="margin:0;">
+        <div class="l">YTD net</div>
+        <h3 style="font-size:22px;">IDR 412M</h3>
+      </div>
+      <div class="h-tile" style="margin:0;">
+        <div class="l">YTD nights sold</div>
+        <h3 style="font-size:22px;">87 / 145</h3>
+      </div>
+      <div class="h-tile" style="margin:0;">
+        <div class="l">avg ADR</div>
+        <h3 style="font-size:22px;">1.42 M</h3>
+      </div>
+      <div class="h-tile" style="margin:0;">
+        <div class="l">trailing 30d</div>
+        <h3 style="font-size:22px;">76%</h3>
+      </div>
+    </div>
+
+    <div class="sec-h-owner"><h3>Operating health</h3></div>
+    <div style="padding:0 20px 16px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;color:var(--ink);">
+        <span>Housekeeping turnovers</span>
+        <span style="font-family:var(--mono-font);font-size:12px;"><span style="color:var(--ok);">96% on-time</span> · 21 turns</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;color:var(--ink);">
+        <span>Maintenance tickets</span>
+        <span style="font-family:var(--mono-font);font-size:12px;">2 closed · 0 open</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;color:var(--ink);">
+        <span>Guest satisfaction</span>
+        <span style="font-family:var(--mono-font);font-size:12px;color:var(--accent);">4.9 ★ · 18 reviews</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;color:var(--ink);">
+        <span>Repeat guest rate</span>
+        <span style="font-family:var(--mono-font);font-size:12px;">32%</span>
+      </div>
+    </div>
+
+    <div class="sec-h-owner"><h3>Q-review</h3></div>
+    <div style="padding:0 20px 18px;">
+      <div style="padding:14px 16px;background:var(--paper);border:1px solid var(--line-soft);border-radius:18px;">
+        <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">next call</div>
+        <div style="font-family:var(--display-font);font-size:18px;color:var(--ink);margin-top:6px;">Q2 review · Thu 12 Jun · 11:00 SGT</div>
+        <div style="font-family:var(--sans-font);font-size:12.5px;color:var(--ink-3);margin-top:6px;line-height:1.45;">30 min with Director. Agenda will include the May statement and a proposal to adjust your sat/sun premium.</div>
+      </div>
+    </div>
+  </div>`;
+
+const home_notes = [
+  ['Greeting','Display-serif welcome with the owner\'s first name. Terra-accent italic on the name. Short narrative second-line surfaces the single most important action ("March statement ready").'],
+  ['Hero tiles','Three stacked tiles — YTD net (forest-ink hero), pending review (gold-tinted, action), next statement (paper). Stack vertically on mobile, no horizontal scroll.'],
+  ['Villa card','Photo hero with the villa name overlaid (display-serif on the photo). 3 stat columns below: YTD / occupancy / ADR. Tap → villa detail.'],
+  ['Up-next stays','Day glyph + guest name + nights pill. Personal stays use accent tint on the nights pill — owner sees their own bookings highlighted.'],
+  ['Villa detail (flow)','Hero photo → narrative paragraph → 4-up stat grid → operating-health list → Q-review tile. Long scroll but unhurried — owners use this as their "how is my villa doing" page.'],
+  ['Type voice','Owner uses Newsreader display serif at larger sizes (24-32&nbsp;px headers) and Inter for stat values. Calmer, more residential than Mgmt.'],
+  ['Tab bar','5 tabs: Home / Statements / Calendar / Inbox / More. Documents + Settings live behind More.']
+];
+
+// ----- 02. STATEMENTS -----
+const st_main = `
+  <div class="greet-h">
+    <div class="when">your portal · whitmore</div>
+    <h1>Your statements</h1>
+    <p class="narr">14 statements over 14 months. One awaiting your review — auto-acknowledged after 14 days if no action.</p>
+  </div>
+  <div class="app-scroll">
+    <div class="sec-h-owner"><h3>Awaiting review</h3></div>
+    <div class="st-card review">
+      <div class="when"><div class="mo">Mar</div><div class="yr">2026</div></div>
+      <div class="body">
+        <div class="amt">IDR 142.5M net</div>
+        <div class="narr">A clear month. Strong direct bookings, one supplier hike on cleaning, otherwise on plan.</div>
+      </div>
+      <div class="right">
+        <span class="badge badge-gold">12d left</span>
+        <span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">›</span>
+      </div>
+    </div>
+
+    <div class="sec-h-owner"><h3>Settled</h3></div>
+    <div class="st-card">
+      <div class="when"><div class="mo">Feb</div><div class="yr">2026</div></div>
+      <div class="body">
+        <div class="amt">IDR 138.8M net</div>
+        <div class="narr">Acknowledged 14 Mar · wired 19 Mar.</div>
+      </div>
+      <div class="right">
+        <span class="badge badge-ok">paid</span>
+      </div>
+    </div>
+    <div class="st-card">
+      <div class="when"><div class="mo">Jan</div><div class="yr">2026</div></div>
+      <div class="body">
+        <div class="amt">IDR 130.6M net</div>
+        <div class="narr">Acknowledged 12 Feb · wired 17 Feb.</div>
+      </div>
+      <div class="right">
+        <span class="badge badge-ok">paid</span>
+      </div>
+    </div>
+    <div class="st-card">
+      <div class="when"><div class="mo">Dec</div><div class="yr">2025</div></div>
+      <div class="body">
+        <div class="amt">IDR 156.2M net</div>
+        <div class="narr">Strong holiday season. Acknowledged 14 Jan · wired 18 Jan.</div>
+      </div>
+      <div class="right">
+        <span class="badge badge-ok">paid</span>
+      </div>
+    </div>
+    <div class="st-card">
+      <div class="when"><div class="mo">Nov</div><div class="yr">2025</div></div>
+      <div class="body">
+        <div class="amt">IDR 124.8M net</div>
+        <div class="narr">One disputed line, resolved within 4d. Acknowledged 14 Dec.</div>
+      </div>
+      <div class="right">
+        <span class="badge badge-ok">paid</span>
+      </div>
+    </div>
+    <div class="st-card">
+      <div class="when"><div class="mo">Oct</div><div class="yr">2025</div></div>
+      <div class="body">
+        <div class="amt">IDR 142.1M net</div>
+        <div class="narr">First month above plan. Wired 17 Nov.</div>
+      </div>
+      <div class="right">
+        <span class="badge badge-ok">paid</span>
+      </div>
+    </div>
+  </div>
+  ${TABBAR('st')}`;
+
+const st_flow = `
+  ${TOP_FLOW('March 2026', 'EV-07 · awaiting review')}
+  <div class="st-h-detail">
+    <div class="crumb">March · awaiting your review</div>
+    <h1>March 2026 · <em>Eternal Villa 07</em></h1>
+    <p class="narr">A clear month. Strong direct bookings, one supplier hike on cleaning, otherwise on plan. <strong style="color:var(--ink);">Net payout IDR 142.5M</strong>, scheduled to wire 5 days after you acknowledge.</p>
+  </div>
+
+  <div class="app-scroll">
+    <div class="st-net">
+      <div class="l">net to you · march 2026</div>
+      <h2>IDR 142,500,000</h2>
+      <div class="sub">≈ USD 9,840 · 19 nights guests · 81% occupancy · channel mix airbnb 60% / direct 40%</div>
+    </div>
+
+    <div class="st-grp">
+      <span class="nm">Room revenue</span>
+      <span class="total pos">+208.4 M</span>
+    </div>
+    <div class="st-line">
+      <div><div class="desc">Direct bookings · 7 nights</div><div class="meta">avg ADR 1.48 M</div></div>
+      <div class="amt">+10.4 M</div>
+    </div>
+    <div class="st-line">
+      <div><div class="desc">Airbnb bookings · 12 nights</div><div class="meta">avg ADR 1.42 M after commission</div></div>
+      <div class="amt">+17.0 M</div>
+    </div>
+    <div class="st-line">
+      <div><div class="desc">Service-fee passthrough</div><div class="meta">5% on room revenue</div></div>
+      <div class="amt">+10.4 M</div>
+    </div>
+
+    <div class="st-grp">
+      <span class="nm">Channel fees &amp; commissions</span>
+      <span class="total neg">−14.2 M</span>
+    </div>
+    <div class="st-line">
+      <div><div class="desc">Airbnb commission · 8%</div></div>
+      <div class="amt">−12.1 M</div>
+    </div>
+    <div class="st-line">
+      <div><div class="desc">Booking.com commission · 12%</div></div>
+      <div class="amt">−2.1 M</div>
+    </div>
+
+    <div class="st-grp">
+      <span class="nm">Operating expenses</span>
+      <span class="total neg">−23.4 M</span>
+    </div>
+    <div class="st-line">
+      <div><div class="desc">Housekeeping · 14 turnovers</div><div class="meta">supplier rate +8% from feb</div></div>
+      <div class="amt">−18.6 M</div>
+    </div>
+    <div class="st-line">
+      <div><div class="desc">Pool &amp; garden upkeep</div></div>
+      <div class="amt">−4.8 M</div>
+    </div>
+
+    <div class="st-grp">
+      <span class="nm">Management fee &amp; tax</span>
+      <span class="total neg">−27.8 M</span>
+    </div>
+    <div class="st-line">
+      <div><div class="desc">Management fee · 15% on net</div></div>
+      <div class="amt">−17.2 M</div>
+    </div>
+    <div class="st-line">
+      <div><div class="desc">Withholding tax · 10%</div><div class="meta">on net to owner · IDR resident</div></div>
+      <div class="amt">−10.6 M</div>
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <button class="btn btn-ghost">Dispute</button>
+    <button class="btn btn-primary">Acknowledge →</button>
+  </div>`;
+
+const st_notes = [
+  ['Review-first sort','Statements awaiting review at the top, separated section. Gold-tinted card with countdown to auto-ack — owner is reminded but not pressured.'],
+  ['Settled list','Acknowledged statements as a calm scrolling list. Month abbreviation in display-serif on the left, narrative on the right, simple paid badge.'],
+  ['No filter bar','Owners typically have 1-3 villas, list is short. No top-bar filters — keeps the page calmer than the Mgmt equivalent.'],
+  ['Detail · net hero','Cream-warm card with the headline number. Sub-line shows USD equivalent + context (nights, occupancy, channel mix). The "answer" before any line items.'],
+  ['Group totals','Each section (revenue, fees, opex, mgmt/tax) has its own row total in the section header. Signed and tinted — owner can read just the section heads and skip the lines.'],
+  ['Action triad','Bottom: Dispute (opens inbox thread) · Acknowledge (primary, completes the cycle). No "save draft" — owner can leave the page; auto-ack handles inaction.'],
+  ['Voice','Display-serif narrative paragraph at the top describes the month in plain English. Generated by the agent, reviewed by the GM before send.']
+];
+
+// ----- 03. VILLAS -----
+const vi_main = `
+  ${TOP('Your villas', '1 active · 1 onboarding', '')}
+  <div class="app-scroll">
+    <div style="padding:18px 20px 4px;">
+      <p style="margin:0;font-family:var(--display-font);font-size:15px;color:var(--ink-2);line-height:1.5;">You currently manage one villa with Arconique. A second (Sukha-Sanctuary) is in onboarding — handover expected late Q3.</p>
+    </div>
+
+    <div class="sec-h-owner"><h3>Active</h3></div>
+    <div class="villa-card">
+      <div class="photo">
+        <div class="name">Eternal Villa 07<span class="sub">canggu · 3-bedroom · pool</span></div>
+      </div>
+      <div class="stats">
+        <div class="s"><div class="l">YTD net</div><div class="v">412 M</div></div>
+        <div class="s"><div class="l">april occ</div><div class="v">81%</div></div>
+        <div class="s"><div class="l">avg adr</div><div class="v">1.42 M</div></div>
+      </div>
+      <div style="padding:0 16px 14px;display:flex;align-items:center;gap:8px;font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">
+        <span class="badge badge-ok">all clear</span>
+        <span style="margin-left:auto;">view →</span>
+      </div>
+    </div>
+
+    <div class="sec-h-owner"><h3>Onboarding</h3></div>
+    <div class="villa-card" style="opacity:0.85;">
+      <div class="photo" style="background: linear-gradient(140deg, #B6A089, #6E5A48);">
+        <div class="name">Sukha-Sanctuary<span class="sub">uluwatu · 4-bedroom · onboarding</span></div>
+      </div>
+      <div style="padding:14px 16px;">
+        <div style="display:flex;gap:6px;align-items:center;font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">
+          <span class="badge badge-warn">step 4 of 6</span>
+          <span style="margin-left:auto;">payout setup pending</span>
+        </div>
+        <div style="display:flex;gap:4px;margin-top:10px;">
+          <div style="flex:1;height:4px;background:var(--ink);border-radius:4px;"></div>
+          <div style="flex:1;height:4px;background:var(--ink);border-radius:4px;"></div>
+          <div style="flex:1;height:4px;background:var(--ink);border-radius:4px;"></div>
+          <div style="flex:1;height:4px;background:var(--accent);border-radius:4px;"></div>
+          <div style="flex:1;height:4px;background:var(--cream-deep);border-radius:4px;"></div>
+          <div style="flex:1;height:4px;background:var(--cream-deep);border-radius:4px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-h-owner"><h3>Performance comparison</h3></div>
+    <div style="padding:0 20px 18px;">
+      <p style="margin:0;font-family:var(--sans-font);font-size:13px;color:var(--ink-3);line-height:1.55;">Once Sukha-Sanctuary is operating you'll see month-by-month comparison here, including occupancy, ADR, and net payout side-by-side.</p>
+    </div>
+  </div>
+  ${TABBAR('more')}`;
+
+const vi_flow = `
+  ${TOP_FLOW('Maintenance · EV-07', 'pool pump · raised 12 mar')}
+  <div class="req-h">
+    <h1>Pool pump cycling</h1>
+    <p class="narr">A summary of what we observed, what we did, and what your share of the cost was. No action required.</p>
+  </div>
+
+  <div class="app-scroll">
+    <div style="margin:14px 16px;padding:18px;background:var(--paper);border:1px solid var(--line-soft);border-radius:18px;">
+      <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.16em;color:var(--ink-3);">closed · 11 mar 2026</div>
+      <div style="font-family:var(--display-font);font-size:18px;color:var(--ink);margin-top:6px;line-height:1.3;">Variable-frequency drive replaced under MEP warranty.</div>
+      <p style="margin:10px 0 0;font-family:var(--sans-font);font-size:13.5px;color:var(--ink-2);line-height:1.55;">The pump was cycling on and off, costing pool clarity. Vendor confirmed VFD fault. Replaced under vendor warranty — no parts cost to you. Labor + diagnostics passed through.</p>
+    </div>
+
+    <div style="padding:8px 16px;display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+        <span style="font-family:var(--mono-font);font-size:10.5px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">raised</span>
+        <span style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);">12 mar 14:20 · housekeeping during turn</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+        <span style="font-family:var(--mono-font);font-size:10.5px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">diagnosed</span>
+        <span style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);">12 mar 16:30 · VFD fault</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+        <span style="font-family:var(--mono-font);font-size:10.5px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">parts</span>
+        <span style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);">vendor warranty · IDR 0</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+        <span style="font-family:var(--mono-font);font-size:10.5px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">labor</span>
+        <span style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);font-family:var(--mono-font);">IDR 4,800,000</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+        <span style="font-family:var(--mono-font);font-size:10.5px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">downtime</span>
+        <span style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);">2h pool unavailable</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+        <span style="font-family:var(--mono-font);font-size:10.5px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">guests impacted</span>
+        <span style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink);">none — between stays</span>
+      </div>
+    </div>
+
+    <div style="margin:14px 16px;padding:14px 16px;background:color-mix(in srgb, var(--ok) 6%, var(--paper));border:1px solid color-mix(in srgb, var(--ok) 30%, transparent);border-radius:14px;">
+      <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ok);margin-bottom:4px;">on your march statement</div>
+      <div style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink-2);line-height:1.5;">This item appears as <strong style="font-family:var(--mono-font);">"Maintenance · pool pump VFD"</strong> at IDR 4.8M.</div>
+    </div>
+  </div>
+  <div class="cta-row">
+    <button class="btn btn-ghost">Question this</button>
+    <button class="btn btn-primary">Got it</button>
+  </div>`;
+
+const vi_notes = [
+  ['List','Vertical photo-card list — owners rarely have many villas, so density is sacrificed for visual presence. Active and Onboarding split as sections.'],
+  ['Onboarding indicator','6-segment progress strip on onboarding villas + badge showing current step. Clicking opens the onboarding checklist (same as Mgmt onboarding flow but read-only for owner).'],
+  ['Performance comparison','Stays as a teaser until a second villa goes live. The card is a placeholder explaining what will appear.'],
+  ['Maintenance detail (flow)','Closed maintenance event presented as a story: what happened → what we did → impact → cost split. Display serif headline, narrative paragraph, key-value rows.'],
+  ['Statement link-back','Ok-tinted card at the bottom says "this appears as X on your March statement at Y amount" — closes the loop between operations and finance.'],
+  ['Action triad','Question this (opens inbox) · Got it (acknowledge). Replaces desktop "discuss/approve" with calmer language.'],
+  ['Photo treatment','Gradient placeholder (sage→forest for villas in operation, warm-grey for onboarding). Will be replaced by real photography when assets are available.']
+];
+
+// ----- 04. CALENDAR -----
+const ca_main = `
+  ${TOP('Your calendar', 'EV-07 · jun 2026', '⋯')}
+  <div class="app-scroll">
+    <div class="cal-mo">
+      <h2>June 2026</h2>
+      <div class="sub">7 booked nights · 3 personal · 1 request pending</div>
+    </div>
+
+    <div class="cal-grid">
+      <div class="cal-dow">
+        <div class="d">m</div><div class="d">t</div><div class="d">w</div><div class="d">t</div><div class="d">f</div><div class="d">s</div><div class="d">s</div>
+      </div>
+      <div class="cal-days">
+        <div class="cal-d muted">26</div><div class="cal-d muted">27</div><div class="cal-d muted">28</div><div class="cal-d muted">29</div><div class="cal-d muted">30</div><div class="cal-d muted">31</div><div class="cal-d">1</div>
+        <div class="cal-d">2</div><div class="cal-d">3</div><div class="cal-d personal book-start">4</div><div class="cal-d personal book-mid">5</div><div class="cal-d personal book-end">6</div><div class="cal-d">7</div><div class="cal-d">8</div>
+        <div class="cal-d">9</div><div class="cal-d book book-start">10</div><div class="cal-d book book-mid">11</div><div class="cal-d book book-mid">12</div><div class="cal-d book book-mid">13</div><div class="cal-d book book-mid">14</div><div class="cal-d book book-mid">15</div>
+        <div class="cal-d book book-end">16</div><div class="cal-d">17</div><div class="cal-d">18</div><div class="cal-d req book-start">19</div><div class="cal-d req book-mid">20</div><div class="cal-d req book-end">21</div><div class="cal-d">22</div>
+        <div class="cal-d">23</div><div class="cal-d today">24</div><div class="cal-d">25</div><div class="cal-d">26</div><div class="cal-d">27</div><div class="cal-d">28</div><div class="cal-d">29</div>
+        <div class="cal-d">30</div><div class="cal-d muted">1</div><div class="cal-d muted">2</div><div class="cal-d muted">3</div><div class="cal-d muted">4</div><div class="cal-d muted">5</div><div class="cal-d muted">6</div>
+      </div>
+    </div>
+
+    <div style="padding:6px 20px 4px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">
+      <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:color-mix(in srgb, var(--sage) 40%, transparent);border-radius:3px;"></span>guest</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:color-mix(in srgb, var(--accent) 25%, transparent);border-radius:3px;"></span>personal</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:color-mix(in srgb, var(--accent) 8%, transparent);border:1px dashed var(--accent);border-radius:3px;"></span>request</span>
+    </div>
+
+    <div class="sec-h-owner"><h3>Upcoming stays</h3></div>
+    <div class="stay-row personal">
+      <div class="when"><div class="d">04</div><div class="m">jun</div></div>
+      <div class="body">
+        <div class="nm">Your personal stay</div>
+        <div class="meta">3 nights · confirmed mar 12</div>
+      </div>
+      <div class="nights">3 N</div>
+    </div>
+    <div class="stay-row">
+      <div class="when"><div class="d">10</div><div class="m">jun</div></div>
+      <div class="body">
+        <div class="nm">Tan Family · party 6</div>
+        <div class="meta">7 nights · airbnb · returning</div>
+      </div>
+      <div class="nights">7 N</div>
+    </div>
+    <div class="stay-row" style="background:color-mix(in srgb, var(--accent) 4%, transparent);">
+      <div class="when"><div class="d">19</div><div class="m">jun</div></div>
+      <div class="body">
+        <div class="nm">Personal stay · pending</div>
+        <div class="meta">requested 22 may · awaiting Mgmt</div>
+      </div>
+      <div class="nights" style="background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);">3 N</div>
+    </div>
+
+    <div style="margin:16px;padding:14px 16px;background:var(--paper);border:1px solid var(--line-soft);border-radius:18px;display:flex;align-items:center;gap:12px;">
+      <div style="width:44px;height:44px;border-radius:50%;background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-family:var(--display-font);font-size:22px;">+</div>
+      <div style="flex:1;">
+        <div style="font-family:var(--display-font);font-size:16px;color:var(--ink);">Request a personal stay</div>
+        <div style="font-family:var(--sans-font);font-size:12.5px;color:var(--ink-3);margin-top:2px;">Pick dates — we confirm within 24h, or propose alternates.</div>
+      </div>
+    </div>
+
+  </div>
+  ${TABBAR('cal')}`;
+
+const ca_flow = `
+  ${TOP_FLOW('Personal stay', 'request dates · EV-07')}
+  <div class="req-h">
+    <h1>Request a personal stay</h1>
+    <p class="narr">Pick the dates you'd like. We'll confirm within 24h if the villa is available — or propose alternates if there's a booking conflict.</p>
+  </div>
+
+  <div class="app-scroll" style="padding-top:14px;">
+    <div class="fld">
+      <div class="lbl">Check-in</div>
+      <div class="val">19 Jun 2026 · Fri</div>
+    </div>
+    <div class="fld">
+      <div class="lbl">Check-out</div>
+      <div class="val">22 Jun 2026 · Mon · 3 nights</div>
+    </div>
+    <div class="fld">
+      <div class="lbl">Party size</div>
+      <div class="val">4 adults · 0 children</div>
+    </div>
+    <div class="fld">
+      <div class="lbl">Special arrangements (optional)</div>
+      <div class="val"><span class="ph">e.g. airport pickup, in-villa chef…</span></div>
+    </div>
+    <div class="fld checkable">
+      <div class="check on">✓</div>
+      <div class="lbl">Block these dates from guest bookings immediately</div>
+    </div>
+    <div class="fld checkable">
+      <div class="check"></div>
+      <div class="lbl">Allow Mgmt to propose alternate dates if conflict</div>
+    </div>
+
+    <div style="margin:14px 16px;padding:14px 16px;background:color-mix(in srgb, var(--ok) 6%, var(--paper));border:1px solid color-mix(in srgb, var(--ok) 28%, transparent);border-radius:14px;">
+      <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ok);margin-bottom:4px;">availability looks good</div>
+      <div style="font-family:var(--sans-font);font-size:13px;color:var(--ink-2);line-height:1.5;">These dates currently have no guest bookings on EV-07. We'll send the request to Mgmt for final confirmation, and you'll hear back within 24h.</div>
+    </div>
+
+    <div style="padding:6px 20px 0;font-family:var(--sans-font);font-size:12.5px;color:var(--ink-3);line-height:1.55;">
+      Per your MSA, you have up to <strong style="color:var(--ink);">21 nights</strong> of complimentary personal stays per calendar year. You've used <strong style="color:var(--ink);font-family:var(--mono-font);">3 of 21</strong> in 2026.
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <button class="btn btn-ghost">Cancel</button>
+    <button class="btn btn-primary">Send request →</button>
+  </div>`;
+
+const ca_notes = [
+  ['Month grid','Standard 7-col mini calendar. Day cells encode state by background colour: guest stays sage-tinted, personal stays accent-tinted, pending requests accent-tinted with dashed border. Today is ink-filled.'],
+  ['Multi-day spans','Adjacent same-state cells share rounding (start/mid/end) so a 7-night booking reads as one continuous pill.'],
+  ['Legend','3-up below the grid. No legend on desktop (hover-tooltips) but mobile needs the explicit key.'],
+  ['Upcoming stays','Compact list below the calendar. Personal stays tinted with accent. Pending requests have a soft accent wash + accent nights pill.'],
+  ['CTA card','"Request a personal stay" as a tappable card at the bottom of the scroll. Less visually pushy than a floating button — owner uses this 2-4× per year.'],
+  ['Request flow','5 fields max: dates · party · arrangements · 2 toggles. Auto-block guest bookings is on by default (owner intent). Allow-alternate is off (owner picks specific dates).'],
+  ['Availability hint','Ok-tinted live preview tells the owner whether the dates are clear before they commit. Saves the back-and-forth in the inbox.'],
+  ['MSA budget','Trailing line shows complimentary-nights remaining per year. Helpful for owners who lose track.']
+];
+
+// ----- 05. INBOX -----
+const ib_main = `
+  ${TOP('Inbox', '12 conversations · 2 unread', '⋯')}
+  <div class="app-scroll">
+    <div class="in-row unread">
+      <div class="avatar">RC</div>
+      <div class="body">
+        <div class="top">
+          <span class="nm">Reza Chandra</span>
+          <span class="when">14m</span>
+        </div>
+        <div class="snip"><strong>Re: feb statement supplier line</strong> — Thanks for flagging. The increase is the housekeeping contractor's annual…</div>
+      </div>
+    </div>
+    <div class="in-row unread">
+      <div class="avatar agent">A</div>
+      <div class="body">
+        <div class="top">
+          <span class="nm">Arconique · concierge</span>
+          <span class="when">2h</span>
+        </div>
+        <div class="snip"><strong>Your June personal-stay request</strong> — Confirmed for 19-22 Jun. Guest booking auto-blocked. See you in 3 weeks…</div>
+      </div>
+    </div>
+
+    <div class="in-row">
+      <div class="avatar agent">A</div>
+      <div class="body">
+        <div class="top">
+          <span class="nm">Arconique · concierge</span>
+          <span class="when">yest</span>
+        </div>
+        <div class="snip"><strong>Pool pump maintenance closed</strong> — Vendor came on-site, VFD replaced under warranty. Full breakdown on your…</div>
+      </div>
+    </div>
+    <div class="in-row">
+      <div class="avatar">MS</div>
+      <div class="body">
+        <div class="top">
+          <span class="nm">Made Surya</span>
+          <span class="when">3d</span>
+        </div>
+        <div class="snip"><strong>Q2 review call · proposed times</strong> — Three options for our Q2 review: Thu 12 Jun 11:00 SGT, Fri 13 Jun…</div>
+      </div>
+    </div>
+    <div class="in-row">
+      <div class="avatar agent">A</div>
+      <div class="body">
+        <div class="top">
+          <span class="nm">Arconique · concierge</span>
+          <span class="when">5d</span>
+        </div>
+        <div class="snip"><strong>Your Feb statement is ready</strong> — IDR 138.8M net, all on plan. Click to review and acknowledge.</div>
+      </div>
+    </div>
+    <div class="in-row">
+      <div class="avatar">RC</div>
+      <div class="body">
+        <div class="top">
+          <span class="nm">Reza Chandra</span>
+          <span class="when">14d</span>
+        </div>
+        <div class="snip"><strong>Re: tax certificate 2025</strong> — Sent over. Form 1721-A1 attached, signed by our director.</div>
+      </div>
+    </div>
+    <div class="in-row">
+      <div class="avatar">DR</div>
+      <div class="body">
+        <div class="top">
+          <span class="nm">Daud Ramli · director</span>
+          <span class="when">22d</span>
+        </div>
+        <div class="snip">Thanks for joining the Q1 call. To recap: ADR uplift confirmed, sat/sun premium…</div>
+      </div>
+    </div>
+  </div>
+  ${TABBAR('in')}`;
+
+const ib_flow = `
+  ${TOP_FLOW('Reza Chandra', 'arconique · director')}
+
+  <div class="app-scroll" style="padding:8px 0 4px;">
+
+    <div class="msg-divider">yesterday · 16:42</div>
+
+    <div class="msg">
+      <div class="bubble">Hi Emma — quick one. Your Feb statement is ready (IDR 138.8M net). One line that's worth a heads-up: housekeeping unit cost went up 8% from Feb. Annual supplier renegotiation. Detail in the statement when you have a moment.</div>
+    </div>
+    <div class="when">yesterday 16:42</div>
+
+    <div class="msg me">
+      <div class="bubble">Thanks Reza. Saw it. Is the 8% baked in for the year or do we revisit in Q3?</div>
+    </div>
+    <div class="when">yesterday 18:14</div>
+
+    <div class="msg-divider">today · 09:08</div>
+
+    <div class="msg">
+      <div class="bubble">Locked for the year. The vendor's our biggest pain — we're piloting a second crew on two villas this month. If it goes well we'll have leverage in Sep negotiations. Will flag in Q2 call.</div>
+    </div>
+    <div class="when">today 09:08</div>
+
+    <div class="msg me">
+      <div class="bubble">Makes sense. Also — proposed times for Q2 call work for you?</div>
+    </div>
+    <div class="when">today 09:14</div>
+
+    <div class="msg agent">
+      <div class="bubble">Daud here, jumping in — Thursday 12 Jun at 11:00 SGT works on our side. Confirmed in Reza's calendar. I'll send the calendar invite + agenda by Monday.</div>
+    </div>
+    <div class="when">today 09:42</div>
+
+    <div class="msg-divider">just now</div>
+
+    <div class="msg">
+      <div class="bubble">Perfect, locking it in. Talk Thursday.</div>
+    </div>
+    <div class="when">14m ago</div>
+
+  </div>
+
+  <div class="composer">
+    <div class="text">Message…</div>
+    <button class="send">↑</button>
+  </div>`;
+
+const ib_notes = [
+  ['Avatars','Initials in a sage→forest gradient circle for humans, accent gradient for the concierge AI agent. Same colour codes as Mgmt concierge but mirrored on the owner side.'],
+  ['Unread row','Soft accent-wash background + bolder name. Snippet preview shows the subject line in bold + the message snippet, just enough to read or skip.'],
+  ['Subject as preview','"Re: feb statement supplier line" — subject lines double as preview anchors. Replaces email-style separate subject + body.'],
+  ['Thread bubbles','Same shape as Mgmt concierge but the owner is "me" on the right (ink fill). Mgmt staff = paper bubble left. Agent = accent-tinted left. Three voices clearly distinguished.'],
+  ['Date dividers','"yesterday · 16:42", "today · 09:08", "just now" — mono uppercase divider lines. Marks shifts in conversation rhythm.'],
+  ['Composer','Pinned to the bottom. Single text field + send button. No attachment / camera affordances in P1 — owners stay text-only.'],
+  ['Multi-party','One thread can have multiple Arconique people (Reza + Daud). Each speaks for themselves with their own avatar — no "team" mega-avatar.']
+];
+
+// ----- 06. DOCUMENTS -----
+const do_main = `
+  ${TOP('Documents', '12 files · all sources', '⋯')}
+  <div class="app-scroll">
+    <div style="padding:18px 20px 8px;">
+      <p style="margin:0;font-family:var(--display-font);font-size:15px;color:var(--ink-2);line-height:1.5;">All your owner documents — contracts, statements, tax certificates, vendor receipts. Searchable. We keep originals; you can download a bundle anytime.</p>
+    </div>
+
+    <div style="padding:10px 20px;">
+      <div style="padding:10px 14px;background:var(--paper);border:1px solid var(--line);border-radius:999px;display:flex;align-items:center;gap:10px;font-family:var(--sans-font);font-size:13px;color:var(--ink-4);">
+        <span style="color:var(--ink-3);">⌕</span>
+        <span>Search documents…</span>
+      </div>
+    </div>
+
+    <div class="doc-grp-h">Contracts <span class="sub">3 files · MSA + amendments</span></div>
+    <div class="doc-row">
+      <div class="ic contract">MSA</div>
+      <div class="body">
+        <div class="nm">Master service agreement</div>
+        <div class="meta">signed 14 apr 2024 · v1.0 · 28 pages</div>
+      </div>
+      <div class="right">↓</div>
+    </div>
+    <div class="doc-row">
+      <div class="ic pdf">PDF</div>
+      <div class="body">
+        <div class="nm">Amendment 1 · revenue split</div>
+        <div class="meta">signed 04 dec 2024 · 4 pages</div>
+      </div>
+      <div class="right">↓</div>
+    </div>
+    <div class="doc-row">
+      <div class="ic pdf">PDF</div>
+      <div class="body">
+        <div class="nm">Schedule A · operating budget 2026</div>
+        <div class="meta">approved 18 jan 2026 · 8 pages</div>
+      </div>
+      <div class="right">↓</div>
+    </div>
+
+    <div class="doc-grp-h">Statements <span class="sub">14 monthly · jan 25 → mar 26</span></div>
+    <div class="doc-row">
+      <div class="ic pdf">PDF</div>
+      <div class="body">
+        <div class="nm">March 2026 · EV-07</div>
+        <div class="meta">draft · IDR 142.5M net</div>
+      </div>
+      <div class="right">›</div>
+    </div>
+    <div class="doc-row">
+      <div class="ic pdf">PDF</div>
+      <div class="body">
+        <div class="nm">February 2026 · EV-07</div>
+        <div class="meta">acknowledged 14 mar · IDR 138.8M</div>
+      </div>
+      <div class="right">↓</div>
+    </div>
+    <div class="doc-row">
+      <div class="ic zip">ZIP</div>
+      <div class="body">
+        <div class="nm">All 2025 statements · bundle</div>
+        <div class="meta">12 files · 4.2 MB</div>
+      </div>
+      <div class="right">↓</div>
+    </div>
+
+    <div class="doc-grp-h">Tax &amp; compliance <span class="sub">2 files</span></div>
+    <div class="doc-row">
+      <div class="ic pdf">PDF</div>
+      <div class="body">
+        <div class="nm">Form 1721-A1 · 2025 tax certificate</div>
+        <div class="meta">issued 24 jan 2026 · IDR resident</div>
+      </div>
+      <div class="right">↓</div>
+    </div>
+    <div class="doc-row">
+      <div class="ic pdf">PDF</div>
+      <div class="body">
+        <div class="nm">PB1 · regional tax assessment</div>
+        <div class="meta">paid 04 mar 2026 · jan-mar Q1</div>
+      </div>
+      <div class="right">↓</div>
+    </div>
+  </div>
+  ${TABBAR('more')}`;
+
+const do_flow = `
+  ${TOP_FLOW('Bundle download', '14 files · 8.4 MB')}
+  <div class="req-h">
+    <h1>Bundle &amp; download</h1>
+    <p class="narr">Choose what to include. We'll package everything as a single ZIP. Useful for tax filing or sharing with your accountant.</p>
+  </div>
+
+  <div class="app-scroll" style="padding-top:14px;">
+    <div class="fld checkable">
+      <div class="check on">✓</div>
+      <div class="lbl">Contracts · MSA + amendments <span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);margin-left:4px;">3 files</span></div>
+    </div>
+    <div class="fld checkable">
+      <div class="check on">✓</div>
+      <div class="lbl">All statements · jan 25 → mar 26 <span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);margin-left:4px;">14 files</span></div>
+    </div>
+    <div class="fld checkable">
+      <div class="check"></div>
+      <div class="lbl">Just 2025 statements <span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);margin-left:4px;">12 files</span></div>
+    </div>
+    <div class="fld checkable">
+      <div class="check on">✓</div>
+      <div class="lbl">Tax &amp; compliance <span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);margin-left:4px;">2 files</span></div>
+    </div>
+    <div class="fld checkable">
+      <div class="check"></div>
+      <div class="lbl">Vendor receipts (passthrough opex) <span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);margin-left:4px;">34 files · 12.6 MB</span></div>
+    </div>
+    <div class="fld checkable">
+      <div class="check"></div>
+      <div class="lbl">Photo archives <span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);margin-left:4px;">132 files · 84 MB</span></div>
+    </div>
+
+    <div class="fld">
+      <div class="lbl">Format</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+        <button style="padding:6px 12px;border-radius:999px;border:1px solid var(--ink);background:var(--ink);color:var(--inverted-fg);font-family:var(--mono-font);font-size:11px;">ZIP</button>
+        <button style="padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-2);font-family:var(--mono-font);font-size:11px;">single PDF</button>
+      </div>
+    </div>
+
+    <div class="fld checkable">
+      <div class="check"></div>
+      <div class="lbl">Email me when ready (instead of waiting)</div>
+    </div>
+
+    <div style="margin:14px 16px;padding:14px 16px;background:var(--ink);color:var(--inverted-fg);border-radius:14px;">
+      <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:rgba(244,239,230,0.6);">bundle preview</div>
+      <div style="font-family:var(--display-font);font-size:22px;margin-top:6px;">19 files · 8.4 MB</div>
+      <div style="font-family:var(--sans-font);font-size:12.5px;color:rgba(244,239,230,0.7);margin-top:6px;line-height:1.5;">Ready in about 4 seconds. We'll start the download immediately.</div>
+    </div>
+  </div>
+  <div class="cta-row">
+    <button class="btn btn-ghost">Cancel</button>
+    <button class="btn btn-primary">Generate bundle →</button>
+  </div>`;
+
+const do_notes = [
+  ['Search bar','At the top of the scroll. Looks like a pill input. Searches across all groups by document title + content (PDF text). Tap-to-focus opens system keyboard with a back affordance.'],
+  ['Groups','Contracts → Statements → Tax → Vendor receipts → Photos (latter not shown). Display-serif header with count + brief context.'],
+  ['Doc row','Icon (PDF/contract/ZIP) + title + meta. Right side: down-arrow for direct download, chevron for "still in flight" (e.g. unacknowledged statement).'],
+  ['Icon tints','Contract = gold-tinted (long-lived, important). PDF = danger-tinted (statements, tax). ZIP = neutral cream (bundles).'],
+  ['Bundle flow','Checkbox list of categories + format toggle (ZIP vs single PDF). Preview card shows the final bundle size before commit.'],
+  ['Email-when-ready','For owners with large photo archives — generation can take 30s+; toggle sends an email link instead of blocking.'],
+  ['Vendor receipts','34 files visible from the bundle picker but not on the main list — owners rarely browse them individually, but want them in bundles for accountant.']
+];
+
+// ----- 07. SETTINGS -----
+const se_main = `
+  ${TOP('Settings', 'your account', '⋯')}
+  <div class="app-scroll">
+    <div style="padding:22px 20px 8px;background:var(--cream-warm);border-bottom:1px solid var(--line-soft);">
+      <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;">your account</div>
+      <h1 style="margin:0;font-family:var(--display-font);font-size:30px;font-weight:400;color:var(--ink);letter-spacing:-0.01em;">Settings</h1>
+    </div>
+
+    <div class="set-section">
+      <h3>Profile</h3>
+      <div class="sub">Your contact info. We use these for statements, alerts, and Q-review scheduling.</div>
+      <div class="set-row"><span class="l">Full name</span><span class="v">Emma Whitmore <span class="right">edit</span></span></div>
+      <div class="set-row"><span class="l">Email</span><span class="v">emma.w@whitmore.co <span class="right">edit</span></span></div>
+      <div class="set-row"><span class="l">Phone</span><span class="v">+65 9123 4567 <span class="right">edit</span></span></div>
+      <div class="set-row"><span class="l">Tax residency</span><span class="v">Singapore <span class="right">edit</span></span></div>
+    </div>
+
+    <div class="set-section">
+      <h3>Payout method</h3>
+      <div class="sub">Where your monthly statement payouts wire. <strong>Editing requires 2FA</strong> and email confirmation. Last change: 14 Apr 2024.</div>
+      <div class="set-row">
+        <span class="l">Method</span>
+        <span class="v">Wise · multi-currency<span class="right">change</span></span>
+      </div>
+      <div class="set-row">
+        <span class="l">Wire to</span>
+        <span class="v">ending&nbsp;3401 · USD<span class="right">edit</span></span>
+      </div>
+      <div class="set-row">
+        <span class="l">Conversion</span>
+        <span class="v">IDR → USD · statement-day mid<span class="right">edit</span></span>
+      </div>
+    </div>
+
+    <div class="set-section">
+      <h3>Notifications</h3>
+      <div class="sub">When and how Arconique reaches out. SMS is for arrival alerts only.</div>
+      <div class="set-row">
+        <span class="l">Statement ready</span>
+        <span class="v">Email when Mgmt approves your monthly statement<span style="margin-left:auto;"><span class="toggle on"></span></span></span>
+      </div>
+      <div class="set-row">
+        <span class="l">Arrival alert</span>
+        <span class="v">SMS 2h before guest arrival<span style="margin-left:auto;"><span class="toggle on"></span></span></span>
+      </div>
+      <div class="set-row">
+        <span class="l">Maintenance update</span>
+        <span class="v">Email when a ticket opens or closes<span style="margin-left:auto;"><span class="toggle on"></span></span></span>
+      </div>
+      <div class="set-row">
+        <span class="l">Q-review reminder</span>
+        <span class="v">Email 1 week before the call<span style="margin-left:auto;"><span class="toggle"></span></span></span>
+      </div>
+      <div class="set-row">
+        <span class="l">Marketing &amp; updates</span>
+        <span class="v">Product news, feature releases<span style="margin-left:auto;"><span class="toggle"></span></span></span>
+      </div>
+    </div>
+
+    <div class="set-section">
+      <h3>Portal access</h3>
+      <div class="sub">Who can sign into this portal as you. Multi-user access deferred to 2.5.</div>
+      <div class="set-row">
+        <span class="l">Primary</span>
+        <span class="v" style="flex-direction:column;align-items:flex-start;gap:4px;">
+          <span>emma.w@whitmore.co</span>
+          <span style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">2FA via SMS · last sign-in today 09:14 SGT</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="set-section" style="border-color: color-mix(in oklab, var(--warn) 26%, transparent);">
+      <h3 class="warn">Leaving Arconique</h3>
+      <div class="sub">Off-boarding goes through your MSA termination clause. Speak with Director first — 90-day grace period, final statement finalises after that.</div>
+      <div style="padding:14px 0 4px;">
+        <button class="btn btn-ghost btn-sm" style="color:var(--warn);border-color:color-mix(in oklab, var(--warn) 26%, transparent);width:100%;">Request termination call</button>
+      </div>
+    </div>
+  </div>
+  ${TABBAR('more')}`;
+
+const se_flow = `
+  ${TOP_FLOW('Change payout', '2FA required')}
+  <div class="gate-h">
+    <div class="icon">🔒</div>
+    <h2>Verify it's you</h2>
+    <p class="narr">Payout changes need a second factor. We sent a 6-digit code to your phone ending in <strong style="color:var(--ink);">4567</strong>. Enter it below to continue.</p>
+  </div>
+
+  <div class="app-scroll">
+    <div class="otp-row">
+      <div class="d filled">3</div>
+      <div class="d filled">8</div>
+      <div class="d filled">2</div>
+      <div class="d active">7</div>
+      <div class="d"></div>
+      <div class="d"></div>
+    </div>
+    <div class="otp-hint">code expires in <strong style="color:var(--ink-2);">4:38</strong> · <span class="resend">resend</span></div>
+
+    <div style="margin:18px 20px 8px;padding:14px 16px;background:var(--paper);border:1px solid var(--line-soft);border-radius:14px;">
+      <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">about this change</div>
+      <div style="font-family:var(--sans-font);font-size:13.5px;color:var(--ink-2);line-height:1.5;margin-top:6px;">You're changing the destination of your monthly statement payouts. After 2FA, we'll send an email to <strong style="color:var(--ink);">emma.w@whitmore.co</strong> with a final confirmation link — the change applies only after both factors clear.</div>
+    </div>
+
+    <div style="margin:0 20px;padding:14px 16px;background:color-mix(in srgb, var(--warn) 6%, var(--paper));border:1px solid color-mix(in srgb, var(--warn) 30%, transparent);border-radius:14px;">
+      <div style="font-family:var(--mono-font);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--warn);margin-bottom:4px;">notice period</div>
+      <div style="font-family:var(--sans-font);font-size:13px;color:var(--ink-2);line-height:1.5;">Your <strong>March 2026 payout (IDR 142.5M)</strong> is already in the queue and will wire to your current Wise account. Changes apply from <strong>April 2026 onward</strong>.</div>
+    </div>
+
+    <div style="padding:18px 20px 0;display:flex;flex-direction:column;gap:6px;font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">
+      <div style="display:flex;justify-content:space-between;"><span>sms code</span><span style="color:var(--ok);">3/6 entered</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>email confirmation</span><span>pending</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>director audit</span><span>auto · logged</span></div>
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <button class="btn btn-ghost">Cancel</button>
+    <button class="btn btn-primary" style="opacity:0.4;">Verify →</button>
+  </div>`;
+
+const se_notes = [
+  ['Sections','Profile · Payout · Notifications · Portal access · Leaving. Each section gets a display-serif title + narrative sub-line. Long page, but read top-to-bottom once and revisited rarely.'],
+  ['Field rows','Label-value pairs with an inline "edit" or "change" link in accent colour on the right. Tap-anywhere row opens the editor sheet for that field.'],
+  ['Toggle rows','iOS-style pill toggle. Narrow column for the toggle (40&nbsp;px) so the value text gets the available width. Notification labels are full sentences, not single words.'],
+  ['2FA gate (flow)','Triggered by the payout change. 6-digit OTP input with auto-advance. Code expiry shown + resend link. Verify CTA disabled until all 6 entered.'],
+  ['About this change','Cream-tinted card under the OTP explains why 2FA exists for this specific action — owner doesn\'t feel the friction is bureaucratic.'],
+  ['Notice period','Warn-tinted card explains that the current month\'s payout is already in flight. Avoids confusion about which payout the new account applies to.'],
+  ['Audit checklist','Bottom strip shows the 3-factor chain: SMS (in progress) → Email (next) → Director audit (auto). Owner sees exactly what\'s happening.'],
+  ['Leaving section','Warn-toned border on this section. No big red "delete account" button — termination is a conversation, not a click.']
+];
+
+document.getElementById('board-mount').innerHTML = [
+  CABINET('01', 'Home · Dashboard',
+    'First thing the owner sees on <code>owner.arconique.com</code> after sign-in. Greeting, YTD net, pending statement, next call. Calm and personal — never feels like an enterprise tool.',
+    'Greeting + tiles', home_main, 'Villa detail · EV-07', home_flow,
+    'Mobile patterns', 'Stacked hero tiles instead of grid. Photo-card villa with display-serif name overlaid. Upcoming stays as a clean list with personal-stay accent tint.',
+    home_notes),
+  CABINET('02', 'Statements',
+    'Owner\'s read-only mirror of their monthly payouts. Awaiting-review at the top with auto-ack countdown. Detail page shows the line items in plain English. ~50% of owner mobile traffic lands here from email.',
+    'List · grouped by status', st_main, 'Detail · March in DRAFT', st_flow,
+    'Mobile patterns', 'Net-hero card in cream-warm before any line items. Group totals in section headers so skimming works. Action triad: Dispute / Acknowledge. No "save draft" — auto-ack handles the no-action case.',
+    st_notes),
+  CABINET('03', 'Villas',
+    'A page per villa the owner has under management. Performance numbers, operating health, Q-review. The mobile-critical flow is the maintenance detail — closed event presented as a story.',
+    'List · active + onboarding', vi_main, 'Maintenance detail · closed', vi_flow,
+    'Mobile patterns', 'Photo card per villa. Onboarding villas show the 6-segment progress. Maintenance event reads as a story: what / what we did / impact / cost. Closes the loop to the statement.',
+    vi_notes),
+  CABINET('04', 'Calendar',
+    'Owner sees who\'s staying when. Personal stays tinted accent. Pending requests as dashed-border cells. Personal-stay request flow is the marquee write action — used 2-4× per year, often from inbox-deep-link.',
+    'Month grid + upcoming', ca_main, 'Personal stay request', ca_flow,
+    'Mobile patterns', '7-col mini calendar with multi-day pill spans. Three state colours: guest / personal / request. Request flow is 5 fields + 2 toggles + live availability preview + MSA budget remaining.',
+    ca_notes),
+  CABINET('05', 'Inbox',
+    'Threads with Mgmt + the concierge agent. Multi-party allowed (Reza + Daud in one thread). Owner is "me" on the right; staff on the left in their own colours.',
+    'Inbox · unread first', ib_main, 'Thread · multi-party', ib_flow,
+    'Mobile patterns', 'Avatar initials in sage/forest for humans, accent gradient for agent. Unread row has accent wash. Date dividers break rhythm. Composer pinned bottom.',
+    ib_notes),
+  CABINET('06', 'Documents',
+    'All contracts, statements, tax docs, vendor receipts. Searchable. Bundle download for tax filing — pick categories, format, get a ZIP.',
+    'List · grouped by type', do_main, 'Bundle download flow', do_flow,
+    'Mobile patterns', 'Icon tints encode doc type (contract gold, PDF red, ZIP neutral). Group headers in display-serif. Bundle picker is checkbox list + format toggle + live preview card.',
+    do_notes),
+  CABINET('07', 'Settings',
+    'Profile, payout, notifications, portal access, leaving. Payout change is the most sensitive action — requires 2FA + email confirmation.',
+    'Settings · long scroll', se_main, '2FA gate · payout change', se_flow,
+    'Mobile patterns', 'Long page, read top-to-bottom once. iOS-style toggles. Notification labels are full sentences. 2FA flow shows the 3-factor audit chain so the owner sees the integrity of the process.',
+    se_notes)
+].join('');
+</script>
+
+</body>
+</html>

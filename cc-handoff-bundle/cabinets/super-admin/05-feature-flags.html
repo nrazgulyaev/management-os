@@ -1,0 +1,1334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase 2.5 · 05 · Feature flags</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="super-admin-tokens">
+[data-product="super-admin"] {
+  --paper: #F8F9FB; --canvas: #EEF1F5; --panel: #FFFFFF; --panel-2: #F2F4F7; --panel-deep: #E5E9EE;
+  --ink: #0B0F14; --ink-2: #1F2937; --ink-3: #4B5563; --ink-4: #6B7280; --ink-5: #9CA3AF;
+  --line: #D6DBE2; --line-soft: #E5E8ED; --line-strong: #B8C0CC;
+  --accent: #3F4F8F; --accent-soft: #B8C2DF; --accent-deep: #2A3868; --on-accent: #FFFFFF;
+  --inverted-bg: #0B0F14; --inverted-fg: #F8F9FB; --inverted-bg-2: #1F2937;
+  --ok: #2D7A3E; --warn: #B47611; --danger: #B33A2C; --info: #2D5680;
+  --trust: #2A3868; --caution: #944B1F; --caution-soft: #F4E1D0;
+  --r-pill: 999px; --r-card: 10px; --r-card-lg: 14px; --r-hero: 18px; --r-sm: 5px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+}
+:root {
+  --doc-bg: #0B0F14; --doc-bg-2: #131822; --doc-bg-3: #1B2330;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E8EC; --doc-fg-2: #B4B9C2; --doc-fg-3: #7E8590;
+  --doc-accent: #B8C2DF; --doc-caution: #E8AC85;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc { border-right: 1px solid var(--doc-line); padding: 36px 22px; background: var(--doc-bg-2); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.ds-mark { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 22px; }
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 { margin: 0 0 22px; font-family: var(--doc-sans); font-weight: 500; font-size: 19px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 10px; }
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a { display: block; padding: 6px 8px; text-decoration: none; color: var(--doc-fg-2); font-size: 13px; border-radius: 4px; margin-bottom: 1px; }
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--doc-mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+.ds-toc .back { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-toc .back a { color: var(--doc-accent); font-size: 12.5px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1300px; }
+.cab-cover { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 44px; line-height: 1.05; letter-spacing: -0.025em; }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.ds-section { margin-bottom: 76px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-section h2 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 26px; letter-spacing: -0.015em; color: var(--doc-fg); }
+.ds-section p { max-width: 760px; margin: 8px 0 0; font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.artboard { margin-top: 20px; border: 1px solid var(--doc-line); border-radius: 18px; background: var(--canvas); overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.artboard-caption { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.artboard-caption .pill { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); color: var(--doc-accent); border-color: rgba(184,194,223,0.4); }
+.artboard-caption .pill.caution { color: var(--doc-caution); border-color: rgba(232,172,133,0.4); }
+
+.notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+.notes-card { background: var(--doc-bg-2); border: 1px solid var(--doc-line); border-radius: 12px; padding: 18px 20px; }
+.notes-card h3 { margin: 0 0 12px; font-family: var(--doc-sans); font-size: 14px; font-weight: 500; color: var(--doc-fg); letter-spacing: -0.005em; }
+.notes-card dl { margin: 0; }
+.notes-card dl > div { display: grid; grid-template-columns: 140px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--doc-line); font-size: 12.5px; }
+.notes-card dl > div:last-child { border-bottom: 0; }
+.notes-card dt { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes-card dd { margin: 0; color: var(--doc-fg-2); line-height: 1.55; }
+.notes-card dd code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg); background: var(--doc-bg-3); padding: 1px 6px; border-radius: 3px; }
+
+/* ============================================================
+   Product chrome
+   ============================================================ */
+[data-product="super-admin"] { font-family: var(--sans-font); color: var(--ink); }
+
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border-radius: 6px; font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); cursor: pointer; line-height: 1; background: var(--panel); color: var(--ink-2); text-decoration: none; }
+[data-product] .btn:hover { background: var(--panel-2); }
+[data-product] .btn-sm { padding: 7px 11px; font-size: 12.5px; }
+[data-product] .btn-xs { padding: 4px 8px; font-size: 11px; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+[data-product] .btn-caution { background: var(--panel); color: var(--caution); border-color: var(--caution); }
+[data-product] .btn-caution-solid { background: var(--caution); color: white; border-color: var(--caution); }
+[data-product] .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-3); }
+
+[data-product] .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: var(--r-pill); font-family: var(--mono-font); font-size: 10.5px; font-weight: 500; letter-spacing: 0.02em; border: 1px solid var(--line); background: var(--panel); color: var(--ink-3); }
+[data-product] .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+[data-product] .badge-ga       { color: var(--ok);     border-color: color-mix(in oklab, var(--ok) 35%, transparent); background: color-mix(in oklab, var(--ok) 8%, var(--panel)); }
+[data-product] .badge-beta     { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); background: color-mix(in oklab, var(--accent) 8%, var(--panel)); }
+[data-product] .badge-internal { color: var(--ink-2);  border-color: var(--ink); background: var(--panel); }
+[data-product] .badge-off      { color: var(--ink-4);  border-color: var(--line); background: var(--panel-2); }
+[data-product] .badge-kill     { color: var(--caution);border-color: color-mix(in oklab, var(--caution) 40%, transparent); background: color-mix(in oklab, var(--caution) 8%, var(--panel)); }
+[data-product] .badge-arch     { color: var(--ink-4);  border-color: var(--line); background: var(--panel-2); text-decoration: line-through; }
+
+[data-product] .label { font-family: var(--mono-font); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .mono  { font-family: var(--mono-font); font-feature-settings: "tnum"; }
+
+[data-product] .app { background: var(--canvas); min-height: 720px; display: grid; grid-template-rows: auto 1fr; }
+[data-product] .app-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--inverted-bg); color: var(--inverted-fg); border-bottom: 1px solid var(--ink); }
+[data-product] .app-topbar .brand { font-family: var(--display-font); font-size: 18px; font-weight: 400; color: var(--inverted-fg); }
+[data-product] .app-topbar .brand .sub { font-family: var(--mono-font); font-size: 9.5px; color: rgba(248,249,251,0.55); letter-spacing: 0.18em; text-transform: uppercase; display: block; margin-top: 1px; }
+[data-product] .app-topbar .nav { display: flex; gap: 4px; margin-left: 24px; }
+[data-product] .app-topbar .nav a { padding: 6px 12px; border-radius: 5px; font-family: var(--mono-font); font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(248,249,251,0.6); text-decoration: none; }
+[data-product] .app-topbar .nav a.on { background: var(--inverted-bg-2); color: var(--inverted-fg); }
+[data-product] .app-topbar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-family: var(--mono-font); font-size: 11px; color: rgba(248,249,251,0.6); }
+[data-product] .app-topbar .me { display: flex; align-items: center; gap: 6px; }
+[data-product] .app-topbar .me .avatar { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: white; display: inline-flex; align-items: center; justify-content: center; font-family: var(--sans-font); font-size: 11px; font-weight: 600; }
+
+[data-product] .page-h { padding: 22px 24px 18px; display: flex; align-items: flex-start; gap: 20px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+[data-product] .page-h .left h1 { margin: 4px 0 0; font-family: var(--display-font); font-weight: 400; font-size: 30px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .page-h .left h1 em { color: var(--accent); font-style: italic; }
+[data-product] .page-h .left .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .page-h .left .sub { margin-top: 6px; font-size: 13.5px; color: var(--ink-3); line-height: 1.5; }
+[data-product] .page-h .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+[data-product] .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .kpi-row .kpi { padding: 14px 18px; border-right: 1px solid var(--line); }
+[data-product] .kpi-row .kpi:last-child { border-right: 0; }
+[data-product] .kpi-row .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 4px; }
+[data-product] .kpi-row .v { font-family: var(--display-font); font-size: 24px; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; }
+[data-product] .kpi-row .v.warn { color: var(--warn); }
+[data-product] .kpi-row .v.ok { color: var(--ok); }
+[data-product] .kpi-row .v.accent { color: var(--accent); }
+[data-product] .kpi-row .v.caution { color: var(--caution); }
+[data-product] .kpi-row .ctx { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 4px; }
+
+[data-product] .filter-bar { display: flex; align-items: center; gap: 8px; padding: 12px 24px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .filter-bar .search { display: flex; align-items: center; gap: 8px; flex: 0 1 320px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; font-family: var(--sans-font); font-size: 13px; color: var(--ink-4); }
+[data-product] .filter-bar .chip { padding: 5px 10px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+[data-product] .filter-bar .chip.on { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .filter-bar .chip .ct { padding: 1px 6px; background: var(--panel-deep); border-radius: 999px; font-size: 10px; color: var(--ink-3); }
+[data-product] .filter-bar .chip.on .ct { background: rgba(255,255,255,0.18); color: var(--inverted-fg); }
+[data-product] .filter-bar .spacer { flex: 1; }
+
+/* ============================================================
+   Flags list table
+   ============================================================ */
+[data-product] .flag-table { background: var(--panel); border-top: 1px solid var(--line); }
+[data-product] .flag-table .head, [data-product] .flag-table .row {
+  display: grid;
+  grid-template-columns: 28px 2.4fr 110px 1.4fr 110px 100px 40px;
+  gap: 12px; align-items: center; padding: 11px 24px;
+}
+[data-product] .flag-table .head { background: var(--panel-2); border-bottom: 1px solid var(--line); }
+[data-product] .flag-table .head .col { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .flag-table .row { border-bottom: 1px solid var(--line-soft); cursor: pointer; transition: background 0.1s; }
+[data-product] .flag-table .row:hover { background: var(--panel-2); }
+[data-product] .flag-table .row.kill { background: color-mix(in oklab, var(--caution) 4%, var(--panel)); }
+[data-product] .flag-table .row.kill:hover { background: color-mix(in oklab, var(--caution) 7%, var(--panel)); }
+[data-product] .flag-table .row.archived { opacity: 0.55; }
+
+[data-product] .flag-table .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--ink-5);
+}
+[data-product] .flag-table .dot.ga { background: var(--ok); }
+[data-product] .flag-table .dot.beta { background: var(--accent); }
+[data-product] .flag-table .dot.internal { background: var(--ink-2); }
+[data-product] .flag-table .dot.kill { background: var(--caution); }
+
+[data-product] .flag-table .key { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+[data-product] .flag-table .key .k { font-family: var(--mono-font); font-size: 12.5px; color: var(--ink); font-weight: 500; }
+[data-product] .flag-table .key .nm { font-size: 12.5px; color: var(--ink-3); line-height: 1.35; }
+
+[data-product] .flag-table .stage-cell { display: flex; }
+[data-product] .flag-table .pct-cell { display: flex; flex-direction: column; gap: 5px; }
+[data-product] .flag-table .pct-cell .bar { height: 6px; background: var(--panel-deep); border-radius: 3px; overflow: hidden; }
+[data-product] .flag-table .pct-cell .bar .fill { height: 100%; background: var(--accent); }
+[data-product] .flag-table .pct-cell .bar .fill.ga { background: var(--ok); }
+[data-product] .flag-table .pct-cell .bar .fill.kill { background: var(--caution); }
+[data-product] .flag-table .pct-cell .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); display: flex; justify-content: space-between; }
+[data-product] .flag-table .pct-cell .meta strong { color: var(--ink); }
+
+[data-product] .flag-table .when { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .flag-table .when .by { display: block; font-size: 10.5px; color: var(--ink-4); margin-top: 1px; }
+[data-product] .flag-table .owner { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .flag-table .menu { color: var(--ink-4); text-align: center; font-size: 16px; line-height: 1; }
+
+/* ============================================================
+   Flag detail
+   ============================================================ */
+[data-product] .det-h2 { display: grid; grid-template-columns: 1fr auto; gap: 20px; padding: 24px 28px 22px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .det-h2 .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .det-h2 h1 {
+  margin: 6px 0 0; font-family: var(--mono-font); font-size: 26px; font-weight: 500;
+  color: var(--ink); letter-spacing: -0.005em; line-height: 1.15;
+  display: flex; align-items: center; gap: 14px;
+}
+[data-product] .det-h2 h1 .badge { font-family: var(--mono-font); font-size: 11px; font-weight: 500; }
+[data-product] .det-h2 .lede { margin: 10px 0 0; font-size: 13.5px; color: var(--ink-3); line-height: 1.55; max-width: 640px; }
+[data-product] .det-h2 .meta-strip { display: flex; gap: 24px; align-items: center; margin-top: 12px; font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-3); }
+[data-product] .det-h2 .meta-strip .sep { color: var(--ink-5); }
+[data-product] .det-h2 .meta-strip strong { color: var(--ink-2); font-weight: 500; }
+[data-product] .det-h2 .actions { display: flex; gap: 8px; flex-shrink: 0; align-self: start; }
+
+[data-product] .det2-body { display: grid; grid-template-columns: 1.2fr 1fr; gap: 0; }
+[data-product] .det2-col { padding: 22px 24px; border-right: 1px solid var(--line); background: var(--canvas); }
+[data-product] .det2-col:last-child { border-right: 0; }
+[data-product] .det2-col h3 { margin: 0 0 14px; font-family: var(--mono-font); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-3); font-weight: 500; }
+[data-product] .det2-col h3.repeat { margin-top: 24px; }
+
+/* Rollout card */
+[data-product] .rollout-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+[data-product] .rollout-card .pct-bar { height: 10px; background: var(--panel-deep); border-radius: 5px; overflow: hidden; margin-top: 10px; position: relative; }
+[data-product] .rollout-card .pct-bar .fill { height: 100%; background: var(--accent); position: relative; }
+[data-product] .rollout-card .pct-bar .tick { position: absolute; top: -4px; bottom: -4px; width: 1px; background: var(--ink-4); }
+[data-product] .rollout-card .pct-bar .tick.next { background: var(--accent); }
+[data-product] .rollout-card .pct-row { display: flex; justify-content: space-between; margin-top: 8px; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+[data-product] .rollout-card .pct-row strong { color: var(--ink); }
+[data-product] .rollout-card .pct-row .next { color: var(--accent); }
+
+[data-product] .seg-list { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+[data-product] .seg-list .seg { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; align-items: center; font-size: 12.5px; }
+[data-product] .seg-list .seg .when { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+[data-product] .seg-list .seg .toggle { width: 30px; height: 16px; border-radius: 999px; background: var(--ink); position: relative; }
+[data-product] .seg-list .seg .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 12px; height: 12px; background: white; border-radius: 50%; }
+[data-product] .seg-list .seg.off .toggle { background: var(--panel-deep); }
+[data-product] .seg-list .seg.off .toggle::after { right: auto; left: 2px; }
+
+/* Override list */
+[data-product] .ovr-list { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+[data-product] .ovr-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); align-items: center; font-size: 13px; }
+[data-product] .ovr-row:last-child { border-bottom: 0; }
+[data-product] .ovr-row .org { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+[data-product] .ovr-row .org .nm { font-size: 13px; color: var(--ink); font-weight: 500; }
+[data-product] .ovr-row .org .reason { font-size: 11.5px; color: var(--ink-4); }
+[data-product] .ovr-row .v-cell {
+  font-family: var(--mono-font); font-size: 10.5px;
+  padding: 3px 9px; border-radius: 4px; letter-spacing: 0.06em;
+}
+[data-product] .ovr-row .v-cell.force-on { background: color-mix(in oklab, var(--ok) 14%, transparent); color: var(--ok); }
+[data-product] .ovr-row .v-cell.force-off { background: color-mix(in oklab, var(--ink) 8%, transparent); color: var(--ink); }
+[data-product] .ovr-row .when { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+
+/* Conditions */
+[data-product] .cond-row {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 8px;
+  font-family: var(--mono-font); font-size: 12px; color: var(--ink-2);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+[data-product] .cond-row .op { color: var(--accent); font-weight: 500; }
+[data-product] .cond-row .val { background: var(--panel-2); padding: 2px 7px; border-radius: 4px; color: var(--ink); }
+[data-product] .cond-row .conj { color: var(--ink-4); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; }
+
+/* Timeline */
+[data-product] .tl { display: flex; flex-direction: column; gap: 0; margin-top: 6px; }
+[data-product] .tl-row { display: grid; grid-template-columns: 18px 90px 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
+[data-product] .tl-row:last-child { border-bottom: 0; }
+[data-product] .tl-row .marker { margin-top: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-4); justify-self: center; }
+[data-product] .tl-row .marker.accent { background: var(--accent); }
+[data-product] .tl-row .marker.caution { background: var(--caution); }
+[data-product] .tl-row .marker.ok { background: var(--ok); }
+[data-product] .tl-row .when { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); padding-top: 2px; }
+[data-product] .tl-row .nm { color: var(--ink); font-weight: 500; line-height: 1.4; }
+[data-product] .tl-row .body { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; line-height: 1.45; }
+[data-product] .tl-row .body code { font-family: var(--mono-font); font-size: 11px; padding: 0 4px; background: var(--panel-2); border-radius: 3px; color: var(--ink-2); }
+
+/* Kill-switch card */
+[data-product] .kill-card {
+  background: color-mix(in oklab, var(--caution) 8%, var(--panel));
+  border: 1px solid color-mix(in oklab, var(--caution) 40%, var(--line));
+  border-left: 4px solid var(--caution);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
+}
+[data-product] .kill-card .body h4 { margin: 0; font-family: var(--display-font); font-size: 17px; font-weight: 500; color: var(--ink); }
+[data-product] .kill-card .body p { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+
+/* ============================================================
+   Rollout matrix
+   ============================================================ */
+[data-product] .matrix-wrap {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  overflow-x: auto;
+}
+[data-product] .matrix {
+  display: grid;
+  grid-template-columns: 280px repeat(9, 92px);
+  background: var(--panel);
+  font-size: 12px;
+}
+[data-product] .matrix > div { padding: 9px 12px; border-bottom: 1px solid var(--line-soft); border-right: 1px solid var(--line-soft); }
+[data-product] .matrix .h {
+  background: var(--panel-2);
+  position: sticky; top: 0; z-index: 2;
+  font-family: var(--mono-font); font-size: 10px;
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--ink-3); padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+[data-product] .matrix .h.org-col { position: sticky; left: 0; z-index: 3; }
+[data-product] .matrix .h .stage-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+[data-product] .matrix .h .stage-dot.ga { background: var(--ok); }
+[data-product] .matrix .h .stage-dot.beta { background: var(--accent); }
+[data-product] .matrix .h .stage-dot.internal { background: var(--ink); }
+[data-product] .matrix .h .stage-dot.kill { background: var(--caution); }
+[data-product] .matrix .h .stage-dot.off { background: var(--ink-5); }
+
+[data-product] .matrix .org-cell {
+  background: var(--panel);
+  position: sticky; left: 0; z-index: 1;
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 3px;
+}
+[data-product] .matrix .org-cell .nm { font-size: 13px; color: var(--ink); font-weight: 500; }
+[data-product] .matrix .org-cell .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); }
+[data-product] .matrix .org-cell.tier {
+  background: var(--panel-2);
+}
+[data-product] .matrix .org-cell.tier .nm { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+
+[data-product] .matrix .cell {
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono-font); font-size: 10.5px;
+  color: var(--ink-3);
+}
+[data-product] .matrix .cell.on { background: color-mix(in oklab, var(--ok) 12%, var(--panel)); color: var(--ok); }
+[data-product] .matrix .cell.on-internal { background: color-mix(in oklab, var(--ink) 5%, var(--panel)); color: var(--ink); }
+[data-product] .matrix .cell.on-beta { background: color-mix(in oklab, var(--accent) 14%, var(--panel)); color: var(--accent); }
+[data-product] .matrix .cell.off { background: var(--panel); color: var(--ink-5); }
+[data-product] .matrix .cell.kill { background: color-mix(in oklab, var(--caution) 14%, var(--panel)); color: var(--caution); }
+[data-product] .matrix .cell.override { box-shadow: inset 0 0 0 2px var(--ink); }
+[data-product] .matrix .cell .glyph { font-size: 14px; }
+
+[data-product] .legend { display: flex; gap: 14px; padding: 12px 24px; background: var(--panel-2); border-top: 1px solid var(--line); font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; }
+[data-product] .legend .item { display: flex; align-items: center; gap: 6px; }
+[data-product] .legend .sw { width: 16px; height: 16px; border-radius: 3px; border: 1px solid var(--line); }
+[data-product] .legend .sw.on { background: color-mix(in oklab, var(--ok) 12%, var(--panel)); }
+[data-product] .legend .sw.beta { background: color-mix(in oklab, var(--accent) 14%, var(--panel)); }
+[data-product] .legend .sw.internal { background: color-mix(in oklab, var(--ink) 5%, var(--panel)); }
+[data-product] .legend .sw.off { background: var(--panel); }
+[data-product] .legend .sw.kill { background: color-mix(in oklab, var(--caution) 14%, var(--panel)); }
+[data-product] .legend .sw.ovr { background: var(--panel); box-shadow: inset 0 0 0 2px var(--ink); }
+
+/* ============================================================
+   Schedule
+   ============================================================ */
+[data-product] .sched-shell { padding: 24px 28px; background: var(--canvas); }
+[data-product] .sched-hd { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; }
+[data-product] .sched-hd h2 { margin: 0; font-family: var(--display-font); font-weight: 400; font-size: 26px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .sched-hd em { color: var(--accent); font-style: italic; }
+[data-product] .sched-hd .meta { margin-left: auto; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+
+[data-product] .sched-grid {
+  display: grid;
+  grid-template-columns: 200px repeat(8, 1fr);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+}
+[data-product] .sched-grid > div { padding: 10px 12px; border-bottom: 1px solid var(--line-soft); border-right: 1px solid var(--line-soft); }
+[data-product] .sched-grid .day-h {
+  background: var(--panel-2);
+  font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.10em;
+  text-transform: uppercase; color: var(--ink-3);
+  text-align: center;
+}
+[data-product] .sched-grid .day-h.today { background: var(--ink); color: var(--inverted-fg); }
+[data-product] .sched-grid .day-h .d { display: block; font-family: var(--display-font); font-size: 20px; font-weight: 400; color: var(--ink); font-style: italic; margin-top: 2px; }
+[data-product] .sched-grid .day-h.today .d { color: var(--inverted-fg); }
+[data-product] .sched-grid .day-h.weekend { background: var(--panel-deep); }
+
+[data-product] .sched-grid .flag-cell {
+  background: var(--panel-2);
+  font-family: var(--mono-font); font-size: 11.5px;
+  color: var(--ink); display: flex; flex-direction: column; gap: 3px;
+}
+[data-product] .sched-grid .flag-cell .stage {
+  font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product] .sched-grid .cell { position: relative; min-height: 56px; }
+[data-product] .sched-grid .cell.weekend { background: color-mix(in oklab, var(--panel-deep) 50%, var(--panel)); }
+
+[data-product] .sched-grid .event {
+  position: absolute; left: 4px; right: 4px; top: 4px;
+  padding: 4px 8px; border-radius: 4px;
+  font-family: var(--mono-font); font-size: 10.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-product] .sched-grid .event.bump { background: var(--accent); color: white; }
+[data-product] .sched-grid .event.ga { background: var(--ok); color: white; }
+[data-product] .sched-grid .event.kill { background: var(--caution); color: white; }
+[data-product] .sched-grid .event.review { background: var(--panel); border: 1px dashed var(--ink-4); color: var(--ink-2); }
+[data-product] .sched-grid .event.span { right: auto; padding-right: 14px; }
+[data-product] .sched-grid .event-2 { top: 30px; }
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Phase 2.5</div>
+    <h1>Platform super-admin</h1>
+    <div class="back"><a href="hub.html">← back to hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">05 · Feature flags</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#index"><span class="ix">01</span>Flags index</a></li>
+        <li><a href="#detail"><span class="ix">02</span>Flag detail</a></li>
+        <li><a href="#matrix"><span class="ix">03</span>Rollout matrix</a></li>
+        <li><a href="#schedule"><span class="ix">04</span>Rollout schedule</a></li>
+        <li><a href="#schema"><span class="ix">05</span>Schema · evaluation</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Adjacent</div>
+      <ul>
+        <li><a href="04-billing.html"><span class="ix">04</span>Billing &amp; invoices</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <!-- COVER -->
+    <section id="cover" class="cab-cover" data-screen-label="Cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Phase 2.5 · cabinet 05 of 09</span></div>
+      <h1>Feature flags · <em>the rollout console</em>.</h1>
+      <p>One source of truth for every flag the app reads at request time. Five stages — <strong style="color:var(--doc-fg)">off · internal · beta · GA · kill-switched</strong> — with per-org overrides for the inevitable "turn this on for one customer". The kill-switch row uses the same warm caution that <em>impersonate</em> and <em>refund</em> use: eyes go straight to it.</p>
+    </section>
+
+    <!-- 01 INDEX -->
+    <section id="index" class="ds-section" data-screen-label="01 Flags index">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Flags index · default sorted by activity</h2>
+          <p>Most recently edited flags surface first — when something's mid-rollout, that's what you came to look at. The rollout bar in each row shows current % and the next planned bump (faint marker). Kill-switched rows sit in the same list, softly caution-tinted, so they don't get forgotten.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a>
+                <a>Users</a>
+                <a>Plans</a>
+                <a>Billing</a>
+                <a class="on">Flags</a>
+                <a>Support</a>
+                <a>Audit</a>
+                <a>Health</a>
+                <a>AI</a>
+              </div>
+              <div class="right">
+                <span>v 4.2.18</span>
+                <span class="me"><span class="avatar">NR</span>Nikita R.</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / feature flags</div>
+                  <h1>Feature flags <em>· 34 active</em></h1>
+                  <div class="sub">3 rolling out this week · 1 kill-switched · last evaluation cache refresh 38s ago</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Matrix view</button>
+                  <button class="btn">Schedule</button>
+                  <button class="btn btn-primary">+ New flag</button>
+                </div>
+              </div>
+
+              <div class="kpi-row">
+                <div class="kpi"><div class="l">total active</div><div class="v">34</div><div class="ctx">+2 this week</div></div>
+                <div class="kpi"><div class="l">GA</div><div class="v ok">19</div><div class="ctx">all orgs · all users</div></div>
+                <div class="kpi"><div class="l">beta · staged</div><div class="v accent">8</div><div class="ctx">5 ramping up</div></div>
+                <div class="kpi"><div class="l">internal only</div><div class="v">6</div><div class="ctx">demo + dogfood</div></div>
+                <div class="kpi"><div class="l">kill-switched</div><div class="v caution">1</div><div class="ctx">channel-sync v2 · 2h</div></div>
+              </div>
+
+              <div class="filter-bar">
+                <div class="search"><span style="color:var(--ink-3);">⌕</span>Search by key, name, owner, ticket…</div>
+                <span class="chip on">all <span class="ct">34</span></span>
+                <span class="chip">GA <span class="ct">19</span></span>
+                <span class="chip">beta <span class="ct">8</span></span>
+                <span class="chip">internal <span class="ct">6</span></span>
+                <span class="chip">kill <span class="ct">1</span></span>
+                <span class="chip">archived <span class="ct">12</span></span>
+                <div class="spacer"></div>
+                <span class="chip">owner: all ▾</span>
+                <span class="chip">sort: edited ▾</span>
+              </div>
+
+              <div class="flag-table">
+                <div class="head">
+                  <div></div>
+                  <div class="col">flag</div>
+                  <div class="col">stage</div>
+                  <div class="col">rollout</div>
+                  <div class="col">edited</div>
+                  <div class="col">owner</div>
+                  <div></div>
+                </div>
+
+                <div class="row kill">
+                  <div><span class="dot kill"></span></div>
+                  <div class="key">
+                    <span class="k">channel_sync_v2</span>
+                    <span class="nm">New cell-sync FSM for Booking.com — paused after conflict-resolver edge case</span>
+                  </div>
+                  <div class="stage-cell"><span class="badge badge-kill"><span class="dot"></span>kill</span></div>
+                  <div class="pct-cell">
+                    <div class="bar"><div class="fill kill" style="width: 0%;"></div></div>
+                    <div class="meta"><span><strong>0%</strong> of orgs</span><span>was 35%</span></div>
+                  </div>
+                  <div class="when">2h ago<span class="by">Nikita R · kill</span></div>
+                  <div class="owner">platform-ops</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="dot ga"></span></div>
+                  <div class="key">
+                    <span class="k">owner_portal_2fa_required</span>
+                    <span class="nm">Force 2FA enrolment for owner-portal sign-ups</span>
+                  </div>
+                  <div class="stage-cell"><span class="badge badge-ga"><span class="dot"></span>GA</span></div>
+                  <div class="pct-cell">
+                    <div class="bar"><div class="fill ga" style="width: 100%;"></div></div>
+                    <div class="meta"><span><strong>100%</strong> of orgs</span><span>since 22 may</span></div>
+                  </div>
+                  <div class="when">5d ago<span class="by">Made S · GA bump</span></div>
+                  <div class="owner">owner-portal</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="dot beta"></span></div>
+                  <div class="key">
+                    <span class="k">dynamic_pricing_v3_comp_set</span>
+                    <span class="nm">Phase 2.4 dynamic-pricing engine — comp-set similarity scoring</span>
+                  </div>
+                  <div class="stage-cell"><span class="badge badge-beta"><span class="dot"></span>beta</span></div>
+                  <div class="pct-cell">
+                    <div class="bar"><div class="fill" style="width: 35%;"></div></div>
+                    <div class="meta"><span><strong>35%</strong> of orgs · Atelier-only</span><span class="next">→ 60% mon</span></div>
+                  </div>
+                  <div class="when">today 09:14<span class="by">Nikita R · bump 25→35</span></div>
+                  <div class="owner">platform-ops</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="dot beta"></span></div>
+                  <div class="key">
+                    <span class="k">front_office_id_ocr</span>
+                    <span class="nm">Indonesian KTP OCR in check-in flow</span>
+                  </div>
+                  <div class="stage-cell"><span class="badge badge-beta"><span class="dot"></span>beta</span></div>
+                  <div class="pct-cell">
+                    <div class="bar"><div class="fill" style="width: 50%;"></div></div>
+                    <div class="meta"><span><strong>50%</strong> ID-country orgs</span><span class="next">→ 100% jun 03</span></div>
+                  </div>
+                  <div class="when">yesterday<span class="by">Made S · bump</span></div>
+                  <div class="owner">front-office</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="dot beta"></span></div>
+                  <div class="key">
+                    <span class="k">investor_waterfall_canonical</span>
+                    <span class="nm">Single canonical waterfall calculator across CFO + Investors</span>
+                  </div>
+                  <div class="stage-cell"><span class="badge badge-beta"><span class="dot"></span>beta</span></div>
+                  <div class="pct-cell">
+                    <div class="bar"><div class="fill" style="width: 15%;"></div></div>
+                    <div class="meta"><span><strong>15%</strong> dev-OS orgs</span><span class="next">→ 30% next mon</span></div>
+                  </div>
+                  <div class="when">2d ago<span class="by">Nikita R · seed</span></div>
+                  <div class="owner">investors</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="dot internal"></span></div>
+                  <div class="key">
+                    <span class="k">command_palette_ai</span>
+                    <span class="nm">⌘K with embedded AI agent dispatch</span>
+                  </div>
+                  <div class="stage-cell"><span class="badge badge-internal"><span class="dot"></span>internal</span></div>
+                  <div class="pct-cell">
+                    <div class="bar"><div class="fill" style="width: 100%;"></div></div>
+                    <div class="meta"><span><strong>Arconique Demo only</strong></span><span>dogfood</span></div>
+                  </div>
+                  <div class="when">3d ago<span class="by">Nikita R · enable demo</span></div>
+                  <div class="owner">platform-ops</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="dot ga"></span></div>
+                  <div class="key">
+                    <span class="k">statement_v2_explainers</span>
+                    <span class="nm">Per-line "why this amount" explainers on owner statement</span>
+                  </div>
+                  <div class="stage-cell"><span class="badge badge-ga"><span class="dot"></span>GA</span></div>
+                  <div class="pct-cell">
+                    <div class="bar"><div class="fill ga" style="width: 100%;"></div></div>
+                    <div class="meta"><span><strong>100%</strong> of orgs</span><span>since 18 may</span></div>
+                  </div>
+                  <div class="when">11d ago<span class="by">Made S · GA</span></div>
+                  <div class="owner">owner-portal</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="dot internal"></span></div>
+                  <div class="key">
+                    <span class="k">site_supervisor_voice_input</span>
+                    <span class="nm">Voice-to-text incident reporting on construction sites</span>
+                  </div>
+                  <div class="stage-cell"><span class="badge badge-internal"><span class="dot"></span>internal</span></div>
+                  <div class="pct-cell">
+                    <div class="bar"><div class="fill" style="width: 100%;"></div></div>
+                    <div class="meta"><span><strong>PT Senayan only</strong></span><span>field pilot</span></div>
+                  </div>
+                  <div class="when">4d ago<span class="by">Nikita R</span></div>
+                  <div class="owner">dev-os</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row archived">
+                  <div><span class="dot"></span></div>
+                  <div class="key">
+                    <span class="k">channel_sync_v1_legacy</span>
+                    <span class="nm">Old single-cell sync · archived, reads return false</span>
+                  </div>
+                  <div class="stage-cell"><span class="badge badge-arch"><span class="dot"></span>archived</span></div>
+                  <div class="pct-cell">
+                    <div class="bar"><div class="fill" style="width: 0%;"></div></div>
+                    <div class="meta"><span><strong>archived 14 may</strong></span><span>read-only</span></div>
+                  </div>
+                  <div class="when">14d ago<span class="by">Nikita R · archive</span></div>
+                  <div class="owner">platform-ops</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>row colour: kill = caution-tinted · archived = 55% opacity</span>
+        <span>·</span>
+        <span>faint forward marker on rollout bar = next scheduled bump</span>
+      </div>
+    </section>
+
+    <!-- 02 DETAIL -->
+    <section id="detail" class="ds-section" data-screen-label="02 Flag detail">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Detail</span></div>
+          <h2>Single flag · rollout · conditions · overrides</h2>
+          <p>Two columns. Left is <strong style="color:var(--doc-fg)">rollout state</strong> — slider with current %, next planned bump, per-segment toggles, the kill-switch panel. Right is <strong style="color:var(--doc-fg)">policy</strong> — targeting conditions (tier, country, role, AB bucket), per-org overrides, and the change history. Every bump or override writes a row to the audit log.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a>
+                <a class="on">Flags</a>
+                <a>Support</a><a>Audit</a><a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="det-h2">
+                <div>
+                  <div class="crumb"><a href="#index" style="color:inherit;text-decoration:none;">flags</a> / dynamic_pricing_v3_comp_set</div>
+                  <h1>dynamic_pricing_v3_comp_set <span class="badge badge-beta"><span class="dot"></span>beta · 35%</span></h1>
+                  <p class="lede">Phase 2.4 dynamic-pricing engine, comp-set similarity scoring step. Replaces the v2 naïve same-tier match with a weighted similarity model. Owned by platform-ops; tracked in <code style="font-family:var(--mono-font);font-size:12px;color:var(--accent);background:var(--panel-2);padding:1px 5px;border-radius:3px;">DEV-2415</code>.</p>
+                  <div class="meta-strip">
+                    <span>flag_id <strong>fl_3xLM2eZv</strong></span>
+                    <span class="sep">·</span>
+                    <span>created <strong>3 apr 2025</strong></span>
+                    <span class="sep">·</span>
+                    <span>last evaluated <strong>38s ago</strong></span>
+                    <span class="sep">·</span>
+                    <span>cache hit <strong>99.4%</strong></span>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn">View consumers</button>
+                  <button class="btn">Audit log ↗</button>
+                  <button class="btn btn-caution">Kill-switch</button>
+                </div>
+              </div>
+
+              <div class="det2-body">
+
+                <!-- Rollout col -->
+                <div class="det2-col">
+                  <h3>Rollout · % of eligible orgs</h3>
+                  <div class="rollout-card">
+                    <div style="display:flex; align-items:baseline; gap:10px;">
+                      <span style="font-family:var(--display-font); font-size:34px; line-height:1; color:var(--ink);">35<span style="font-size:18px; color:var(--ink-3);">%</span></span>
+                      <span class="mono" style="font-size:11px; color:var(--ink-3);">of 22 eligible Atelier orgs · <strong style="color:var(--ink);">8 orgs in cohort</strong></span>
+                      <span class="mono" style="margin-left:auto; font-size:11px; color:var(--accent);">→ next: 60% · 3 jun mon 09:00 UTC</span>
+                    </div>
+                    <div class="pct-bar">
+                      <div class="fill" style="width: 35%;"></div>
+                      <div class="tick" style="left: 10%;"></div>
+                      <div class="tick" style="left: 25%;"></div>
+                      <div class="tick next" style="left: 60%;"></div>
+                      <div class="tick" style="left: 100%;"></div>
+                    </div>
+                    <div class="pct-row">
+                      <span><strong>seed 10%</strong> apr 12</span>
+                      <span><strong>25%</strong> may 19</span>
+                      <span><strong>35%</strong> today</span>
+                      <span class="next">60% mon</span>
+                      <span>100% GA</span>
+                    </div>
+                  </div>
+
+                  <h3 class="repeat">Segments · evaluation order</h3>
+                  <div class="seg-list">
+                    <div class="seg">
+                      <span>Force-on: internal demo org</span>
+                      <span class="when">always</span>
+                      <span class="toggle"></span>
+                    </div>
+                    <div class="seg">
+                      <span>Per-org override list</span>
+                      <span class="when">6 orgs · see right →</span>
+                      <span class="toggle"></span>
+                    </div>
+                    <div class="seg">
+                      <span>Conditional targeting (tier + AB %)</span>
+                      <span class="when">35% bucket</span>
+                      <span class="toggle"></span>
+                    </div>
+                    <div class="seg off">
+                      <span>Default-on for everyone else</span>
+                      <span class="when">GA flip</span>
+                      <span class="toggle"></span>
+                    </div>
+                  </div>
+
+                  <h3 class="repeat">Kill switch</h3>
+                  <div class="kill-card">
+                    <div class="body">
+                      <h4>Kill returns <span style="font-family:var(--mono-font);">false</span> for every consumer</h4>
+                      <p>Bypasses overrides, segments, conditions, and cache. The previous rollout state is preserved — un-killing restores it. Use when a beta is causing a customer-facing incident and you need a 30-second reset.</p>
+                    </div>
+                    <button class="btn btn-caution">Kill</button>
+                  </div>
+                </div>
+
+                <!-- Policy col -->
+                <div class="det2-col">
+                  <h3>Targeting conditions · AND-joined</h3>
+                  <div>
+                    <div class="cond-row">
+                      <span style="color:var(--ink-3);">org.plan_tier</span>
+                      <span class="op">=</span>
+                      <span class="val">'Atelier'</span>
+                    </div>
+                    <div class="cond-row">
+                      <span style="color:var(--ink-3);">org.feature_addons</span>
+                      <span class="op">includes</span>
+                      <span class="val">'AI Premium'</span>
+                    </div>
+                    <div class="cond-row">
+                      <span style="color:var(--ink-3);">user.locale_country</span>
+                      <span class="op">in</span>
+                      <span class="val">['ID', 'SG', 'JP']</span>
+                    </div>
+                    <div class="cond-row">
+                      <span style="color:var(--ink-3);">hash(org.id + flag.key)</span>
+                      <span class="op">% 100 &lt;</span>
+                      <span class="val">35</span>
+                      <span class="conj">deterministic AB bucket</span>
+                    </div>
+                  </div>
+
+                  <h3 class="repeat">Per-org overrides · always win</h3>
+                  <div class="ovr-list">
+                    <div class="ovr-row">
+                      <div class="org">
+                        <div class="nm">Whitmore Villas Group</div>
+                        <div class="reason">customer asked to opt-in early · CS ticket #2418</div>
+                      </div>
+                      <div class="v-cell force-on">force-on</div>
+                      <div class="when">3d ago</div>
+                    </div>
+                    <div class="ovr-row">
+                      <div class="org">
+                        <div class="nm">PT Senayan Estate</div>
+                        <div class="reason">comp-set too small (3 villas) — falls back gracefully</div>
+                      </div>
+                      <div class="v-cell force-on">force-on</div>
+                      <div class="when">5d ago</div>
+                    </div>
+                    <div class="ovr-row">
+                      <div class="org">
+                        <div class="nm">Tan Family Trust</div>
+                        <div class="reason">on v2 long enough — wait for GA</div>
+                      </div>
+                      <div class="v-cell force-off">force-off</div>
+                      <div class="when">8d ago</div>
+                    </div>
+                    <div class="ovr-row">
+                      <div class="org">
+                        <div class="nm">Kishida Holdings KK</div>
+                        <div class="reason">suspended — eval blocked</div>
+                      </div>
+                      <div class="v-cell force-off">force-off</div>
+                      <div class="when">14d ago</div>
+                    </div>
+                  </div>
+
+                  <h3 class="repeat">Change history</h3>
+                  <div class="tl">
+                    <div class="tl-row">
+                      <span class="marker accent"></span>
+                      <span class="when">today<br>09:14</span>
+                      <div>
+                        <div class="nm">Rollout bumped <code>25% → 35%</code></div>
+                        <div class="body">Nikita R · "no incidents over 4 days at 25%"</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker"></span>
+                      <span class="when">3d ago<br>16:48</span>
+                      <div>
+                        <div class="nm">Override added · <code>whitmore</code> force-on</div>
+                        <div class="body">Nikita R · CS ticket #2418</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker accent"></span>
+                      <span class="when">9d ago<br>09:00</span>
+                      <div>
+                        <div class="nm">Rollout bumped <code>10% → 25%</code></div>
+                        <div class="body">Nikita R · scheduled bump</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker ok"></span>
+                      <span class="when">17d ago<br>14:02</span>
+                      <div>
+                        <div class="nm">Seed rollout to 10%</div>
+                        <div class="body">Nikita R · "starting on Atelier ID/SG cohort"</div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>overrides always win · then segments · then conditions · then default</span>
+        <span>·</span>
+        <span>kill-switch state is recoverable — un-killing restores previous %</span>
+      </div>
+    </section>
+
+    <!-- 03 MATRIX -->
+    <section id="matrix" class="ds-section" data-screen-label="03 Rollout matrix">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Cross-view</span></div>
+          <h2>Rollout matrix · orgs × flags</h2>
+          <p>The "who's on what" view Sales asks for before a demo. Rows are orgs (grouped by tier — Atelier first), columns are active flags, cells colour-coded by stage as evaluated for that org <em>right now</em>. Cells with a black inner border are <strong style="color:var(--doc-fg)">overrides</strong> — the conditional pipeline was bypassed. Click any cell to jump straight to the override editor.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a>
+                <a class="on">Flags</a>
+                <a>Support</a><a>Audit</a><a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / flags / matrix</div>
+                  <h1>Rollout matrix <em>· 12 orgs · 9 flags</em></h1>
+                  <div class="sub">Showing currently-rolling-out flags only. Evaluated against today's snapshot at 14:38 UTC.</div>
+                </div>
+                <div class="right">
+                  <button class="btn">List view</button>
+                  <button class="btn">All flags (34)</button>
+                  <button class="btn">Export CSV</button>
+                </div>
+              </div>
+
+              <div class="matrix-wrap">
+                <div class="matrix">
+                  <!-- Header row -->
+                  <div class="h org-col">organisation · 12</div>
+                  <div class="h"><span class="stage-dot beta"></span>dyn_pricing_v3</div>
+                  <div class="h"><span class="stage-dot beta"></span>id_ocr</div>
+                  <div class="h"><span class="stage-dot beta"></span>waterfall_canon</div>
+                  <div class="h"><span class="stage-dot beta"></span>turnover_monitor</div>
+                  <div class="h"><span class="stage-dot ga"></span>ow_2fa</div>
+                  <div class="h"><span class="stage-dot ga"></span>stmt_v2_explain</div>
+                  <div class="h"><span class="stage-dot internal"></span>cmd_palette_ai</div>
+                  <div class="h"><span class="stage-dot internal"></span>voice_input</div>
+                  <div class="h"><span class="stage-dot kill"></span>channel_sync_v2</div>
+
+                  <!-- Tier divider: Atelier -->
+                  <div class="org-cell tier"><div class="nm">Atelier · 4</div></div>
+                  <div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div>
+
+                  <div class="org-cell"><div class="nm">Whitmore Villas Group</div><div class="meta">SG · 22 users</div></div>
+                  <div class="cell on-beta override" title="force-on override"><span class="glyph">●</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell on-beta"><span class="glyph">●</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+
+                  <div class="org-cell"><div class="nm">PT Senayan Estate</div><div class="meta">ID · 34 users</div></div>
+                  <div class="cell on-beta override"><span class="glyph">●</span></div>
+                  <div class="cell on-beta"><span class="glyph">●</span></div>
+                  <div class="cell on-beta"><span class="glyph">●</span></div>
+                  <div class="cell on-beta"><span class="glyph">●</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell on-internal override"><span class="glyph">●</span></div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+
+                  <div class="org-cell"><div class="nm">Tan Family Trust</div><div class="meta">SG · 14 users</div></div>
+                  <div class="cell off override" title="force-off"><span class="glyph">∅</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell on-beta"><span class="glyph">●</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+
+                  <div class="org-cell"><div class="nm">Kishida Holdings KK</div><div class="meta">JP · 4 users · suspended</div></div>
+                  <div class="cell off override"><span class="glyph">∅</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+
+                  <!-- Tier divider: Studio -->
+                  <div class="org-cell tier"><div class="nm">Studio · 7</div></div>
+                  <div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div>
+
+                  <div class="org-cell"><div class="nm">Bali Boutique Stays</div><div class="meta">ID · 12 users · at risk</div></div>
+                  <div class="cell off">—</div>
+                  <div class="cell on-beta"><span class="glyph">●</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+
+                  <div class="org-cell"><div class="nm">Tirta Lestari Villas</div><div class="meta">ID · 8 users</div></div>
+                  <div class="cell off">—</div>
+                  <div class="cell on-beta"><span class="glyph">●</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+
+                  <div class="org-cell"><div class="nm">Sukha Residences</div><div class="meta">ID · 8 users</div></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell on-beta"><span class="glyph">●</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+
+                  <div class="org-cell"><div class="nm">Ubud Stay Co.</div><div class="meta">ID · 6 users · suspend D+12</div></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+
+                  <div class="org-cell"><div class="nm">Uluwatu Villa Collective</div><div class="meta">ID · 5 users · trial</div></div>
+                  <div class="cell off">—</div>
+                  <div class="cell on-beta"><span class="glyph">●</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+
+                  <div class="org-cell"><div class="nm">Coral Cay Holdings</div><div class="meta">SG · 4 users</div></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell off">—</div>
+                  <div class="cell off">—</div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+
+                  <!-- Tier: Internal -->
+                  <div class="org-cell tier"><div class="nm">Internal · 1</div></div>
+                  <div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div><div class="cell">—</div>
+
+                  <div class="org-cell"><div class="nm">Arconique Demo</div><div class="meta">internal · 6 users</div></div>
+                  <div class="cell on-beta override"><span class="glyph">●</span></div>
+                  <div class="cell on-internal override"><span class="glyph">●</span></div>
+                  <div class="cell on-beta override"><span class="glyph">●</span></div>
+                  <div class="cell on-beta override"><span class="glyph">●</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on"><span class="glyph">✓</span></div>
+                  <div class="cell on-internal override"><span class="glyph">●</span></div>
+                  <div class="cell on-internal override"><span class="glyph">●</span></div>
+                  <div class="cell kill"><span class="glyph">✕</span></div>
+                </div>
+
+                <div class="legend">
+                  <div class="item"><span class="sw on"></span>GA · on</div>
+                  <div class="item"><span class="sw beta"></span>beta · on</div>
+                  <div class="item"><span class="sw internal"></span>internal · on</div>
+                  <div class="item"><span class="sw off"></span>off</div>
+                  <div class="item"><span class="sw kill"></span>kill-switched</div>
+                  <div class="item"><span class="sw ovr"></span>per-org override</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>orgs grouped by tier · horizontal scroll for more flags</span>
+        <span>·</span>
+        <span>click cell → override editor for that org × flag</span>
+      </div>
+    </section>
+
+    <!-- 04 SCHEDULE -->
+    <section id="schedule" class="ds-section" data-screen-label="04 Rollout schedule">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Calendar</span></div>
+          <h2>Rollout schedule · what changes when</h2>
+          <p>The "look-ahead" view: planned bumps, GA flips, scheduled reviews, planned kills. Weekend cells are softly de-emphasised — Arconique doesn't ship to prod on Saturdays/Sundays. The black-tinted column is today.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a>
+                <a class="on">Flags</a>
+                <a>Support</a><a>Audit</a><a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / flags / schedule</div>
+                  <h1>Schedule <em>· next 8 days</em></h1>
+                  <div class="sub">7 planned changes · 2 GA flips · 1 review window · weekends marked, never auto-fired</div>
+                </div>
+                <div class="right">
+                  <button class="btn">List view</button>
+                  <button class="btn">Matrix</button>
+                  <button class="btn">+ Schedule bump</button>
+                </div>
+              </div>
+
+              <div class="sched-shell">
+                <div class="sched-hd">
+                  <h2>Week of <em>29 may — 5 jun 2025</em></h2>
+                  <span class="meta">tz: UTC · displayed in your local +08:00</span>
+                </div>
+
+                <div class="sched-grid">
+                  <div></div>
+                  <div class="day-h today">thu <span class="d">29</span></div>
+                  <div class="day-h">fri <span class="d">30</span></div>
+                  <div class="day-h weekend">sat <span class="d">31</span></div>
+                  <div class="day-h weekend">sun <span class="d">1</span></div>
+                  <div class="day-h">mon <span class="d">2</span></div>
+                  <div class="day-h">tue <span class="d">3</span></div>
+                  <div class="day-h">wed <span class="d">4</span></div>
+                  <div class="day-h">thu <span class="d">5</span></div>
+
+                  <div class="flag-cell">
+                    dyn_pricing_v3
+                    <span class="stage">beta · 35%</span>
+                  </div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell"><div class="event bump">bump → 60%</div></div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell"><div class="event review">review</div></div>
+
+                  <div class="flag-cell">
+                    front_office_id_ocr
+                    <span class="stage">beta · 50%</span>
+                  </div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell"><div class="event bump">bump → 75%</div></div>
+                  <div class="cell"><div class="event ga span">GA · 100%</div></div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+
+                  <div class="flag-cell">
+                    investor_waterfall
+                    <span class="stage">beta · 15%</span>
+                  </div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell"><div class="event bump">bump → 30%</div></div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+
+                  <div class="flag-cell">
+                    statement_v2_explain
+                    <span class="stage">GA · 100%</span>
+                  </div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell"><div class="event review">30d review</div></div>
+                  <div class="cell"></div>
+
+                  <div class="flag-cell">
+                    channel_sync_v2
+                    <span class="stage">killed · 0%</span>
+                  </div>
+                  <div class="cell"><div class="event kill">killed 12:14</div></div>
+                  <div class="cell"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell"><div class="event review">root-cause review</div></div>
+                  <div class="cell"></div>
+
+                  <div class="flag-cell">
+                    cmd_palette_ai
+                    <span class="stage">internal</span>
+                  </div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell weekend"></div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell"></div>
+                  <div class="cell"><div class="event bump">→ beta seed 10%</div></div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>weekend cells: bumps blocked · review-only</span>
+        <span>·</span>
+        <span>event click → opens flag detail with bump pre-staged</span>
+      </div>
+    </section>
+
+    <!-- 05 SCHEMA -->
+    <section id="schema" class="ds-section" data-screen-label="05 Schema">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">05</span><span>—</span><span>Spec</span></div>
+          <h2>Schema · evaluation · consumers</h2>
+          <p>Flag evaluation is read-mostly and hot. The evaluator caches per-org for 60s and per-user for 30s. Overrides bypass the cache key entirely. Writes (bumps, kills, overrides) bust the cache for the affected scope; the matrix view's "evaluated at" timestamp is the cache snapshot time.</p>
+        </div>
+      </div>
+
+      <div class="notes-grid">
+
+        <div class="notes-card">
+          <h3>Tables · new for 2.5</h3>
+          <dl>
+            <div><dt>feature_flags</dt><dd><code>id · key · name · description · owner · stage · created_by · archived_at · ticket_url</code></dd></div>
+            <div><dt>flag_conditions</dt><dd><code>flag_id · idx · operand · op · value · conj</code> — AND-joined in order, last row's <code>conj</code> ignored</dd></div>
+            <div><dt>flag_overrides</dt><dd><code>flag_id · scope (org/user) · scope_id · value (on/off) · reason · created_by · expires_at</code></dd></div>
+            <div><dt>flag_schedule</dt><dd><code>flag_id · planned_at · kind (bump/ga/kill/review) · payload_jsonb · created_by · executed_at</code></dd></div>
+            <div><dt>flag_audit</dt><dd><code>flag_id · actor_user_id · action · before · after · ip · ts</code> — feeds cabinet 07</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Evaluation order · top wins</h3>
+          <dl>
+            <div><dt>1 · kill-switch</dt><dd>If <code>stage = 'kill'</code>, return <code>false</code>. No exceptions.</dd></div>
+            <div><dt>2 · org override</dt><dd>Most-specific scope first. <code>force-on</code> → true, <code>force-off</code> → false, log hit.</dd></div>
+            <div><dt>3 · user override</dt><dd>For user-scoped flags only. Same precedence as org overrides.</dd></div>
+            <div><dt>4 · conditions</dt><dd>AND-joined; AB bucket uses <code>hash(org_id + flag_key) % 100</code> for stable cohort assignment.</dd></div>
+            <div><dt>5 · default</dt><dd>If <code>stage = 'ga'</code>, return true; else false.</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Consumers · per-cabinet</h3>
+          <dl>
+            <div><dt>middleware</dt><dd><code>src/lib/flags/evaluate.ts</code> + <code>useFlag()</code> hook. Reads via <code>x-product</code>-aware context; the matrix UI calls the same evaluator with synthetic per-org user.</dd></div>
+            <div><dt>agents</dt><dd>Agent runners check <code>command_palette_ai</code>, <code>id_ocr</code>, <code>voice_input</code> before dispatching the corresponding agent. Disabled flag = no agent run, no spend.</dd></div>
+            <div><dt>UI rails</dt><dd>Owner-portal 2FA enrolment rail reads <code>owner_portal_2fa_required</code>. Statement explainers read <code>statement_v2_explainers</code>.</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Caution-flow rules</h3>
+          <dl>
+            <div><dt>kill-switch</dt><dd>2FA + reason. Logged to <code>flag_audit</code> + cabinet 07. Previous rollout state preserved; un-killing is a one-click restore.</dd></div>
+            <div><dt>GA flip</dt><dd>Cannot be scheduled for a weekend. Requires explicit confirmation if rolling to <code>&gt; 50%</code> in a single step.</dd></div>
+            <div><dt>archive</dt><dd>Soft-delete. <code>archived_at</code> set; evaluator returns <code>false</code>. Row stays for audit-log integrity forever.</dd></div>
+          </dl>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<script>
+  (function () {
+    function isInternal(href) {
+      if (!href) return false;
+      if (/^(https?:|mailto:|tel:|#)/i.test(href)) return false;
+      return true;
+    }
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      if (a.target && a.target !== '' && a.target !== '_self') return;
+      var href = a.getAttribute('href');
+      if (!isInternal(href)) return;
+      var search = window.location.search;
+      if (!search) return;
+      if (href.indexOf('?') !== -1) return;
+      var hashIdx = href.indexOf('#');
+      var base = hashIdx === -1 ? href : href.slice(0, hashIdx);
+      var hash = hashIdx === -1 ? '' : href.slice(hashIdx);
+      a.setAttribute('href', base + search + hash);
+    }, true);
+  })();
+</script>
+
+</body>
+</html>

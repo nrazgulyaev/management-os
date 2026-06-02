@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/warm-routes",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/owner-statement-auto-ack",
+      "schedule": "0 2 * * *"
     }
   ]
 }

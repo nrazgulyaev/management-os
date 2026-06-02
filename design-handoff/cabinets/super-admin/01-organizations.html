@@ -1,0 +1,1588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase 2.5 · 01 · Organizations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="super-admin-tokens">
+[data-product="super-admin"] {
+  --paper: #F8F9FB; --canvas: #EEF1F5; --panel: #FFFFFF; --panel-2: #F2F4F7; --panel-deep: #E5E9EE;
+  --ink: #0B0F14; --ink-2: #1F2937; --ink-3: #4B5563; --ink-4: #6B7280; --ink-5: #9CA3AF;
+  --line: #D6DBE2; --line-soft: #E5E8ED; --line-strong: #B8C0CC;
+  --accent: #3F4F8F; --accent-soft: #B8C2DF; --accent-deep: #2A3868; --on-accent: #FFFFFF;
+  --inverted-bg: #0B0F14; --inverted-fg: #F8F9FB; --inverted-bg-2: #1F2937;
+  --ok: #2D7A3E; --warn: #B47611; --danger: #B33A2C; --info: #2D5680;
+  --trust: #2A3868; --caution: #944B1F; --caution-soft: #F4E1D0;
+  --r-pill: 999px; --r-card: 10px; --r-card-lg: 14px; --r-hero: 18px; --r-sm: 5px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+  --shadow-card: 0 1px 2px rgba(11,15,20,0.05), 0 1px 1px rgba(11,15,20,0.03);
+  --shadow-pop:  0 12px 32px rgba(11,15,20,0.12), 0 2px 6px rgba(11,15,20,0.06);
+}
+
+:root {
+  --doc-bg: #0B0F14; --doc-bg-2: #131822; --doc-bg-3: #1B2330;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E8EC; --doc-fg-2: #B4B9C2; --doc-fg-3: #7E8590;
+  --doc-accent: #B8C2DF; --doc-caution: #E8AC85;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+/* Doc shell */
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc {
+  border-right: 1px solid var(--doc-line);
+  padding: 36px 22px;
+  background: var(--doc-bg-2);
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto;
+}
+.ds-mark {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--doc-mono); font-size: 10.5px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--doc-fg-3); margin-bottom: 22px;
+}
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 {
+  margin: 0 0 22px;
+  font-family: var(--doc-sans); font-weight: 500;
+  font-size: 19px; color: var(--doc-fg); letter-spacing: -0.005em;
+}
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title {
+  font-family: var(--doc-mono); font-size: 10px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--doc-fg-3); margin-bottom: 10px;
+}
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a {
+  display: block; padding: 6px 8px;
+  text-decoration: none; color: var(--doc-fg-2);
+  font-size: 13px; border-radius: 4px;
+  margin-bottom: 1px;
+}
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--doc-mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+.ds-toc .back { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-toc .back a { color: var(--doc-accent); font-size: 12.5px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1300px; }
+
+/* Cover */
+.cab-cover { margin-bottom: 64px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow {
+  font-family: var(--doc-mono); font-size: 11px;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--doc-accent);
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px;
+}
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 {
+  margin: 0;
+  font-family: var(--doc-sans); font-weight: 500;
+  font-size: 44px; line-height: 1.05; letter-spacing: -0.025em;
+}
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p {
+  max-width: 720px; margin: 18px 0 0;
+  font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65;
+}
+
+/* Section */
+.ds-section { margin-bottom: 88px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 22px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow {
+  font-family: var(--doc-mono); font-size: 11px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.ds-section h2 {
+  margin: 0;
+  font-family: var(--doc-sans); font-weight: 500;
+  font-size: 26px; letter-spacing: -0.015em;
+  color: var(--doc-fg);
+}
+.ds-section p {
+  max-width: 760px; margin: 8px 0 0;
+  font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65;
+}
+
+.artboard {
+  margin-top: 20px;
+  border: 1px solid var(--doc-line);
+  border-radius: 18px;
+  background: var(--canvas);
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+}
+.artboard-caption {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 14px;
+  font-family: var(--doc-mono); font-size: 10.5px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.artboard-caption .pill {
+  padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--doc-line-2);
+}
+.artboard-caption .pill.ready { color: var(--doc-accent); border-color: rgba(184,194,223,0.4); }
+.artboard-caption .pill.caution { color: var(--doc-caution); border-color: rgba(232,172,133,0.4); }
+
+/* Product chrome (super-admin app shell inside artboards) */
+[data-product="super-admin"] {
+  font-family: var(--sans-font);
+  color: var(--ink);
+}
+
+[data-product] .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 9px 14px; border-radius: 6px;
+  font-family: var(--sans-font); font-size: 13.5px; font-weight: 500;
+  border: 1px solid var(--line); cursor: pointer; line-height: 1;
+  background: var(--panel); color: var(--ink-2);
+  text-decoration: none;
+}
+[data-product] .btn:hover { background: var(--panel-2); }
+[data-product] .btn-sm { padding: 7px 11px; font-size: 12.5px; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+[data-product] .btn-caution { background: var(--panel); color: var(--caution); border-color: var(--caution); }
+[data-product] .btn-caution-solid { background: var(--caution); color: white; border-color: var(--caution); }
+[data-product] .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-3); }
+[data-product] .btn-ghost:hover { background: var(--panel-2); }
+
+[data-product] .badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: var(--r-pill);
+  font-family: var(--mono-font); font-size: 10.5px;
+  font-weight: 500; letter-spacing: 0.02em;
+  border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink-3);
+}
+[data-product] .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+[data-product] .badge-active   { color: var(--ok);    border-color: color-mix(in oklab, var(--ok) 35%, transparent); background: color-mix(in oklab, var(--ok) 8%, var(--panel)); }
+[data-product] .badge-trial    { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); background: color-mix(in oklab, var(--accent) 8%, var(--panel)); }
+[data-product] .badge-warning  { color: var(--warn);  border-color: color-mix(in oklab, var(--warn) 35%, transparent); background: color-mix(in oklab, var(--warn) 8%, var(--panel)); }
+[data-product] .badge-suspended{ color: var(--caution);border-color: color-mix(in oklab, var(--caution) 40%, transparent); background: color-mix(in oklab, var(--caution) 8%, var(--panel)); }
+[data-product] .badge-churned  { color: var(--ink-4); border-color: var(--line); background: var(--panel-2); }
+[data-product] .badge-ink      { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+[data-product] .label {
+  font-family: var(--mono-font);
+  font-size: 10.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+[data-product] .mono { font-family: var(--mono-font); font-feature-settings: "tnum"; }
+
+/* App topbar */
+[data-product] .app {
+  background: var(--canvas);
+  min-height: 720px;
+  display: grid; grid-template-rows: auto 1fr;
+}
+[data-product] .app-topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 20px;
+  background: var(--inverted-bg); color: var(--inverted-fg);
+  border-bottom: 1px solid var(--ink);
+}
+[data-product] .app-topbar .brand {
+  font-family: var(--display-font); font-size: 18px; color: var(--inverted-fg);
+  font-weight: 400;
+}
+[data-product] .app-topbar .brand .sub {
+  font-family: var(--mono-font); font-size: 9.5px; color: rgba(248,249,251,0.55);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  display: block; margin-top: 1px;
+}
+[data-product] .app-topbar .nav { display: flex; gap: 4px; margin-left: 24px; }
+[data-product] .app-topbar .nav a {
+  padding: 6px 12px; border-radius: 5px;
+  font-family: var(--mono-font); font-size: 11px;
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: rgba(248,249,251,0.6); text-decoration: none;
+}
+[data-product] .app-topbar .nav a.on { background: var(--inverted-bg-2); color: var(--inverted-fg); }
+[data-product] .app-topbar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-family: var(--mono-font); font-size: 11px; color: rgba(248,249,251,0.6); }
+[data-product] .app-topbar .me { display: flex; align-items: center; gap: 6px; }
+[data-product] .app-topbar .me .avatar {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: var(--accent); color: white;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--sans-font); font-size: 11px; font-weight: 600;
+}
+
+[data-product] .page-h {
+  padding: 22px 24px 18px;
+  display: flex; align-items: flex-start; gap: 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--canvas);
+}
+[data-product] .page-h .left h1 {
+  margin: 4px 0 0;
+  font-family: var(--display-font); font-weight: 400;
+  font-size: 30px; color: var(--ink); letter-spacing: -0.015em;
+}
+[data-product] .page-h .left h1 em { color: var(--accent); font-style: italic; }
+[data-product] .page-h .left .crumb {
+  font-family: var(--mono-font); font-size: 10.5px;
+  color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase;
+}
+[data-product] .page-h .left .sub {
+  margin-top: 6px; font-size: 13.5px; color: var(--ink-3); line-height: 1.5;
+}
+[data-product] .page-h .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+/* KPI bar */
+[data-product] .kpi-row {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line);
+}
+[data-product] .kpi-row .kpi {
+  padding: 14px 18px;
+  border-right: 1px solid var(--line);
+}
+[data-product] .kpi-row .kpi:last-child { border-right: 0; }
+[data-product] .kpi-row .l {
+  font-family: var(--mono-font); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3); margin-bottom: 4px;
+}
+[data-product] .kpi-row .v {
+  font-family: var(--display-font); font-size: 24px;
+  color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1;
+}
+[data-product] .kpi-row .v.warn { color: var(--warn); }
+[data-product] .kpi-row .v.danger { color: var(--danger); }
+[data-product] .kpi-row .v.caution { color: var(--caution); }
+[data-product] .kpi-row .ctx { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 4px; }
+
+/* Filter bar */
+[data-product] .filter-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 24px;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line);
+}
+[data-product] .filter-bar .search {
+  display: flex; align-items: center; gap: 8px;
+  flex: 0 1 320px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  padding: 7px 12px;
+  font-family: var(--sans-font); font-size: 13px; color: var(--ink-4);
+}
+[data-product] .filter-bar .chip {
+  padding: 5px 10px; border-radius: 6px;
+  background: var(--panel); border: 1px solid var(--line);
+  font-family: var(--mono-font); font-size: 11px;
+  color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px;
+  cursor: pointer;
+}
+[data-product] .filter-bar .chip.on { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .filter-bar .chip .ct {
+  padding: 1px 6px; background: var(--panel-deep);
+  border-radius: 999px; font-size: 10px; color: var(--ink-3);
+}
+[data-product] .filter-bar .chip.on .ct { background: rgba(255,255,255,0.18); color: var(--inverted-fg); }
+[data-product] .filter-bar .spacer { flex: 1; }
+
+/* Org table */
+[data-product] .org-table {
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+[data-product] .org-table .head, [data-product] .org-table .row {
+  display: grid;
+  grid-template-columns: 32px 2.4fr 1fr 90px 110px 110px 100px 60px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+}
+[data-product] .org-table .head {
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 2;
+}
+[data-product] .org-table .head .col {
+  font-family: var(--mono-font); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product] .org-table .row {
+  border-bottom: 1px solid var(--line-soft);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+[data-product] .org-table .row:hover { background: var(--panel-2); }
+[data-product] .org-table .row.has-flag { background: color-mix(in oklab, var(--caution) 4%, var(--panel)); }
+[data-product] .org-table .row.has-flag:hover { background: color-mix(in oklab, var(--caution) 7%, var(--panel)); }
+
+[data-product] .org-table .ck {
+  width: 16px; height: 16px; border-radius: 3px;
+  border: 1.5px solid var(--ink-4);
+}
+[data-product] .org-table .org-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+[data-product] .org-table .org-cell .ico {
+  width: 36px; height: 36px; border-radius: 6px;
+  background: var(--panel-deep);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--display-font); font-size: 16px; color: var(--ink-2);
+  flex-shrink: 0;
+}
+[data-product] .org-table .org-cell .ico.accent { background: color-mix(in oklab, var(--accent) 14%, var(--panel-2)); color: var(--accent); }
+[data-product] .org-table .org-cell .meta { min-width: 0; }
+[data-product] .org-table .org-cell .nm { font-family: var(--sans-font); font-size: 14px; font-weight: 500; color: var(--ink); line-height: 1.2; }
+[data-product] .org-table .org-cell .nm .country { font-family: var(--mono-font); font-weight: 400; font-size: 10.5px; color: var(--ink-4); margin-left: 6px; vertical-align: 2px; }
+[data-product] .org-table .org-cell .url { font-family: var(--mono-font); font-size: 11px; color: var(--ink-4); margin-top: 2px; }
+[data-product] .org-table .org-cell .flag-strip { display: flex; gap: 4px; margin-top: 4px; }
+[data-product] .org-table .org-cell .flag-strip .f {
+  font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.08em;
+  padding: 1px 6px; border-radius: 3px;
+}
+[data-product] .org-table .org-cell .flag-strip .f.pay { background: color-mix(in oklab, var(--danger) 14%, transparent); color: var(--danger); }
+[data-product] .org-table .org-cell .flag-strip .f.trial { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); }
+[data-product] .org-table .org-cell .flag-strip .f.support { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); }
+
+[data-product] .org-table .plan { font-family: var(--mono-font); font-size: 12px; color: var(--ink-2); }
+[data-product] .org-table .num { font-family: var(--mono-font); font-size: 12.5px; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; }
+[data-product] .org-table .num .sub { display: block; font-size: 10px; color: var(--ink-4); margin-top: 1px; font-weight: 400; }
+[data-product] .org-table .when { font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-3); }
+[data-product] .org-table .when.warn { color: var(--warn); }
+[data-product] .org-table .when.danger { color: var(--danger); }
+
+[data-product] .org-table .menu { color: var(--ink-4); text-align: center; font-size: 16px; line-height: 1; }
+
+/* Detail page */
+[data-product] .det-page { padding: 0; }
+[data-product] .det-h {
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 20px;
+  padding: 24px 28px 22px;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line);
+}
+[data-product] .det-h .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .det-h h1 {
+  margin: 6px 0 0;
+  font-family: var(--display-font); font-size: 32px; font-weight: 400;
+  color: var(--ink); letter-spacing: -0.02em; line-height: 1.1;
+  display: flex; align-items: center; gap: 14px;
+}
+[data-product] .det-h h1 .country { font-family: var(--mono-font); font-size: 13px; color: var(--ink-4); font-weight: 400; }
+[data-product] .det-h .meta-strip {
+  display: flex; gap: 24px; align-items: center;
+  margin-top: 12px;
+  font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-3);
+}
+[data-product] .det-h .meta-strip .sep { color: var(--ink-5); }
+[data-product] .det-h .meta-strip strong { color: var(--ink-2); font-weight: 500; }
+[data-product] .det-h .actions { display: flex; gap: 8px; flex-shrink: 0; align-self: start; }
+
+[data-product] .det-body {
+  display: grid; grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 0;
+}
+[data-product] .det-col { padding: 22px 24px; border-right: 1px solid var(--line); background: var(--canvas); }
+[data-product] .det-col:last-child { border-right: 0; }
+[data-product] .det-col h3 {
+  margin: 0 0 12px;
+  font-family: var(--mono-font); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.18em;
+  color: var(--ink-3); font-weight: 500;
+}
+[data-product] .det-col .kv-row {
+  display: grid; grid-template-columns: 100px 1fr;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 13px;
+  align-items: baseline;
+}
+[data-product] .det-col .kv-row:last-child { border-bottom: 0; }
+[data-product] .det-col .kv-row .k { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .det-col .kv-row .v { color: var(--ink); }
+[data-product] .det-col .kv-row .v.mono { font-family: var(--mono-font); font-size: 12px; }
+
+[data-product] .det-card {
+  background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 16px; margin-bottom: 12px;
+}
+[data-product] .det-card .h {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;
+}
+[data-product] .det-card .h .nm {
+  font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; color: var(--ink);
+}
+[data-product] .det-card .h .when { margin-left: auto; font-family: var(--mono-font); font-size: 10px; color: var(--ink-4); }
+[data-product] .det-card .body { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; }
+[data-product] .det-card .body strong { color: var(--ink); font-weight: 500; }
+
+/* Activity timeline */
+[data-product] .timeline { display: flex; flex-direction: column; gap: 0; }
+[data-product] .tl-row {
+  display: grid; grid-template-columns: 18px 80px 1fr;
+  gap: 14px; padding: 10px 0;
+  border-bottom: 1px solid var(--line-soft); font-size: 13px;
+}
+[data-product] .tl-row:last-child { border-bottom: 0; }
+[data-product] .tl-row .marker {
+  margin-top: 6px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--ink-4); justify-self: center;
+}
+[data-product] .tl-row .marker.accent { background: var(--accent); }
+[data-product] .tl-row .marker.caution { background: var(--caution); }
+[data-product] .tl-row .marker.ok { background: var(--ok); }
+[data-product] .tl-row .marker.danger { background: var(--danger); }
+[data-product] .tl-row .when { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); padding-top: 2px; }
+[data-product] .tl-row .nm { color: var(--ink); font-weight: 500; line-height: 1.4; }
+[data-product] .tl-row .body { font-size: 12px; color: var(--ink-3); margin-top: 2px; line-height: 1.5; }
+[data-product] .tl-row .body code { font-family: var(--mono-font); font-size: 11px; padding: 0 4px; background: var(--panel-2); border-radius: 3px; color: var(--ink-2); }
+
+/* Health stats */
+[data-product] .health-stat {
+  padding: 10px 0; border-bottom: 1px solid var(--line-soft);
+  display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 10px;
+}
+[data-product] .health-stat:last-child { border-bottom: 0; }
+[data-product] .health-stat .nm { font-family: var(--sans-font); font-size: 13px; color: var(--ink); }
+[data-product] .health-stat .v { font-family: var(--mono-font); font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; }
+[data-product] .health-stat .delta { display: block; font-family: var(--mono-font); font-size: 10.5px; margin-top: 2px; text-align: right; }
+[data-product] .health-stat .delta.up { color: var(--ok); }
+[data-product] .health-stat .delta.down { color: var(--danger); }
+[data-product] .health-stat .delta.flat { color: var(--ink-4); }
+
+/* Spark trend */
+[data-product] .spark {
+  height: 36px; margin-top: 12px; padding: 4px 0;
+  display: flex; align-items: flex-end; gap: 2px;
+}
+[data-product] .spark .bar {
+  flex: 1; background: var(--accent-soft); border-radius: 1px;
+}
+[data-product] .spark .bar.deep { background: var(--accent); }
+
+/* Variant rows */
+.var-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  margin-top: 14px;
+}
+.var-frame {
+  border: 1px solid var(--doc-line);
+  border-radius: 14px;
+  background: var(--canvas);
+  overflow: hidden;
+}
+.var-frame .v-h {
+  padding: 10px 14px;
+  background: var(--doc-bg-3);
+  font-family: var(--doc-mono); font-size: 10.5px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--doc-fg-2);
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--doc-line);
+}
+.var-frame .v-h .name { color: var(--doc-fg); }
+.var-frame .v-body { background: var(--canvas); }
+
+/* Impersonate sheet */
+[data-product] .impersonate-shell {
+  padding: 32px 28px 28px;
+  background: linear-gradient(180deg, var(--canvas) 0%, var(--canvas) 100%);
+  min-height: 720px;
+  position: relative;
+}
+[data-product] .impersonate-shell::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--caution) 0%, var(--caution) 50%, var(--ink) 100%);
+}
+
+[data-product] .imp-warn {
+  background: color-mix(in oklab, var(--caution) 10%, var(--panel));
+  border: 1px solid var(--caution);
+  border-left: 4px solid var(--caution);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 22px;
+  display: flex; gap: 16px; align-items: flex-start;
+}
+[data-product] .imp-warn .ic {
+  flex-shrink: 0; width: 28px; height: 28px;
+  background: var(--caution); color: white;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  font-family: var(--display-font); font-size: 16px;
+}
+[data-product] .imp-warn .body h3 { margin: 0; font-family: var(--display-font); font-weight: 500; font-size: 18px; color: var(--ink); }
+[data-product] .imp-warn .body p { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+
+[data-product] .imp-card {
+  background: var(--panel);
+  border: 1px solid var(--line); border-radius: 12px;
+  padding: 22px 24px; margin-bottom: 16px;
+}
+[data-product] .imp-card h3 {
+  margin: 0 0 14px;
+  font-family: var(--display-font); font-weight: 400;
+  font-size: 18px; color: var(--ink); letter-spacing: -0.005em;
+}
+[data-product] .imp-card .kv {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+[data-product] .imp-card .kv .row { display: flex; flex-direction: column; gap: 4px; }
+[data-product] .imp-card .kv .l { font-family: var(--mono-font); font-size: 10px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .imp-card .kv .v { font-family: var(--sans-font); font-size: 14px; color: var(--ink); }
+[data-product] .imp-card .kv .v.mono { font-family: var(--mono-font); }
+
+[data-product] .imp-radio {
+  display: flex; flex-direction: column; gap: 8px;
+}
+[data-product] .imp-radio .opt {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+  cursor: pointer;
+}
+[data-product] .imp-radio .opt.on { background: var(--panel); border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink) inset; }
+[data-product] .imp-radio .opt .ring {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--ink-4);
+  flex-shrink: 0; margin-top: 2px;
+}
+[data-product] .imp-radio .opt.on .ring { border-color: var(--ink); position: relative; }
+[data-product] .imp-radio .opt.on .ring::after { content: ""; position: absolute; inset: 3px; background: var(--ink); border-radius: 50%; }
+[data-product] .imp-radio .opt .nm { font-family: var(--sans-font); font-size: 14px; font-weight: 500; color: var(--ink); }
+[data-product] .imp-radio .opt .desc { font-size: 12px; color: var(--ink-3); margin-top: 3px; line-height: 1.5; }
+
+[data-product] .field {
+  margin-top: 14px;
+}
+[data-product] .field .lbl {
+  font-family: var(--mono-font); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 6px;
+}
+[data-product] .field input, [data-product] .field textarea {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  font-family: var(--sans-font); font-size: 13.5px; color: var(--ink);
+  font-style: italic;
+}
+[data-product] .field textarea { min-height: 60px; resize: vertical; }
+[data-product] .field .hint {
+  font-size: 11.5px; color: var(--ink-4); margin-top: 6px; line-height: 1.45;
+}
+
+[data-product] .imp-actions {
+  display: flex; gap: 10px; align-items: center;
+  margin-top: 4px;
+}
+[data-product] .imp-actions .spacer { flex: 1; }
+
+/* Audit chain */
+[data-product] .audit-chain {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 14px;
+  font-family: var(--mono-font); font-size: 10.5px;
+  color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase;
+}
+[data-product] .audit-chain .step { display: flex; align-items: center; gap: 5px; }
+[data-product] .audit-chain .step .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--line-strong);
+}
+[data-product] .audit-chain .step.done .dot { background: var(--ok); }
+[data-product] .audit-chain .step.on .dot { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent); }
+[data-product] .audit-chain .arr { color: var(--ink-5); }
+
+/* Suspend section */
+[data-product] .suspend-effects {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 18px;
+}
+[data-product] .suspend-effects .h {
+  font-family: var(--mono-font); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 10px;
+}
+[data-product] .suspend-effects ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+[data-product] .suspend-effects li {
+  display: grid; grid-template-columns: 18px 1fr; gap: 10px;
+  font-size: 13px; color: var(--ink-2); line-height: 1.5;
+  align-items: baseline;
+}
+[data-product] .suspend-effects li .ic { color: var(--caution); margin-top: 2px; }
+
+/* Schema notes */
+.notes-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  margin-top: 18px;
+}
+.notes-card {
+  background: var(--doc-bg-2);
+  border: 1px solid var(--doc-line);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.notes-card h3 {
+  margin: 0 0 12px;
+  font-family: var(--doc-sans); font-size: 14px; font-weight: 500;
+  color: var(--doc-fg); letter-spacing: -0.005em;
+}
+.notes-card dl { margin: 0; }
+.notes-card dl > div {
+  display: grid; grid-template-columns: 130px 1fr;
+  gap: 14px; padding: 8px 0;
+  border-bottom: 1px solid var(--doc-line);
+  font-size: 12.5px;
+}
+.notes-card dl > div:last-child { border-bottom: 0; }
+.notes-card dt {
+  font-family: var(--doc-mono); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.notes-card dd { margin: 0; color: var(--doc-fg-2); line-height: 1.55; }
+.notes-card dd code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg); background: var(--doc-bg-3); padding: 1px 6px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Phase 2.5</div>
+    <h1>Platform super-admin</h1>
+    <div class="back"><a href="hub.html">← back to hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">01 · Organizations</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#list"><span class="ix">01</span>List view</a></li>
+        <li><a href="#detail"><span class="ix">02</span>Detail · single org</a></li>
+        <li><a href="#variants"><span class="ix">03</span>Layout variants</a></li>
+        <li><a href="#impersonate"><span class="ix">04</span>Impersonate flow</a></li>
+        <li><a href="#suspend"><span class="ix">05</span>Suspend flow</a></li>
+        <li><a href="#schema"><span class="ix">06</span>Schema · roles · audit</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Up next</div>
+      <ul>
+        <li><a><span class="ix">02</span>Users</a></li>
+        <li><a><span class="ix">03</span>Plans &amp; pricing</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <!-- COVER -->
+    <section id="cover" class="cab-cover" data-screen-label="Cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Phase 2.5 · cabinet 01 of 09</span></div>
+      <h1>Organizations · <em>the operator's first screen</em>.</h1>
+      <p>Every org on the platform — active, trial, suspended, churned. The Sales team lives here for onboarding and demo-account housekeeping; the tech lead opens it when something breaks across a customer. Two flows in this cabinet earn the "high-trust" palette: <strong style="color:var(--doc-fg)">impersonate-as</strong> and <strong style="color:var(--doc-fg)">suspend organisation</strong>. Both are gated by 2FA + reason + audit-log entry.</p>
+    </section>
+
+    <!-- 01 LIST -->
+    <section id="list" class="ds-section" data-screen-label="01 List view">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>List view · sorted by signal, not alphabet</h2>
+          <p>Default sort is <em>"who needs attention"</em>: payment-failed → trial-ending → support-escalated → most-recently-active. Each row's tone shifts on flag (caution-tinted background when payment-failed). Bulk-select for ops actions; right-side menu for per-org actions.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a class="on">Organizations</a>
+                <a>Users</a>
+                <a>Plans</a>
+                <a>Billing</a>
+                <a>Flags</a>
+                <a>Support</a>
+                <a>Audit</a>
+                <a>Health</a>
+                <a>AI</a>
+              </div>
+              <div class="right">
+                <span>v 4.2.18</span>
+                <span class="me">
+                  <span class="avatar">NR</span>
+                  Nikita R.
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / organizations</div>
+                  <h1>Organizations <em>· 47</em></h1>
+                  <div class="sub">3 need attention · 8 trials ending this week · 1 suspended pending review</div>
+                </div>
+                <div class="right">
+                  <button class="btn"><span style="font-size:14px;">⌕</span>Search</button>
+                  <button class="btn">Export</button>
+                  <button class="btn btn-primary">+ Onboard new org</button>
+                </div>
+              </div>
+
+              <div class="kpi-row">
+                <div class="kpi"><div class="l">total</div><div class="v">47</div><div class="ctx">+3 this month</div></div>
+                <div class="kpi"><div class="l">active</div><div class="v">38</div><div class="ctx">paying</div></div>
+                <div class="kpi"><div class="l">trial</div><div class="v warn">6</div><div class="ctx">4 end &lt; 7d</div></div>
+                <div class="kpi"><div class="l">suspended</div><div class="v caution">2</div><div class="ctx">1 pending review</div></div>
+                <div class="kpi"><div class="l">churned</div><div class="v">1</div><div class="ctx">last 90d</div></div>
+              </div>
+
+              <div class="filter-bar">
+                <div class="search"><span style="color:var(--ink-3);">⌕</span>Search by name, slug, contact, domain…</div>
+                <span class="chip on">needs attention <span class="ct">3</span></span>
+                <span class="chip">active <span class="ct">38</span></span>
+                <span class="chip">trial <span class="ct">6</span></span>
+                <span class="chip">suspended <span class="ct">2</span></span>
+                <span class="chip">churned <span class="ct">1</span></span>
+                <div class="spacer"></div>
+                <span class="chip">+ filter</span>
+                <span class="chip">sort: signal ▾</span>
+              </div>
+
+              <div class="org-table">
+                <div class="head">
+                  <div><span class="ck"></span></div>
+                  <div class="col">organisation</div>
+                  <div class="col">plan</div>
+                  <div class="col">users</div>
+                  <div class="col" style="text-align:right;">MRR</div>
+                  <div class="col">status</div>
+                  <div class="col">last active</div>
+                  <div></div>
+                </div>
+
+                <!-- Flagged: payment failed -->
+                <div class="row has-flag">
+                  <div><span class="ck"></span></div>
+                  <div class="org-cell">
+                    <div class="ico">B</div>
+                    <div class="meta">
+                      <div class="nm">Bali Boutique Stays<span class="country">ID · Bali</span></div>
+                      <div class="url">bbs.arconique.com</div>
+                      <div class="flag-strip">
+                        <span class="f pay">payment failed · 4d</span>
+                        <span class="f support">2 open tickets</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="plan">Studio · annual</div>
+                  <div class="num">12<div class="sub">8 active 30d</div></div>
+                  <div class="num">$1,180<div class="sub">/mo</div></div>
+                  <div><span class="badge badge-warning"><span class="dot"></span>at risk</span></div>
+                  <div class="when warn">2h ago</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <!-- Flagged: trial ending -->
+                <div class="row has-flag">
+                  <div><span class="ck"></span></div>
+                  <div class="org-cell">
+                    <div class="ico accent">U</div>
+                    <div class="meta">
+                      <div class="nm">Uluwatu Villa Collective<span class="country">ID · Bali</span></div>
+                      <div class="url">uvc.arconique.com</div>
+                      <div class="flag-strip">
+                        <span class="f trial">trial ends in 2d</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="plan">Studio · trial</div>
+                  <div class="num">5<div class="sub">5 active 30d</div></div>
+                  <div class="num">—<div class="sub">trial</div></div>
+                  <div><span class="badge badge-trial"><span class="dot"></span>trial</span></div>
+                  <div class="when warn">38m ago</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <!-- Flagged: support ticket escalated -->
+                <div class="row has-flag">
+                  <div><span class="ck"></span></div>
+                  <div class="org-cell">
+                    <div class="ico">P</div>
+                    <div class="meta">
+                      <div class="nm">PT Senayan Estate<span class="country">ID · Jakarta</span></div>
+                      <div class="url">senayan.arconique.com</div>
+                      <div class="flag-strip">
+                        <span class="f support">escalated · 6h</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="plan">Atelier · annual</div>
+                  <div class="num">34<div class="sub">28 active 30d</div></div>
+                  <div class="num">$4,280<div class="sub">/mo</div></div>
+                  <div><span class="badge badge-active"><span class="dot"></span>active</span></div>
+                  <div class="when">12m ago</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <!-- Active rows -->
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="org-cell">
+                    <div class="ico accent">W</div>
+                    <div class="meta">
+                      <div class="nm">Whitmore Villas Group<span class="country">SG · ID</span></div>
+                      <div class="url">whitmore.arconique.com</div>
+                    </div>
+                  </div>
+                  <div class="plan">Atelier · annual</div>
+                  <div class="num">22<div class="sub">19 active 30d</div></div>
+                  <div class="num">$3,180<div class="sub">/mo</div></div>
+                  <div><span class="badge badge-active"><span class="dot"></span>active</span></div>
+                  <div class="when">4m ago</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="org-cell">
+                    <div class="ico">S</div>
+                    <div class="meta">
+                      <div class="nm">Sukha Residences<span class="country">ID · Uluwatu</span></div>
+                      <div class="url">sukha.arconique.com</div>
+                    </div>
+                  </div>
+                  <div class="plan">Studio · monthly</div>
+                  <div class="num">8<div class="sub">7 active 30d</div></div>
+                  <div class="num">$680<div class="sub">/mo</div></div>
+                  <div><span class="badge badge-active"><span class="dot"></span>active</span></div>
+                  <div class="when">28m ago</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="org-cell">
+                    <div class="ico">T</div>
+                    <div class="meta">
+                      <div class="nm">Tan Family Trust<span class="country">SG</span></div>
+                      <div class="url">tanfamily.arconique.com</div>
+                    </div>
+                  </div>
+                  <div class="plan">Atelier · annual</div>
+                  <div class="num">14<div class="sub">11 active 30d</div></div>
+                  <div class="num">$2,140<div class="sub">/mo</div></div>
+                  <div><span class="badge badge-active"><span class="dot"></span>active</span></div>
+                  <div class="when">1h ago</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="org-cell">
+                    <div class="ico accent">A</div>
+                    <div class="meta">
+                      <div class="nm">Arconique Demo<span class="country">internal</span></div>
+                      <div class="url">demo.arconique.com</div>
+                    </div>
+                  </div>
+                  <div class="plan">Atelier · sales-demo</div>
+                  <div class="num">6<div class="sub">3 active 30d</div></div>
+                  <div class="num">—<div class="sub">internal</div></div>
+                  <div><span class="badge badge-ink"><span class="dot"></span>internal</span></div>
+                  <div class="when">3h ago</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="org-cell">
+                    <div class="ico">K</div>
+                    <div class="meta">
+                      <div class="nm">Kishida Holdings KK<span class="country">JP</span></div>
+                      <div class="url">kishida.arconique.com</div>
+                    </div>
+                  </div>
+                  <div class="plan">Studio · annual</div>
+                  <div class="num">4<div class="sub">3 active 30d</div></div>
+                  <div class="num">$1,180<div class="sub">/mo</div></div>
+                  <div><span class="badge badge-suspended"><span class="dot"></span>suspended</span></div>
+                  <div class="when danger">14d ago</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill ready">desktop ready</span>
+        <span>3 flag types · caution-tinted row when payment-failed</span>
+        <span>·</span>
+        <span>row click → detail · ⋯ → quick-action drawer</span>
+      </div>
+    </section>
+
+    <!-- 02 DETAIL -->
+    <section id="detail" class="ds-section" data-screen-label="02 Detail">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Detail</span></div>
+          <h2>Single-org detail · profile · activity · health</h2>
+          <p>3-column layout: <strong style="color:var(--doc-fg)">profile</strong> (immutable facts), <strong style="color:var(--doc-fg)">activity</strong> (timeline of org events), <strong style="color:var(--doc-fg)">health</strong> (live signals). Top-bar actions are always: <span style="color:var(--doc-accent);">Open dashboard</span>, <span style="color:var(--doc-caution);">Impersonate</span>, <span style="color:var(--doc-caution);">Suspend</span>. The two caution-coloured actions trigger the flows in sections 04-05.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a class="on">Organizations</a>
+                <a>Users</a>
+                <a>Plans</a>
+                <a>Billing</a>
+                <a>Flags</a>
+                <a>Support</a>
+                <a>Audit</a>
+                <a>Health</a>
+                <a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div class="det-page">
+              <div class="det-h">
+                <div>
+                  <div class="crumb"><a href="#list" style="color:inherit;text-decoration:none;">organizations</a> / whitmore villas group</div>
+                  <h1>Whitmore Villas Group <span class="country">SG · ID</span></h1>
+                  <div class="meta-strip">
+                    <span>org_id <strong>5e94c2a1</strong></span>
+                    <span class="sep">·</span>
+                    <span>whitmore.arconique.com</span>
+                    <span class="sep">·</span>
+                    <span>onboarded <strong>14 apr 2024</strong></span>
+                    <span class="sep">·</span>
+                    <span>Atelier · annual · <strong>$3,180 / mo</strong></span>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn">↗ Open dashboard</button>
+                  <button class="btn btn-caution">▢ Impersonate</button>
+                  <button class="btn btn-caution">⊘ Suspend</button>
+                </div>
+              </div>
+
+              <div class="det-body">
+                <!-- Profile col -->
+                <div class="det-col">
+                  <h3>Profile</h3>
+                  <div class="kv-row"><span class="k">name</span><span class="v">Whitmore Villas Group</span></div>
+                  <div class="kv-row"><span class="k">slug</span><span class="v mono">whitmore</span></div>
+                  <div class="kv-row"><span class="k">country</span><span class="v">Singapore (entity) · Indonesia (ops)</span></div>
+                  <div class="kv-row"><span class="k">timezone</span><span class="v mono">Asia/Singapore</span></div>
+                  <div class="kv-row"><span class="k">currency</span><span class="v mono">SGD · IDR</span></div>
+                  <div class="kv-row"><span class="k">created</span><span class="v">14 apr 2024 · 13mo ago</span></div>
+
+                  <h3 style="margin-top:24px;">Plan</h3>
+                  <div class="kv-row"><span class="k">tier</span><span class="v">Atelier</span></div>
+                  <div class="kv-row"><span class="k">cycle</span><span class="v">annual · renews 14 apr 2026</span></div>
+                  <div class="kv-row"><span class="k">limits</span><span class="v">100 villas · 50 users · unlimited bookings</span></div>
+                  <div class="kv-row"><span class="k">addons</span><span class="v">AI Premium · Owner Portal</span></div>
+
+                  <h3 style="margin-top:24px;">Contact</h3>
+                  <div class="det-card">
+                    <div class="h"><span class="nm">Emma Whitmore</span><span class="when">primary</span></div>
+                    <div class="body">emma.w@whitmore.co · +65 9123 4567<br>founder · signing authority</div>
+                  </div>
+                  <div class="det-card">
+                    <div class="h"><span class="nm">Made Surya</span><span class="when">operations</span></div>
+                    <div class="body">made.s@whitmore.co · +62 813 5544 2210<br>ops manager · daily contact</div>
+                  </div>
+                </div>
+
+                <!-- Activity col -->
+                <div class="det-col">
+                  <h3>Activity · last 30 days</h3>
+                  <div class="timeline">
+                    <div class="tl-row">
+                      <span class="marker accent"></span>
+                      <span class="when">today<br>14:02</span>
+                      <div>
+                        <div class="nm">Emma Whitmore signed in</div>
+                        <div class="body">From <code>103.50.224.18</code> · Singapore · 2FA passed</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker ok"></span>
+                      <span class="when">today<br>09:14</span>
+                      <div>
+                        <div class="nm">May statement issued to all 14 owners</div>
+                        <div class="body">Triggered automatically by <code>statement-preparer</code> agent · 14/14 sent</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker"></span>
+                      <span class="when">yesterday<br>11:42</span>
+                      <div>
+                        <div class="nm">Onboarded 1 new villa — "Tirta-Canggu-09"</div>
+                        <div class="body">By <code>made.s@whitmore.co</code> · went live with 4 channel listings</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker accent"></span>
+                      <span class="when">3d ago<br>10:21</span>
+                      <div>
+                        <div class="nm">Annual invoice paid · <code>INV-2025-Q2-WT</code></div>
+                        <div class="body">SGD 3,180 · Stripe · card ending <code>•4429</code></div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker"></span>
+                      <span class="when">8d ago</span>
+                      <div>
+                        <div class="nm">AI Premium add-on activated</div>
+                        <div class="body">Enabled <code>statement-anomaly-detector</code> + <code>owner-intelligence</code> for all owners</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker caution"></span>
+                      <span class="when">14d ago</span>
+                      <div>
+                        <div class="nm">Support ticket opened &amp; resolved</div>
+                        <div class="body">Channel-sync conflict with Avito · resolved by Reza in 2h12m · TIK-2025-1184</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker"></span>
+                      <span class="when">22d ago</span>
+                      <div>
+                        <div class="nm">Plan upgraded · Studio → Atelier</div>
+                        <div class="body">Driven by hitting villa cap (15/15) · upgrade processed by Sales (Daud R.)</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Health col -->
+                <div class="det-col">
+                  <h3>Health · trailing 30d</h3>
+                  <div class="health-stat">
+                    <div>
+                      <div class="nm">Active users</div>
+                    </div>
+                    <div class="v">19 / 22 <span class="delta up">+2 vs 60d</span></div>
+                  </div>
+                  <div class="health-stat">
+                    <div><div class="nm">Bookings created</div></div>
+                    <div class="v">214 <span class="delta up">+18%</span></div>
+                  </div>
+                  <div class="health-stat">
+                    <div><div class="nm">Channel-sync errors</div></div>
+                    <div class="v">3 <span class="delta down">−8</span></div>
+                  </div>
+                  <div class="health-stat">
+                    <div><div class="nm">Agent calls</div></div>
+                    <div class="v">4,219 <span class="delta up">+42%</span></div>
+                  </div>
+                  <div class="health-stat">
+                    <div><div class="nm">Agent spend</div></div>
+                    <div class="v">$184.40 <span class="delta flat">on plan</span></div>
+                  </div>
+                  <div class="health-stat">
+                    <div><div class="nm">Job failures</div></div>
+                    <div class="v">0 <span class="delta flat">clean</span></div>
+                  </div>
+
+                  <h3 style="margin-top:24px;">User activity · daily</h3>
+                  <div class="spark">
+                    <div class="bar" style="height:38%;"></div>
+                    <div class="bar" style="height:54%;"></div>
+                    <div class="bar" style="height:46%;"></div>
+                    <div class="bar deep" style="height:72%;"></div>
+                    <div class="bar deep" style="height:80%;"></div>
+                    <div class="bar" style="height:65%;"></div>
+                    <div class="bar" style="height:38%;"></div>
+                    <div class="bar" style="height:42%;"></div>
+                    <div class="bar" style="height:56%;"></div>
+                    <div class="bar" style="height:60%;"></div>
+                    <div class="bar deep" style="height:78%;"></div>
+                    <div class="bar deep" style="height:88%;"></div>
+                    <div class="bar deep" style="height:92%;"></div>
+                    <div class="bar" style="height:70%;"></div>
+                  </div>
+                  <div style="font-family:var(--mono-font);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-4);display:flex;justify-content:space-between;margin-top:4px;">
+                    <span>14 may</span><span>today</span>
+                  </div>
+
+                  <h3 style="margin-top:24px;">Support</h3>
+                  <div class="det-card">
+                    <div class="h"><span class="nm">No open tickets</span><span class="when">last 30d</span></div>
+                    <div class="body">3 closed · avg resolution <strong>2h08m</strong> · CSAT <strong>4.9 / 5</strong></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill ready">desktop ready</span>
+        <span>3-col · profile / activity / health</span>
+        <span>·</span>
+        <span>Impersonate + Suspend pinned top-right (caution outline)</span>
+      </div>
+    </section>
+
+    <!-- 03 VARIANTS -->
+    <section id="variants" class="ds-section" data-screen-label="03 Variants">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Layout variants</span></div>
+          <h2>Two more ways to see the list</h2>
+          <p>Variant A above (signal-sorted table) is default. Below: Variant B (compact density — sales rapid-scan) and Variant C (card grid — onboarding showcase). Same data, different cognitive surface.</p>
+        </div>
+      </div>
+
+      <div class="var-grid">
+
+        <div class="var-frame">
+          <div class="v-h"><span style="color:var(--doc-fg-3);">B</span><span class="name">Compact density · 18 rows visible</span><span style="margin-left:auto;color:var(--doc-fg-3);">scan</span></div>
+          <div class="v-body" data-product="super-admin">
+            <div style="background:var(--panel);font-family:var(--mono-font);font-size:11px;">
+              <div style="display:grid;grid-template-columns:1.6fr 80px 50px 70px 60px;gap:10px;padding:8px 14px;background:var(--panel-2);border-bottom:1px solid var(--line);font-size:9.5px;text-transform:uppercase;letter-spacing:0.14em;color:var(--ink-3);">
+                <div>organisation</div><div>plan</div><div style="text-align:right;">u</div><div style="text-align:right;">MRR</div><div>status</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.6fr 80px 50px 70px 60px;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line-soft);align-items:baseline;color:var(--ink-2);">
+                <div><strong style="color:var(--ink);">Bali Boutique Stays</strong> <span style="color:var(--danger);">●</span></div><div>Studio·yr</div><div style="text-align:right;">12</div><div style="text-align:right;">$1,180</div><div style="color:var(--warn);">at risk</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.6fr 80px 50px 70px 60px;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line-soft);align-items:baseline;color:var(--ink-2);">
+                <div><strong style="color:var(--ink);">Uluwatu Villa Collective</strong> <span style="color:var(--warn);">●</span></div><div>Studio·trial</div><div style="text-align:right;">5</div><div style="text-align:right;">—</div><div style="color:var(--accent);">trial 2d</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.6fr 80px 50px 70px 60px;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line-soft);align-items:baseline;color:var(--ink-2);">
+                <div><strong style="color:var(--ink);">PT Senayan Estate</strong> <span style="color:var(--accent);">●</span></div><div>Atelier·yr</div><div style="text-align:right;">34</div><div style="text-align:right;">$4,280</div><div style="color:var(--ok);">active</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.6fr 80px 50px 70px 60px;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line-soft);align-items:baseline;color:var(--ink-2);">
+                <div><strong style="color:var(--ink);">Whitmore Villas Group</strong></div><div>Atelier·yr</div><div style="text-align:right;">22</div><div style="text-align:right;">$3,180</div><div style="color:var(--ok);">active</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.6fr 80px 50px 70px 60px;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line-soft);align-items:baseline;color:var(--ink-2);">
+                <div><strong style="color:var(--ink);">Sukha Residences</strong></div><div>Studio·mo</div><div style="text-align:right;">8</div><div style="text-align:right;">$680</div><div style="color:var(--ok);">active</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.6fr 80px 50px 70px 60px;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line-soft);align-items:baseline;color:var(--ink-2);">
+                <div><strong style="color:var(--ink);">Tan Family Trust</strong></div><div>Atelier·yr</div><div style="text-align:right;">14</div><div style="text-align:right;">$2,140</div><div style="color:var(--ok);">active</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.6fr 80px 50px 70px 60px;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line-soft);align-items:baseline;color:var(--ink-2);">
+                <div><strong style="color:var(--ink);">Arconique Demo</strong></div><div>Atelier·int</div><div style="text-align:right;">6</div><div style="text-align:right;">—</div><div style="color:var(--ink-4);">internal</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.6fr 80px 50px 70px 60px;gap:10px;padding:7px 14px;border-bottom:1px solid var(--line-soft);align-items:baseline;color:var(--ink-2);">
+                <div><strong style="color:var(--ink);">Kishida Holdings KK</strong></div><div>Studio·yr</div><div style="text-align:right;">4</div><div style="text-align:right;">$1,180</div><div style="color:var(--caution);">suspended</div>
+              </div>
+              <div style="padding:8px 14px;color:var(--ink-4);text-align:center;font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;">+ 39 more</div>
+            </div>
+            <div style="padding:10px 14px;background:var(--canvas);font-family:var(--sans-font);font-size:12px;color:var(--ink-3);border-top:1px solid var(--line);">
+              <em style="font-style:italic;">Pros:</em> 18+ rows on screen, single line per org. <em style="font-style:italic;">Cons:</em> no flag strip, fewer signals. Best for Sales rapidly scanning a known list.
+            </div>
+          </div>
+        </div>
+
+        <div class="var-frame">
+          <div class="v-h"><span style="color:var(--doc-fg-3);">C</span><span class="name">Card grid · onboarding showcase</span><span style="margin-left:auto;color:var(--doc-fg-3);">show</span></div>
+          <div class="v-body" data-product="super-admin">
+            <div style="background:var(--canvas);padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;">
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+                  <div style="width:32px;height:32px;border-radius:6px;background:color-mix(in oklab, var(--accent) 14%, var(--panel-2));color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-family:var(--display-font);">W</div>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:13.5px;font-weight:500;color:var(--ink);">Whitmore Villas</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">SG · Atelier · 22 users</div>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-family:var(--mono-font);font-size:11px;color:var(--ink-2);padding-top:8px;border-top:1px solid var(--line-soft);">
+                  <span>MRR <strong>$3,180</strong></span>
+                  <span style="color:var(--ok);">active</span>
+                </div>
+              </div>
+              <div style="background:color-mix(in oklab, var(--caution) 4%, var(--panel));border:1px solid color-mix(in oklab, var(--caution) 30%, var(--line));border-radius:8px;padding:14px;">
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+                  <div style="width:32px;height:32px;border-radius:6px;background:var(--panel-deep);color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;font-family:var(--display-font);">B</div>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:13.5px;font-weight:500;color:var(--ink);">Bali Boutique</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">ID · Studio · 12 users</div>
+                  </div>
+                </div>
+                <div style="font-family:var(--mono-font);font-size:10px;color:var(--danger);margin-bottom:8px;">payment failed · 4d ago</div>
+                <div style="display:flex;justify-content:space-between;font-family:var(--mono-font);font-size:11px;color:var(--ink-2);padding-top:8px;border-top:1px solid color-mix(in oklab, var(--caution) 20%, var(--line));">
+                  <span>MRR <strong>$1,180</strong></span>
+                  <span style="color:var(--warn);">at risk</span>
+                </div>
+              </div>
+              <div style="background:color-mix(in oklab, var(--warn) 4%, var(--panel));border:1px solid color-mix(in oklab, var(--warn) 30%, var(--line));border-radius:8px;padding:14px;">
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+                  <div style="width:32px;height:32px;border-radius:6px;background:color-mix(in oklab, var(--accent) 14%, var(--panel-2));color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-family:var(--display-font);">U</div>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:13.5px;font-weight:500;color:var(--ink);">Uluwatu Villa</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">ID · trial · 5 users</div>
+                  </div>
+                </div>
+                <div style="font-family:var(--mono-font);font-size:10px;color:var(--accent);margin-bottom:8px;">trial ends in 2d</div>
+                <div style="display:flex;justify-content:space-between;font-family:var(--mono-font);font-size:11px;color:var(--ink-2);padding-top:8px;border-top:1px solid color-mix(in oklab, var(--warn) 20%, var(--line));">
+                  <span>MRR <strong>—</strong></span>
+                  <span style="color:var(--accent);">trial</span>
+                </div>
+              </div>
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;">
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+                  <div style="width:32px;height:32px;border-radius:6px;background:var(--panel-deep);color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;font-family:var(--display-font);">P</div>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:13.5px;font-weight:500;color:var(--ink);">PT Senayan</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">ID · Atelier · 34 users</div>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-family:var(--mono-font);font-size:11px;color:var(--ink-2);padding-top:8px;border-top:1px solid var(--line-soft);">
+                  <span>MRR <strong>$4,280</strong></span>
+                  <span style="color:var(--ok);">active</span>
+                </div>
+              </div>
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;">
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+                  <div style="width:32px;height:32px;border-radius:6px;background:var(--panel-deep);color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;font-family:var(--display-font);">T</div>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:13.5px;font-weight:500;color:var(--ink);">Tan Family</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">SG · Atelier · 14 users</div>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-family:var(--mono-font);font-size:11px;color:var(--ink-2);padding-top:8px;border-top:1px solid var(--line-soft);">
+                  <span>MRR <strong>$2,140</strong></span>
+                  <span style="color:var(--ok);">active</span>
+                </div>
+              </div>
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;">
+                <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+                  <div style="width:32px;height:32px;border-radius:6px;background:var(--panel-deep);color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;font-family:var(--display-font);">S</div>
+                  <div>
+                    <div style="font-family:var(--sans-font);font-size:13.5px;font-weight:500;color:var(--ink);">Sukha Residences</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">ID · Studio · 8 users</div>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-family:var(--mono-font);font-size:11px;color:var(--ink-2);padding-top:8px;border-top:1px solid var(--line-soft);">
+                  <span>MRR <strong>$680</strong></span>
+                  <span style="color:var(--ok);">active</span>
+                </div>
+              </div>
+            </div>
+            <div style="padding:10px 14px;background:var(--canvas);font-family:var(--sans-font);font-size:12px;color:var(--ink-3);border-top:1px solid var(--line);">
+              <em style="font-style:italic;">Pros:</em> visual, demo-friendly. <em style="font-style:italic;">Cons:</em> only 4-6 orgs/screen, slower at scale. Best for screen-sharing during sales calls.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p style="margin-top:18px;color:var(--doc-fg-3);font-size:12.5px;max-width:760px;">
+        Recommended: default to Variant A (signal-sorted table). Variant B as a density toggle in the topbar. Variant C is opt-in via a "showcase" link in the topbar — surfaced when Sales says "we're on a call".
+      </p>
+    </section>
+
+    <!-- 04 IMPERSONATE -->
+    <section id="impersonate" class="ds-section" data-screen-label="04 Impersonate flow">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-caution);">04</span><span>—</span><span>High-stakes flow</span></div>
+          <h2>Impersonate-as · 2FA gate + reason + audit chain</h2>
+          <p>Triggered by the caution-outlined "Impersonate" button on detail. Full-screen sheet, caution-colour banner at the top, 5-step audit chain at the bottom showing exactly what gets logged. Read-only is default; full-write requires an additional radio click and an explicit reason.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="impersonate-shell" style="min-height: 720px;">
+
+            <div class="imp-warn">
+              <div class="ic">!</div>
+              <div class="body">
+                <h3>You are about to act as <em style="font-style:italic;">Whitmore Villas Group</em></h3>
+                <p>Every action you take in the next session is attributed to <strong>Emma Whitmore</strong>'s account, with a parallel super-admin audit record. The org's users and owners will see no banner — Emma's name appears on writes. Use only when you have explicit consent or a documented support need.</p>
+              </div>
+            </div>
+
+            <div class="imp-card">
+              <h3>Context</h3>
+              <div class="kv">
+                <div class="row"><span class="l">Org</span><span class="v">Whitmore Villas Group</span></div>
+                <div class="row"><span class="l">Acting as</span><span class="v">Emma Whitmore (founder)</span></div>
+                <div class="row"><span class="l">Operator</span><span class="v">Nikita Razgulaev · tech lead</span></div>
+                <div class="row"><span class="l">Session expires</span><span class="v mono">15 min from start · auto-revoke</span></div>
+              </div>
+            </div>
+
+            <div class="imp-card">
+              <h3>Access mode</h3>
+              <div class="imp-radio">
+                <div class="opt on">
+                  <span class="ring"></span>
+                  <div>
+                    <div class="nm">Read-only</div>
+                    <div class="desc">You can navigate every screen the user sees. Submits and writes are blocked — clicking a Submit shows a "super-admin read-only" toast. Default and recommended.</div>
+                  </div>
+                </div>
+                <div class="opt">
+                  <span class="ring"></span>
+                  <div>
+                    <div class="nm">Full write</div>
+                    <div class="desc">Writes go through with Emma's name on the audit row. Use only when the user explicitly asked you to perform an action they can't complete themselves. Requires a reason below.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="imp-card">
+              <h3>Reason</h3>
+              <div class="field">
+                <div class="lbl">why are you impersonating?</div>
+                <textarea placeholder="e.g. Emma is on a support call, can't see her statements page — investigating render issue."></textarea>
+                <div class="hint">Logged verbatim to the audit chain. Visible to org admins via the Owner audit-log endpoint. Aim for one sentence with a ticket reference if applicable.</div>
+              </div>
+            </div>
+
+            <div class="imp-actions">
+              <div class="spacer"></div>
+              <button class="btn">Cancel</button>
+              <button class="btn btn-caution-solid">▢ Begin impersonation</button>
+            </div>
+
+            <div class="audit-chain">
+              <div class="step done"><span class="dot"></span>identity check</div>
+              <span class="arr">→</span>
+              <div class="step on"><span class="dot"></span>2FA required</div>
+              <span class="arr">→</span>
+              <div class="step"><span class="dot"></span>reason logged</div>
+              <span class="arr">→</span>
+              <div class="step"><span class="dot"></span>org-admin notified</div>
+              <span class="arr">→</span>
+              <div class="step"><span class="dot"></span>session expires 15:00</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill caution">high-stakes flow</span>
+        <span>caution banner · 5-step audit chain · session auto-expires 15min</span>
+      </div>
+    </section>
+
+    <!-- 05 SUSPEND -->
+    <section id="suspend" class="ds-section" data-screen-label="05 Suspend flow">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-caution);">05</span><span>—</span><span>High-stakes flow</span></div>
+          <h2>Suspend organisation · effects preview + reason picker</h2>
+          <p>Mirror of the impersonate flow's chrome — caution-banner, reason field, 2FA gate. The added piece is the <strong style="color:var(--doc-fg)">effects preview</strong>: an explicit list of what suspension does (lock users out, freeze writes, send notifications). Reactivate is a one-click undo from the suspended org's detail page.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="impersonate-shell" style="min-height: 720px;">
+
+            <div class="imp-warn">
+              <div class="ic">⊘</div>
+              <div class="body">
+                <h3>Suspend <em style="font-style:italic;">Whitmore Villas Group</em>?</h3>
+                <p>Suspension takes effect immediately. All users are signed out and prevented from signing in. Owner Portal access frozen. Active integrations (channel-sync, payment processors) pause. Reactivation is a single click and restores everything in &lt;30s.</p>
+              </div>
+            </div>
+
+            <div class="imp-card">
+              <h3>Reason</h3>
+              <div class="imp-radio">
+                <div class="opt on">
+                  <span class="ring"></span>
+                  <div>
+                    <div class="nm">Non-payment</div>
+                    <div class="desc">Invoice unpaid for &gt;14 days after final dunning. Standard contractual suspension.</div>
+                  </div>
+                </div>
+                <div class="opt">
+                  <span class="ring"></span>
+                  <div>
+                    <div class="nm">Voluntary churn (customer request)</div>
+                    <div class="desc">Org owner asked to pause. Holds data per data-retention policy (90 days), then auto-purges.</div>
+                  </div>
+                </div>
+                <div class="opt">
+                  <span class="ring"></span>
+                  <div>
+                    <div class="nm">Abuse / ToS violation</div>
+                    <div class="desc">Locks out immediately and notifies legal@arconique.co. Requires CEO sign-off (separate flow).</div>
+                  </div>
+                </div>
+                <div class="opt">
+                  <span class="ring"></span>
+                  <div>
+                    <div class="nm">Operator investigation</div>
+                    <div class="desc">Temporary lock pending investigation. Auto-lifts after 72h if not converted to another reason.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="imp-card">
+              <h3>Effects · preview</h3>
+              <div class="suspend-effects">
+                <div class="h">When you click Suspend</div>
+                <ul>
+                  <li><span class="ic">▸</span><strong>22 active users</strong> signed out and locked. Cannot sign back in until reactivation.</li>
+                  <li><span class="ic">▸</span><strong>14 owners</strong> lose Owner Portal access. Their existing statements remain readable via emailed PDFs.</li>
+                  <li><span class="ic">▸</span><strong>4 channel-sync connections</strong> (Airbnb, Booking.com, Avito, Direct) pause — no new bookings ingest. In-flight bookings settle normally.</li>
+                  <li><span class="ic">▸</span><strong>Stripe + GoPay</strong> subscriptions paused. No further charges until reactivation.</li>
+                  <li><span class="ic">▸</span>Notification sent to <strong>2 primary contacts</strong> (Emma, Made) via email + WhatsApp with the reason above.</li>
+                  <li><span class="ic">▸</span>Audit-log entry written with operator (Nikita R.), timestamp, reason, and the effects above.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="imp-card">
+              <h3>Operator note (audit-logged)</h3>
+              <div class="field">
+                <textarea placeholder="e.g. Invoice INV-2025-Q2-WT unpaid since 14 May. 3 dunning emails sent, no response. Per contract clause 8.2, suspending pending payment."></textarea>
+                <div class="hint">Visible to org admins in the eventual reactivation summary. Be specific — they will see this.</div>
+              </div>
+            </div>
+
+            <div class="imp-actions">
+              <div class="spacer"></div>
+              <button class="btn">Cancel</button>
+              <button class="btn btn-caution-solid">⊘ Suspend now</button>
+            </div>
+
+            <div class="audit-chain">
+              <div class="step done"><span class="dot"></span>identity check</div>
+              <span class="arr">→</span>
+              <div class="step on"><span class="dot"></span>2FA required</div>
+              <span class="arr">→</span>
+              <div class="step"><span class="dot"></span>reason &amp; note logged</div>
+              <span class="arr">→</span>
+              <div class="step"><span class="dot"></span>contacts notified</div>
+              <span class="arr">→</span>
+              <div class="step"><span class="dot"></span>integrations paused</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill caution">high-stakes flow</span>
+        <span>4 reasons · effects preview lists exactly what changes · reactivate is 1-click</span>
+      </div>
+    </section>
+
+    <!-- 06 SCHEMA -->
+    <section id="schema" class="ds-section" data-screen-label="06 Schema · roles · audit">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">06</span><span>—</span><span>Implementation</span></div>
+          <h2>Schema · roles · audit</h2>
+          <p>What this cabinet needs from the platform layer to ship. Most of it already exists; the gaps are listed below as P0 / P1.</p>
+        </div>
+      </div>
+
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Schema (mostly exists)</h3>
+          <dl>
+            <div><dt>organizations</dt><dd>✅ exists · <code>src/lib/db/schema/identity.ts</code> · all fields above already available</dd></div>
+            <div><dt>plans · subscriptions</dt><dd>✅ exists · `0085_subscription_plans` migration · MRR derivable</dd></div>
+            <div><dt>org_contacts</dt><dd>✅ exists · `0087_provisioning_backfill`</dd></div>
+            <div><dt>org_activity_log</dt><dd>🔴 missing · view on top of <code>auditEvents</code> filtered to <code>entity_type='organization'</code></dd></div>
+            <div><dt>org_suspensions</dt><dd>🔴 missing · suspended_at, suspended_by, reason enum, note, auto_revoke_at</dd></div>
+            <div><dt>impersonate_sessions</dt><dd>🔴 missing · operator_id, target_org_id, target_user_id, mode (read|write), reason, started_at, expires_at, ended_at, ended_reason</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Agents</h3>
+          <dl>
+            <div><dt>org-health-scorer</dt><dd>🔴 new · nightly · writes <code>org_health_scores</code> per signal (payment-fail, support-load, agent-error)</dd></div>
+            <div><dt>trial-ending-notifier</dt><dd>🔴 new · daily · alerts Sales on trial-ending-≤7d</dd></div>
+            <div><dt>suspension-notifier</dt><dd>🔴 new · fires on <code>org_suspensions</code> insert · emails + WhatsApp to primary contacts</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Roles &amp; permissions</h3>
+          <dl>
+            <div><dt>super_admin</dt><dd>🔴 new role · grants full cabinet access · already implicit via existing org-bypass</dd></div>
+            <div><dt>sales_admin</dt><dd>🔴 new role · all cabinet reads + impersonate(read-only) + onboard-new-org · no suspend, no plan-changes</dd></div>
+            <div><dt>support_admin</dt><dd>🔴 new role · all cabinet reads + impersonate(read-only) · no writes</dd></div>
+            <div><dt>2FA enforcement</dt><dd>🟡 partial · 2FA exists but not gated on caution actions · needs middleware</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Audit chain</h3>
+          <dl>
+            <div><dt>auditEvents</dt><dd>✅ exists · use as-is for every action in this cabinet</dd></div>
+            <div><dt>org-admin notifier</dt><dd>🔴 new · on every <code>super_admin.*</code> action targeting an org · send copy to org's primary contact</dd></div>
+            <div><dt>visible-to-org endpoint</dt><dd>🔴 new · <code>GET /api/owner/super-admin-events</code> · org sees what we did, when, why</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  function isInternal(href) {
+    if (!href) return false;
+    if (/^(https?:|mailto:|tel:|#)/i.test(href)) return false;
+    return true;
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    if (a.target && a.target !== '' && a.target !== '_self') return;
+    var href = a.getAttribute('href');
+    if (!isInternal(href)) return;
+    var search = window.location.search;
+    if (!search) return;
+    if (href.indexOf('?') !== -1) return;
+    var hashIdx = href.indexOf('#');
+    var base = hashIdx === -1 ? href : href.slice(0, hashIdx);
+    var hash = hashIdx === -1 ? '' : href.slice(hashIdx);
+    a.setAttribute('href', base + search + hash);
+  }, true);
+})();
+</script>
+
+</body>
+</html>

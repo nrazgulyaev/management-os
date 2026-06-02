@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sales + Buyers + Contracts · Dev P2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../_chrome.css" />
+<link rel="stylesheet" href="../_2.4-primitives.css" />
+<style>
+.cab-cover { padding: 64px 32px 32px; }
+.cab-cover .eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.cab-cover .eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { font-family: var(--doc-sans); font-weight: 500; font-size: 44px; letter-spacing: -0.02em; line-height: 1.05; margin: 0; color: var(--doc-fg); }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 22px 0 0; font-size: 15px; color: var(--doc-fg-2); line-height: 1.6; }
+.cab-cover .meta { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--doc-line); }
+.cab-cover .meta div { display: flex; flex-direction: column; gap: 4px; }
+.cab-cover .meta .k { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); }
+.cab-cover .meta .v { font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg); }
+.cab-board-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(640px, 1fr)); gap: 20px; margin-top: 8px; }
+.cab-board { background: var(--doc-bg-3); border: 1px solid var(--doc-line-2); border-radius: 14px; overflow: hidden; }
+.cab-board .head { padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--doc-line-2); background: var(--doc-bg-2); }
+.cab-board .head .num { font-family: var(--doc-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; padding: 2px 8px; background: var(--doc-accent); color: var(--doc-bg); border-radius: 999px; }
+.cab-board .head .name { font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg); font-weight: 500; }
+.cab-board .head .desc { font-family: var(--doc-sans); font-size: 12px; color: var(--doc-fg-3); margin-left: auto; }
+</style>
+</head>
+<body data-screen-label="Sales cabinet">
+
+<div class="ds-app">
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span><span>Arconique · Dev P2</span></div>
+    <h1>Sales + Buyers + Contracts</h1>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Cabinet</div>
+      <a class="ds-toc-item on" href="#hero"><span class="num">01</span><span>Hero · pipeline</span></a>
+      <a class="ds-toc-item" href="#variants"><span class="num">02</span><span>Layout variants</span></a>
+      <a class="ds-toc-item" href="#buyer"><span class="num">03</span><span>Buyer detail</span></a>
+      <a class="ds-toc-item" href="#contract"><span class="num">04</span><span>Contract flow</span></a>
+      <a class="ds-toc-item" href="#mobile"><span class="num">05</span><span>Mobile</span></a>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Spec</div>
+      <a class="ds-toc-item" href="#schema"><span class="num">06</span><span>Schema · agents</span></a>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Reference</div>
+      <a class="ds-toc-item" href="../../ds-2.4-primitives.html"><span class="num">↗</span><span>DS extension 2.4</span></a>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <div class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Dev P2 · 2 of 3</span></div>
+      <h1>From <em>lead to closed</em>, on one board.</h1>
+      <p>
+        The sales cabinet is a 5-lane pipeline kanban for buyer leads. Each card encodes who, which unit they want, deal value, probability, and age-in-stage.
+        Dragging between lanes auto-stamps the stage transition. Contracts live behind the "Contract" lane — a focused flow with redlines, payment schedule, and signature collection.
+      </p>
+      <div class="meta">
+        <div><span class="k">Status</span><span class="v">Design draft</span></div>
+        <div><span class="k">Sequence</span><span class="v">PR 6 of Phase 2.4</span></div>
+        <div><span class="k">Depends on</span><span class="v">Projects/PM cabinet · PipelineBoard primitive · @dnd-kit (already in 2.2)</span></div>
+        <div><span class="k">Routes</span><span class="v">/development-os/sales · /sales/buyer/[id] · /sales/contract/[id]</span></div>
+      </div>
+    </div>
+
+    <div class="ds-content">
+
+      <!-- ============ 01. Hero ============ -->
+      <section id="hero" class="ds-section" data-screen-label="01 Hero pipeline">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">01</span><span>—</span><span>Hero</span></div>
+            <h2>Buyer pipeline · 5 lanes · IDR 14.2B weighted</h2>
+            <p>Default landing. KPI strip → 5-lane board with full cards in the active lanes. Closed lane shows YTD count with a "show all" toggle.</p>
+          </div>
+          <div class="ds-section-meta"><span class="ds-tag accent">Variant A — recommended</span></div>
+        </div>
+
+        <div class="ds-preview flush" style="background:#1A1A1F;padding:18px;">
+          <div class="app-shell" data-product="development" style="height:840px;">
+            <aside class="sidebar">
+              <a class="sb-brand" href="#"><span class="logo"><svg viewBox="0 0 22 22" width="22" height="22" fill="currentColor"><path d="M3 18 L11 4 L19 18 Z" /></svg></span><span class="wordmark">Arconique · dev</span></a>
+              <div class="sb-workspace"><div class="label">Project</div><div class="name">Canggu West · L1–L9</div><div class="sub">8 closed · 26 in pipeline</div></div>
+              <div class="sb-group">
+                <div class="sb-group-title">Build</div>
+                <a class="sb-item" href="#"><span>Dashboard</span></a>
+                <a class="sb-item" href="#"><span>Projects</span></a>
+                <a class="sb-item" href="site-supervisor.html"><span>Site supervisor</span></a>
+              </div>
+              <div class="sb-group">
+                <div class="sb-group-title">Capital</div>
+                <a class="sb-item" href="#"><span>CFO / Finance</span></a>
+                <a class="sb-item on" href="#"><span>Sales</span><span class="sb-badge">3</span></a>
+                <a class="sb-item" href="#"><span>Investors</span></a>
+              </div>
+            </aside>
+
+            <div class="shell-content">
+              <div class="topbar">
+                <div class="tb-crumb"><span>Dev OS</span> / <span>Capital</span> / <b>Sales</b></div>
+                <div class="tb-spacer"></div>
+                <div class="tb-search"><span class="sx"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4"/></svg></span><input placeholder="Search buyer, unit, country…" /><span class="kbd">⌘K</span></div>
+                <button class="tb-bell"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 8a5 5 0 1 1 10 0v3l2 3H3l2-3V8z"/></svg><span class="dot"></span></button>
+                <div class="tb-user"><div class="avatar avatar-sm">RA</div><div class="meta"><span class="name">R. Aditya</span><span class="role">Head of sales</span></div></div>
+              </div>
+
+              <div class="shell-body">
+
+                <div class="page-header" style="padding:0 0 16px;margin:0 0 14px;">
+                  <div class="left">
+                    <div class="crumb"><a href="#">Capital</a> / <span>Sales · Canggu West</span></div>
+                    <h1 style="font-weight:500;">Buyer pipeline</h1>
+                    <p style="margin:6px 0 0;font-size:13px;color:var(--ink-3);">26 active buyers · 8 closed YTD · 38% conversion lead → tour · 18% tour → contract</p>
+                  </div>
+                  <div class="actions">
+                    <button class="btn btn-secondary">Forecast</button>
+                    <button class="btn btn-secondary">Reports</button>
+                    <button class="btn btn-primary" style="background:var(--amber);color:var(--carbon);">+ New lead</button>
+                  </div>
+                </div>
+
+                <div class="ds-grid cols-5" style="gap:8px;margin-bottom:14px;">
+                  <div class="kpi" style="padding:10px 12px;"><div class="label" style="font-size:9.5px;">closed ytd</div><div class="v" style="font-size:18px;">8<span style="font-size:11px;color:var(--ink-3);"> · IDR 14.2B</span></div></div>
+                  <div class="kpi accent" style="padding:10px 12px;"><div class="label" style="font-size:9.5px;">weighted pipe</div><div class="v" style="font-size:18px;">5.6B</div><div class="sub">all open lanes</div></div>
+                  <div class="kpi" style="padding:10px 12px;"><div class="label" style="font-size:9.5px;">target · ytd</div><div class="v" style="font-size:18px;">18B</div><div class="sub">79% hit rate</div></div>
+                  <div class="kpi warn" style="padding:10px 12px;"><div class="label" style="font-size:9.5px;">stalled · 14d+</div><div class="v" style="font-size:18px;">4</div></div>
+                  <div class="kpi" style="padding:10px 12px;"><div class="label" style="font-size:9.5px;">units left</div><div class="v" style="font-size:18px;">3<span style="font-size:11px;color:var(--ink-3);"> · L2, L8, L9</span></div></div>
+                </div>
+
+                <!-- Filter strip -->
+                <div class="filter-bar" style="margin-bottom:14px;">
+                  <span class="chip chip-active">All · 26</span>
+                  <span class="chip">Hot · 4</span>
+                  <span class="chip">Stalled · 4</span>
+                  <span class="divider"></span>
+                  <span class="chip">Any unit ▾</span>
+                  <span class="chip">Any country ▾</span>
+                  <span class="chip">Any source ▾</span>
+                  <span style="margin-left:auto;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">View: <strong style="color:var(--ink);">Kanban</strong> · Table · Funnel</span>
+                </div>
+
+                <!-- Pipeline -->
+                <div class="pb">
+
+                  <div class="pb-lane">
+                    <div class="pb-lane-head">
+                      <span class="name">Lead</span>
+                      <span class="count">14</span>
+                      <span class="value">weighted<br><strong>IDR 1.2B</strong></span>
+                    </div>
+                    <div class="pb-cards">
+                      <div class="pb-card">
+                        <div class="row1"><span class="who">Asakawa Group</span><span class="amt">IDR 2.4B</span></div>
+                        <div class="unit">2 villas · L1, L4 · prelim</div>
+                        <div class="probability cold"><div class="fill" style="width:15%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">jp</span><span class="t">corp</span></div><span class="age">3d ago</span></div>
+                      </div>
+                      <div class="pb-card">
+                        <div class="row1"><span class="who">M. Petrov</span><span class="amt">IDR 850M</span></div>
+                        <div class="unit">L7 · 2br · garden</div>
+                        <div class="probability cold"><div class="fill" style="width:10%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">ru</span><span class="t">cold</span></div><span class="age">12d ago</span></div>
+                      </div>
+                      <div class="pb-card">
+                        <div class="row1"><span class="who">G. Ellis</span><span class="amt">IDR 1.6B</span></div>
+                        <div class="unit">L2 · 3br · ocean</div>
+                        <div class="probability cold"><div class="fill" style="width:20%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">us</span><span class="t">retail</span></div><span class="age">5d ago</span></div>
+                      </div>
+                      <div class="pb-card" style="opacity:0.7;">
+                        <div class="row1"><span class="who">+ 11 more</span></div>
+                      </div>
+                    </div>
+                    <div class="pb-lane-foot"><button class="add">+ add lead</button></div>
+                  </div>
+
+                  <div class="pb-lane">
+                    <div class="pb-lane-head">
+                      <span class="name">Qualified</span>
+                      <span class="count">7</span>
+                      <span class="value">weighted<br><strong>IDR 2.8B</strong></span>
+                    </div>
+                    <div class="pb-cards">
+                      <div class="pb-card">
+                        <div class="row1"><span class="who">P. Lim</span><span class="amt">IDR 1.8B</span></div>
+                        <div class="unit">L3 · 3br · pool</div>
+                        <div class="probability"><div class="fill" style="width:35%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">sg</span><span class="t">investor</span></div><span class="age stale">8d ago</span></div>
+                      </div>
+                      <div class="pb-card">
+                        <div class="row1"><span class="who">Almaz Holdings</span><span class="amt">IDR 4.2B</span></div>
+                        <div class="unit">3 units · L1/L2/L5</div>
+                        <div class="probability"><div class="fill" style="width:40%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">ae</span><span class="t">corp</span></div><span class="age">2d</span></div>
+                      </div>
+                      <div class="pb-card">
+                        <div class="row1"><span class="who">K. Tanaka</span><span class="amt">IDR 1.2B</span></div>
+                        <div class="unit">L5 · 2br · garden</div>
+                        <div class="probability"><div class="fill" style="width:32%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">jp</span><span class="t">retail</span></div><span class="age">4d</span></div>
+                      </div>
+                    </div>
+                    <div class="pb-lane-foot"><button class="add">+ add</button></div>
+                  </div>
+
+                  <div class="pb-lane">
+                    <div class="pb-lane-head">
+                      <span class="name">Tour</span>
+                      <span class="count">4</span>
+                      <span class="value">weighted<br><strong>IDR 3.4B</strong></span>
+                    </div>
+                    <div class="pb-cards">
+                      <div class="pb-card">
+                        <div class="row1"><span class="who">N. Volkov</span><span class="amt">IDR 1.8B</span></div>
+                        <div class="unit">L3 · tour jun 18</div>
+                        <div class="probability"><div class="fill" style="width:55%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">ru</span><span class="t">repeat</span></div><span class="age">1d</span></div>
+                      </div>
+                      <div class="pb-card dragging">
+                        <div class="row1"><span class="who">Tan family</span><span class="amt">IDR 2.4B</span></div>
+                        <div class="unit">L8 · tour done jun 14</div>
+                        <div class="probability hot"><div class="fill" style="width:68%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">sg</span><span class="t">hot</span></div><span class="age">today</span></div>
+                      </div>
+                    </div>
+                    <div class="pb-lane-foot"><button class="add">+ add</button></div>
+                  </div>
+
+                  <div class="pb-lane">
+                    <div class="pb-lane-head">
+                      <span class="name">Contract</span>
+                      <span class="count">3</span>
+                      <span class="value">weighted<br><strong>IDR 5.6B</strong></span>
+                    </div>
+                    <div class="pb-cards">
+                      <div class="pb-card">
+                        <div class="row1"><span class="who">Verma Family</span><span class="amt">IDR 2.8B</span></div>
+                        <div class="unit">L4 · sent jun 10 · awaiting sig</div>
+                        <div class="probability hot"><div class="fill" style="width:82%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">in</span><span class="t">contract</span></div><span class="age stale">9d</span></div>
+                      </div>
+                      <div class="pb-card">
+                        <div class="row1"><span class="who">B. Chen</span><span class="amt">IDR 1.6B</span></div>
+                        <div class="unit">L6 · countersigned · pay 1/3</div>
+                        <div class="probability hot"><div class="fill" style="width:88%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">cn</span><span class="t">paying</span></div><span class="age">2d</span></div>
+                      </div>
+                      <div class="pb-card">
+                        <div class="row1"><span class="who">J. Whitman</span><span class="amt">IDR 1.4B</span></div>
+                        <div class="unit">L9 · redlines round 2</div>
+                        <div class="probability"><div class="fill" style="width:62%;"></div></div>
+                        <div class="row2"><div class="tags"><span class="t">au</span><span class="t">legal</span></div><span class="age dead">22d</span></div>
+                      </div>
+                    </div>
+                    <div class="pb-lane-foot"><button class="add">+ add</button></div>
+                  </div>
+
+                  <div class="pb-lane">
+                    <div class="pb-lane-head">
+                      <span class="name">Closed</span>
+                      <span class="count">8 ytd</span>
+                      <span class="value">total<br><strong>IDR 14.2B</strong></span>
+                    </div>
+                    <div class="pb-cards">
+                      <div class="pb-card" style="background:color-mix(in srgb,var(--ok) 6%, var(--panel));">
+                        <div class="row1"><span class="who">R. Joshi</span><span class="amt">IDR 1.8B</span></div>
+                        <div class="unit">L7 · closed jun 04 · paid</div>
+                        <div class="row2"><div class="tags"><span class="t" style="background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok);">won</span></div><span class="age">jun 04</span></div>
+                      </div>
+                      <div class="pb-card" style="background:color-mix(in srgb,var(--ok) 6%, var(--panel));">
+                        <div class="row1"><span class="who">S. Park</span><span class="amt">IDR 2.2B</span></div>
+                        <div class="unit">L1 · closed may 28</div>
+                        <div class="row2"><div class="tags"><span class="t" style="background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok);">won</span></div><span class="age">may 28</span></div>
+                      </div>
+                      <div class="pb-card" style="opacity:0.7;">
+                        <div class="row1"><span class="who">+ 6 more · ytd</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 02. Variants ============ -->
+      <section id="variants" class="ds-section" data-screen-label="02 Variants">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">02</span><span>—</span><span>Layout variants</span></div>
+            <h2>Pipeline vs. funnel</h2>
+            <p>Variant A is the kanban (above). Variant B is a funnel-shaped view that emphasises conversion rates and stage drop-off — better for sales managers preparing a forecast.</p>
+          </div>
+        </div>
+
+        <div class="cab-board-grid">
+          <div class="cab-board" style="grid-column:1/-1;">
+            <div class="head">
+              <span class="num">B</span>
+              <span class="name">Funnel + conversion</span>
+              <span class="desc">Drop-off rate at each stage · for forecast meetings</span>
+            </div>
+            <div class="body" data-product="development">
+              <div style="padding:22px;background:var(--bg);">
+                <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;">
+                  <h2 style="margin:0;font-family:var(--display-font);font-weight:500;font-size:22px;color:var(--ink);letter-spacing:-0.02em;">Pipeline funnel · ytd</h2>
+                  <span style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-left:auto;">214 leads → 8 closed · 3.7% overall</span>
+                </div>
+
+                <!-- Funnel SVG -->
+                <div style="background:var(--panel);border:1px solid var(--line-2);border-radius:12px;padding:24px;">
+                  <svg viewBox="0 0 800 320" style="width:100%;height:320px;">
+                    <!-- Lead -->
+                    <polygon points="40,40 760,40 700,90 100,90" fill="#3D5A7A" />
+                    <text x="400" y="68" font-family="Inter" font-size="14" fill="white" text-anchor="middle" font-weight="500">Lead · 214</text>
+                    <text x="780" y="68" font-family="JetBrains Mono" font-size="11" fill="#7E8A85" text-anchor="end">IDR 38.4B raw</text>
+                    <!-- arrow -->
+                    <text x="780" y="105" font-family="JetBrains Mono" font-size="10" fill="#88A89A" text-anchor="end">↓ 38% · 81 qual</text>
+
+                    <polygon points="100,110 700,110 640,160 160,160" fill="#7E9DBF" />
+                    <text x="400" y="138" font-family="Inter" font-size="14" fill="white" text-anchor="middle" font-weight="500">Qualified · 81</text>
+                    <text x="660" y="138" font-family="JetBrains Mono" font-size="11" fill="#7E8A85" text-anchor="end">IDR 24.6B</text>
+                    <text x="660" y="175" font-family="JetBrains Mono" font-size="10" fill="#88A89A" text-anchor="end">↓ 28% · 23 toured</text>
+
+                    <polygon points="160,180 640,180 580,230 220,230" fill="#FFB088" />
+                    <text x="400" y="208" font-family="Inter" font-size="14" fill="#14130E" text-anchor="middle" font-weight="500">Tour · 23</text>
+                    <text x="600" y="208" font-family="JetBrains Mono" font-size="11" fill="#7E8A85" text-anchor="end">IDR 18.8B</text>
+                    <text x="600" y="245" font-family="JetBrains Mono" font-size="10" fill="#88A89A" text-anchor="end">↓ 48% · 11 contract</text>
+
+                    <polygon points="220,250 580,250 520,300 280,300" fill="#FF6B35" />
+                    <text x="400" y="278" font-family="Inter" font-size="14" fill="white" text-anchor="middle" font-weight="500">Contract · 11</text>
+                    <text x="540" y="278" font-family="JetBrains Mono" font-size="11" fill="#7E8A85" text-anchor="end">IDR 19.6B</text>
+
+                    <!-- closed pill at bottom -->
+                    <rect x="280" y="306" width="240" height="12" rx="6" fill="#4F8A5D" />
+                    <text x="400" y="316" font-family="JetBrains Mono" font-size="10" fill="white" text-anchor="middle">8 closed · 14.2B · 72% of contract</text>
+                  </svg>
+                </div>
+
+                <div class="ds-grid cols-4" style="gap:10px;margin-top:14px;">
+                  <div class="card card-pad" style="padding:14px;">
+                    <div class="label" style="font-size:9.5px;">lead → qual</div>
+                    <div class="num" style="font-size:22px;color:var(--ink);margin-top:4px;">38%</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">target 35% ✓</div>
+                  </div>
+                  <div class="card card-pad" style="padding:14px;">
+                    <div class="label" style="font-size:9.5px;">qual → tour</div>
+                    <div class="num" style="font-size:22px;color:var(--ink);margin-top:4px;">28%</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--warn);">target 40% ✗</div>
+                  </div>
+                  <div class="card card-pad" style="padding:14px;">
+                    <div class="label" style="font-size:9.5px;">tour → contract</div>
+                    <div class="num" style="font-size:22px;color:var(--ink);margin-top:4px;">48%</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ok);">target 40% ✓</div>
+                  </div>
+                  <div class="card card-pad" style="padding:14px;">
+                    <div class="label" style="font-size:9.5px;">contract → won</div>
+                    <div class="num" style="font-size:22px;color:var(--ink);margin-top:4px;">72%</div>
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ok);">target 60% ✓</div>
+                  </div>
+                </div>
+
+                <div style="margin-top:10px;font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">
+                  ⊕ surfaces the qual-→-tour gap immediately · ⊖ hides individual buyers · keep as <code>?view=funnel</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;padding:18px 22px;background:var(--doc-bg-3);border:1px solid var(--doc-line-2);border-radius:10px;font-family:var(--doc-mono);font-size:11.5px;color:var(--doc-fg-2);line-height:1.7;">
+          <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:8px;">Recommendation</div>
+          Ship <strong style="color:var(--doc-fg);">Variant A</strong> — kanban is the daily working surface and supports drag-between-lanes which is critical for sales velocity. Expose Variant B as a <code>?view=funnel</code> toggle in the page header — useful for Monday forecast meetings.
+        </div>
+      </section>
+
+      <!-- ============ 03. Buyer detail ============ -->
+      <section id="buyer" class="ds-section" data-screen-label="03 Buyer detail">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">03</span><span>—</span><span>Detail</span></div>
+            <h2>Buyer detail · profile + activity</h2>
+            <p>At <code style="font-family:var(--doc-mono);font-size:13px;background:var(--doc-bg-3);padding:2px 6px;border-radius:4px;">/sales/buyer/[id]</code>. Profile + units of interest + interactions log + contract status. Re-uses Phase 2.1 DetailPage bricks.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:18px;">
+          <div data-product="development" style="background:var(--bg);padding:22px 26px;border-radius:12px;">
+            <div class="page-header" style="padding:0 0 18px;margin:0 0 16px;">
+              <div class="left">
+                <div class="crumb"><a href="#">Sales</a> / <span>Tan family</span></div>
+                <h1 style="font-size:28px;font-weight:500;">Tan family · L8 · IDR 2.4B</h1>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <span class="badge badge-accent">tour · hot</span>
+                  <span class="badge badge-soft">sg · repeat client</span>
+                  <span class="badge badge-soft">68% probability</span>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-secondary btn-sm">Move to contract ›</button>
+                <button class="btn btn-secondary btn-sm">Schedule</button>
+                <button class="btn btn-primary btn-sm" style="background:var(--amber);color:var(--carbon);">Message</button>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;">
+              <div>
+                <div class="detail-tabs">
+                  <button class="tab on">Overview</button>
+                  <button class="tab">Activity · 18</button>
+                  <button class="tab">Documents · 4</button>
+                  <button class="tab">Notes</button>
+                </div>
+
+                <!-- Profile -->
+                <div class="card card-pad" style="margin-bottom:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:14px;">Buyer profile</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;">
+                    <div>
+                      <div style="font-family:var(--display-font);font-size:18px;color:var(--ink);font-weight:500;">Mr Wei &amp; Ms Lin Tan</div>
+                      <div style="font-size:13px;color:var(--ink-2);margin-top:4px;">Singapore · 2 children (8, 12)</div>
+                      <div class="mono" style="font-size:11px;color:var(--ink-3);margin-top:6px;">previous buyer · Tirta 2022</div>
+                    </div>
+                    <div>
+                      <div class="label" style="font-size:9.5px;">Funding</div>
+                      <div style="font-size:13px;color:var(--ink-2);margin-top:4px;">Cash · USD account</div>
+                      <div style="font-size:13px;color:var(--ink-2);margin-top:2px;">No mortgage required</div>
+                    </div>
+                    <div>
+                      <div class="label" style="font-size:9.5px;">Source</div>
+                      <div style="font-size:13px;color:var(--ink-2);margin-top:4px;">Referred by R. Joshi (L7 buyer)</div>
+                      <div style="font-size:13px;color:var(--ink-2);margin-top:2px;">Inbound contact may 18</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Unit interest -->
+                <div class="card card-pad" style="margin-bottom:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:14px;">Unit of interest · L8 · 3br · ocean view</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div style="aspect-ratio:16/10;background:repeating-linear-gradient(135deg,var(--ink-4) 0 2px,transparent 2px 14px),var(--bg-2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;">[ L8 plan · ocean facing ]</div>
+                    <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--ink-2);">
+                      <div style="display:flex;justify-content:space-between;"><span class="mono" style="font-size:11px;color:var(--ink-4);">UNIT</span><span>L8 · L block</span></div>
+                      <div style="display:flex;justify-content:space-between;"><span class="mono" style="font-size:11px;color:var(--ink-4);">BR / SQM</span><span>3br · 248 sqm</span></div>
+                      <div style="display:flex;justify-content:space-between;"><span class="mono" style="font-size:11px;color:var(--ink-4);">VIEW</span><span>ocean · west</span></div>
+                      <div style="display:flex;justify-content:space-between;"><span class="mono" style="font-size:11px;color:var(--ink-4);">LIST</span><span>IDR 2.6B</span></div>
+                      <div style="display:flex;justify-content:space-between;"><span class="mono" style="font-size:11px;color:var(--ink-4);">OFFER</span><span style="color:var(--accent);">IDR 2.4B (jun 14)</span></div>
+                      <div style="display:flex;justify-content:space-between;"><span class="mono" style="font-size:11px;color:var(--ink-4);">YIELD MODEL</span><span>5.8% gross · pool A</span></div>
+                      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--line-soft);"><span class="mono" style="font-size:11px;color:var(--ink-4);">STATUS</span><span style="color:var(--ok);">available · held 48h</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Recent activity -->
+                <div class="card card-pad">
+                  <div class="label" style="font-size:9.5px;margin-bottom:14px;">Recent activity</div>
+                  <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--ink-2);">
+                    <div style="display:flex;gap:10px;"><span style="font-family:var(--mono-font);color:var(--ink-4);width:60px;font-size:11px;">today</span><span class="badge badge-accent" style="font-size:9px;">OFFER</span><span>offer IDR 2.4B · valid 72h · sent jun 14 16:08</span></div>
+                    <div style="display:flex;gap:10px;"><span style="font-family:var(--mono-font);color:var(--ink-4);width:60px;font-size:11px;">jun 14</span><span class="badge badge-soft" style="font-size:9px;">TOUR</span><span>tour complete · 1h 40m · 4 family members + agent</span></div>
+                    <div style="display:flex;gap:10px;"><span style="font-family:var(--mono-font);color:var(--ink-4);width:60px;font-size:11px;">jun 11</span><span class="badge badge-soft" style="font-size:9px;">MTG</span><span>video call · K. Tan + R.A. · 35m · discussed yield model</span></div>
+                    <div style="display:flex;gap:10px;"><span style="font-family:var(--mono-font);color:var(--ink-4);width:60px;font-size:11px;">jun 06</span><span class="badge badge-soft" style="font-size:9px;">MAIL</span><span>brochure pack · L8 + yield model + reference letter (Joshi)</span></div>
+                    <div style="display:flex;gap:10px;"><span style="font-family:var(--mono-font);color:var(--ink-4);width:60px;font-size:11px;">may 28</span><span class="badge badge-info" style="font-size:9px;">SCORE</span><span>agent moved to "qualified" · score 0.78</span></div>
+                    <div style="display:flex;gap:10px;"><span style="font-family:var(--mono-font);color:var(--ink-4);width:60px;font-size:11px;">may 18</span><span class="badge badge-soft" style="font-size:9px;">IN</span><span>inbound · referral form · Joshi</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Side rail -->
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div class="card card-pad" style="padding:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:8px;">Score · breakdown</div>
+                  <div style="font-family:var(--display-font);font-size:28px;color:var(--ok);font-weight:500;line-height:1;">68%</div>
+                  <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:6px;line-height:1.7;">
+                    + repeat buyer: +20<br>
+                    + tour completed: +18<br>
+                    + cash available: +12<br>
+                    + referred: +10<br>
+                    + funding clarity: +8<br>
+                    – &gt; 2y gap: –4
+                  </div>
+                </div>
+                <div class="card card-pad" style="padding:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:8px;">Decision deadline</div>
+                  <div style="font-size:13.5px;color:var(--ink);font-weight:500;">Mon 17 jun · 17:00 SGT</div>
+                  <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--warn);margin-top:4px;">48h hold · 2.5d remaining</div>
+                </div>
+                <div class="card card-pad" style="padding:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:8px;">Other interest in L8</div>
+                  <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-2);">G. Ellis · lead · 5d</div>
+                  <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">show backup if Tan declines</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 04. Contract ============ -->
+      <section id="contract" class="ds-section" data-screen-label="04 Contract flow">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">04</span><span>—</span><span>Sub-page</span></div>
+            <h2>Contract — redlines + payment schedule</h2>
+            <p>For each in-Contract buyer. Three sub-tabs: <strong>document</strong> (redlined), <strong>payment ladder</strong>, <strong>signatures</strong>. Status pill in the page header drives the next-action button.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:18px;">
+          <div data-product="development" style="background:var(--bg);padding:22px 26px;border-radius:12px;">
+            <div class="page-header" style="padding:0 0 18px;margin:0 0 16px;">
+              <div class="left">
+                <div class="crumb"><a href="#">Sales</a> / <a href="#">B. Chen</a> / <span>Contract · CT-2025-006</span></div>
+                <h1 style="font-size:28px;font-weight:500;">B. Chen · L6 · contract</h1>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <span class="badge badge-ok">countersigned</span>
+                  <span class="badge badge-soft">IDR 1.6B · 3-stage</span>
+                  <span class="badge badge-info">payment 1/3 due</span>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-secondary btn-sm">Open PDF</button>
+                <button class="btn btn-primary btn-sm" style="background:var(--amber);color:var(--carbon);">Request payment 1</button>
+              </div>
+            </div>
+
+            <div class="detail-tabs">
+              <button class="tab">Document · v4</button>
+              <button class="tab on">Payment ladder</button>
+              <button class="tab">Signatures · 2/2 ✓</button>
+              <button class="tab">Activity</button>
+            </div>
+
+            <!-- Payment ladder -->
+            <div class="card card-pad">
+              <div class="label" style="font-size:9.5px;margin-bottom:18px;">Payment schedule · IDR 1.6B total</div>
+              <div style="display:flex;flex-direction:column;gap:14px;">
+
+                <div style="display:grid;grid-template-columns:60px 1fr 220px 160px;gap:18px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line-soft);">
+                  <span style="width:48px;height:48px;border-radius:50%;background:var(--amber);color:var(--carbon);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:16px;font-weight:500;">1</span>
+                  <div>
+                    <div style="font-family:var(--display-font);font-size:17px;color:var(--ink);font-weight:500;">Deposit · 20%</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:2px;">On contract execution · 14 day window</div>
+                  </div>
+                  <div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">due</div>
+                    <div style="font-size:13px;color:var(--ink);">jun 24 · 14d from jun 10</div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div class="num" style="font-size:18px;color:var(--ink);">IDR 320M</div>
+                    <span class="badge badge-warn">awaiting wire</span>
+                  </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:60px 1fr 220px 160px;gap:18px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line-soft);">
+                  <span style="width:48px;height:48px;border-radius:50%;background:var(--bg-2);color:var(--ink-3);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:16px;">2</span>
+                  <div>
+                    <div style="font-family:var(--display-font);font-size:17px;color:var(--ink);">Progress · 50%</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:2px;">On topping-out milestone · L6 expected oct 2025</div>
+                  </div>
+                  <div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">due</div>
+                    <div style="font-size:13px;color:var(--ink);">est oct 2025</div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div class="num" style="font-size:18px;color:var(--ink);">IDR 800M</div>
+                    <span class="badge badge-soft">pending milestone</span>
+                  </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:60px 1fr 220px 160px;gap:18px;align-items:center;padding:14px 0;">
+                  <span style="width:48px;height:48px;border-radius:50%;background:var(--bg-2);color:var(--ink-3);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:16px;">3</span>
+                  <div>
+                    <div style="font-family:var(--display-font);font-size:17px;color:var(--ink);">Completion · 30%</div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-top:2px;">On handover · L6 expected mar 2026</div>
+                  </div>
+                  <div>
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">due</div>
+                    <div style="font-size:13px;color:var(--ink);">est mar 2026</div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div class="num" style="font-size:18px;color:var(--ink);">IDR 480M</div>
+                    <span class="badge badge-soft">pending handover</span>
+                  </div>
+                </div>
+
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding-top:18px;border-top:2px solid var(--ink);margin-top:14px;">
+                <div style="font-family:var(--display-font);font-size:18px;color:var(--ink);font-weight:500;">Total</div>
+                <div style="margin-left:auto;font-family:var(--display-font);font-size:22px;color:var(--ink);font-weight:500;">IDR 1,600,000,000</div>
+              </div>
+
+              <div style="margin-top:18px;padding:14px 16px;background:color-mix(in srgb,var(--amber) 6%,transparent);border:1px solid color-mix(in srgb,var(--amber) 25%,transparent);border-radius:10px;font-family:var(--mono-font);font-size:11.5px;color:var(--ink-2);">
+                Payment 1 (IDR 320M) wire instructions sent jun 11 · awaiting receipt. Auto-reconcile via bank webhook on settlement.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 05. Mobile ============ -->
+      <section id="mobile" class="ds-section" data-screen-label="05 Mobile">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">05</span><span>—</span><span>Mobile</span></div>
+            <h2>Mobile · single-lane swipe</h2>
+            <p>Phone view collapses kanban to one lane per screen with chip strip to navigate stages. Drag-between-lanes via long-press → bottom sheet ("Move to · …").</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:32px;display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
+          <div class="mobile-frame" data-product="development">
+            <div class="mobile-status"><span>14:08</span><span>5G · 86%</span></div>
+            <div class="mobile-body" style="background:var(--bg);">
+              <div style="padding:12px 16px;border-bottom:1px solid var(--line-soft);background:var(--panel);">
+                <div style="display:flex;align-items:baseline;gap:8px;">
+                  <h2 style="margin:0;font-family:var(--display-font);font-size:18px;color:var(--ink);font-weight:500;">Sales</h2>
+                  <span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);margin-left:auto;">14.2B · ytd</span>
+                </div>
+                <div style="display:flex;gap:6px;margin-top:10px;overflow-x:auto;">
+                  <span class="chip" style="font-size:11px;padding:4px 10px;flex-shrink:0;">Lead·14</span>
+                  <span class="chip" style="font-size:11px;padding:4px 10px;flex-shrink:0;">Qual·7</span>
+                  <span class="chip chip-active" style="font-size:11px;padding:4px 10px;flex-shrink:0;">Tour·4</span>
+                  <span class="chip" style="font-size:11px;padding:4px 10px;flex-shrink:0;">Contract·3</span>
+                  <span class="chip" style="font-size:11px;padding:4px 10px;flex-shrink:0;">Closed·8</span>
+                </div>
+              </div>
+
+              <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px;">
+                <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;margin-bottom:4px;">Tour · 4 buyers · IDR 3.4B</div>
+
+                <div class="pb-card">
+                  <div class="row1"><span class="who">Tan family</span><span class="amt">IDR 2.4B</span></div>
+                  <div class="unit">L8 · tour done jun 14</div>
+                  <div class="probability hot"><div class="fill" style="width:68%;"></div></div>
+                  <div class="row2"><div class="tags"><span class="t">sg</span><span class="t">hot</span></div><span class="age">today</span></div>
+                </div>
+                <div class="pb-card">
+                  <div class="row1"><span class="who">N. Volkov</span><span class="amt">IDR 1.8B</span></div>
+                  <div class="unit">L3 · tour jun 18</div>
+                  <div class="probability"><div class="fill" style="width:55%;"></div></div>
+                  <div class="row2"><div class="tags"><span class="t">ru</span></div><span class="age">1d</span></div>
+                </div>
+                <div class="pb-card">
+                  <div class="row1"><span class="who">P. Lim</span><span class="amt">IDR 1.8B</span></div>
+                  <div class="unit">L3 · tour jul 02</div>
+                  <div class="probability"><div class="fill" style="width:42%;"></div></div>
+                  <div class="row2"><div class="tags"><span class="t">sg</span></div><span class="age stale">8d</span></div>
+                </div>
+                <div class="pb-card">
+                  <div class="row1"><span class="who">K. Tanaka</span><span class="amt">IDR 1.2B</span></div>
+                  <div class="unit">L5 · tour jun 25</div>
+                  <div class="probability"><div class="fill" style="width:38%;"></div></div>
+                  <div class="row2"><div class="tags"><span class="t">jp</span></div><span class="age">4d</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-tabbar">
+              <button class="tb"><span class="ico">▦</span><span>Today</span></button>
+              <button class="tb"><span class="ico">●</span><span>Site</span></button>
+              <button class="tb on"><span class="ico">⌃</span><span>Sales</span></button>
+              <button class="tb"><span class="ico">≡</span><span>More</span></button>
+            </div>
+          </div>
+
+          <div style="max-width:340px;align-self:center;color:var(--doc-fg-2);">
+            <div style="font-family:var(--doc-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.18em;color:var(--doc-fg-3);margin-bottom:8px;">Mobile principles</div>
+            <ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;">
+              <li>One stage per screen · swipe between stages.</li>
+              <li>Long-press card → "Move to · …" bottom sheet.</li>
+              <li>Tap card → full buyer profile.</li>
+              <li>Hot buyers float to top regardless of age.</li>
+              <li>Quick-call button on card for tour follow-ups.</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 06. Schema ============ -->
+      <section id="schema" class="ds-section" data-screen-label="06 Schema">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">06</span><span>—</span><span>Implementation</span></div>
+            <h2>Schema · agents · routes</h2>
+          </div>
+        </div>
+
+        <div class="ds-grid cols-2" style="gap:14px;">
+          <div class="card card-pad" style="background:var(--doc-bg-3);border:1px solid var(--doc-line-2);color:var(--doc-fg-2);font-family:var(--doc-mono);font-size:11.5px;line-height:1.7;">
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:10px;">Tables</div>
+            <div><span style="color:var(--doc-accent)">buyers</span> · name · country · source · funding_kind · score · primary_contact_json</div>
+            <div><span style="color:var(--doc-accent)">leads</span> · buyer_id · project_id · units_interest[] · stage(lead|qualified|tour|contract|closed|lost) · stage_at · probability · expected_value · assignee_id</div>
+            <div><span style="color:var(--doc-accent)">stage_events</span> · lead_id · from · to · at · actor_id · note · auto_stamped</div>
+            <div><span style="color:var(--doc-accent)">interactions</span> · buyer_id · kind(call|mtg|email|tour|offer) · at · summary · attachments_ref · author_id</div>
+            <div><span style="color:var(--doc-accent)">offers</span> · lead_id · unit_id · amount · valid_until · status(active|countered|expired|accepted|declined)</div>
+            <div><span style="color:var(--doc-accent)">contracts</span> · lead_id · code · doc_version · status(draft|sent|countersigned|in_payment|completed|cancelled) · total · payment_schedule_json</div>
+            <div><span style="color:var(--doc-accent)">payment_installments</span> · contract_id · stage · amount · due_at · paid_at · settlement_ref</div>
+            <div><span style="color:var(--doc-accent)">signatures</span> · contract_id · party · signed_at · ip · doc_hash</div>
+          </div>
+          <div class="card card-pad" style="background:var(--doc-bg-3);border:1px solid var(--doc-line-2);color:var(--doc-fg-2);font-family:var(--doc-mono);font-size:11.5px;line-height:1.7;">
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:10px;">Routes</div>
+            <div><span style="color:var(--doc-accent)">/development-os/sales</span> · pipeline kanban</div>
+            <div><span style="color:var(--doc-accent)">/sales/buyer/[id]</span> · buyer profile</div>
+            <div><span style="color:var(--doc-accent)">/sales/contract/[id]</span> · contract page</div>
+            <div><span style="color:var(--doc-accent)">/sales/forecast</span> · weighted forecast + funnel view</div>
+            <div><span style="color:var(--doc-accent)">/sales/inbound</span> · referral form admin · public landing for new leads</div>
+
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-top:14px;margin-bottom:10px;">AI agents</div>
+            <div><span style="color:var(--doc-accent)">lead-scorer</span> · scores 0-100 on each lead daily · drives "hot" badge + sort</div>
+            <div><span style="color:var(--doc-accent)">stage-stale-watcher</span> · flags leads stuck &gt; 14d · suggests next action</div>
+            <div><span style="color:var(--doc-accent)">offer-drafter</span> · drafts offer letter from lead profile + unit · still requires staff approval</div>
+            <div><span style="color:var(--doc-accent)">contract-redline-summariser</span> · summarises changes between contract versions for quick legal review</div>
+            <div><span style="color:var(--doc-accent)">payment-reconciler</span> · daily · matches bank webhook payments to installments</div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;padding:18px 22px;background:var(--doc-bg-3);border:1px solid var(--doc-line-2);border-radius:10px;font-family:var(--doc-mono);font-size:11.5px;color:var(--doc-fg-2);line-height:1.7;">
+          <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:8px;">Critical UX rules</div>
+          1. Stage transitions log to <code>stage_events</code> with actor + timestamp — every move is auditable, drag = audit.<br>
+          2. Offers above list price require manager approval (modal) — no silent below-list discounts.<br>
+          3. Closed-Won card transitions to read-only · cannot be re-opened from kanban (requires Voiding workflow).<br>
+          4. Unit availability is the single source of truth · if a unit is held/sold elsewhere, the kanban marks it as conflict + shows alternate units.<br>
+          5. Payment reconciler runs every 30min in business hours · webhook trigger immediate · staff cannot manually mark paid without webhook confirmation.
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

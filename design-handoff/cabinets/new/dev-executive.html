@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dev OS · Executive dashboard (v2)</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+[data-product="development"]{--paper:#F8F2E2;--canvas:#ECE0BF;--panel:#FFF;--panel-2:#F4ECD8;--panel-deep:#E0D2A8;--ink:#1E1A12;--ink-3:#4E4636;--ink-4:#71684F;--ink-5:#948A6A;--line:#D4C594;--line-soft:#DECEA6;--amber:#C68E36;--amber-deep:#8E5F18;--steel:#4B6580;--ok:#5F8B62;--warn:#C49845;--danger:#B45239;--display:"Newsreader",serif;--sans:"Inter",sans-serif;--mono:"JetBrains Mono",monospace}
+:root{--doc-bg:#1E1A12;--doc-bg-2:#2A2418;--doc-bg-3:#362F20;--doc-fg:#ECE0BF;--doc-fg-2:#C1B89F;--doc-fg-3:#8A8473;--doc-accent:#E6BE6E;--doc-line:rgba(255,255,255,0.06);--doc-line-2:rgba(255,255,255,0.10)}
+*{box-sizing:border-box}body{margin:0;background:var(--doc-bg);color:var(--doc-fg);font-family:var(--sans)}
+.ds-app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.ds-toc{border-right:1px solid var(--doc-line);padding:36px 22px;background:var(--doc-bg-2);position:sticky;top:0;height:100vh;overflow-y:auto}
+.ds-mark{display:flex;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);margin-bottom:22px;align-items:center}
+.ds-mark .glyph{width:7px;height:7px;background:var(--doc-accent);border-radius:2px}
+.ds-toc h1{margin:0 0 22px;font-weight:500;font-size:19px;color:var(--doc-fg)}
+.ds-toc-group{margin-top:22px}.ds-toc-group-title{font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);margin-bottom:10px}
+.ds-toc ul{margin:0;padding:0;list-style:none}
+.ds-toc a{display:block;padding:6px 8px;text-decoration:none;color:var(--doc-fg-2);font-size:13px;border-radius:4px}
+.ds-toc a .ix{font-family:var(--mono);font-size:10.5px;color:var(--doc-fg-3);margin-right:8px}
+.ds-toc .back{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--doc-line)}
+.ds-toc .back a{color:var(--doc-accent);font-size:12.5px}
+.ds-main{padding:56px 64px 96px;max-width:1300px}
+.cab-cover{margin-bottom:56px;padding-bottom:28px;border-bottom:1px solid var(--doc-line)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--doc-accent);display:flex;gap:12px;align-items:center;margin-bottom:18px}
+.eyebrow .glyph{width:6px;height:6px;background:var(--doc-accent);border-radius:2px}
+.cab-cover h1{margin:0;font-weight:500;font-size:44px;line-height:1.05;letter-spacing:-0.025em}
+.cab-cover h1 em{color:var(--doc-accent);font-style:italic;font-weight:400}
+.cab-cover p{max-width:720px;margin:18px 0 0;font-size:14.5px;color:var(--doc-fg-2);line-height:1.65}
+.ds-section{margin-bottom:76px}
+.ds-section-head{display:flex;gap:28px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--doc-line)}
+.ds-section-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);display:flex;gap:10px;margin-bottom:6px}
+.ds-section h2{margin:0;font-weight:500;font-size:26px;color:var(--doc-fg)}
+.ds-section p{max-width:760px;margin:8px 0 0;font-size:13.5px;color:var(--doc-fg-2);line-height:1.65}
+.ds-section p code{font-family:var(--mono);font-size:12.5px;background:var(--doc-bg-3);padding:1px 6px;border-radius:4px;color:var(--doc-accent)}
+.artboard{margin-top:20px;border:1px solid var(--doc-line);border-radius:18px;background:var(--canvas);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.4)}
+.artboard-caption{display:flex;gap:10px;margin-top:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-3)}
+.artboard-caption .pill{padding:3px 9px;border-radius:999px;border:1px solid var(--doc-line-2);color:var(--doc-accent)}
+.var-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:14px}
+.var-card{border:1px solid var(--doc-line);border-radius:14px;background:var(--canvas);overflow:hidden}
+.var-card .v-h{padding:12px 16px;background:var(--doc-bg-3);border-bottom:1px solid var(--doc-line);display:flex;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-2)}
+.var-card .v-h .num{background:var(--doc-bg);padding:2px 8px;border-radius:4px;color:var(--doc-accent)}
+.mobile-row{display:grid;grid-template-columns:360px 1fr;gap:32px;align-items:start}
+.mobile-frame{width:360px;border:1px solid var(--doc-line);border-radius:30px;overflow:hidden;background:var(--canvas)}
+.mobile-status{padding:10px 22px 6px;display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink);font-weight:600}
+.mobile-notes ol{margin:0;padding-left:20px}
+.mobile-notes li{margin-bottom:6px;font-size:13px;line-height:1.55;color:var(--doc-fg-2)}
+.mobile-notes li strong{color:var(--doc-fg)}
+.notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:18px}
+.notes-card{background:var(--doc-bg-2);border:1px solid var(--doc-line);border-radius:12px;padding:18px 20px}
+.notes-card h3{margin:0 0 12px;font-size:14px;font-weight:500;color:var(--doc-fg)}
+.notes-card dl>div{display:grid;grid-template-columns:130px 1fr;gap:14px;padding:8px 0;border-bottom:1px solid var(--doc-line);font-size:12.5px}
+.notes-card dl>div:last-child{border-bottom:0}
+.notes-card dt{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--doc-fg-3)}
+.notes-card dd{margin:0;color:var(--doc-fg-2);line-height:1.55}
+.notes-card dd code{font-family:var(--mono);font-size:11px;color:var(--doc-fg);background:var(--doc-bg-3);padding:1px 6px;border-radius:3px}
+
+[data-product="development"]{font-family:var(--sans);color:var(--ink)}
+[data-product] .topbar{display:flex;align-items:center;gap:16px;padding:14px 24px;background:var(--ink);color:var(--paper)}
+[data-product] .topbar .brand{font-family:var(--display);font-size:18px}
+[data-product] .topbar .brand .sub{font-family:var(--mono);font-size:9.5px;color:rgba(248,242,226,0.55);letter-spacing:0.16em;text-transform:uppercase;display:block;margin-top:1px}
+[data-product] .topbar .role{margin-left:18px;padding:4px 10px;background:rgba(248,242,226,0.08);border-radius:6px;font-family:var(--mono);font-size:11px}
+[data-product] .topbar .right{margin-left:auto;display:flex;gap:14px;align-items:center;font-family:var(--mono);font-size:11px;color:rgba(248,242,226,0.6)}
+[data-product] .topbar .me .avatar{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--amber);color:white;align-items:center;justify-content:center;font-size:11px;font-weight:600;margin-right:6px}
+[data-product] .page-h{padding:28px 32px 22px;background:var(--canvas);border-bottom:1px solid var(--line);display:flex;gap:24px;align-items:baseline}
+[data-product] .page-h h2{margin:0;font-family:var(--display);font-size:32px;font-weight:400;color:var(--ink)}
+[data-product] .page-h h2 em{color:var(--amber);font-style:italic}
+[data-product] .page-h .sub{margin-top:6px;font-size:13.5px;color:var(--ink-3)}
+[data-product] .page-h .right{margin-left:auto;display:flex;gap:8px}
+[data-product] .btn{padding:9px 14px;border-radius:8px;font-size:13.5px;font-weight:500;border:1px solid var(--line);background:var(--panel);color:var(--ink-3);cursor:pointer}
+[data-product] .btn-primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+[data-product] .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);padding:18px 28px;background:var(--canvas);border-bottom:1px solid var(--line);gap:14px}
+[data-product] .kpi-big{padding:16px 18px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+[data-product] .kpi-big .l{font-family:var(--mono);font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3)}
+[data-product] .kpi-big .v{font-family:var(--display);font-size:36px;color:var(--ink);margin-top:6px;line-height:1}
+[data-product] .kpi-big .v.warn{color:var(--warn)}
+[data-product] .kpi-big .v.ok{color:var(--ok)}
+[data-product] .kpi-big .v.amber{color:var(--amber)}
+[data-product] .kpi-big .ctx{font-family:var(--mono);font-size:10.5px;color:var(--ink-4);margin-top:5px}
+[data-product] .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:0}
+[data-product] .col{padding:22px 28px;border-right:1px solid var(--line)}
+[data-product] .col:last-child{border-right:0}
+[data-product] .col h3{margin:0 0 14px;font-family:var(--display);font-size:22px;font-weight:400;color:var(--ink);display:flex;align-items:baseline;gap:10px}
+[data-product] .col h3 em{color:var(--amber);font-style:italic}
+[data-product] .proj{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 16px;margin-bottom:10px}
+[data-product] .proj .top{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+[data-product] .proj .nm{font-family:var(--display);font-size:16px;color:var(--ink)}
+[data-product] .proj .stage{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;letter-spacing:0.06em;text-transform:uppercase;background:color-mix(in oklab,var(--amber) 14%,transparent);color:var(--amber-deep)}
+[data-product] .proj .health{margin-left:auto;font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:999px}
+[data-product] .proj .health.warn{background:color-mix(in oklab,var(--warn) 14%,transparent);color:var(--warn)}
+[data-product] .proj .health.ok{background:color-mix(in oklab,var(--ok) 14%,transparent);color:var(--ok)}
+[data-product] .proj .bar{height:5px;background:var(--panel-deep);border-radius:3px;overflow:hidden;margin-top:8px}
+[data-product] .proj .bar .fill{height:100%;background:var(--ok)}
+[data-product] .proj .bar .fill.warn{background:var(--warn)}
+[data-product] .risk-row{display:grid;grid-template-columns:28px 1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);align-items:center;font-size:12.5px}
+[data-product] .risk-row:last-child{border-bottom:0}
+[data-product] .risk-row .sev{width:24px;height:24px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--display);font-size:11px;font-weight:500}
+[data-product] .risk-row .sev.high{background:var(--danger);color:white}
+[data-product] .risk-row .sev.med{background:var(--warn);color:white}
+[data-product] .risk-row .sev.low{background:var(--panel-deep);color:var(--ink-3)}
+[data-product] .risk-row .nm{font-size:12.5px;color:var(--ink);font-weight:500}
+[data-product] .risk-row .nm .meta{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:1px;font-weight:400;display:block}
+[data-product] .risk-row .impact{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);text-align:right}
+[data-product] .digest{padding:11px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;font-size:12px;color:var(--ink-3);line-height:1.5}
+[data-product] .digest strong{color:var(--ink)}
+[data-product] .digest .when{font-family:var(--mono);font-size:10.5px;color:var(--ink-4);letter-spacing:0.10em;display:block;margin-bottom:4px}
+
+[data-product] .det-h{padding:22px 28px;background:var(--canvas);border-bottom:1px solid var(--line)}
+[data-product] .det-h .crumb{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase}
+[data-product] .det-h h2{margin:6px 0 0;font-family:var(--display);font-size:28px;font-weight:400;color:var(--ink)}
+[data-product] .det-h h2 em{color:var(--danger);font-style:italic}
+[data-product] .det-h .meta{margin-top:10px;display:flex;gap:18px;font-family:var(--mono);font-size:11px;color:var(--ink-3);flex-wrap:wrap}
+[data-product] .det-h .meta strong{color:var(--ink-3)}
+[data-product] .det-body{display:grid;grid-template-columns:1fr 1fr;gap:0}
+[data-product] .det-col{padding:22px 28px;border-right:1px solid var(--line)}
+[data-product] .det-col:last-child{border-right:0}
+[data-product] .det-col h3{margin:0 0 12px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+[data-product] .det-col h3.r{margin-top:22px}
+[data-product] .kv{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+[data-product] .kv .row{display:grid;grid-template-columns:120px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px}
+[data-product] .kv .row:last-child{border-bottom:0}
+[data-product] .kv .k{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:0.10em;text-transform:uppercase}
+[data-product] .kv .v{color:var(--ink)}
+
+[data-product] .m-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--ink);color:var(--paper)}
+[data-product] .m-bar .brand{font-family:var(--display);font-size:13px}
+[data-product] .m-bar .av{margin-left:auto;width:22px;height:22px;border-radius:50%;background:var(--amber);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600}
+[data-product] .m-h{padding:12px 14px;background:var(--canvas);border-bottom:1px solid var(--line)}
+[data-product] .m-h h3{margin:0;font-family:var(--display);font-size:18px;font-weight:400;color:var(--ink)}
+[data-product] .m-h h3 em{color:var(--amber);font-style:italic}
+[data-product] .m-h .sub{margin-top:3px;font-size:11.5px;color:var(--ink-3)}
+[data-product] .m-list{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+[data-product] .m-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+[data-product] .m-card.high{border-left:3px solid var(--danger);padding-left:10px}
+[data-product] .m-card.med{border-left:3px solid var(--warn);padding-left:10px}
+[data-product] .m-card .ti{font-size:12.5px;font-weight:500;color:var(--ink)}
+[data-product] .m-card .body{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:3px;line-height:1.5}
+[data-product] .m-card .body strong{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Dev OS · phase 2.6</div>
+    <h1>Executive dashboard</h1>
+    <div class="back"><a href="../../design/index.html">← back to design hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Sections</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#hero"><span class="ix">01</span>Hero · portfolio + risks + digests</a></li>
+        <li><a href="#variants"><span class="ix">02</span>Time-range variants</a></li>
+        <li><a href="#detail"><span class="ix">03</span>Risk drill-in</a></li>
+        <li><a href="#mobile"><span class="ix">04</span>Mobile · executive feed</a></li>
+        <li><a href="#schema"><span class="ix">05</span>Schema · agents · routes</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <section id="cover" class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Dev OS · phase 2.6 · Executive dashboard</span></div>
+      <h1>Executive — <em>portfolio at a glance</em>.</h1>
+      <p>Cabinet for Executive role (founder · board · senior PM). Replaces 4 legacy items (Executive dashboard · Visual reports · Risk radar · Daily digests). 4 portfolio-wide KPIs · per-project health rollup · 5-risk radar · 3 daily digests.</p>
+    </section>
+
+    <section id="hero" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Portfolio rollup + risk radar + digests</h2>
+          <p>4 big KPI · left = project rollup · right = risk radar + daily digests.</p>
+        </div>
+      </div>
+      <div class="artboard">
+        <div data-product="development">
+          <div class="topbar"><div class="brand">Arconique<span class="sub">dev · executive</span></div><div class="role">Acting as: Admin ▾</div><div class="right"><span>$24M pipeline</span><span class="me"><span class="avatar">NR</span>Nikita R.</span></div></div>
+          <div class="page-h"><div><h2>Executive <em>· may 2025</em></h2><div class="sub">3 projects · cashflow positive 90d · 1 high-severity risk</div></div><div class="right"><button class="btn">Period: may ▾</button><button class="btn btn-primary">Daily digest</button></div></div>
+          <div class="kpi-row">
+            <div class="kpi-big"><div class="l">cashflow 30d</div><div class="v amber">$340k</div><div class="ctx">↑ 12% covers 90d ops</div></div>
+            <div class="kpi-big"><div class="l">GMV pipeline</div><div class="v">$24.0M</div><div class="ctx">14 buyers · 2 closing</div></div>
+            <div class="kpi-big"><div class="l">IRR projected</div><div class="v ok">22.4%</div><div class="ctx">vs target 18%</div></div>
+            <div class="kpi-big"><div class="l">sched weighted</div><div class="v warn">68%</div><div class="ctx">↓ 2pp plan</div></div>
+          </div>
+          <div class="grid-2">
+            <div class="col">
+              <h3>Portfolio <em>· 3 projects</em></h3>
+              <div class="proj"><div class="top"><span class="nm">Tirta-Canggu</span><span class="stage">build · 78%</span><span class="health warn">attention</span></div><div style="font-family:var(--mono);font-size:11px;color:var(--ink-3);">$3.2M/$4.4M · BOQ var +4.8% · handover aug</div><div class="bar"><div class="fill warn" style="width:78%"></div></div></div>
+              <div class="proj"><div class="top"><span class="nm">Tirta-Uluwatu</span><span class="stage">build · 64%</span><span class="health ok">on track</span></div><div style="font-family:var(--mono);font-size:11px;color:var(--ink-3);">$2.6M/$4.1M · handover nov</div><div class="bar"><div class="fill" style="width:64%"></div></div></div>
+              <div class="proj"><div class="top"><span class="nm">Tirta-Seminyak</span><span class="stage">selling · 32%</span><span class="health ok">on track</span></div><div style="font-family:var(--mono);font-size:11px;color:var(--ink-3);">$680k/$2.2M · 7/14 pre-sold · handover feb 26</div><div class="bar"><div class="fill" style="width:32%"></div></div></div>
+            </div>
+            <div class="col">
+              <h3>Risk radar <em>· 5</em></h3>
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;">
+                <div class="risk-row"><span class="sev high">H</span><div class="nm">Concrete supply Q3<div class="meta">major supplier price hike</div></div><div class="impact">$120k</div></div>
+                <div class="risk-row"><span class="sev med">M</span><div class="nm">TC schedule slip 2d<div class="meta">P2 concrete delay</div></div><div class="impact">2d</div></div>
+                <div class="risk-row"><span class="sev med">M</span><div class="nm">Capital call 8d unpaid<div class="meta">Kishida $48k</div></div><div class="impact">$48k</div></div>
+                <div class="risk-row"><span class="sev med">M</span><div class="nm">Seminyak sales slow<div class="meta">7/14 vs 9 target</div></div><div class="impact">~2mo</div></div>
+                <div class="risk-row"><span class="sev low">L</span><div class="nm">PPN regulation pending<div class="meta">monitor</div></div><div class="impact">—</div></div>
+              </div>
+              <h3 style="margin-top:22px;">Daily digests <em>· 3</em></h3>
+              <div class="digest"><span class="when">today 06:00 · 14 read</span><strong>Cashflow +$24k</strong> TC payment. 1 P2 concrete delay. Capital call CC-04 8d unpaid. <strong>2 buyers closing.</strong> Review BOQ before signing 3 PRs.</div>
+              <div class="digest"><span class="when">yesterday · 12 read</span>TC schedule on plan. Q2 commitments closed $4.2M vs $4.0M target. 12 POs, 2 awaiting award.</div>
+              <div class="digest"><span class="when">mon 27 may</span>May statements drafted 14 owners. Seminyak 7/14 pre-sold (target 9).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">desktop · production</span><span>portfolio rollup · severity-ranked risks · AI digests</span></div>
+    </section>
+
+    <section id="variants" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Variants</span></div>
+          <h2>Time-range views · monthly + quarterly + YTD</h2>
+          <p><strong style="color:var(--doc-fg)">A</strong> = monthly (default · operational rhythm). <strong style="color:var(--doc-fg)">B</strong> = quarterly (board cadence). <strong style="color:var(--doc-fg)">C</strong> = YTD (full picture for annual reporting).</p>
+        </div>
+      </div>
+      <div class="var-grid">
+        <div class="var-card">
+          <div class="v-h"><span class="num">B</span><span class="name">Quarterly</span></div>
+          <div data-product="development">
+            <div style="padding:18px 20px;">
+              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+                <div style="padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;">Q2 CASHFLOW</div><div style="font-family:var(--display);font-size:26px;color:var(--ink);margin-top:4px;">$980k</div><div style="font-family:var(--mono);font-size:10px;color:var(--ok);margin-top:2px;">↑ 14% vs Q1</div></div>
+                <div style="padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;">Q2 GMV CLOSED</div><div style="font-family:var(--display);font-size:26px;color:var(--ink);margin-top:4px;">$5.4M</div><div style="font-family:var(--mono);font-size:10px;color:var(--ok);margin-top:2px;">7 contracts</div></div>
+                <div style="padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;">CAPITAL RAISED</div><div style="font-family:var(--display);font-size:26px;color:var(--ink);margin-top:4px;">$4.2M</div><div style="font-family:var(--mono);font-size:10px;color:var(--ok);margin-top:2px;">vs $4.0M target</div></div>
+                <div style="padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ink-3);letter-spacing:0.14em;text-transform:uppercase;">RISK COUNT</div><div style="font-family:var(--display);font-size:26px;color:var(--warn);margin-top:4px;">5</div><div style="font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-top:2px;">1 H · 3 M · 1 L</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="var-card">
+          <div class="v-h"><span class="num">C</span><span class="name">YTD</span></div>
+          <div data-product="development">
+            <div style="padding:18px 20px;font-family:var(--mono);font-size:11.5px;color:var(--ink-2);line-height:1.7;">
+              <div style="font-family:var(--display);font-size:15px;color:var(--ink);margin-bottom:8px;">YTD 2025 · 5 months</div>
+              <div style="background:var(--panel);padding:10px 12px;border-radius:6px;margin-bottom:5px;"><strong>Cashflow</strong> · $1.84M cumulative</div>
+              <div style="background:var(--panel);padding:10px 12px;border-radius:6px;margin-bottom:5px;"><strong>GMV closed</strong> · $11.2M (12 contracts)</div>
+              <div style="background:var(--panel);padding:10px 12px;border-radius:6px;margin-bottom:5px;"><strong>Capital raised</strong> · $8.4M</div>
+              <div style="background:var(--panel);padding:10px 12px;border-radius:6px;margin-bottom:5px;"><strong>Distributions paid</strong> · $1.2M</div>
+              <div style="background:var(--panel);padding:10px 12px;border-radius:6px;margin-bottom:5px;color:var(--ok);"><strong>Tracking 18% IRR</strong> · on plan</div>
+              <div style="background:var(--panel);padding:10px 12px;border-radius:6px;color:var(--warn);"><strong>2 H-severity risks</strong> · this year</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">desktop · variants</span><span>monthly default · quarterly for board · YTD for annual</span></div>
+    </section>
+
+    <section id="detail" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Detail</span></div>
+          <h2>Risk drill-in · single risk investigation</h2>
+          <p>Click any risk → <code>/executive/risk/[id]</code>. Owner, impact, mitigation plan, history of similar risks.</p>
+        </div>
+      </div>
+      <div class="artboard">
+        <div data-product="development">
+          <div class="topbar"><div class="brand">Arconique<span class="sub">dev · executive</span></div><div class="role">Acting as: Admin</div><div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div></div>
+          <div class="det-h">
+            <div class="crumb">executive / risk / concrete-supply-q3</div>
+            <h2>Concrete supply tightening Q3 <em>· HIGH</em></h2>
+            <div class="meta"><span>severity <strong>HIGH</strong></span><span>impact <strong>$120k</strong></span><span>owner <strong>NR · PM</strong></span><span>detected <strong>14d ago</strong></span><span>review by <strong>15 jun</strong></span></div>
+          </div>
+          <div class="det-body">
+            <div class="det-col">
+              <h3>Risk profile</h3>
+              <div class="kv">
+                <div class="row"><span class="k">type</span><span class="v">supply chain · price</span></div>
+                <div class="row"><span class="k">affects</span><span class="v">Tirta-Canggu · Tirta-Uluwatu</span></div>
+                <div class="row"><span class="k">trigger</span><span class="v">major Bali supplier announced 18% Q3 hike</span></div>
+                <div class="row"><span class="k">cost exposure</span><span class="v">$120k if absorbed</span></div>
+                <div class="row"><span class="k">timeline</span><span class="v">Q3 deliveries</span></div>
+                <div class="row"><span class="k">probability</span><span class="v">85% confirmed by supplier</span></div>
+              </div>
+              <h3 class="r">Similar risks · history</h3>
+              <div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--ink-3);line-height:1.6;">
+                <strong style="color:var(--ink);">Q1 2024</strong> · rebar price hike +12% — absorbed via PT Sumber Mat re-quote.<br>
+                <strong style="color:var(--ink);">Q3 2023</strong> · cement supplier tightening — switched to CV Mitra Beton.<br>
+                Pattern: pivot vendor saved ~60% of exposure historically.
+              </div>
+            </div>
+            <div class="det-col">
+              <h3>Mitigation plan</h3>
+              <div style="background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:8px;padding:12px 14px;font-size:12.5px;color:var(--ink-3);line-height:1.55;">
+                <strong style="color:var(--ink);">Option A</strong> · re-quote with 3 alternative suppliers (Procurement Analyst agent flagged 2 candidates)<br>
+                <strong style="color:var(--ink);">Option B</strong> · lock current price by Q2 advance order +200 bags (cash tied up ~$8k)<br>
+                <strong style="color:var(--ink);">Option C</strong> · absorb +18% · pass to next phase pricing
+              </div>
+              <h3 class="r">Actions</h3>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <button class="btn btn-primary" style="width:100%;justify-content:center;">Issue RFQ · 3 vendors</button>
+                <button class="btn" style="width:100%;justify-content:center;">Lock current price · advance order</button>
+                <button class="btn" style="width:100%;justify-content:center;">Mark mitigated</button>
+                <button class="btn" style="width:100%;justify-content:center;">Brief board · Q2 update</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">desktop · detail</span><span>profile · history pattern · 3 mitigation options · 4 actions</span></div>
+    </section>
+
+    <section id="mobile" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Mobile</span></div>
+          <h2>Phone · executive feed</h2>
+          <p>Risks + digest summary. Read-mostly. Tap risk → details.</p>
+        </div>
+      </div>
+      <div class="mobile-row">
+        <div class="mobile-frame">
+          <div class="mobile-status"><span>08:14</span><span>5G · 94%</span></div>
+          <div data-product="development">
+            <div class="m-bar"><span class="brand">Arconique</span><span class="av">NR</span></div>
+            <div class="m-h"><h3>Executive <em>· today</em></h3><div class="sub">portfolio brief · 5 risks</div></div>
+            <div class="m-list">
+              <div class="m-card high"><div class="ti">Concrete supply Q3</div><div class="body"><strong>$120k</strong> exposure · 3 mitigation options ready</div></div>
+              <div class="m-card med"><div class="ti">TC schedule slip 2d</div><div class="body">P2 concrete delay · resolution by tomorrow</div></div>
+              <div class="m-card med"><div class="ti">Capital call unpaid 8d</div><div class="body">Kishida · $48k · reminder due today</div></div>
+              <div class="m-card med"><div class="ti">Seminyak sales slow</div><div class="body">7/14 pre-sold (target 9) · 2mo runway</div></div>
+              <div class="m-card"><div class="ti">PPN regulation pending</div><div class="body">monitor · Tax Assistant flagged</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="mobile-notes">
+          <h4 style="font-size:14px;font-weight:500;color:var(--doc-fg);margin:0 0 6px;">Mobile principles</h4>
+          <ol>
+            <li><strong>Read-mostly</strong> · execs review, don't edit.</li>
+            <li><strong>Risks first</strong> · severity-sorted.</li>
+            <li><strong>Tap → risk details</strong> + mitigation actions.</li>
+            <li><strong>Push at 06:00</strong> · daily digest delivery.</li>
+            <li><strong>No new projects</strong> on phone.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="artboard-caption"><span class="pill">mobile · executive</span><span>read-mostly · severity sort · 06:00 push</span></div>
+    </section>
+
+    <section id="schema" class="ds-section">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">05</span><span>—</span><span>Implementation</span></div>
+          <h2>Schema · agents · routes</h2>
+          <p>Composes data from CFO + Investors + Projects + Sales cabinets. New table: <code>portfolio_risks</code>. Agents: <code>risk-detector</code> + <code>daily-digest-composer</code>.</p>
+        </div>
+      </div>
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Tables · new for 2.6</h3>
+          <dl>
+            <div><dt>portfolio_risks</dt><dd><code>id · org_id · severity · type · description · impact_amount · owner_user_id · detected_at · review_by · mitigated_at · mitigation_jsonb</code></dd></div>
+            <div><dt>daily_digests</dt><dd><code>org_id · date · digest_jsonb · sent_at · read_by_users[]</code></dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Composed reads</h3>
+          <dl>
+            <div><dt>cashflow</dt><dd>cabinet 13 CFO mat view</dd></div>
+            <div><dt>GMV pipeline</dt><dd>cabinet 10 sales</dd></div>
+            <div><dt>IRR</dt><dd>cabinet 11 investors XIRR</dd></div>
+            <div><dt>project health</dt><dd>cabinet 12 projects health.ts</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Routes</h3>
+          <dl>
+            <div><dt>/executive</dt><dd>hero · monthly default</dd></div>
+            <div><dt>/executive/quarterly</dt><dd>variant B</dd></div>
+            <div><dt>/executive/ytd</dt><dd>variant C</dd></div>
+            <div><dt>/executive/risk/[id]</dt><dd>detail · mitigation</dd></div>
+            <div><dt>/executive/digests</dt><dd>archive</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Agents</h3>
+          <dl>
+            <div><dt>risk-detector</dt><dd>scans signals · creates <code>portfolio_risks</code> rows · severity scoring</dd></div>
+            <div><dt>daily-digest-composer</dt><dd>cron 06:00 · composes per-role digest · pushes to subscribers</dd></div>
+            <div><dt>mitigation-recommender</dt><dd>history-based · suggests options per risk type</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+</body>
+</html>

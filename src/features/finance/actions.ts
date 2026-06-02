@@ -522,6 +522,21 @@ export async function createPayoutLineAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
   const d = parsed.data;
+  // FC-OWNER-STATEMENTS §4.4 — payout is PAUSED while a statement is disputed.
+  // A disputed statement can't have funds released until it is resolved/reissued.
+  if (d.statementId) {
+    const [linked] = await db
+      .select({ ownerState: ownerStatements.ownerState })
+      .from(ownerStatements)
+      .where(eq(ownerStatements.id, d.statementId))
+      .limit(1);
+    if (linked?.ownerState === "disputed") {
+      return {
+        ok: false,
+        error: "Payout is paused: this statement is under dispute. Resolve the dispute first.",
+      };
+    }
+  }
   const [row] = await db
     .insert(payoutLines)
     .values({

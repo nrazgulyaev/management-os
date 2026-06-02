@@ -12,6 +12,7 @@ import { listOwners } from "@/features/owners/services";
 import { StatementStatusPill } from "@/components/finance/period-pill";
 import { StatementAddButton } from "@/components/finance/statement-add-button";
 import { formatMoneyMinor } from "@/lib/money";
+import { ownerStateMgmtLabel } from "@/features/owner-statements/state-machine";
 
 export const metadata = { title: "Owner statements" };
 export const dynamic = "force-dynamic";
@@ -52,13 +53,14 @@ export default async function StatementsPage() {
             <TH>Period</TH>
             <TH>Model</TH>
             <TH>Status</TH>
+            <TH>Owner state</TH>
             <TH className="text-right">Net payout</TH>
           </TR>
         </THead>
         <TBody>
           {rows.length === 0 ? (
             <TR>
-              <TD colSpan={6} className="text-center py-8 text-ink-tertiary">
+              <TD colSpan={7} className="text-center py-8 text-ink-tertiary">
                 No statements yet.
               </TD>
             </TR>
@@ -78,6 +80,9 @@ export default async function StatementsPage() {
                 <TD className="text-ink-secondary text-sm">{s.managementModel}</TD>
                 <TD>
                   <StatementStatusPill status={s.status} />
+                </TD>
+                <TD className="text-ink-secondary text-sm">
+                  {ownerStateMgmtLabel(s.ownerState)}
                 </TD>
                 <TDNum>{formatMoneyMinor(s.netPayoutMinor, s.currency)}</TDNum>
               </TR>

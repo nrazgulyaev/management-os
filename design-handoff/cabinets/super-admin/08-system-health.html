@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase 2.5 · 08 · System health</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="super-admin-tokens">
+[data-product="super-admin"] {
+  --paper: #F8F9FB; --canvas: #EEF1F5; --panel: #FFFFFF; --panel-2: #F2F4F7; --panel-deep: #E5E9EE;
+  --ink: #0B0F14; --ink-2: #1F2937; --ink-3: #4B5563; --ink-4: #6B7280; --ink-5: #9CA3AF;
+  --line: #D6DBE2; --line-soft: #E5E8ED; --line-strong: #B8C0CC;
+  --accent: #3F4F8F; --accent-soft: #B8C2DF; --accent-deep: #2A3868; --on-accent: #FFFFFF;
+  --inverted-bg: #0B0F14; --inverted-fg: #F8F9FB; --inverted-bg-2: #1F2937;
+  --ok: #2D7A3E; --warn: #B47611; --danger: #B33A2C; --info: #2D5680;
+  --trust: #2A3868; --caution: #944B1F;
+  --r-pill: 999px; --r-card: 10px; --r-card-lg: 14px; --r-hero: 18px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+}
+:root {
+  --doc-bg: #0B0F14; --doc-bg-2: #131822; --doc-bg-3: #1B2330;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E8EC; --doc-fg-2: #B4B9C2; --doc-fg-3: #7E8590;
+  --doc-accent: #B8C2DF; --doc-caution: #E8AC85;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc { border-right: 1px solid var(--doc-line); padding: 36px 22px; background: var(--doc-bg-2); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.ds-mark { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 22px; }
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 { margin: 0 0 22px; font-family: var(--doc-sans); font-weight: 500; font-size: 19px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 10px; }
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a { display: block; padding: 6px 8px; text-decoration: none; color: var(--doc-fg-2); font-size: 13px; border-radius: 4px; margin-bottom: 1px; }
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--doc-mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+.ds-toc .back { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-toc .back a { color: var(--doc-accent); font-size: 12.5px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1300px; }
+.cab-cover { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 44px; line-height: 1.05; letter-spacing: -0.025em; }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.ds-section { margin-bottom: 76px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-section h2 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 26px; letter-spacing: -0.015em; color: var(--doc-fg); }
+.ds-section p { max-width: 760px; margin: 8px 0 0; font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.artboard { margin-top: 20px; border: 1px solid var(--doc-line); border-radius: 18px; background: var(--canvas); overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.artboard-caption { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.artboard-caption .pill { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); color: var(--doc-accent); border-color: rgba(184,194,223,0.4); }
+
+.notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+.notes-card { background: var(--doc-bg-2); border: 1px solid var(--doc-line); border-radius: 12px; padding: 18px 20px; }
+.notes-card h3 { margin: 0 0 12px; font-family: var(--doc-sans); font-size: 14px; font-weight: 500; color: var(--doc-fg); }
+.notes-card dl { margin: 0; }
+.notes-card dl > div { display: grid; grid-template-columns: 140px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--doc-line); font-size: 12.5px; }
+.notes-card dl > div:last-child { border-bottom: 0; }
+.notes-card dt { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes-card dd { margin: 0; color: var(--doc-fg-2); line-height: 1.55; }
+.notes-card dd code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg); background: var(--doc-bg-3); padding: 1px 6px; border-radius: 3px; }
+
+/* ============================================================
+   Product chrome
+   ============================================================ */
+[data-product="super-admin"] { font-family: var(--sans-font); color: var(--ink); }
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border-radius: 6px; font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); cursor: pointer; line-height: 1; background: var(--panel); color: var(--ink-2); text-decoration: none; }
+[data-product] .btn:hover { background: var(--panel-2); }
+[data-product] .btn-sm { padding: 7px 11px; font-size: 12.5px; }
+[data-product] .btn-xs { padding: 4px 8px; font-size: 11px; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+[data-product] .btn-caution { background: var(--panel); color: var(--caution); border-color: var(--caution); }
+
+[data-product] .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: var(--r-pill); font-family: var(--mono-font); font-size: 10.5px; font-weight: 500; border: 1px solid var(--line); background: var(--panel); color: var(--ink-3); }
+[data-product] .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+[data-product] .app { background: var(--canvas); min-height: 720px; display: grid; grid-template-rows: auto 1fr; }
+[data-product] .app-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--inverted-bg); color: var(--inverted-fg); border-bottom: 1px solid var(--ink); }
+[data-product] .app-topbar .brand { font-family: var(--display-font); font-size: 18px; font-weight: 400; color: var(--inverted-fg); }
+[data-product] .app-topbar .brand .sub { font-family: var(--mono-font); font-size: 9.5px; color: rgba(248,249,251,0.55); letter-spacing: 0.18em; text-transform: uppercase; display: block; margin-top: 1px; }
+[data-product] .app-topbar .nav { display: flex; gap: 4px; margin-left: 24px; }
+[data-product] .app-topbar .nav a { padding: 6px 12px; border-radius: 5px; font-family: var(--mono-font); font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(248,249,251,0.6); text-decoration: none; }
+[data-product] .app-topbar .nav a.on { background: var(--inverted-bg-2); color: var(--inverted-fg); }
+[data-product] .app-topbar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-family: var(--mono-font); font-size: 11px; color: rgba(248,249,251,0.6); }
+[data-product] .app-topbar .me { display: flex; align-items: center; gap: 6px; }
+[data-product] .app-topbar .me .avatar { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: white; display: inline-flex; align-items: center; justify-content: center; font-family: var(--sans-font); font-size: 11px; font-weight: 600; }
+[data-product] .app-topbar .live { display: flex; align-items: center; gap: 6px; font-family: var(--mono-font); font-size: 10.5px; color: var(--ok); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .app-topbar .live .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ok) 30%, transparent); }
+
+[data-product] .page-h { padding: 22px 24px 18px; display: flex; align-items: flex-start; gap: 20px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+[data-product] .page-h .left h1 { margin: 4px 0 0; font-family: var(--display-font); font-weight: 400; font-size: 30px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .page-h .left h1 em { color: var(--accent); font-style: italic; }
+[data-product] .page-h .left .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .page-h .left .sub { margin-top: 6px; font-size: 13.5px; color: var(--ink-3); line-height: 1.5; }
+[data-product] .page-h .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+[data-product] .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .kpi-row .kpi { padding: 14px 18px; border-right: 1px solid var(--line); }
+[data-product] .kpi-row .kpi:last-child { border-right: 0; }
+[data-product] .kpi-row .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 4px; }
+[data-product] .kpi-row .v { font-family: var(--display-font); font-size: 24px; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; }
+[data-product] .kpi-row .v.ok { color: var(--ok); }
+[data-product] .kpi-row .v.warn { color: var(--warn); }
+[data-product] .kpi-row .v.danger { color: var(--danger); }
+[data-product] .kpi-row .v.accent { color: var(--accent); }
+[data-product] .kpi-row .ctx { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 4px; }
+
+/* ============================================================
+   Services grid (hero)
+   ============================================================ */
+[data-product] .svc-grid {
+  padding: 24px 28px;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  background: var(--canvas);
+}
+[data-product] .svc-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 16px 16px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  position: relative;
+}
+[data-product] .svc-card.degraded { background: color-mix(in oklab, var(--warn) 5%, var(--panel)); border-color: color-mix(in oklab, var(--warn) 30%, var(--line)); }
+[data-product] .svc-card.down { background: color-mix(in oklab, var(--danger) 6%, var(--panel)); border-color: color-mix(in oklab, var(--danger) 40%, var(--line)); border-left: 4px solid var(--danger); }
+[data-product] .svc-card .h { display: flex; align-items: baseline; gap: 8px; }
+[data-product] .svc-card .h .nm { font-family: var(--sans-font); font-size: 14px; font-weight: 500; color: var(--ink); }
+[data-product] .svc-card .h .nm .sub { display: block; font-family: var(--mono-font); font-size: 10px; font-weight: 400; color: var(--ink-4); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 1px; }
+[data-product] .svc-card .h .st {
+  margin-left: auto; font-family: var(--mono-font); font-size: 10px;
+  padding: 2px 7px; border-radius: 4px; letter-spacing: 0.10em; text-transform: uppercase;
+}
+[data-product] .svc-card .h .st.ok { background: color-mix(in oklab, var(--ok) 14%, transparent); color: var(--ok); }
+[data-product] .svc-card .h .st.warn { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); }
+[data-product] .svc-card .h .st.down { background: var(--danger); color: white; }
+
+[data-product] .svc-card .metric { display: flex; align-items: baseline; gap: 12px; }
+[data-product] .svc-card .metric .big {
+  font-family: var(--display-font); font-size: 26px; color: var(--ink);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+[data-product] .svc-card .metric .big.warn { color: var(--warn); }
+[data-product] .svc-card .metric .big.danger { color: var(--danger); }
+[data-product] .svc-card .metric .unit { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .svc-card .metric .ctx { margin-left: auto; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); text-align: right; }
+
+[data-product] .spark {
+  height: 36px;
+  display: flex; align-items: flex-end; gap: 2px;
+  padding: 2px 0;
+}
+[data-product] .spark .bar { flex: 1; background: var(--accent-soft); border-radius: 1px; min-height: 2px; }
+[data-product] .spark .bar.deep { background: var(--accent); }
+[data-product] .spark .bar.warn { background: color-mix(in oklab, var(--warn) 60%, var(--accent-soft)); }
+[data-product] .spark .bar.danger { background: var(--danger); }
+
+[data-product] .svc-card .foot {
+  font-family: var(--mono-font); font-size: 10px;
+  color: var(--ink-4); letter-spacing: 0.08em;
+  display: flex; justify-content: space-between;
+  border-top: 1px dashed var(--line-soft); padding-top: 6px;
+}
+
+/* ============================================================
+   Job queue
+   ============================================================ */
+[data-product] .q-shell { padding: 0; background: var(--canvas); }
+[data-product] .q-tabs {
+  display: flex; gap: 0; padding: 0 24px;
+  background: var(--canvas); border-bottom: 1px solid var(--line);
+}
+[data-product] .q-tabs .tab {
+  padding: 12px 16px;
+  font-family: var(--mono-font); font-size: 10.5px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-3); cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  display: flex; align-items: center; gap: 8px;
+}
+[data-product] .q-tabs .tab.on { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+[data-product] .q-tabs .tab .ct { font-size: 10.5px; padding: 1px 7px; background: var(--panel-2); border-radius: 999px; color: var(--ink-3); }
+[data-product] .q-tabs .tab.on .ct { background: var(--ink); color: var(--inverted-fg); }
+[data-product] .q-tabs .tab .ct.warn { background: color-mix(in oklab, var(--warn) 18%, var(--panel-2)); color: var(--warn); }
+[data-product] .q-tabs .tab .ct.danger { background: color-mix(in oklab, var(--danger) 20%, var(--panel-2)); color: var(--danger); }
+[data-product] .q-tabs .spacer { flex: 1; }
+
+[data-product] .q-table { background: var(--panel); }
+[data-product] .q-table .head, [data-product] .q-table .row {
+  display: grid;
+  grid-template-columns: 24px 140px 1.4fr 1fr 90px 80px 100px 30px;
+  gap: 12px; padding: 10px 24px; align-items: baseline;
+}
+[data-product] .q-table .head { background: var(--panel-2); border-bottom: 1px solid var(--line); }
+[data-product] .q-table .head .col { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .q-table .row { border-bottom: 1px solid var(--line-soft); font-size: 12.5px; cursor: pointer; }
+[data-product] .q-table .row:hover { background: var(--panel-2); }
+[data-product] .q-table .row.fail { background: color-mix(in oklab, var(--danger) 4%, var(--panel)); }
+[data-product] .q-table .row.fail:hover { background: color-mix(in oklab, var(--danger) 8%, var(--panel)); }
+[data-product] .q-table .row.retry { background: color-mix(in oklab, var(--warn) 4%, var(--panel)); }
+[data-product] .q-table .row.queued { background: var(--panel-2); opacity: 0.85; }
+
+[data-product] .q-table .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-5); justify-self: center; margin-top: 4px; }
+[data-product] .q-table .dot.ok { background: var(--ok); }
+[data-product] .q-table .dot.fail { background: var(--danger); }
+[data-product] .q-table .dot.retry { background: var(--warn); }
+[data-product] .q-table .dot.queued { background: var(--ink-5); border: 1.5px solid var(--ink-4); background: var(--panel); }
+[data-product] .q-table .dot.running { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent); }
+
+[data-product] .q-table .ts { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .q-table .nm { font-family: var(--mono-font); font-size: 12px; color: var(--ink); font-weight: 500; }
+[data-product] .q-table .nm .id { display: block; font-family: var(--mono-font); font-size: 10px; color: var(--ink-4); font-weight: 400; margin-top: 1px; }
+[data-product] .q-table .target {
+  font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-2);
+  display: flex; flex-direction: column; gap: 2px;
+}
+[data-product] .q-table .target .org { font-family: var(--sans-font); font-size: 12.5px; color: var(--ink); font-weight: 500; }
+[data-product] .q-table .target .org.platform { color: var(--accent); }
+[data-product] .q-table .dur { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); text-align: right; }
+[data-product] .q-table .dur.slow { color: var(--warn); }
+[data-product] .q-table .att { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .q-table .att.warn { color: var(--warn); }
+[data-product] .q-table .out {
+  font-family: var(--mono-font); font-size: 10.5px;
+  padding: 2px 7px; border-radius: 3px; letter-spacing: 0.08em;
+  text-transform: uppercase; display: inline-block;
+}
+[data-product] .q-table .out.ok { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); }
+[data-product] .q-table .out.fail { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); }
+[data-product] .q-table .out.retry { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); }
+[data-product] .q-table .out.running { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); }
+[data-product] .q-table .out.queued { background: var(--panel-2); color: var(--ink-3); border: 1px dashed var(--ink-5); }
+[data-product] .q-table .ix { color: var(--ink-4); font-size: 14px; text-align: center; }
+
+/* ============================================================
+   Channel-sync errors panel
+   ============================================================ */
+[data-product] .sync-shell { padding: 24px 28px; background: var(--canvas); }
+[data-product] .sync-hd { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; }
+[data-product] .sync-hd h2 { margin: 0; font-family: var(--display-font); font-weight: 400; font-size: 26px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .sync-hd em { color: var(--accent); font-style: italic; }
+[data-product] .sync-hd .meta { margin-left: auto; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+
+[data-product] .ch-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 18px;
+}
+[data-product] .ch-card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+[data-product] .ch-card.warn { background: color-mix(in oklab, var(--warn) 5%, var(--panel)); border-color: color-mix(in oklab, var(--warn) 30%, var(--line)); }
+[data-product] .ch-card.danger { background: color-mix(in oklab, var(--danger) 5%, var(--panel)); border-color: color-mix(in oklab, var(--danger) 40%, var(--line)); border-left: 3px solid var(--danger); }
+[data-product] .ch-card .h { display: flex; align-items: baseline; gap: 8px; }
+[data-product] .ch-card .h .nm { font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; color: var(--ink); }
+[data-product] .ch-card .h .ct { margin-left: auto; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+[data-product] .ch-card .row { display: grid; grid-template-columns: 1fr auto; font-family: var(--mono-font); font-size: 11.5px; padding: 3px 0; }
+[data-product] .ch-card .row .l { color: var(--ink-3); }
+[data-product] .ch-card .row .v { color: var(--ink); }
+[data-product] .ch-card .row .v.warn { color: var(--warn); }
+[data-product] .ch-card .row .v.danger { color: var(--danger); }
+[data-product] .ch-card .row .v.ok { color: var(--ok); }
+
+[data-product] .sync-table { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+[data-product] .sync-table .head, [data-product] .sync-table .row {
+  display: grid;
+  grid-template-columns: 110px 1.4fr 1fr 1fr 110px 80px;
+  gap: 12px; padding: 11px 18px; align-items: baseline;
+}
+[data-product] .sync-table .head { background: var(--panel-2); border-bottom: 1px solid var(--line); }
+[data-product] .sync-table .head .col { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .sync-table .row { border-bottom: 1px solid var(--line-soft); font-size: 12.5px; cursor: pointer; }
+[data-product] .sync-table .row:last-child { border-bottom: 0; }
+[data-product] .sync-table .row:hover { background: var(--panel-2); }
+[data-product] .sync-table .ts { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .sync-table .org { font-family: var(--sans-font); font-size: 12.5px; color: var(--ink); font-weight: 500; }
+[data-product] .sync-table .org .url { display: block; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 1px; font-weight: 400; }
+[data-product] .sync-table .ch {
+  font-family: var(--mono-font); font-size: 11px;
+  padding: 2px 7px; border-radius: 3px;
+  background: var(--panel-deep); color: var(--ink-2);
+  display: inline-block; letter-spacing: 0.04em;
+}
+[data-product] .sync-table .err {
+  font-family: var(--mono-font); font-size: 11px; color: var(--danger);
+  display: flex; flex-direction: column; gap: 2px;
+}
+[data-product] .sync-table .err .body { color: var(--ink-2); font-family: var(--sans-font); font-size: 12px; font-style: italic; }
+[data-product] .sync-table .att { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .sync-table .att.danger { color: var(--danger); }
+
+/* alerts strip */
+[data-product] .alerts-strip {
+  padding: 12px 22px;
+  background: color-mix(in oklab, var(--warn) 5%, var(--canvas));
+  border-bottom: 1px solid var(--line);
+  display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap;
+  font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-2);
+}
+[data-product] .alerts-strip strong { color: var(--ink); font-weight: 500; }
+[data-product] .alerts-strip .pill {
+  padding: 2px 7px; border-radius: 4px;
+  font-family: var(--mono-font); font-size: 10.5px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+[data-product] .alerts-strip .pill.warn { background: color-mix(in oklab, var(--warn) 16%, transparent); color: var(--warn); }
+[data-product] .alerts-strip .pill.danger { background: color-mix(in oklab, var(--danger) 16%, transparent); color: var(--danger); }
+[data-product] .alerts-strip .pill.ok { background: color-mix(in oklab, var(--ok) 16%, transparent); color: var(--ok); }
+
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Phase 2.5</div>
+    <h1>Platform super-admin</h1>
+    <div class="back"><a href="hub.html">← back to hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">08 · System health</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#services"><span class="ix">01</span>Services dashboard</a></li>
+        <li><a href="#queue"><span class="ix">02</span>Job queue · agent runs</a></li>
+        <li><a href="#sync"><span class="ix">03</span>Channel-sync errors</a></li>
+        <li><a href="#schema"><span class="ix">04</span>Schema · alerts</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Adjacent</div>
+      <ul>
+        <li><a href="07-audit-log.html"><span class="ix">07</span>Audit log</a></li>
+        <li><a href="09-ai-overview.html"><span class="ix">09</span>AI agent overview</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <!-- COVER -->
+    <section id="cover" class="cab-cover" data-screen-label="Cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Phase 2.5 · cabinet 08 of 09</span></div>
+      <h1>System health · <em>the 09:00 dashboard</em>.</h1>
+      <p>What the tech lead opens with the first coffee. Eight services across the top — green when fine, warm-orange when degraded, red-edged when down. Below: the unified job queue (every agent and cron in one timeline), then the channel-sync error panel because that's the failure mode that bites customers fastest. Designed for scanning, not browsing.</p>
+    </section>
+
+    <!-- 01 SERVICES -->
+    <section id="services" class="ds-section" data-screen-label="01 Services dashboard">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Services · live status grid</h2>
+          <p>One card per service with the metric that matters: API = p95 latency, DB = connection pool headroom, Queue = depth, Channel-sync = error rate, Agents = success rate, Stripe webhook = lag, Postmark = bounce rate, Supabase auth = sign-in success. Sparklines are last 60 minutes. Cards turn warm when SLO at risk, red-edged on breach.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a><a>Flags</a><a>Support</a><a>Audit</a>
+                <a class="on">Health</a>
+                <a>AI</a>
+              </div>
+              <div class="right">
+                <span class="live"><span class="pulse"></span>live</span>
+                <span>v 4.2.18</span>
+                <span class="me"><span class="avatar">NR</span>Nikita R.</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / health</div>
+                  <h1>System health <em>· 8 services · 1 degraded</em></h1>
+                  <div class="sub">All-time uptime 99.94% · stripe webhook lag warning · last incident 2h 24m ago (channel_sync_v2 kill)</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Status page ↗</button>
+                  <button class="btn">Pagerduty ↗</button>
+                  <button class="btn">Incident log</button>
+                </div>
+              </div>
+
+              <div class="alerts-strip">
+                <span class="pill warn">warn</span>
+                <span><strong>Stripe webhook lag</strong> · 18s avg over last 5m · target ≤ 10s</span>
+                <span style="margin-left:auto;">Acknowledged by Nikita R · 09:42 · keeping watch</span>
+              </div>
+
+              <div class="kpi-row">
+                <div class="kpi"><div class="l">uptime 30d</div><div class="v ok">99.94%</div><div class="ctx">target 99.9%</div></div>
+                <div class="kpi"><div class="l">api p95 · 5m</div><div class="v ok">142ms</div><div class="ctx">budget 250ms</div></div>
+                <div class="kpi"><div class="l">queue depth</div><div class="v warn">847</div><div class="ctx">drains 4 min</div></div>
+                <div class="kpi"><div class="l">errors · 24h</div><div class="v">62</div><div class="ctx">17 unique · 0 paging</div></div>
+                <div class="kpi"><div class="l">db headroom</div><div class="v ok">38 / 200</div><div class="ctx">conn pool</div></div>
+              </div>
+
+              <div class="svc-grid">
+
+                <div class="svc-card">
+                  <div class="h"><div class="nm">API gateway<span class="sub">app.arconique.com · vercel</span></div><span class="st ok">healthy</span></div>
+                  <div class="metric"><span class="big">142</span><span class="unit">ms · p95</span><span class="ctx">5m window<br>16,420 req</span></div>
+                  <div class="spark">
+                    <span class="bar" style="height: 22%;"></span><span class="bar" style="height: 26%;"></span><span class="bar" style="height: 24%;"></span><span class="bar" style="height: 30%;"></span><span class="bar deep" style="height: 38%;"></span><span class="bar" style="height: 28%;"></span><span class="bar" style="height: 32%;"></span><span class="bar" style="height: 26%;"></span><span class="bar" style="height: 24%;"></span><span class="bar deep" style="height: 36%;"></span><span class="bar" style="height: 30%;"></span><span class="bar" style="height: 28%;"></span><span class="bar" style="height: 32%;"></span><span class="bar deep" style="height: 44%;"></span><span class="bar" style="height: 32%;"></span><span class="bar" style="height: 28%;"></span><span class="bar" style="height: 36%;"></span><span class="bar" style="height: 30%;"></span><span class="bar" style="height: 38%;"></span><span class="bar" style="height: 42%;"></span>
+                  </div>
+                  <div class="foot"><span>p50 84ms</span><span>p99 312ms</span></div>
+                </div>
+
+                <div class="svc-card">
+                  <div class="h"><div class="nm">Postgres<span class="sub">supabase · primary</span></div><span class="st ok">healthy</span></div>
+                  <div class="metric"><span class="big">38</span><span class="unit">/ 200 conn</span><span class="ctx">cpu 22%<br>repl lag 8ms</span></div>
+                  <div class="spark">
+                    <span class="bar" style="height: 22%;"></span><span class="bar" style="height: 24%;"></span><span class="bar" style="height: 22%;"></span><span class="bar" style="height: 26%;"></span><span class="bar" style="height: 30%;"></span><span class="bar" style="height: 26%;"></span><span class="bar" style="height: 28%;"></span><span class="bar" style="height: 30%;"></span><span class="bar" style="height: 24%;"></span><span class="bar" style="height: 26%;"></span><span class="bar" style="height: 28%;"></span><span class="bar" style="height: 30%;"></span><span class="bar" style="height: 32%;"></span><span class="bar" style="height: 28%;"></span><span class="bar" style="height: 24%;"></span><span class="bar" style="height: 26%;"></span><span class="bar" style="height: 30%;"></span><span class="bar" style="height: 28%;"></span><span class="bar" style="height: 32%;"></span><span class="bar deep" style="height: 38%;"></span>
+                  </div>
+                  <div class="foot"><span>read 8.4k qps</span><span>write 1.2k qps</span></div>
+                </div>
+
+                <div class="svc-card">
+                  <div class="h"><div class="nm">Job queue<span class="sub">pg-boss · workers ×6</span></div><span class="st ok">healthy</span></div>
+                  <div class="metric"><span class="big">847</span><span class="unit">queued</span><span class="ctx">drains in 4m<br>~210 / min</span></div>
+                  <div class="spark">
+                    <span class="bar" style="height: 18%;"></span><span class="bar" style="height: 20%;"></span><span class="bar" style="height: 24%;"></span><span class="bar" style="height: 22%;"></span><span class="bar" style="height: 28%;"></span><span class="bar deep" style="height: 38%;"></span><span class="bar deep" style="height: 42%;"></span><span class="bar deep" style="height: 48%;"></span><span class="bar deep" style="height: 52%;"></span><span class="bar deep" style="height: 56%;"></span><span class="bar deep" style="height: 62%;"></span><span class="bar deep" style="height: 68%;"></span><span class="bar deep" style="height: 64%;"></span><span class="bar deep" style="height: 58%;"></span><span class="bar deep" style="height: 52%;"></span><span class="bar deep" style="height: 46%;"></span><span class="bar deep" style="height: 42%;"></span><span class="bar deep" style="height: 38%;"></span><span class="bar deep" style="height: 32%;"></span><span class="bar" style="height: 28%;"></span>
+                  </div>
+                  <div class="foot"><span>active 18</span><span>failed 24h: 9</span></div>
+                </div>
+
+                <div class="svc-card degraded">
+                  <div class="h"><div class="nm">Stripe webhook<span class="sub">stripe → internal</span></div><span class="st warn">degraded</span></div>
+                  <div class="metric"><span class="big warn">18</span><span class="unit">s · lag</span><span class="ctx">target ≤10s<br>2 replays queued</span></div>
+                  <div class="spark">
+                    <span class="bar" style="height: 14%;"></span><span class="bar" style="height: 16%;"></span><span class="bar" style="height: 14%;"></span><span class="bar" style="height: 18%;"></span><span class="bar" style="height: 16%;"></span><span class="bar" style="height: 20%;"></span><span class="bar" style="height: 22%;"></span><span class="bar warn" style="height: 38%;"></span><span class="bar warn" style="height: 44%;"></span><span class="bar warn" style="height: 52%;"></span><span class="bar warn" style="height: 58%;"></span><span class="bar warn" style="height: 56%;"></span><span class="bar warn" style="height: 62%;"></span><span class="bar warn" style="height: 64%;"></span><span class="bar warn" style="height: 60%;"></span><span class="bar warn" style="height: 56%;"></span><span class="bar warn" style="height: 60%;"></span><span class="bar warn" style="height: 64%;"></span><span class="bar warn" style="height: 70%;"></span><span class="bar warn" style="height: 76%;"></span>
+                  </div>
+                  <div class="foot"><span>last 200ms ack: 6m ago</span><span>ack rate 99.2%</span></div>
+                </div>
+
+                <div class="svc-card">
+                  <div class="h"><div class="nm">Channel sync<span class="sub">b.com · airbnb · vrbo · agoda</span></div><span class="st ok">healthy</span></div>
+                  <div class="metric"><span class="big">0.4%</span><span class="unit">err rate</span><span class="ctx">target ≤1%<br>see sec 03</span></div>
+                  <div class="spark">
+                    <span class="bar" style="height: 16%;"></span><span class="bar" style="height: 18%;"></span><span class="bar" style="height: 14%;"></span><span class="bar" style="height: 12%;"></span><span class="bar" style="height: 18%;"></span><span class="bar" style="height: 20%;"></span><span class="bar" style="height: 14%;"></span><span class="bar" style="height: 12%;"></span><span class="bar" style="height: 18%;"></span><span class="bar" style="height: 16%;"></span><span class="bar" style="height: 14%;"></span><span class="bar" style="height: 18%;"></span><span class="bar" style="height: 22%;"></span><span class="bar deep" style="height: 28%;"></span><span class="bar deep" style="height: 32%;"></span><span class="bar deep" style="height: 30%;"></span><span class="bar" style="height: 24%;"></span><span class="bar" style="height: 18%;"></span><span class="bar" style="height: 16%;"></span><span class="bar" style="height: 14%;"></span>
+                  </div>
+                  <div class="foot"><span>last sync 38s</span><span>backlog 12 cells</span></div>
+                </div>
+
+                <div class="svc-card">
+                  <div class="h"><div class="nm">AI agents<span class="sub">28 agent runners</span></div><span class="st ok">healthy</span></div>
+                  <div class="metric"><span class="big">98.4%</span><span class="unit">success</span><span class="ctx">3,412 runs 24h<br>see cabinet 09</span></div>
+                  <div class="spark">
+                    <span class="bar deep" style="height: 30%;"></span><span class="bar deep" style="height: 32%;"></span><span class="bar deep" style="height: 28%;"></span><span class="bar deep" style="height: 34%;"></span><span class="bar deep" style="height: 30%;"></span><span class="bar deep" style="height: 32%;"></span><span class="bar deep" style="height: 38%;"></span><span class="bar deep" style="height: 34%;"></span><span class="bar deep" style="height: 30%;"></span><span class="bar deep" style="height: 38%;"></span><span class="bar deep" style="height: 36%;"></span><span class="bar deep" style="height: 34%;"></span><span class="bar deep" style="height: 38%;"></span><span class="bar deep" style="height: 42%;"></span><span class="bar deep" style="height: 38%;"></span><span class="bar deep" style="height: 34%;"></span><span class="bar deep" style="height: 32%;"></span><span class="bar deep" style="height: 30%;"></span><span class="bar deep" style="height: 36%;"></span><span class="bar deep" style="height: 32%;"></span>
+                  </div>
+                  <div class="foot"><span>median 1.4s</span><span>spend 24h $84</span></div>
+                </div>
+
+                <div class="svc-card">
+                  <div class="h"><div class="nm">Postmark<span class="sub">email · inbound + outbound</span></div><span class="st ok">healthy</span></div>
+                  <div class="metric"><span class="big">0.18%</span><span class="unit">bounce</span><span class="ctx">9,140 sent 24h<br>14 inbound</span></div>
+                  <div class="spark">
+                    <span class="bar" style="height: 14%;"></span><span class="bar" style="height: 18%;"></span><span class="bar" style="height: 16%;"></span><span class="bar" style="height: 14%;"></span><span class="bar" style="height: 20%;"></span><span class="bar" style="height: 22%;"></span><span class="bar" style="height: 26%;"></span><span class="bar" style="height: 24%;"></span><span class="bar" style="height: 20%;"></span><span class="bar" style="height: 28%;"></span><span class="bar deep" style="height: 38%;"></span><span class="bar deep" style="height: 42%;"></span><span class="bar deep" style="height: 36%;"></span><span class="bar deep" style="height: 30%;"></span><span class="bar" style="height: 22%;"></span><span class="bar" style="height: 18%;"></span><span class="bar" style="height: 16%;"></span><span class="bar" style="height: 14%;"></span><span class="bar" style="height: 18%;"></span><span class="bar" style="height: 22%;"></span>
+                  </div>
+                  <div class="foot"><span>sent · 9.1k</span><span>delivered · 9.0k</span></div>
+                </div>
+
+                <div class="svc-card">
+                  <div class="h"><div class="nm">Supabase auth<span class="sub">sign-in · 2fa · mfa</span></div><span class="st ok">healthy</span></div>
+                  <div class="metric"><span class="big">99.7%</span><span class="unit">sign-in ok</span><span class="ctx">412 sign-ins<br>2 lockouts</span></div>
+                  <div class="spark">
+                    <span class="bar" style="height: 18%;"></span><span class="bar" style="height: 22%;"></span><span class="bar" style="height: 26%;"></span><span class="bar" style="height: 28%;"></span><span class="bar deep" style="height: 38%;"></span><span class="bar deep" style="height: 42%;"></span><span class="bar deep" style="height: 46%;"></span><span class="bar deep" style="height: 52%;"></span><span class="bar deep" style="height: 56%;"></span><span class="bar deep" style="height: 60%;"></span><span class="bar deep" style="height: 54%;"></span><span class="bar deep" style="height: 48%;"></span><span class="bar deep" style="height: 42%;"></span><span class="bar deep" style="height: 38%;"></span><span class="bar" style="height: 34%;"></span><span class="bar" style="height: 30%;"></span><span class="bar" style="height: 28%;"></span><span class="bar" style="height: 26%;"></span><span class="bar" style="height: 24%;"></span><span class="bar" style="height: 28%;"></span>
+                  </div>
+                  <div class="foot"><span>median 240ms</span><span>2FA pass 98.9%</span></div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>cards: healthy · degraded (warn-tint) · down (danger left-edge)</span>
+        <span>·</span>
+        <span>alerts strip persists until tech lead resolves</span>
+      </div>
+    </section>
+
+    <!-- 02 JOB QUEUE -->
+    <section id="queue" class="ds-section" data-screen-label="02 Job queue">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Queue</span></div>
+          <h2>Job queue · agent runs + crons + triggers</h2>
+          <p>Everything that hits the worker pool, in one timeline. Failed rows pop with danger tint, retries with warn. Tabs switch the scope — <em>all</em>, just <em>failed</em>, just <em>running now</em>, just one specific runner. Click any row → run detail with logs, args, output, retry button.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a><a>Flags</a><a>Support</a><a>Audit</a>
+                <a class="on">Health</a>
+                <a>AI</a>
+              </div>
+              <div class="right"><span class="live"><span class="pulse"></span>live</span><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">health / job queue</div>
+                  <h1>Job queue <em>· 4,261 runs · last 24h</em></h1>
+                  <div class="sub">847 queued · 18 running · 4,127 completed · 9 failed (5 retried, 4 dead-letter)</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Pause workers</button>
+                  <button class="btn">Replay dead-letter (4)</button>
+                  <button class="btn btn-primary">+ Dispatch job</button>
+                </div>
+              </div>
+
+              <div class="q-tabs">
+                <div class="tab on">all <span class="ct">4,261</span></div>
+                <div class="tab">running <span class="ct">18</span></div>
+                <div class="tab">failed <span class="ct danger">9</span></div>
+                <div class="tab">retry <span class="ct warn">5</span></div>
+                <div class="tab">queued <span class="ct">847</span></div>
+                <div class="tab">dead-letter <span class="ct danger">4</span></div>
+                <div class="spacer"></div>
+                <div class="tab">runner: all ▾</div>
+                <div class="tab">org: all ▾</div>
+              </div>
+
+              <div class="q-table">
+                <div class="head">
+                  <div></div>
+                  <div class="col">runner · run id</div>
+                  <div class="col">target</div>
+                  <div class="col">organisation</div>
+                  <div class="col" style="text-align:right;">duration</div>
+                  <div class="col">attempt</div>
+                  <div class="col">outcome</div>
+                  <div></div>
+                </div>
+
+                <div class="row fail">
+                  <span class="dot fail"></span>
+                  <span class="nm">channel-sync<span class="id">jr_8x21L4p</span></span>
+                  <div class="target"><span class="org">PT Senayan Estate</span>booking.com · tirta-canggu-04</div>
+                  <div class="target"><span class="org">senayan · ID</span>Atelier</div>
+                  <span class="dur slow">38.4s</span>
+                  <span class="att warn">3 / 3 · DL</span>
+                  <span class="out fail">failed</span>
+                  <span class="ix">›</span>
+                </div>
+
+                <div class="row retry">
+                  <span class="dot retry"></span>
+                  <span class="nm">dunning-runner<span class="id">jr_8x21L4o</span></span>
+                  <div class="target"><span class="org">Bali Boutique Stays</span>INV-2025-Q2-BBS · S3 escalate</div>
+                  <div class="target"><span class="org">bbs · ID</span>Studio</div>
+                  <span class="dur">12.8s</span>
+                  <span class="att warn">2 / 3</span>
+                  <span class="out retry">retry · 4m</span>
+                  <span class="ix">›</span>
+                </div>
+
+                <div class="row">
+                  <span class="dot running"></span>
+                  <span class="nm">statement-preparer<span class="id">jr_8x21L4n</span></span>
+                  <div class="target"><span class="org">Whitmore Villas Group</span>14 owners · may 2025</div>
+                  <div class="target"><span class="org">whitmore · SG</span>Atelier</div>
+                  <span class="dur">running 18s</span>
+                  <span class="att">1 / 3</span>
+                  <span class="out running">running</span>
+                  <span class="ix">›</span>
+                </div>
+
+                <div class="row">
+                  <span class="dot ok"></span>
+                  <span class="nm">refund-audit-sealer<span class="id">jr_8x21L4m</span></span>
+                  <div class="target"><span class="org platform">platform</span>verify · 14 refunds · 24h</div>
+                  <div class="target"><span class="org platform">all orgs</span>—</div>
+                  <span class="dur">3.4s</span>
+                  <span class="att">1 / 3</span>
+                  <span class="out ok">ok · 14/14 verified</span>
+                  <span class="ix">›</span>
+                </div>
+
+                <div class="row">
+                  <span class="dot ok"></span>
+                  <span class="nm">dynamic-pricing<span class="id">jr_8x21L4l</span></span>
+                  <div class="target"><span class="org">Whitmore Villas Group</span>22 villas · daily</div>
+                  <div class="target"><span class="org">whitmore · SG</span>Atelier</div>
+                  <span class="dur">8.2s</span>
+                  <span class="att">1 / 3</span>
+                  <span class="out ok">ok · +$340 uplift</span>
+                  <span class="ix">›</span>
+                </div>
+
+                <div class="row">
+                  <span class="dot ok"></span>
+                  <span class="nm">stripe-webhook-replayer<span class="id">jr_8x21L4k</span></span>
+                  <div class="target"><span class="org platform">platform</span>replay 2 missed webhooks</div>
+                  <div class="target"><span class="org platform">stripe queue</span>—</div>
+                  <span class="dur">1.8s</span>
+                  <span class="att">1 / 3</span>
+                  <span class="out ok">ok · 2 replayed</span>
+                  <span class="ix">›</span>
+                </div>
+
+                <div class="row fail">
+                  <span class="dot fail"></span>
+                  <span class="nm">channel-sync<span class="id">jr_8x21L4j</span></span>
+                  <div class="target"><span class="org">Ubud Stay Co.</span>airbnb · sukha-ubud-02</div>
+                  <div class="target"><span class="org">ubudstay · ID</span>Studio</div>
+                  <span class="dur slow">42.1s</span>
+                  <span class="att warn">3 / 3 · DL</span>
+                  <span class="out fail">failed</span>
+                  <span class="ix">›</span>
+                </div>
+
+                <div class="row">
+                  <span class="dot ok"></span>
+                  <span class="nm">draft-replier<span class="id">jr_8x21L4i</span></span>
+                  <div class="target"><span class="org">Bali Boutique Stays</span>ticket #4218 · billing.howto</div>
+                  <div class="target"><span class="org">bbs · ID</span>Studio</div>
+                  <span class="dur">2.6s</span>
+                  <span class="att">1 / 3</span>
+                  <span class="out ok">ok · 92% conf</span>
+                  <span class="ix">›</span>
+                </div>
+
+                <div class="row queued">
+                  <span class="dot queued"></span>
+                  <span class="nm">dunning-runner<span class="id">jr_8x21L4h</span></span>
+                  <div class="target"><span class="org platform">platform sweep</span>14 failed invoices</div>
+                  <div class="target"><span class="org platform">—</span>scheduled 11:14</div>
+                  <span class="dur">—</span>
+                  <span class="att">0 / 3</span>
+                  <span class="out queued">queued · 2h 14m</span>
+                  <span class="ix">›</span>
+                </div>
+
+                <div class="row queued">
+                  <span class="dot queued"></span>
+                  <span class="nm">channel-sync<span class="id">jr_8x21L4g</span></span>
+                  <div class="target"><span class="org">Tirta Lestari Villas</span>vrbo · full refresh</div>
+                  <div class="target"><span class="org">tirta · ID</span>Studio</div>
+                  <span class="dur">—</span>
+                  <span class="att">0 / 3</span>
+                  <span class="out queued">queued · ~12s</span>
+                  <span class="ix">›</span>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>tabs filter scope · row click → run detail with logs/args/output</span>
+        <span>·</span>
+        <span>DL = dead-letter after max attempts · replay batch available top-right</span>
+      </div>
+    </section>
+
+    <!-- 03 CHANNEL SYNC -->
+    <section id="sync" class="ds-section" data-screen-label="03 Channel sync errors">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Failure mode</span></div>
+          <h2>Channel-sync errors · the failure that hurts most</h2>
+          <p>Channel-sync earns its own panel because when it breaks, customers double-book within minutes. Per-channel summary at the top (B.com / Airbnb / Vrbo / Agoda); below that, the recent error feed with raw API error + which property + retry status. Tech-lead's first instinct here is to scan for repeated errors against one channel → vendor incident.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a><a>Flags</a><a>Support</a><a>Audit</a>
+                <a class="on">Health</a>
+                <a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">health / channel-sync</div>
+                  <h1>Channel-sync errors <em>· 0.4% overall · 24h</em></h1>
+                  <div class="sub">2 hot orgs · 1 vendor incident suspected · last full-recovery sweep 38s ago</div>
+                </div>
+                <div class="right">
+                  <button class="btn">B.com status ↗</button>
+                  <button class="btn">Airbnb status ↗</button>
+                  <button class="btn">Force resync · all</button>
+                </div>
+              </div>
+
+              <div class="sync-shell">
+
+                <div class="ch-grid">
+                  <div class="ch-card">
+                    <div class="h"><div class="nm">Booking.com</div><span class="ct">142 orgs</span></div>
+                    <div class="row"><span class="l">err rate · 24h</span><span class="v ok">0.3%</span></div>
+                    <div class="row"><span class="l">last sync</span><span class="v">14s ago</span></div>
+                    <div class="row"><span class="l">backlog</span><span class="v">4 cells</span></div>
+                  </div>
+                  <div class="ch-card warn">
+                    <div class="h"><div class="nm">Airbnb</div><span class="ct">128 orgs</span></div>
+                    <div class="row"><span class="l">err rate · 24h</span><span class="v warn">2.1%</span></div>
+                    <div class="row"><span class="l">last sync</span><span class="v warn">2m 14s ago</span></div>
+                    <div class="row"><span class="l">backlog</span><span class="v warn">68 cells</span></div>
+                  </div>
+                  <div class="ch-card">
+                    <div class="h"><div class="nm">Vrbo</div><span class="ct">38 orgs</span></div>
+                    <div class="row"><span class="l">err rate · 24h</span><span class="v ok">0.1%</span></div>
+                    <div class="row"><span class="l">last sync</span><span class="v">22s ago</span></div>
+                    <div class="row"><span class="l">backlog</span><span class="v">2 cells</span></div>
+                  </div>
+                  <div class="ch-card">
+                    <div class="h"><div class="nm">Agoda</div><span class="ct">19 orgs</span></div>
+                    <div class="row"><span class="l">err rate · 24h</span><span class="v ok">0.5%</span></div>
+                    <div class="row"><span class="l">last sync</span><span class="v">48s ago</span></div>
+                    <div class="row"><span class="l">backlog</span><span class="v">1 cell</span></div>
+                  </div>
+                </div>
+
+                <div class="sync-table">
+                  <div class="head">
+                    <div class="col">when</div>
+                    <div class="col">organisation · property</div>
+                    <div class="col">channel</div>
+                    <div class="col">error</div>
+                    <div class="col">retry</div>
+                    <div class="col">status</div>
+                  </div>
+
+                  <div class="row">
+                    <div class="ts">14:36 · 2m</div>
+                    <div><div class="org">Ubud Stay Co.<span class="url">sukha-ubud-02</span></div></div>
+                    <div><span class="ch">airbnb</span></div>
+                    <div class="err"><span>403 · rate_limited</span><span class="body">Airbnb rate limit hit at 100 req / min · vendor side</span></div>
+                    <div class="att danger">3 / 3 · DL</div>
+                    <div><span class="badge" style="background: color-mix(in oklab, var(--danger) 14%, var(--panel)); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 40%, transparent);"><span class="dot"></span>dead-letter</span></div>
+                  </div>
+
+                  <div class="row">
+                    <div class="ts">14:32 · 6m</div>
+                    <div><div class="org">Tirta Lestari Villas<span class="url">tirta-uluwatu-04</span></div></div>
+                    <div><span class="ch">airbnb</span></div>
+                    <div class="err"><span>502 · upstream_timeout</span><span class="body">Airbnb gateway timeout, no response in 30s</span></div>
+                    <div class="att warn">2 / 3</div>
+                    <div><span class="badge" style="background: color-mix(in oklab, var(--warn) 14%, var(--panel)); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent);"><span class="dot"></span>retry · 8s</span></div>
+                  </div>
+
+                  <div class="row">
+                    <div class="ts">14:28 · 10m</div>
+                    <div><div class="org">Bali Boutique Stays<span class="url">bbs-canggu-02</span></div></div>
+                    <div><span class="ch">airbnb</span></div>
+                    <div class="err"><span>502 · upstream_timeout</span><span class="body">Same as above · same minute window</span></div>
+                    <div class="att">3 / 3</div>
+                    <div><span class="badge" style="background: color-mix(in oklab, var(--ok) 14%, var(--panel)); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent);"><span class="dot"></span>recovered</span></div>
+                  </div>
+
+                  <div class="row">
+                    <div class="ts">14:22 · 16m</div>
+                    <div><div class="org">PT Senayan Estate<span class="url">tirta-canggu-04</span></div></div>
+                    <div><span class="ch">booking.com</span></div>
+                    <div class="err"><span>409 · conflict</span><span class="body">Cell mutated externally during our write · CMS race</span></div>
+                    <div class="att">2 / 3</div>
+                    <div><span class="badge" style="background: color-mix(in oklab, var(--ok) 14%, var(--panel)); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent);"><span class="dot"></span>recovered</span></div>
+                  </div>
+
+                  <div class="row">
+                    <div class="ts">14:18 · 20m</div>
+                    <div><div class="org">Sukha Residences<span class="url">sukha-uluwatu-01</span></div></div>
+                    <div><span class="ch">airbnb</span></div>
+                    <div class="err"><span>403 · rate_limited</span><span class="body">Airbnb rate limit again — same vendor incident suspected</span></div>
+                    <div class="att">3 / 3</div>
+                    <div><span class="badge" style="background: color-mix(in oklab, var(--ok) 14%, var(--panel)); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent);"><span class="dot"></span>recovered</span></div>
+                  </div>
+
+                  <div class="row">
+                    <div class="ts">13:58 · 40m</div>
+                    <div><div class="org">Whitmore Villas Group<span class="url">whitmore-canggu-09</span></div></div>
+                    <div><span class="ch">agoda</span></div>
+                    <div class="err"><span>500 · internal_error</span><span class="body">Agoda returned generic 500 · no body</span></div>
+                    <div class="att">1 / 3</div>
+                    <div><span class="badge" style="background: color-mix(in oklab, var(--ok) 14%, var(--panel)); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent);"><span class="dot"></span>recovered</span></div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>4 same-minute Airbnb 502s + 2 Airbnb 403s → vendor incident hypothesis</span>
+        <span>·</span>
+        <span>DL rows surface in cabinet 06 as auto-opened P1 tickets</span>
+      </div>
+    </section>
+
+    <!-- 04 SCHEMA -->
+    <section id="schema" class="ds-section" data-screen-label="04 Schema">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Spec</span></div>
+          <h2>Schema · alerts · sources</h2>
+          <p>Health is read-only — it's a view onto data the rest of the platform already writes. The alert routing layer is the one new thing: a small table of alert rules that watches the queue/sync/api metrics and pages the right channel. Pagerduty for P0; slack channel for P1+; nothing for P2 (just the strip).</p>
+        </div>
+      </div>
+
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Data sources · existing</h3>
+          <dl>
+            <div><dt>job_runs</dt><dd><code>pg-boss</code> queue history table · already exists. Adds <code>run_id · runner · args_jsonb · output_jsonb · attempt · status · started_at · finished_at</code>.</dd></div>
+            <div><dt>channel_sync_log</dt><dd>Per-cell sync attempts · already in main from Phase 2.4 channel cabinet.</dd></div>
+            <div><dt>http_request_log</dt><dd>Vercel + edge logs streamed to Postgres in 5m batches. API p95 / error rate read from this.</dd></div>
+            <div><dt>stripe_webhook_log</dt><dd>Every Stripe webhook ack timestamp. Lag = now - last_ack.</dd></div>
+            <div><dt>audit_log</dt><dd>Cabinet 07. Tech lead can pivot from a queue failure to the audit row.</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Tables · new for 2.5</h3>
+          <dl>
+            <div><dt>alert_rules</dt><dd><code>id · metric (e.g. queue.depth · sync.err_rate · webhook.lag) · op · threshold · window · severity · route (pagerduty / slack / strip)</code></dd></div>
+            <div><dt>alerts</dt><dd><code>rule_id · fired_at · ack_at · ack_by · resolved_at · payload_jsonb · related_runs[]</code></dd></div>
+            <div><dt>incidents</dt><dd><code>opened_at · closed_at · summary · severity · linked_alerts[] · postmortem_url</code> — optional, for breach &gt; 15m</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Alert routing</h3>
+          <dl>
+            <div><dt>P0 · pagerduty</dt><dd>API 5xx rate &gt; 1% · DB connection saturation · sync error rate &gt; 10% any channel</dd></div>
+            <div><dt>P1 · slack #ops</dt><dd>Webhook lag &gt; 30s · queue depth &gt; 5000 sustained 5m · single-channel err &gt; 5% · 3+ dead-letters in 1 hour</dd></div>
+            <div><dt>P2 · strip only</dt><dd>Webhook lag 10-30s · sync err 1-5% single channel · postmark bounce rate &gt; 1%</dd></div>
+            <div><dt>auto-ticket</dt><dd>Every dead-letter run opens a ticket in cabinet 06 (P1) tagged with run-id + org. Resolves when run replays clean.</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Dashboards · who watches what</h3>
+          <dl>
+            <div><dt>tech lead</dt><dd>This page · pinned in browser. Pagerduty on phone for P0. Slack #ops for P1.</dd></div>
+            <div><dt>sales / ops</dt><dd>Only sees the strip (P1+ active) on this page. Cabinet 06 surfaces auto-opened tickets.</dd></div>
+            <div><dt>customers</dt><dd>Public status page at <code>status.arconique.com</code> reads the same alert table · subset (no internals).</dd></div>
+            <div><dt>retention</dt><dd>Job runs · 90d hot · 2y cold. Channel-sync log · 30d. Alerts · 1y. Incidents · forever.</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<script>
+  (function () {
+    function isInternal(href) { if (!href) return false; if (/^(https?:|mailto:|tel:|#)/i.test(href)) return false; return true; }
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      if (a.target && a.target !== '' && a.target !== '_self') return;
+      var href = a.getAttribute('href');
+      if (!isInternal(href)) return;
+      var search = window.location.search;
+      if (!search) return;
+      if (href.indexOf('?') !== -1) return;
+      var hashIdx = href.indexOf('#');
+      var base = hashIdx === -1 ? href : href.slice(0, hashIdx);
+      var hash = hashIdx === -1 ? '' : href.slice(hashIdx);
+      a.setAttribute('href', base + search + hash);
+    }, true);
+  })();
+</script>
+
+</body>
+</html>

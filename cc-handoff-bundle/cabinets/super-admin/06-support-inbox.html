@@ -1,0 +1,1081 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase 2.5 · 06 · Support inbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="super-admin-tokens">
+[data-product="super-admin"] {
+  --paper: #F8F9FB; --canvas: #EEF1F5; --panel: #FFFFFF; --panel-2: #F2F4F7; --panel-deep: #E5E9EE;
+  --ink: #0B0F14; --ink-2: #1F2937; --ink-3: #4B5563; --ink-4: #6B7280; --ink-5: #9CA3AF;
+  --line: #D6DBE2; --line-soft: #E5E8ED; --line-strong: #B8C0CC;
+  --accent: #3F4F8F; --accent-soft: #B8C2DF; --accent-deep: #2A3868; --on-accent: #FFFFFF;
+  --inverted-bg: #0B0F14; --inverted-fg: #F8F9FB; --inverted-bg-2: #1F2937;
+  --ok: #2D7A3E; --warn: #B47611; --danger: #B33A2C; --info: #2D5680;
+  --trust: #2A3868; --caution: #944B1F; --caution-soft: #F4E1D0;
+  --r-pill: 999px; --r-card: 10px; --r-card-lg: 14px; --r-hero: 18px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+}
+:root {
+  --doc-bg: #0B0F14; --doc-bg-2: #131822; --doc-bg-3: #1B2330;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E8EC; --doc-fg-2: #B4B9C2; --doc-fg-3: #7E8590;
+  --doc-accent: #B8C2DF; --doc-caution: #E8AC85;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc { border-right: 1px solid var(--doc-line); padding: 36px 22px; background: var(--doc-bg-2); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.ds-mark { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 22px; }
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 { margin: 0 0 22px; font-family: var(--doc-sans); font-weight: 500; font-size: 19px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 10px; }
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a { display: block; padding: 6px 8px; text-decoration: none; color: var(--doc-fg-2); font-size: 13px; border-radius: 4px; margin-bottom: 1px; }
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--doc-mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+.ds-toc .back { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-toc .back a { color: var(--doc-accent); font-size: 12.5px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1300px; }
+.cab-cover { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 44px; line-height: 1.05; letter-spacing: -0.025em; }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.ds-section { margin-bottom: 76px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-section h2 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 26px; letter-spacing: -0.015em; color: var(--doc-fg); }
+.ds-section p { max-width: 760px; margin: 8px 0 0; font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.artboard { margin-top: 20px; border: 1px solid var(--doc-line); border-radius: 18px; background: var(--canvas); overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.artboard-caption { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.artboard-caption .pill { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); color: var(--doc-accent); border-color: rgba(184,194,223,0.4); }
+
+.notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+.notes-card { background: var(--doc-bg-2); border: 1px solid var(--doc-line); border-radius: 12px; padding: 18px 20px; }
+.notes-card h3 { margin: 0 0 12px; font-family: var(--doc-sans); font-size: 14px; font-weight: 500; color: var(--doc-fg); }
+.notes-card dl { margin: 0; }
+.notes-card dl > div { display: grid; grid-template-columns: 140px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--doc-line); font-size: 12.5px; }
+.notes-card dl > div:last-child { border-bottom: 0; }
+.notes-card dt { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes-card dd { margin: 0; color: var(--doc-fg-2); line-height: 1.55; }
+.notes-card dd code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg); background: var(--doc-bg-3); padding: 1px 6px; border-radius: 3px; }
+
+/* ============================================================
+   Product chrome
+   ============================================================ */
+[data-product="super-admin"] { font-family: var(--sans-font); color: var(--ink); }
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border-radius: 6px; font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); cursor: pointer; line-height: 1; background: var(--panel); color: var(--ink-2); text-decoration: none; }
+[data-product] .btn:hover { background: var(--panel-2); }
+[data-product] .btn-sm { padding: 7px 11px; font-size: 12.5px; }
+[data-product] .btn-xs { padding: 4px 8px; font-size: 11px; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+[data-product] .btn-caution { background: var(--panel); color: var(--caution); border-color: var(--caution); }
+[data-product] .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-3); }
+
+[data-product] .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: var(--r-pill); font-family: var(--mono-font); font-size: 10.5px; font-weight: 500; border: 1px solid var(--line); background: var(--panel); color: var(--ink-3); }
+[data-product] .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+[data-product] .badge-open    { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); background: color-mix(in oklab, var(--accent) 8%, var(--panel)); }
+[data-product] .badge-waiting { color: var(--warn);   border-color: color-mix(in oklab, var(--warn) 35%, transparent); background: color-mix(in oklab, var(--warn) 8%, var(--panel)); }
+[data-product] .badge-escal   { color: var(--caution);border-color: color-mix(in oklab, var(--caution) 40%, transparent); background: color-mix(in oklab, var(--caution) 8%, var(--panel)); }
+[data-product] .badge-resolved{ color: var(--ok);     border-color: color-mix(in oklab, var(--ok) 35%, transparent); background: color-mix(in oklab, var(--ok) 8%, var(--panel)); }
+[data-product] .badge-trust   { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); background: color-mix(in oklab, var(--accent) 8%, var(--panel)); }
+
+[data-product] .app { background: var(--canvas); min-height: 720px; display: grid; grid-template-rows: auto 1fr; }
+[data-product] .app-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--inverted-bg); color: var(--inverted-fg); border-bottom: 1px solid var(--ink); }
+[data-product] .app-topbar .brand { font-family: var(--display-font); font-size: 18px; font-weight: 400; color: var(--inverted-fg); }
+[data-product] .app-topbar .brand .sub { font-family: var(--mono-font); font-size: 9.5px; color: rgba(248,249,251,0.55); letter-spacing: 0.18em; text-transform: uppercase; display: block; margin-top: 1px; }
+[data-product] .app-topbar .nav { display: flex; gap: 4px; margin-left: 24px; }
+[data-product] .app-topbar .nav a { padding: 6px 12px; border-radius: 5px; font-family: var(--mono-font); font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(248,249,251,0.6); text-decoration: none; }
+[data-product] .app-topbar .nav a.on { background: var(--inverted-bg-2); color: var(--inverted-fg); }
+[data-product] .app-topbar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-family: var(--mono-font); font-size: 11px; color: rgba(248,249,251,0.6); }
+[data-product] .app-topbar .me { display: flex; align-items: center; gap: 6px; }
+[data-product] .app-topbar .me .avatar { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: white; display: inline-flex; align-items: center; justify-content: center; font-family: var(--sans-font); font-size: 11px; font-weight: 600; }
+
+[data-product] .page-h { padding: 22px 24px 18px; display: flex; align-items: flex-start; gap: 20px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+[data-product] .page-h .left h1 { margin: 4px 0 0; font-family: var(--display-font); font-weight: 400; font-size: 30px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .page-h .left h1 em { color: var(--accent); font-style: italic; }
+[data-product] .page-h .left .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .page-h .left .sub { margin-top: 6px; font-size: 13.5px; color: var(--ink-3); line-height: 1.5; }
+[data-product] .page-h .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+[data-product] .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .kpi-row .kpi { padding: 14px 18px; border-right: 1px solid var(--line); }
+[data-product] .kpi-row .kpi:last-child { border-right: 0; }
+[data-product] .kpi-row .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 4px; }
+[data-product] .kpi-row .v { font-family: var(--display-font); font-size: 24px; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; }
+[data-product] .kpi-row .v.warn { color: var(--warn); }
+[data-product] .kpi-row .v.danger { color: var(--danger); }
+[data-product] .kpi-row .v.ok { color: var(--ok); }
+[data-product] .kpi-row .v.caution { color: var(--caution); }
+[data-product] .kpi-row .v.accent { color: var(--accent); }
+[data-product] .kpi-row .ctx { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 4px; }
+
+/* ============================================================
+   3-pane inbox layout
+   ============================================================ */
+[data-product] .inbox { display: grid; grid-template-columns: 320px 1fr 360px; background: var(--canvas); min-height: 560px; }
+
+[data-product] .ix-list { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+[data-product] .ix-list .filter-bar { padding: 10px 14px; display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+[data-product] .ix-list .chip { padding: 4px 9px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--line); font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+[data-product] .ix-list .chip.on { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .ix-list .chip .ct { padding: 0 4px; background: var(--panel-deep); border-radius: 999px; font-size: 10px; color: var(--ink-3); }
+[data-product] .ix-list .chip.on .ct { background: rgba(255,255,255,0.18); color: var(--inverted-fg); }
+
+[data-product] .ix-list .grp {
+  padding: 8px 14px 6px;
+  font-family: var(--mono-font); font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-3); background: var(--panel-2); border-bottom: 1px solid var(--line);
+  display: flex; justify-content: space-between;
+}
+
+[data-product] .ix-row {
+  padding: 12px 14px; border-bottom: 1px solid var(--line-soft); cursor: pointer;
+  display: flex; flex-direction: column; gap: 4px;
+}
+[data-product] .ix-row:hover { background: var(--panel-2); }
+[data-product] .ix-row.on { background: color-mix(in oklab, var(--accent) 6%, var(--panel)); box-shadow: inset 3px 0 0 var(--accent); }
+[data-product] .ix-row.escal { background: color-mix(in oklab, var(--caution) 5%, var(--panel)); }
+[data-product] .ix-row.escal:hover { background: color-mix(in oklab, var(--caution) 9%, var(--panel)); }
+[data-product] .ix-row .top { display: flex; align-items: baseline; gap: 8px; }
+[data-product] .ix-row .org { font-family: var(--sans-font); font-size: 12px; font-weight: 500; color: var(--ink); }
+[data-product] .ix-row .org .country { font-family: var(--mono-font); font-weight: 400; font-size: 10px; color: var(--ink-4); margin-left: 4px; }
+[data-product] .ix-row .when { margin-left: auto; font-family: var(--mono-font); font-size: 10px; color: var(--ink-3); }
+[data-product] .ix-row .when.warn { color: var(--warn); }
+[data-product] .ix-row .when.danger { color: var(--danger); }
+[data-product] .ix-row .subj { font-size: 13px; color: var(--ink); line-height: 1.35; font-weight: 500; }
+[data-product] .ix-row .body { font-size: 11.5px; color: var(--ink-3); line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+[data-product] .ix-row .tags { display: flex; gap: 4px; margin-top: 3px; }
+[data-product] .ix-row .tag {
+  font-family: var(--mono-font); font-size: 9.5px;
+  padding: 2px 6px; border-radius: 3px;
+  background: var(--panel-deep); color: var(--ink-3);
+  letter-spacing: 0.06em;
+}
+[data-product] .ix-row .tag.billing  { background: color-mix(in oklab, var(--caution) 12%, transparent); color: var(--caution); }
+[data-product] .ix-row .tag.bug      { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); }
+[data-product] .ix-row .tag.howto    { background: color-mix(in oklab, var(--accent) 12%, transparent); color: var(--accent); }
+[data-product] .ix-row .tag.feature  { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); }
+[data-product] .ix-row .tag.sla { background: var(--ink); color: var(--inverted-fg); }
+
+/* Thread (middle pane) */
+[data-product] .ix-thread { background: var(--canvas); display: flex; flex-direction: column; border-right: 1px solid var(--line); }
+[data-product] .ix-thread .th-h { padding: 16px 22px 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
+[data-product] .ix-thread .th-h .subj { font-family: var(--display-font); font-size: 22px; font-weight: 400; color: var(--ink); letter-spacing: -0.01em; margin: 0; }
+[data-product] .ix-thread .th-h .meta { margin-top: 6px; display: flex; align-items: center; gap: 14px; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .ix-thread .th-h .meta .sep { color: var(--ink-5); }
+[data-product] .ix-thread .th-h .meta strong { color: var(--ink-2); }
+[data-product] .ix-thread .th-h .actions { display: flex; gap: 6px; margin-top: 10px; }
+
+[data-product] .ix-thread .th-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; flex: 1; overflow-y: auto; }
+
+[data-product] .msg { display: flex; gap: 12px; }
+[data-product] .msg .av { width: 32px; height: 32px; border-radius: 50%; background: var(--panel-deep); color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; font-family: var(--sans-font); font-size: 11px; font-weight: 600; flex-shrink: 0; }
+[data-product] .msg.cust .av { background: color-mix(in oklab, var(--accent) 14%, var(--panel)); color: var(--accent); }
+[data-product] .msg.staff .av { background: var(--ink); color: var(--inverted-fg); }
+[data-product] .msg.agent .av { background: color-mix(in oklab, var(--ok) 14%, var(--panel)); color: var(--ok); }
+[data-product] .msg .bubble { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+[data-product] .msg.cust .bubble { background: var(--panel); }
+[data-product] .msg.staff .bubble { background: color-mix(in oklab, var(--ink) 4%, var(--panel)); border-color: color-mix(in oklab, var(--ink) 14%, var(--line)); }
+[data-product] .msg.agent .bubble { background: color-mix(in oklab, var(--ok) 5%, var(--panel)); border-color: color-mix(in oklab, var(--ok) 30%, var(--line)); border-style: dashed; }
+[data-product] .msg .top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+[data-product] .msg .nm { font-size: 13px; font-weight: 500; color: var(--ink); }
+[data-product] .msg .role { font-family: var(--mono-font); font-size: 10px; color: var(--ink-4); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .msg .when { margin-left: auto; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); }
+[data-product] .msg .txt { font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+[data-product] .msg .txt p { margin: 0 0 8px; }
+[data-product] .msg .txt p:last-child { margin-bottom: 0; }
+[data-product] .msg .txt code { font-family: var(--mono-font); font-size: 11.5px; padding: 1px 5px; background: var(--panel-deep); border-radius: 3px; color: var(--ink); }
+[data-product] .msg .txt .quote { padding: 6px 10px; border-left: 3px solid var(--accent); color: var(--ink-3); font-style: italic; margin: 6px 0; background: color-mix(in oklab, var(--accent) 5%, transparent); }
+[data-product] .msg .attach {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;
+  padding: 5px 9px; border-radius: 5px; background: var(--panel-2);
+  font-family: var(--mono-font); font-size: 11px; color: var(--ink-2);
+  border: 1px solid var(--line);
+}
+
+/* Reply composer */
+[data-product] .ix-thread .composer { padding: 14px 22px 18px; background: var(--panel); border-top: 1px solid var(--line); }
+[data-product] .ix-thread .composer .tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+[data-product] .ix-thread .composer .tabs .tab { padding: 5px 10px; font-family: var(--mono-font); font-size: 10.5px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--ink-3); cursor: pointer; border-radius: 4px; }
+[data-product] .ix-thread .composer .tabs .tab.on { background: var(--panel-2); color: var(--ink); }
+[data-product] .ix-thread .composer textarea {
+  width: 100%; min-height: 70px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 8px;
+  font-family: var(--sans-font); font-size: 13px; color: var(--ink);
+  background: var(--panel-2); resize: vertical;
+  font-style: italic;
+}
+[data-product] .ix-thread .composer .row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+[data-product] .ix-thread .composer .row .spacer { flex: 1; }
+
+/* AI suggestion (right pane) */
+[data-product] .ai-pane { background: var(--canvas); display: flex; flex-direction: column; }
+[data-product] .ai-pane .sec { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+[data-product] .ai-pane h4 { margin: 0 0 10px; font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; display: flex; align-items: center; gap: 8px; }
+[data-product] .ai-pane h4 .glyph { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ok) 20%, transparent); }
+
+[data-product] .ai-draft {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; font-size: 13px; color: var(--ink-2); line-height: 1.6;
+  border-left: 3px solid var(--ok);
+}
+[data-product] .ai-draft p { margin: 0 0 8px; }
+[data-product] .ai-draft p:last-child { margin-bottom: 0; }
+[data-product] .ai-draft .conf {
+  margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line);
+  display: flex; gap: 14px; align-items: center;
+  font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+[data-product] .ai-draft .conf .bar { flex: 1; height: 4px; background: var(--panel-deep); border-radius: 2px; }
+[data-product] .ai-draft .conf .bar .fill { height: 100%; background: var(--ok); border-radius: 2px; }
+[data-product] .ai-draft .actions { display: flex; gap: 6px; margin-top: 12px; }
+
+[data-product] .ai-pane .ctx-list { display: flex; flex-direction: column; gap: 6px; }
+[data-product] .ai-pane .ctx { padding: 9px 11px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; cursor: pointer; }
+[data-product] .ai-pane .ctx .src { font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent); }
+[data-product] .ai-pane .ctx .ti { color: var(--ink); font-weight: 500; }
+[data-product] .ai-pane .ctx .sn { color: var(--ink-3); line-height: 1.4; }
+
+[data-product] .ai-pane .meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+[data-product] .ai-pane .meta-row .cell { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+[data-product] .ai-pane .meta-row .l { font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .ai-pane .meta-row .v { font-size: 12.5px; color: var(--ink); margin-top: 3px; }
+
+/* SLA gauge */
+[data-product] .sla-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+[data-product] .sla-card .row { display: flex; align-items: baseline; gap: 8px; font-size: 12px; }
+[data-product] .sla-card .row .l { font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .sla-card .row .v { font-family: var(--mono-font); font-size: 12.5px; color: var(--ink); margin-left: auto; }
+[data-product] .sla-card .row .v.warn { color: var(--warn); }
+[data-product] .sla-card .row .v.danger { color: var(--danger); }
+[data-product] .sla-card .bar { margin-top: 8px; height: 6px; background: var(--panel-deep); border-radius: 3px; overflow: hidden; }
+[data-product] .sla-card .bar .fill { height: 100%; background: var(--ok); }
+[data-product] .sla-card .bar .fill.warn { background: var(--warn); }
+[data-product] .sla-card .bar .fill.danger { background: var(--danger); }
+
+/* ============================================================
+   Triage policy
+   ============================================================ */
+[data-product] .triage-shell { padding: 24px 28px; background: var(--canvas); }
+[data-product] .triage-hd { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; }
+[data-product] .triage-hd h2 { margin: 0; font-family: var(--display-font); font-weight: 400; font-size: 26px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .triage-hd em { color: var(--accent); font-style: italic; }
+[data-product] .triage-hd .meta { margin-left: auto; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+
+[data-product] .sla-table {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+}
+[data-product] .sla-table .head, [data-product] .sla-table .row {
+  display: grid; grid-template-columns: 220px 120px 1fr 130px 130px 100px;
+  gap: 14px; padding: 12px 18px; align-items: center;
+}
+[data-product] .sla-table .head { background: var(--panel-2); border-bottom: 1px solid var(--line); }
+[data-product] .sla-table .head .col { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .sla-table .row { border-bottom: 1px solid var(--line-soft); font-size: 13px; }
+[data-product] .sla-table .row:last-child { border-bottom: 0; }
+[data-product] .sla-table .cat { display: flex; flex-direction: column; gap: 3px; }
+[data-product] .sla-table .cat .nm { color: var(--ink); font-weight: 500; }
+[data-product] .sla-table .cat .ex { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); }
+[data-product] .sla-table .pri {
+  font-family: var(--mono-font); font-size: 10.5px; padding: 3px 9px;
+  border-radius: 4px; letter-spacing: 0.08em; text-transform: uppercase;
+  display: inline-block; text-align: center; width: 80px;
+}
+[data-product] .sla-table .pri.p0 { background: var(--caution); color: white; }
+[data-product] .sla-table .pri.p1 { background: color-mix(in oklab, var(--danger) 14%, transparent); color: var(--danger); }
+[data-product] .sla-table .pri.p2 { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); }
+[data-product] .sla-table .pri.p3 { background: var(--panel-deep); color: var(--ink-3); }
+[data-product] .sla-table .ai { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .sla-table .ai strong { color: var(--ink); font-weight: 500; }
+[data-product] .sla-table .sla-cell { font-family: var(--mono-font); font-size: 11.5px; color: var(--ink); }
+[data-product] .sla-table .sla-cell .sub { display: block; font-size: 10px; color: var(--ink-4); margin-top: 2px; }
+[data-product] .sla-table .own { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+
+[data-product] .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+[data-product] .tier-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+[data-product] .tier-card h4 { margin: 0; font-family: var(--display-font); font-size: 19px; font-weight: 400; color: var(--ink); letter-spacing: -0.005em; }
+[data-product] .tier-card .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; margin-top: 2px; }
+[data-product] .tier-card dl { margin: 14px 0 0; }
+[data-product] .tier-card dl > div { display: grid; grid-template-columns: 1fr auto; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: 12.5px; }
+[data-product] .tier-card dl > div:last-child { border-bottom: 0; }
+[data-product] .tier-card dt { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .tier-card dd { margin: 0; font-family: var(--mono-font); font-size: 12px; color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Phase 2.5</div>
+    <h1>Platform super-admin</h1>
+    <div class="back"><a href="hub.html">← back to hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">06 · Support inbox</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#inbox"><span class="ix">01</span>Inbox · 3-pane</a></li>
+        <li><a href="#detail"><span class="ix">02</span>Ticket detail</a></li>
+        <li><a href="#policy"><span class="ix">03</span>Triage policy · SLA</a></li>
+        <li><a href="#schema"><span class="ix">04</span>Schema · agents</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Adjacent</div>
+      <ul>
+        <li><a href="05-feature-flags.html"><span class="ix">05</span>Feature flags</a></li>
+        <li><a href="07-audit-log.html"><span class="ix">07</span>Audit log</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <!-- COVER -->
+    <section id="cover" class="cab-cover" data-screen-label="Cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Phase 2.5 · cabinet 06 of 09</span></div>
+      <h1>Support inbox · <em>tickets, AI drafts, escalation</em>.</h1>
+      <p>Every ticket from every org in one queue. Sales handles billing &amp; how-to questions; the tech lead picks up the bugs and escalations. AI drafts a reply on every incoming message — it doesn't send anything; it just lines up the right answer so an operator can edit-and-ship in one click. SLAs are tier-aware: Atelier-tier orgs jump the queue.</p>
+    </section>
+
+    <!-- 01 INBOX -->
+    <section id="inbox" class="ds-section" data-screen-label="01 Inbox">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Inbox · 3-pane workspace</h2>
+          <p>Left = grouped ticket list (escalated → SLA-warning → waiting → open). Middle = thread with the customer. Right = AI suggested reply + retrieved context (related tickets, knowledge-base snippets, customer billing snapshot) + SLA gauge. Operator picks <strong style="color:var(--doc-fg)">Use draft</strong>, edits, sends.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a><a>Flags</a>
+                <a class="on">Support</a>
+                <a>Audit</a><a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span>v 4.2.18</span><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / support</div>
+                  <h1>Support inbox <em>· 14 open</em></h1>
+                  <div class="sub">1 escalated · 2 SLA-warning · 8 waiting on us · today's median first reply 22 min</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Saved replies</button>
+                  <button class="btn">SLA report</button>
+                  <button class="btn btn-primary">+ Compose</button>
+                </div>
+              </div>
+
+              <div class="kpi-row">
+                <div class="kpi"><div class="l">open</div><div class="v">14</div><div class="ctx">+3 since 09:00</div></div>
+                <div class="kpi"><div class="l">escalated</div><div class="v caution">1</div><div class="ctx">PT Senayan · 6h old</div></div>
+                <div class="kpi"><div class="l">SLA at-risk</div><div class="v warn">2</div><div class="ctx">&lt; 30m to breach</div></div>
+                <div class="kpi"><div class="l">today first-reply</div><div class="v ok">22m</div><div class="ctx">target 30m</div></div>
+                <div class="kpi"><div class="l">AI draft used</div><div class="v accent">68%</div><div class="ctx">last 7d · edited 41%</div></div>
+              </div>
+
+              <div class="inbox">
+
+                <!-- LEFT: list -->
+                <div class="ix-list">
+                  <div class="filter-bar">
+                    <span class="chip on">all <span class="ct">14</span></span>
+                    <span class="chip">mine <span class="ct">4</span></span>
+                    <span class="chip">unassigned <span class="ct">6</span></span>
+                    <span class="chip">esc <span class="ct">1</span></span>
+                  </div>
+
+                  <div class="grp"><span>· escalated · 1</span><span>tech lead</span></div>
+
+                  <div class="ix-row escal">
+                    <div class="top">
+                      <span class="org">PT Senayan Estate <span class="country">ID</span></span>
+                      <span class="when danger">6h</span>
+                    </div>
+                    <div class="subj">Channel-sync stuck on Booking.com — 3 properties out of sync since 09:00</div>
+                    <div class="body">Made: "still no updates from the channel manager, our front desk is double-booking already. Please look urgently."</div>
+                    <div class="tags"><span class="tag bug">bug</span><span class="tag sla">P0 · breach</span></div>
+                  </div>
+
+                  <div class="grp"><span>· SLA warning · 2</span><span>&lt; 30m</span></div>
+
+                  <div class="ix-row on">
+                    <div class="top">
+                      <span class="org">Bali Boutique Stays <span class="country">ID</span></span>
+                      <span class="when warn">28m</span>
+                    </div>
+                    <div class="subj">Payment failed twice — card was reissued, how do I update without losing my subscription?</div>
+                    <div class="body">Maya: "I got the new card last week, want to make sure my next charge goes through. I don't want to be suspended..."</div>
+                    <div class="tags"><span class="tag billing">billing</span><span class="tag howto">howto</span></div>
+                  </div>
+
+                  <div class="ix-row">
+                    <div class="top">
+                      <span class="org">Whitmore Villas Group <span class="country">SG</span></span>
+                      <span class="when warn">26m</span>
+                    </div>
+                    <div class="subj">Owner statement explainer shows wrong cleaning-fee proration for Tirta-Canggu-04</div>
+                    <div class="body">Emma: "Statement says 38% but my contract says 60% for night-of-checkout. Where does the 38 come from?"</div>
+                    <div class="tags"><span class="tag bug">bug</span></div>
+                  </div>
+
+                  <div class="grp"><span>· waiting on us · 8</span><span>oldest 2h</span></div>
+
+                  <div class="ix-row">
+                    <div class="top">
+                      <span class="org">Tan Family Trust <span class="country">SG</span></span>
+                      <span class="when">2h</span>
+                    </div>
+                    <div class="subj">Can I export owner statements as a single PDF bundle?</div>
+                    <div class="body">Stephen: "We have 14 statements monthly. Right now I download each individually and merge in Acrobat. There must be a better way."</div>
+                    <div class="tags"><span class="tag feature">feature</span></div>
+                  </div>
+
+                  <div class="ix-row">
+                    <div class="top">
+                      <span class="org">Sukha Residences <span class="country">ID</span></span>
+                      <span class="when">1h</span>
+                    </div>
+                    <div class="subj">How to enable dynamic pricing for just one villa?</div>
+                    <div class="body">Wayan: "I want to keep static rates for Tirta-Sukha-01 (long-term lease) but enable dynamic on the other six. Possible?"</div>
+                    <div class="tags"><span class="tag howto">howto</span></div>
+                  </div>
+
+                  <div class="ix-row">
+                    <div class="top">
+                      <span class="org">Coral Cay Holdings <span class="country">SG</span></span>
+                      <span class="when">45m</span>
+                    </div>
+                    <div class="subj">New owner onboarding — what's the easiest path to add their banking details?</div>
+                    <div class="body">Lisa: "Mr. Tan has signed off, we want to onboard him as the new owner of villa 03."</div>
+                    <div class="tags"><span class="tag howto">howto</span></div>
+                  </div>
+
+                  <div class="ix-row">
+                    <div class="top">
+                      <span class="org">Tirta Lestari Villas <span class="country">ID</span></span>
+                      <span class="when">3h</span>
+                    </div>
+                    <div class="subj">Booking sync delay — Airbnb showing 17 may unavailable when we have it open</div>
+                    <div class="body">Ari: "Reservations called us because the date isn't available on Airbnb but it shows free here."</div>
+                    <div class="tags"><span class="tag bug">bug</span></div>
+                  </div>
+
+                </div>
+
+                <!-- MIDDLE: thread (selected = Bali Boutique Stays) -->
+                <div class="ix-thread">
+                  <div class="th-h">
+                    <h3 class="subj">Payment failed twice — card was reissued, how do I update without losing my subscription?</h3>
+                    <div class="meta">
+                      <span>ticket <strong>#4218</strong></span>
+                      <span class="sep">·</span>
+                      <span>Bali Boutique Stays · Studio</span>
+                      <span class="sep">·</span>
+                      <span>opened <strong>28m ago</strong> by Maya K · maya@bbs.co</span>
+                      <span class="sep">·</span>
+                      <span>SLA · <strong>P1 · 2h target</strong></span>
+                    </div>
+                    <div class="actions">
+                      <button class="btn btn-sm">Assign to me</button>
+                      <button class="btn btn-sm">Link · invoice INV-2025-Q2-BBS</button>
+                      <button class="btn btn-sm">Mark resolved</button>
+                      <button class="btn btn-sm btn-caution">Escalate · tech lead</button>
+                    </div>
+                  </div>
+
+                  <div class="th-body">
+                    <div class="msg cust">
+                      <div class="av">MK</div>
+                      <div class="bubble">
+                        <div class="top">
+                          <span class="nm">Maya Kusuma</span>
+                          <span class="role">customer · founder</span>
+                          <span class="when">28m ago</span>
+                        </div>
+                        <div class="txt">
+                          <p>Hi — I got a notification last week that my card payment failed. I called my bank and they said the card was reissued because of a fraud alert (nothing to do with you). I got the new card last Monday but I don't see where to update it in the app.</p>
+                          <p>Can you check that I'm not about to be suspended? I really need everything to keep running, our season just started.</p>
+                          <p>Card last 4 is now <code>8821</code> if that helps.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="msg agent">
+                      <div class="av">AI</div>
+                      <div class="bubble">
+                        <div class="top">
+                          <span class="nm">triage-router</span>
+                          <span class="role">agent · internal note</span>
+                          <span class="when">28m ago</span>
+                        </div>
+                        <div class="txt">
+                          <p>Classified as <code>billing · howto</code> with priority <code>P1</code>. Customer has 2 prior failed payments on <code>INV-2025-Q2-BBS</code> and is at dunning stage <code>S3</code> with auto-suspend scheduled in 4 days. Recommend reply with card-update link + reassurance that suspension is not imminent.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="composer">
+                    <div class="tabs">
+                      <span class="tab on">Reply</span>
+                      <span class="tab">Internal note</span>
+                      <span class="tab">Forward</span>
+                    </div>
+                    <textarea>Hi Maya,&#10;&#10;You're not about to be suspended — there's a 4-day window before that happens, and once your new card is on file we'll auto-retry the failed charge today.&#10;&#10;The easiest way to update is to use this one-click link, which signs you straight into the billing section: https://app.arconique.com/billing/update?token=…&#10;&#10;Let me know once it's done, I'll keep an eye on the retry.</textarea>
+                    <div class="row">
+                      <button class="btn btn-sm">↪ Insert: card-update link</button>
+                      <button class="btn btn-sm">⌘ Saved reply</button>
+                      <span class="spacer"></span>
+                      <button class="btn btn-sm">Send &amp; mark waiting</button>
+                      <button class="btn btn-primary btn-sm">Send reply</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- RIGHT: AI pane -->
+                <div class="ai-pane">
+                  <div class="sec">
+                    <h4><span class="glyph"></span>AI suggested reply · 92% confidence</h4>
+                    <div class="ai-draft">
+                      <p>Hi Maya,</p>
+                      <p>You're not about to be suspended — there's a 4-day window before that happens, and once your new card is on file we'll auto-retry the failed charge today.</p>
+                      <p>The easiest way to update is to use this <strong>one-click link</strong>, which signs you straight into the billing section.</p>
+                      <p>Let me know once it's done, I'll keep an eye on the retry.</p>
+                      <div class="conf">
+                        <span>conf</span>
+                        <span class="bar"><span class="fill" style="display:block; width: 92%;"></span></span>
+                        <span>92%</span>
+                      </div>
+                      <div class="actions">
+                        <button class="btn btn-xs btn-primary">Use draft</button>
+                        <button class="btn btn-xs">Tone: warmer</button>
+                        <button class="btn btn-xs">Tone: shorter</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="sec">
+                    <h4>Retrieved context · 4 sources</h4>
+                    <div class="ctx-list">
+                      <div class="ctx">
+                        <span class="src">kb · billing.howto</span>
+                        <span class="ti">How to update payment method after card reissue</span>
+                        <span class="sn">"Use the one-click signed link sent in the dunning email, or sign in and visit /billing/update…"</span>
+                      </div>
+                      <div class="ctx">
+                        <span class="src">billing · cabinet 04</span>
+                        <span class="ti">INV-2025-Q2-BBS · attempt history</span>
+                        <span class="sn">3 failed attempts · <code style="font-family:var(--mono-font);font-size:11px;color:var(--danger);">card_declined / expired_card</code> · next dunning sweep in 2h</span>
+                      </div>
+                      <div class="ctx">
+                        <span class="src">ticket · related</span>
+                        <span class="ti">#3914 — Same pattern, Whitmore VG, Apr 24</span>
+                        <span class="sn">Customer replied "got it" 18 min after link sent, charge succeeded.</span>
+                      </div>
+                      <div class="ctx">
+                        <span class="src">dunning policy</span>
+                        <span class="ti">Default sequence · D+14 suspend</span>
+                        <span class="sn">Studio tier — auto-suspend allowed at D+14. Currently at D+8.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="sec">
+                    <h4>Customer · snapshot</h4>
+                    <div class="meta-row">
+                      <div class="cell"><div class="l">tier</div><div class="v">Studio · annual</div></div>
+                      <div class="cell"><div class="l">MRR</div><div class="v">$1,180</div></div>
+                      <div class="cell"><div class="l">tickets · 90d</div><div class="v">3 (this is 4th)</div></div>
+                      <div class="cell"><div class="l">CSAT</div><div class="v">4.7 · 11 ratings</div></div>
+                    </div>
+                  </div>
+
+                  <div class="sec">
+                    <h4>SLA · P1 first-reply</h4>
+                    <div class="sla-card">
+                      <div class="row"><span class="l">target</span><span class="v">30 min</span></div>
+                      <div class="row"><span class="l">elapsed</span><span class="v warn">28 min</span></div>
+                      <div class="bar"><div class="fill warn" style="width: 94%;"></div></div>
+                      <div class="row" style="margin-top: 8px;"><span class="l">resolution target</span><span class="v">2h</span></div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>row tint: escal = caution · selected = accent rail · groups: esc · SLA · waiting · open</span>
+        <span>·</span>
+        <span>AI draft never sends — operator confirms</span>
+      </div>
+    </section>
+
+    <!-- 02 TICKET DETAIL -->
+    <section id="detail" class="ds-section" data-screen-label="02 Ticket detail">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Focus</span></div>
+          <h2>Ticket detail · full thread + escalation chain</h2>
+          <p>When a ticket leaves the inbox view (escalated, parked, opened in its own window) it gets the focus screen. Full thread, all internal notes, the escalation audit chain along the top, related links pinned to a sidebar. Same chrome as the inbox; just no list pane.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a><a>Flags</a>
+                <a class="on">Support</a>
+                <a>Audit</a><a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb"><a href="#inbox" style="color:inherit;text-decoration:none;">support</a> / ticket #4189</div>
+                  <h1>Channel-sync stuck on Booking.com <em>· 3 properties</em></h1>
+                  <div class="sub">PT Senayan Estate · Atelier · escalated to tech lead · P0 SLA breach</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Open in Linear</button>
+                  <button class="btn">Link channel-sync_v2 flag</button>
+                  <button class="btn btn-caution">Page on-call</button>
+                </div>
+              </div>
+
+              <!-- Escalation chain strip -->
+              <div style="padding: 14px 24px; background: color-mix(in oklab, var(--caution) 6%, var(--canvas)); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 18px;">
+                <span style="font-family:var(--mono-font); font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--caution);">Escalation</span>
+                <span style="font-family:var(--mono-font); font-size:11px; color:var(--ink-3); display:flex; align-items:center; gap:10px;">
+                  <span style="color:var(--ok);">●</span> Made S · ops contact
+                  <span style="color:var(--ink-5);">→</span>
+                  <span style="color:var(--ok);">●</span> AI triage · classified P0
+                  <span style="color:var(--ink-5);">→</span>
+                  <span style="color:var(--ok);">●</span> Sales (Nikita) · 14m
+                  <span style="color:var(--ink-5);">→</span>
+                  <span style="color:var(--accent);">●</span> <strong>Tech lead · now</strong>
+                  <span style="color:var(--ink-5);">→</span>
+                  <span style="color:var(--ink-5);">○</span> resolution
+                </span>
+                <span style="margin-left:auto; font-family:var(--mono-font); font-size:11px; color:var(--caution);">SLA breached 12m ago · P0 target 1h</span>
+              </div>
+
+              <div style="display:grid; grid-template-columns: 1fr 320px; gap: 0;">
+
+                <div class="ix-thread" style="border-right: 1px solid var(--line);">
+                  <div class="th-body" style="padding-top: 20px;">
+
+                    <div class="msg cust">
+                      <div class="av">MS</div>
+                      <div class="bubble">
+                        <div class="top"><span class="nm">Made Surya</span><span class="role">customer · ops</span><span class="when">6h ago</span></div>
+                        <div class="txt">
+                          <p>Channel sync stopped at 09:00 this morning. Booking.com inventory frozen — we have 3 properties out of sync since then. Front desk is already double-booking. Need urgent help.</p>
+                          <p>Properties: <code>tirta-canggu-04</code>, <code>tirta-uluwatu-02</code>, <code>tirta-seminyak-07</code>.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="msg agent">
+                      <div class="av">AI</div>
+                      <div class="bubble">
+                        <div class="top"><span class="nm">triage-router</span><span class="role">agent · internal note</span><span class="when">6h ago</span></div>
+                        <div class="txt">
+                          <p>Classified <code>bug · channel-sync</code>, priority <code>P0</code> (multi-property + active impact). Org tier <strong>Atelier</strong>. Auto-pinged Sales. Found 4 related tickets on <code>channel_sync_v2</code> flag in the last 7 days — recommend checking if cohort overlaps.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="msg staff">
+                      <div class="av">NR</div>
+                      <div class="bubble">
+                        <div class="top"><span class="nm">Nikita R.</span><span class="role">staff · sales</span><span class="when">5h 46m ago</span></div>
+                        <div class="txt">
+                          <p>Hi Made — I see the issue. Pulling logs now, you're definitely affected by the channel_sync_v2 cohort, which is what those other 4 tickets had in common. Killing the flag for your org as a workaround while we root-cause.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="msg cust">
+                      <div class="av">MS</div>
+                      <div class="bubble">
+                        <div class="top"><span class="nm">Made Surya</span><span class="role">customer · ops</span><span class="when">5h 32m ago</span></div>
+                        <div class="txt">
+                          <p>Thanks Nikita. Sync resumed about 5 min after your message. We've already had 2 double-bookings though — can you help us figure out which guests to call?</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="msg staff">
+                      <div class="av">NR</div>
+                      <div class="bubble">
+                        <div class="top"><span class="nm">Nikita R.</span><span class="role">staff · sales</span><span class="when">5h ago</span></div>
+                        <div class="txt">
+                          <p>Pulled the conflict list — 2 Booking.com bookings overlap with Airbnb reservations made during the freeze. Sending over a CSV. Escalating to tech lead for root cause + a clean post-mortem you can share with the owners.</p>
+                          <span class="attach">⌒ booking-conflicts-29may.csv · 2 rows</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="msg agent">
+                      <div class="av">AI</div>
+                      <div class="bubble">
+                        <div class="top"><span class="nm">draft-replier</span><span class="role">agent · suggested reply</span><span class="when">now</span></div>
+                        <div class="txt">
+                          <p><em>Drafted, awaiting tech lead review:</em></p>
+                          <div class="quote">Made — root cause confirmed. The channel_sync_v2 cohort hit an edge case in the conflict-resolver when a Booking.com cell mutated within 30s of an Airbnb cell. We killed the flag platform-wide at 12:14, no other customers should hit this. Post-mortem coming tomorrow with timeline + reimbursement offer for the 2 conflict bookings.</div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <div class="composer">
+                    <div class="tabs">
+                      <span class="tab on">Reply</span>
+                      <span class="tab">Internal note</span>
+                    </div>
+                    <textarea>Draft above — review, edit, send. Will close the ticket on confirm; opens a follow-up reminder for post-mortem tomorrow 09:00.</textarea>
+                    <div class="row">
+                      <button class="btn btn-sm">Use draft above</button>
+                      <span class="spacer"></span>
+                      <button class="btn btn-sm">Send · keep open</button>
+                      <button class="btn btn-primary btn-sm">Send · mark resolved</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right sidebar -->
+                <div style="background: var(--canvas); padding: 18px 18px;">
+                  <h4 style="margin:0 0 10px; font-family:var(--mono-font); font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3); font-weight:500;">Linked items</h4>
+                  <div class="ctx-list" style="display:flex; flex-direction:column; gap:6px;">
+                    <div style="padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; font-size: 12px;">
+                      <div style="font-family:var(--mono-font); font-size:9.5px; letter-spacing:0.10em; text-transform:uppercase; color:var(--accent);">flag · 05</div>
+                      <div style="color:var(--ink); font-weight:500; margin-top:3px;">channel_sync_v2 · killed 2h ago</div>
+                      <div style="color:var(--ink-3); font-size: 11.5px; margin-top:2px;">Cohort included this org. State recoverable.</div>
+                    </div>
+                    <div style="padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; font-size: 12px;">
+                      <div style="font-family:var(--mono-font); font-size:9.5px; letter-spacing:0.10em; text-transform:uppercase; color:var(--accent);">audit · 07</div>
+                      <div style="color:var(--ink); font-weight:500; margin-top:3px;">5 actions on this ticket</div>
+                      <div style="color:var(--ink-3); font-size: 11.5px; margin-top:2px;">Escalation chain logged · view audit row</div>
+                    </div>
+                    <div style="padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; font-size: 12px;">
+                      <div style="font-family:var(--mono-font); font-size:9.5px; letter-spacing:0.10em; text-transform:uppercase; color:var(--accent);">org · 01</div>
+                      <div style="color:var(--ink); font-weight:500; margin-top:3px;">PT Senayan Estate</div>
+                      <div style="color:var(--ink-3); font-size: 11.5px; margin-top:2px;">Atelier · 34 users · 28 active 30d · MRR $4,280</div>
+                    </div>
+                    <div style="padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; font-size: 12px;">
+                      <div style="font-family:var(--mono-font); font-size:9.5px; letter-spacing:0.10em; text-transform:uppercase; color:var(--ink-4);">tickets · related · 4</div>
+                      <div style="color:var(--ink); font-weight:500; margin-top:3px;">#4189 · #4192 · #4201 · #4214</div>
+                      <div style="color:var(--ink-3); font-size: 11.5px; margin-top:2px;">All channel_sync_v2 reports · all resolved by kill</div>
+                    </div>
+                  </div>
+
+                  <h4 style="margin:18px 0 10px; font-family:var(--mono-font); font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3); font-weight:500;">SLA · P0</h4>
+                  <div class="sla-card">
+                    <div class="row"><span class="l">first reply</span><span class="v ok">14m · met</span></div>
+                    <div class="row"><span class="l">resolution target</span><span class="v">1h</span></div>
+                    <div class="row"><span class="l">elapsed</span><span class="v danger">6h · BREACHED</span></div>
+                    <div class="bar"><div class="fill danger" style="width: 100%;"></div></div>
+                  </div>
+
+                  <h4 style="margin:18px 0 10px; font-family:var(--mono-font); font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-3); font-weight:500;">Customer effort</h4>
+                  <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--ink-2); line-height: 1.5;">
+                    Made has chased twice during the breach window. Recommend explicit apology + reimbursement offer in the post-mortem.
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>focus view = thread + sidebar · escalation chain pinned at top</span>
+        <span>·</span>
+        <span>"Send · mark resolved" writes to audit log + closes ticket atomically</span>
+      </div>
+    </section>
+
+    <!-- 03 POLICY -->
+    <section id="policy" class="ds-section" data-screen-label="03 Triage policy">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">03</span><span>—</span><span>Policy</span></div>
+          <h2>Triage policy · categories, priority, SLA</h2>
+          <p>The triage-router agent reads this configuration. Each category maps to default priority, AI-draft tone, owner team, and SLA windows. SLA targets are <em>tier-aware</em> — Atelier-tier orgs get tighter first-reply and resolution windows. Same versioned-policy pattern as cabinet 04's dunning policy.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a><a>Billing</a><a>Flags</a>
+                <a class="on">Support</a>
+                <a>Audit</a><a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">support / triage policy</div>
+                  <h1>Triage policy <em>· v9</em></h1>
+                  <div class="sub">Read by triage-router on every incoming ticket. Versioned — old versions stay queryable.</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Version history</button>
+                  <button class="btn">Test against ticket</button>
+                  <button class="btn btn-primary">Edit policy</button>
+                </div>
+              </div>
+
+              <div class="triage-shell">
+                <div class="triage-hd">
+                  <h2>Categories · <em>5 · maps to default priority + owner</em></h2>
+                  <span class="meta">last edit 8d ago · Nikita R</span>
+                </div>
+
+                <div class="sla-table">
+                  <div class="head">
+                    <div class="col">category</div>
+                    <div class="col">priority</div>
+                    <div class="col">AI tone · drafter</div>
+                    <div class="col">first-reply</div>
+                    <div class="col">resolution</div>
+                    <div class="col">owner</div>
+                  </div>
+
+                  <div class="row">
+                    <div class="cat">
+                      <span class="nm">bug · platform-wide</span>
+                      <span class="ex">multi-org reports of same symptom</span>
+                    </div>
+                    <div><span class="pri p0">P0</span></div>
+                    <div class="ai">brief, technical, acknowledge severity · <strong>no autosend</strong></div>
+                    <div class="sla-cell">30m<span class="sub">15m · Atelier</span></div>
+                    <div class="sla-cell">2h<span class="sub">1h · Atelier</span></div>
+                    <div class="own">tech lead</div>
+                  </div>
+
+                  <div class="row">
+                    <div class="cat">
+                      <span class="nm">bug · single org</span>
+                      <span class="ex">one org's data quirk, sync delay, calc mismatch</span>
+                    </div>
+                    <div><span class="pri p1">P1</span></div>
+                    <div class="ai">warm, technical, propose workaround · autosend OK at &gt;90% conf</div>
+                    <div class="sla-cell">1h<span class="sub">30m · Atelier</span></div>
+                    <div class="sla-cell">8h<span class="sub">4h · Atelier</span></div>
+                    <div class="own">tech lead</div>
+                  </div>
+
+                  <div class="row">
+                    <div class="cat">
+                      <span class="nm">billing</span>
+                      <span class="ex">payment, invoice, refund, dunning</span>
+                    </div>
+                    <div><span class="pri p1">P1</span></div>
+                    <div class="ai">warm, reassuring, link to billing portal · <strong>no autosend</strong> (financial)</div>
+                    <div class="sla-cell">2h<span class="sub">1h · Atelier</span></div>
+                    <div class="sla-cell">24h<span class="sub">8h · Atelier</span></div>
+                    <div class="own">sales</div>
+                  </div>
+
+                  <div class="row">
+                    <div class="cat">
+                      <span class="nm">howto</span>
+                      <span class="ex">"can you tell me how to…", documentation gap</span>
+                    </div>
+                    <div><span class="pri p2">P2</span></div>
+                    <div class="ai">friendly, link to docs, include examples · autosend OK at &gt;95% conf</div>
+                    <div class="sla-cell">4h<span class="sub">2h · Atelier</span></div>
+                    <div class="sla-cell">2d<span class="sub">1d · Atelier</span></div>
+                    <div class="own">sales</div>
+                  </div>
+
+                  <div class="row">
+                    <div class="cat">
+                      <span class="nm">feature request</span>
+                      <span class="ex">"can the product also…"</span>
+                    </div>
+                    <div><span class="pri p3">P3</span></div>
+                    <div class="ai">acknowledge, log to product backlog, no timeline promise · <strong>no autosend</strong></div>
+                    <div class="sla-cell">2d</div>
+                    <div class="sla-cell">—<span class="sub">N/A</span></div>
+                    <div class="own">sales · weekly</div>
+                  </div>
+                </div>
+
+                <div class="tier-grid">
+                  <div class="tier-card">
+                    <h4>Atelier <span style="font-family:var(--mono-font); font-size:10.5px; color:var(--accent); letter-spacing:0.10em; text-transform:uppercase; margin-left:6px;">priority</span></h4>
+                    <div class="meta">$3,180+ MRR · 4 orgs</div>
+                    <dl>
+                      <div><dt>jump queue</dt><dd>yes</dd></div>
+                      <div><dt>SLA</dt><dd>50% of base</dd></div>
+                      <div><dt>tech lead</dt><dd>direct ping &gt;= P1</dd></div>
+                      <div><dt>weekend cover</dt><dd>P0 + P1 only</dd></div>
+                    </dl>
+                  </div>
+                  <div class="tier-card">
+                    <h4>Studio</h4>
+                    <div class="meta">$680–$1,180 MRR · 38 orgs</div>
+                    <dl>
+                      <div><dt>jump queue</dt><dd>no</dd></div>
+                      <div><dt>SLA</dt><dd>base targets</dd></div>
+                      <div><dt>tech lead</dt><dd>via escalation</dd></div>
+                      <div><dt>weekend cover</dt><dd>P0 only</dd></div>
+                    </dl>
+                  </div>
+                  <div class="tier-card">
+                    <h4>Trial / internal</h4>
+                    <div class="meta">no MRR · 7 orgs</div>
+                    <dl>
+                      <div><dt>jump queue</dt><dd>no</dd></div>
+                      <div><dt>SLA</dt><dd>best effort</dd></div>
+                      <div><dt>tech lead</dt><dd>no</dd></div>
+                      <div><dt>weekend cover</dt><dd>none</dd></div>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>SLA targets tier-aware · Atelier breaches page tech lead via slack</span>
+        <span>·</span>
+        <span>Autosend never enabled for billing or P0 categories</span>
+      </div>
+    </section>
+
+    <!-- 04 SCHEMA -->
+    <section id="schema" class="ds-section" data-screen-label="04 Schema">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Spec</span></div>
+          <h2>Schema · agents · routing</h2>
+          <p>Tickets come in via three channels — in-app composer, email-to-ticket gateway, and the AI agent surface (e.g. when an agent run fails and writes a customer-facing summary). All three normalise to the same <code>support_tickets</code> + <code>support_messages</code> tables. AI replies are <strong style="color:var(--doc-fg)">drafts</strong>, never autosends (except where explicitly enabled per category).</p>
+        </div>
+      </div>
+
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Tables · new for 2.5</h3>
+          <dl>
+            <div><dt>support_tickets</dt><dd><code>id · org_id · subject · category · priority · status · assignee_id · sla_first_reply_at · sla_resolution_at · escalated_at · resolved_at</code></dd></div>
+            <div><dt>support_messages</dt><dd><code>ticket_id · author_type (cust/staff/agent) · author_id · body · attachments · is_internal_note · created_at</code></dd></div>
+            <div><dt>support_drafts</dt><dd><code>ticket_id · agent · body · confidence · sources_jsonb · created_at · accepted (bool) · edited_distance</code></dd></div>
+            <div><dt>support_policy</dt><dd><code>version · categories_jsonb · tier_overrides_jsonb · created_by · effective_from</code></dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Agents</h3>
+          <dl>
+            <div><dt>triage-router</dt><dd>Runs on every incoming message. Classifies category + priority. Writes internal note + dispatches to the right team queue.</dd></div>
+            <div><dt>draft-replier</dt><dd>Runs on every customer message in an open ticket. Drafts a reply, retrieves 3-5 context sources, writes to <code>support_drafts</code> with a confidence score.</dd></div>
+            <div><dt>sla-warden</dt><dd>cron every 5m. Pages the right team when first-reply or resolution targets approach. Atelier-tier breaches slack tech lead directly.</dd></div>
+            <div><dt>weekly-csat-rollup</dt><dd>Mondays 06:00. Closes out the prior week's CSAT, posts summary to ops channel.</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Routing</h3>
+          <dl>
+            <div><dt>in-app</dt><dd>Composer in any product cabinet (Mgmt + Dev + Owner) writes directly to <code>support_tickets</code> with the originating page URL attached.</dd></div>
+            <div><dt>email-to-ticket</dt><dd><code>support@{slug}.arconique.com</code> aliases route through Postmark inbound. Thread continuity by Message-Id.</dd></div>
+            <div><dt>agent failure</dt><dd>If an agent run fails with customer impact (e.g. statement-preparer can't send), it auto-opens a P1 ticket and tags itself as the AI author.</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>AI rules</h3>
+          <dl>
+            <div><dt>draft only</dt><dd>Default for all categories. Operator confirms every send. Edit distance to the final sent reply is logged for quality monitoring.</dd></div>
+            <div><dt>autosend</dt><dd>Allowed only for <code>howto</code> + <code>bug · single org</code> at &gt;90% confidence. Toggleable per-category in policy.</dd></div>
+            <div><dt>never autosend</dt><dd><code>billing</code>, <code>P0 bugs</code>, anything mentioning a refund/suspend/legal word. Even at 99% confidence.</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<script>
+  (function () {
+    function isInternal(href) { if (!href) return false; if (/^(https?:|mailto:|tel:|#)/i.test(href)) return false; return true; }
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      if (a.target && a.target !== '' && a.target !== '_self') return;
+      var href = a.getAttribute('href');
+      if (!isInternal(href)) return;
+      var search = window.location.search;
+      if (!search) return;
+      if (href.indexOf('?') !== -1) return;
+      var hashIdx = href.indexOf('#');
+      var base = hashIdx === -1 ? href : href.slice(0, hashIdx);
+      var hash = hashIdx === -1 ? '' : href.slice(hashIdx);
+      a.setAttribute('href', base + search + hash);
+    }, true);
+  })();
+</script>
+
+</body>
+</html>

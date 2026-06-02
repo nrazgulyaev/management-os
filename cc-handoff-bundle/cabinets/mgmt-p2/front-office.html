@@ -1,0 +1,3025 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Front office · Mgmt P2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style id="chrome-css">
+/* ===== inlined cabinets/chrome.css ===== */
+/* ===== ds/tokens.css ===== */
+/* ============================================================
+   Arconique Design System — tokens
+   Layer B (product-scoped). Layer A legacy is being deprecated.
+   ============================================================ */
+
+/* Management OS — warm hospitality */
+[data-product="management"],
+[data-product="owner"] {
+  /* Surfaces */
+  --cream:        #F4EFE6;
+  --cream-deep:   #ECE5D5;
+  --cream-warm:   #FAF7F1;
+  --paper:        #FFFCF7;
+
+  /* Ink */
+  --ink:          #14201C;
+  --ink-2:        #2A3934;
+  --ink-3:        #4A5A55;
+  --ink-4:        #7E8A85;
+
+  /* Brand */
+  --forest:       #1F3A33;
+  --forest-deep:  #122621;
+  --forest-fade:  #2E4F47;
+  --terra:        #C4583C;
+  --terra-soft:   #E48A6E;
+  --gold:         #BC9A5C;
+  --gold-soft:    #DCC691;
+  --sage:         #88A89A;
+
+  /* Lines */
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --line-strong:  #C2B89E;
+
+  /* Semantic */
+  --ok:           #4F7A5D;
+  --warn:         #C58A2E;
+  --danger:       #B14132;
+  --info:         #3D5A7A;
+
+  /* Accent pastels (bento cards, status pills) */
+  --mint:         #D8E8D6;
+  --mint-deep:    #B6D3B2;
+  --peach:        #F6D9CB;
+  --peach-deep:   #EDB89F;
+  --butter:       #F5E9B8;
+  --butter-deep:  #E8D77E;
+  --sky:          #D4E2EC;
+  --sky-deep:     #A8C1D4;
+
+  /* Type */
+  --display-font: 'Newsreader', Georgia, 'Iowan Old Style', serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-card: 18px;
+  --r-card-lg: 22px;
+  --r-hero: 28px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 12px 30px -18px rgba(20,32,28,0.18);
+  --shadow-soft:  0 18px 40px -24px rgba(20,32,28,0.22);
+  --shadow-pop:   0 24px 56px -28px rgba(20,32,28,0.28),
+                  0 2px 6px rgba(20,32,28,0.06);
+
+  /* Accent role (used by .btn-primary semantics) */
+  --accent:           var(--terra);
+  --accent-deep:      #A44627;
+  --accent-soft:      var(--terra-soft);
+  --on-accent:        var(--cream-warm);
+  --inverted-bg:      var(--forest);
+  --inverted-bg-deep: var(--forest-deep);
+  --inverted-fg:      var(--cream-warm);
+}
+
+/* Owner Portal — same palette, slightly calmer */
+[data-product="owner"] {
+  /* Owner is for non-technical users, used 2–4× per month.
+     Inherits Mgmt palette. The differentiation is density/sizing —
+     applied at the component level, not via different tokens. */
+}
+
+/* Development OS — engineering grade */
+[data-product="development"] {
+  /* Surfaces */
+  --bg:           #F1ECE0;
+  --bg-2:         #F8F4EA;
+  --bg-3:         #FFFCF4;
+  --panel:        #FFFFFF;
+
+  /* Compatibility aliases (cards/topbars look up --paper/--cream too) */
+  --paper:        var(--panel);
+  --cream:        var(--bg);
+  --cream-warm:   var(--bg-2);
+  --cream-deep:   var(--bg-2);
+
+  /* Lines */
+  --line:         #E5DECC;
+  --line-2:       #D8CFB7;
+  --line-3:       #BAAF92;
+  --line-soft:    #ECE6D5;
+  --line-strong:  var(--line-3);
+
+  /* Ink */
+  --concrete:     #2A2A26;
+  --concrete-2:   #4A4A42;
+  --concrete-3:   #6E6E64;
+  --ink:          #14130E;
+  --ink-2:        #3D3B33;
+  --ink-3:        #6E6B5E;
+  --ink-4:        #95917F;
+  --carbon:       #14130E;
+
+  /* Brand */
+  --amber:        #FF6B35;
+  --amber-soft:   #FFB088;
+  --amber-deep:   #D8541F;
+  --steel:        #3D5A7A;
+  --steel-soft:   #7E9DBF;
+  --lime:         #C9DC4A;
+
+  /* Semantic */
+  --ok:           #4F8A5D;
+  --warn:         #C58A2E;
+  --danger:       #C2474E;
+  --info:         var(--steel);
+
+  /* Pastels (status/event tags) */
+  --pastel-peach:  #F6D2BC;
+  --pastel-sky:    #C9DCEA;
+  --pastel-butter: #F0DE96;
+  --pastel-mint:   #CBDFC8;
+  --pastel-cream:  #ECE5D5;
+  --pastel-rose:   #EFC6BD;
+
+  /* Type */
+  --display-font: 'Space Grotesk', system-ui, sans-serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-card: 14px;
+  --r-card-lg: 18px;
+  --r-hero: 22px;
+  --r-pill: 999px;
+
+  /* Shadows — more graphical, less soft */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 8px 22px -14px rgba(20,19,14,0.20);
+  --shadow-soft:  0 18px 38px -22px rgba(20,19,14,0.24);
+  --shadow-pop:   0 24px 50px -26px rgba(20,19,14,0.30),
+                  0 2px 6px rgba(20,19,14,0.07);
+
+  /* Accent role */
+  --accent:           var(--amber);
+  --accent-deep:      var(--amber-deep);
+  --accent-soft:      var(--amber-soft);
+  --on-accent:        var(--carbon);
+  --inverted-bg:      var(--carbon);
+  --inverted-bg-deep: #050402;
+  --inverted-fg:      #FFFFFF;
+}
+
+/* ============================================================
+   Documentation page chrome — neutral, NOT product-scoped
+   ============================================================ */
+:root {
+  --doc-bg:       #0F0F0E;
+  --doc-bg-2:     #16161A;
+  --doc-bg-3:     #1D1D22;
+  --doc-line:     #2A2A2F;
+  --doc-line-2:   #3A3A40;
+  --doc-fg:       #E8E5DE;
+  --doc-fg-2:     #B2AFA8;
+  --doc-fg-3:     #807D77;
+  --doc-accent:   #E4D9B8;
+
+  --doc-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --doc-sans:    'Inter', system-ui, sans-serif;
+}
+
+
+/* ===== ds/primitives.css ===== */
+/* ============================================================
+   Arconique Design System — primitives
+   Buttons, cards, badges, chips, KPI, pulse, type utilities.
+   Lives under [data-product=…]; the documentation chrome
+   (sections.css) provides the outer surface.
+   ============================================================ */
+
+/* ---------- Type utilities ---------- */
+[data-product] .display {
+  font-family: var(--display-font);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  color: var(--ink);
+}
+[data-product="development"] .display {
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+[data-product] .display em {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 400;
+}
+
+[data-product] .label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+[data-product="development"] .label,
+[data-product="owner"] .label { letter-spacing: 0.18em; }
+
+[data-product] .mono {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+}
+[data-product] .num {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+[data-product] .body {
+  font-family: var(--sans-font);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ---------- */
+[data-product] .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease,
+              border-color 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+[data-product] .btn-lg { padding: 14px 22px; font-size: 15px; }
+[data-product] .btn-sm { padding: 7px 14px; font-size: 13px; }
+[data-product] .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Primary — uses inverted bg per product */
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product="management"] .btn-primary:hover,
+[data-product="owner"] .btn-primary:hover { background: var(--forest); }
+[data-product="development"] .btn-primary:hover { background: #25241D; }
+
+/* Accent — terra (Mgmt/Owner), amber (Dev) */
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); }
+[data-product] .btn-accent:hover { background: var(--accent-deep); }
+
+/* Secondary — light card with border */
+[data-product="management"] .btn-secondary,
+[data-product="owner"] .btn-secondary {
+  background: var(--cream-warm); color: var(--ink); border-color: var(--line);
+}
+[data-product="management"] .btn-secondary:hover,
+[data-product="owner"] .btn-secondary:hover { background: var(--paper); border-color: var(--ink-2); }
+[data-product="development"] .btn-secondary {
+  background: var(--bg-3); color: var(--ink); border-color: var(--line-2);
+}
+[data-product="development"] .btn-secondary:hover { background: var(--bg-2); border-color: var(--line-3); }
+
+/* Ghost */
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); }
+[data-product="management"] .btn-ghost:hover,
+[data-product="owner"] .btn-ghost:hover { background: var(--cream-deep); color: var(--ink); }
+[data-product="development"] .btn-ghost:hover { background: var(--bg-2); color: var(--ink); }
+
+/* Danger */
+[data-product] .btn-danger { background: var(--danger); color: var(--cream-warm); }
+[data-product] .btn-danger:hover { filter: brightness(0.92); }
+
+/* Round arrow / sticker buttons */
+[data-product] .ra-btn {
+  width: 46px; height: 46px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; cursor: pointer; transition: transform 0.15s ease, background 0.18s ease;
+  background: var(--ink); color: var(--inverted-fg);
+}
+[data-product] .ra-btn:hover { transform: translateX(2px); }
+[data-product] .ra-btn.light {
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line);
+}
+[data-product] .ra-btn.accent { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- Cards ---------- */
+[data-product="management"] .card,
+[data-product="owner"] .card {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+}
+[data-product="development"] .card,
+[data-product="development"] .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+}
+[data-product] .card-lg { border-radius: var(--r-card-lg); }
+[data-product] .card-hero { border-radius: var(--r-hero); }
+[data-product] .card-pad { padding: 20px; }
+[data-product] .card-pad-lg { padding: 28px; }
+
+/* Inverted hero band */
+[data-product] .card-inverted {
+  background: var(--inverted-bg);
+  color: var(--inverted-fg);
+  border-color: var(--inverted-bg);
+}
+[data-product] .card-inverted .label { color: rgba(255,255,255,0.55); }
+
+/* ---------- Badges ---------- */
+[data-product] .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-family: var(--mono-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  background: var(--paper);
+}
+[data-product] .badge-ok     { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
+[data-product] .badge-warn   { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+[data-product] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product] .badge-info   { background: color-mix(in oklab, var(--info) 12%, transparent); color: var(--info); border-color: color-mix(in oklab, var(--info) 35%, transparent); }
+[data-product] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product="management"] .badge-gold,
+[data-product="owner"] .badge-gold { background: rgba(188,154,92,0.15); color: #8c6f33; border-color: rgba(188,154,92,0.35); }
+[data-product] .badge-ink {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .badge-soft {
+  background: var(--cream-warm, var(--bg-2)); color: var(--ink-2); border-color: var(--line-soft, var(--line-2));
+}
+
+/* ---------- Chips ---------- */
+[data-product] .chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+[data-product="development"] .chip { background: var(--bg-2); border-color: var(--line-2); }
+[data-product] .chip-dot::before {
+  content: ""; width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent); display: inline-block;
+}
+[data-product] .chip-ink { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .chip-active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+/* ---------- Pulse dot ---------- */
+[data-product] .pulse-dot {
+  width: 7px; height: 7px; border-radius: 999px; display: inline-block;
+  background: var(--ok);
+  animation: ds-pulse 2.4s ease-in-out infinite;
+}
+[data-product] .pulse-dot.accent { background: var(--accent); color: var(--accent); }
+@keyframes ds-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; }
+}
+
+/* ---------- Avatar ---------- */
+[data-product] .avatar {
+  width: 32px; height: 32px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-fg);
+  font-family: var(--sans-font);
+  font-size: 11px; font-weight: 500;
+  background: linear-gradient(135deg, var(--gold-soft, var(--amber-soft)), var(--accent));
+}
+[data-product] .avatar-lg { width: 44px; height: 44px; font-size: 14px; }
+[data-product] .avatar-sm { width: 24px; height: 24px; font-size: 10px; }
+
+/* ---------- KPI tile ---------- */
+[data-product] .kpi {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft, var(--line));
+  background: var(--paper, var(--panel));
+}
+[data-product] .kpi .label { font-size: 10.5px; }
+[data-product] .kpi .v {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  margin-top: 4px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.05;
+}
+[data-product] .kpi .sub {
+  margin-top: 3px;
+  font-family: var(--sans-font);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+[data-product] .kpi.accent .v { color: var(--accent); }
+[data-product] .kpi.ok .v { color: var(--ok); }
+[data-product] .kpi.warn .v { color: var(--warn); }
+[data-product] .kpi.gold .v { color: var(--gold, var(--amber)); }
+[data-product] .kpi-lg .v { font-size: 36px; }
+[data-product] .kpi-lg { padding: 22px 22px; }
+
+/* Owner has a calmer, bigger KPI variant for statement clarity */
+[data-product="owner"] .kpi-narrative {
+  padding: 28px 28px;
+  border-radius: var(--r-card-lg);
+}
+[data-product="owner"] .kpi-narrative .label { font-size: 11px; }
+[data-product="owner"] .kpi-narrative .v {
+  font-family: var(--display-font);
+  font-feature-settings: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-top: 10px;
+}
+[data-product="owner"] .kpi-narrative .sub {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+/* ---------- Section heading ---------- */
+[data-product] .section-heading { margin-bottom: 22px; }
+[data-product] .section-heading .eyebrow { margin-bottom: 8px; }
+[data-product] .section-heading h2,
+[data-product] .section-heading h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .section-heading h2,
+[data-product="development"] .section-heading h1 { font-weight: 500; letter-spacing: -0.025em; }
+[data-product] .section-heading p {
+  margin: 10px 0 0;
+  color: var(--ink-3);
+  font-size: 15px;
+  max-width: 680px;
+  line-height: 1.55;
+}
+[data-product="owner"] .section-heading h2,
+[data-product="owner"] .section-heading h1 { font-size: 44px; }
+[data-product="owner"] .section-heading p { font-size: 16px; }
+
+/* ---------- Page header (with breadcrumbs) ---------- */
+[data-product] .page-header {
+  display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 22px;
+}
+[data-product] .page-header .left { flex: 1; min-width: 0; }
+[data-product] .page-header .crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+[data-product] .page-header .crumb a { color: var(--ink-3); text-decoration: none; }
+[data-product] .page-header .crumb a:hover { color: var(--ink); }
+[data-product] .page-header h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .page-header h1 { font-weight: 500; }
+[data-product] .page-header .actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+
+/* ===== ds/layout.css ===== */
+/* ============================================================
+   Arconique Design System — layout (sidebar, topbar, tables)
+   ============================================================ */
+
+/* ---------- App shell wrapper used in previews ---------- */
+[data-product] .app-shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  height: 580px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  overflow: hidden;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-content {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-body {
+  padding: 22px 28px;
+  overflow: auto;
+  flex: 1;
+}
+
+/* ---------- Sidebar ---------- */
+[data-product] .sidebar {
+  border-right: 1px solid var(--line-soft, var(--line));
+  display: flex; flex-direction: column;
+  background: var(--paper, var(--panel));
+  overflow-y: auto;
+}
+[data-product] .sidebar::-webkit-scrollbar { width: 6px; }
+[data-product] .sidebar::-webkit-scrollbar-thumb {
+  background: var(--line); border-radius: 999px;
+}
+[data-product] .sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 18px 14px;
+  text-decoration: none; color: var(--ink);
+}
+[data-product] .sb-brand .logo {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-bg);
+}
+[data-product] .sb-brand .wordmark {
+  font-family: var(--display-font);
+  font-size: 20px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace {
+  margin: 0 18px 12px;
+  padding: 10px 12px;
+  background: var(--cream-deep, var(--bg-2));
+  border-radius: 10px;
+}
+[data-product] .sb-workspace .label { font-size: 9.5px; }
+[data-product] .sb-workspace .name {
+  font-family: var(--display-font);
+  font-size: 16px;
+  margin-top: 2px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace .sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+[data-product] .sb-group {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .sb-group:last-child { border-bottom: 0; }
+[data-product] .sb-group-title {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 10px 18px 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+[data-product] .sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 18px;
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer; border: 0; background: transparent;
+  width: 100%; text-align: left;
+  border-left: 2px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease;
+  text-decoration: none;
+}
+[data-product="management"] .sb-item:hover,
+[data-product="owner"] .sb-item:hover { background: var(--cream-warm); }
+[data-product="development"] .sb-item:hover { background: var(--bg-2); }
+[data-product] .sb-item.on {
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product="management"] .sb-item.on,
+[data-product="owner"] .sb-item.on {
+  background: var(--cream-warm);
+  border-left-color: var(--accent);
+}
+[data-product="development"] .sb-item.on {
+  background: var(--bg-2);
+  border-left-color: var(--accent);
+}
+[data-product] .sb-badge {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+[data-product] .sb-item.on .sb-badge {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Topbar ---------- */
+[data-product] .topbar {
+  position: sticky; top: 0; z-index: 30;
+  padding: 12px 28px;
+  display: flex; align-items: center; gap: 16px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--cream, var(--bg)) 92%, transparent);
+}
+[data-product] .tb-crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+[data-product] .tb-crumb b { color: var(--ink); font-weight: 500; }
+[data-product] .tb-spacer { flex: 1; }
+[data-product] .tb-search {
+  position: relative;
+  width: 280px;
+}
+[data-product] .tb-search input {
+  width: 100%;
+  padding: 7px 38px 7px 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  outline: none;
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper, var(--panel));
+}
+[data-product] .tb-search .sx {
+  position: absolute; left: 10px; top: 8px;
+  color: var(--ink-4);
+}
+[data-product] .tb-search .kbd {
+  position: absolute; right: 8px; top: 6px;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-3);
+}
+[data-product] .tb-bell {
+  position: relative;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-2);
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+[data-product] .tb-bell:hover { background: var(--cream-deep, var(--bg-2)); }
+[data-product] .tb-bell .dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent);
+}
+[data-product] .tb-user {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+[data-product] .tb-user .meta {
+  display: flex; flex-direction: column;
+  line-height: 1.15;
+}
+[data-product] .tb-user .name { font-size: 13px; font-weight: 500; color: var(--ink); }
+[data-product] .tb-user .role { font-size: 10.5px; color: var(--ink-3); }
+
+/* ---------- Tables ---------- */
+[data-product] table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans-font);
+  font-size: 13px;
+}
+[data-product] table.data th,
+[data-product] table.data td {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] table.data th {
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+[data-product="management"] table.data th,
+[data-product="owner"] table.data th {
+  background: var(--cream);
+  border-bottom-color: var(--line-soft);
+}
+[data-product="development"] table.data th {
+  background: var(--bg-2);
+  border-bottom-color: var(--line-2);
+}
+[data-product] table.data tbody tr:hover {
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 60%, transparent);
+}
+[data-product] table.data td.num,
+[data-product] table.data th.num {
+  text-align: right;
+  font-family: var(--mono-font);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] table.data .row-title {
+  font-family: var(--display-font);
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+/* Mgmt-soft variant: airier rows, serif row titles */
+[data-product="management"] table.guests,
+[data-product="owner"] table.guests {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--sans-font);
+}
+[data-product="management"] table.guests th,
+[data-product="management"] table.guests td,
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft);
+}
+[data-product="management"] table.guests th,
+[data-product="owner"] table.guests th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: var(--cream);
+}
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td { padding: 18px 22px; }
+[data-product="management"] table.guests tbody tr:hover,
+[data-product="owner"] table.guests tbody tr:hover { background: var(--cream); }
+
+/* ---------- Forms ---------- */
+[data-product] .field { display: flex; flex-direction: column; gap: 6px; }
+[data-product] .field-label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+[data-product] .input,
+[data-product] .select,
+[data-product] .textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper, var(--panel));
+  font-family: var(--sans-font);
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+[data-product] .textarea { min-height: 96px; resize: vertical; }
+[data-product] .input:focus,
+[data-product] .select:focus,
+[data-product] .textarea:focus {
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+[data-product] .input::placeholder,
+[data-product] .textarea::placeholder { color: var(--ink-4); }
+[data-product] .field-help { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+[data-product] .field-error { font-size: 12px; color: var(--danger); margin-top: 2px; }
+
+[data-product] .check {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--sans-font); font-size: 14px; color: var(--ink);
+  cursor: pointer;
+}
+[data-product] .check input { appearance: none; -webkit-appearance: none; }
+[data-product] .check .box {
+  width: 18px; height: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--paper, var(--panel));
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+[data-product] .check input:checked + .box {
+  background: var(--ink); border-color: var(--ink);
+}
+[data-product] .check input:checked + .box::after {
+  content: "";
+  width: 9px; height: 5px;
+  border-left: 2px solid var(--inverted-fg);
+  border-bottom: 2px solid var(--inverted-fg);
+  transform: rotate(-45deg) translate(0, -2px);
+}
+
+[data-product] .radio .box { border-radius: 999px; }
+[data-product] .radio input:checked + .box {
+  background: var(--paper, var(--panel));
+  border-color: var(--accent);
+}
+[data-product] .radio input:checked + .box::after {
+  content: ""; width: 9px; height: 9px;
+  border: 0; transform: none; background: var(--accent);
+  border-radius: 999px;
+}
+
+[data-product] .toggle {
+  position: relative; width: 38px; height: 22px;
+  background: var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+[data-product] .toggle::after {
+  content: ""; position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  background: var(--paper, var(--panel));
+  border-radius: 999px;
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+[data-product] .toggle.on { background: var(--accent); }
+[data-product] .toggle.on::after { transform: translateX(16px); }
+
+/* ---------- Filter bar ---------- */
+[data-product] .filter-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--paper, var(--panel));
+  margin-bottom: 14px;
+}
+[data-product] .filter-bar .divider {
+  width: 1px; height: 22px; background: var(--line); margin: 0 2px;
+}
+
+/* ---------- Empty state ---------- */
+[data-product] .empty {
+  padding: 40px 28px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-card);
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 50%, transparent);
+  text-align: center;
+}
+[data-product] .empty .glyph {
+  width: 44px; height: 44px; margin: 0 auto 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 999px;
+}
+[data-product] .empty .title {
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+[data-product] .empty .copy {
+  font-size: 13px;
+  color: var(--ink-3);
+  max-width: 360px;
+  margin: 0 auto 14px;
+  line-height: 1.5;
+}
+
+/* ---------- Pagination ---------- */
+[data-product] .pagination {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono-font);
+  font-size: 12px;
+}
+[data-product] .pagination button {
+  min-width: 30px; height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper, var(--panel));
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .pagination button:hover { border-color: var(--ink-2); color: var(--ink); }
+[data-product] .pagination button.on {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .pagination .meta {
+  margin-left: 12px; color: var(--ink-3);
+}
+
+/* ---------- Modal ---------- */
+[data-product] .modal-backdrop {
+  position: relative;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  padding: 36px 28px;
+  border-radius: var(--r-card);
+  display: flex; align-items: flex-start; justify-content: center;
+}
+[data-product] .modal {
+  width: 480px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border-radius: var(--r-card-lg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  box-shadow: var(--shadow-pop);
+}
+[data-product] .modal-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+}
+[data-product] .modal-header h3 {
+  margin: 0;
+  font-family: var(--display-font); font-weight: 400; font-size: 19px;
+  color: var(--ink);
+}
+[data-product] .modal-header p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
+[data-product] .modal-body { padding: 18px 22px; }
+[data-product] .modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* ---------- Command palette preview ---------- */
+[data-product] .cmdk {
+  width: 540px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+[data-product] .cmdk-input {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  font-family: var(--sans-font);
+  font-size: 15px;
+  color: var(--ink-2);
+  display: flex; align-items: center; gap: 10px;
+}
+[data-product] .cmdk-input .sx { color: var(--ink-4); }
+[data-product] .cmdk-group {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .cmdk-group:last-child { border-bottom: 0; }
+[data-product] .cmdk-group-title {
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 8px 18px 4px;
+}
+[data-product] .cmdk-item {
+  padding: 8px 18px;
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--sans-font); font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .cmdk-item.on,
+[data-product] .cmdk-item:hover { background: var(--cream-warm, var(--bg-2)); color: var(--ink); }
+[data-product] .cmdk-item .hint {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+
+/* ---------- Detail page skeleton ---------- */
+[data-product] .detail-shell {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 18px;
+}
+[data-product] .detail-shell .related { display: flex; flex-direction: column; gap: 14px; }
+[data-product] .detail-tabs {
+  display: flex; align-items: center; gap: 4px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 18px;
+}
+[data-product] .detail-tabs .tab {
+  padding: 10px 14px;
+  border: 0; background: transparent;
+  font-family: var(--sans-font);
+  font-size: 13.5px; color: var(--ink-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+[data-product] .detail-tabs .tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- Mobile preview frame ---------- */
+.mobile-frame {
+  width: 360px;
+  border: 1px solid var(--line, #DAD2C0);
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--cream, var(--bg, #F4EFE6));
+  box-shadow: 0 16px 40px -18px rgba(15,15,14,0.22),
+              0 2px 6px rgba(15,15,14,0.06);
+  height: 640px;
+  display: flex; flex-direction: column;
+}
+.mobile-frame .mobile-status {
+  height: 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  font-family: var(--mono-font, monospace);
+  font-size: 11px;
+  color: var(--ink, #14201C);
+}
+.mobile-frame .mobile-body {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Mobile tabbar */
+[data-product] .mobile-tabbar {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+}
+[data-product] .mobile-tabbar .tb {
+  flex: 1;
+  padding: 8px 0 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  cursor: pointer;
+  border: 0; background: transparent;
+}
+[data-product] .mobile-tabbar .tb.on {
+  color: var(--ink);
+}
+[data-product] .mobile-tabbar .tb.on .ico {
+  color: var(--accent);
+}
+[data-product] .mobile-tabbar .ico {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+
+/* ===== ds/meta.css ===== */
+/* ============================================================
+   Documentation page chrome — neutral surface that hosts
+   the product previews. NOT product-scoped.
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--doc-sans);
+  background: var(--doc-bg);
+  color: var(--doc-fg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100vh;
+}
+
+/* ---------- App layout ---------- */
+.ds-app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- Left rail (TOC) ---------- */
+.ds-toc {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--doc-line);
+  padding: 24px 16px 32px;
+  background: var(--doc-bg-2);
+}
+.ds-toc .ds-mark {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  padding: 4px 8px 16px;
+}
+.ds-toc .ds-mark .glyph {
+  width: 6px; height: 6px;
+  background: var(--doc-accent);
+  border-radius: 2px;
+  display: inline-block;
+}
+.ds-toc h1 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0 0 22px;
+  padding: 0 8px;
+  color: var(--doc-fg);
+  letter-spacing: -0.005em;
+}
+.ds-toc .ds-toc-group {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 18px;
+}
+.ds-toc .ds-toc-group-title {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  padding: 8px 8px 6px;
+}
+.ds-toc .ds-toc-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  text-decoration: none;
+  border-radius: 6px;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+}
+.ds-toc .ds-toc-item:hover {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+}
+.ds-toc .ds-toc-item.on {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+  border-left-color: var(--doc-accent);
+}
+.ds-toc .ds-toc-item .num {
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  color: var(--doc-fg-3);
+  width: 18px;
+}
+
+/* ---------- Right side ---------- */
+.ds-main {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--doc-bg);
+}
+
+/* ---------- Product tab bar ---------- */
+.ds-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1px solid var(--doc-line);
+  background: var(--doc-bg);
+  padding: 0 32px;
+}
+.ds-tab {
+  padding: 18px 18px;
+  font-family: var(--doc-sans);
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  border: 0; background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex; align-items: center; gap: 10px;
+}
+.ds-tab:hover { color: var(--doc-fg); }
+.ds-tab.on {
+  color: var(--doc-fg);
+  border-bottom-color: var(--doc-accent);
+}
+.ds-tab .swatch {
+  width: 10px; height: 10px;
+  border-radius: 999px;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+}
+.ds-tab .tag {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  margin-left: 6px;
+}
+.ds-tab.on .tag { color: var(--doc-fg-2); }
+.ds-tabs .ds-meta {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 4px;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.ds-tabs .ds-meta .pill {
+  padding: 4px 10px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 999px;
+  color: var(--doc-fg-2);
+}
+
+/* ---------- Content area ---------- */
+.ds-content {
+  padding: 0 32px 96px;
+}
+
+/* ---------- Section ---------- */
+.ds-section {
+  padding: 56px 0 24px;
+  border-bottom: 1px solid var(--doc-line);
+}
+.ds-section:last-child { border-bottom: 0; }
+.ds-section-head {
+  display: flex; align-items: flex-end; gap: 18px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.ds-section-head .ds-section-eyebrow {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.ds-section-head h2 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 28px;
+  margin: 0;
+  letter-spacing: -0.015em;
+  color: var(--doc-fg);
+}
+.ds-section-head p {
+  margin: 8px 0 0;
+  max-width: 580px;
+  color: var(--doc-fg-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.ds-section-head .ds-section-meta {
+  margin-left: auto;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  display: flex; gap: 14px;
+  align-items: center;
+}
+
+/* ---------- Sub-section ---------- */
+.ds-sub {
+  margin-bottom: 36px;
+}
+.ds-sub-head {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 14px;
+}
+.ds-sub-head h3 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0;
+  color: var(--doc-fg);
+}
+.ds-sub-head .code {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  padding: 1px 6px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 4px;
+}
+.ds-sub-head p {
+  margin: 0;
+  color: var(--doc-fg-2);
+  font-size: 13px;
+}
+
+/* ---------- Preview surface (the warm card the product previews sit on) ---------- */
+.ds-preview {
+  background: var(--cream, var(--bg, #F4EFE6));
+  border-radius: 14px;
+  padding: 28px;
+  border: 1px solid var(--doc-line);
+  position: relative;
+  overflow: hidden;
+}
+.ds-preview.tight { padding: 18px; }
+.ds-preview.flush { padding: 0; }
+.ds-preview .ds-preview-tag {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  background: rgba(15,15,14,0.05);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* ---------- Code snippet ---------- */
+.ds-code {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 12px 14px;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+  border-radius: 8px;
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.ds-code .kw { color: #c5b889; }
+.ds-code .str { color: #b6cd97; }
+.ds-code .com { color: var(--doc-fg-3); font-style: italic; }
+
+/* ---------- Spec list (key = value rows) ---------- */
+.ds-spec {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 6px 18px;
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 14px 0 0;
+}
+.ds-spec dt { color: var(--doc-fg-3); }
+.ds-spec dd { margin: 0; color: var(--doc-fg); }
+
+/* ---------- Two/three column grid for showcase ---------- */
+.ds-grid { display: grid; gap: 14px; }
+.ds-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.ds-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.ds-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.ds-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+.ds-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.ds-grid.cols-mobile { grid-template-columns: 1fr 360px; gap: 28px; align-items: start; }
+
+/* ---------- Color swatch ---------- */
+.swatch-card {
+  display: flex; flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+}
+.swatch-card .chip {
+  height: 80px;
+  background: var(--c);
+  display: flex; align-items: flex-end;
+  padding: 10px 12px;
+  color: var(--cfg, #fff);
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.swatch-card .meta {
+  padding: 8px 12px 10px;
+}
+.swatch-card .name {
+  font-family: var(--doc-sans);
+  font-size: 12.5px;
+  color: var(--doc-fg);
+  margin-bottom: 1px;
+}
+.swatch-card .var {
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Type specimen ---------- */
+.type-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--doc-line);
+  align-items: baseline;
+}
+.type-row:last-child { border-bottom: 0; }
+.type-row .meta {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.type-row .meta .name { color: var(--doc-fg-2); margin-bottom: 2px; }
+.type-row .specimen { color: var(--ink, var(--doc-fg)); }
+
+/* ---------- Token row (radii, shadows) ---------- */
+.token-row {
+  display: grid;
+  grid-template-columns: 64px 140px 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--doc-line);
+}
+.token-row:last-child { border-bottom: 0; }
+.token-row .visual {
+  width: 64px; height: 64px;
+  background: var(--cream, var(--bg, #F4EFE6));
+  border: 1px solid var(--line, #DAD2C0);
+  display: flex; align-items: center; justify-content: center;
+}
+.token-row .name {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+}
+.token-row .value {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Inline label inside the meta dark area ---------- */
+.ds-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--doc-line-2);
+  color: var(--doc-fg-2);
+}
+.ds-tag.accent {
+  background: var(--doc-accent);
+  color: var(--doc-bg);
+  border-color: var(--doc-accent);
+}
+
+/* ---------- Mobile preview row ---------- */
+.ds-mobile-row {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.ds-mobile-row .ds-mobile-notes {
+  padding-top: 16px;
+}
+.ds-mobile-row .ds-mobile-notes h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--doc-fg);
+}
+.ds-mobile-row .ds-mobile-notes p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  line-height: 1.55;
+}
+
+/* ---------- Small viewport gracefully ---------- */
+@media (max-width: 1280px) {
+  .ds-grid.cols-mobile,
+  .ds-mobile-row { grid-template-columns: 1fr; }
+  .ds-grid.cols-5, .ds-grid.cols-6 { grid-template-columns: repeat(3, 1fr); }
+  .ds-content { padding: 0 22px 80px; }
+  .ds-tabs { padding: 0 22px; }
+}
+@media (max-width: 900px) {
+  .ds-app { grid-template-columns: 1fr; }
+  .ds-toc {
+    position: relative; height: auto;
+    border-right: 0; border-bottom: 1px solid var(--doc-line);
+  }
+  .ds-grid.cols-3, .ds-grid.cols-4, .ds-grid.cols-5, .ds-grid.cols-6 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ds-content { padding: 0 16px 64px; }
+  .ds-tabs { padding: 0 16px; overflow-x: auto; }
+  .ds-tabs .ds-meta { display: none; }
+}
+/* ===== inlined cabinets/p24-primitives.css ===== */
+/* ============================================================
+   Phase 2.4 — new primitive styles
+   These extend ds/primitives.css. After review they go into the
+   repo as src/styles/components-2.4.css and component files in
+   src/components/{channels,pricing,site-reports,sales,investors}.
+   ============================================================ */
+
+/* ---------- 1. ChannelGrid ---------- */
+[data-product] .channel-grid {
+  --col-w: 56px;
+  --row-h: 44px;
+  --row-label-w: 200px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  overflow: hidden;
+  font-family: var(--sans-font);
+  font-size: 12.5px;
+}
+[data-product="development"] .channel-grid { background: var(--panel); border-color: var(--line-2); }
+[data-product] .cg-head {
+  display: grid;
+  grid-template-columns: var(--row-label-w) repeat(var(--cols, 14), var(--col-w));
+  background: var(--cream-warm, var(--bg-2));
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+  position: sticky; top: 0; z-index: 2;
+}
+[data-product] .cg-head .corner {
+  padding: 10px 14px;
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  display: flex; align-items: center; gap: 8px;
+}
+[data-product] .cg-head .day {
+  padding: 6px 4px 8px;
+  text-align: center;
+  font-family: var(--mono-font);
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  color: var(--ink-3);
+}
+[data-product] .cg-head .day .dow { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-4); }
+[data-product] .cg-head .day .dn { font-size: 14px; color: var(--ink); font-feature-settings: "tnum"; }
+[data-product] .cg-head .day.weekend { background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 50%, var(--accent-soft)); }
+[data-product] .cg-head .day.today .dn { color: var(--accent); font-weight: 500; }
+[data-product] .cg-head .day.today { border-bottom: 2px solid var(--accent); margin-bottom: -1px; }
+
+[data-product] .cg-row {
+  display: grid;
+  grid-template-columns: var(--row-label-w) repeat(var(--cols, 14), var(--col-w));
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+[data-product] .cg-row:last-child { border-bottom: 0; }
+[data-product] .cg-row.villa-group {
+  background: var(--cream-warm, var(--bg-2));
+}
+[data-product] .cg-row.villa-group .label {
+  font-family: var(--display-font); font-size: 15px; font-weight: 400;
+  color: var(--ink); padding: 11px 14px;
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  letter-spacing: -0.005em;
+}
+[data-product="development"] .cg-row.villa-group .label { font-weight: 500; letter-spacing: -0.015em; }
+[data-product] .cg-row .label {
+  padding: 8px 14px 8px 28px;
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  font-size: 12.5px;
+  display: flex; align-items: center; gap: 8px;
+  color: var(--ink-2);
+  min-height: var(--row-h);
+}
+[data-product] .cg-row .label .ch {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ch, var(--ink-3));
+}
+[data-product] .cg-row .label .meta {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+[data-product] .cg-cell {
+  border-right: 1px solid var(--line-soft, var(--line-2));
+  min-height: var(--row-h);
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-2);
+  cursor: cell;
+  transition: background 0.12s ease;
+}
+[data-product] .cg-cell:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+[data-product] .cg-cell.weekend { background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 60%, transparent); }
+[data-product] .cg-cell.weekend:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* Rate cell display */
+[data-product] .cg-cell .rate { font-feature-settings: "tnum"; color: var(--ink); }
+[data-product] .cg-cell .rate.below { color: var(--warn); }
+[data-product] .cg-cell .rate.above { color: var(--ok); }
+[data-product] .cg-cell.editing {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--paper);
+}
+[data-product] .cg-cell .indicator {
+  position: absolute; top: 3px; right: 3px;
+  width: 5px; height: 5px; border-radius: 50%;
+}
+
+/* Availability states (overlay on cell) */
+[data-product] .cg-cell.blocked {
+  background: repeating-linear-gradient(135deg,
+    color-mix(in srgb, var(--ink-3) 8%, transparent) 0 4px,
+    transparent 4px 8px);
+  color: var(--ink-4);
+}
+[data-product] .cg-cell.booked {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  color: var(--ok);
+}
+[data-product] .cg-cell.synced .indicator { background: var(--ok); }
+[data-product] .cg-cell.stale .indicator { background: var(--warn); }
+[data-product] .cg-cell.conflict .indicator { background: var(--danger); }
+
+/* Stay span overlay — multi-day booking */
+[data-product] .cg-stay {
+  position: absolute;
+  top: 4px; bottom: 4px;
+  background: var(--ink);
+  color: var(--inverted-fg);
+  border-radius: var(--r-pill);
+  padding: 0 10px;
+  display: flex; align-items: center;
+  font-family: var(--sans-font);
+  font-size: 11px;
+  font-weight: 500;
+  z-index: 1;
+  pointer-events: auto;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+[data-product] .cg-stay.direct { background: var(--accent); color: var(--on-accent); }
+[data-product] .cg-stay.airbnb { background: #FF5A5F; color: white; }
+[data-product] .cg-stay.booking-com { background: #003580; color: white; }
+[data-product] .cg-stay.avito { background: #00AAFF; color: white; }
+[data-product] .cg-stay.tentative {
+  background: var(--paper); color: var(--ink-2);
+  border: 1px dashed var(--ink-3);
+}
+
+/* Editing tooltip */
+[data-product] .cg-edit-pop {
+  position: absolute;
+  background: var(--ink);
+  color: var(--inverted-fg);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  box-shadow: var(--shadow-pop);
+  z-index: 5;
+  display: flex; align-items: center; gap: 8px;
+  white-space: nowrap;
+}
+[data-product] .cg-edit-pop::before {
+  content: ""; position: absolute; top: -4px; left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px; height: 8px; background: var(--ink);
+}
+[data-product] .cg-edit-pop input {
+  background: transparent; border: 0; outline: 0;
+  color: var(--inverted-fg);
+  font-family: var(--mono-font);
+  font-size: 12px; width: 80px;
+  border-bottom: 1px solid color-mix(in srgb, var(--inverted-fg) 40%, transparent);
+}
+[data-product] .cg-edit-pop .ent {
+  font-size: 9px;
+  padding: 1px 5px;
+  background: color-mix(in srgb, var(--inverted-fg) 20%, transparent);
+  border-radius: 4px;
+}
+
+/* Channel legend chip */
+[data-product] .cg-legend {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line-soft, var(--line-2));
+  font-family: var(--sans-font);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  background: var(--cream-warm, var(--bg-2));
+}
+[data-product] .cg-legend .item { display: inline-flex; align-items: center; gap: 6px; }
+[data-product] .cg-legend .sw { width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+
+/* ---------- 2. PricingCurve ---------- */
+[data-product] .pc-wrap {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 22px 22px 18px;
+}
+[data-product="development"] .pc-wrap { background: var(--panel); border-color: var(--line-2); }
+[data-product] .pc-head {
+  display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+[data-product] .pc-head .title {
+  font-family: var(--display-font);
+  font-size: 22px;
+  color: var(--ink);
+  font-weight: 400;
+}
+[data-product="development"] .pc-head .title { font-weight: 500; }
+[data-product] .pc-head .legend {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-left: auto;
+}
+[data-product] .pc-head .legend .it { display: inline-flex; align-items: center; gap: 6px; }
+[data-product] .pc-head .legend .ln { width: 14px; height: 2px; background: var(--c); }
+[data-product] .pc-head .legend .ln.dash { background: repeating-linear-gradient(90deg, var(--c) 0 3px, transparent 3px 6px); }
+
+[data-product] .pc-svg-wrap { position: relative; }
+[data-product] .pc-svg-wrap svg { display: block; width: 100%; }
+[data-product] .pc-handle {
+  fill: var(--paper);
+  stroke: var(--accent);
+  stroke-width: 2;
+  cursor: ns-resize;
+}
+[data-product] .pc-handle.active { fill: var(--accent); }
+[data-product] .pc-tooltip {
+  position: absolute;
+  background: var(--ink);
+  color: var(--inverted-fg);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 4;
+  box-shadow: var(--shadow-pop);
+}
+[data-product] .pc-tooltip .delta { color: var(--accent-soft); margin-left: 6px; }
+
+[data-product] .pc-controls {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft, var(--line-2));
+}
+[data-product] .pc-knob {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--cream-warm, var(--bg-2));
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .pc-knob.on { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .pc-knob .k { color: var(--ink-4); }
+[data-product] .pc-knob.on .k { color: color-mix(in srgb, var(--inverted-fg) 60%, transparent); }
+
+/* ---------- 3. StoryboardLog ---------- */
+[data-product] .sb-day {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 32px;
+  padding: 36px 0;
+  border-bottom: 1px solid var(--line);
+}
+[data-product] .sb-day:first-child { padding-top: 4px; }
+[data-product] .sb-day:last-child { border-bottom: 0; }
+[data-product] .sb-day .meta {
+  position: sticky; top: 96px; align-self: start;
+}
+[data-product] .sb-day .meta .date {
+  font-family: var(--display-font);
+  font-size: 32px; font-weight: 400;
+  color: var(--ink); letter-spacing: -0.02em; line-height: 1;
+}
+[data-product="development"] .sb-day .meta .date { font-weight: 500; letter-spacing: -0.025em; }
+[data-product] .sb-day .meta .dow {
+  font-family: var(--mono-font);
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em;
+  color: var(--ink-3); margin-top: 6px;
+}
+[data-product] .sb-day .meta .who {
+  margin-top: 18px; display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--ink-2);
+}
+[data-product] .sb-day .meta .who .role {
+  font-family: var(--mono-font); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-3); margin-top: 2px; display: block;
+}
+[data-product] .sb-day .meta .weather {
+  margin-top: 18px;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product] .sb-day .meta .weather strong { color: var(--ink-2); font-weight: 500; }
+
+[data-product] .sb-frames { display: flex; flex-direction: column; gap: 24px; }
+[data-product] .sb-frame {
+  display: flex; flex-direction: column; gap: 14px;
+}
+[data-product] .sb-photo {
+  position: relative;
+  border-radius: var(--r-card-lg);
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(135deg, var(--ink-4) 0 2px, transparent 2px 14px),
+    var(--cream-deep, var(--bg-2));
+  aspect-ratio: 16 / 9;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  font-family: var(--mono-font);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+[data-product] .sb-photo.tall { aspect-ratio: 4 / 5; }
+[data-product] .sb-photo.wide { aspect-ratio: 21 / 9; }
+[data-product] .sb-photo .pill {
+  position: absolute; left: 16px; top: 16px;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 4px 10px;
+  background: rgba(15,15,14,0.78);
+  color: rgba(255,255,255,0.92);
+  border-radius: var(--r-pill);
+  backdrop-filter: blur(6px);
+}
+[data-product] .sb-photo .pill.alert { background: var(--danger); color: white; }
+[data-product] .sb-photo .pill.flag { background: var(--warn); color: var(--ink); }
+[data-product] .sb-photo .stamp {
+  position: absolute; right: 16px; bottom: 16px;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  background: rgba(15,15,14,0.72);
+  color: rgba(255,255,255,0.85);
+  border-radius: 6px;
+}
+
+[data-product] .sb-frame .body {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 18px; align-items: start;
+}
+[data-product] .sb-frame .caption {
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--ink);
+  line-height: 1.4;
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+[data-product="development"] .sb-frame .caption { font-weight: 500; }
+[data-product] .sb-frame .narration {
+  margin: 6px 0 0;
+  font-size: 13.5px; line-height: 1.55;
+  color: var(--ink-2);
+}
+[data-product] .sb-frame .side {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px 14px;
+  background: var(--cream-warm, var(--bg-2));
+  border: 1px solid var(--line-soft, var(--line-2));
+  border-radius: var(--r-card);
+}
+[data-product] .sb-frame .side .row {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 12px;
+}
+[data-product] .sb-frame .side .row .k {
+  font-family: var(--mono-font);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+}
+[data-product] .sb-frame .side .row .v {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  color: var(--ink-2);
+}
+
+/* ---------- 4. PipelineBoard ---------- */
+[data-product] .pb {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 280px;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 2px 2px 14px;
+  scrollbar-width: thin;
+}
+[data-product] .pb-lane {
+  background: var(--cream-warm, var(--bg-2));
+  border: 1px solid var(--line-soft, var(--line-2));
+  border-radius: var(--r-card);
+  display: flex; flex-direction: column;
+  min-height: 360px;
+  max-height: 600px;
+}
+[data-product] .pb-lane-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+  display: flex; align-items: center; gap: 10px;
+}
+[data-product] .pb-lane-head .name {
+  font-family: var(--display-font);
+  font-size: 16px;
+  color: var(--ink);
+  font-weight: 400;
+}
+[data-product="development"] .pb-lane-head .name { font-weight: 500; letter-spacing: -0.01em; }
+[data-product] .pb-lane-head .count {
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--paper);
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+}
+[data-product] .pb-lane-head .value {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: right;
+}
+[data-product] .pb-lane-head .value strong { color: var(--ink); font-weight: 500; }
+
+[data-product] .pb-cards {
+  padding: 10px 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+[data-product] .pb-card {
+  padding: 12px 14px;
+  background: var(--paper);
+  border: 1px solid var(--line-soft, var(--line-2));
+  border-radius: var(--r-card);
+  display: flex; flex-direction: column; gap: 8px;
+  cursor: grab;
+  transition: box-shadow 0.18s ease, transform 0.12s ease, border-color 0.18s ease;
+}
+[data-product] .pb-card:hover { box-shadow: var(--shadow-card); border-color: var(--line); transform: translateY(-1px); }
+[data-product] .pb-card.dragging { box-shadow: var(--shadow-pop); transform: rotate(-1.5deg); cursor: grabbing; }
+[data-product] .pb-card .row1 { display: flex; align-items: center; gap: 8px; }
+[data-product] .pb-card .row1 .who {
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+[data-product] .pb-card .row1 .amt {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 12.5px;
+  color: var(--ink);
+  font-feature-settings: "tnum";
+}
+[data-product] .pb-card .unit {
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product] .pb-card .row2 {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+[data-product] .pb-card .row2 .age { margin-left: auto; }
+[data-product] .pb-card .row2 .age.stale { color: var(--warn); }
+[data-product] .pb-card .row2 .age.dead { color: var(--danger); }
+[data-product] .pb-card .probability {
+  height: 3px; background: var(--cream-deep, var(--bg-3));
+  border-radius: 999px; overflow: hidden;
+}
+[data-product] .pb-card .probability .fill {
+  height: 100%; background: var(--accent);
+  border-radius: 999px;
+}
+[data-product] .pb-card .probability.hot .fill { background: var(--ok); }
+[data-product] .pb-card .probability.cold .fill { background: var(--ink-4); }
+
+[data-product] .pb-card .tags {
+  display: flex; gap: 4px; flex-wrap: wrap;
+}
+[data-product] .pb-card .tags .t {
+  font-family: var(--mono-font); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+
+[data-product] .pb-lane-foot {
+  padding: 8px 10px;
+  border-top: 1px solid var(--line-soft, var(--line-2));
+}
+[data-product] .pb-lane-foot .add {
+  width: 100%;
+  padding: 8px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-card);
+  background: transparent;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+  cursor: pointer;
+}
+[data-product] .pb-lane-foot .add:hover { color: var(--ink-2); border-color: var(--ink-4); }
+
+/* ---------- 5. WaterfallChart ---------- */
+[data-product] .wf {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  padding: 28px 28px 22px;
+}
+[data-product="development"] .wf { background: var(--panel); border-color: var(--line-2); }
+[data-product] .wf-head {
+  display: flex; align-items: flex-end; gap: 22px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line-soft, var(--line-2));
+}
+[data-product] .wf-head .left h3 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-size: 24px; font-weight: 400;
+  color: var(--ink); letter-spacing: -0.01em;
+}
+[data-product="development"] .wf-head .left h3 { font-weight: 500; letter-spacing: -0.02em; }
+[data-product] .wf-head .left .sub {
+  font-family: var(--mono-font);
+  font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-3); margin-top: 4px;
+}
+[data-product] .wf-head .meta {
+  margin-left: auto;
+  text-align: right;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+[data-product] .wf-head .meta b { color: var(--ink); font-weight: 500; }
+
+[data-product] .wf-bars {
+  display: grid;
+  grid-template-columns: repeat(var(--bars, 7), 1fr);
+  align-items: end;
+  gap: 14px;
+  position: relative;
+  height: 280px;
+  padding-bottom: 60px;
+}
+[data-product] .wf-axis {
+  position: absolute; left: 0; right: 0; bottom: 60px;
+  border-top: 1px solid var(--line);
+  pointer-events: none;
+}
+[data-product] .wf-axis.zero {
+  border-top: 1px solid var(--ink-2);
+}
+
+[data-product] .wf-bar {
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: stretch;
+  height: 100%;
+  justify-content: flex-end;
+}
+[data-product] .wf-bar .rect {
+  position: relative;
+  width: 100%;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+}
+[data-product] .wf-bar.start .rect,
+[data-product] .wf-bar.total .rect {
+  background: var(--ink); color: var(--inverted-fg);
+}
+[data-product] .wf-bar.add .rect { background: var(--ok); }
+[data-product] .wf-bar.sub .rect { background: var(--danger); }
+[data-product] .wf-bar.neutral .rect { background: var(--accent); color: var(--on-accent); }
+
+[data-product] .wf-bar .rect .v {
+  position: absolute; left: 0; right: 0; top: -22px;
+  text-align: center;
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-size: 12px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+[data-product] .wf-bar .rect .v.inside {
+  top: auto; bottom: 8px;
+  color: var(--inverted-fg);
+}
+[data-product] .wf-bar.add .rect .v { color: var(--ok); }
+[data-product] .wf-bar.sub .rect .v { color: var(--danger); }
+
+[data-product] .wf-bar .connector {
+  position: absolute;
+  left: 100%; top: 0; right: -14px;
+  border-top: 1px dashed var(--ink-4);
+}
+[data-product] .wf-bar:last-child .connector { display: none; }
+
+[data-product] .wf-bar .label {
+  position: absolute; bottom: -54px;
+  left: 0; right: 0;
+  text-align: center;
+}
+[data-product] .wf-bar .label .name {
+  font-family: var(--sans-font);
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.3;
+}
+[data-product] .wf-bar.start .label .name,
+[data-product] .wf-bar.total .label .name { font-weight: 500; color: var(--ink); }
+[data-product] .wf-bar .label .sub {
+  font-family: var(--mono-font);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-4); margin-top: 2px;
+}
+
+[data-product] .wf-footer {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line-soft, var(--line-2));
+}
+[data-product] .wf-foot-kpi .l {
+  font-family: var(--mono-font);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+[data-product] .wf-foot-kpi .v {
+  font-family: var(--display-font);
+  font-size: 28px; font-weight: 400;
+  color: var(--ink); letter-spacing: -0.01em;
+  margin-top: 4px;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+[data-product="development"] .wf-foot-kpi .v { font-weight: 500; }
+[data-product] .wf-foot-kpi .v.accent { color: var(--accent); }
+[data-product] .wf-foot-kpi .s {
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-3); margin-top: 4px;
+}
+
+/* ============================================================
+   DS extension intro/cover
+   ============================================================ */
+.dse-cover {
+  padding: 64px 32px 32px;
+}
+.dse-cover .eyebrow {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--doc-accent);
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px;
+}
+.dse-cover .eyebrow .glyph {
+  width: 6px; height: 6px;
+  background: var(--doc-accent); border-radius: 2px;
+}
+.dse-cover h1 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 44px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--doc-fg);
+}
+.dse-cover h1 em {
+  color: var(--doc-accent);
+  font-style: italic;
+  font-weight: 400;
+}
+.dse-cover p {
+  max-width: 720px;
+  margin: 22px 0 0;
+  font-size: 15px;
+  color: var(--doc-fg-2);
+  line-height: 1.6;
+}
+.dse-cover .meta {
+  display: flex; gap: 28px; flex-wrap: wrap;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--doc-line);
+}
+.dse-cover .meta div { display: flex; flex-direction: column; gap: 4px; }
+.dse-cover .meta .k {
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--doc-fg-3);
+}
+.dse-cover .meta .v {
+  font-family: var(--doc-sans);
+  font-size: 14px;
+  color: var(--doc-fg);
+}
+
+</style>
+<style>
+.cab-cover { padding: 64px 32px 32px; }
+.cab-cover .eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.cab-cover .eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { font-family: var(--doc-sans); font-weight: 500; font-size: 44px; letter-spacing: -0.02em; line-height: 1.05; margin: 0; color: var(--doc-fg); }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 22px 0 0; font-size: 15px; color: var(--doc-fg-2); line-height: 1.6; }
+.cab-cover .meta { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--doc-line); }
+.cab-cover .meta div { display: flex; flex-direction: column; gap: 4px; }
+.cab-cover .meta .k { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); }
+.cab-cover .meta .v { font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg); }
+
+.cab-board-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(640px, 1fr)); gap: 20px; margin-top: 8px; }
+.cab-board { background: var(--doc-bg-3); border: 1px solid var(--doc-line-2); border-radius: 14px; overflow: hidden; }
+.cab-board .head { padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--doc-line-2); background: var(--doc-bg-2); }
+.cab-board .head .num { font-family: var(--doc-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; padding: 2px 8px; background: var(--doc-accent); color: var(--doc-bg); border-radius: 999px; }
+.cab-board .head .name { font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg); font-weight: 500; }
+.cab-board .head .desc { font-family: var(--doc-sans); font-size: 12px; color: var(--doc-fg-3); margin-left: auto; }
+.cab-board .body { background: var(--cream); }
+
+/* Status board card — used in front office hero */
+.fo-card {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.fo-card.ready { border-left: 3px solid var(--ok); }
+.fo-card.flag { border-left: 3px solid var(--warn); }
+.fo-card.problem { border-left: 3px solid var(--danger); }
+.fo-card .h { display: flex; align-items: baseline; gap: 8px; }
+.fo-card .h .who { font-family: var(--display-font); font-size: 17px; color: var(--ink); font-weight: 400; letter-spacing: -0.01em; }
+.fo-card .h .time { margin-left: auto; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+.fo-card .sub { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+.fo-card .body { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
+.fo-card .body .row { display: flex; align-items: center; gap: 6px; }
+.fo-card .body .row .k { color: var(--ink-4); font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; width: 70px; }
+.fo-card .actions { display: flex; gap: 6px; padding-top: 6px; border-top: 1px solid var(--line-soft); }
+</style>
+</head>
+<body data-screen-label="Front office cabinet">
+
+<div class="ds-app">
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span><span>Arconique · Mgmt P2</span></div>
+    <h1>Front office</h1>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Cabinet</div>
+      <a class="ds-toc-item on" href="#hero"><span class="num">01</span><span>Hero · today</span></a>
+      <a class="ds-toc-item" href="#variants"><span class="num">02</span><span>Layout variants</span></a>
+      <a class="ds-toc-item" href="#checkin"><span class="num">03</span><span>Check-in flow</span></a>
+      <a class="ds-toc-item" href="#registry"><span class="num">04</span><span>Registry · ID/visa</span></a>
+      <a class="ds-toc-item" href="#mobile"><span class="num">05</span><span>Mobile</span></a>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Spec</div>
+      <a class="ds-toc-item" href="#schema"><span class="num">06</span><span>Schema · states</span></a>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Reference</div>
+      <a class="ds-toc-item" href="../../ds-2.4-primitives.html"><span class="num">↗</span><span>DS extension 2.4</span></a>
+      <a class="ds-toc-item" href="../index.html"><span class="num">↗</span><span>Cabinet index</span></a>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <div class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Mgmt P2 · 3 of 4</span></div>
+      <h1>The cabinet for <em>today, this hour</em>.</h1>
+      <p>
+        Front office is a single-day operational view — who's arriving, who's leaving, who's in-house, what needs attention. No tables. Cards organised by time, statuses on the left edge.
+        Mobile-first by design — front-desk staff use this on a tablet at the counter and on phones in the field. Every action is a 2-tap maximum.
+      </p>
+      <div class="meta">
+        <div><span class="k">Status</span><span class="v">Design draft</span></div>
+        <div><span class="k">Sequence</span><span class="v">PR 3 of Phase 2.4</span></div>
+        <div><span class="k">Depends on</span><span class="v">Bookings · Concierge · Operations</span></div>
+        <div><span class="k">Routes</span><span class="v">/dashboard/front-office · /front-office/checkin/[id]</span></div>
+      </div>
+    </div>
+
+    <div class="ds-content">
+
+      <!-- ============ 01. Hero ============ -->
+      <section id="hero" class="ds-section" data-screen-label="01 Hero today">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">01</span><span>—</span><span>Hero</span></div>
+            <h2>Today · 28 may · wed</h2>
+            <p>Three columns: arrivals, in-house, departures. Each card shows guest, villa, time, and 1-3 status badges. Click a card → drawer slides in with full booking + actions.</p>
+          </div>
+          <div class="ds-section-meta"><span class="ds-tag accent">Variant A — recommended</span></div>
+        </div>
+
+        <div class="ds-preview flush" style="background:#1A1A1F;padding:18px;">
+          <div class="app-shell" data-product="management" style="height:760px;">
+            <aside class="sidebar">
+              <a class="sb-brand" href="#"><span class="logo"><svg viewBox="0 0 22 22" width="22" height="22" fill="currentColor"><path d="M3 18 L11 4 L19 18 Z" /></svg></span><span class="wordmark">Arconique</span></a>
+              <div class="sb-workspace"><div class="label">Workspace</div><div class="name">Canggu Villas</div><div class="sub">14 villas · front desk</div></div>
+              <div class="sb-group">
+                <div class="sb-group-title">Today</div>
+                <a class="sb-item" href="#"><span>Dashboard</span></a>
+                <a class="sb-item on" href="#"><span>Front office</span><span class="sb-badge">12</span></a>
+                <a class="sb-item" href="#"><span>Concierge</span><span class="sb-badge">7</span></a>
+                <a class="sb-item" href="#"><span>Operations</span></a>
+              </div>
+              <div class="sb-group">
+                <div class="sb-group-title">Revenue</div>
+                <a class="sb-item" href="channels.html"><span>Channels</span></a>
+                <a class="sb-item" href="dynamic-pricing.html"><span>Dynamic pricing</span></a>
+                <a class="sb-item" href="#"><span>Bookings</span></a>
+                <a class="sb-item" href="#"><span>Finance</span></a>
+              </div>
+            </aside>
+
+            <div class="shell-content">
+              <div class="topbar">
+                <div class="tb-crumb"><span>Mgmt</span> / <b>Front office</b></div>
+                <div class="tb-spacer"></div>
+                <div class="tb-search"><span class="sx"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4"/></svg></span><input placeholder="Search guest, villa…" /><span class="kbd">⌘K</span></div>
+                <button class="tb-bell"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 8a5 5 0 1 1 10 0v3l2 3H3l2-3V8z"/></svg><span class="dot"></span></button>
+                <div class="tb-user"><div class="avatar avatar-sm">YM</div><div class="meta"><span class="name">Y. Mahesa</span><span class="role">Front desk</span></div></div>
+              </div>
+
+              <div class="shell-body" style="padding:18px 22px;">
+
+                <!-- Page header -->
+                <div style="display:flex;align-items:flex-end;gap:18px;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--line-soft);">
+                  <div>
+                    <div class="crumb" style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;">Today · live</div>
+                    <h1 style="margin:6px 0 0;font-family:var(--display-font);font-weight:400;font-size:32px;color:var(--ink);letter-spacing:-0.02em;">Wed · 28 may 2025</h1>
+                  </div>
+                  <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
+                    <span class="chip" style="font-family:var(--mono-font);"><span class="pulse-dot"></span>live · 14:08 WITA</span>
+                    <button class="btn btn-secondary btn-sm">Day report</button>
+                    <button class="btn btn-primary btn-sm">+ Walk-in</button>
+                  </div>
+                </div>
+
+                <!-- KPI strip -->
+                <div class="ds-grid cols-5" style="gap:8px;margin-bottom:18px;">
+                  <div class="kpi" style="padding:12px 14px;"><div class="label" style="font-size:9.5px;">arriving</div><div class="v" style="font-size:22px;">5</div><div class="sub">3 done · 2 to go</div></div>
+                  <div class="kpi" style="padding:12px 14px;"><div class="label" style="font-size:9.5px;">in-house</div><div class="v" style="font-size:22px;">11</div><div class="sub">12 guests · 7 villas</div></div>
+                  <div class="kpi" style="padding:12px 14px;"><div class="label" style="font-size:9.5px;">leaving</div><div class="v" style="font-size:22px;">4</div><div class="sub">all done</div></div>
+                  <div class="kpi accent" style="padding:12px 14px;"><div class="label" style="font-size:9.5px;">turnovers</div><div class="v" style="font-size:22px;">3</div><div class="sub">villas same-day</div></div>
+                  <div class="kpi warn" style="padding:12px 14px;"><div class="label" style="font-size:9.5px;">flags</div><div class="v" style="font-size:22px;">2</div><div class="sub">Selva early · Lumi ID</div></div>
+                </div>
+
+                <!-- 3-column board -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+
+                  <!-- Arrivals column -->
+                  <div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+                      <div style="font-family:var(--display-font);font-size:18px;color:var(--ink);">Arrivals · 5</div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">3/5 done</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <div class="fo-card ready">
+                        <div class="h">
+                          <span class="who">Family Park · IT</span>
+                          <span class="time">15:00 → done 14:32</span>
+                        </div>
+                        <div class="sub">family of 5 · Tirta · jun 09–13 · 4n</div>
+                        <div class="body">
+                          <div class="row"><span class="k">villa</span><span>Tirta · Canggu</span></div>
+                          <div class="row"><span class="k">id</span><span>passports ✓ × 5</span></div>
+                          <div class="row"><span class="k">extras</span><span>airport pickup · high chair</span></div>
+                        </div>
+                      </div>
+                      <div class="fo-card ready">
+                        <div class="h"><span class="who">M. Petrov · RU</span><span class="time">16:00 → done 16:08</span></div>
+                        <div class="sub">solo · Selva · jun 10–15 · 5n</div>
+                        <div class="body">
+                          <div class="row"><span class="k">villa</span><span>Selva · Ubud</span></div>
+                          <div class="row"><span class="k">id</span><span>passport ✓ · visa ✓ KITAS</span></div>
+                          <div class="row"><span class="k">notes</span><span>repeat ×3 · prefers ground floor</span></div>
+                        </div>
+                      </div>
+                      <div class="fo-card ready">
+                        <div class="h"><span class="who">K. Olsen · DK</span><span class="time">14:00 → done 13:48</span></div>
+                        <div class="sub">couple · Lumi · jun 14–21 · 7n</div>
+                      </div>
+                      <div class="fo-card flag">
+                        <div class="h"><span class="who">A. Tanaka · JP</span><span class="time">17:30 · ETA 17:00</span></div>
+                        <div class="sub">solo VIP · Tirta · jun 22–28 · 6n</div>
+                        <div class="body">
+                          <div class="row"><span class="k">villa</span><span>Tirta · turnover 15:30</span></div>
+                          <div class="row"><span class="k">flag</span><span style="color:var(--warn);">housekeeping running 20m late</span></div>
+                          <div class="row"><span class="k">vip</span><span>welcome basket · sake · ground arr</span></div>
+                        </div>
+                        <div class="actions">
+                          <button class="btn btn-secondary btn-sm" style="flex:1;">Notify guest</button>
+                          <button class="btn btn-primary btn-sm" style="flex:1;">Check on housekeeping</button>
+                        </div>
+                      </div>
+                      <div class="fo-card">
+                        <div class="h"><span class="who">R. Hofstadter · US</span><span class="time">19:00</span></div>
+                        <div class="sub">family · Banyu · jun 18–25 · 7n</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- In-house column -->
+                  <div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+                      <div style="font-family:var(--display-font);font-size:18px;color:var(--ink);">In-house · 11</div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">7 villas occupied</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <div class="fo-card problem">
+                        <div class="h"><span class="who">N. Volkov family</span><span class="time">day 3 of 5</span></div>
+                        <div class="sub">Banyu · jun 25–30 · 5n · 4 guests</div>
+                        <div class="body">
+                          <div class="row"><span class="k">issue</span><span style="color:var(--danger);">AC outage · bedroom 2 · 12:14</span></div>
+                          <div class="row"><span class="k">eta</span><span>technician on-site · ETA fix 15:30</span></div>
+                          <div class="row"><span class="k">comp</span><span>2 dinners offered · accepted</span></div>
+                        </div>
+                        <div class="actions">
+                          <button class="btn btn-ghost btn-sm">Concierge ↗</button>
+                          <button class="btn btn-secondary btn-sm" style="margin-left:auto;">Ops ticket</button>
+                          <button class="btn btn-primary btn-sm">Message guest</button>
+                        </div>
+                      </div>
+                      <div class="fo-card">
+                        <div class="h"><span class="who">B. Chen + 3</span><span class="time">day 2 of 6</span></div>
+                        <div class="sub">Selva · jun 26 — jul 02 · 6n</div>
+                      </div>
+                      <div class="fo-card">
+                        <div class="h"><span class="who">J. Whitman couple</span><span class="time">day 1 of 4</span></div>
+                        <div class="sub">Lumi · jun 27 — jul 01 · 4n</div>
+                        <div class="body">
+                          <div class="row"><span class="k">concierge</span><span>massage booked tue 15:00</span></div>
+                        </div>
+                      </div>
+                      <div class="fo-card">
+                        <div class="h"><span class="who">L. Brun family</span><span class="time">day 4 of 7</span></div>
+                        <div class="sub">Tirta · jun 24 — jul 01 · 7n</div>
+                      </div>
+                      <div class="fo-card">
+                        <div class="h"><span class="who">+ 4 more guests</span></div>
+                        <div class="sub" style="color:var(--ink-3);">3 villas · all normal</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Departures column -->
+                  <div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+                      <div style="font-family:var(--display-font);font-size:18px;color:var(--ink);">Departures · 4</div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">all done</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <div class="fo-card ready">
+                        <div class="h"><span class="who">M. Sato + 2</span><span class="time">11:00 → done 10:42</span></div>
+                        <div class="sub">Tirta · 7n · IDR 3.2M paid in full</div>
+                        <div class="body">
+                          <div class="row"><span class="k">turnover</span><span>cleaning 10:42 → 15:30 → Tanaka 17:30</span></div>
+                          <div class="row"><span class="k">review</span><span style="color:var(--ok);">sent · 5★ posted on direct</span></div>
+                        </div>
+                      </div>
+                      <div class="fo-card ready">
+                        <div class="h"><span class="who">P. Ngono couple</span><span class="time">10:30 → done 10:18</span></div>
+                        <div class="sub">Maya · 4n · final + tax IDR 2.1M</div>
+                      </div>
+                      <div class="fo-card ready">
+                        <div class="h"><span class="who">D. Yoshi family</span><span class="time">11:00 → done 11:14</span></div>
+                        <div class="sub">Ombak · 5n · damage check ✓</div>
+                      </div>
+                      <div class="fo-card ready">
+                        <div class="h"><span class="who">G. Müller couple</span><span class="time">09:00 → done 08:48</span></div>
+                        <div class="sub">Pererenan · 3n · early dep, no refund</div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 02. Variants ============ -->
+      <section id="variants" class="ds-section" data-screen-label="02 Variants">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">02</span><span>—</span><span>Layout variants</span></div>
+            <h2>Three ways to organise today</h2>
+            <p>Above is Variant A (3-column board). Below: Variant B (timeline by hour) + Variant C (per-villa grid). Same data, different lens.</p>
+          </div>
+        </div>
+
+        <div class="cab-board-grid">
+
+          <!-- Variant B: Timeline -->
+          <div class="cab-board">
+            <div class="head">
+              <span class="num">B</span>
+              <span class="name">Hour-timeline</span>
+              <span class="desc">Vertical clock — every event in chronological order</span>
+            </div>
+            <div class="body" data-product="management">
+              <div style="padding:18px;background:var(--cream);height:520px;overflow:hidden;">
+                <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;">
+                  <h2 style="margin:0;font-family:var(--display-font);font-weight:400;font-size:22px;color:var(--ink);">Wed · 28 may</h2>
+                  <span class="chip" style="margin-left:auto;font-family:var(--mono-font);font-size:10.5px;"><span class="pulse-dot"></span>14:08 WITA</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line);padding-left:0;">
+                  <div style="display:grid;grid-template-columns:64px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ok);padding-left:14px;border-left:2px solid var(--ok);margin-left:-2px;">09:00 ✓</div>
+                    <div><div style="font-size:13.5px;color:var(--ink);">G. Müller · check-out</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">Pererenan · early dep</div></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:64px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ok);padding-left:14px;border-left:2px solid var(--ok);margin-left:-2px;">10:30 ✓</div>
+                    <div><div style="font-size:13.5px;color:var(--ink);">P. Ngono · check-out</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">Maya</div></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:64px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ok);padding-left:14px;border-left:2px solid var(--ok);margin-left:-2px;">11:00 ✓</div>
+                    <div><div style="font-size:13.5px;color:var(--ink);">M. Sato &amp; D. Yoshi · check-outs</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">Tirta + Ombak · 2 in parallel</div></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:64px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--line-soft);background:color-mix(in srgb,var(--accent) 5%,transparent);">
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--accent);padding-left:14px;border-left:2px solid var(--accent);margin-left:-2px;">14:08 ·</div>
+                    <div><div style="font-size:13.5px;color:var(--ink);font-weight:500;">▸ now · Olsen check-in (done), Tanaka turnover running, AC repair Banyu in-progress</div></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:64px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);padding-left:14px;border-left:2px solid var(--ink-4);margin-left:-2px;">15:00</div>
+                    <div><div style="font-size:13.5px;color:var(--ink);">Family Park · check-in</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ok);">arrived early · 14:32 ✓</div></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:64px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);padding-left:14px;border-left:2px solid var(--ink-4);margin-left:-2px;">15:30</div>
+                    <div><div style="font-size:13.5px;color:var(--ink);">Tirta turnover deadline · Tanaka arrives 17:30</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--warn);">housekeeping reports 20m delay</div></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:64px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);padding-left:14px;border-left:2px solid var(--ink-4);margin-left:-2px;">16:00</div>
+                    <div><div style="font-size:13.5px;color:var(--ink);">M. Petrov · check-in</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ok);">done 16:08</div></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:64px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-2);padding-left:14px;border-left:2px solid var(--ink);margin-left:-2px;">17:30</div>
+                    <div><div style="font-size:13.5px;color:var(--ink);">A. Tanaka · check-in · VIP</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">ground arrival · welcome basket</div></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:64px 1fr;gap:14px;padding:10px 0;">
+                    <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-2);padding-left:14px;border-left:2px solid var(--ink);margin-left:-2px;">19:00</div>
+                    <div><div style="font-size:13.5px;color:var(--ink);">R. Hofstadter · check-in</div></div>
+                  </div>
+                </div>
+                <div style="margin-top:10px;font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">⊕ chronological · ⊖ in-house guests don't appear on the timeline (need extra panel)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Variant C: Per-villa grid -->
+          <div class="cab-board">
+            <div class="head">
+              <span class="num">C</span>
+              <span class="name">Per-villa grid</span>
+              <span class="desc">14 villa tiles · status at a glance</span>
+            </div>
+            <div class="body" data-product="management">
+              <div style="padding:18px;background:var(--cream);height:520px;overflow:hidden;">
+                <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;">
+                  <h2 style="margin:0;font-family:var(--display-font);font-weight:400;font-size:22px;color:var(--ink);">14 villas · today</h2>
+                  <span class="chip" style="margin-left:auto;font-family:var(--mono-font);font-size:10.5px;">7 occ · 4 turn · 3 vacant</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+
+                  <div style="background:var(--paper);border:1px solid var(--line-soft);border-left:3px solid var(--ok);border-radius:10px;padding:10px 12px;">
+                    <div style="font-family:var(--display-font);font-size:14px;color:var(--ink);">Tirta</div>
+                    <div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.12em;margin-top:2px;">turn → check-in 17:30</div>
+                    <div style="font-size:11.5px;color:var(--ink-2);margin-top:6px;">Sato out 10:42 · Tanaka 17:30</div>
+                    <div style="height:4px;background:var(--cream-deep);border-radius:999px;margin-top:6px;overflow:hidden;"><div style="width:65%;height:100%;background:var(--ok);"></div></div>
+                    <div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ok);margin-top:4px;">cleaning · 65% complete</div>
+                  </div>
+
+                  <div style="background:var(--paper);border:1px solid var(--line-soft);border-left:3px solid var(--ok);border-radius:10px;padding:10px 12px;">
+                    <div style="font-family:var(--display-font);font-size:14px;color:var(--ink);">Selva</div>
+                    <div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.12em;margin-top:2px;">in-house · day 2/6</div>
+                    <div style="font-size:11.5px;color:var(--ink-2);margin-top:6px;">B. Chen · IDR 1.7M</div>
+                    <div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-4);margin-top:4px;">no requests</div>
+                  </div>
+
+                  <div style="background:var(--paper);border:1px solid var(--line-soft);border-left:3px solid var(--danger);border-radius:10px;padding:10px 12px;">
+                    <div style="font-family:var(--display-font);font-size:14px;color:var(--ink);">Banyu</div>
+                    <div style="font-family:var(--mono-font);font-size:9.5px;color:var(--danger);text-transform:uppercase;letter-spacing:0.12em;margin-top:2px;">issue · AC bdr 2</div>
+                    <div style="font-size:11.5px;color:var(--ink-2);margin-top:6px;">Volkov · day 3/5</div>
+                    <div style="font-family:var(--mono-font);font-size:9.5px;color:var(--danger);margin-top:4px;">tech ETA 15:30</div>
+                  </div>
+
+                  <div style="background:var(--paper);border:1px solid var(--line-soft);border-left:3px solid var(--ok);border-radius:10px;padding:10px 12px;">
+                    <div style="font-family:var(--display-font);font-size:14px;color:var(--ink);">Lumi</div>
+                    <div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.12em;margin-top:2px;">checked in 13:48</div>
+                    <div style="font-size:11.5px;color:var(--ink-2);margin-top:6px;">Olsen · 7n</div>
+                  </div>
+
+                  <div style="background:var(--paper);border:1px solid var(--line-soft);border-left:3px solid var(--ink-4);border-radius:10px;padding:10px 12px;">
+                    <div style="font-family:var(--display-font);font-size:14px;color:var(--ink);">Maya</div>
+                    <div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-4);text-transform:uppercase;letter-spacing:0.12em;margin-top:2px;">vacant</div>
+                    <div style="font-size:11.5px;color:var(--ink-2);margin-top:6px;">next: jun 28</div>
+                  </div>
+
+                  <div style="background:var(--paper);border:1px solid var(--line-soft);border-left:3px solid var(--warn);border-radius:10px;padding:10px 12px;">
+                    <div style="font-family:var(--display-font);font-size:14px;color:var(--ink);">Pererenan</div>
+                    <div style="font-family:var(--mono-font);font-size:9.5px;color:var(--warn);text-transform:uppercase;letter-spacing:0.12em;margin-top:2px;">turn · no in-bound</div>
+                    <div style="font-size:11.5px;color:var(--ink-2);margin-top:6px;">Müller out 08:48</div>
+                  </div>
+
+                  <div style="background:var(--paper);border:1px solid var(--line-soft);border-radius:10px;padding:10px 12px;opacity:0.5;text-align:center;">
+                    <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);margin-top:14px;">+ 8 more</div>
+                  </div>
+                </div>
+                <div style="margin-top:14px;font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">⊕ spatial · all villas visible at once · ⊖ buries the timing — when is the next thing happening?</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="margin-top:20px;padding:18px 22px;background:var(--doc-bg-3);border:1px solid var(--doc-line-2);border-radius:10px;font-family:var(--doc-mono);font-size:11.5px;color:var(--doc-fg-2);line-height:1.7;">
+          <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:8px;">Recommendation</div>
+          Ship <strong style="color:var(--doc-fg);">Variant A</strong> — the 3-column board. It maps to the front desk's natural conversation ("who's coming, who's here, who's leaving"). Variant B is a great <code>?view=timeline</code> alternate for ops leads. Variant C is wrong for front desk — it's the right view for a Maintenance / Housekeeping dashboard and should live there instead.
+        </div>
+      </section>
+
+      <!-- ============ 03. Check-in flow ============ -->
+      <section id="checkin" class="ds-section" data-screen-label="03 Check-in flow">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">03</span><span>—</span><span>Flow · 4 steps</span></div>
+            <h2>Check-in flow · tablet-first</h2>
+            <p>Full-screen modal at <code style="font-family:var(--doc-mono);font-size:13px;background:var(--doc-bg-3);padding:2px 6px;border-radius:4px;">/front-office/checkin/[bookingId]</code>. Steps: verify ID → confirm stay → collect signatures → handover. Each step shows progress on the left rail.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:18px;">
+          <div data-product="management" style="background:var(--cream);padding:24px;border-radius:12px;">
+            <div style="background:var(--paper);border-radius:14px;border:1px solid var(--line);overflow:hidden;display:grid;grid-template-columns:220px 1fr;min-height:520px;">
+
+              <!-- Left rail -->
+              <div style="background:var(--cream-warm);border-right:1px solid var(--line-soft);padding:24px 20px;">
+                <div class="label" style="font-size:9.5px;margin-bottom:18px;">Check-in · Tanaka</div>
+                <div style="display:flex;flex-direction:column;gap:18px;">
+                  <div style="display:flex;align-items:center;gap:12px;color:var(--ink-3);">
+                    <span style="width:28px;height:28px;border-radius:50%;background:var(--ok);color:white;display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:12px;">✓</span>
+                    <div><div style="font-size:13px;">1 · Identity</div><div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-4);">passport ✓</div></div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px;color:var(--ink);font-weight:500;">
+                    <span style="width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--inverted-fg);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:12px;">2</span>
+                    <div><div style="font-size:13px;">Stay details</div><div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-4);font-weight:400;">confirming…</div></div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px;color:var(--ink-3);">
+                    <span style="width:28px;height:28px;border-radius:50%;background:var(--cream-deep);color:var(--ink-3);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:12px;">3</span>
+                    <div><div style="font-size:13px;">Sign agreement</div><div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-4);">house rules + reg</div></div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px;color:var(--ink-3);">
+                    <span style="width:28px;height:28px;border-radius:50%;background:var(--cream-deep);color:var(--ink-3);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:12px;">4</span>
+                    <div><div style="font-size:13px;">Handover</div><div style="font-family:var(--mono-font);font-size:9.5px;color:var(--ink-4);">keys + welcome</div></div>
+                  </div>
+                </div>
+
+                <div style="margin-top:32px;padding-top:18px;border-top:1px solid var(--line);">
+                  <div class="label" style="font-size:9.5px;margin-bottom:8px;">Guest</div>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#DCC691,#BC9A5C);">AT</div>
+                    <div>
+                      <div style="font-size:13px;color:var(--ink);">A. Tanaka</div>
+                      <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">VIP · ×8</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right content: step 2 -->
+              <div style="padding:32px;">
+                <div class="label" style="font-size:9.5px;margin-bottom:6px;">step 2 of 4</div>
+                <h2 style="margin:0;font-family:var(--display-font);font-weight:400;font-size:26px;color:var(--ink);letter-spacing:-0.01em;">Confirm stay details</h2>
+                <p style="margin:6px 0 22px;color:var(--ink-3);font-size:13.5px;max-width:480px;">Read these aloud and confirm with the guest. Any change here updates the underlying booking + propagates to channels.</p>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;">
+                  <div class="field"><span class="field-label">villa</span><input class="input" value="Tirta · Canggu" /></div>
+                  <div class="field"><span class="field-label">guests</span><input class="input" value="1 adult" /></div>
+                  <div class="field"><span class="field-label">arrival</span><input class="input" value="jun 22 · 17:30" /></div>
+                  <div class="field"><span class="field-label">departure</span><input class="input" value="jun 28 · 11:00" /></div>
+                </div>
+
+                <div class="card card-pad" style="background:var(--cream-warm);padding:16px;margin-bottom:18px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:10px;">VIP preferences (on file)</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--ink-2);">
+                    <div>· Ground-floor bedroom · ground-level entrance</div>
+                    <div>· Sake (Hakkaisan Tokujo) chilled, delivered evening of arrival</div>
+                    <div>· No staff entry between 13:00–15:00 (rest hour)</div>
+                    <div>· Breakfast: japanese · rice + grilled fish · 07:00</div>
+                  </div>
+                </div>
+
+                <div class="card card-pad" style="padding:14px 16px;display:flex;align-items:center;gap:12px;">
+                  <div style="width:28px;height:28px;border-radius:8px;background:var(--ok);color:white;display:inline-flex;align-items:center;justify-content:center;">✓</div>
+                  <div style="flex:1;">
+                    <div style="font-size:13.5px;color:var(--ink);">All channel blocks confirmed</div>
+                    <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">Airbnb · Booking · Avito · direct — none can double-book</div>
+                  </div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;margin-top:28px;padding-top:18px;border-top:1px solid var(--line-soft);">
+                  <button class="btn btn-ghost">‹ identity</button>
+                  <div style="display:flex;gap:8px;">
+                    <button class="btn btn-secondary">Edit booking</button>
+                    <button class="btn btn-primary">Confirm · next ›</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 04. Registry ============ -->
+      <section id="registry" class="ds-section" data-screen-label="04 Registry">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">04</span><span>—</span><span>Sub-page</span></div>
+            <h2>Guest registry · ID + visa</h2>
+            <p>For Indonesia hotel-tax + immigration reporting. Every guest's ID gets scanned at check-in, OCR'd, and stored encrypted. This page is for ops audits + monthly tax submissions.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:18px;">
+          <div data-product="management" style="background:var(--cream);padding:22px;border-radius:12px;">
+            <div class="page-header" style="padding:0 0 18px;margin:0 0 16px;">
+              <div class="left">
+                <div class="crumb"><a href="#">Front office</a> / <span>Registry</span></div>
+                <h1 style="font-size:28px;">Guest registry</h1>
+                <p style="margin:6px 0 0;font-size:13px;color:var(--ink-3);">May 2025 · 218 guests checked in · 4 visa flags pending</p>
+              </div>
+              <div class="actions"><button class="btn btn-secondary">Export · tax form</button><button class="btn btn-secondary">Audit log</button></div>
+            </div>
+
+            <div class="filter-bar" style="margin-bottom:14px;">
+              <span class="chip chip-active">May 2025 · 218</span>
+              <span class="chip">Apr · 184</span>
+              <span class="chip">YTD · 1,124</span>
+              <span class="divider"></span>
+              <span class="chip">All visas</span>
+              <span class="chip">Pending · 4</span>
+              <span class="chip">Long-stay 60d+ · 3</span>
+              <span style="margin-left:auto;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">Sort: check-in ↓</span>
+            </div>
+
+            <table class="data" style="background:var(--paper);border:1px solid var(--line-soft);border-radius:14px;overflow:hidden;">
+              <thead>
+                <tr><th>Guest</th><th>Nationality</th><th>ID type</th><th>ID #</th><th>Visa</th><th>Stay</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><span class="row-title">Family Park · Marco</span></td><td>IT</td><td>Passport</td><td class="mono">YA1234567</td><td><span class="badge badge-soft">VOA · 30d</span></td><td><span class="mono">jun 09–13</span></td><td><span class="badge badge-ok">filed</span></td></tr>
+                <tr><td><span class="row-title">M. Petrov</span></td><td>RU</td><td>Passport</td><td class="mono">7245××8810</td><td><span class="badge badge-info">KITAS · 1y</span></td><td><span class="mono">jun 10–15</span></td><td><span class="badge badge-ok">filed</span></td></tr>
+                <tr><td><span class="row-title">A. Tanaka</span></td><td>JP</td><td>Passport</td><td class="mono">TR9988××01</td><td><span class="badge badge-soft">VOA · 30d</span></td><td><span class="mono">jun 22–28</span></td><td><span class="badge badge-warn">pending OCR</span></td></tr>
+                <tr><td><span class="row-title">B. Chen</span></td><td>CN</td><td>Passport</td><td class="mono">E48××2218</td><td><span class="badge badge-warn">VOA · 30d · day 56</span></td><td><span class="mono">may 02 — ongoing</span></td><td><span class="badge badge-danger">flag · over 30d on VOA</span></td></tr>
+                <tr><td><span class="row-title">R. Hofstadter</span></td><td>US</td><td>Passport</td><td class="mono">53××6671</td><td><span class="badge badge-soft">VOA · 30d</span></td><td><span class="mono">jun 18–25</span></td><td><span class="badge badge-ok">filed</span></td></tr>
+                <tr><td><span class="row-title">K. Olsen</span></td><td>DK</td><td>Passport</td><td class="mono">209××4471</td><td><span class="badge badge-soft">VOA · 30d</span></td><td><span class="mono">jun 14–21</span></td><td><span class="badge badge-ok">filed</span></td></tr>
+                <tr><td colspan="7" style="text-align:center;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);padding:14px;">+ 212 more · 4 flagged</td></tr>
+              </tbody>
+            </table>
+
+            <div style="margin-top:14px;padding:14px 16px;background:color-mix(in srgb,var(--warn) 6%,var(--paper));border:1px solid color-mix(in srgb,var(--warn) 25%,transparent);border-radius:12px;font-family:var(--sans-font);font-size:13px;color:var(--ink-2);">
+              <strong style="color:var(--warn);">4 visa flags</strong> need attention this week — VOA tourists approaching the 30-day limit must either extend or depart. Click a flagged row → email template for "extend or depart" notice opens.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 05. Mobile ============ -->
+      <section id="mobile" class="ds-section" data-screen-label="05 Mobile">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">05</span><span>—</span><span>Mobile</span></div>
+            <h2>Mobile · single-column · time-sorted</h2>
+            <p>Field staff use this on a phone while walking between villas. Same data as 3-column desktop, but one stream — sorted by next-action-time.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:32px;display:flex;justify-content:center;gap:24px;flex-wrap:wrap;">
+          <div class="mobile-frame" data-product="management">
+            <div class="mobile-status"><span>14:08</span><span>5G · 86%</span></div>
+            <div class="mobile-body" style="background:var(--cream);">
+              <div style="display:flex;align-items:center;gap:8px;padding:12px 16px 10px;border-bottom:1px solid var(--line-soft);background:var(--paper);">
+                <button class="btn-ghost" style="padding:4px;font-size:20px;color:var(--ink-2);">☰</button>
+                <div style="flex:1;">
+                  <div style="font-family:var(--mono-font);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.14em;">today</div>
+                  <div style="font-family:var(--display-font);font-size:18px;color:var(--ink);">Wed · 28 may</div>
+                </div>
+                <span class="pulse-dot" style="background:var(--ok);"></span>
+              </div>
+              <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px;">
+                <div class="fo-card flag" style="padding:12px;">
+                  <div class="h"><span class="who" style="font-size:14px;">▸ next · Tanaka</span><span class="time">17:30 VIP</span></div>
+                  <div class="sub">Tirta · turnover delay 20m</div>
+                  <button class="btn btn-primary btn-sm" style="margin-top:6px;width:100%;">Check housekeeping</button>
+                </div>
+                <div class="fo-card problem" style="padding:12px;">
+                  <div class="h"><span class="who" style="font-size:14px;">Banyu · AC issue</span><span class="time">since 12:14</span></div>
+                  <div class="sub" style="color:var(--danger);">tech ETA 15:30 · Volkov</div>
+                </div>
+                <div class="fo-card ready" style="padding:12px;">
+                  <div class="h"><span class="who" style="font-size:14px;">Park family ✓</span><span class="time">14:32</span></div>
+                  <div class="sub">checked in early</div>
+                </div>
+                <div class="fo-card" style="padding:12px;">
+                  <div class="h"><span class="who" style="font-size:14px;">Petrov</span><span class="time">16:00</span></div>
+                  <div class="sub">Selva · solo · repeat</div>
+                </div>
+                <div class="fo-card" style="padding:12px;">
+                  <div class="h"><span class="who" style="font-size:14px;">Hofstadter</span><span class="time">19:00</span></div>
+                  <div class="sub">Banyu · family of 4</div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-tabbar">
+              <button class="tb"><span class="ico">▦</span><span>Today</span></button>
+              <button class="tb on"><span class="ico">⌂</span><span>Front desk</span></button>
+              <button class="tb"><span class="ico">★</span><span>Concierge</span></button>
+              <button class="tb"><span class="ico">≡</span><span>More</span></button>
+            </div>
+          </div>
+          <div style="max-width:340px;align-self:center;color:var(--doc-fg-2);">
+            <div style="font-family:var(--doc-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.18em;color:var(--doc-fg-3);margin-bottom:8px;">Mobile principles</div>
+            <ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;">
+              <li>Single stream · ordered by next-action-time.</li>
+              <li>"Next" card always at top with primary action visible.</li>
+              <li>Problems pinned above arrivals.</li>
+              <li>Tap card → detail view (not modal, full page).</li>
+              <li>Check-in flow takes whole screen, locks app.</li>
+              <li>Push notif when a flag is added (AC, ID, delay).</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 06. Schema ============ -->
+      <section id="schema" class="ds-section" data-screen-label="06 Schema">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">06</span><span>—</span><span>Implementation</span></div>
+            <h2>Schema · states · agents</h2>
+          </div>
+        </div>
+
+        <div class="ds-grid cols-2" style="gap:14px;">
+
+          <div class="card card-pad" style="background:var(--doc-bg-3);border:1px solid var(--doc-line-2);color:var(--doc-fg-2);font-family:var(--doc-mono);font-size:11.5px;line-height:1.7;">
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:10px;">Booking lifecycle (front-office subset)</div>
+            <div>· <span style="color:var(--doc-accent)">confirmed</span> — paid, awaiting arrival</div>
+            <div>· <span style="color:var(--doc-accent)">due_today</span> — derived, view filter</div>
+            <div>· <span style="color:var(--doc-accent)">checked_in</span> — on property · keys handed over</div>
+            <div>· <span style="color:var(--doc-accent)">in_stay</span> — derived, currently between check-in/out</div>
+            <div>· <span style="color:var(--doc-accent)">checked_out</span> — physically left, awaiting damage check</div>
+            <div>· <span style="color:var(--doc-accent)">closed</span> — final, review window passed</div>
+
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-top:14px;margin-bottom:10px;">Tables (new)</div>
+            <div><span style="color:var(--doc-accent)">guest_ids</span> · guest_id · type(passport|kitas|ktp) · number · expires_at · scan_blob_ref (encrypted)</div>
+            <div><span style="color:var(--doc-accent)">visa_flags</span> · guest_id · kind(voa_expiring|overstay|kitas_check) · severity · resolved_at</div>
+            <div><span style="color:var(--doc-accent)">turnovers</span> · villa_id · checkout_booking · checkin_booking · cleaning_started_at · cleaning_done_at · status</div>
+            <div><span style="color:var(--doc-accent)">checkin_steps</span> · booking_id · step(identity|stay|sign|handover) · completed_at · completed_by</div>
+          </div>
+
+          <div class="card card-pad" style="background:var(--doc-bg-3);border:1px solid var(--doc-line-2);color:var(--doc-fg-2);font-family:var(--doc-mono);font-size:11.5px;line-height:1.7;">
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:10px;">Routes</div>
+            <div><span style="color:var(--doc-accent)">/dashboard/front-office</span> · today board</div>
+            <div><span style="color:var(--doc-accent)">/front-office/checkin/[bookingId]</span> · 4-step flow</div>
+            <div><span style="color:var(--doc-accent)">/front-office/registry</span> · ID + visa registry</div>
+            <div><span style="color:var(--doc-accent)">/front-office/turnover/[villaId]/[date]</span> · turnover detail</div>
+            <div><span style="color:var(--doc-accent)">/front-office/day/[YYYY-MM-DD]</span> · past day archive (read-only)</div>
+
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-top:14px;margin-bottom:10px;">AI agents</div>
+            <div><span style="color:var(--doc-accent)">id-ocr</span> · runs on scan upload · extracts name + nationality + expiry + ID number</div>
+            <div><span style="color:var(--doc-accent)">visa-watcher</span> · daily cron · flags VOA tourists approaching 30d</div>
+            <div><span style="color:var(--doc-accent)">turnover-monitor</span> · live · tracks cleaning vs check-in deadline · alerts front desk if delay risks check-in time</div>
+            <div><span style="color:var(--doc-accent)">vip-prep</span> · runs 24h before arrival · compiles VIP preferences from prior stays into the "preferences" card shown at check-in step 2</div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;padding:18px 22px;background:var(--doc-bg-3);border:1px solid var(--doc-line-2);border-radius:10px;font-family:var(--doc-mono);font-size:11.5px;color:var(--doc-fg-2);line-height:1.7;">
+          <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:8px;">Critical UX rules</div>
+          1. Check-in flow cannot complete without ID OCR succeeding OR a manual override (logged + audit-trailed).<br>
+          2. Tax-form export at month end MUST exclude unresolved visa flags — block export until cleared.<br>
+          3. Turnover-monitor surfacing a delay should auto-notify the next arriving guest's primary contact &amp; offer a welcome drink credit.<br>
+          4. VIP preferences are read-only on the check-in screen — edits go through Concierge cabinet to enforce a single source of truth.<br>
+          5. The day archive at <code>/front-office/day/[date]</code> is read-only past day-end. No retroactive edits.
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

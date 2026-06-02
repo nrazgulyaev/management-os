@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Investors + Distributions · Dev P2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../_chrome.css" />
+<link rel="stylesheet" href="../_2.4-primitives.css" />
+<style>
+.cab-cover { padding: 64px 32px 32px; }
+.cab-cover .eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.cab-cover .eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { font-family: var(--doc-sans); font-weight: 500; font-size: 44px; letter-spacing: -0.02em; line-height: 1.05; margin: 0; color: var(--doc-fg); }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 22px 0 0; font-size: 15px; color: var(--doc-fg-2); line-height: 1.6; }
+.cab-cover .meta { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--doc-line); }
+.cab-cover .meta div { display: flex; flex-direction: column; gap: 4px; }
+.cab-cover .meta .k { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); }
+.cab-cover .meta .v { font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg); }
+.cab-board-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(640px, 1fr)); gap: 20px; margin-top: 8px; }
+.cab-board { background: var(--doc-bg-3); border: 1px solid var(--doc-line-2); border-radius: 14px; overflow: hidden; }
+.cab-board .head { padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--doc-line-2); background: var(--doc-bg-2); }
+.cab-board .head .num { font-family: var(--doc-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; padding: 2px 8px; background: var(--doc-accent); color: var(--doc-bg); border-radius: 999px; }
+.cab-board .head .name { font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg); font-weight: 500; }
+.cab-board .head .desc { font-family: var(--doc-sans); font-size: 12px; color: var(--doc-fg-3); margin-left: auto; }
+</style>
+</head>
+<body data-screen-label="Investors cabinet">
+
+<div class="ds-app">
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span><span>Arconique · Dev P2</span></div>
+    <h1>Investors + Distributions</h1>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Cabinet</div>
+      <a class="ds-toc-item on" href="#hero"><span class="num">01</span><span>Hero · fund-level</span></a>
+      <a class="ds-toc-item" href="#variants"><span class="num">02</span><span>Layout variants</span></a>
+      <a class="ds-toc-item" href="#lp"><span class="num">03</span><span>Single LP detail</span></a>
+      <a class="ds-toc-item" href="#distribution"><span class="num">04</span><span>Distribution event flow</span></a>
+      <a class="ds-toc-item" href="#capital-call"><span class="num">05</span><span>Capital call</span></a>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Spec</div>
+      <a class="ds-toc-item" href="#schema"><span class="num">06</span><span>Schema · agents</span></a>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Reference</div>
+      <a class="ds-toc-item" href="../../ds-2.4-primitives.html"><span class="num">↗</span><span>DS extension 2.4</span></a>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <div class="cab-cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Dev P2 · 3 of 3</span></div>
+      <h1>The waterfall, where the money <em>actually goes</em>.</h1>
+      <p>
+        Fund-level dashboard: distribution waterfall, IRR/MOIC, capital calls, distributions, drill-in to each LP. The Waterfall is the single most consequential visual in the cabinet — every LP communication grounds in it.
+        Operationally: capital calls + distributions are both events that the cabinet hosts; LP-side experience is read-only (lives in a separate LP portal, future phase).
+      </p>
+      <div class="meta">
+        <div><span class="k">Status</span><span class="v">Design draft</span></div>
+        <div><span class="k">Sequence</span><span class="v">PR 7 of Phase 2.4 · last cabinet</span></div>
+        <div><span class="k">Depends on</span><span class="v">CFO/Finance (2.2) · WaterfallChart primitive</span></div>
+        <div><span class="k">Routes</span><span class="v">/development-os/investors · /investors/lp/[id] · /investors/distribution/[id]</span></div>
+      </div>
+    </div>
+
+    <div class="ds-content">
+
+      <!-- ============ 01. Hero ============ -->
+      <section id="hero" class="ds-section" data-screen-label="01 Hero fund-level">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">01</span><span>—</span><span>Hero</span></div>
+            <h2>Fund I · Canggu West · H1 2025</h2>
+            <p>Top: KPI strip (Gross IRR, Net IRR, MOIC, DPI/TVPI). Centre: distribution waterfall. Below: LP table with commitments, called, distributed, and balance.</p>
+          </div>
+          <div class="ds-section-meta"><span class="ds-tag accent">Variant A — recommended</span></div>
+        </div>
+
+        <div class="ds-preview flush" style="background:#1A1A1F;padding:18px;">
+          <div class="app-shell" data-product="development" style="height:980px;">
+            <aside class="sidebar">
+              <a class="sb-brand" href="#"><span class="logo"><svg viewBox="0 0 22 22" width="22" height="22" fill="currentColor"><path d="M3 18 L11 4 L19 18 Z" /></svg></span><span class="wordmark">Arconique · dev</span></a>
+              <div class="sb-workspace"><div class="label">Fund</div><div class="name">Fund I · Canggu West</div><div class="sub">14 LPs · 1 GP · vintage 2022</div></div>
+              <div class="sb-group">
+                <div class="sb-group-title">Build</div>
+                <a class="sb-item" href="#"><span>Dashboard</span></a>
+                <a class="sb-item" href="#"><span>Projects</span></a>
+                <a class="sb-item" href="site-supervisor.html"><span>Site supervisor</span></a>
+              </div>
+              <div class="sb-group">
+                <div class="sb-group-title">Capital</div>
+                <a class="sb-item" href="#"><span>CFO / Finance</span></a>
+                <a class="sb-item" href="sales.html"><span>Sales</span></a>
+                <a class="sb-item on" href="#"><span>Investors</span><span class="sb-badge">1</span></a>
+              </div>
+            </aside>
+
+            <div class="shell-content">
+              <div class="topbar">
+                <div class="tb-crumb"><span>Dev OS</span> / <span>Capital</span> / <b>Investors</b></div>
+                <div class="tb-spacer"></div>
+                <div class="tb-search"><span class="sx"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4"/></svg></span><input placeholder="Search LP, distribution, call…" /><span class="kbd">⌘K</span></div>
+                <button class="tb-bell"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 8a5 5 0 1 1 10 0v3l2 3H3l2-3V8z"/></svg></button>
+                <div class="tb-user"><div class="avatar avatar-sm">AS</div><div class="meta"><span class="name">A. Saputra</span><span class="role">CFO</span></div></div>
+              </div>
+
+              <div class="shell-body">
+
+                <div class="page-header" style="padding:0 0 18px;margin:0 0 18px;">
+                  <div class="left">
+                    <div class="crumb"><a href="#">Capital</a> / <span>Investors · Fund I</span></div>
+                    <h1 style="font-weight:500;">Fund I · Canggu West</h1>
+                    <p style="margin:6px 0 0;font-size:13px;color:var(--ink-3);">vintage 2022 · 7yr hold · 14 LPs · IDR 32B committed · 87% deployed · H1 distribution prepared</p>
+                  </div>
+                  <div class="actions">
+                    <button class="btn btn-secondary">Quarterly letter</button>
+                    <button class="btn btn-secondary">Audit pack</button>
+                    <button class="btn btn-primary" style="background:var(--amber);color:var(--carbon);">+ Distribution event</button>
+                  </div>
+                </div>
+
+                <!-- KPI strip -->
+                <div class="ds-grid cols-5" style="gap:10px;margin-bottom:18px;">
+                  <div class="kpi"><div class="label">committed</div><div class="v">32.0B</div><div class="sub">IDR · 14 LPs</div></div>
+                  <div class="kpi"><div class="label">called</div><div class="v">27.8B</div><div class="sub">87% · last call mar 25</div></div>
+                  <div class="kpi accent"><div class="label">distributed h1</div><div class="v">12.9B</div><div class="sub">jun 18 event</div></div>
+                  <div class="kpi ok"><div class="label">net irr · lp</div><div class="v">14.8%</div><div class="sub">vs 14% target ✓</div></div>
+                  <div class="kpi"><div class="label">moic</div><div class="v">1.86×</div><div class="sub">net · 4.2 yr hold</div></div>
+                </div>
+
+                <!-- WaterfallChart -->
+                <div class="wf" style="--bars:7;margin-bottom:18px;">
+                  <div class="wf-head">
+                    <div class="left">
+                      <h3>Distribution waterfall — H1 2025</h3>
+                      <div class="sub">Fund I · Canggu west · IDR billions</div>
+                    </div>
+                    <div class="meta">
+                      distribution event · <b>jun 18, 2025</b><br>
+                      14 LPs · 1 GP · audit ✓
+                    </div>
+                  </div>
+
+                  <div class="wf-bars">
+                    <div class="wf-axis" style="bottom:60px;"></div>
+                    <div class="wf-axis" style="bottom:120px;"></div>
+                    <div class="wf-axis" style="bottom:180px;"></div>
+
+                    <div class="wf-bar start">
+                      <div class="rect" style="height:90%;"><div class="v inside">24.8</div></div>
+                      <div class="connector" style="top:10%;"></div>
+                      <div class="label"><div class="name">Gross proceeds</div><div class="sub">net of sale costs</div></div>
+                    </div>
+                    <div class="wf-bar sub">
+                      <div class="rect" style="height:14%;margin-bottom:76%;"><div class="v">−3.4</div></div>
+                      <div class="connector" style="top:24%;"></div>
+                      <div class="label"><div class="name">Mgmt fee</div><div class="sub">2% AUM · 7 yr</div></div>
+                    </div>
+                    <div class="wf-bar sub">
+                      <div class="rect" style="height:24%;margin-bottom:52%;"><div class="v">−6.0</div></div>
+                      <div class="connector" style="top:48%;"></div>
+                      <div class="label"><div class="name">Return of capital</div><div class="sub">LPs 100% pref</div></div>
+                    </div>
+                    <div class="wf-bar sub">
+                      <div class="rect" style="height:10%;margin-bottom:42%;"><div class="v">−2.5</div></div>
+                      <div class="connector" style="top:58%;"></div>
+                      <div class="label"><div class="name">Preferred return</div><div class="sub">8% hurdle · LPs</div></div>
+                    </div>
+                    <div class="wf-bar add">
+                      <div class="rect" style="height:4%;margin-bottom:42%;"><div class="v">+1.0</div></div>
+                      <div class="connector" style="top:54%;"></div>
+                      <div class="label"><div class="name">GP catch-up</div><div class="sub">20/80</div></div>
+                    </div>
+                    <div class="wf-bar neutral">
+                      <div class="rect" style="height:18%;margin-bottom:24%;"><div class="v inside">+5.0</div></div>
+                      <div class="connector" style="top:58%;"></div>
+                      <div class="label"><div class="name">Carry split</div><div class="sub">20/80 post-hurdle</div></div>
+                    </div>
+                    <div class="wf-bar total">
+                      <div class="rect" style="height:44%;"><div class="v inside">12.9</div></div>
+                      <div class="label"><div class="name">Net to LPs</div><div class="sub">distribution H1</div></div>
+                    </div>
+                  </div>
+
+                  <div class="wf-footer">
+                    <div class="wf-foot-kpi"><div class="l">Gross IRR</div><div class="v">18.4%</div><div class="s">vs 14.2% target</div></div>
+                    <div class="wf-foot-kpi"><div class="l">Net IRR (to LP)</div><div class="v accent">14.8%</div><div class="s">post-fee, post-carry</div></div>
+                    <div class="wf-foot-kpi"><div class="l">MOIC</div><div class="v">1.86×</div><div class="s">net · 4.2 yr hold</div></div>
+                    <div class="wf-foot-kpi"><div class="l">DPI · TVPI</div><div class="v">0.74 · 1.86</div><div class="s">cap returned · total value</div></div>
+                  </div>
+                </div>
+
+                <!-- LP table -->
+                <div class="card card-pad" style="padding:0;overflow:hidden;">
+                  <div style="padding:18px 22px;border-bottom:1px solid var(--line-soft);display:flex;align-items:baseline;gap:10px;">
+                    <div>
+                      <div class="label" style="font-size:9.5px;">Limited partners</div>
+                      <h3 style="margin:4px 0 0;font-family:var(--display-font);font-size:18px;font-weight:500;color:var(--ink);letter-spacing:-0.01em;">14 LPs · IDR 32.0B committed</h3>
+                    </div>
+                    <div style="margin-left:auto;display:flex;gap:6px;">
+                      <span class="chip chip-active">By commitment ↓</span>
+                      <span class="chip">By contribution</span>
+                      <span class="chip">By DPI</span>
+                    </div>
+                  </div>
+
+                  <table class="data">
+                    <thead>
+                      <tr>
+                        <th>LP</th><th>Class</th><th class="num">Commitment</th><th class="num">Called</th><th class="num">Distributed</th>
+                        <th class="num">Net pos.</th><th class="num">IRR</th><th class="num">MOIC</th><th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><span class="row-title">Asakawa Family Office</span></td>
+                        <td><span class="badge badge-soft">A</span></td>
+                        <td class="num">6.0B</td><td class="num">5.2B</td><td class="num">2.4B</td>
+                        <td class="num" style="color:var(--ok);">+2.8B</td>
+                        <td class="num">15.1%</td><td class="num">1.88×</td>
+                        <td><span class="badge badge-ok">paid h1</span></td>
+                      </tr>
+                      <tr>
+                        <td><span class="row-title">Almaz Holdings (AE)</span></td>
+                        <td><span class="badge badge-soft">A</span></td>
+                        <td class="num">5.0B</td><td class="num">4.4B</td><td class="num">2.0B</td>
+                        <td class="num" style="color:var(--ok);">+2.4B</td>
+                        <td class="num">15.0%</td><td class="num">1.87×</td>
+                        <td><span class="badge badge-ok">paid h1</span></td>
+                      </tr>
+                      <tr>
+                        <td><span class="row-title">Tan Capital (SG)</span></td>
+                        <td><span class="badge badge-soft">A</span></td>
+                        <td class="num">3.5B</td><td class="num">3.0B</td><td class="num">1.4B</td>
+                        <td class="num" style="color:var(--ok);">+1.6B</td>
+                        <td class="num">14.9%</td><td class="num">1.87×</td>
+                        <td><span class="badge badge-ok">paid h1</span></td>
+                      </tr>
+                      <tr>
+                        <td><span class="row-title">Mahkota Sentosa</span></td>
+                        <td><span class="badge badge-soft">A</span></td>
+                        <td class="num">3.0B</td><td class="num">2.6B</td><td class="num">1.2B</td>
+                        <td class="num" style="color:var(--ok);">+1.4B</td>
+                        <td class="num">14.8%</td><td class="num">1.86×</td>
+                        <td><span class="badge badge-ok">paid h1</span></td>
+                      </tr>
+                      <tr>
+                        <td><span class="row-title">Y. Park · ind.</span></td>
+                        <td><span class="badge badge-info">B</span></td>
+                        <td class="num">2.5B</td><td class="num">2.2B</td><td class="num">1.0B</td>
+                        <td class="num" style="color:var(--ok);">+1.2B</td>
+                        <td class="num">14.4%</td><td class="num">1.85×</td>
+                        <td><span class="badge badge-warn">payment pending · bank</span></td>
+                      </tr>
+                      <tr>
+                        <td><span class="row-title">R. Joshi · ind.</span></td>
+                        <td><span class="badge badge-info">B</span></td>
+                        <td class="num">2.0B</td><td class="num">1.7B</td><td class="num">0.8B</td>
+                        <td class="num" style="color:var(--ok);">+1.0B</td>
+                        <td class="num">14.3%</td><td class="num">1.84×</td>
+                        <td><span class="badge badge-ok">paid h1</span></td>
+                      </tr>
+                      <tr>
+                        <td><span class="row-title">SEA Capital Partners</span></td>
+                        <td><span class="badge badge-soft">A</span></td>
+                        <td class="num">2.0B</td><td class="num">1.7B</td><td class="num">0.8B</td>
+                        <td class="num" style="color:var(--ok);">+0.9B</td>
+                        <td class="num">14.7%</td><td class="num">1.86×</td>
+                        <td><span class="badge badge-ok">paid h1</span></td>
+                      </tr>
+                      <tr>
+                        <td colspan="9" style="text-align:center;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);padding:14px;">+ 7 more LPs · IDR 8.0B committed</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div style="padding:12px 22px;border-top:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">
+                    <span>1 LP awaiting H1 distribution wire · 13 paid</span>
+                    <span>auto-reconcile via bank webhook</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 02. Variants ============ -->
+      <section id="variants" class="ds-section" data-screen-label="02 Variants">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">02</span><span>—</span><span>Layout variants</span></div>
+            <h2>Fund-level vs. event timeline</h2>
+            <p>Variant A above is the fund-state default. Variant B trades the LP table for a chronological event timeline (calls + distributions) — useful for tracking cadence and during audit.</p>
+          </div>
+        </div>
+
+        <div class="cab-board-grid">
+          <div class="cab-board" style="grid-column:1/-1;">
+            <div class="head">
+              <span class="num">B</span>
+              <span class="name">Event timeline</span>
+              <span class="desc">Capital flow as a vertical thread · audit-friendly</span>
+            </div>
+            <div class="body" data-product="development">
+              <div style="padding:22px;background:var(--bg);">
+                <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;">
+                  <h2 style="margin:0;font-family:var(--display-font);font-weight:500;font-size:22px;color:var(--ink);letter-spacing:-0.02em;">Fund I · capital events</h2>
+                  <span style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-left:auto;">7 events · vintage 2022</span>
+                </div>
+
+                <div style="background:var(--panel);border:1px solid var(--line-2);border-radius:12px;padding:22px 26px;">
+                  <div style="display:flex;flex-direction:column;">
+
+                    <div style="display:grid;grid-template-columns:120px 1fr 200px;gap:18px;padding:14px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+                      <div>
+                        <div style="font-family:var(--display-font);font-size:18px;color:var(--ink);font-weight:500;">jun 18</div>
+                        <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">2025</div>
+                      </div>
+                      <div>
+                        <div style="display:flex;align-items:center;gap:8px;"><span class="badge badge-accent">DIST · H1</span><span style="font-family:var(--display-font);font-size:17px;color:var(--ink);">First distribution to LPs</span></div>
+                        <div style="font-size:13px;color:var(--ink-2);margin-top:4px;">Net to LPs IDR 12.9B · Net IRR 14.8% · MOIC 1.86×</div>
+                      </div>
+                      <div style="text-align:right;">
+                        <div class="num" style="font-size:18px;color:var(--accent);">−12.9B</div>
+                        <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">13/14 settled</div>
+                      </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:120px 1fr 200px;gap:18px;padding:14px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+                      <div><div style="font-family:var(--display-font);font-size:18px;color:var(--ink);font-weight:500;">mar 25</div><div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">2025</div></div>
+                      <div>
+                        <div style="display:flex;align-items:center;gap:8px;"><span class="badge badge-info">CALL · 4</span><span style="font-family:var(--display-font);font-size:17px;color:var(--ink);">Capital call #4 · final 13%</span></div>
+                        <div style="font-size:13px;color:var(--ink-2);margin-top:4px;">Reached 100% deployment · last 13% of committed capital</div>
+                      </div>
+                      <div style="text-align:right;">
+                        <div class="num" style="font-size:18px;color:var(--ok);">+4.2B</div>
+                        <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">14/14 settled</div>
+                      </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:120px 1fr 200px;gap:18px;padding:14px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+                      <div><div style="font-family:var(--display-font);font-size:18px;color:var(--ink);font-weight:500;">sep 14</div><div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">2024</div></div>
+                      <div>
+                        <div style="display:flex;align-items:center;gap:8px;"><span class="badge badge-info">CALL · 3</span><span style="font-family:var(--display-font);font-size:17px;color:var(--ink);">Capital call #3 · construction</span></div>
+                        <div style="font-size:13px;color:var(--ink-2);margin-top:4px;">Mid-build call · 30% of remaining commitment</div>
+                      </div>
+                      <div style="text-align:right;">
+                        <div class="num" style="font-size:18px;color:var(--ok);">+8.6B</div>
+                        <div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">14/14 settled</div>
+                      </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:120px 1fr 200px;gap:18px;padding:14px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+                      <div><div style="font-family:var(--display-font);font-size:18px;color:var(--ink);font-weight:500;">feb 08</div><div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">2024</div></div>
+                      <div>
+                        <div style="display:flex;align-items:center;gap:8px;"><span class="badge badge-info">CALL · 2</span><span style="font-family:var(--display-font);font-size:17px;color:var(--ink);">Capital call #2 · foundations</span></div>
+                        <div style="font-size:13px;color:var(--ink-2);margin-top:4px;">Triggered by groundbreaking milestone</div>
+                      </div>
+                      <div style="text-align:right;"><div class="num" style="font-size:18px;color:var(--ok);">+8.0B</div><div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">14/14 settled</div></div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:120px 1fr 200px;gap:18px;padding:14px 0;border-bottom:1px solid var(--line-soft);align-items:center;">
+                      <div><div style="font-family:var(--display-font);font-size:18px;color:var(--ink);font-weight:500;">may 20</div><div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">2023</div></div>
+                      <div>
+                        <div style="display:flex;align-items:center;gap:8px;"><span class="badge badge-info">CALL · 1</span><span style="font-family:var(--display-font);font-size:17px;color:var(--ink);">Capital call #1 · land + design</span></div>
+                        <div style="font-size:13px;color:var(--ink-2);margin-top:4px;">Land purchase + master plan + permits</div>
+                      </div>
+                      <div style="text-align:right;"><div class="num" style="font-size:18px;color:var(--ok);">+7.0B</div><div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">14/14 settled</div></div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:120px 1fr 200px;gap:18px;padding:14px 0;align-items:center;">
+                      <div><div style="font-family:var(--display-font);font-size:18px;color:var(--ink);font-weight:500;">jul 12</div><div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">2022</div></div>
+                      <div>
+                        <div style="display:flex;align-items:center;gap:8px;"><span class="badge badge-gold">FUND</span><span style="font-family:var(--display-font);font-size:17px;color:var(--ink);">Fund I · final close</span></div>
+                        <div style="font-size:13px;color:var(--ink-2);margin-top:4px;">14 LPs · IDR 32.0B committed · 7yr hold target</div>
+                      </div>
+                      <div style="text-align:right;"><div class="num" style="font-size:18px;color:var(--ink-3);">32.0B</div><div style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);">committed</div></div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <div style="margin-top:14px;font-family:var(--mono-font);font-size:10px;color:var(--ink-4);">
+                  ⊕ chronological clarity for audit · ⊖ buries the current state · keep as <code>?view=events</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;padding:18px 22px;background:var(--doc-bg-3);border:1px solid var(--doc-line-2);border-radius:10px;font-family:var(--doc-mono);font-size:11.5px;color:var(--doc-fg-2);line-height:1.7;">
+          <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:8px;">Recommendation</div>
+          Ship <strong style="color:var(--doc-fg);">Variant A</strong>. CFO + investors care about the current waterfall + current LP positions; the timeline is reference. Keep B as <code>?view=events</code> + put it as the primary tab on the LP-side portal (future phase) where chronology matters more.
+        </div>
+      </section>
+
+      <!-- ============ 03. LP detail ============ -->
+      <section id="lp" class="ds-section" data-screen-label="03 LP detail">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">03</span><span>—</span><span>Detail</span></div>
+            <h2>Single LP · position + ledger</h2>
+            <p>At <code style="font-family:var(--doc-mono);font-size:13px;background:var(--doc-bg-3);padding:2px 6px;border-radius:4px;">/investors/lp/[id]</code>. Profile + commitment + transaction ledger + their share of the waterfall. Documents tab holds K-1 equivalents and subscription docs.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:18px;">
+          <div data-product="development" style="background:var(--bg);padding:22px 26px;border-radius:12px;">
+            <div class="page-header" style="padding:0 0 18px;margin:0 0 16px;">
+              <div class="left">
+                <div class="crumb"><a href="#">Investors</a> / <span>Asakawa Family Office</span></div>
+                <h1 style="font-size:28px;font-weight:500;">Asakawa Family Office · LP-A-001</h1>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  <span class="badge badge-soft">Class A · 18.75% of fund</span>
+                  <span class="badge badge-ok">all-paid · h1 ✓</span>
+                  <span class="badge badge-gold">anchor</span>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-secondary btn-sm">Send statement</button>
+                <button class="btn btn-secondary btn-sm">Schedule call</button>
+                <button class="btn btn-primary btn-sm" style="background:var(--amber);color:var(--carbon);">Message</button>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;">
+              <div>
+                <div class="detail-tabs">
+                  <button class="tab on">Position</button>
+                  <button class="tab">Transactions · 6</button>
+                  <button class="tab">Documents · 12</button>
+                  <button class="tab">Communications · 28</button>
+                </div>
+
+                <!-- Position summary -->
+                <div class="card card-pad" style="margin-bottom:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:14px;">Position summary</div>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;">
+                    <div>
+                      <div class="label" style="font-size:9.5px;">commitment</div>
+                      <div style="font-family:var(--display-font);font-size:26px;color:var(--ink);margin-top:4px;font-weight:500;letter-spacing:-0.01em;">6.0B</div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">IDR · 18.75% of fund</div>
+                    </div>
+                    <div>
+                      <div class="label" style="font-size:9.5px;">called</div>
+                      <div style="font-family:var(--display-font);font-size:26px;color:var(--ink);margin-top:4px;font-weight:500;letter-spacing:-0.01em;">5.2B</div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">87% · last mar 25</div>
+                    </div>
+                    <div>
+                      <div class="label" style="font-size:9.5px;">distributed</div>
+                      <div style="font-family:var(--display-font);font-size:26px;color:var(--accent);margin-top:4px;font-weight:500;letter-spacing:-0.01em;">2.4B</div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">H1 2025 only</div>
+                    </div>
+                    <div>
+                      <div class="label" style="font-size:9.5px;">net position</div>
+                      <div style="font-family:var(--display-font);font-size:26px;color:var(--ok);margin-top:4px;font-weight:500;letter-spacing:-0.01em;">+2.8B</div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ok);">+27% net irr · 1.88× moic</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Ledger -->
+                <div class="card card-pad" style="padding:0;overflow:hidden;">
+                  <div style="padding:14px 18px;border-bottom:1px solid var(--line-soft);display:flex;align-items:baseline;">
+                    <div class="label" style="font-size:9.5px;">Transaction ledger</div>
+                    <span style="margin-left:auto;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">6 events · vintage to today</span>
+                  </div>
+                  <table class="data">
+                    <thead><tr><th>Date</th><th>Event</th><th class="num">Amount</th><th class="num">Balance</th><th>Settled</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="mono">jun 18 2025</span></td><td>Distribution · H1 2025</td><td class="num" style="color:var(--accent);">−2,400,000,000</td><td class="num">−2.4B / 5.2B</td><td><span class="badge badge-ok">paid · wire ✓</span></td></tr>
+                      <tr><td><span class="mono">mar 25 2025</span></td><td>Capital call #4 · final</td><td class="num" style="color:var(--ok);">+780,000,000</td><td class="num">5.2B / 6.0B</td><td><span class="badge badge-ok">paid</span></td></tr>
+                      <tr><td><span class="mono">sep 14 2024</span></td><td>Capital call #3</td><td class="num" style="color:var(--ok);">+1,620,000,000</td><td class="num">4.4B / 6.0B</td><td><span class="badge badge-ok">paid</span></td></tr>
+                      <tr><td><span class="mono">feb 08 2024</span></td><td>Capital call #2</td><td class="num" style="color:var(--ok);">+1,500,000,000</td><td class="num">2.8B / 6.0B</td><td><span class="badge badge-ok">paid</span></td></tr>
+                      <tr><td><span class="mono">may 20 2023</span></td><td>Capital call #1</td><td class="num" style="color:var(--ok);">+1,300,000,000</td><td class="num">1.3B / 6.0B</td><td><span class="badge badge-ok">paid</span></td></tr>
+                      <tr><td><span class="mono">jul 12 2022</span></td><td>Subscription · commitment</td><td class="num">+6,000,000,000</td><td class="num" style="color:var(--ink-3);">0 / 6.0B</td><td><span class="badge badge-soft">committed</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Side rail -->
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div class="card card-pad" style="padding:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:8px;">Primary contact</div>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="avatar avatar-lg" style="background:linear-gradient(135deg,#FFB088,#FF6B35);">YA</div>
+                    <div>
+                      <div style="font-family:var(--display-font);font-size:15px;color:var(--ink);font-weight:500;">Y. Asakawa</div>
+                      <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);">Tokyo · CFO</div>
+                    </div>
+                  </div>
+                  <div style="margin-top:10px;font-size:12.5px;color:var(--ink-2);line-height:1.7;">
+                    y.asakawa@asakawa.jp<br>
+                    +81 3 ×××× 8821
+                  </div>
+                </div>
+                <div class="card card-pad" style="padding:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:8px;">Their share of waterfall</div>
+                  <div style="font-family:var(--mono-font);font-size:11px;color:var(--ink-2);line-height:1.7;">
+                    Gross proceeds · IDR 4.65B<br>
+                    – Mgmt fee · –0.64B<br>
+                    – RoC · –1.13B<br>
+                    – Pref · –0.47B<br>
+                    + Carry split · +0.94B<br>
+                    <span style="color:var(--accent);font-weight:500;">= Net to LP · 2.40B</span>
+                  </div>
+                </div>
+                <div class="card card-pad" style="padding:14px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:8px;">Next event</div>
+                  <div style="font-size:13.5px;color:var(--ink);">Distribution H2 · jan 2026</div>
+                  <div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:4px;">est IDR 2.0B if exit pacing holds</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 04. Distribution event ============ -->
+      <section id="distribution" class="ds-section" data-screen-label="04 Distribution event">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">04</span><span>—</span><span>Flow · destructive</span></div>
+            <h2>Prepare distribution event</h2>
+            <p>Multi-step flow at <code style="font-family:var(--doc-mono);font-size:13px;background:var(--doc-bg-3);padding:2px 6px;border-radius:4px;">/investors/distribution/new</code>: 1) source proceeds, 2) preview waterfall, 3) per-LP allocations, 4) approve &amp; wire. Each step requires a CFO + audit sign-off.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:18px;">
+          <div data-product="development" style="background:var(--bg);padding:22px;border-radius:12px;">
+
+            <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;">
+              <div style="display:flex;align-items:center;gap:8px;color:var(--ink-3);"><span style="width:28px;height:28px;border-radius:50%;background:var(--ok);color:white;display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:12px;">✓</span><span style="font-size:13px;">Source proceeds</span></div>
+              <div style="height:1px;flex:0 0 32px;background:var(--ink-3);"></div>
+              <div style="display:flex;align-items:center;gap:8px;color:var(--ink);font-weight:500;"><span style="width:28px;height:28px;border-radius:50%;background:var(--amber);color:var(--carbon);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:12px;font-weight:500;">2</span><span style="font-size:13px;">Preview waterfall</span></div>
+              <div style="height:1px;flex:0 0 32px;background:var(--ink-3);"></div>
+              <div style="display:flex;align-items:center;gap:8px;color:var(--ink-3);"><span style="width:28px;height:28px;border-radius:50%;background:var(--bg-2);color:var(--ink-3);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:12px;">3</span><span style="font-size:13px;">Per-LP allocation</span></div>
+              <div style="height:1px;flex:0 0 32px;background:var(--ink-3);"></div>
+              <div style="display:flex;align-items:center;gap:8px;color:var(--ink-3);"><span style="width:28px;height:28px;border-radius:50%;background:var(--bg-2);color:var(--ink-3);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono-font);font-size:12px;">4</span><span style="font-size:13px;">Approve · wire</span></div>
+              <span style="margin-left:auto;font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">H2 2025 · target jan 18 2026</span>
+            </div>
+
+            <div style="background:var(--panel);border:1px solid var(--line-2);border-radius:12px;padding:24px;">
+              <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:18px;">
+                <h2 style="margin:0;font-family:var(--display-font);font-weight:500;font-size:22px;color:var(--ink);letter-spacing:-0.02em;">Waterfall preview · H2 2025</h2>
+                <span style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);margin-left:auto;">step 2 of 4 · IDR billions · editable inputs left</span>
+              </div>
+
+              <div style="display:grid;grid-template-columns:280px 1fr;gap:24px;">
+
+                <!-- Inputs -->
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                  <div class="field"><span class="field-label">gross proceeds (h2)</span><input class="input" value="28,400,000,000" /></div>
+                  <div class="field"><span class="field-label">– mgmt fee</span><input class="input" value="1,800,000,000" /></div>
+                  <div class="field"><span class="field-label">– return of capital</span><input class="input" value="14,400,000,000" /></div>
+                  <div class="field"><span class="field-label">– preferred return (8%)</span><input class="input" value="2,560,000,000" /></div>
+                  <div class="field"><span class="field-label">+ gp catch-up</span><input class="input" value="640,000,000" /></div>
+                  <div class="field"><span class="field-label">carry split (% to GP)</span><input class="input" value="20" /></div>
+                </div>
+
+                <!-- Live preview waterfall -->
+                <div class="wf" style="--bars:7;border:0;padding:14px 0 0 0;background:transparent;">
+                  <div class="wf-bars" style="height:240px;padding-bottom:50px;">
+                    <div class="wf-axis" style="bottom:50px;"></div>
+                    <div class="wf-axis" style="bottom:100px;"></div>
+                    <div class="wf-axis" style="bottom:150px;"></div>
+
+                    <div class="wf-bar start"><div class="rect" style="height:88%;"><div class="v inside">28.4</div></div><div class="connector" style="top:12%;"></div><div class="label"><div class="name">Gross</div></div></div>
+                    <div class="wf-bar sub"><div class="rect" style="height:6%;margin-bottom:82%;"><div class="v">−1.8</div></div><div class="connector" style="top:18%;"></div><div class="label"><div class="name">Mgmt</div></div></div>
+                    <div class="wf-bar sub"><div class="rect" style="height:50%;margin-bottom:32%;"><div class="v">−14.4</div></div><div class="connector" style="top:68%;"></div><div class="label"><div class="name">RoC</div></div></div>
+                    <div class="wf-bar sub"><div class="rect" style="height:9%;margin-bottom:23%;"><div class="v">−2.6</div></div><div class="connector" style="top:77%;"></div><div class="label"><div class="name">Pref</div></div></div>
+                    <div class="wf-bar add"><div class="rect" style="height:2%;margin-bottom:23%;"><div class="v">+0.6</div></div><div class="connector" style="top:75%;"></div><div class="label"><div class="name">GP</div></div></div>
+                    <div class="wf-bar neutral"><div class="rect" style="height:21%;margin-bottom:4%;"><div class="v inside">+5.8</div></div><div class="connector" style="top:75%;"></div><div class="label"><div class="name">Carry</div></div></div>
+                    <div class="wf-bar total"><div class="rect" style="height:50%;"><div class="v inside">14.2</div></div><div class="label"><div class="name">Net LPs</div></div></div>
+                  </div>
+                  <div class="wf-footer" style="grid-template-columns:repeat(3,1fr);margin-top:18px;padding-top:14px;">
+                    <div class="wf-foot-kpi"><div class="l">Net IRR (lifetime)</div><div class="v accent">17.2%</div><div class="s">post H2</div></div>
+                    <div class="wf-foot-kpi"><div class="l">DPI</div><div class="v">1.55</div><div class="s">paid 1.55× of called</div></div>
+                    <div class="wf-foot-kpi"><div class="l">TVPI</div><div class="v">2.11×</div><div class="s">total value</div></div>
+                  </div>
+                </div>
+
+              </div>
+
+              <div style="display:flex;justify-content:space-between;margin-top:24px;padding-top:18px;border-top:1px solid var(--line-soft);">
+                <button class="btn btn-ghost">‹ back · sources</button>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <span style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);">approver: <strong style="color:var(--ink);">CFO</strong> · A. Saputra</span>
+                  <button class="btn btn-secondary">Save draft</button>
+                  <button class="btn btn-primary" style="background:var(--amber);color:var(--carbon);">Continue · per-LP allocation ›</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 05. Capital call ============ -->
+      <section id="capital-call" class="ds-section" data-screen-label="05 Capital call">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">05</span><span>—</span><span>Modal · destructive</span></div>
+            <h2>Issue capital call</h2>
+            <p>Opens from the "+ Capital call" action. Pro-rata across LPs by commitment ratio; notice period configurable per fund agreement. Approve = locks the amounts &amp; queues wire instructions.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" style="background:#1A1A1F;padding:24px;display:flex;justify-content:center;">
+          <div data-product="development" style="background:var(--bg);padding:36px 28px;border-radius:12px;width:100%;max-width:720px;">
+            <div class="modal" style="width:auto;background:var(--panel);">
+              <div class="modal-header">
+                <div>
+                  <h3>Issue capital call #5</h3>
+                  <p>Pro-rata across 14 LPs. Notice period 14 days per LPA · funds expected by <span class="mono" style="color:var(--ink);">jul 23, 2025</span>.</p>
+                </div>
+                <button class="btn-ghost" style="width:28px;height:28px;border-radius:8px;padding:0;font-size:18px;color:var(--ink-3);">×</button>
+              </div>
+              <div class="modal-body">
+                <div class="ds-grid cols-2" style="gap:14px;margin-bottom:14px;">
+                  <div class="field"><span class="field-label">total call amount · IDR</span><input class="input" value="2,800,000,000" /></div>
+                  <div class="field"><span class="field-label">% of commitment</span><input class="input" value="8.75%" /></div>
+                </div>
+                <div class="field" style="margin-bottom:14px;">
+                  <span class="field-label">purpose · communicated to LPs</span>
+                  <textarea class="textarea" rows="2">Final fit-out + handover prep · L1 sold-out tranche. Covers FF&amp;E delivery + landscape completion.</textarea>
+                </div>
+                <div class="card card-pad" style="background:var(--bg-2);padding:14px 16px;margin-bottom:8px;">
+                  <div class="label" style="font-size:9.5px;margin-bottom:10px;">Pro-rata preview · 14 LPs</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;font-family:var(--mono-font);font-size:11.5px;color:var(--ink-2);">
+                    <div style="display:flex;justify-content:space-between;"><span>Asakawa · 18.75%</span><span>IDR 525,000,000</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Almaz · 15.63%</span><span>IDR 437,500,000</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Tan · 10.94%</span><span>IDR 306,250,000</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Mahkota · 9.38%</span><span>IDR 262,500,000</span></div>
+                    <div style="display:flex;justify-content:space-between;color:var(--ink-3);"><span>+ 10 more LPs</span><span>IDR 1,268,750,000</span></div>
+                  </div>
+                </div>
+                <label class="check"><input type="checkbox" /><span class="box"></span><span>Send notice immediately on approve · otherwise queue for tomorrow 09:00 WITA</span></label>
+                <div style="margin-top:14px;padding:12px 14px;background:color-mix(in srgb,var(--amber) 7%,transparent);border:1px solid color-mix(in srgb,var(--amber) 25%,transparent);border-radius:10px;font-family:var(--mono-font);font-size:11px;color:var(--ink-2);line-height:1.7;">
+                  <strong>Auditor heads-up:</strong> capital call #5 brings deployment to 99.7%. Per LPA, remaining 0.3% can only be called for FF&amp;E or completion · narrative aligns ✓.
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-ghost btn-sm">View LPA · §4.2</button>
+                <button class="btn btn-secondary btn-sm" style="margin-left:auto;">Cancel</button>
+                <button class="btn btn-primary btn-sm" style="background:var(--amber);color:var(--carbon);">Approve · issue notices</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 06. Schema ============ -->
+      <section id="schema" class="ds-section" data-screen-label="06 Schema">
+        <div class="ds-section-head">
+          <div style="min-width:0;flex:1;">
+            <div class="ds-section-eyebrow"><span style="color:var(--doc-accent)">06</span><span>—</span><span>Implementation</span></div>
+            <h2>Schema · agents · routes</h2>
+          </div>
+        </div>
+
+        <div class="ds-grid cols-2" style="gap:14px;">
+          <div class="card card-pad" style="background:var(--doc-bg-3);border:1px solid var(--doc-line-2);color:var(--doc-fg-2);font-family:var(--doc-mono);font-size:11.5px;line-height:1.7;">
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:10px;">Tables</div>
+            <div><span style="color:var(--doc-accent)">funds</span> · code · name · vintage · hold_years · lpa_ref · status</div>
+            <div><span style="color:var(--doc-accent)">lps</span> · fund_id · name · class · primary_contact_id · subscription_doc_ref</div>
+            <div><span style="color:var(--doc-accent)">commitments</span> · lp_id · amount · class · subscribed_at · pct_of_fund</div>
+            <div><span style="color:var(--doc-accent)">capital_calls</span> · fund_id · number · total · purpose · notice_at · due_at · status(draft|issued|partial|settled)</div>
+            <div><span style="color:var(--doc-accent)">call_allocations</span> · capital_call_id · lp_id · amount · settled_at · wire_ref</div>
+            <div><span style="color:var(--doc-accent)">distributions</span> · fund_id · code · period · total_proceeds · payload_json(waterfall steps) · status</div>
+            <div><span style="color:var(--doc-accent)">distribution_allocations</span> · distribution_id · lp_id · amount · settled_at · wire_ref</div>
+            <div><span style="color:var(--doc-accent)">waterfall_params</span> · fund_id · effective_at · mgmt_fee_pct · pref_return_pct · catch_up_pct · carry_split_pct</div>
+          </div>
+          <div class="card card-pad" style="background:var(--doc-bg-3);border:1px solid var(--doc-line-2);color:var(--doc-fg-2);font-family:var(--doc-mono);font-size:11.5px;line-height:1.7;">
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:10px;">Routes</div>
+            <div><span style="color:var(--doc-accent)">/development-os/investors</span> · fund-level home</div>
+            <div><span style="color:var(--doc-accent)">/investors/lp/[id]</span> · per-LP detail</div>
+            <div><span style="color:var(--doc-accent)">/investors/distribution/new</span> · 4-step flow</div>
+            <div><span style="color:var(--doc-accent)">/investors/distribution/[id]</span> · distribution detail (post-issue)</div>
+            <div><span style="color:var(--doc-accent)">/investors/capital-call/[id]</span> · capital call detail</div>
+            <div><span style="color:var(--doc-accent)">/investors/quarterly</span> · quarterly letter composer</div>
+
+            <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-top:14px;margin-bottom:10px;">AI agents</div>
+            <div><span style="color:var(--doc-accent)">waterfall-calculator</span> · canonical math · re-runs whenever proceeds or params change · writes to <span style="color:var(--doc-fg)">distributions.payload_json</span></div>
+            <div><span style="color:var(--doc-accent)">irr-tracker</span> · weekly · recomputes gross/net IRR + MOIC/DPI/TVPI per LP and fund-level</div>
+            <div><span style="color:var(--doc-accent)">quarterly-narrator</span> · drafts the quarterly LP letter from site reports + sales + finance signals</div>
+            <div><span style="color:var(--doc-accent)">call-reminder</span> · D-3 before due · sends gentle prompts to LPs with unpaid allocations</div>
+            <div><span style="color:var(--doc-accent)">wire-reconciler</span> · bank webhook → matches incoming/outgoing wires to call/distribution allocations</div>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;padding:18px 22px;background:var(--doc-bg-3);border:1px solid var(--doc-line-2);border-radius:10px;font-family:var(--doc-mono);font-size:11.5px;color:var(--doc-fg-2);line-height:1.7;">
+          <div style="color:var(--doc-fg-3);text-transform:uppercase;letter-spacing:0.18em;font-size:9.5px;margin-bottom:8px;">Critical UX rules</div>
+          1. Waterfall math is computed in one place · <code>waterfall-calculator</code> · UI only renders results. No client-side math.<br>
+          2. Distribution flow steps 1–3 are reversible (save draft) · step 4 (approve) is one-way: locks amounts, queues wires, writes audit hash.<br>
+          3. Capital call notices cannot be back-dated · the notice timestamp is the source of truth for the LPA notice window.<br>
+          4. Every wire (in or out) requires a settlement webhook · staff cannot manually mark "settled" without bank confirmation. Manual override = audit incident.<br>
+          5. LP-side portal (future phase) ships read-only · all LP-facing computations come from the same <code>distributions.payload_json</code> · LPs never see raw spreadsheets.
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mobile pass · Phase 2.6 · 8 new cabinets</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+[data-product="management"]{--paper:#FBF7EE;--canvas:#F4ECD8;--panel:#FFF;--panel-2:#F8F2E2;--panel-deep:#EDE2C5;--ink:#14201C;--ink-3:#4A574F;--ink-4:#6B7864;--ink-5:#91987F;--line:#DAD2C0;--line-soft:#E5DDC7;--terra:#B5552B;--forest:#406853;--amber:#C68E36;--ok:#5F8B62;--warn:#C49845;--danger:#B45239;--display:"Newsreader",serif;--sans:"Inter",sans-serif;--mono:"JetBrains Mono",monospace}
+[data-product="development"]{--paper:#F8F2E2;--canvas:#ECE0BF;--panel:#FFF;--panel-2:#F4ECD8;--panel-deep:#E0D2A8;--ink:#1E1A12;--ink-3:#4E4636;--ink-4:#71684F;--ink-5:#948A6A;--line:#D4C594;--line-soft:#DECEA6;--amber:#C68E36;--steel:#4B6580;--ok:#5F8B62;--warn:#C49845;--danger:#B45239;--display:"Newsreader",serif;--sans:"Inter",sans-serif;--mono:"JetBrains Mono",monospace}
+:root{--doc-bg:#0F1815;--doc-bg-2:#1A2620;--doc-bg-3:#27332C;--doc-fg:#ECE0BF;--doc-fg-2:#C1B89F;--doc-fg-3:#8A8473;--doc-accent-m:#D4866B;--doc-accent-d:#E6BE6E;--doc-line:rgba(255,255,255,0.06);--doc-line-2:rgba(255,255,255,0.10);--mono:"JetBrains Mono",monospace;--sans:"Inter",sans-serif;--display:"Newsreader",serif}
+*{box-sizing:border-box}body{margin:0;background:var(--doc-bg);color:var(--doc-fg);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+.page{max-width:1400px;margin:0 auto;padding:56px 48px 96px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--doc-accent-m);display:flex;gap:12px;align-items:center;margin-bottom:18px}
+.eyebrow .glyph{width:6px;height:6px;background:var(--doc-accent-m);border-radius:2px}
+h1.cover{margin:0;font-family:var(--sans);font-weight:500;font-size:44px;line-height:1.05;letter-spacing:-0.025em}
+h1.cover em{color:var(--doc-accent-m);font-style:italic;font-weight:400}
+.lede{max-width:780px;margin:18px 0 24px;font-size:14.5px;color:var(--doc-fg-2);line-height:1.65}
+.meta{display:flex;gap:28px;flex-wrap:wrap;margin-top:28px;padding-top:20px;border-top:1px solid var(--doc-line);font-size:12.5px}
+.meta>div{display:flex;flex-direction:column;gap:3px}
+.meta .k{font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3)}
+.meta .v{color:var(--doc-fg)}
+
+.sect{margin-top:60px}
+.sect-h{display:flex;align-items:baseline;gap:18px;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--doc-line)}
+.sect-h .n{font-family:var(--mono);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--doc-fg-3);padding:5px 10px;border:1px solid var(--doc-line-2);border-radius:4px}
+.sect-h h2{margin:0;font-family:var(--sans);font-size:24px;font-weight:500;letter-spacing:-0.015em;color:var(--doc-fg)}
+.sect-h .sub{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--doc-fg-3)}
+.sect-h .sub.mgmt{color:var(--doc-accent-m)}
+.sect-h .sub.dev{color:var(--doc-accent-d)}
+
+.cab-block{display:grid;grid-template-columns:380px 1fr;gap:36px;align-items:start;padding:28px 0}
+.cab-block+.cab-block{border-top:1px solid var(--doc-line)}
+
+.mobile-frame{width:360px;border:1px solid var(--doc-line);border-radius:30px;overflow:hidden;background:#fff;box-shadow:0 12px 40px rgba(0,0,0,0.4)}
+.mobile-status{padding:10px 22px 6px;display:flex;justify-content:space-between;font-size:11.5px;font-weight:600}
+.mobile-status.m{background:#F4ECD8;color:#14201C}
+.mobile-status.d{background:#ECE0BF;color:#1E1A12}
+
+.notes h4{margin:0 0 8px;font-family:var(--sans);font-size:18px;font-weight:500;color:var(--doc-fg);display:flex;align-items:baseline;gap:8px}
+.notes h4 .lbl{font-family:var(--mono);font-size:10.5px;color:var(--doc-fg-3);letter-spacing:0.16em;text-transform:uppercase;font-weight:400}
+.notes .lede{max-width:none;margin:0 0 14px;font-size:13.5px;color:var(--doc-fg-2);line-height:1.6}
+.notes ol{margin:0;padding-left:20px;color:var(--doc-fg-2);font-size:13px;line-height:1.65}
+.notes ol li{margin-bottom:5px}
+.notes ol li strong{color:var(--doc-fg)}
+.notes .ref{margin-top:14px;font-family:var(--mono);font-size:10.5px;color:var(--doc-fg-3);letter-spacing:0.10em}
+.notes .ref a{color:var(--doc-accent-m);text-decoration:none}
+.notes .ref.dev a{color:var(--doc-accent-d)}
+
+/* Product chrome reused */
+[data-product] .m-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#14201C;color:#FBF7EE}
+[data-product="development"] .m-bar{background:#1E1A12;color:#F8F2E2}
+[data-product] .m-bar .brand{font-family:var(--display);font-size:13px}
+[data-product] .m-bar .role{margin-left:8px;padding:2px 7px;background:rgba(248,242,226,0.1);border-radius:4px;font-family:var(--mono);font-size:9.5px}
+[data-product] .m-bar .av{margin-left:auto;width:22px;height:22px;border-radius:50%;color:white;display:inline-flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600}
+[data-product="management"] .m-bar .av{background:var(--terra)}
+[data-product="development"] .m-bar .av{background:var(--amber)}
+[data-product] .m-h{padding:12px 14px;border-bottom:1px solid var(--line)}
+[data-product="management"] .m-h{background:var(--canvas)}
+[data-product="development"] .m-h{background:var(--canvas)}
+[data-product] .m-h h3{margin:0;font-family:var(--display);font-size:18px;font-weight:400;color:var(--ink)}
+[data-product="management"] .m-h h3 em{color:var(--terra);font-style:italic}
+[data-product="development"] .m-h h3 em{color:var(--amber);font-style:italic}
+[data-product] .m-h .sub{margin-top:3px;font-size:11.5px;color:var(--ink-3)}
+[data-product] .m-kpi{padding:10px 14px;background:var(--canvas);border-bottom:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+[data-product] .m-kpi .k{padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+[data-product] .m-kpi .l{font-family:var(--mono);font-size:8.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-3)}
+[data-product] .m-kpi .v{font-family:var(--display);font-size:18px;color:var(--ink);margin-top:2px}
+[data-product] .m-kpi .v.warn{color:var(--warn)}
+[data-product] .m-kpi .v.danger{color:var(--danger)}
+[data-product] .m-kpi .v.ok{color:var(--ok)}
+[data-product="management"] .m-kpi .v.amber{color:var(--terra)}
+[data-product="development"] .m-kpi .v.amber{color:var(--amber)}
+[data-product] .m-list{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+[data-product] .m-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+[data-product] .m-card.danger{border-left:3px solid var(--danger);padding-left:9px}
+[data-product] .m-card.warn{border-left:3px solid var(--warn);padding-left:9px}
+[data-product] .m-card.up{border-left:3px solid var(--ok);padding-left:9px}
+[data-product] .m-card.draft{border-left:3px dashed var(--ink-5);padding-left:9px;opacity:0.85}
+[data-product] .m-card .top{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+[data-product] .m-card .ti{font-size:12.5px;font-weight:500;color:var(--ink)}
+[data-product] .m-card .when{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--ink-4)}
+[data-product] .m-card .qty{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+[data-product] .m-card .body{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);line-height:1.5}
+[data-product] .m-card .body strong{color:var(--ink)}
+[data-product] .m-card .actions{display:flex;gap:6px;margin-top:7px}
+[data-product] .m-card .actions .b{flex:1;padding:6px 8px;border-radius:5px;font-size:10.5px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-3);text-align:center}
+[data-product="management"] .m-card .actions .b.primary{background:var(--terra);color:white;border-color:var(--terra)}
+[data-product="development"] .m-card .actions .b.primary{background:var(--amber);color:white;border-color:var(--amber)}
+[data-product] .m-tab{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--panel)}
+[data-product] .m-tab .t{padding:9px 4px 14px;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:var(--mono);font-size:8.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-4)}
+[data-product] .m-tab .t.on{color:var(--ink)}
+[data-product] .m-tab .t .ico{font-size:14px}
+[data-product="management"] .m-tab .t.on .ico{color:var(--terra)}
+[data-product="development"] .m-tab .t.on .ico{color:var(--amber)}
+
+/* Footer */
+.ftr{margin-top:80px;padding-top:28px;border-top:1px solid var(--doc-line);font-family:var(--mono);font-size:11px;color:var(--doc-fg-3);letter-spacing:0.14em;text-transform:uppercase}
+.ftr a{color:var(--doc-accent-m);text-decoration:none;margin-left:14px}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header>
+    <div class="eyebrow"><span class="glyph"></span><span>Arconique · Phase 2.6 · mobile pass</span></div>
+    <h1 class="cover">Mobile pass — <em>8 new cabinets · all in one</em>.</h1>
+    <p class="lede">Mobile mockups for the 8 Phase 2.6 cabinets. One file, 8 device frames + mobile principles each. Same pattern as <code style="font-family:var(--mono); font-size:12.5px; background:var(--doc-bg-3); padding:1px 6px; border-radius:4px; color:var(--doc-accent-m);">mobile-pass-2.4-cabinets.html</code>.</p>
+    <div class="meta">
+      <div><span class="k">Cabinets</span><span class="v">8 (5 Mgmt · 3 Dev)</span></div>
+      <div><span class="k">Pattern</span><span class="v">360px iPhone frame · single-task focus per screen</span></div>
+      <div><span class="k">Phase</span><span class="v">2.6 mobile · companion to retrofit v2 desktops</span></div>
+      <div><span class="k">Reference</span><span class="v"><a href="design/index.html" style="color:var(--doc-accent-m); text-decoration:none;">design/index.html</a></span></div>
+    </div>
+  </header>
+
+  <!-- A · MGMT -->
+  <section class="sect">
+    <div class="sect-h"><span class="n">A · mgmt</span><h2>Management OS · 5 cabinets</h2><span class="sub mgmt">cream + terra</span></div>
+
+    <!-- 1. Mgmt Workspace -->
+    <div class="cab-block">
+      <div class="mobile-frame">
+        <div class="mobile-status m"><span>9:14</span><span>5G · 88%</span></div>
+        <div data-product="management">
+          <div class="m-bar"><span class="brand">Arconique</span><span class="av">EM</span></div>
+          <div class="m-h"><h3>Workspace <em>· 3 need you</em></h3><div class="sub">thu 29 may · 22 villas</div></div>
+          <div class="m-kpi">
+            <div class="k"><div class="l">occ 30d</div><div class="v">82%</div></div>
+            <div class="k"><div class="l">rev MTD</div><div class="v amber">$48k</div></div>
+            <div class="k"><div class="l">ops open</div><div class="v warn">14</div></div>
+          </div>
+          <div class="m-list">
+            <div class="m-card danger"><div class="top"><span class="ti">B.com sync paused 6h</span></div><div class="body">3 villas frozen · TC-04, TU-02, TS-07</div></div>
+            <div class="m-card danger"><div class="top"><span class="ti">2 statement warnings</span></div><div class="body">WG may-2025 · issues in 18h</div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">3 ops tasks overdue</span></div><div class="body">turnover delays today</div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">Owner stay request · Tan</span></div><div class="body">14-18 jun · 3 villas</div></div>
+          </div>
+          <div class="m-tab"><div class="t on"><span class="ico">⌂</span>Home</div><div class="t"><span class="ico">✉</span>Inbox</div><div class="t"><span class="ico">⊠</span>Cabinets</div><div class="t"><span class="ico">⋯</span>More</div></div>
+        </div>
+      </div>
+      <div class="notes">
+        <h4>Mgmt Workspace <span class="lbl">phone hub</span></h4>
+        <p class="lede">3-KPI strip + urgency-sorted attention feed + bottom tabbar. Daily check-in screen — operator opens it first thing in the morning.</p>
+        <ol>
+          <li><strong>3 most-critical KPIs</strong> for Mgmt: occupancy 30d · revenue MTD · ops open</li>
+          <li><strong>Attention sorted</strong> by urgency: danger → warn → info</li>
+          <li><strong>Push at 06:00</strong> for AI digest + new attention items</li>
+          <li><strong>Cabinet map</strong> in Cabinets tab · same as desktop with badge counts</li>
+        </ol>
+        <div class="ref">→ <a href="cabinets/new/mgmt-workspace.html">cabinets/new/mgmt-workspace.html</a></div>
+      </div>
+    </div>
+
+    <!-- 2. Mgmt Inventory & Procurement -->
+    <div class="cab-block">
+      <div class="mobile-frame">
+        <div class="mobile-status m"><span>11:14</span><span>5G · 78%</span></div>
+        <div data-product="management">
+          <div class="m-bar"><span class="brand">Arconique</span><span class="av">MS</span></div>
+          <div class="m-h"><h3>Low stock <em>· 5</em></h3><div class="sub">2 danger · 3 warn</div></div>
+          <div class="m-list">
+            <div class="m-card danger"><div class="top"><span class="ti">King sheets white</span><span class="qty">11/80</span></div><div class="body">par 80 · 18 villas · Bali Linens 4d</div><div class="actions"><div class="b">Details</div><div class="b primary">Reorder 60</div></div></div>
+            <div class="m-card danger"><div class="top"><span class="ti">Eco detergent 5L</span><span class="qty">2/12</span></div><div class="body">weekly · EcoStore 2d</div><div class="actions"><div class="b">Details</div><div class="b primary">Reorder 10</div></div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">Coconut soap 250ml</span><span class="qty">23/60</span></div><div class="body">amenity · Sensatia 3d</div><div class="actions"><div class="b">Details</div><div class="b">Review</div></div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">Sparkling water 1L</span><span class="qty">60/144</span></div><div class="body">welcome · Equil 5d</div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">AC filter A12</span><span class="qty">7/20</span></div><div class="body">maint · CV Mitra 7d</div></div>
+          </div>
+          <div class="m-tab"><div class="t on"><span class="ico">⌖</span>Stock</div><div class="t"><span class="ico">⌬</span>POs</div><div class="t"><span class="ico">★</span>Vendors</div><div class="t"><span class="ico">⋯</span>More</div></div>
+        </div>
+      </div>
+      <div class="notes">
+        <h4>Inventory & procurement <span class="lbl">1-tap reorder</span></h4>
+        <p class="lede">Walk the store rooms with phone. 1-tap reorder on danger items drafts a PO using vendor's preferred quantity. Editing stays at desk.</p>
+        <ol>
+          <li><strong>1-tap reorder</strong> on danger → PO draft (still desk-approve)</li>
+          <li><strong>"Review"</strong> on warn → 2-screen wizard (qty + vendor)</li>
+          <li><strong>No SKU/vendor editing</strong> on phone</li>
+          <li><strong>Stock count mode</strong> in More tab · barcode scanner</li>
+        </ol>
+        <div class="ref">→ <a href="cabinets/new/mgmt-inventory-procurement.html">cabinets/new/mgmt-inventory-procurement.html</a></div>
+      </div>
+    </div>
+
+    <!-- 3. Mgmt Utilities -->
+    <div class="cab-block">
+      <div class="mobile-frame">
+        <div class="mobile-status m"><span>14:22</span><span>5G · 82%</span></div>
+        <div data-product="management">
+          <div class="m-bar"><span class="brand">Arconique</span><span class="av">MS</span></div>
+          <div class="m-h"><h3>Utility alerts <em>· 3</em></h3><div class="sub">1 spike · 1 overdue · 1 trend</div></div>
+          <div class="m-list">
+            <div class="m-card danger"><div class="top"><span class="ti">TC-04 water +64%</span><span class="when">2d</span></div><div class="body">Possible leak · guests reported pressure issue<br><strong>Tap to dispatch maintenance</strong></div></div>
+            <div class="m-card danger"><div class="top"><span class="ti">PLN bill overdue 8d</span><span class="when">jun 2</span></div><div class="body">TC-04 · $184 · auto-debit failed</div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">Sukha-01 electric ↑18%</span><span class="when">1w</span></div><div class="body">AC efficiency degrading · 3-month trend</div></div>
+          </div>
+          <div class="m-tab"><div class="t on"><span class="ico">⚠</span>Alerts</div><div class="t"><span class="ico">⌖</span>Accounts</div><div class="t"><span class="ico">∿</span>Readings</div><div class="t"><span class="ico">⋯</span>More</div></div>
+        </div>
+      </div>
+      <div class="notes">
+        <h4>Utilities <span class="lbl">1-tap dispatch</span></h4>
+        <p class="lede">Spike alerts feed. Read-only consumption charts. Tap card → 1-tap "Dispatch maintenance" for leaks.</p>
+        <ol>
+          <li><strong>Alert feed first</strong> (spike + overdue + trend)</li>
+          <li><strong>1-action dispatch</strong> (maintenance / finance)</li>
+          <li><strong>Read-only sparklines</strong> · no editing readings</li>
+          <li><strong>Field-only photo capture</strong> for damaged meters</li>
+          <li><strong>Push at 80% spike threshold</strong></li>
+        </ol>
+        <div class="ref">→ <a href="cabinets/new/mgmt-utilities.html">cabinets/new/mgmt-utilities.html</a></div>
+      </div>
+    </div>
+
+    <!-- 4. Mgmt Owner Intelligence -->
+    <div class="cab-block">
+      <div class="mobile-frame">
+        <div class="mobile-status m"><span>8:42</span><span>5G · 88%</span></div>
+        <div data-product="management">
+          <div class="m-bar"><span class="brand">Arconique</span><span class="av">EM</span></div>
+          <div class="m-h"><h3>Owner intel <em>· 6 insights</em></h3><div class="sub">2 churn · 1 upgrade · 3 info</div></div>
+          <div class="m-list">
+            <div class="m-card danger"><div class="top"><span class="ti">Kishida · churn 0.82</span></div><div class="body"><strong>HIGH</strong> · exit inquiry 2w · billing 8d unpaid<br><strong>Schedule founder call</strong></div></div>
+            <div class="m-card danger"><div class="top"><span class="ti">Sukha · churn 0.61 rising</span></div><div class="body">Engagement −40% · 3 tickets</div></div>
+            <div class="m-card up"><div class="top"><span class="ti">Whitmore +18% YoY 2Q</span></div><div class="body">Premium tier eligible · brief at QBR</div></div>
+            <div class="m-card up"><div class="top"><span class="ti">Coral Cay CSAT 5.0 · 12mo</span></div><div class="body">Referral opportunity</div></div>
+          </div>
+          <div class="m-tab"><div class="t on"><span class="ico">★</span>Insights</div><div class="t"><span class="ico">⊙</span>Owners</div><div class="t"><span class="ico">▦</span>Segments</div><div class="t"><span class="ico">⋯</span>More</div></div>
+        </div>
+      </div>
+      <div class="notes">
+        <h4>Owner intelligence <span class="lbl">insight feed</span></h4>
+        <p class="lede">Insights feed first. Tap high-risk → owner drill-in + save plan. 1-tap "schedule founder call" on critical.</p>
+        <ol>
+          <li><strong>Urgency-sorted feed</strong> · 4 insight types (up/down/flag/star)</li>
+          <li><strong>Tap → drill-in</strong> with save plan</li>
+          <li><strong>1-tap "schedule call"</strong> on high-risk</li>
+          <li><strong>Push at 06:00</strong> · new insights from overnight model run</li>
+          <li><strong>Read-only segments</strong> · tier matrix lives on desktop</li>
+        </ol>
+        <div class="ref">→ <a href="cabinets/new/mgmt-owner-intelligence.html">cabinets/new/mgmt-owner-intelligence.html</a></div>
+      </div>
+    </div>
+
+    <!-- 5. Mgmt Documents -->
+    <div class="cab-block">
+      <div class="mobile-frame">
+        <div class="mobile-status m"><span>9:14</span><span>5G · 88%</span></div>
+        <div data-product="management">
+          <div class="m-bar"><span class="brand">Arconique</span><span class="av">EM</span></div>
+          <div class="m-h"><h3>Renewals <em>· 4</em></h3><div class="sub">2 expiring &lt; 30d · 2 within 90d</div></div>
+          <div class="m-list">
+            <div class="m-card danger"><div class="top"><span class="ti">Insurance · TC-04</span><span class="when">12 jun</span></div><div class="body">Zurich Indonesia · auto-debit failed</div></div>
+            <div class="m-card danger"><div class="top"><span class="ti">Villa licence</span><span class="when">28 jun</span></div><div class="body">covers all 22 villas · renewal started</div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">Owner agreement · Sukha</span><span class="when">14 aug</span></div><div class="body">v3.2 expires · v4 draft ready</div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">Vendor MSA · Bali Linens</span><span class="when">22 aug</span></div><div class="body">2y · auto-renew unless cancelled</div></div>
+          </div>
+          <div class="m-tab"><div class="t on"><span class="ico">⚠</span>Renewals</div><div class="t"><span class="ico">▦</span>Categories</div><div class="t"><span class="ico">⌕</span>Search</div><div class="t"><span class="ico">⋯</span>More</div></div>
+        </div>
+      </div>
+      <div class="notes">
+        <h4>Documents <span class="lbl">renewals feed</span></h4>
+        <p class="lede">Phone is for awareness, not action. Signing happens at desk. On phone you see what's coming up.</p>
+        <ol>
+          <li><strong>Read-only</strong> · no upload · no e-sign · no edit</li>
+          <li><strong>30d / 90d windows</strong> · danger/warn tinting</li>
+          <li><strong>Tap → details preview</strong> · actions disabled</li>
+          <li><strong>"Snooze 7d"</strong> for in-flight items</li>
+          <li><strong>Push at 30/14/7d</strong> before expiry</li>
+        </ol>
+        <div class="ref">→ <a href="cabinets/new/mgmt-documents.html">cabinets/new/mgmt-documents.html</a></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- B · DEV -->
+  <section class="sect">
+    <div class="sect-h"><span class="n">B · dev</span><h2>Development OS · 3 cabinets</h2><span class="sub dev">sand + amber</span></div>
+
+    <!-- 6. Dev Workspace -->
+    <div class="cab-block">
+      <div class="mobile-frame">
+        <div class="mobile-status d"><span>9:14</span><span>5G · 91%</span></div>
+        <div data-product="development">
+          <div class="m-bar"><span class="brand">Arconique</span><span class="role">PM ▾</span><span class="av">NR</span></div>
+          <div class="m-h"><h3>Workspace <em>· 4 attn</em></h3><div class="sub">thu 29 may · 3 projects</div></div>
+          <div class="m-kpi">
+            <div class="k"><div class="l">sched</div><div class="v warn">78%</div></div>
+            <div class="k"><div class="l">cash</div><div class="v amber">$240k</div></div>
+            <div class="k"><div class="l">BOQ</div><div class="v warn">+4.8%</div></div>
+          </div>
+          <div class="m-list">
+            <div class="m-card danger"><div class="top"><span class="ti">Concrete delay · TC</span></div><div class="body">Site reports · 2d slip risk</div></div>
+            <div class="m-card danger"><div class="top"><span class="ti">Capital call unpaid 8d</span></div><div class="body">Kishida · $48k</div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">3 BOQ variances pending</span></div><div class="body">need your sign-off</div></div>
+            <div class="m-card"><div class="top"><span class="ti">QS rec: re-quote rebar</span></div><div class="body">+18% vs last quotes</div></div>
+          </div>
+          <div class="m-tab"><div class="t on"><span class="ico">⌂</span>Home</div><div class="t"><span class="ico">⊠</span>Cabinets</div><div class="t"><span class="ico">★</span>AI</div><div class="t"><span class="ico">⋯</span>More</div></div>
+        </div>
+      </div>
+      <div class="notes">
+        <h4>Dev Workspace <span class="lbl">role-aware</span></h4>
+        <p class="lede">Role switcher in topbar persists. KPI strip adapts per role. Attention feed reorders.</p>
+        <ol>
+          <li><strong>Role switcher</strong> in topbar · 9 roles</li>
+          <li><strong>3-KPI mobile strip</strong> · most-critical for active role</li>
+          <li><strong>Attention urgency-sorted</strong> · swipe to dismiss</li>
+          <li><strong>Project drill-in</strong> via tap → scoped workspace</li>
+          <li><strong>AI digest push 06:00</strong> per-role</li>
+        </ol>
+        <div class="ref dev">→ <a href="cabinets/new/dev-workspace.html">cabinets/new/dev-workspace.html</a></div>
+      </div>
+    </div>
+
+    <!-- 7. Dev Warehouse -->
+    <div class="cab-block">
+      <div class="mobile-frame">
+        <div class="mobile-status d"><span>14:42</span><span>5G · 86%</span></div>
+        <div data-product="development">
+          <div class="m-bar"><span class="brand">Arconique</span><span class="role">Warehouse</span><span class="av">WS</span></div>
+          <div class="m-h"><h3>At dock <em>· 5</em></h3><div class="sub">1 held · 2 QC · 2 staging</div></div>
+          <div class="m-kpi">
+            <div class="k"><div class="l">at dock</div><div class="v warn">5</div></div>
+            <div class="k"><div class="l">held</div><div class="v danger">1</div></div>
+            <div class="k"><div class="l">stock</div><div class="v warn">3</div></div>
+          </div>
+          <div class="m-list">
+            <div class="m-card danger"><div class="top"><span class="ti">PO-2025-1042</span><span class="when">8h</span></div><div class="body"><strong>CV Mitra Beton</strong> · steel 12mm short 14<br>142/156 · held</div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">PO-2025-1057</span><span class="when">2h</span></div><div class="body"><strong>PT Sumber Mat</strong> · cement · QC</div></div>
+            <div class="m-card warn"><div class="top"><span class="ti">PO-2025-1063</span><span class="when">1h</span></div><div class="body"><strong>Toko Pak Made</strong> · tools · QC</div></div>
+            <div class="m-card"><div class="top"><span class="ti">PO-2025-1071</span><span class="when">38m</span></div><div class="body"><strong>Karya Sentosa</strong> · adhesive · at dock</div></div>
+            <div class="m-card"><div class="top"><span class="ti">PO-2025-1078</span><span class="when">14m</span></div><div class="body"><strong>Pak Ketut Light</strong> · LED · at dock</div></div>
+          </div>
+          <div class="m-tab"><div class="t on"><span class="ico">⌂</span>Today</div><div class="t"><span class="ico">⌖</span>Stock</div><div class="t"><span class="ico">⌬</span>Picks</div><div class="t"><span class="ico">⋯</span>More</div></div>
+        </div>
+      </div>
+      <div class="notes">
+        <h4>Dev Warehouse <span class="lbl">field one-handed</span></h4>
+        <p class="lede">Walk the dock with phone in hand. Scan codes, photograph damage, mark received. One-handed operation.</p>
+        <ol>
+          <li><strong>Priority list</strong> · Held first, then FIFO</li>
+          <li><strong>Tap card → expand</strong> with QC chain + Scan/Photo/Accept/Hold buttons</li>
+          <li><strong>Native camera</strong> · damaged-goods photo required on Held</li>
+          <li><strong>Stock read-only</strong> on phone · adjustments at desk</li>
+          <li><strong>Picks tab</strong> · walk-pick mode with bin order</li>
+        </ol>
+        <div class="ref dev">→ <a href="cabinets/new/dev-warehouse.html">cabinets/new/dev-warehouse.html</a></div>
+      </div>
+    </div>
+
+    <!-- 8. Dev Marketing -->
+    <div class="cab-block">
+      <div class="mobile-frame">
+        <div class="mobile-status d"><span>11:42</span><span>5G · 92%</span></div>
+        <div data-product="development">
+          <div class="m-bar"><span class="brand">Arconique</span><span class="role">Marketing</span><span class="av">SK</span></div>
+          <div class="m-h"><h3>Campaigns <em>· 3 live</em></h3><div class="sub">$3k spent · $7k remaining</div></div>
+          <div class="m-list">
+            <div class="m-card up"><div class="top"><span class="ti">Tirta Living · IG</span></div><div class="body"><strong>1,420</strong> impr · <strong>184</strong> clicks · cost/lead <strong>$29</strong> · ROAS <strong>$24/$1</strong></div></div>
+            <div class="m-card up"><div class="top"><span class="ti">Bali equity · LinkedIn</span></div><div class="body"><strong>980</strong> impr · <strong>142</strong> clicks · cost/lead <strong>$25</strong></div></div>
+            <div class="m-card up"><div class="top"><span class="ti">Print airport</span></div><div class="body"><strong>32</strong> leads · cost/lead <strong>$125</strong> · ends jun 14</div></div>
+            <div class="m-card draft"><div class="top"><span class="ti">Drone Uluwatu · draft</span></div><div class="body">footage jun 2 · launch jun 4</div></div>
+          </div>
+          <div class="m-tab"><div class="t on"><span class="ico">★</span>Campaigns</div><div class="t"><span class="ico">▦</span>Funnel</div><div class="t"><span class="ico">∷</span>Content</div><div class="t"><span class="ico">⋯</span>More</div></div>
+        </div>
+      </div>
+      <div class="notes">
+        <h4>Dev Marketing <span class="lbl">pause-only</span></h4>
+        <p class="lede">Read-only metrics. Pause-only editing. No new campaigns or content edits on phone.</p>
+        <ol>
+          <li><strong>Read-only metrics</strong> · pause is the only editing action</li>
+          <li><strong>Tap card → A/B comparison</strong> view</li>
+          <li><strong>Content drafts</strong> in More tab · read-only</li>
+          <li><strong>Push at budget 80%</strong> per campaign</li>
+          <li><strong>No new campaigns</strong> on phone · desk required</li>
+        </ol>
+        <div class="ref dev">→ <a href="cabinets/new/dev-marketing.html">cabinets/new/dev-marketing.html</a></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Note · skipped -->
+  <section class="sect">
+    <div class="sect-h"><span class="n">C · note</span><h2>Dev Executive · skipped on mobile</h2></div>
+    <p style="font-size:13.5px; color:var(--doc-fg-2); line-height:1.65; max-width:780px;">Dev Executive is desk-only by design — executives review portfolio and risk reports at the desk, not on phones. If push notifications for daily digests are needed, those land in the <strong style="color:var(--doc-fg);">Dev Workspace mobile</strong> via the Admin role view. No separate Executive mobile screen needed.</p>
+  </section>
+
+  <footer class="ftr">
+    8 cabinets · 1 file · phase 2.6 · companion to retrofit v2 desktops
+    <a href="design/index.html">↗ master hub</a>
+  </footer>
+
+</div>
+
+</body>
+</html>

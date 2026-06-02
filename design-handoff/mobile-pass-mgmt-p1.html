@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mobile pass · Mgmt P1 cabinets</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style>
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root {
+  --doc-bg: #0F1014;
+  --doc-bg-2: #16171C;
+  --doc-bg-3: #1F2129;
+  --doc-line: rgba(255,255,255,0.06);
+  --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E5E0;
+  --doc-fg-2: #BBB9B0;
+  --doc-fg-3: #8B8B85;
+  --doc-accent: #C4583C;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+[data-product="management"] {
+  --paper: #FAF6EE; --cream: #F4EFE6; --cream-warm: #ECE5D5; --cream-deep: #E5DECC;
+  --ink: #14201C; --ink-2: #2F3D38; --ink-3: #5C6B65; --ink-4: #8E9A95;
+  --line: #DAD2C0; --line-soft: #E5DECC;
+  --accent: #C4583C; --accent-soft: #E8B8A4; --on-accent: #FFF8F0;
+  --inverted-bg: #14201C; --inverted-fg: #F4EFE6;
+  --ok: #2C8A5C; --warn: #C18A2E; --danger: #B53826; --info: #3A6B9C;
+  --gold: #8c6f33;
+  --r-pill: 999px; --r-card: 14px; --r-card-lg: 20px; --r-sm: 6px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+/* ============================================================
+   PAGE CHROME
+   ============================================================ */
+.page { min-height: 100vh; padding: 64px 48px 96px; }
+.page-head { max-width: 1600px; margin: 0 auto 56px; }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+h1.title { font-weight: 500; font-size: 40px; line-height: 1.05; letter-spacing: -0.02em; margin: 0; }
+h1.title em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.lede { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+.meta-row { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--doc-line); font-size: 13px; }
+.meta-row > div { display: flex; flex-direction: column; gap: 4px; }
+.meta-row .k { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); }
+.meta-row .v { color: var(--doc-fg); }
+.meta-row a { color: var(--doc-accent); text-decoration: none; }
+
+.boards { display: flex; flex-direction: column; gap: 72px; max-width: 1600px; margin: 0 auto; }
+.cabinet { padding-top: 32px; border-top: 1px solid var(--doc-line); display: flex; flex-direction: column; gap: 32px; }
+.cabinet-head { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.cabinet-head .num { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); padding: 5px 10px; border: 1px solid var(--doc-line-2); border-radius: 4px; }
+.cabinet-head h2 { margin: 0; font-weight: 500; font-size: 28px; letter-spacing: -0.015em; }
+.cabinet-head .meta { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+.cabinet-head .meta .pill { padding: 4px 10px; border: 1px solid var(--doc-line-2); border-radius: 999px; font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #E8B8A4; border-color: rgba(232,184,164,0.35); }
+.cabinet-lede { max-width: 760px; font-size: 14.5px; line-height: 1.65; color: var(--doc-fg-2); margin: 0; }
+.cabinet-body { display: grid; grid-template-columns: 380px 380px 1fr; gap: 36px; align-items: start; }
+.frame-col { display: flex; flex-direction: column; gap: 14px; }
+.frame-tag { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--doc-fg-3); }
+.frame-tag .name { color: var(--doc-fg); }
+.frame-tag .role { padding: 2px 8px; border: 1px solid var(--doc-line-2); border-radius: 4px; color: var(--doc-fg-2); font-size: 9.5px; }
+
+/* ============================================================
+   PHONE FRAME
+   ============================================================ */
+.phone { width: 360px; height: 740px; border-radius: 44px; background: #0A0B0F; padding: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06); position: relative; }
+.phone-screen { width: 100%; height: 100%; border-radius: 34px; background: var(--cream); overflow: hidden; display: flex; flex-direction: column; }
+.phone-status { height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px 4px; font-family: var(--mono-font); font-size: 12px; color: var(--ink); font-weight: 500; flex-shrink: 0; }
+.phone-notch { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: 110px; height: 28px; background: #0A0B0F; border-radius: 14px; z-index: 2; }
+.phone-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+/* App chrome */
+.app-topbar { display: flex; align-items: center; gap: 10px; padding: 8px 16px 12px; border-bottom: 1px solid var(--line-soft); flex-shrink: 0; }
+.app-topbar .ico { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; color: var(--ink); }
+.app-topbar .title { flex: 1; font-family: var(--display-font); font-size: 17px; color: var(--ink); }
+.app-topbar .title .sub { display: block; font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-top: 1px; }
+.app-topbar .aux { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+
+.app-scroll { flex: 1; overflow-y: auto; padding: 0; }
+.app-tabbar { display: flex; align-items: stretch; border-top: 1px solid var(--line-soft); background: var(--paper); padding-bottom: 14px; flex-shrink: 0; }
+.app-tabbar .tab { flex: 1; padding: 10px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-4); background: transparent; border: 0; }
+.app-tabbar .tab.on { color: var(--ink); }
+.app-tabbar .tab.on .ico { color: var(--accent); }
+.app-tabbar .ico { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; }
+
+.sec-h { display: flex; align-items: center; gap: 8px; padding: 14px 16px 8px; font-family: var(--mono-font); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+.sec-h .ct { font-size: 9.5px; padding: 1px 6px; border-radius: 999px; background: var(--cream-deep); color: var(--ink-3); }
+.sec-h .more { margin-left: auto; color: var(--ink-4); font-family: var(--sans-font); font-size: 11px; text-transform: none; letter-spacing: 0; }
+
+/* ============================================================
+   COMPONENTS
+   ============================================================ */
+[data-product] .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.10em; border: 1px solid var(--line); background: var(--paper); color: var(--ink-3); }
+[data-product] .badge-ok     { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
+[data-product] .badge-warn   { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+[data-product] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product] .badge-gold   { background: rgba(140,111,51,0.14); color: var(--gold); border-color: rgba(140,111,51,0.35); }
+[data-product] .badge-ink    { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: var(--r-pill); font-family: var(--sans-font); font-size: 14px; font-weight: 500; border: 1px solid transparent; cursor: pointer; line-height: 1; background: transparent; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product] .btn-secondary { background: var(--cream-warm); color: var(--ink); border-color: var(--line); }
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); border: 1px solid var(--line); }
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); }
+
+.chips { display: flex; gap: 6px; padding: 8px 12px 6px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chips .chip { flex-shrink: 0; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper); font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+.chips .chip.on { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+.kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 12px; }
+.kpi-strip .kpi { background: var(--paper); border: 1px solid var(--line-soft); border-radius: var(--r-card); padding: 8px 10px; }
+.kpi-strip .kpi .l { font-family: var(--mono-font); font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+.kpi-strip .kpi .v { font-family: var(--display-font); font-size: 20px; color: var(--ink); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.kpi-strip .kpi .v.warn { color: var(--warn); }
+.kpi-strip .kpi .v.danger { color: var(--danger); }
+.kpi-strip .kpi .v.ok { color: var(--ok); }
+
+/* Booking card */
+.b-card { margin: 0 12px 8px; padding: 12px 14px; background: var(--paper); border: 1px solid var(--line-soft); border-radius: var(--r-card); display: flex; gap: 12px; align-items: center; }
+.b-card .stripe { width: 4px; align-self: stretch; border-radius: 2px; background: var(--ink-4); flex-shrink: 0; }
+.b-card .stripe.arr { background: var(--accent); }
+.b-card .stripe.in { background: var(--ok); }
+.b-card .stripe.dep { background: var(--warn); }
+.b-card .stripe.cx { background: var(--ink-4); opacity: 0.4; }
+.b-card .body { flex: 1; min-width: 0; }
+.b-card .body .nm { font-family: var(--sans-font); font-size: 14px; font-weight: 500; color: var(--ink); }
+.b-card .body .meta { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.b-card .body .meta .sep { color: var(--ink-4); margin: 0 4px; }
+.b-card.cx .body .nm { color: var(--ink-3); text-decoration: line-through; }
+.b-card .right { text-align: right; display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+.b-card .right .amt { font-family: var(--mono-font); font-size: 12px; color: var(--ink); }
+.b-card .right .ch { font-family: var(--mono-font); font-size: 9.5px; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.12em; }
+
+/* Booking detail */
+.bd-h { padding: 14px 16px 12px; border-bottom: 1px solid var(--line-soft); }
+.bd-h .name { font-family: var(--display-font); font-size: 22px; color: var(--ink); line-height: 1.25; }
+.bd-h .sub { margin-top: 4px; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+.bd-h .chips-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.bd-tabs { display: flex; padding: 0 16px; border-bottom: 1px solid var(--line-soft); gap: 18px; }
+.bd-tabs .t { padding: 12px 0; font-family: var(--mono-font); font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); border-bottom: 2px solid transparent; }
+.bd-tabs .t.on { color: var(--ink); border-bottom-color: var(--ink); }
+.bd-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 9px 16px; border-bottom: 1px solid var(--line-soft); }
+.bd-row .k { font-family: var(--mono-font); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+.bd-row .v { font-family: var(--sans-font); font-size: 14px; color: var(--ink); text-align: right; }
+.bd-row .v.mono { font-family: var(--mono-font); font-size: 12.5px; }
+.bd-sub-h { padding: 14px 16px 6px; font-family: var(--mono-font); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
+.charge-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--line-soft); font-size: 13px; align-items: baseline; }
+.charge-row .nm { color: var(--ink); }
+.charge-row .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 2px; }
+.charge-row .amt { font-family: var(--mono-font); font-size: 12.5px; color: var(--ink); text-align: right; }
+.charge-row .amt.neg { color: var(--danger); }
+.charge-row.total { background: var(--cream-warm); }
+.charge-row.total .nm { font-weight: 500; }
+
+/* Generic field */
+.fld { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card); padding: 10px 14px; margin: 0 16px 10px; }
+.fld .lbl { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); }
+.fld .val { display: block; margin-top: 4px; font-family: var(--sans-font); font-size: 15px; color: var(--ink); }
+.fld .val .ph { color: var(--ink-4); }
+.fld.checkable { display: flex; align-items: center; gap: 12px; }
+.fld.checkable .lbl { font-size: 13.5px; text-transform: none; letter-spacing: 0; color: var(--ink); flex: 1; font-family: var(--sans-font); }
+.fld .check { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--ink-4); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.fld .check.on { background: var(--ink); border-color: var(--ink); color: var(--inverted-fg); }
+.fld .pill-grp { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.fld .pill-grp .p { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); font-family: var(--mono-font); font-size: 11px; color: var(--ink-2); background: transparent; }
+.fld .pill-grp .p.on { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+/* Stepper */
+.stepper { display: flex; align-items: center; gap: 6px; padding: 10px 16px 8px; }
+.stepper .step { flex: 1; height: 4px; background: var(--cream-deep); border-radius: 4px; position: relative; }
+.stepper .step.done { background: var(--ink); }
+.stepper .step.on { background: var(--accent); }
+.stepper .step.on::after { content: ""; position: absolute; right: 0; top: -3px; width: 10px; height: 10px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent); }
+.step-head { display: flex; align-items: baseline; gap: 12px; padding: 2px 16px 8px; }
+.step-head .num { font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink-3); }
+.step-head h4 { margin: 0; font-family: var(--display-font); font-size: 22px; font-weight: 400; color: var(--ink); letter-spacing: -0.005em; }
+
+/* CTA row */
+.cta-row { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line-soft); background: var(--cream); flex-shrink: 0; }
+.cta-row .btn { flex: 1; }
+
+/* Owner row */
+.o-row { padding: 12px 16px; display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; border-bottom: 1px solid var(--line-soft); background: var(--paper); }
+.o-row.risk-warn { background: color-mix(in srgb, var(--warn) 5%, var(--paper)); }
+.o-row.risk-danger { background: color-mix(in srgb, var(--danger) 6%, var(--paper)); }
+.o-row .name { font-family: var(--display-font); font-size: 16px; color: var(--ink); line-height: 1.3; }
+.o-row .sub { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+.o-row .right { text-align: right; }
+.o-row .ytd { font-family: var(--mono-font); font-size: 13px; color: var(--ink); }
+.o-row .risk { margin-top: 4px; }
+
+/* Statement detail */
+.st-h { padding: 14px 16px 8px; }
+.st-h h3 { margin: 0; font-family: var(--display-font); font-size: 20px; font-weight: 400; color: var(--ink); letter-spacing: -0.005em; line-height: 1.2; }
+.st-h .sub { margin-top: 6px; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.14em; }
+.st-totals { margin: 4px 16px 0; padding: 14px 16px; background: var(--ink); color: var(--inverted-fg); border-radius: var(--r-card-lg); }
+.st-totals .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(255,255,255,0.55); }
+.st-totals .v { font-family: var(--display-font); font-size: 28px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.st-totals .ctx { font-family: var(--mono-font); font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 4px; }
+.line { display: grid; grid-template-columns: 80px 1fr auto; gap: 8px; align-items: baseline; padding: 8px 16px; border-bottom: 1px solid var(--line-soft); }
+.line .grp { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; padding: 2px 6px; border-radius: 3px; align-self: start; margin-top: 2px; }
+.line .grp.rev { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.line .grp.fee { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
+.line .grp.op  { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.line .grp.tax { background: color-mix(in srgb, var(--info) 12%, transparent); color: var(--info); }
+.line .desc { font-size: 13px; color: var(--ink); line-height: 1.35; }
+.line .desc .sub { display: block; font-family: var(--mono-font); font-size: 10px; color: var(--ink-4); margin-top: 2px; }
+.line .amt { font-family: var(--mono-font); font-size: 12.5px; color: var(--ink); text-align: right; }
+.line .amt.pos { color: var(--ok); }
+.line .amt.neg { color: var(--danger); }
+.line.total { background: var(--cream-warm); }
+.line.total .desc { font-weight: 500; }
+.line.total .amt { font-size: 14px; }
+.draft-tag { margin: 10px 16px 0; padding: 10px 12px; background: color-mix(in srgb, var(--warn) 8%, var(--paper)); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); border-radius: var(--r-card); font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+.draft-tag strong { font-family: var(--mono-font); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--warn); display: block; margin-bottom: 4px; }
+
+/* Operations hero tile */
+.ops-tile { background: var(--paper); border: 1px solid var(--line-soft); border-radius: var(--r-card-lg); padding: 14px 16px; margin: 0 12px 10px; }
+.ops-tile.dark { background: var(--ink); color: var(--inverted-fg); }
+.ops-tile .ft { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+.ops-tile.dark .ft { color: rgba(255,255,255,0.55); }
+.ops-tile .ft .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+.ops-tile h3 { margin: 6px 0 0; font-family: var(--display-font); font-size: 20px; font-weight: 400; color: var(--ink); letter-spacing: -0.01em; }
+.ops-tile.dark h3 { color: var(--inverted-fg); }
+.ops-tile .ctx { font-size: 12.5px; color: var(--ink-3); margin-top: 6px; line-height: 1.5; }
+.ops-tile.dark .ctx { color: rgba(255,255,255,0.7); }
+.ops-tile .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.10); }
+.ops-tile.dark .row:first-of-type { border-top: 0; margin-top: 8px; padding-top: 0; }
+.ops-tile .row .nm { font-size: 13px; color: var(--inverted-fg); }
+.ops-tile .row .when { font-family: var(--mono-font); font-size: 10.5px; color: rgba(255,255,255,0.6); }
+
+/* Maintenance ticket */
+.mt-card { padding: 12px 14px; background: var(--paper); border: 1px solid var(--line-soft); border-radius: var(--r-card); margin: 0 12px 8px; display: flex; gap: 10px; align-items: flex-start; }
+.mt-card.breach { background: color-mix(in srgb, var(--warn) 5%, var(--paper)); border-color: color-mix(in srgb, var(--warn) 25%, transparent); }
+.mt-card .pri { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-family: var(--mono-font); font-size: 11px; font-weight: 500; flex-shrink: 0; }
+.mt-card .pri.p1 { background: var(--danger); color: white; }
+.mt-card .pri.p2 { background: var(--warn); color: var(--ink); }
+.mt-card .pri.p3 { background: var(--cream-deep); color: var(--ink-3); }
+.mt-card .body { flex: 1; min-width: 0; }
+.mt-card .body .nm { font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; color: var(--ink); }
+.mt-card .body .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; display: flex; gap: 10px; }
+.mt-card .body .assign { margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-2); padding: 2px 8px; border-radius: 999px; background: var(--cream-warm); border: 1px solid var(--line); }
+.mt-card .right { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; }
+.mt-card .sla { font-family: var(--mono-font); font-size: 10.5px; padding: 2px 8px; border-radius: 999px; }
+.mt-card .sla.breach { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+.mt-card .sla.watch { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.mt-card .sla.ok { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.mt-card .age { font-family: var(--mono-font); font-size: 10px; color: var(--ink-4); }
+
+/* Turnover checklist */
+.tn-task { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line-soft); }
+.tn-task .ck { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--ink-4); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.tn-task .ck.on { background: var(--ok); border-color: var(--ok); color: white; }
+.tn-task .nm { font-family: var(--sans-font); font-size: 14px; color: var(--ink); }
+.tn-task.done .nm { text-decoration: line-through; color: var(--ink-3); }
+.tn-task .area { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); padding: 2px 8px; border-radius: 999px; background: var(--cream-warm); border: 1px solid var(--line); }
+.tn-h { padding: 14px 16px 8px; }
+.tn-h h3 { margin: 0; font-family: var(--display-font); font-size: 22px; font-weight: 400; color: var(--ink); letter-spacing: -0.005em; }
+.tn-h .sub { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+.tn-progress { padding: 8px 16px 4px; }
+.tn-progress .bar { height: 6px; background: var(--cream-deep); border-radius: 3px; overflow: hidden; }
+.tn-progress .bar .fill { height: 100%; background: var(--ok); border-radius: 3px; }
+.tn-progress .ctx { display: flex; justify-content: space-between; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); margin-top: 6px; }
+
+/* Notes column */
+.notes h3 { font-family: var(--doc-sans); font-size: 18px; font-weight: 500; margin: 0 0 6px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.notes p.l { font-size: 14px; line-height: 1.6; color: var(--doc-fg-2); margin: 0 0 18px; max-width: 460px; }
+.notes dl { margin: 0; border-top: 1px solid var(--doc-line); }
+.notes dl > div { display: grid; grid-template-columns: 130px 1fr; gap: 18px; padding: 12px 0; border-bottom: 1px solid var(--doc-line); }
+.notes dt { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes dd { margin: 0; font-size: 13px; color: var(--doc-fg-2); line-height: 1.55; }
+.notes dd strong { color: var(--doc-fg); font-weight: 500; }
+.notes dd code { background: var(--doc-bg-3); padding: 1px 6px; border-radius: 4px; font-family: var(--doc-mono); font-size: 11.5px; color: var(--doc-fg); }
+
+@media (max-width: 1320px) {
+  .cabinet-body { grid-template-columns: 380px 380px; }
+  .notes { grid-column: 1 / -1; }
+}
+@media (max-width: 820px) {
+  .cabinet-body { grid-template-columns: 1fr; justify-items: center; }
+  .notes { max-width: 420px; }
+}
+</style>
+</head>
+<body>
+
+<div class="page" data-screen-label="Mobile pass · Mgmt P1 cabinets">
+
+  <header class="page-head">
+    <div class="eyebrow"><span class="glyph"></span><span>DS extension · Mobile pass · Mgmt P1 cabinets</span></div>
+    <h1 class="title">Four cabinets, <em>list + consequential flow</em>.</h1>
+    <p class="lede">Mgmt P1 is the daily driver — Bookings, Finance/Statements, Owners, Operations. Each gets two mobile artboards: the read view (list or hero) and the one write surface that earns its mobile design.</p>
+    <div class="meta-row">
+      <div><span class="k">Status</span><span class="v">Draft — needs review</span></div>
+      <div><span class="k">Target</span><span class="v">360-700&nbsp;px</span></div>
+      <div><span class="k">Frame</span><span class="v">iPhone 14 · 393 × 852</span></div>
+      <div><span class="k">Series</span><span class="v"><a href="mobile-pass-2.4-primitives.html">primitives</a> · <a href="mobile-pass-2.4-cabinets.html">P2 cabinets</a> · <strong>Mgmt P1</strong> · Dev P1 · Owner P1</span></div>
+    </div>
+  </header>
+
+  <main class="boards">
+    <div id="board-mount"></div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   Cabinet artboards — assembled here to keep one source for chrome
+   ============================================================ */
+
+const PHONE = (inner) => `
+  <div class="phone" data-product="management">
+    <div class="phone-notch"></div>
+    <div class="phone-screen">
+      <div class="phone-status"><span>9:41</span><span>5G · 86%</span></div>
+      <div class="phone-body">${inner}</div>
+    </div>
+  </div>`;
+
+const TABBAR = (on) => `
+  <div class="app-tabbar">
+    <button class="tab ${on==='book'?'on':''}"><span class="ico">▦</span>Bookings</button>
+    <button class="tab ${on==='fin'?'on':''}"><span class="ico">$</span>Finance</button>
+    <button class="tab ${on==='own'?'on':''}"><span class="ico">⚭</span>Owners</button>
+    <button class="tab ${on==='ops'?'on':''}"><span class="ico">▢</span>Ops</button>
+  </div>`;
+
+const TOP = (title, sub, aux) => `
+  <div class="app-topbar">
+    <div class="ico">←</div>
+    <div class="title">${title}<span class="sub">${sub}</span></div>
+    ${aux ? `<div class="aux">${aux}</div>` : ''}
+  </div>`;
+
+const TOP_DETAIL = (title, sub) => `
+  <div class="app-topbar">
+    <div class="ico">←</div>
+    <div class="title">${title}<span class="sub">${sub}</span></div>
+    <div class="ico">⋯</div>
+  </div>`;
+
+const TOP_FLOW = (title, sub) => `
+  <div class="app-topbar">
+    <div class="ico">×</div>
+    <div class="title">${title}<span class="sub">${sub}</span></div>
+    <div class="ico">⋯</div>
+  </div>`;
+
+const CABINET = (num, title, lede, mainTag, mainScreen, flowTag, flowScreen, notesH, notesL, notes) => `
+  <section class="cabinet">
+    <header class="cabinet-head">
+      <span class="num">${num}</span>
+      <h2>${title}</h2>
+      <div class="meta"><span class="pill">Mgmt · P1</span></div>
+    </header>
+    <p class="cabinet-lede">${lede}</p>
+    <div class="cabinet-body">
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">main</span><span class="name">${mainTag}</span></div>
+        ${PHONE(mainScreen)}
+      </div>
+      <div class="frame-col">
+        <div class="frame-tag"><span class="role">flow</span><span class="name">${flowTag}</span></div>
+        ${PHONE(flowScreen)}
+      </div>
+      <div class="notes">
+        <h3>${notesH}</h3>
+        <p class="l">${notesL}</p>
+        <dl>${notes.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+      </div>
+    </div>
+  </section>`;
+
+// ----- 01. BOOKINGS -----
+const bk_main = `
+  ${TOP('Bookings', 'week 22 · 12 arr · 9 dep', '+')}
+  <div class="chips">
+    <span class="chip on">this week</span>
+    <span class="chip">arrivals</span>
+    <span class="chip">all channels</span>
+    <span class="chip">+ filter</span>
+  </div>
+  <div class="app-scroll">
+    <div class="kpi-strip">
+      <div class="kpi"><div class="l">arrive</div><div class="v">4</div></div>
+      <div class="kpi"><div class="l">in-house</div><div class="v">11</div></div>
+      <div class="kpi"><div class="l">depart</div><div class="v">3</div></div>
+      <div class="kpi"><div class="l">cx</div><div class="v warn">1</div></div>
+    </div>
+    <div class="sec-h">wed jun 11 <span class="ct">3 events</span></div>
+    <div class="b-card">
+      <div class="stripe arr"></div>
+      <div class="body">
+        <div class="nm">Vikram Iyer · party 4</div>
+        <div class="meta">Tirta · 5 nights <span class="sep">·</span> arr 14:30</div>
+      </div>
+      <div class="right"><span class="badge badge-accent">VIP</span><div class="amt">8.4 M</div><div class="ch">direct</div></div>
+    </div>
+    <div class="b-card">
+      <div class="stripe dep"></div>
+      <div class="body">
+        <div class="nm">Diane Ho · party 2</div>
+        <div class="meta">Sanctuary · dep 11:00</div>
+      </div>
+      <div class="right"><span class="badge badge-danger">late</span><div class="ch">airbnb</div></div>
+    </div>
+    <div class="b-card">
+      <div class="stripe in"></div>
+      <div class="body">
+        <div class="nm">Hadi Susanto · night 3/5</div>
+        <div class="meta">Tirta · mid-stay clean</div>
+      </div>
+      <div class="right"><div class="ch">booking.com</div></div>
+    </div>
+    <div class="sec-h">thu jun 12 <span class="ct">5 events</span></div>
+    <div class="b-card">
+      <div class="stripe arr"></div>
+      <div class="body">
+        <div class="nm">Anya Petrova · party 2</div>
+        <div class="meta">Cendana · 7 nights</div>
+      </div>
+      <div class="right"><span class="badge badge-warn">ID pending</span><div class="amt">11.2 M</div><div class="ch">direct</div></div>
+    </div>
+    <div class="b-card cx">
+      <div class="stripe cx"></div>
+      <div class="body">
+        <div class="nm">Sam Lee · party 3</div>
+        <div class="meta">Sanctuary · cancelled mon</div>
+      </div>
+      <div class="right"><div class="amt">−2.4 M</div><div class="ch">avito</div></div>
+    </div>
+    <div class="b-card">
+      <div class="stripe arr"></div>
+      <div class="body">
+        <div class="nm">Jamie Lee · party 6</div>
+        <div class="meta">Sanctuary · 4 nights</div>
+      </div>
+      <div class="right"><div class="amt">14.6 M</div><div class="ch">direct</div></div>
+    </div>
+  </div>
+  ${TABBAR('book')}`;
+
+const bk_flow = `
+  ${TOP_DETAIL('Vikram Iyer', 'tirta · 5 nights · DIRECT')}
+  <div class="bd-h">
+    <div class="name">Vikram Iyer · party 4</div>
+    <div class="sub">jun 11 → jun 16 · IDR direct booking</div>
+    <div class="chips-row">
+      <span class="badge badge-accent">VIP</span>
+      <span class="badge badge-ok">paid</span>
+      <span class="badge">repeat · 4th</span>
+    </div>
+  </div>
+  <div class="bd-tabs">
+    <div class="t on">Stay</div>
+    <div class="t">Folio</div>
+    <div class="t">Notes</div>
+    <div class="t">Files</div>
+  </div>
+  <div class="app-scroll">
+    <div class="bd-row"><span class="k">villa</span><span class="v">Tirta · Canggu</span></div>
+    <div class="bd-row"><span class="k">arrival</span><span class="v mono">jun 11 · 14:30</span></div>
+    <div class="bd-row"><span class="k">departure</span><span class="v mono">jun 16 · 11:00</span></div>
+    <div class="bd-row"><span class="k">party</span><span class="v">2 adult · 2 child</span></div>
+    <div class="bd-row"><span class="k">car</span><span class="v">airport pickup · driver Made</span></div>
+    <div class="bd-sub-h">Folio · IDR</div>
+    <div class="charge-row">
+      <div><div class="nm">Room · 5 nights @ 1.45M</div><div class="meta">base · weekend +15%</div></div>
+      <div class="amt">7,250,000</div>
+    </div>
+    <div class="charge-row">
+      <div><div class="nm">Tax · 10%</div></div>
+      <div class="amt">725,000</div>
+    </div>
+    <div class="charge-row">
+      <div><div class="nm">Service · 5%</div></div>
+      <div class="amt">363,000</div>
+    </div>
+    <div class="charge-row">
+      <div><div class="nm">Airport pickup</div><div class="meta">jun 11 12:00 · Made</div></div>
+      <div class="amt">450,000</div>
+    </div>
+    <div class="charge-row">
+      <div><div class="nm">Discount · repeat 5%</div></div>
+      <div class="amt neg">−363,000</div>
+    </div>
+    <div class="charge-row total">
+      <div class="nm">Total · paid in full</div>
+      <div class="amt">8,425,000</div>
+    </div>
+  </div>
+  <div class="cta-row">
+    <button class="btn btn-ghost">Message</button>
+    <button class="btn btn-primary">Check-in →</button>
+  </div>`;
+
+const bk_notes = [
+  ['Density','Tap-anywhere row, 64&nbsp;px tall. Stripe colour encodes type: terra arrival, ok in-house, warn departure, muted cancelled. <code>cx</code> rows are strikethrough.'],
+  ['Day group','Section header per calendar day. Counts shown in pill. Days slide vertically — no horizontal calendar on mobile (that\'s a separate "calendar" tab on tab bar).'],
+  ['Right-column','Stack: optional badge (VIP, late, ID&nbsp;pending), amount, channel. Channel uses the same mono uppercase as desktop.'],
+  ['Filters','Horizontal chip strip. First chip is the date scope (this week / today / next 7d). The "+ filter" chip opens a sheet with channel, status, villa.'],
+  ['Detail tabs','4 tabs: Stay / Folio / Notes / Files. Default Stay. Folio inlines charges in the same scroll — no separate "show folio" affordance.'],
+  ['Folio rows','Charge name + meta + amount. Discounts use danger-red (negative). Total row has cream-warm background + bold.'],
+  ['Primary CTA','Check-in jumps to the front-office flow with this booking pre-loaded.']
+];
+
+// ----- 02. FINANCE -----
+const fn_main = `
+  ${TOP('Statements', 'jun · 32 owners', '⋯')}
+  <div class="chips">
+    <span class="chip on">jun 2026</span>
+    <span class="chip">all owners</span>
+    <span class="chip">draft 14</span>
+    <span class="chip">issued 12</span>
+    <span class="chip">paid 6</span>
+  </div>
+  <div class="app-scroll">
+    <div class="kpi-strip" style="grid-template-columns:repeat(3,1fr);">
+      <div class="kpi"><div class="l">total payout</div><div class="v" style="font-size:18px;">2.1B</div></div>
+      <div class="kpi"><div class="l">avg net</div><div class="v" style="font-size:18px;">65M</div></div>
+      <div class="kpi"><div class="l">held</div><div class="v warn" style="font-size:18px;">3</div></div>
+    </div>
+    <div class="sec-h">Draft <span class="ct">14</span><span class="more">select all</span></div>
+    <div style="padding:0 4px 0 0;">
+      <div style="display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line-soft);">
+        <div class="check on" style="width:20px;height:20px;border-radius:5px;background:var(--ink);color:var(--inverted-fg);display:inline-flex;align-items:center;justify-content:center;font-size:12px;">✓</div>
+        <div><div style="font-family:var(--display-font);font-size:15px;color:var(--ink);">Petra Iverson</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">Villa Tirta · 21 days · 4 bookings</div></div>
+        <div style="text-align:right;"><div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);">142.8 M</div><div style="margin-top:4px;"><span class="badge badge-warn">draft</span></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line-soft);">
+        <div class="check on" style="width:20px;height:20px;border-radius:5px;background:var(--ink);color:var(--inverted-fg);display:inline-flex;align-items:center;justify-content:center;font-size:12px;">✓</div>
+        <div><div style="font-family:var(--display-font);font-size:15px;color:var(--ink);">Hans Müller</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">Villa Cendana · 28 days · 6 bookings</div></div>
+        <div style="text-align:right;"><div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);">98.4 M</div><div style="margin-top:4px;"><span class="badge badge-warn">draft</span></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line-soft);">
+        <div class="check" style="width:20px;height:20px;border-radius:5px;border:1.5px solid var(--ink-4);"></div>
+        <div><div style="font-family:var(--display-font);font-size:15px;color:var(--ink);">Tan Family Trust</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">Villa Sanctuary · 18 days</div></div>
+        <div style="text-align:right;"><div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);">76.2 M</div><div style="margin-top:4px;"><span class="badge badge-danger">held</span></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line-soft);">
+        <div class="check" style="width:20px;height:20px;border-radius:5px;border:1.5px solid var(--ink-4);"></div>
+        <div><div style="font-family:var(--display-font);font-size:15px;color:var(--ink);">Aditya Mehta</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">Villa Bayu · 24 days · 5 bookings</div></div>
+        <div style="text-align:right;"><div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);">112.3 M</div><div style="margin-top:4px;"><span class="badge badge-warn">draft</span></div></div>
+      </div>
+    </div>
+    <div class="sec-h">Issued <span class="ct">12</span></div>
+    <div style="display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line-soft);opacity:0.7;">
+      <div></div>
+      <div><div style="font-family:var(--display-font);font-size:15px;color:var(--ink);">Sunset Holdings Pte</div><div style="font-family:var(--mono-font);font-size:10.5px;color:var(--ink-3);margin-top:2px;">Villa Senayan · awaits wire</div></div>
+      <div style="text-align:right;"><div style="font-family:var(--mono-font);font-size:13px;color:var(--ink);">198.4 M</div><div style="margin-top:4px;"><span class="badge badge-info">issued</span></div></div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--ink);color:var(--inverted-fg);flex-shrink:0;">
+    <span style="font-family:var(--mono-font);font-size:11px;"><strong style="font-size:13px;">2 selected</strong> · 241.2 M</span>
+    <button class="btn btn-accent" style="margin-left:auto;padding:7px 14px;font-size:13px;">Issue →</button>
+  </div>`;
+
+const fn_flow = `
+  ${TOP_DETAIL('Petra Iverson · jun', 'villa tirta · draft')}
+  <div class="st-h">
+    <h3>June 2026 statement</h3>
+    <div class="sub">Petra Iverson · villa tirta · draft</div>
+  </div>
+  <div class="st-totals">
+    <div class="l">net to owner · IDR</div>
+    <div class="v">142,800,000</div>
+    <div class="ctx">14 bookings · 21 nights · 5 in-house days</div>
+  </div>
+  <div class="draft-tag">
+    <strong>this is a draft</strong>
+    Numbers are computed from settled bookings only. Issue locks the figures and emails the PDF to Petra. Held disputes prevent issuing.
+  </div>
+  <div class="app-scroll">
+    <div class="line">
+      <span class="grp rev">rev</span>
+      <div class="desc">Room revenue<span class="sub">14 bookings · 21 nights · gross</span></div>
+      <div class="amt pos">+208,400,000</div>
+    </div>
+    <div class="line">
+      <span class="grp rev">rev</span>
+      <div class="desc">Service fee (5%)<span class="sub">pass-through</span></div>
+      <div class="amt pos">+10,420,000</div>
+    </div>
+    <div class="line">
+      <span class="grp fee">fee</span>
+      <div class="desc">Management fee (15%)<span class="sub">on net of channel commission</span></div>
+      <div class="amt neg">−27,800,000</div>
+    </div>
+    <div class="line">
+      <span class="grp fee">fee</span>
+      <div class="desc">Channel commissions<span class="sub">airbnb 8 · bcom 3 · avito 1</span></div>
+      <div class="amt neg">−14,200,000</div>
+    </div>
+    <div class="line">
+      <span class="grp op">opex</span>
+      <div class="desc">Housekeeping · 32 turns<span class="sub">passthrough · vendor invoices</span></div>
+      <div class="amt neg">−18,600,000</div>
+    </div>
+    <div class="line">
+      <span class="grp op">opex</span>
+      <div class="desc">Maintenance · 2 tickets<span class="sub">AC repair, pool pump</span></div>
+      <div class="amt neg">−4,800,000</div>
+    </div>
+    <div class="line">
+      <span class="grp tax">tax</span>
+      <div class="desc">Withholding tax (10%)<span class="sub">on net to owner · IDR resident</span></div>
+      <div class="amt neg">−10,620,000</div>
+    </div>
+    <div class="line total">
+      <span></span>
+      <div class="desc">Net to owner</div>
+      <div class="amt">142,800,000</div>
+    </div>
+  </div>
+  <div class="cta-row">
+    <button class="btn btn-ghost">Discuss</button>
+    <button class="btn btn-primary">Issue →</button>
+  </div>`;
+
+const fn_notes = [
+  ['Bulk select','Lead column is a checkbox. Selecting toggles the bottom "issue" bar. Counts and selected total live in the bar.'],
+  ['Status sections','Draft → Issued → Paid. Each section is collapsible (header tap). Default: Draft expanded, others collapsed. Owners with held disputes get a danger badge.'],
+  ['Draft warning','Top of detail: cream-warm tinted explainer. Owners NEVER see "draft" — staff only.'],
+  ['Line groups','Coloured tag on the left (rev/fee/opex/tax). Replaces desktop column. Sublabel under description for context.'],
+  ['Discuss CTA','Opens a thread with the operator so they can question a line. Often used by the GM to push back on housekeeping pass-throughs.'],
+  ['Issue gate','Disabled when any line item is unresolved. Tap shows reason in a sub-sheet.'],
+  ['Currency','Always IDR primary. Multi-currency owners see USD shadow in a tooltip-style sub-line — not built in this artboard.']
+];
+
+// ----- 03. OWNERS -----
+const ow_main = `
+  ${TOP('Owners', '32 · 4 new this q', '+')}
+  <div class="chips">
+    <span class="chip on">all</span>
+    <span class="chip">at risk · 3</span>
+    <span class="chip">VIP · 6</span>
+    <span class="chip">new · 4</span>
+    <span class="chip">+ filter</span>
+  </div>
+  <div class="app-scroll">
+    <div class="sec-h">at risk <span class="ct" style="background:color-mix(in srgb, var(--danger) 14%, transparent);color:var(--danger);">3</span></div>
+    <div class="o-row risk-danger">
+      <div>
+        <div class="name">Tan Family Trust</div>
+        <div class="sub">villa sanctuary · 2y · entity SG</div>
+      </div>
+      <div class="right">
+        <div class="ytd">YTD 412M</div>
+        <div class="risk"><span class="badge badge-danger">dispute · 14d</span></div>
+      </div>
+    </div>
+    <div class="o-row risk-warn">
+      <div>
+        <div class="name">Kishida Holdings</div>
+        <div class="sub">villa bayu · 11mo · entity JP</div>
+      </div>
+      <div class="right">
+        <div class="ytd">YTD 218M</div>
+        <div class="risk"><span class="badge badge-warn">occupancy −12%</span></div>
+      </div>
+    </div>
+    <div class="o-row risk-warn">
+      <div>
+        <div class="name">Robi Setiawan</div>
+        <div class="sub">villa lotus · 3y · individual ID</div>
+      </div>
+      <div class="right">
+        <div class="ytd">YTD 188M</div>
+        <div class="risk"><span class="badge badge-warn">contract renewing</span></div>
+      </div>
+    </div>
+    <div class="sec-h">VIP <span class="ct">6</span><span class="more">sort: YTD ↓</span></div>
+    <div class="o-row">
+      <div>
+        <div class="name">Petra Iverson</div>
+        <div class="sub">villa tirta · 5y · individual NO</div>
+      </div>
+      <div class="right">
+        <div class="ytd">YTD 1.04B</div>
+        <div class="risk"><span class="badge badge-gold">VIP · gold</span></div>
+      </div>
+    </div>
+    <div class="o-row">
+      <div>
+        <div class="name">Sunset Holdings Pte</div>
+        <div class="sub">villa senayan · 4y · entity SG</div>
+      </div>
+      <div class="right">
+        <div class="ytd">YTD 892M</div>
+        <div class="risk"><span class="badge badge-gold">VIP · gold</span></div>
+      </div>
+    </div>
+    <div class="sec-h">New this quarter <span class="ct">4</span></div>
+    <div class="o-row">
+      <div>
+        <div class="name">Hans Müller</div>
+        <div class="sub">villa cendana · 3mo · individual DE</div>
+      </div>
+      <div class="right">
+        <div class="ytd">YTD 142M</div>
+        <div class="risk"><span class="badge">onboarding · step 5/6</span></div>
+      </div>
+    </div>
+    <div class="o-row">
+      <div>
+        <div class="name">Aditya Mehta</div>
+        <div class="sub">villa bayu · 2mo · individual IN</div>
+      </div>
+      <div class="right">
+        <div class="ytd">YTD 98M</div>
+        <div class="risk"><span class="badge badge-ok">onboarded</span></div>
+      </div>
+    </div>
+  </div>
+  ${TABBAR('own')}`;
+
+const ow_flow = `
+  ${TOP_FLOW('Onboard owner', 'hans müller · step 4 of 6')}
+  <div class="stepper">
+    <div class="step done"></div>
+    <div class="step done"></div>
+    <div class="step done"></div>
+    <div class="step on"></div>
+    <div class="step"></div>
+    <div class="step"></div>
+  </div>
+  <div class="step-head">
+    <span class="num">04 of 06</span>
+    <h4>Payout setup</h4>
+  </div>
+  <div class="app-scroll">
+    <div style="padding:0 16px 12px;font-size:13.5px;line-height:1.55;color:var(--ink-2);">
+      How should Hans receive monthly net payouts? This generates the wire instructions on every statement.
+    </div>
+    <div class="fld">
+      <div class="lbl">Payout currency</div>
+      <div class="pill-grp">
+        <button class="p">IDR</button>
+        <button class="p on">EUR</button>
+        <button class="p">USD</button>
+      </div>
+    </div>
+    <div class="fld">
+      <div class="lbl">Conversion · IDR → EUR</div>
+      <div class="val">Statement-day mid-market · auto</div>
+    </div>
+    <div class="fld">
+      <div class="lbl">Beneficiary name</div>
+      <div class="val">Hans Müller</div>
+    </div>
+    <div class="fld">
+      <div class="lbl">IBAN</div>
+      <div class="val" style="font-family:var(--mono-font);font-size:13px;">DE89 3704 0044 0532 0130 00</div>
+    </div>
+    <div class="fld">
+      <div class="lbl">BIC / SWIFT</div>
+      <div class="val" style="font-family:var(--mono-font);font-size:13px;">COBADEFFXXX</div>
+    </div>
+    <div class="fld">
+      <div class="lbl">Bank address</div>
+      <div class="val">Commerzbank · Frankfurt am Main</div>
+    </div>
+    <div class="fld checkable">
+      <div class="check on">✓</div>
+      <div class="lbl">Withholding tax exempt · EU tax-resident, DTA applies</div>
+    </div>
+    <div class="fld checkable">
+      <div class="check"></div>
+      <div class="lbl">Owner pays wire fees (default: Arconique pays)</div>
+    </div>
+    <div style="margin:8px 16px 0;padding:12px 14px;background:color-mix(in srgb, var(--accent) 8%, var(--paper));border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);border-radius:14px;">
+      <div class="lbl" style="font-size:9.5px;color:var(--accent);margin-bottom:4px;">Preview · next statement</div>
+      <div style="font-size:13px;line-height:1.5;color:var(--ink-2);">Net <strong style="font-family:var(--mono-font);">98.4 M IDR</strong> → <strong style="font-family:var(--mono-font);color:var(--accent);">5,742 EUR</strong> @ 17,140&nbsp;IDR/EUR (mid · jul 1).</div>
+    </div>
+  </div>
+  <div class="cta-row">
+    <button class="btn btn-ghost">Back</button>
+    <button class="btn btn-primary">Continue →</button>
+  </div>`;
+
+const ow_notes = [
+  ['Risk first','At-risk section is always first, even if empty. Default-expanded with a danger-toned count badge. Hides if zero.'],
+  ['Row layout','Display-serif name on the left; YTD payout + status badge on the right. Background tint encodes risk band (subtle warn/danger wash).'],
+  ['Tier badge','VIP gold/silver/bronze uses the gold accent for cross-product consistency. Pinned to the right column.'],
+  ['Onboarding step','Step 1: profile. 2: villa. 3: contract. 4: payout. 5: tax docs. 6: review &amp; sign.'],
+  ['Currency pill','Three-pill row inside the field — payout currency is high-stakes and worth surfacing not hiding in a select.'],
+  ['Preview band','Accent-tinted card at the bottom of every step — live-computes the impact against the next statement so the operator can sanity-check.'],
+  ['Sign step','Step 6 (not shown) opens DocuSign in an in-app browser. Returning auto-advances to "done".']
+];
+
+// ----- 04. OPERATIONS -----
+const op_main = `
+  ${TOP('Operations', 'wed jun 11 · 41 villas', '⋯')}
+  <div class="app-scroll">
+    <div class="ops-tile dark">
+      <div class="ft"><span class="pulse"></span>now · 14:22 bali</div>
+      <h3>3 turns running · 1 arrival in 8 min</h3>
+      <div class="ctx">Tirta turn finished 14:12 (early). Cendana on schedule. Lotus running 14&nbsp;min late — housekeeping notified.</div>
+      <div class="row"><div class="nm">Vikram Iyer · party 4</div><div class="when">arr 14:30 · Tirta</div></div>
+      <div class="row"><div class="nm">Anya Petrova · party 2</div><div class="when">arr 16:00 · Cendana</div></div>
+    </div>
+    <div class="ops-tile">
+      <div class="ft">turnovers · 3 active</div>
+      <h3>Lotus — running 14 min late</h3>
+      <div class="ctx">Pak Wayan + 2 crew. Step: bathrooms. Expected ready 15:30 (was 15:16). Arrival window: 18:00, so no impact.</div>
+    </div>
+    <div class="sec-h">Maintenance <span class="ct">4 open · 1 breach</span><span class="more">all</span></div>
+    <div class="mt-card breach">
+      <div class="pri p1">P1</div>
+      <div class="body">
+        <div class="nm">AC not cooling · master bedroom</div>
+        <div class="meta"><span>Tirta</span><span>·</span><span>opened 38m ago</span></div>
+        <div class="assign">▢ Pak Made</div>
+      </div>
+      <div class="right">
+        <div class="sla breach">SLA −8m</div>
+        <div class="age">guest in house</div>
+      </div>
+    </div>
+    <div class="mt-card">
+      <div class="pri p2">P2</div>
+      <div class="body">
+        <div class="nm">Pool pump cycling</div>
+        <div class="meta"><span>Cendana</span><span>·</span><span>opened 2h ago</span></div>
+        <div class="assign">▢ I Made</div>
+      </div>
+      <div class="right">
+        <div class="sla watch">SLA 4h</div>
+      </div>
+    </div>
+    <div class="mt-card">
+      <div class="pri p3">P3</div>
+      <div class="body">
+        <div class="nm">Door handle loose · ensuite 2</div>
+        <div class="meta"><span>Sanctuary</span><span>·</span><span>yesterday</span></div>
+        <div class="assign">▢ unassigned</div>
+      </div>
+      <div class="right">
+        <div class="sla ok">SLA 36h</div>
+      </div>
+    </div>
+  </div>
+  ${TABBAR('ops')}`;
+
+const op_flow = `
+  ${TOP_FLOW('Turnover · Lotus', 'pak wayan · running 14m late')}
+  <div class="tn-h">
+    <h3>Lotus · standard turn</h3>
+    <div class="sub">guest dep 11:00 · arr 18:00 · 14m behind</div>
+  </div>
+  <div class="tn-progress">
+    <div class="bar"><div class="fill" style="width:62%;"></div></div>
+    <div class="ctx"><span>18 of 29 done</span><span>62%</span></div>
+  </div>
+  <div class="sec-h">Bathrooms <span class="ct">in progress</span></div>
+  <div class="app-scroll">
+    <div class="tn-task done">
+      <div class="ck on">✓</div>
+      <div class="nm">Strip linen · all bedrooms</div>
+      <div class="area">bedroom</div>
+    </div>
+    <div class="tn-task done">
+      <div class="ck on">✓</div>
+      <div class="nm">Refresh living room</div>
+      <div class="area">common</div>
+    </div>
+    <div class="tn-task done">
+      <div class="ck on">✓</div>
+      <div class="nm">Kitchen wipe + restock minibar</div>
+      <div class="area">kitchen</div>
+    </div>
+    <div class="tn-task done">
+      <div class="ck on">✓</div>
+      <div class="nm">Empty + reline all bins</div>
+      <div class="area">common</div>
+    </div>
+    <div class="tn-task">
+      <div class="ck"></div>
+      <div class="nm">Master bath · deep clean</div>
+      <div class="area">bathroom</div>
+    </div>
+    <div class="tn-task">
+      <div class="ck"></div>
+      <div class="nm">Guest bath 1 · deep clean</div>
+      <div class="area">bathroom</div>
+    </div>
+    <div class="tn-task">
+      <div class="ck"></div>
+      <div class="nm">Guest bath 2 · deep clean</div>
+      <div class="area">bathroom</div>
+    </div>
+    <div class="tn-task">
+      <div class="ck"></div>
+      <div class="nm">Replace toiletries · all</div>
+      <div class="area">bathroom</div>
+    </div>
+    <div class="tn-task">
+      <div class="ck"></div>
+      <div class="nm">Make all beds · hotel fold</div>
+      <div class="area">bedroom</div>
+    </div>
+    <div class="tn-task">
+      <div class="ck"></div>
+      <div class="nm">Pool skim + chlorine</div>
+      <div class="area">outside</div>
+    </div>
+    <div class="tn-task">
+      <div class="ck"></div>
+      <div class="nm">Welcome basket + ice</div>
+      <div class="area">kitchen</div>
+    </div>
+  </div>
+  <div class="cta-row">
+    <button class="btn btn-ghost">Photo</button>
+    <button class="btn btn-secondary">Help me</button>
+    <button class="btn btn-primary">Done →</button>
+  </div>`;
+
+const op_notes = [
+  ['Now tile','Inverted ink hero at the top. Shows the "right now" picture: turns running, next arrival, anything off-schedule. Auto-refreshes every 60&nbsp;sec.'],
+  ['Turn cards','One per active turn. Lateness shown plainly ("running 14&nbsp;min late") so the GM doesn\'t do mental math.'],
+  ['Maintenance card','Priority chip (P1/P2/P3) on the left. Body has issue, villa, age. Right side: SLA pill + occupancy context ("guest in house" makes a P1 urgent).'],
+  ['SLA pill','breach (red), watch (amber), ok (green). breach = SLA elapsed already.'],
+  ['Turnover checklist','Tasks grouped by area (bathroom, kitchen, etc.). Default group jumps to first uncompleted. Tap row = toggle. Long-press = add a note.'],
+  ['Photo CTA','Bottom row — housekeeping uploads photos as proof of completion. Ties into supervisor review desktop-side.'],
+  ['Help me','Bottom row — escalates to GM. Used when staff can\'t complete a task (broken supply, etc.). Opens a sub-sheet pre-filled with the current task.']
+];
+
+document.getElementById('board-mount').innerHTML = [
+  CABINET('01', 'Bookings',
+    '~250 bookings live across 41 villas. Operators triage today\'s arrivals while walking; concierge looks up booking detail mid-conversation. List view is row-tone-coded scroll; detail is vertical breakdown + folio.',
+    'List · this week', bk_main, 'Booking detail · Vikram', bk_flow,
+    'Mobile patterns', 'List is a tone-coded vertical scroll grouped by day. Detail tabs into Stay / Folio / Notes / Files. Folio is inlined — no separate "show folio" affordance.',
+    bk_notes),
+  CABINET('02', 'Finance · Statements',
+    'Monthly closeout: 32 owner statements, 14 in draft, 12 issued, 6 paid. The high-stakes mobile screen is the <strong>statement detail in DRAFT</strong> — the operator reviews line items before issuing. Mistakes here become invoiceable disputes.',
+    'List · jun · multi-select', fn_main, 'Detail · DRAFT (review before issue)', fn_flow,
+    'Mobile patterns', 'Bulk-select with a sticky bottom action bar. Detail uses the inverted-ink total card from the primitives pass. Line items group by type via coloured tag.',
+    fn_notes),
+  CABINET('03', 'Owners',
+    '32 owners, 4 new this quarter, 6 VIPs, 3 currently at risk. The list answers "who needs attention"; the 6-step onboarding flow is where mobile work happens — the GM signs new owners over WhatsApp + the phone.',
+    'List · sorted by risk', ow_main, 'Onboard · step 4 · payout setup', ow_flow,
+    'Mobile patterns', 'At-risk first, then VIP, then everyone. Onboarding is a linear 6-step flow with a live-preview band on every step.',
+    ow_notes),
+  CABINET('04', 'Operations',
+    'GM\'s morning-coffee dashboard. "What\'s broken right now?" Turnovers + maintenance tickets + arrivals all in one scroll. The 30-task turnover checklist is the housekeeping flow — opens on the staff\'s phone, ticks tasks while cleaning.',
+    'Now board · today', op_main, 'Turnover · 29-task checklist', op_flow,
+    'Mobile patterns', 'Now-tile is the answer to "should I be worried?". Maintenance card uses P1/P2/P3 priority chip + SLA pill. Turnover checklist is grouped by area, single-tap toggle, photo-as-proof.',
+    op_notes)
+].join('');
+</script>
+
+</body>
+</html>

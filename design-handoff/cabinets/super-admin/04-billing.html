@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase 2.5 · 04 · Billing &amp; invoices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="super-admin-tokens">
+[data-product="super-admin"] {
+  --paper: #F8F9FB; --canvas: #EEF1F5; --panel: #FFFFFF; --panel-2: #F2F4F7; --panel-deep: #E5E9EE;
+  --ink: #0B0F14; --ink-2: #1F2937; --ink-3: #4B5563; --ink-4: #6B7280; --ink-5: #9CA3AF;
+  --line: #D6DBE2; --line-soft: #E5E8ED; --line-strong: #B8C0CC;
+  --accent: #3F4F8F; --accent-soft: #B8C2DF; --accent-deep: #2A3868; --on-accent: #FFFFFF;
+  --inverted-bg: #0B0F14; --inverted-fg: #F8F9FB; --inverted-bg-2: #1F2937;
+  --ok: #2D7A3E; --warn: #B47611; --danger: #B33A2C; --info: #2D5680;
+  --trust: #2A3868; --caution: #944B1F; --caution-soft: #F4E1D0;
+  --r-pill: 999px; --r-card: 10px; --r-card-lg: 14px; --r-hero: 18px; --r-sm: 5px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+  --shadow-card: 0 1px 2px rgba(11,15,20,0.05), 0 1px 1px rgba(11,15,20,0.03);
+}
+:root {
+  --doc-bg: #0B0F14; --doc-bg-2: #131822; --doc-bg-3: #1B2330;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E8EC; --doc-fg-2: #B4B9C2; --doc-fg-3: #7E8590;
+  --doc-accent: #B8C2DF; --doc-caution: #E8AC85;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+/* Doc shell — same as 01 / 03 */
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc { border-right: 1px solid var(--doc-line); padding: 36px 22px; background: var(--doc-bg-2); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.ds-mark { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 22px; }
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 { margin: 0 0 22px; font-family: var(--doc-sans); font-weight: 500; font-size: 19px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 10px; }
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a { display: block; padding: 6px 8px; text-decoration: none; color: var(--doc-fg-2); font-size: 13px; border-radius: 4px; margin-bottom: 1px; }
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--doc-mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+.ds-toc .back { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-toc .back a { color: var(--doc-accent); font-size: 12.5px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1300px; }
+.cab-cover { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 44px; line-height: 1.05; letter-spacing: -0.025em; }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.ds-section { margin-bottom: 76px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-section h2 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 26px; letter-spacing: -0.015em; color: var(--doc-fg); }
+.ds-section p { max-width: 760px; margin: 8px 0 0; font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.artboard { margin-top: 20px; border: 1px solid var(--doc-line); border-radius: 18px; background: var(--canvas); overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.artboard-caption { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.artboard-caption .pill { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); color: var(--doc-accent); border-color: rgba(184,194,223,0.4); }
+.artboard-caption .pill.caution { color: var(--doc-caution); border-color: rgba(232,172,133,0.4); }
+
+/* Notes grid */
+.notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+.notes-card { background: var(--doc-bg-2); border: 1px solid var(--doc-line); border-radius: 12px; padding: 18px 20px; }
+.notes-card h3 { margin: 0 0 12px; font-family: var(--doc-sans); font-size: 14px; font-weight: 500; color: var(--doc-fg); letter-spacing: -0.005em; }
+.notes-card dl { margin: 0; }
+.notes-card dl > div { display: grid; grid-template-columns: 140px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--doc-line); font-size: 12.5px; }
+.notes-card dl > div:last-child { border-bottom: 0; }
+.notes-card dt { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes-card dd { margin: 0; color: var(--doc-fg-2); line-height: 1.55; }
+.notes-card dd code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg); background: var(--doc-bg-3); padding: 1px 6px; border-radius: 3px; }
+
+/* ============================================================
+   Product chrome (super-admin app inside artboards)
+   ============================================================ */
+[data-product="super-admin"] { font-family: var(--sans-font); color: var(--ink); }
+
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border-radius: 6px; font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); cursor: pointer; line-height: 1; background: var(--panel); color: var(--ink-2); text-decoration: none; }
+[data-product] .btn:hover { background: var(--panel-2); }
+[data-product] .btn-sm { padding: 7px 11px; font-size: 12.5px; }
+[data-product] .btn-xs { padding: 5px 9px; font-size: 11.5px; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+[data-product] .btn-caution { background: var(--panel); color: var(--caution); border-color: var(--caution); }
+[data-product] .btn-caution-solid { background: var(--caution); color: white; border-color: var(--caution); }
+[data-product] .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-3); }
+
+[data-product] .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: var(--r-pill); font-family: var(--mono-font); font-size: 10.5px; font-weight: 500; letter-spacing: 0.02em; border: 1px solid var(--line); background: var(--panel); color: var(--ink-3); }
+[data-product] .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+[data-product] .badge-paid     { color: var(--ok);     border-color: color-mix(in oklab, var(--ok) 35%, transparent); background: color-mix(in oklab, var(--ok) 8%, var(--panel)); }
+[data-product] .badge-failed   { color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); background: color-mix(in oklab, var(--danger) 8%, var(--panel)); }
+[data-product] .badge-dunning  { color: var(--warn);   border-color: color-mix(in oklab, var(--warn) 35%, transparent); background: color-mix(in oklab, var(--warn) 8%, var(--panel)); }
+[data-product] .badge-refund   { color: var(--caution);border-color: color-mix(in oklab, var(--caution) 40%, transparent); background: color-mix(in oklab, var(--caution) 8%, var(--panel)); }
+[data-product] .badge-draft    { color: var(--ink-4);  border-color: var(--line); background: var(--panel-2); }
+[data-product] .badge-trust    { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); background: color-mix(in oklab, var(--accent) 8%, var(--panel)); }
+[data-product] .badge-ink      { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+[data-product] .label { font-family: var(--mono-font); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .mono  { font-family: var(--mono-font); font-feature-settings: "tnum"; }
+
+[data-product] .app { background: var(--canvas); min-height: 720px; display: grid; grid-template-rows: auto 1fr; }
+[data-product] .app-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--inverted-bg); color: var(--inverted-fg); border-bottom: 1px solid var(--ink); }
+[data-product] .app-topbar .brand { font-family: var(--display-font); font-size: 18px; font-weight: 400; color: var(--inverted-fg); }
+[data-product] .app-topbar .brand .sub { font-family: var(--mono-font); font-size: 9.5px; color: rgba(248,249,251,0.55); letter-spacing: 0.18em; text-transform: uppercase; display: block; margin-top: 1px; }
+[data-product] .app-topbar .nav { display: flex; gap: 4px; margin-left: 24px; }
+[data-product] .app-topbar .nav a { padding: 6px 12px; border-radius: 5px; font-family: var(--mono-font); font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(248,249,251,0.6); text-decoration: none; }
+[data-product] .app-topbar .nav a.on { background: var(--inverted-bg-2); color: var(--inverted-fg); }
+[data-product] .app-topbar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-family: var(--mono-font); font-size: 11px; color: rgba(248,249,251,0.6); }
+[data-product] .app-topbar .me { display: flex; align-items: center; gap: 6px; }
+[data-product] .app-topbar .me .avatar { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: white; display: inline-flex; align-items: center; justify-content: center; font-family: var(--sans-font); font-size: 11px; font-weight: 600; }
+
+[data-product] .page-h { padding: 22px 24px 18px; display: flex; align-items: flex-start; gap: 20px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+[data-product] .page-h .left h1 { margin: 4px 0 0; font-family: var(--display-font); font-weight: 400; font-size: 30px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .page-h .left h1 em { color: var(--accent); font-style: italic; }
+[data-product] .page-h .left .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .page-h .left .sub { margin-top: 6px; font-size: 13.5px; color: var(--ink-3); line-height: 1.5; }
+[data-product] .page-h .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+[data-product] .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .kpi-row .kpi { padding: 14px 18px; border-right: 1px solid var(--line); }
+[data-product] .kpi-row .kpi:last-child { border-right: 0; }
+[data-product] .kpi-row .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 4px; }
+[data-product] .kpi-row .v { font-family: var(--display-font); font-size: 24px; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; }
+[data-product] .kpi-row .v.warn { color: var(--warn); }
+[data-product] .kpi-row .v.danger { color: var(--danger); }
+[data-product] .kpi-row .v.caution { color: var(--caution); }
+[data-product] .kpi-row .v.ok { color: var(--ok); }
+[data-product] .kpi-row .ctx { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 4px; }
+
+[data-product] .filter-bar { display: flex; align-items: center; gap: 8px; padding: 12px 24px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .filter-bar .search { display: flex; align-items: center; gap: 8px; flex: 0 1 320px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; font-family: var(--sans-font); font-size: 13px; color: var(--ink-4); }
+[data-product] .filter-bar .chip { padding: 5px 10px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+[data-product] .filter-bar .chip.on { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .filter-bar .chip .ct { padding: 1px 6px; background: var(--panel-deep); border-radius: 999px; font-size: 10px; color: var(--ink-3); }
+[data-product] .filter-bar .chip.on .ct { background: rgba(255,255,255,0.18); color: var(--inverted-fg); }
+[data-product] .filter-bar .spacer { flex: 1; }
+
+/* ============================================================
+   Failed-payments triage hero
+   ============================================================ */
+[data-product] .triage-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 0; background: var(--canvas); }
+[data-product] .triage-queue { background: var(--panel); border-right: 1px solid var(--line); }
+[data-product] .triage-queue .q-h { padding: 14px 22px 10px; display: flex; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--line); }
+[data-product] .triage-queue .q-h h3 { margin: 0; font-family: var(--display-font); font-size: 19px; font-weight: 400; color: var(--ink); }
+[data-product] .triage-queue .q-h .ct { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .triage-queue .q-h .sub { margin-left: auto; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .triage-queue .q-h .sub strong { color: var(--ink); }
+
+[data-product] .triage-row { display: grid; grid-template-columns: 1.5fr 1fr 110px 110px auto; gap: 12px; padding: 14px 22px; border-bottom: 1px solid var(--line-soft); align-items: center; cursor: pointer; }
+[data-product] .triage-row:hover { background: var(--panel-2); }
+[data-product] .triage-row.on { background: color-mix(in oklab, var(--accent) 6%, var(--panel)); box-shadow: inset 3px 0 0 var(--accent); }
+[data-product] .triage-row .org { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+[data-product] .triage-row .org .nm { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+[data-product] .triage-row .org .url { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); }
+[data-product] .triage-row .reason { display: flex; flex-direction: column; gap: 2px; }
+[data-product] .triage-row .reason .code { font-family: var(--mono-font); font-size: 10.5px; color: var(--danger); letter-spacing: 0.06em; }
+[data-product] .triage-row .reason .body { font-size: 12px; color: var(--ink-2); line-height: 1.4; }
+[data-product] .triage-row .amt { font-family: var(--mono-font); font-size: 13.5px; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+[data-product] .triage-row .amt .sub { display: block; font-size: 10px; color: var(--ink-4); margin-top: 1px; }
+[data-product] .triage-row .age { font-family: var(--mono-font); font-size: 11.5px; color: var(--warn); }
+[data-product] .triage-row .age.danger { color: var(--danger); }
+[data-product] .triage-row .stage {
+  font-family: var(--mono-font); font-size: 9.5px; padding: 2px 7px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.10em;
+}
+[data-product] .triage-row .stage.s1 { background: var(--panel-deep); color: var(--ink-3); }
+[data-product] .triage-row .stage.s2 { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); }
+[data-product] .triage-row .stage.s3 { background: color-mix(in oklab, var(--danger) 14%, transparent); color: var(--danger); }
+[data-product] .triage-row .stage.s4 { background: var(--caution); color: white; }
+
+/* Triage detail panel */
+[data-product] .triage-detail { padding: 20px 22px; background: var(--panel-2); }
+[data-product] .triage-detail .hd { display: flex; align-items: baseline; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+[data-product] .triage-detail .hd h3 { margin: 0; font-family: var(--display-font); font-size: 22px; font-weight: 400; color: var(--ink); letter-spacing: -0.01em; }
+[data-product] .triage-detail .hd .meta { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); margin-left: auto; }
+[data-product] .triage-detail .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+[data-product] .triage-detail .kv .row { display: flex; flex-direction: column; gap: 3px; }
+[data-product] .triage-detail .kv .l { font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .triage-detail .kv .v { font-size: 13px; color: var(--ink); }
+[data-product] .triage-detail .kv .v.mono { font-family: var(--mono-font); font-size: 12px; }
+[data-product] .triage-detail .kv .v.danger { color: var(--danger); }
+
+[data-product] .triage-detail h4 { margin: 16px 0 8px; font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+
+[data-product] .attempts { display: flex; flex-direction: column; gap: 0; }
+[data-product] .attempt { display: grid; grid-template-columns: 16px 70px 1fr auto; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); align-items: baseline; font-size: 12.5px; }
+[data-product] .attempt:last-child { border-bottom: 0; }
+[data-product] .attempt .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); margin-top: 5px; }
+[data-product] .attempt .dot.ok { background: var(--ok); }
+[data-product] .attempt .dot.pending { background: var(--warn); }
+[data-product] .attempt .when { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); }
+[data-product] .attempt .why { color: var(--ink-2); }
+[data-product] .attempt .why code { font-family: var(--mono-font); font-size: 10.5px; color: var(--danger); background: color-mix(in oklab, var(--danger) 8%, transparent); padding: 1px 5px; border-radius: 3px; }
+[data-product] .attempt .by { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); }
+
+[data-product] .action-row { display: flex; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* ============================================================
+   Invoice ledger table
+   ============================================================ */
+[data-product] .inv-table { background: var(--panel); border-top: 1px solid var(--line); }
+[data-product] .inv-table .head, [data-product] .inv-table .row {
+  display: grid;
+  grid-template-columns: 130px 2fr 1fr 100px 110px 110px 40px;
+  gap: 12px; align-items: center; padding: 10px 24px;
+}
+[data-product] .inv-table .head { background: var(--panel-2); border-bottom: 1px solid var(--line); }
+[data-product] .inv-table .head .col { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .inv-table .row { border-bottom: 1px solid var(--line-soft); cursor: pointer; transition: background 0.1s; }
+[data-product] .inv-table .row:hover { background: var(--panel-2); }
+[data-product] .inv-table .row.failed { background: color-mix(in oklab, var(--danger) 4%, var(--panel)); }
+[data-product] .inv-table .row.failed:hover { background: color-mix(in oklab, var(--danger) 7%, var(--panel)); }
+[data-product] .inv-table .row.refund { background: color-mix(in oklab, var(--caution) 4%, var(--panel)); }
+[data-product] .inv-table .inv-no { font-family: var(--mono-font); font-size: 12px; color: var(--ink-2); font-weight: 500; }
+[data-product] .inv-table .org { display: flex; flex-direction: column; min-width: 0; }
+[data-product] .inv-table .org .nm { font-size: 13.5px; color: var(--ink); font-weight: 500; }
+[data-product] .inv-table .org .url { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 1px; }
+[data-product] .inv-table .when { font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-3); }
+[data-product] .inv-table .amt { font-family: var(--mono-font); font-size: 13px; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+[data-product] .inv-table .amt .sub { display: block; font-size: 10px; color: var(--ink-4); margin-top: 1px; font-weight: 400; }
+[data-product] .inv-table .amt.refund { color: var(--caution); }
+[data-product] .inv-table .menu { color: var(--ink-4); text-align: center; font-size: 16px; line-height: 1; }
+
+/* ============================================================
+   Refund flow (caution palette)
+   ============================================================ */
+[data-product] .refund-shell { padding: 32px 28px 28px; background: var(--canvas); min-height: 720px; position: relative; }
+[data-product] .refund-shell::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, var(--caution) 0%, var(--caution) 50%, var(--ink) 100%); }
+
+[data-product] .refund-warn { background: color-mix(in oklab, var(--caution) 10%, var(--panel)); border: 1px solid var(--caution); border-left: 4px solid var(--caution); border-radius: 8px; padding: 16px 20px; margin-bottom: 22px; display: flex; gap: 16px; align-items: flex-start; }
+[data-product] .refund-warn .ic { flex-shrink: 0; width: 28px; height: 28px; background: var(--caution); color: white; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; font-family: var(--display-font); font-size: 16px; }
+[data-product] .refund-warn .body h3 { margin: 0; font-family: var(--display-font); font-weight: 500; font-size: 18px; color: var(--ink); }
+[data-product] .refund-warn .body p { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+[data-product] .refund-warn .body p code { font-family: var(--mono-font); font-size: 11.5px; padding: 1px 5px; background: rgba(255,255,255,0.6); border-radius: 3px; color: var(--ink); }
+
+[data-product] .refund-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 16px; }
+[data-product] .refund-card h3 { margin: 0 0 14px; font-family: var(--display-font); font-weight: 400; font-size: 18px; color: var(--ink); letter-spacing: -0.005em; }
+[data-product] .refund-card .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+[data-product] .refund-card .kv .row { display: flex; flex-direction: column; gap: 4px; }
+[data-product] .refund-card .kv .l { font-family: var(--mono-font); font-size: 10px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .refund-card .kv .v { font-family: var(--sans-font); font-size: 14px; color: var(--ink); }
+[data-product] .refund-card .kv .v.mono { font-family: var(--mono-font); }
+
+[data-product] .refund-radio { display: flex; flex-direction: column; gap: 8px; }
+[data-product] .refund-radio .opt { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+[data-product] .refund-radio .opt.on { background: var(--panel); border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink) inset; }
+[data-product] .refund-radio .opt .ring { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ink-4); flex-shrink: 0; margin-top: 2px; }
+[data-product] .refund-radio .opt.on .ring { border-color: var(--ink); position: relative; }
+[data-product] .refund-radio .opt.on .ring::after { content: ""; position: absolute; inset: 3px; background: var(--ink); border-radius: 50%; }
+[data-product] .refund-radio .opt .nm { font-family: var(--sans-font); font-size: 14px; font-weight: 500; color: var(--ink); }
+[data-product] .refund-radio .opt .nm .pct { font-family: var(--mono-font); font-weight: 400; color: var(--ink-4); margin-left: 8px; font-size: 12px; }
+[data-product] .refund-radio .opt .desc { font-size: 12px; color: var(--ink-3); margin-top: 3px; line-height: 1.5; }
+
+[data-product] .field { margin-top: 14px; }
+[data-product] .field .lbl { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+[data-product] .field .lbl .req { color: var(--danger); margin-left: 4px; }
+[data-product] .field input, [data-product] .field textarea, [data-product] .field select {
+  width: 100%; padding: 9px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  font-family: var(--sans-font); font-size: 13.5px; color: var(--ink);
+}
+[data-product] .field input.mono { font-family: var(--mono-font); }
+[data-product] .field input.placeholder, [data-product] .field textarea.placeholder { font-style: italic; color: var(--ink-4); }
+[data-product] .field textarea { min-height: 70px; resize: vertical; }
+[data-product] .field .hint { font-size: 11.5px; color: var(--ink-4); margin-top: 6px; line-height: 1.45; }
+
+[data-product] .audit-chain { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .audit-chain .step { display: flex; align-items: center; gap: 5px; }
+[data-product] .audit-chain .step .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+[data-product] .audit-chain .step.done .dot { background: var(--ok); }
+[data-product] .audit-chain .step.on .dot { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent); }
+[data-product] .audit-chain .arr { color: var(--ink-5); }
+
+[data-product] .refund-actions { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+[data-product] .refund-actions .spacer { flex: 1; }
+
+/* ============================================================
+   Dunning policy editor (steps)
+   ============================================================ */
+[data-product] .dun-shell { padding: 26px 28px; background: var(--canvas); }
+[data-product] .dun-hd { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+[data-product] .dun-hd h2 { margin: 0; font-family: var(--display-font); font-weight: 400; font-size: 26px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .dun-hd em { color: var(--accent); font-style: italic; }
+[data-product] .dun-hd .meta { margin-left: auto; font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); }
+[data-product] .dun-lede { max-width: 700px; font-size: 13.5px; color: var(--ink-3); line-height: 1.6; margin: 0 0 18px; }
+
+[data-product] .dun-flow { display: flex; flex-direction: column; gap: 14px; }
+[data-product] .dun-step { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; grid-template-columns: 56px 1fr auto; gap: 18px; align-items: center; }
+[data-product] .dun-step.term { background: color-mix(in oklab, var(--caution) 6%, var(--panel)); border-color: color-mix(in oklab, var(--caution) 40%, var(--line)); border-left: 4px solid var(--caution); }
+[data-product] .dun-step .day { font-family: var(--display-font); font-size: 28px; font-weight: 400; color: var(--ink); text-align: center; line-height: 1; }
+[data-product] .dun-step .day .l { display: block; font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); margin-top: 4px; }
+[data-product] .dun-step .body { display: flex; flex-direction: column; gap: 4px; }
+[data-product] .dun-step .body .nm { font-size: 14px; font-weight: 500; color: var(--ink); }
+[data-product] .dun-step .body .desc { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+[data-product] .dun-step .body .channels { display: flex; gap: 6px; margin-top: 6px; }
+[data-product] .dun-step .body .ch { font-family: var(--mono-font); font-size: 9.5px; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 3px; background: var(--panel-2); color: var(--ink-3); text-transform: uppercase; }
+[data-product] .dun-step .body .ch.email { background: color-mix(in oklab, var(--accent) 10%, transparent); color: var(--accent); }
+[data-product] .dun-step .body .ch.sms { background: color-mix(in oklab, var(--ok) 10%, transparent); color: var(--ok); }
+[data-product] .dun-step .body .ch.call { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); }
+[data-product] .dun-step .body .ch.app { background: var(--ink); color: var(--inverted-fg); }
+[data-product] .dun-step .right { display: flex; align-items: center; gap: 10px; }
+[data-product] .dun-step .right .out { font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); text-align: right; }
+[data-product] .dun-step .right .out strong { color: var(--ink); font-weight: 500; }
+
+[data-product] .dun-connector { padding-left: 28px; display: flex; align-items: center; gap: 8px; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); letter-spacing: 0.10em; text-transform: uppercase; margin: -4px 0; }
+[data-product] .dun-connector .line { width: 2px; height: 18px; background: var(--line-strong); margin-left: 26px; }
+[data-product] .dun-connector .lbl { padding: 2px 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; }
+
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Phase 2.5</div>
+    <h1>Platform super-admin</h1>
+    <div class="back"><a href="hub.html">← back to hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">04 · Billing &amp; invoices</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#triage"><span class="ix">01</span>Failed-payments triage</a></li>
+        <li><a href="#ledger"><span class="ix">02</span>Invoice ledger</a></li>
+        <li><a href="#refund"><span class="ix">03</span>Refund / credit flow</a></li>
+        <li><a href="#dunning"><span class="ix">04</span>Dunning policy</a></li>
+        <li><a href="#schema"><span class="ix">05</span>Schema · agents</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Adjacent</div>
+      <ul>
+        <li><a href="03-plans.html"><span class="ix">03</span>Plans &amp; pricing</a></li>
+        <li><a href="05-feature-flags.html"><span class="ix">05</span>Feature flags</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <!-- COVER -->
+    <section id="cover" class="cab-cover" data-screen-label="Cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Phase 2.5 · cabinet 04 of 09</span></div>
+      <h1>Billing &amp; invoices · <em>the failed-payments triage room</em>.</h1>
+      <p>Every invoice across every org, with a hard front-page bias toward <strong style="color:var(--doc-fg)">payments that need a human</strong>. The default landing is the triage queue — Stripe error code, raw decline reason, retry history, and an action row that takes one click. The deeper screens are the full ledger, the refund/credit flow (caution palette, 2FA-gated), and the editable dunning policy that the agent runner reads from.</p>
+    </section>
+
+    <!-- 01 TRIAGE -->
+    <section id="triage" class="ds-section" data-screen-label="01 Failed-payments triage">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Failed payments · the queue tech-lead opens first</h2>
+          <p>Left column is a sorted list (oldest-failure first within stage), right column is the selected payment's full attempt history. Stage chips colour-code where each item is in the dunning sequence; once a row hits <strong style="color:var(--doc-fg)">S4</strong> (suspend) it's already on the caution-warmed track. Actions live on the right panel so the queue stays scannable.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a>
+                <a>Users</a>
+                <a>Plans</a>
+                <a class="on">Billing</a>
+                <a>Flags</a>
+                <a>Support</a>
+                <a>Audit</a>
+                <a>Health</a>
+                <a>AI</a>
+              </div>
+              <div class="right">
+                <span>v 4.2.18</span>
+                <span class="me"><span class="avatar">NR</span>Nikita R.</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / billing</div>
+                  <h1>Billing <em>· 7 failures need triage</em></h1>
+                  <div class="sub">$8,420 MRR currently at risk · oldest failure 8 days · next dunning sweep in 2h 14m</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Stripe dashboard ↗</button>
+                  <button class="btn">Export CSV</button>
+                  <button class="btn btn-primary">Manual charge</button>
+                </div>
+              </div>
+
+              <div class="kpi-row">
+                <div class="kpi"><div class="l">at risk · MRR</div><div class="v danger">$8,420</div><div class="ctx">7 orgs · 4 in dunning</div></div>
+                <div class="kpi"><div class="l">failed · 30d</div><div class="v warn">21</div><div class="ctx">14 recovered</div></div>
+                <div class="kpi"><div class="l">recovery rate</div><div class="v ok">66.7%</div><div class="ctx">+4pp vs prev 30d</div></div>
+                <div class="kpi"><div class="l">refunds · 30d</div><div class="v caution">$1,840</div><div class="ctx">3 issued</div></div>
+                <div class="kpi"><div class="l">paid · 30d</div><div class="v">$54,180</div><div class="ctx">192 invoices</div></div>
+              </div>
+
+              <div class="filter-bar">
+                <div class="search"><span style="color:var(--ink-3);">⌕</span>Search by invoice no, org, customer, Stripe id…</div>
+                <span class="chip on">triage <span class="ct">7</span></span>
+                <span class="chip">dunning <span class="ct">4</span></span>
+                <span class="chip">grace <span class="ct">3</span></span>
+                <span class="chip">refund queue <span class="ct">2</span></span>
+                <div class="spacer"></div>
+                <span class="chip">stage ▾</span>
+                <span class="chip">currency ▾</span>
+                <span class="chip">sort: oldest ▾</span>
+              </div>
+
+              <div class="triage-grid">
+                <div class="triage-queue">
+                  <div class="q-h">
+                    <h3>Triage queue</h3>
+                    <span class="ct">7 payments · $8,420</span>
+                    <span class="sub">sweep ran <strong>09:14</strong> · next <strong>11:14</strong></span>
+                  </div>
+
+                  <div class="triage-row on">
+                    <div class="org"><div class="nm">Bali Boutique Stays</div><div class="url">bbs.arconique.com · Studio · annual</div></div>
+                    <div class="reason"><div class="code">card_declined</div><div class="body">Issuer declined · card expired Apr 26</div></div>
+                    <div class="amt">$1,180<div class="sub">USD</div></div>
+                    <div class="age danger">8d</div>
+                    <div><span class="stage s3">S3 · escalate</span></div>
+                  </div>
+
+                  <div class="triage-row">
+                    <div class="org"><div class="nm">Tirta Lestari Villas</div><div class="url">tirta.arconique.com · Studio · monthly</div></div>
+                    <div class="reason"><div class="code">insufficient_funds</div><div class="body">Last attempt failed 4h ago · 2 prior failures</div></div>
+                    <div class="amt">$680<div class="sub">USD</div></div>
+                    <div class="age danger">6d</div>
+                    <div><span class="stage s2">S2 · retry+email</span></div>
+                  </div>
+
+                  <div class="triage-row">
+                    <div class="org"><div class="nm">Kishida Holdings KK</div><div class="url">kishida.arconique.com · Studio · annual</div></div>
+                    <div class="reason"><div class="code">authentication_required</div><div class="body">3DS challenge unanswered · 2 attempts</div></div>
+                    <div class="amt">$1,180<div class="sub">USD</div></div>
+                    <div class="age">5d</div>
+                    <div><span class="stage s2">S2 · retry+email</span></div>
+                  </div>
+
+                  <div class="triage-row">
+                    <div class="org"><div class="nm">PT Senayan Estate</div><div class="url">senayan.arconique.com · Atelier · annual</div></div>
+                    <div class="reason"><div class="code">card_declined</div><div class="body">Do-not-honor · ops contacted issuer</div></div>
+                    <div class="amt">$4,280<div class="sub">USD</div></div>
+                    <div class="age">3d</div>
+                    <div><span class="stage s2">S2 · retry+email</span></div>
+                  </div>
+
+                  <div class="triage-row">
+                    <div class="org"><div class="nm">Coral Cay Holdings</div><div class="url">coralcay.arconique.com · Studio · monthly</div></div>
+                    <div class="reason"><div class="code">processing_error</div><div class="body">Stripe transient · auto-retry queued</div></div>
+                    <div class="amt">$680<div class="sub">USD</div></div>
+                    <div class="age">1d</div>
+                    <div><span class="stage s1">S1 · auto-retry</span></div>
+                  </div>
+
+                  <div class="triage-row">
+                    <div class="org"><div class="nm">Ubud Stay Co.</div><div class="url">ubudstay.arconique.com · Studio · monthly</div></div>
+                    <div class="reason"><div class="code">card_declined</div><div class="body">Lost / stolen card · contact required</div></div>
+                    <div class="amt">$340<div class="sub">USD</div></div>
+                    <div class="age danger">12d</div>
+                    <div><span class="stage s4">S4 · suspend</span></div>
+                  </div>
+
+                  <div class="triage-row">
+                    <div class="org"><div class="nm">Whitmore Villas Group</div><div class="url">whitmore.arconique.com · Atelier · trial</div></div>
+                    <div class="reason"><div class="code">card_declined</div><div class="body">First charge after trial · brand new card</div></div>
+                    <div class="amt">$3,180<div class="sub">USD</div></div>
+                    <div class="age">14h</div>
+                    <div><span class="stage s1">S1 · auto-retry</span></div>
+                  </div>
+                </div>
+
+                <!-- Detail panel — Bali Boutique Stays selected -->
+                <div class="triage-detail">
+                  <div class="hd">
+                    <h3>Bali Boutique Stays</h3>
+                    <span class="meta">INV-2025-Q2-BBS · 8d</span>
+                  </div>
+
+                  <div class="kv">
+                    <div class="row"><span class="l">org</span><span class="v">bbs.arconique.com</span></div>
+                    <div class="row"><span class="l">plan</span><span class="v">Studio · annual · $1,180/mo</span></div>
+                    <div class="row"><span class="l">invoice</span><span class="v mono">INV-2025-Q2-BBS</span></div>
+                    <div class="row"><span class="l">stripe id</span><span class="v mono">in_1Q4xLP2eZvKYlo</span></div>
+                    <div class="row"><span class="l">customer</span><span class="v">Maya Kusuma · maya@bbs.co</span></div>
+                    <div class="row"><span class="l">card on file</span><span class="v mono">VISA · 4242 · exp 04/26 ✕</span></div>
+                  </div>
+
+                  <h4>Decline history · 3 attempts</h4>
+                  <div class="attempts">
+                    <div class="attempt">
+                      <span class="dot"></span>
+                      <span class="when">8d 14:02</span>
+                      <span class="why">Auto-charge · declined <code>card_declined · expired_card</code></span>
+                      <span class="by">stripe-cron</span>
+                    </div>
+                    <div class="attempt">
+                      <span class="dot"></span>
+                      <span class="when">6d 09:14</span>
+                      <span class="why">Dunning retry · declined <code>card_declined · expired_card</code></span>
+                      <span class="by">dunning-runner</span>
+                    </div>
+                    <div class="attempt">
+                      <span class="dot"></span>
+                      <span class="when">3d 14:00</span>
+                      <span class="why">Dunning retry · declined <code>card_declined · expired_card</code></span>
+                      <span class="by">dunning-runner</span>
+                    </div>
+                    <div class="attempt">
+                      <span class="dot pending"></span>
+                      <span class="when">today 11:14</span>
+                      <span class="why">Next sweep scheduled · will escalate to S3 email</span>
+                      <span class="by">queued</span>
+                    </div>
+                  </div>
+
+                  <h4>Customer contact · last touched 2d ago</h4>
+                  <div style="background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 12.5px; color: var(--ink-2); line-height: 1.5;">
+                    <strong style="color: var(--ink);">Maya Kusuma</strong> replied 2d ago — "ordered a new card, expected next week". <span class="mono" style="color: var(--ink-4);">via support thread #4218</span>
+                  </div>
+
+                  <div class="action-row">
+                    <button class="btn btn-primary">Retry charge now</button>
+                    <button class="btn">Send card-update link</button>
+                    <button class="btn">Open support thread</button>
+                    <button class="btn btn-caution">Refund · credit</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>row selection → right panel · default sort = oldest within stage</span>
+        <span>·</span>
+        <span>S4 stage rows render with caution edge in list view (sec 02)</span>
+      </div>
+    </section>
+
+    <!-- 02 LEDGER -->
+    <section id="ledger" class="ds-section" data-screen-label="02 Invoice ledger">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Index</span></div>
+          <h2>Invoice ledger · everything, filterable</h2>
+          <p>The full ledger — every invoice across every org. Row tone shifts: failed rows are softly tinted danger, refunds are caution. Default filter is <strong style="color:var(--doc-fg)">last 90 days</strong>; the toggle row tops to <em>all-time</em> for audit work. Click → invoice detail (re-uses 01 detail panel pattern).</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a>
+                <a>Users</a>
+                <a>Plans</a>
+                <a class="on">Billing</a>
+                <a>Flags</a>
+                <a>Support</a>
+                <a>Audit</a>
+                <a>Health</a>
+                <a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / billing / invoices</div>
+                  <h1>Invoices <em>· 214 in window</em></h1>
+                  <div class="sub">$54,180 paid · $8,420 outstanding · $1,840 refunded · last 90 days</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Stripe dashboard ↗</button>
+                  <button class="btn">Export CSV</button>
+                </div>
+              </div>
+
+              <div class="filter-bar">
+                <div class="search"><span style="color:var(--ink-3);">⌕</span>Search by invoice, org, Stripe id…</div>
+                <span class="chip">all <span class="ct">214</span></span>
+                <span class="chip on">paid <span class="ct">192</span></span>
+                <span class="chip">failed <span class="ct">7</span></span>
+                <span class="chip">dunning <span class="ct">4</span></span>
+                <span class="chip">refund <span class="ct">3</span></span>
+                <span class="chip">draft <span class="ct">8</span></span>
+                <div class="spacer"></div>
+                <span class="chip">last 90d ▾</span>
+                <span class="chip">currency: any ▾</span>
+                <span class="chip">sort: issued ▾</span>
+              </div>
+
+              <div class="inv-table">
+                <div class="head">
+                  <div class="col">invoice</div>
+                  <div class="col">organisation</div>
+                  <div class="col">issued</div>
+                  <div class="col" style="text-align:right;">amount</div>
+                  <div class="col">status</div>
+                  <div class="col">paid</div>
+                  <div></div>
+                </div>
+
+                <div class="row failed">
+                  <div class="inv-no">INV-2025-Q2-BBS</div>
+                  <div class="org"><div class="nm">Bali Boutique Stays</div><div class="url">bbs.arconique.com</div></div>
+                  <div class="when">14 may 2025</div>
+                  <div class="amt">$1,180.00<div class="sub">USD</div></div>
+                  <div><span class="badge badge-failed"><span class="dot"></span>failed · S3</span></div>
+                  <div class="when">—</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row failed">
+                  <div class="inv-no">INV-2025-05-UBD</div>
+                  <div class="org"><div class="nm">Ubud Stay Co.</div><div class="url">ubudstay.arconique.com</div></div>
+                  <div class="when">17 may 2025</div>
+                  <div class="amt">$340.00<div class="sub">USD</div></div>
+                  <div><span class="badge badge-failed"><span class="dot"></span>failed · S4</span></div>
+                  <div class="when">—</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row failed">
+                  <div class="inv-no">INV-2025-05-TIR</div>
+                  <div class="org"><div class="nm">Tirta Lestari Villas</div><div class="url">tirta.arconique.com</div></div>
+                  <div class="when">23 may 2025</div>
+                  <div class="amt">$680.00<div class="sub">USD</div></div>
+                  <div><span class="badge badge-dunning"><span class="dot"></span>dunning · S2</span></div>
+                  <div class="when">—</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div class="inv-no">INV-2025-05-WHM</div>
+                  <div class="org"><div class="nm">Whitmore Villas Group</div><div class="url">whitmore.arconique.com</div></div>
+                  <div class="when">28 may 2025</div>
+                  <div class="amt">$3,180.00<div class="sub">USD</div></div>
+                  <div><span class="badge badge-paid"><span class="dot"></span>paid</span></div>
+                  <div class="when">28 may · 14:02</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div class="inv-no">INV-2025-05-SUK</div>
+                  <div class="org"><div class="nm">Sukha Residences</div><div class="url">sukha.arconique.com</div></div>
+                  <div class="when">27 may 2025</div>
+                  <div class="amt">$680.00<div class="sub">USD</div></div>
+                  <div><span class="badge badge-paid"><span class="dot"></span>paid</span></div>
+                  <div class="when">27 may · 09:14</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row refund">
+                  <div class="inv-no">RFD-2025-05-019</div>
+                  <div class="org"><div class="nm">Tan Family Trust</div><div class="url">tanfamily.arconique.com</div></div>
+                  <div class="when">26 may 2025</div>
+                  <div class="amt refund">−$1,070.00<div class="sub">prorated</div></div>
+                  <div><span class="badge badge-refund"><span class="dot"></span>refund issued</span></div>
+                  <div class="when">26 may · 16:48</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div class="inv-no">INV-2025-05-TAN</div>
+                  <div class="org"><div class="nm">Tan Family Trust</div><div class="url">tanfamily.arconique.com</div></div>
+                  <div class="when">25 may 2025</div>
+                  <div class="amt">$2,140.00<div class="sub">USD</div></div>
+                  <div><span class="badge badge-paid"><span class="dot"></span>paid</span></div>
+                  <div class="when">25 may · 08:00</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div class="inv-no">INV-2025-05-SEN</div>
+                  <div class="org"><div class="nm">PT Senayan Estate</div><div class="url">senayan.arconique.com</div></div>
+                  <div class="when">25 may 2025</div>
+                  <div class="amt">$4,280.00<div class="sub">USD</div></div>
+                  <div><span class="badge badge-dunning"><span class="dot"></span>dunning · S2</span></div>
+                  <div class="when">—</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div class="inv-no">INV-2025-05-DEMO</div>
+                  <div class="org"><div class="nm">Arconique Demo</div><div class="url">demo.arconique.com</div></div>
+                  <div class="when">25 may 2025</div>
+                  <div class="amt">—<div class="sub">internal</div></div>
+                  <div><span class="badge badge-draft"><span class="dot"></span>draft · skip</span></div>
+                  <div class="when">—</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div class="inv-no">INV-2025-05-KSH</div>
+                  <div class="org"><div class="nm">Kishida Holdings KK</div><div class="url">kishida.arconique.com</div></div>
+                  <div class="when">24 may 2025</div>
+                  <div class="amt">$1,180.00<div class="sub">USD</div></div>
+                  <div><span class="badge badge-dunning"><span class="dot"></span>dunning · S2</span></div>
+                  <div class="when">—</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>row tone: failed = danger-tinted · refund = caution-tinted</span>
+        <span>·</span>
+        <span>click → invoice detail (re-uses 01 right-panel pattern)</span>
+      </div>
+    </section>
+
+    <!-- 03 REFUND FLOW -->
+    <section id="refund" class="ds-section" data-screen-label="03 Refund flow">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-caution);">03</span><span>—</span><span>Caution flow</span></div>
+          <h2>Refund / credit · reason + 2FA + audit</h2>
+          <p>Refunds touch real money on a real card processor, so the flow earns the warm <strong style="color:var(--doc-caution)">caution</strong> palette top-rail. Three decisions: amount mode (full / partial / credit-only), reason category, free-text justification. Same audit chain as <em>impersonate</em> and <em>suspend</em> in cabinet 01: 2FA → reason → audit-log row stamped with actor + invoice id + Stripe refund id.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a>
+                <a class="on">Billing</a>
+                <a>Flags</a><a>Support</a><a>Audit</a><a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div class="refund-shell">
+              <div class="refund-warn">
+                <div class="ic">!</div>
+                <div class="body">
+                  <h3>You are about to refund a real payment.</h3>
+                  <p>This will issue a Stripe refund on invoice <code>INV-2025-05-TAN</code> for <strong>Tan Family Trust</strong>. The org's billing balance and statement will update within ~30s. This action is logged with your name, the reason category, and your free-text justification. You'll be 2FA-prompted before submit.</p>
+                </div>
+              </div>
+
+              <div class="refund-card">
+                <h3>Invoice in scope</h3>
+                <div class="kv">
+                  <div class="row"><span class="l">invoice</span><span class="v mono">INV-2025-05-TAN</span></div>
+                  <div class="row"><span class="l">organisation</span><span class="v">Tan Family Trust · SG</span></div>
+                  <div class="row"><span class="l">issued</span><span class="v">25 may 2025 · 08:00</span></div>
+                  <div class="row"><span class="l">paid</span><span class="v">25 may 2025 · 08:01 · VISA ending 4242</span></div>
+                  <div class="row"><span class="l">original</span><span class="v mono">$2,140.00 USD</span></div>
+                  <div class="row"><span class="l">stripe id</span><span class="v mono">ch_3Q5xMP2eZvKYlo7d</span></div>
+                </div>
+              </div>
+
+              <div class="refund-card">
+                <h3>1. Refund mode</h3>
+                <div class="refund-radio">
+                  <div class="opt on">
+                    <span class="ring"></span>
+                    <div>
+                      <div class="nm">Partial refund <span class="pct">$1,070.00 · 50% prorated</span></div>
+                      <div class="desc">Issue a Stripe refund for a specific amount. Org's next invoice is reduced; statement carries a negative line item.</div>
+                    </div>
+                  </div>
+                  <div class="opt">
+                    <span class="ring"></span>
+                    <div>
+                      <div class="nm">Full refund <span class="pct">$2,140.00</span></div>
+                      <div class="desc">Reverse the charge entirely. Subscription stays active; no service interruption.</div>
+                    </div>
+                  </div>
+                  <div class="opt">
+                    <span class="ring"></span>
+                    <div>
+                      <div class="nm">Account credit only <span class="pct">no Stripe action</span></div>
+                      <div class="desc">No money leaves Arconique. Apply a credit that auto-consumes against the next invoice. Reversible.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <div class="lbl">amount<span class="req">·</span></div>
+                  <input class="mono" value="1,070.00" />
+                  <div class="hint">USD · max $2,140.00 · partial amounts under $50 require tech-lead approval.</div>
+                </div>
+              </div>
+
+              <div class="refund-card">
+                <h3>2. Reason</h3>
+                <div class="field" style="margin-top: 0;">
+                  <div class="lbl">category<span class="req">·</span></div>
+                  <select>
+                    <option>Service interruption — agreed proration</option>
+                    <option>Wrong plan tier — billed Atelier, should be Studio</option>
+                    <option>Double charge / billing error</option>
+                    <option>Cancellation within refund window</option>
+                    <option>Goodwill / retention</option>
+                    <option>Disputed by customer · chargeback risk</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <div class="lbl">justification<span class="req">·</span></div>
+                  <textarea class="placeholder">Channel-sync outage 23–25 May meant ops team couldn't issue statements. Refund 50% of monthly fee as agreed with founder over support thread #4189.</textarea>
+                  <div class="hint">Stored on the audit log entry and visible to the org owner in their billing history. Plain language.</div>
+                </div>
+              </div>
+
+              <div class="refund-card">
+                <h3>3. Confirm</h3>
+                <div class="audit-chain">
+                  <span class="step done"><span class="dot"></span>scope</span><span class="arr">→</span>
+                  <span class="step done"><span class="dot"></span>amount</span><span class="arr">→</span>
+                  <span class="step done"><span class="dot"></span>reason</span><span class="arr">→</span>
+                  <span class="step on"><span class="dot"></span>2fa</span><span class="arr">→</span>
+                  <span class="step"><span class="dot"></span>stripe</span><span class="arr">→</span>
+                  <span class="step"><span class="dot"></span>audit log</span>
+                </div>
+                <div class="field" style="margin-top: 18px;">
+                  <div class="lbl">2FA code · authenticator app</div>
+                  <input class="mono placeholder" value="123 456" />
+                  <div class="hint">A 6-digit code from your authenticator app. Required for every refund regardless of amount.</div>
+                </div>
+                <div class="refund-actions" style="margin-top: 18px;">
+                  <button class="btn btn-ghost">Cancel</button>
+                  <span class="spacer"></span>
+                  <button class="btn">Save as draft</button>
+                  <button class="btn btn-caution-solid">Issue refund · $1,070.00</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill caution">caution flow</span>
+        <span>2FA required · audit-logged · same chain pattern as impersonate/suspend</span>
+        <span>·</span>
+        <span>amounts &lt; $50 escalate to tech-lead approval</span>
+      </div>
+    </section>
+
+    <!-- 04 DUNNING POLICY -->
+    <section id="dunning" class="ds-section" data-screen-label="04 Dunning policy">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Policy</span></div>
+          <h2>Dunning policy · what the runner executes</h2>
+          <p>The dunning runner reads this configuration on every sweep. Steps fire in order; an earlier successful charge cancels later steps. The terminal step (suspend) is locked behind tech-lead approval — it can't auto-fire on Atelier-tier orgs even if reached. Stage chips on the triage queue (sec 01) map 1:1 to the day-numbered steps below.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a>Users</a><a>Plans</a>
+                <a class="on">Billing</a>
+                <a>Flags</a><a>Support</a><a>Audit</a><a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / billing / dunning policy</div>
+                  <h1>Dunning policy <em>· default sequence</em></h1>
+                  <div class="sub">Applies to all orgs unless overridden. Atelier-tier orgs get a slower variant — last step gated, never auto-fires.</div>
+                </div>
+                <div class="right">
+                  <button class="btn">View per-tier overrides</button>
+                  <button class="btn">Audit log ↗</button>
+                  <button class="btn btn-primary">Edit policy</button>
+                </div>
+              </div>
+
+              <div class="dun-shell">
+                <div class="dun-hd">
+                  <h2>Default · <em>4 steps · 14 day window</em></h2>
+                  <span class="meta">last edited 12 may · Nikita R · v17</span>
+                </div>
+                <p class="dun-lede">Each step fires once per failed invoice. Recovery at any step cancels all subsequent steps and credits the dunning-recovery metric on the dashboard.</p>
+
+                <div class="dun-flow">
+                  <div class="dun-step">
+                    <div class="day">D+0<span class="l">at failure</span></div>
+                    <div class="body">
+                      <div class="nm">Auto-retry · S1</div>
+                      <div class="desc">Stripe auto-retries the charge on its own schedule. We don't touch the customer yet — most transient failures resolve here within 24h.</div>
+                      <div class="channels">
+                        <span class="ch">internal log only</span>
+                      </div>
+                    </div>
+                    <div class="right"><div class="out"><strong>~58%</strong> recover here<br>30d trailing</div></div>
+                  </div>
+
+                  <div class="dun-connector"><div class="line"></div><span class="lbl">if still failed at D+1</span></div>
+
+                  <div class="dun-step">
+                    <div class="day">D+1<span class="l">+24h</span></div>
+                    <div class="body">
+                      <div class="nm">Retry + soft email · S2</div>
+                      <div class="desc">One manual retry, then an email to the primary billing contact: "we couldn't charge your card, here's a one-click update link". No app-banner yet — most orgs don't need to know.</div>
+                      <div class="channels">
+                        <span class="ch email">email</span>
+                        <span class="ch app">no banner</span>
+                      </div>
+                    </div>
+                    <div class="right"><div class="out"><strong>~9%</strong> recover here<br>30d trailing</div></div>
+                  </div>
+
+                  <div class="dun-connector"><div class="line"></div><span class="lbl">if still failed at D+3</span></div>
+
+                  <div class="dun-step">
+                    <div class="day">D+3<span class="l">+72h</span></div>
+                    <div class="body">
+                      <div class="nm">Retry + escalate · S3</div>
+                      <div class="desc">Second retry, second email, SMS to ops contact, in-app banner for all admin users. Open a support thread with AI-suggested message draft. Tech-lead gets a slack ping.</div>
+                      <div class="channels">
+                        <span class="ch email">email</span>
+                        <span class="ch sms">sms</span>
+                        <span class="ch app">banner</span>
+                        <span class="ch">support thread</span>
+                      </div>
+                    </div>
+                    <div class="right"><div class="out"><strong>~6%</strong> recover here<br>30d trailing</div></div>
+                  </div>
+
+                  <div class="dun-connector"><div class="line"></div><span class="lbl">if still failed at D+14</span></div>
+
+                  <div class="dun-step term">
+                    <div class="day">D+14<span class="l">terminal</span></div>
+                    <div class="body">
+                      <div class="nm">Suspend organisation · S4</div>
+                      <div class="desc">Final escalation. Org is suspended (read-only access, owners can still log in to update billing). This step requires tech-lead approval — never fires automatically on Atelier-tier orgs. Triggers the suspend flow from cabinet 01.</div>
+                      <div class="channels">
+                        <span class="ch call">phone call</span>
+                        <span class="ch email">final email</span>
+                        <span class="ch app">read-only mode</span>
+                      </div>
+                    </div>
+                    <div class="right"><div class="out"><strong>~3%</strong> reach here<br>1 currently queued</div></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill">desktop ready</span>
+        <span>S1–S4 chips in sec 01 map to D+0/D+1/D+3/D+14 here</span>
+        <span>·</span>
+        <span>Atelier-tier override visible behind "View per-tier overrides"</span>
+      </div>
+    </section>
+
+    <!-- 05 SCHEMA -->
+    <section id="schema" class="ds-section" data-screen-label="05 Schema">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">05</span><span>—</span><span>Spec</span></div>
+          <h2>Schema · agents · audit</h2>
+          <p>Quick reference for the data-wiring PR. Most of this already exists from Phase 2 data-wiring's billing slice — what's new for cabinet 04 is the dunning policy table, the refund-audit relation, and the <code>dunning-runner</code> agent registration.</p>
+        </div>
+      </div>
+
+      <div class="notes-grid">
+
+        <div class="notes-card">
+          <h3>Tables · existing</h3>
+          <dl>
+            <div><dt>invoices</dt><dd><code>org_id · stripe_invoice_id · amount · currency · status · issued_at · paid_at · due_at · period_start · period_end</code> — already in main</dd></div>
+            <div><dt>payments</dt><dd><code>invoice_id · stripe_charge_id · attempt_no · status · decline_code · raw_reason · charged_at</code> — already in main</dd></div>
+            <div><dt>refunds</dt><dd><code>invoice_id · stripe_refund_id · amount · mode (full/partial/credit) · reason_category · justification · actor_user_id · audit_log_id</code> — already in main, <em>justification col added Phase 2 data-wiring</em></dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Tables · new for 2.5</h3>
+          <dl>
+            <div><dt>dunning_policy</dt><dd><code>id · scope (default · tier · org) · scope_id · steps_jsonb · effective_from · created_by · version</code> — versioned, never deleted</dd></div>
+            <div><dt>dunning_runs</dt><dd><code>invoice_id · step_no · fired_at · channel · outcome (recovered/no_change/escalated) · agent_run_id</code></dd></div>
+            <div><dt>billing_audit</dt><dd><code>actor_user_id · org_id · action (refund · credit · manual_charge · policy_edit) · before · after · justification · ip · ts</code> — feeds cabinet 07 audit log</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Agents</h3>
+          <dl>
+            <div><dt>dunning-runner</dt><dd>cron every 2h. Reads <code>dunning_policy</code>, walks failed invoices, fires the next due step. Caps at policy <code>D+14</code> for non-Atelier; logs but never auto-suspends Atelier.</dd></div>
+            <div><dt>refund-audit-sealer</dt><dd>cron daily 02:00. Verifies every <code>refunds</code> row has matching <code>billing_audit</code> + Stripe refund id. Pages tech-lead on mismatch.</dd></div>
+            <div><dt>stripe-webhook-replayer</dt><dd>cron every 15m. Replays missed Stripe webhooks against <code>payments</code>. Already exists.</dd></div>
+          </dl>
+        </div>
+
+        <div class="notes-card">
+          <h3>Caution-flow rules</h3>
+          <dl>
+            <div><dt>refund</dt><dd>2FA required · amounts ≥ $50 single-actor · amounts &lt; $50 require tech-lead approval (anti-mistake guard)</dd></div>
+            <div><dt>suspend</dt><dd>Inherits cabinet 01 flow. Triggered manually from triage row S4 OR escalated from dunning policy. Never agent-auto-fires.</dd></div>
+            <div><dt>policy edit</dt><dd>Versioned; previous version stays queryable. Audit-log entry on every save. Re-publishes to <code>dunning-runner</code> on next sweep.</dd></div>
+          </dl>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<script>
+  // Carry preview-token onto internal links
+  (function () {
+    function isInternal(href) {
+      if (!href) return false;
+      if (/^(https?:|mailto:|tel:|#)/i.test(href)) return false;
+      return true;
+    }
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      if (a.target && a.target !== '' && a.target !== '_self') return;
+      var href = a.getAttribute('href');
+      if (!isInternal(href)) return;
+      var search = window.location.search;
+      if (!search) return;
+      if (href.indexOf('?') !== -1) return;
+      var hashIdx = href.indexOf('#');
+      var base = hashIdx === -1 ? href : href.slice(0, hashIdx);
+      var hash = hashIdx === -1 ? '' : href.slice(hashIdx);
+      a.setAttribute('href', base + search + hash);
+    }, true);
+  })();
+</script>
+
+</body>
+</html>

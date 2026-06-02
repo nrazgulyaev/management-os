@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phase 2.5 · 02 · Users</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style id="super-admin-tokens">
+[data-product="super-admin"] {
+  --paper: #F8F9FB; --canvas: #EEF1F5; --panel: #FFFFFF; --panel-2: #F2F4F7; --panel-deep: #E5E9EE;
+  --ink: #0B0F14; --ink-2: #1F2937; --ink-3: #4B5563; --ink-4: #6B7280; --ink-5: #9CA3AF;
+  --line: #D6DBE2; --line-soft: #E5E8ED; --line-strong: #B8C0CC;
+  --accent: #3F4F8F; --accent-soft: #B8C2DF; --accent-deep: #2A3868; --on-accent: #FFFFFF;
+  --inverted-bg: #0B0F14; --inverted-fg: #F8F9FB; --inverted-bg-2: #1F2937;
+  --ok: #2D7A3E; --warn: #B47611; --danger: #B33A2C; --info: #2D5680;
+  --trust: #2A3868; --caution: #944B1F; --caution-soft: #F4E1D0;
+  --r-pill: 999px; --r-card: 10px; --r-card-lg: 14px; --r-hero: 18px; --r-sm: 5px;
+  --display-font: "Newsreader", Georgia, serif;
+  --sans-font: "Inter", system-ui, sans-serif;
+  --mono-font: "JetBrains Mono", ui-monospace, monospace;
+  --shadow-card: 0 1px 2px rgba(11,15,20,0.05), 0 1px 1px rgba(11,15,20,0.03);
+}
+
+:root {
+  --doc-bg: #0B0F14; --doc-bg-2: #131822; --doc-bg-3: #1B2330;
+  --doc-line: rgba(255,255,255,0.06); --doc-line-2: rgba(255,255,255,0.10);
+  --doc-fg: #E6E8EC; --doc-fg-2: #B4B9C2; --doc-fg-3: #7E8590;
+  --doc-accent: #B8C2DF; --doc-caution: #E8AC85;
+  --doc-mono: "JetBrains Mono", ui-monospace, monospace;
+  --doc-sans: "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--doc-bg); color: var(--doc-fg); font-family: var(--doc-sans); -webkit-font-smoothing: antialiased; }
+
+.ds-app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.ds-toc {
+  border-right: 1px solid var(--doc-line);
+  padding: 36px 22px; background: var(--doc-bg-2);
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.ds-mark { display: flex; align-items: center; gap: 10px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 22px; }
+.ds-mark .glyph { width: 7px; height: 7px; background: var(--doc-accent); border-radius: 2px; }
+.ds-toc h1 { margin: 0 0 22px; font-family: var(--doc-sans); font-weight: 500; font-size: 19px; color: var(--doc-fg); letter-spacing: -0.005em; }
+.ds-toc-group { margin-top: 22px; }
+.ds-toc-group-title { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); margin-bottom: 10px; }
+.ds-toc ul { margin: 0; padding: 0; list-style: none; }
+.ds-toc a { display: block; padding: 6px 8px; text-decoration: none; color: var(--doc-fg-2); font-size: 13px; border-radius: 4px; margin-bottom: 1px; }
+.ds-toc a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.ds-toc a .ix { font-family: var(--doc-mono); font-size: 10.5px; color: var(--doc-fg-3); margin-right: 8px; }
+.ds-toc .back { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--doc-line); }
+.ds-toc .back a { color: var(--doc-accent); font-size: 12.5px; }
+
+.ds-main { padding: 56px 64px 96px; max-width: 1300px; }
+.cab-cover { margin-bottom: 56px; padding-bottom: 28px; border-bottom: 1px solid var(--doc-line); }
+.eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.eyebrow .glyph { width: 6px; height: 6px; background: var(--doc-accent); border-radius: 2px; }
+.cab-cover h1 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 44px; line-height: 1.05; letter-spacing: -0.025em; }
+.cab-cover h1 em { color: var(--doc-accent); font-style: italic; font-weight: 400; }
+.cab-cover p { max-width: 720px; margin: 18px 0 0; font-size: 14.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.ds-section { margin-bottom: 76px; }
+.ds-section-head { display: flex; align-items: flex-start; gap: 28px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--doc-line); }
+.ds-section-eyebrow { font-family: var(--doc-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--doc-fg-3); display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ds-section h2 { margin: 0; font-family: var(--doc-sans); font-weight: 500; font-size: 26px; letter-spacing: -0.015em; color: var(--doc-fg); }
+.ds-section p { max-width: 760px; margin: 8px 0 0; font-size: 13.5px; color: var(--doc-fg-2); line-height: 1.65; }
+
+.artboard { margin-top: 20px; border: 1px solid var(--doc-line); border-radius: 18px; background: var(--canvas); overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+.artboard-caption { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-family: var(--doc-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.artboard-caption .pill { padding: 3px 9px; border-radius: 999px; border: 1px solid var(--doc-line-2); }
+.artboard-caption .pill.ready { color: var(--doc-accent); border-color: rgba(184,194,223,0.4); }
+.artboard-caption .pill.caution { color: var(--doc-caution); border-color: rgba(232,172,133,0.4); }
+
+[data-product="super-admin"] { font-family: var(--sans-font); color: var(--ink); }
+
+[data-product] .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border-radius: 6px; font-family: var(--sans-font); font-size: 13.5px; font-weight: 500; border: 1px solid var(--line); cursor: pointer; line-height: 1; background: var(--panel); color: var(--ink-2); text-decoration: none; }
+[data-product] .btn:hover { background: var(--panel-2); }
+[data-product] .btn-sm { padding: 7px 11px; font-size: 12.5px; }
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+[data-product] .btn-caution { background: var(--panel); color: var(--caution); border-color: var(--caution); }
+[data-product] .btn-caution-solid { background: var(--caution); color: white; border-color: var(--caution); }
+[data-product] .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-3); }
+
+[data-product] .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: var(--r-pill); font-family: var(--mono-font); font-size: 10.5px; font-weight: 500; letter-spacing: 0.02em; border: 1px solid var(--line); background: var(--panel); color: var(--ink-3); }
+[data-product] .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+[data-product] .badge-active   { color: var(--ok);    border-color: color-mix(in oklab, var(--ok) 35%, transparent); background: color-mix(in oklab, var(--ok) 8%, var(--panel)); }
+[data-product] .badge-trust    { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); background: color-mix(in oklab, var(--accent) 8%, var(--panel)); }
+[data-product] .badge-warning  { color: var(--warn);  border-color: color-mix(in oklab, var(--warn) 35%, transparent); background: color-mix(in oklab, var(--warn) 8%, var(--panel)); }
+[data-product] .badge-caution  { color: var(--caution);border-color: color-mix(in oklab, var(--caution) 40%, transparent); background: color-mix(in oklab, var(--caution) 8%, var(--panel)); }
+[data-product] .badge-ink      { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+
+/* App chrome */
+[data-product] .app { background: var(--canvas); min-height: 720px; display: grid; grid-template-rows: auto 1fr; }
+[data-product] .app-topbar { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--inverted-bg); color: var(--inverted-fg); border-bottom: 1px solid var(--ink); }
+[data-product] .app-topbar .brand { font-family: var(--display-font); font-size: 18px; color: var(--inverted-fg); font-weight: 400; }
+[data-product] .app-topbar .brand .sub { font-family: var(--mono-font); font-size: 9.5px; color: rgba(248,249,251,0.55); letter-spacing: 0.18em; text-transform: uppercase; display: block; margin-top: 1px; }
+[data-product] .app-topbar .nav { display: flex; gap: 4px; margin-left: 24px; }
+[data-product] .app-topbar .nav a { padding: 6px 12px; border-radius: 5px; font-family: var(--mono-font); font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: rgba(248,249,251,0.6); text-decoration: none; }
+[data-product] .app-topbar .nav a.on { background: var(--inverted-bg-2); color: var(--inverted-fg); }
+[data-product] .app-topbar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; font-family: var(--mono-font); font-size: 11px; color: rgba(248,249,251,0.6); }
+[data-product] .app-topbar .me { display: flex; align-items: center; gap: 6px; }
+[data-product] .app-topbar .me .avatar { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: white; display: inline-flex; align-items: center; justify-content: center; font-family: var(--sans-font); font-size: 11px; font-weight: 600; }
+
+[data-product] .page-h { padding: 22px 24px 18px; display: flex; align-items: flex-start; gap: 20px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+[data-product] .page-h .left h1 { margin: 4px 0 0; font-family: var(--display-font); font-weight: 400; font-size: 30px; color: var(--ink); letter-spacing: -0.015em; }
+[data-product] .page-h .left h1 em { color: var(--accent); font-style: italic; }
+[data-product] .page-h .left .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .page-h .left .sub { margin-top: 6px; font-size: 13.5px; color: var(--ink-3); line-height: 1.5; }
+[data-product] .page-h .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+[data-product] .filter-bar { display: flex; align-items: center; gap: 8px; padding: 12px 24px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .filter-bar .search { display: flex; align-items: center; gap: 8px; flex: 0 1 360px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; font-family: var(--sans-font); font-size: 13px; color: var(--ink-4); }
+[data-product] .filter-bar .chip { padding: 5px 10px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); font-family: var(--mono-font); font-size: 11px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+[data-product] .filter-bar .chip.on { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .filter-bar .spacer { flex: 1; }
+
+[data-product] .user-table { background: var(--panel); border-top: 1px solid var(--line); }
+[data-product] .user-table .head, [data-product] .user-table .row { display: grid; grid-template-columns: 32px 2.2fr 2fr 80px 110px 90px 60px; align-items: center; gap: 12px; padding: 10px 24px; }
+[data-product] .user-table .head { background: var(--panel-2); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 2; }
+[data-product] .user-table .head .col { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
+[data-product] .user-table .row { border-bottom: 1px solid var(--line-soft); cursor: pointer; }
+[data-product] .user-table .row:hover { background: var(--panel-2); }
+[data-product] .user-table .ck { width: 16px; height: 16px; border-radius: 3px; border: 1.5px solid var(--ink-4); }
+[data-product] .user-table .u-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+[data-product] .user-table .u-cell .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--panel-deep); display: inline-flex; align-items: center; justify-content: center; font-family: var(--display-font); font-size: 14px; color: var(--ink-2); flex-shrink: 0; }
+[data-product] .user-table .u-cell .avatar.accent { background: color-mix(in oklab, var(--accent) 14%, var(--panel-2)); color: var(--accent); }
+[data-product] .user-table .u-cell .meta { min-width: 0; }
+[data-product] .user-table .u-cell .nm { font-family: var(--sans-font); font-size: 14px; font-weight: 500; color: var(--ink); line-height: 1.2; }
+[data-product] .user-table .u-cell .email { font-family: var(--mono-font); font-size: 11px; color: var(--ink-4); margin-top: 2px; }
+[data-product] .user-table .orgs-cell { display: flex; gap: 4px; flex-wrap: wrap; }
+[data-product] .user-table .orgs-cell .org { font-family: var(--mono-font); font-size: 10px; padding: 2px 8px; border-radius: 3px; background: var(--panel-2); color: var(--ink-3); border: 1px solid var(--line-soft); }
+[data-product] .user-table .role { font-family: var(--mono-font); font-size: 11px; color: var(--ink-2); }
+[data-product] .user-table .when { font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-3); }
+[data-product] .user-table .menu { color: var(--ink-4); text-align: center; font-size: 16px; line-height: 1; }
+
+[data-product] .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .kpi-row .kpi { padding: 14px 18px; border-right: 1px solid var(--line); }
+[data-product] .kpi-row .kpi:last-child { border-right: 0; }
+[data-product] .kpi-row .l { font-family: var(--mono-font); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 4px; }
+[data-product] .kpi-row .v { font-family: var(--display-font); font-size: 24px; color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1; }
+[data-product] .kpi-row .v.warn { color: var(--warn); }
+[data-product] .kpi-row .v.caution { color: var(--caution); }
+[data-product] .kpi-row .ctx { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); margin-top: 4px; }
+
+/* User detail */
+[data-product] .det-h { display: grid; grid-template-columns: 1fr auto; gap: 20px; padding: 24px 28px 22px; background: var(--canvas); border-bottom: 1px solid var(--line); }
+[data-product] .det-h .crumb { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .det-h h1 { margin: 6px 0 0; font-family: var(--display-font); font-size: 32px; font-weight: 400; color: var(--ink); letter-spacing: -0.02em; line-height: 1.1; }
+[data-product] .det-h .meta-strip { display: flex; gap: 24px; align-items: center; margin-top: 12px; font-family: var(--mono-font); font-size: 11.5px; color: var(--ink-3); }
+[data-product] .det-h .meta-strip .sep { color: var(--ink-5); }
+[data-product] .det-h .meta-strip strong { color: var(--ink-2); font-weight: 500; }
+[data-product] .det-h .actions { display: flex; gap: 8px; flex-shrink: 0; align-self: start; }
+
+[data-product] .det-body { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 0; }
+[data-product] .det-col { padding: 22px 24px; border-right: 1px solid var(--line); background: var(--canvas); }
+[data-product] .det-col:last-child { border-right: 0; }
+[data-product] .det-col h3 { margin: 0 0 12px; font-family: var(--mono-font); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-3); font-weight: 500; }
+[data-product] .det-col .kv-row { display: grid; grid-template-columns: 100px 1fr; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--line-soft); font-size: 13px; align-items: baseline; }
+[data-product] .det-col .kv-row:last-child { border-bottom: 0; }
+[data-product] .det-col .kv-row .k { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .det-col .kv-row .v { color: var(--ink); }
+[data-product] .det-col .kv-row .v.mono { font-family: var(--mono-font); font-size: 12px; }
+
+[data-product] .org-mem { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+[data-product] .org-mem .h { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+[data-product] .org-mem .h .nm { font-family: var(--sans-font); font-size: 14px; font-weight: 500; color: var(--ink); }
+[data-product] .org-mem .h .role { margin-left: auto; font-family: var(--mono-font); font-size: 10.5px; color: var(--accent); }
+[data-product] .org-mem .meta { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-4); }
+
+[data-product] .timeline { display: flex; flex-direction: column; }
+[data-product] .tl-row { display: grid; grid-template-columns: 18px 80px 1fr; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); font-size: 13px; }
+[data-product] .tl-row:last-child { border-bottom: 0; }
+[data-product] .tl-row .marker { margin-top: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-4); justify-self: center; }
+[data-product] .tl-row .marker.accent { background: var(--accent); }
+[data-product] .tl-row .marker.ok { background: var(--ok); }
+[data-product] .tl-row .marker.caution { background: var(--caution); }
+[data-product] .tl-row .marker.danger { background: var(--danger); }
+[data-product] .tl-row .when { font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); padding-top: 2px; }
+[data-product] .tl-row .nm { color: var(--ink); font-weight: 500; line-height: 1.4; }
+[data-product] .tl-row .body { font-size: 12px; color: var(--ink-3); margin-top: 2px; line-height: 1.5; }
+[data-product] .tl-row .body code { font-family: var(--mono-font); font-size: 11px; padding: 0 4px; background: var(--panel-2); border-radius: 3px; color: var(--ink-2); }
+
+/* MFA reset flow */
+[data-product] .imp-shell { padding: 32px 28px 28px; background: var(--canvas); min-height: 720px; position: relative; }
+[data-product] .imp-shell::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, var(--caution), var(--ink)); }
+[data-product] .imp-warn { background: color-mix(in oklab, var(--caution) 10%, var(--panel)); border: 1px solid var(--caution); border-left: 4px solid var(--caution); border-radius: 8px; padding: 16px 20px; margin-bottom: 22px; display: flex; gap: 16px; align-items: flex-start; }
+[data-product] .imp-warn .ic { flex-shrink: 0; width: 28px; height: 28px; background: var(--caution); color: white; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; font-family: var(--display-font); font-size: 16px; }
+[data-product] .imp-warn .body h3 { margin: 0; font-family: var(--display-font); font-weight: 500; font-size: 18px; color: var(--ink); }
+[data-product] .imp-warn .body p { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+
+[data-product] .imp-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 16px; }
+[data-product] .imp-card h3 { margin: 0 0 14px; font-family: var(--display-font); font-weight: 400; font-size: 18px; color: var(--ink); letter-spacing: -0.005em; }
+[data-product] .imp-card .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+[data-product] .imp-card .kv .row { display: flex; flex-direction: column; gap: 4px; }
+[data-product] .imp-card .kv .l { font-family: var(--mono-font); font-size: 10px; color: var(--ink-3); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-product] .imp-card .kv .v { font-family: var(--sans-font); font-size: 14px; color: var(--ink); }
+[data-product] .imp-card .kv .v.mono { font-family: var(--mono-font); }
+
+[data-product] .imp-radio { display: flex; flex-direction: column; gap: 8px; }
+[data-product] .imp-radio .opt { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+[data-product] .imp-radio .opt.on { background: var(--panel); border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink) inset; }
+[data-product] .imp-radio .opt .ring { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ink-4); flex-shrink: 0; margin-top: 2px; }
+[data-product] .imp-radio .opt.on .ring { border-color: var(--ink); position: relative; }
+[data-product] .imp-radio .opt.on .ring::after { content: ""; position: absolute; inset: 3px; background: var(--ink); border-radius: 50%; }
+[data-product] .imp-radio .opt .nm { font-family: var(--sans-font); font-size: 14px; font-weight: 500; color: var(--ink); }
+[data-product] .imp-radio .opt .desc { font-size: 12px; color: var(--ink-3); margin-top: 3px; line-height: 1.5; }
+
+[data-product] .field { margin-top: 14px; }
+[data-product] .field .lbl { font-family: var(--mono-font); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+[data-product] .field textarea, [data-product] .field input { width: 100%; padding: 9px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; font-family: var(--sans-font); font-size: 13.5px; color: var(--ink); font-style: italic; }
+[data-product] .field textarea { min-height: 60px; resize: vertical; }
+[data-product] .field .hint { font-size: 11.5px; color: var(--ink-4); margin-top: 6px; line-height: 1.45; }
+
+[data-product] .imp-actions { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+[data-product] .imp-actions .spacer { flex: 1; }
+
+[data-product] .audit-chain { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-family: var(--mono-font); font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.10em; text-transform: uppercase; }
+[data-product] .audit-chain .step { display: flex; align-items: center; gap: 5px; }
+[data-product] .audit-chain .step .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+[data-product] .audit-chain .step.done .dot { background: var(--ok); }
+[data-product] .audit-chain .step.on .dot { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent); }
+[data-product] .audit-chain .arr { color: var(--ink-5); }
+
+/* Notes */
+.notes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 18px; }
+.notes-card { background: var(--doc-bg-2); border: 1px solid var(--doc-line); border-radius: 12px; padding: 18px 20px; }
+.notes-card h3 { margin: 0 0 12px; font-family: var(--doc-sans); font-size: 14px; font-weight: 500; color: var(--doc-fg); letter-spacing: -0.005em; }
+.notes-card dl { margin: 0; }
+.notes-card dl > div { display: grid; grid-template-columns: 130px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--doc-line); font-size: 12.5px; }
+.notes-card dl > div:last-child { border-bottom: 0; }
+.notes-card dt { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--doc-fg-3); }
+.notes-card dd { margin: 0; color: var(--doc-fg-2); line-height: 1.55; }
+.notes-card dd code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg); background: var(--doc-bg-3); padding: 1px 6px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="ds-app">
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span>Arconique · Phase 2.5</div>
+    <h1>Platform super-admin</h1>
+    <div class="back"><a href="hub.html">← back to hub</a></div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">02 · Users</div>
+      <ul>
+        <li><a href="#cover"><span class="ix">00</span>Cover</a></li>
+        <li><a href="#list"><span class="ix">01</span>Cross-org search</a></li>
+        <li><a href="#detail"><span class="ix">02</span>Detail · memberships</a></li>
+        <li><a href="#reset"><span class="ix">03</span>Reset MFA flow</a></li>
+        <li><a href="#schema"><span class="ix">04</span>Schema · roles</a></li>
+      </ul>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Adjacent</div>
+      <ul>
+        <li><a href="01-organizations.html"><span class="ix">01</span>Organizations</a></li>
+        <li><a href="03-plans.html"><span class="ix">03</span>Plans &amp; pricing</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="ds-main">
+
+    <section id="cover" class="cab-cover" data-screen-label="Cover">
+      <div class="eyebrow"><span class="glyph"></span><span>Phase 2.5 · cabinet 02 of 09</span></div>
+      <h1>Users · <em>one person, many orgs</em>.</h1>
+      <p>The user table cuts across every organisation on the platform. Sales searches here when an owner calls "I can't sign in"; support resets MFA when a phone gets lost; the tech lead audits sign-in patterns when something looks off. The high-stakes flow this cabinet owns is <strong style="color:var(--doc-fg)">Reset MFA</strong> — irreversible, audit-logged, 2FA-gated on the operator.</p>
+    </section>
+
+    <section id="list" class="ds-section" data-screen-label="01 Cross-org search">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">01</span><span>—</span><span>Hero</span></div>
+          <h2>Cross-org search · single source of truth</h2>
+          <p>One row per user (de-duped across orgs they belong to). Membership chips show all orgs at a glance. Default sort: most recent activity. Filters cover the common "who needs attention" cuts: MFA missing, no sign-in in 30d, role-changes pending.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav">
+                <a>Organizations</a><a class="on">Users</a><a>Plans</a><a>Billing</a><a>Flags</a><a>Support</a><a>Audit</a><a>Health</a><a>AI</a>
+              </div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="page-h">
+                <div class="left">
+                  <div class="crumb">super-admin / users</div>
+                  <h1>Users <em>· 412</em></h1>
+                  <div class="sub">across 47 orgs · 18 missing MFA · 6 with no sign-in past 30d</div>
+                </div>
+                <div class="right">
+                  <button class="btn">Export</button>
+                  <button class="btn btn-primary">+ Invite user</button>
+                </div>
+              </div>
+
+              <div class="kpi-row">
+                <div class="kpi"><div class="l">total</div><div class="v">412</div><div class="ctx">+18 last 30d</div></div>
+                <div class="kpi"><div class="l">active 30d</div><div class="v">348</div><div class="ctx">85%</div></div>
+                <div class="kpi"><div class="l">missing MFA</div><div class="v warn">18</div><div class="ctx">4 are founders</div></div>
+                <div class="kpi"><div class="l">dormant 30d+</div><div class="v">6</div><div class="ctx">2 owners</div></div>
+              </div>
+
+              <div class="filter-bar">
+                <div class="search"><span style="color:var(--ink-3);">⌕</span>Search by name, email, phone, org…</div>
+                <span class="chip">missing MFA <span style="color:var(--warn);">●</span></span>
+                <span class="chip">dormant 30d+</span>
+                <span class="chip">founders</span>
+                <span class="chip">support staff</span>
+                <div class="spacer"></div>
+                <span class="chip">sort: last sign-in ▾</span>
+              </div>
+
+              <div class="user-table">
+                <div class="head">
+                  <div><span class="ck"></span></div>
+                  <div class="col">user</div>
+                  <div class="col">orgs &amp; role</div>
+                  <div class="col">MFA</div>
+                  <div class="col">last sign-in</div>
+                  <div class="col">created</div>
+                  <div></div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="u-cell">
+                    <div class="avatar accent">EW</div>
+                    <div class="meta">
+                      <div class="nm">Emma Whitmore</div>
+                      <div class="email">emma.w@whitmore.co</div>
+                    </div>
+                  </div>
+                  <div class="orgs-cell">
+                    <span class="org">whitmore · founder</span>
+                  </div>
+                  <div><span class="badge badge-active"><span class="dot"></span>SMS</span></div>
+                  <div class="when">4m ago</div>
+                  <div class="when">14 apr 2024</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="u-cell">
+                    <div class="avatar">MS</div>
+                    <div class="meta">
+                      <div class="nm">Made Surya</div>
+                      <div class="email">made.s@whitmore.co</div>
+                    </div>
+                  </div>
+                  <div class="orgs-cell">
+                    <span class="org">whitmore · ops</span>
+                    <span class="org">sukha · ops</span>
+                  </div>
+                  <div><span class="badge badge-active"><span class="dot"></span>app</span></div>
+                  <div class="when">12m ago</div>
+                  <div class="when">22 apr 2024</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="u-cell">
+                    <div class="avatar">PI</div>
+                    <div class="meta">
+                      <div class="nm">Petra Iverson</div>
+                      <div class="email">petra@iverson.no</div>
+                    </div>
+                  </div>
+                  <div class="orgs-cell">
+                    <span class="org">whitmore · owner</span>
+                  </div>
+                  <div><span class="badge badge-warning"><span class="dot"></span>none</span></div>
+                  <div class="when" style="color:var(--warn);">38d ago</div>
+                  <div class="when">04 oct 2024</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="u-cell">
+                    <div class="avatar accent">RC</div>
+                    <div class="meta">
+                      <div class="nm">Reza Chandra</div>
+                      <div class="email">reza@arconique.co</div>
+                    </div>
+                  </div>
+                  <div class="orgs-cell">
+                    <span class="org" style="background:color-mix(in oklab, var(--accent) 14%, transparent);color:var(--accent);">platform · director</span>
+                  </div>
+                  <div><span class="badge badge-trust"><span class="dot"></span>SMS+app</span></div>
+                  <div class="when">2m ago</div>
+                  <div class="when">12 apr 2024</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="u-cell">
+                    <div class="avatar">HM</div>
+                    <div class="meta">
+                      <div class="nm">Hans Müller</div>
+                      <div class="email">hans@mueller.de</div>
+                    </div>
+                  </div>
+                  <div class="orgs-cell">
+                    <span class="org">cendana · owner</span>
+                  </div>
+                  <div><span class="badge badge-active"><span class="dot"></span>SMS</span></div>
+                  <div class="when">22m ago</div>
+                  <div class="when">3 mar 2025</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="u-cell">
+                    <div class="avatar">DR</div>
+                    <div class="meta">
+                      <div class="nm">Daud Ramli</div>
+                      <div class="email">daud@arconique.co</div>
+                    </div>
+                  </div>
+                  <div class="orgs-cell">
+                    <span class="org" style="background:color-mix(in oklab, var(--accent) 14%, transparent);color:var(--accent);">platform · sales</span>
+                  </div>
+                  <div><span class="badge badge-trust"><span class="dot"></span>app</span></div>
+                  <div class="when">1h ago</div>
+                  <div class="when">12 apr 2024</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="u-cell">
+                    <div class="avatar">KH</div>
+                    <div class="meta">
+                      <div class="nm">Kishida Hiroshi</div>
+                      <div class="email">k.hiroshi@kishida.jp</div>
+                    </div>
+                  </div>
+                  <div class="orgs-cell">
+                    <span class="org">kishida · founder</span>
+                  </div>
+                  <div><span class="badge badge-warning"><span class="dot"></span>none</span></div>
+                  <div class="when" style="color:var(--danger);">90d+ ago</div>
+                  <div class="when">14 jun 2024</div>
+                  <div class="menu">⋯</div>
+                </div>
+
+                <div class="row">
+                  <div><span class="ck"></span></div>
+                  <div class="u-cell">
+                    <div class="avatar">TF</div>
+                    <div class="meta">
+                      <div class="nm">Tan Wei Ming</div>
+                      <div class="email">wm.tan@tanfamily.sg</div>
+                    </div>
+                  </div>
+                  <div class="orgs-cell">
+                    <span class="org">tanfamily · founder</span>
+                  </div>
+                  <div><span class="badge badge-active"><span class="dot"></span>SMS</span></div>
+                  <div class="when">3h ago</div>
+                  <div class="when">28 sep 2024</div>
+                  <div class="menu">⋯</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill ready">desktop ready</span>
+        <span>de-duped across orgs · membership chips inline</span>
+        <span>·</span>
+        <span>platform staff distinguished by accent-tinted org chips</span>
+      </div>
+    </section>
+
+    <section id="detail" class="ds-section" data-screen-label="02 Detail">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">02</span><span>—</span><span>Detail</span></div>
+          <h2>Single-user detail · profile / orgs / sign-in activity</h2>
+          <p>3-col layout mirrors Organizations detail. Middle column lists every org membership with the user's role in each — handy when one person belongs to multiple villa businesses. Activity column = chronological sign-in log + MFA challenges + role-change events.</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="app">
+            <div class="app-topbar">
+              <div class="brand">Arconique<span class="sub">platform · super-admin</span></div>
+              <div class="nav"><a>Organizations</a><a class="on">Users</a><a>Plans</a><a>Billing</a><a>Flags</a><a>Support</a><a>Audit</a><a>Health</a><a>AI</a></div>
+              <div class="right"><span class="me"><span class="avatar">NR</span>Nikita R.</span></div>
+            </div>
+
+            <div>
+              <div class="det-h">
+                <div>
+                  <div class="crumb">users / made surya</div>
+                  <h1>Made Surya</h1>
+                  <div class="meta-strip">
+                    <span>user_id <strong>a3f12b80</strong></span>
+                    <span class="sep">·</span>
+                    <span>made.s@whitmore.co</span>
+                    <span class="sep">·</span>
+                    <span>2 org memberships</span>
+                    <span class="sep">·</span>
+                    <span>last sign-in <strong>12m ago</strong></span>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn">↗ View user's dashboard</button>
+                  <button class="btn">Send password reset</button>
+                  <button class="btn btn-caution">⟲ Reset MFA</button>
+                </div>
+              </div>
+
+              <div class="det-body">
+                <div class="det-col">
+                  <h3>Profile</h3>
+                  <div class="kv-row"><span class="k">full name</span><span class="v">Made Surya</span></div>
+                  <div class="kv-row"><span class="k">email</span><span class="v mono">made.s@whitmore.co</span></div>
+                  <div class="kv-row"><span class="k">phone</span><span class="v mono">+62 813 5544 2210</span></div>
+                  <div class="kv-row"><span class="k">country</span><span class="v">Indonesia</span></div>
+                  <div class="kv-row"><span class="k">timezone</span><span class="v mono">Asia/Makassar</span></div>
+                  <div class="kv-row"><span class="k">created</span><span class="v">22 apr 2024 · 13mo ago</span></div>
+
+                  <h3 style="margin-top:24px;">Auth</h3>
+                  <div class="kv-row"><span class="k">password</span><span class="v">last changed 4mo ago</span></div>
+                  <div class="kv-row"><span class="k">MFA method</span><span class="v">Authenticator app</span></div>
+                  <div class="kv-row"><span class="k">backup codes</span><span class="v mono">6 of 10 unused</span></div>
+                  <div class="kv-row"><span class="k">sessions</span><span class="v">2 active · iPhone, MacBook Air</span></div>
+                </div>
+
+                <div class="det-col">
+                  <h3>Org memberships · 2</h3>
+                  <div class="org-mem">
+                    <div class="h">
+                      <span class="nm">Whitmore Villas Group</span>
+                      <span class="role">operations</span>
+                    </div>
+                    <div class="meta">joined 22 apr 2024 · primary org · invited by Emma Whitmore · last action: confirmed booking BK-2025-1184</div>
+                  </div>
+                  <div class="org-mem">
+                    <div class="h">
+                      <span class="nm">Sukha Residences</span>
+                      <span class="role">operations</span>
+                    </div>
+                    <div class="meta">joined 12 mar 2025 · invited by Rian Pratama · last action: ran weekly turnover review</div>
+                  </div>
+
+                  <h3 style="margin-top:24px;">Recent activity · 30d</h3>
+                  <div class="timeline">
+                    <div class="tl-row">
+                      <span class="marker ok"></span>
+                      <span class="when">today<br>12m</span>
+                      <div>
+                        <div class="nm">Signed in via Authenticator</div>
+                        <div class="body">From <code>103.50.224.18</code> · Bali · iPhone 15 · session #82c4f1</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker accent"></span>
+                      <span class="when">today<br>09:32</span>
+                      <div>
+                        <div class="nm">Confirmed booking · BK-2025-1184</div>
+                        <div class="body">@ Whitmore Villas Group / Tirta · 5 nights · party of 4</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker"></span>
+                      <span class="when">yesterday</span>
+                      <div>
+                        <div class="nm">Approved 3 statement-anomaly flags</div>
+                        <div class="body">All "supplier_cost_spike" on housekeeping line · annotated</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker ok"></span>
+                      <span class="when">3d ago</span>
+                      <div>
+                        <div class="nm">Switched org context · Whitmore → Sukha</div>
+                        <div class="body">Reviewed Sukha's weekly turnover monitor</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker caution"></span>
+                      <span class="when">8d ago</span>
+                      <div>
+                        <div class="nm">Failed sign-in attempt × 2</div>
+                        <div class="body">From <code>118.99.51.218</code> · Jakarta · likely typo (succeeded on 3rd try same minute)</div>
+                      </div>
+                    </div>
+                    <div class="tl-row">
+                      <span class="marker accent"></span>
+                      <span class="when">14d ago</span>
+                      <div>
+                        <div class="nm">Used 2 backup codes (lost phone, restored)</div>
+                        <div class="body">Codes <code>•8821</code>, <code>•4477</code> · remaining 6 of 10</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="det-col">
+                  <h3>Sign-in stats · 30d</h3>
+                  <div class="kv-row"><span class="k">sessions</span><span class="v">28</span></div>
+                  <div class="kv-row"><span class="k">unique IPs</span><span class="v">3</span></div>
+                  <div class="kv-row"><span class="k">unique devices</span><span class="v">2</span></div>
+                  <div class="kv-row"><span class="k">failed attempts</span><span class="v">2</span></div>
+                  <div class="kv-row"><span class="k">MFA challenges</span><span class="v">28 / 28 passed</span></div>
+
+                  <h3 style="margin-top:24px;">Geo footprint</h3>
+                  <div class="kv-row"><span class="k">primary</span><span class="v">Bali · 26 sessions</span></div>
+                  <div class="kv-row"><span class="k">also</span><span class="v">Jakarta · 2 sessions</span></div>
+
+                  <h3 style="margin-top:24px;">Risk signals</h3>
+                  <div style="padding:14px 16px;background:color-mix(in oklab, var(--ok) 6%, var(--panel));border:1px solid color-mix(in oklab, var(--ok) 30%, var(--line));border-radius:8px;font-size:13px;color:var(--ink-2);line-height:1.5;">
+                    <strong style="color:var(--ok);">No risk signals.</strong> Stable geo, strong MFA, no impossible-travel patterns, no recent role escalation.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill ready">desktop ready</span>
+        <span>3-col · profile / memberships+activity / sign-in stats</span>
+      </div>
+    </section>
+
+    <section id="reset" class="ds-section" data-screen-label="03 Reset MFA flow">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-caution);">03</span><span>—</span><span>High-stakes flow</span></div>
+          <h2>Reset MFA · 2FA gate + reason + audit chain</h2>
+          <p>Mirrors the Organizations cabinet's impersonate/suspend chrome — caution banner, identity verification step, mode picker, reason field. Three modes: send reset link (gentle), force-disable (immediate, risky), temporary-disable (24h window).</p>
+        </div>
+      </div>
+
+      <div class="artboard">
+        <div data-product="super-admin">
+          <div class="imp-shell">
+
+            <div class="imp-warn">
+              <div class="ic">⟲</div>
+              <div class="body">
+                <h3>Reset MFA for <em style="font-style:italic;">Made Surya</em>?</h3>
+                <p>MFA reset is a high-trust action. After the reset, Made's account is protected only by password until he re-enrols. Use only with verified identity (phone call / video / IRL). All actions here are audit-logged and visible to Made's primary org admin (Emma Whitmore).</p>
+              </div>
+            </div>
+
+            <div class="imp-card">
+              <h3>Identity verification</h3>
+              <p style="font-size:13.5px;color:var(--ink-2);line-height:1.5;margin:0 0 14px;">Confirm you've verified the requester is actually Made Surya — not just someone who knows his email.</p>
+              <div class="kv">
+                <div class="row"><span class="l">user</span><span class="v">Made Surya · made.s@whitmore.co</span></div>
+                <div class="row"><span class="l">phone on file</span><span class="v mono">+62 813 5544 2210</span></div>
+                <div class="row"><span class="l">verified via</span><span class="v">WhatsApp video call · 14:08 today</span></div>
+                <div class="row"><span class="l">verified by</span><span class="v">Nikita R. (operator)</span></div>
+              </div>
+            </div>
+
+            <div class="imp-card">
+              <h3>Reset mode</h3>
+              <div class="imp-radio">
+                <div class="opt on">
+                  <span class="ring"></span>
+                  <div>
+                    <div class="nm">Send re-enrolment link</div>
+                    <div class="desc">User receives email + SMS. Current MFA stays active until user completes re-enrolment. Safest default — no temporary unprotected window.</div>
+                  </div>
+                </div>
+                <div class="opt">
+                  <span class="ring"></span>
+                  <div>
+                    <div class="nm">Force-disable MFA</div>
+                    <div class="desc">Immediate. User can sign in with password alone. Use only when user has lost MFA and re-enrolment link is undeliverable. Recommend pairing with a password reset.</div>
+                  </div>
+                </div>
+                <div class="opt">
+                  <span class="ring"></span>
+                  <div>
+                    <div class="nm">Temporarily disable for 24h</div>
+                    <div class="desc">MFA off for 24h, then re-enrolment required. Good for support-window scenarios.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="imp-card">
+              <h3>Reason</h3>
+              <div class="field">
+                <div class="lbl">why is MFA being reset?</div>
+                <textarea placeholder="e.g. Made lost his phone in a swimming-pool incident on 28 may. New phone arrives tomorrow. WhatsApp video verified."></textarea>
+                <div class="hint">Logged verbatim · visible to Made (next sign-in banner) + Emma (Whitmore primary contact) via the org's audit feed.</div>
+              </div>
+            </div>
+
+            <div class="imp-actions">
+              <div class="spacer"></div>
+              <button class="btn">Cancel</button>
+              <button class="btn btn-caution-solid">⟲ Send re-enrolment link</button>
+            </div>
+
+            <div class="audit-chain">
+              <div class="step done"><span class="dot"></span>operator 2FA</div>
+              <span class="arr">→</span>
+              <div class="step done"><span class="dot"></span>identity verified</div>
+              <span class="arr">→</span>
+              <div class="step on"><span class="dot"></span>reason logged</div>
+              <span class="arr">→</span>
+              <div class="step"><span class="dot"></span>org admin notified</div>
+              <span class="arr">→</span>
+              <div class="step"><span class="dot"></span>user banner on next sign-in</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="artboard-caption">
+        <span class="pill caution">high-stakes flow</span>
+        <span>3 modes · default = soft reset · org admin always notified</span>
+      </div>
+    </section>
+
+    <section id="schema" class="ds-section" data-screen-label="04 Schema · roles">
+      <div class="ds-section-head">
+        <div>
+          <div class="ds-section-eyebrow"><span style="color:var(--doc-accent);">04</span><span>—</span><span>Implementation</span></div>
+          <h2>Schema · roles · audit</h2>
+        </div>
+      </div>
+
+      <div class="notes-grid">
+        <div class="notes-card">
+          <h3>Schema (mostly exists)</h3>
+          <dl>
+            <div><dt>appUsers</dt><dd>✅ exists · <code>identity.ts</code></dd></div>
+            <div><dt>org_memberships</dt><dd>✅ exists · join row per (user, org, role)</dd></div>
+            <div><dt>auth_sessions</dt><dd>✅ exists (via Supabase auth tables)</dd></div>
+            <div><dt>mfa_factors</dt><dd>✅ exists (via Supabase auth tables)</dd></div>
+            <div><dt>user_risk_signals</dt><dd>🔴 new · derived view (impossible-travel, brute-force, role-escalation)</dd></div>
+            <div><dt>mfa_reset_events</dt><dd>🔴 new · audit-style table: target_user, operator, mode, reason, identity_verified_via, notifications_sent</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Agents</h3>
+          <dl>
+            <div><dt>dormant-user-flagger</dt><dd>🔴 new · daily · marks users with no sign-in &gt; 30d, surfaces to KPI bar</dd></div>
+            <div><dt>impossible-travel-detector</dt><dd>🔴 new · on each sign-in · compares geo to last sign-in</dd></div>
+            <div><dt>risk-summarizer</dt><dd>🔴 new · per-user · writes the "no risk signals" / "watch" / "danger" card on detail page</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Endpoints</h3>
+          <dl>
+            <div><dt>POST /api/super-admin/users/:id/reset-mfa</dt><dd>🔴 new · gated by super_admin role + 2FA · writes <code>mfa_reset_events</code> + auditEvents + notifies org admin</dd></div>
+            <div><dt>POST /api/super-admin/users/:id/send-password-reset</dt><dd>🔴 new · gentler version</dd></div>
+            <div><dt>GET /api/super-admin/users/search</dt><dd>🔴 new · cross-org search · returns de-duped users with memberships</dd></div>
+            <div><dt>GET /api/owner/super-admin-events</dt><dd>shared with Organizations cabinet · org sees what we did, when, why</dd></div>
+          </dl>
+        </div>
+        <div class="notes-card">
+          <h3>Roles &amp; permissions</h3>
+          <dl>
+            <div><dt>super_admin</dt><dd>full cabinet access · all reset modes</dd></div>
+            <div><dt>sales_admin</dt><dd>read-only · can send password reset · cannot force-disable MFA</dd></div>
+            <div><dt>support_admin</dt><dd>read + send-reset-link only (not force / temporary)</dd></div>
+            <div><dt>2FA gate</dt><dd>required on every reset action regardless of mode</dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  function isInternal(href) { if (!href) return false; if (/^(https?:|mailto:|tel:|#)/i.test(href)) return false; return true; }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    if (a.target && a.target !== '' && a.target !== '_self') return;
+    var href = a.getAttribute('href');
+    if (!isInternal(href)) return;
+    var search = window.location.search;
+    if (!search) return;
+    if (href.indexOf('?') !== -1) return;
+    var hashIdx = href.indexOf('#');
+    var base = hashIdx === -1 ? href : href.slice(0, hashIdx);
+    var hash = hashIdx === -1 ? '' : href.slice(hashIdx);
+    a.setAttribute('href', base + search + hash);
+  }, true);
+})();
+</script>
+
+</body>
+</html>

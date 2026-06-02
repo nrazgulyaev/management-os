@@ -11,6 +11,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
 import { projects, villas } from "./projects";
@@ -365,13 +366,23 @@ export const ownerStatements = pgTable(
     ownerDisputedAt: timestamp("owner_disputed_at", { withTimezone: true }),
     /** Populated when statement becomes "ready for owner" so the auto-ack scheduler knows when to fire. */
     autoAckAt: timestamp("auto_ack_at", { withTimezone: true }),
-    /** Enum: line_amount | line_missing | line_extra | math_error | other. */
+    /** Enum (set by raiseStatementDisputeAction): line_amount | line_missing | fees_too_high | other. */
     disputeReasonKind: text("dispute_reason_kind"),
     // Phase 2 PR 3 — FK to ownerThreads.id wired now that the
     // table exists. Migration 0114 adds the constraint at the DB level.
     disputeThreadId: uuid("dispute_thread_id").references(() => ownerThreads.id, {
       onDelete: "set null",
     }),
+    /**
+     * FC-OWNER-STATEMENTS §4.4 — resolve→reissue link. The OLD row points
+     * forward to the revised statement that replaced it; set together with
+     * owner_state='superseded'. Migration 0117. Self-FK needs the AnyPgColumn
+     * return annotation to break Drizzle's circular type inference.
+     */
+    supersededById: uuid("superseded_by_id").references(
+      (): AnyPgColumn => ownerStatements.id,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -382,6 +393,7 @@ export const ownerStatements = pgTable(
     index("owner_statements_org_idx").on(t.organizationId),
     index("owner_statements_period_month_idx").on(t.periodMonth),
     index("owner_statements_owner_state_auto_ack_idx").on(t.ownerState, t.autoAckAt),
+    index("owner_statements_superseded_by_idx").on(t.supersededById),
   ],
 );
 

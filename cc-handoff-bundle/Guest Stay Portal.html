@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arconique · Guest Stay Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style id="gp-css">
+/* ============================================================
+   Arconique · Guest Stay Portal — lightened premium hospitality
+   Mgmt palette, airier + larger. Mobile-first (guest opens via link).
+   ============================================================ */
+:root{
+  /* surfaces — warmer, lighter than the dashboard */
+  --paper:#FFFCF7; --cream:#F7F2E9; --cream-deep:#EFE8D8; --sand:#FAF6EE;
+  /* ink */
+  --ink:#1B2A25; --ink-2:#3A4D47; --ink-3:#6B7B75; --ink-4:#9AA7A1;
+  /* brand */
+  --forest:#1F3A33; --forest-deep:#132621; --terra:#C4583C; --terra-soft:#E08D72;
+  --gold:#BC9A5C; --gold-soft:#DCC691; --sage:#88A89A;
+  /* lines */
+  --line:#E7DECB; --line-soft:#F0E9D9; --line-strong:#D7CAB0;
+  /* semantic */
+  --ok:#4F7A5D; --warn:#C58A2E; --danger:#B14132; --info:#3D5A7A;
+  /* radii — generous, luxury */
+  --r-sm:10px; --r-md:16px; --r-card:22px; --r-lg:28px; --r-hero:32px; --r-pill:999px;
+  /* type */
+  --serif:"Newsreader",Georgia,serif; --sans:"Inter",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  --shadow-card:0 1px 2px rgba(27,42,37,.04), 0 8px 28px rgba(27,42,37,.06);
+  --shadow-pop:0 8px 40px rgba(27,42,37,.16);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;}
+body{
+  background:
+    radial-gradient(1200px 700px at 12% -8%, #16241F 0%, #101C18 42%, #0B1511 100%);
+  min-height:100vh;font-family:var(--sans);color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;align-items:center;
+  padding:40px 24px 64px;
+}
+
+/* ── stage / device ─────────────────────────────────── */
+.stage{display:flex;align-items:flex-start;justify-content:center;gap:54px;flex-wrap:wrap;}
+.device-wrap{display:flex;flex-direction:column;align-items:center;gap:18px;}
+.device-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(245,240,230,.5);}
+.device-label b{color:rgba(245,240,230,.92);font-weight:500;}
+
+.phone{
+  width:402px;height:858px;border-radius:54px;background:#0c0c0e;
+  padding:13px;box-shadow:0 0 0 2px #2a2a2e, 0 30px 80px rgba(0,0,0,.5), inset 0 0 3px rgba(255,255,255,.2);
+  position:relative;flex:none;
+}
+.screen{
+  position:relative;width:100%;height:100%;border-radius:42px;overflow:hidden;
+  background:var(--sand);display:flex;flex-direction:column;
+}
+/* status bar */
+.statusbar{
+  position:absolute;top:0;left:0;right:0;height:54px;z-index:40;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 30px 0;font-size:14px;font-weight:600;color:var(--ink);
+  pointer-events:none;
+}
+.statusbar.on-dark{color:#fff;}
+.statusbar .dnd{display:flex;gap:6px;align-items:center;}
+.notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:120px;height:30px;background:#0c0c0e;border-radius:18px;z-index:45;}
+
+/* scrollable view */
+.view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+  padding-bottom:104px;scrollbar-width:none;display:none;}
+.view::-webkit-scrollbar{display:none;}
+.view.active{display:block;}
+.view.no-tabbar{padding-bottom:32px;}
+
+/* ── bottom tab bar ─────────────────────────────────── */
+.tabbar{
+  position:absolute;left:0;right:0;bottom:0;height:88px;z-index:35;
+  background:rgba(255,252,247,.86);backdrop-filter:blur(20px);
+  border-top:1px solid var(--line-soft);
+  display:flex;align-items:flex-start;justify-content:space-around;padding:12px 8px 0;
+}
+.tab{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;
+  color:var(--ink-4);font-family:var(--sans);font-size:10.5px;font-weight:500;cursor:pointer;flex:1;padding:0;letter-spacing:.01em;}
+.tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.7;}
+.tab.on{color:var(--terra);}
+.tab.on svg{stroke:var(--terra);}
+
+/* emergency floating */
+.sos{position:absolute;right:18px;bottom:104px;z-index:36;width:52px;height:52px;border-radius:var(--r-pill);
+  background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow-card);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.sos svg{width:22px;height:22px;stroke:var(--danger);fill:none;stroke-width:1.8;}
+
+/* ── shared blocks ──────────────────────────────────── */
+.pad{padding:0 24px;}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-4);white-space:nowrap;}
+.serif{font-family:var(--serif);}
+h1.title{font-family:var(--serif);font-weight:400;font-size:33px;line-height:1.06;letter-spacing:-.02em;margin:0;color:var(--ink);}
+.subtle{color:var(--ink-3);font-size:14.5px;line-height:1.5;}
+
+.card{background:var(--paper);border:1px solid var(--line-soft);border-radius:var(--r-card);box-shadow:var(--shadow-card);}
+.card-pad{padding:20px;}
+.divider{height:1px;background:var(--line-soft);border:0;margin:0;}
+
+.btn{appearance:none;border:0;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:15px;
+  border-radius:var(--r-pill);padding:15px 22px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  transition:transform .12s, filter .12s;}
+.btn:active{transform:scale(.975);}
+.btn-primary{background:var(--terra);color:#fff;box-shadow:0 6px 18px rgba(196,88,60,.28);}
+.btn-forest{background:var(--forest);color:#F4EFE6;}
+.btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line-strong);}
+.btn-block{width:100%;}
+
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;padding:5px 11px;border-radius:var(--r-pill);font-weight:500;}
+.pill-ok{background:rgba(79,122,93,.12);color:var(--ok);}
+.pill-gold{background:rgba(188,154,92,.16);color:#917339;}
+.pill-terra{background:rgba(196,88,60,.12);color:var(--terra);}
+.pill-cream{background:var(--cream);color:var(--ink-2);}
+
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+
+/* hero image */
+.hero{position:relative;width:100%;border-radius:0;overflow:hidden;}
+.hero-art{width:100%;overflow:hidden;}
+.hero-art svg{width:100%;height:100%;}
+image-slot{display:block;width:100%;}
+.hero-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,21,17,0) 30%,rgba(11,21,17,.55) 100%);pointer-events:none;}
+
+/* list rows */
+.row{display:flex;align-items:center;gap:14px;padding:15px 0;}
+.row .ic{width:42px;height:42px;border-radius:13px;background:var(--cream);display:flex;align-items:center;justify-content:center;flex:none;}
+.row .ic svg{width:21px;height:21px;stroke:var(--forest);fill:none;stroke-width:1.7;}
+.row .tx{flex:1;min-width:0;}
+.row .tx .t{display:block;font-size:15.5px;font-weight:600;color:var(--ink);}
+.row .tx .s{display:block;font-size:13px;color:var(--ink-3);margin-top:2px;}
+.row .chev{color:var(--ink-4);flex:none;}
+.row .chev svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;}
+
+/* quick action grid */
+.qgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.qa{background:var(--paper);border:1px solid var(--line-soft);border-radius:var(--r-md);padding:16px;text-align:left;cursor:pointer;
+  display:flex;flex-direction:column;gap:12px;min-height:104px;justify-content:space-between;box-shadow:var(--shadow-card);transition:transform .12s;}
+.qa:active{transform:scale(.97);}
+.qa .qic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;}
+.qa .qic svg{width:21px;height:21px;fill:none;stroke-width:1.7;}
+.qa .ql{display:block;font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.2;}
+.qa .qs{display:block;font-size:12px;color:var(--ink-3);margin-top:2px;}
+
+/* section title */
+.sec-t{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 14px;}
+.sec-t h2{font-family:var(--serif);font-weight:400;font-size:22px;line-height:1.15;letter-spacing:-.01em;margin:0;color:var(--ink);}
+.sec-t a{font-size:13px;color:var(--terra);font-weight:600;text-decoration:none;}
+
+/* sub-screen header */
+.shead{position:sticky;top:0;z-index:30;background:rgba(250,246,238,.9);backdrop-filter:blur(14px);
+  padding:60px 24px 14px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line-soft);}
+.shead .back{width:38px;height:38px;border-radius:50%;background:var(--paper);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;}
+.shead .back svg{width:19px;height:19px;stroke:var(--ink);fill:none;stroke-width:2;}
+.shead h2{font-family:var(--serif);font-weight:400;font-size:23px;margin:0;letter-spacing:-.01em;}
+
+/* timeline */
+.tl{position:relative;padding-left:26px;}
+.tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:var(--line);}
+.tl-item{position:relative;padding:0 0 22px;}
+.tl-item::before{content:"";position:absolute;left:-23px;top:4px;width:14px;height:14px;border-radius:50%;background:var(--paper);border:2px solid var(--gold);}
+.tl-item.now::before{background:var(--terra);border-color:var(--terra);box-shadow:0 0 0 4px rgba(196,88,60,.16);}
+.tl-item .tt{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-4);text-transform:uppercase;}
+.tl-item .th{font-size:15px;font-weight:600;color:var(--ink);margin-top:3px;}
+.tl-item .ts{font-size:13px;color:var(--ink-3);margin-top:2px;line-height:1.45;}
+
+/* chat */
+.chat{display:flex;flex-direction:column;gap:14px;padding:20px 24px;}
+.msg{max-width:80%;padding:12px 15px;border-radius:18px;font-size:14.5px;line-height:1.45;}
+.msg.them{align-self:flex-start;background:var(--paper);border:1px solid var(--line-soft);border-bottom-left-radius:6px;color:var(--ink);}
+.msg.me{align-self:flex-end;background:var(--forest);color:#F4EFE6;border-bottom-right-radius:6px;}
+.msg .who{font-size:11px;color:var(--ink-4);margin:0 0 6px 4px;font-weight:600;}
+.msg.agent{border-color:rgba(196,88,60,.3);}
+.daystamp{align-self:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4);margin:4px 0;}
+.composer{position:absolute;left:0;right:0;bottom:0;padding:14px 18px calc(14px + env(safe-area-inset-bottom));background:rgba(250,246,238,.94);backdrop-filter:blur(14px);border-top:1px solid var(--line-soft);display:flex;gap:10px;align-items:center;}
+.composer input{flex:1;border:1px solid var(--line);background:var(--paper);border-radius:var(--r-pill);padding:13px 18px;font-size:15px;font-family:var(--sans);outline:none;color:var(--ink);}
+.composer .send{width:46px;height:46px;border-radius:50%;background:var(--terra);border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;}
+.composer .send svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;}
+
+/* check-in stepper */
+.steps{display:flex;gap:7px;margin:0 0 4px;}
+.steps .st{flex:1;height:4px;border-radius:2px;background:var(--line);}
+.steps .st.done{background:var(--terra);}
+.steps .st.curr{background:var(--terra-soft);}
+
+/* form */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:7px;}
+.field .inp{width:100%;border:1px solid var(--line);background:var(--paper);border-radius:var(--r-sm);padding:13px 14px;font-size:15px;font-family:var(--sans);color:var(--ink);outline:none;}
+.field .inp:focus{border-color:var(--terra);}
+
+/* service / menu cards */
+.svc{display:flex;gap:14px;align-items:center;padding:14px;background:var(--paper);border:1px solid var(--line-soft);border-radius:var(--r-md);box-shadow:var(--shadow-card);}
+.svc .thumb{width:64px;height:64px;border-radius:14px;flex:none;overflow:hidden;background:var(--cream);}
+.svc .info{flex:1;min-width:0;}
+.svc .info .n{font-size:15px;font-weight:600;color:var(--ink);}
+.svc .info .d{font-size:12.5px;color:var(--ink-3);margin-top:2px;line-height:1.4;}
+.svc .info .p{font-family:var(--mono);font-size:13px;color:var(--forest);margin-top:6px;font-weight:500;}
+.svc .add{width:34px;height:34px;border-radius:50%;background:var(--cream);border:1px solid var(--line);color:var(--forest);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;font-size:20px;line-height:1;}
+
+/* chips row */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:0 24px 2px;scrollbar-width:none;}
+.chips::-webkit-scrollbar{display:none;}
+.chip{flex:none;padding:9px 15px;border-radius:var(--r-pill);background:var(--paper);border:1px solid var(--line);font-size:13px;font-weight:500;color:var(--ink-2);cursor:pointer;white-space:nowrap;}
+.chip.on{background:var(--forest);color:#F4EFE6;border-color:var(--forest);}
+
+/* map */
+.map{position:relative;width:100%;height:230px;background:
+  linear-gradient(135deg,#E9EEE8 0%,#DCE6DC 100%);overflow:hidden;}
+.map .road{position:absolute;background:#fff;opacity:.8;}
+.map .pin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;}
+.map .pin .head{background:var(--terra);color:#fff;font-size:10px;font-weight:700;width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-card);}
+.map .pin .head span{transform:rotate(45deg);}
+.map .pin.gold .head{background:var(--gold);}
+.map .pin.forest .head{background:var(--forest);}
+
+/* emergency */
+.emerg .ecard{display:flex;align-items:center;gap:14px;padding:18px;border-radius:var(--r-md);border:1px solid var(--line-soft);background:var(--paper);box-shadow:var(--shadow-card);}
+.emerg .ecard .ei{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex:none;}
+.emerg .ecard .ei svg{width:24px;height:24px;fill:none;stroke-width:1.8;}
+.emerg .ecard .et{flex:1;}
+.emerg .ecard .et .n{font-size:15.5px;font-weight:600;}
+.emerg .ecard .et .s{font-size:13px;color:var(--ink-3);margin-top:2px;}
+.emerg .ecard .call{width:44px;height:44px;border-radius:50%;background:var(--ok);display:flex;align-items:center;justify-content:center;flex:none;}
+.emerg .ecard .call svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;}
+
+/* variant switch (host toolbar mimic) */
+.varswitch{display:inline-flex;background:rgba(20,32,28,.5);border:1px solid rgba(245,240,230,.18);border-radius:var(--r-pill);padding:4px;gap:2px;}
+.varswitch button{border:0;background:none;color:rgba(245,240,230,.6);font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:7px 14px;border-radius:var(--r-pill);cursor:pointer;}
+.varswitch button.on{background:var(--terra);color:#fff;}
+
+/* misc utility */
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}.mt20{margin-top:20px;}.mt24{margin-top:24px;}.mt32{margin-top:32px;}
+.gap10{display:flex;gap:10px;}
+.center{text-align:center;}
+.weather{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);font-weight:500;}
+.weather svg{width:18px;height:18px;stroke:var(--gold);fill:none;stroke-width:1.7;}
+
+/* ── toolbar (above frames) ─────────────────────────── */
+.gp-toolbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;justify-content:center;max-width:1500px;margin:0 auto 28px;}
+.gp-toolbar .device-label{margin:0;}
+
+/* ── desktop web frame ──────────────────────────────── */
+.webwin{width:980px;max-width:100%;height:840px;border-radius:16px;overflow:hidden;background:var(--sand);box-shadow:0 40px 110px rgba(0,0,0,.45);border:1px solid #2a281f;display:flex;flex-direction:column;}
+.webbar{height:42px;background:#1a1813;display:flex;align-items:center;padding:0 16px;gap:8px;flex:none;}
+.webbar .wd{width:11px;height:11px;border-radius:50%;}
+.webbar .weburl{margin-left:14px;background:#2a271f;border-radius:7px;height:24px;flex:1;max-width:440px;display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:11px;color:#9a9686;}
+.gp-web{flex:1;display:flex;flex-direction:column;background:var(--sand);min-height:0;}
+.gp-webtop{display:flex;align-items:center;gap:20px;padding:16px 30px;background:rgba(255,252,247,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft);flex:none;}
+.gp-webtop .vn{font-family:var(--serif);font-size:21px;letter-spacing:-.01em;color:var(--ink);}
+.gp-webtop .vn b{font-style:italic;color:var(--terra);font-weight:400;}
+.gp-webnav{display:flex;gap:3px;margin-left:auto;flex-wrap:wrap;}
+.webtab{border:0;background:none;font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-3);padding:9px 15px;border-radius:var(--r-pill);cursor:pointer;}
+.webtab:hover{color:var(--ink);}
+.webtab.on{background:var(--forest);color:#F4EFE6;}
+.webtab.sos-web{color:var(--danger);}
+.gp-web-col{flex:1;overflow-y:auto;min-height:0;scrollbar-width:thin;}
+.gp-web-col::-webkit-scrollbar{width:9px;}
+.gp-web-col::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px;border:3px solid var(--sand);}
+.gp-web-col .view{position:static;inset:auto;max-width:620px;margin:0 auto;padding:0 0 56px;display:block;}
+.gp-web-col .view .hero{border-radius:0 0 var(--r-hero) var(--r-hero);}
+/* reuse mobile screens inside the column, minus phone chrome */
+.gp-web .shead{position:relative;padding:26px 24px 14px;background:transparent;border-bottom:1px solid var(--line-soft);}
+.gp-web .shead .back{display:none;}
+.gp-web .composer{position:sticky;}
+.gp-web .chat{padding-bottom:20px;}
+/* services/explore floating cart sits inside column on desktop */
+.gp-web-col .view > div[style*="position:absolute"][style*="bottom:104px"]{position:sticky;bottom:18px;left:0;right:0;margin:0 24px;}
+
+</style>
+</head>
+<body>
+
+<div class="gp-toolbar">
+  <div class="device-label">Guest Stay Portal · <span style="opacity:.7">management.arconique.com/stay/demo</span></div>
+  <div class="varswitch" id="varswitch">
+    <button data-v="a" class="on">Главная · A</button>
+    <button data-v="b">Главная · B</button>
+  </div>
+  <div class="device-label">A — editorial · B — concierge-forward · <b style="color:rgba(245,240,230,.9)">один адаптивный экран</b></div>
+</div>
+
+<div class="stage">
+  <!-- MOBILE -->
+  <div class="device-wrap">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen" id="screen">
+        <div class="statusbar" id="statusbar">
+          <span>9:41</span>
+          <span class="dnd">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="2" width="3" height="7" rx="1"/><rect x="4.5" y="0" width="3" height="9" rx="1"/><rect x="9" y="3" width="3" height="6" rx="1" opacity=".4"/><rect x="13.5" y="5" width="3" height="4" rx="1" opacity=".4"/></svg>
+            <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="currentColor" stroke-opacity=".5"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="currentColor"/><rect x="22" y="4" width="1.5" height="4" rx=".75" fill="currentColor" fill-opacity=".5"/></svg>
+          </span>
+        </div>
+        <div id="views"></div>
+        <button class="sos" onclick="go('emergency')" title="Emergency">
+          <svg viewBox="0 0 24 24"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7l-9-5Z"/><path d="M12 8v5M12 16.5v.5"/></svg>
+        </button>
+        <nav class="tabbar" id="tabbar"></nav>
+      </div>
+    </div>
+    <div class="device-label">Mobile · <b id="curlabel">Stay</b> · 390px</div>
+  </div>
+
+  <!-- DESKTOP -->
+  <div class="device-wrap">
+    <div class="webwin">
+      <div class="webbar">
+        <span class="wd" style="background:#ED6A5E"></span><span class="wd" style="background:#F4BF4F"></span><span class="wd" style="background:#61C554"></span>
+        <span class="weburl">management.arconique.com/stay/demo</span>
+      </div>
+      <div class="gp-web">
+        <div class="gp-webtop">
+          <span class="vn">Villa <b>Tampu</b></span>
+          <nav class="gp-webnav" id="gp-web-nav"></nav>
+        </div>
+        <div class="gp-web-col" id="gp-web-content"></div>
+      </div>
+    </div>
+    <div class="device-label">Desktop · тот же экран, адаптивный</div>
+  </div>
+</div>
+
+<script id="gp-screens">
+/* ============================================================
+   Guest Stay Portal — screens, nav, interactions
+   ============================================================ */
+(function(){
+  const I = {
+    home:'<path d="M3 11 12 3l9 8"/><path d="M5 9.5V21h14V9.5"/>',
+    concierge:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/>',
+    services:'<path d="M3 7h18M3 12h18M3 17h18"/>',
+    explore:'<circle cx="12" cy="12" r="9"/><path d="m15 9-4 1.5L9.5 15 14 13.5Z"/>',
+    guide:'<path d="M4 5a2 2 0 0 1 2-2h11v17H6a2 2 0 0 0-2 2Z"/><path d="M17 3v17"/>',
+    chev:'<path d="m9 6 6 6-6 6"/>',
+    back:'<path d="m15 18-6-6 6-6"/>',
+    key:'<circle cx="8" cy="14" r="4"/><path d="m11 11 9-9M17 5l2 2M14 8l2 2"/>',
+    wifi:'<path d="M5 12.5a10 10 0 0 1 14 0M8 15.5a6 6 0 0 1 8 0"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/>',
+    car:'<path d="M5 16h14l-1.5-5.5A2 2 0 0 0 15.6 9H8.4a2 2 0 0 0-1.9 1.5L5 16Z"/><path d="M5 16v3M19 16v3"/><circle cx="8" cy="16" r="1.3"/><circle cx="16" cy="16" r="1.3"/>',
+    food:'<path d="M5 3v8a2 2 0 0 0 4 0V3M7 11v10M16 3c-1.5 0-2.5 2-2.5 5s1 4 2.5 4 2.5-1 2.5-4-1-5-2.5-5ZM16 16v5"/>',
+    spa:'<path d="M12 21c0-5 3-8 3-8M12 21c0-5-3-8-3-8M12 21V10M12 10c-2-2-2-5 0-7 2 2 2 5 0 7Z"/>',
+    bell:'<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+    cal:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
+    pin:'<path d="M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/>',
+    phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L20 13l-1 4a2 2 0 0 1-2 1.5A14 14 0 0 1 3.5 5 2 2 0 0 1 5 4Z"/>',
+    send:'<path d="m22 2-7 20-4-9-9-4Z"/>',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>',
+    doc:'<path d="M6 2h8l4 4v16H6Z"/><path d="M14 2v4h4M9 13h6M9 17h6"/>',
+    book:'<path d="M4 5a2 2 0 0 1 2-2h11v17H6a2 2 0 0 0-2 2Z"/><path d="M17 3v17"/>',
+    house:'<path d="M3 11 12 3l9 8M5 9.5V21h14V9.5"/>',
+    pool:'<path d="M3 18c1.5 0 1.5 1.5 3 1.5s1.5-1.5 3-1.5 1.5 1.5 3 1.5 1.5-1.5 3-1.5 1.5 1.5 3 1.5M7 14V5a2 2 0 0 1 4 0M7 9h4"/>',
+    plus:'+', check:'<path d="m5 13 4 4L19 7"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    shield:'<path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7Z"/><path d="m9 12 2 2 4-4"/>',
+    cross:'<path d="M12 5v14M5 12h14"/>',
+    leaf:'<path d="M11 20A7 7 0 0 1 4 13c0-6 6-9 16-9 0 10-3 16-9 16Z"/><path d="M4 20c2-4 5-6 9-7"/>',
+  };
+  const svg = (k,extra='') => `<svg viewBox="0 0 24 24" ${extra}>${I[k]||''}</svg>`;
+
+  // ---- villa hero (image-slot) ----
+  // hero — inline styled SVG (renders reliably for screenshots; swap for a real photo later)
+  const heroSlot = (id,h) => `<div class="hero-art" style="height:${h}px">${heroSVG(h)}</div>`;
+  function heroSVG(h){
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 402 ${h}" preserveAspectRatio="xMidYMid slice" style="display:block">
+      <defs><linearGradient id="g${h}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2C4A40"/><stop offset=".55" stop-color="#1F3A33"/><stop offset="1" stop-color="#102019"/></linearGradient>
+      <radialGradient id="sun${h}" cx="74%" cy="24%" r="42%"><stop offset="0" stop-color="#E7AE76" stop-opacity=".6"/><stop offset="1" stop-color="#E7AE76" stop-opacity="0"/></radialGradient></defs>
+      <rect width="402" height="${h}" fill="url(#g${h})"/>
+      <rect width="402" height="${h}" fill="url(#sun${h})"/>
+      <circle cx="298" cy="${h*0.22}" r="30" fill="#F0C893" opacity=".5"/>
+      <g opacity=".15" stroke="#DCC691" stroke-width="1.4" fill="none">
+      <path d="M0 ${h-92} Q100 ${h-122} 200 ${h-102} T402 ${h-110}"/><path d="M0 ${h-62} Q120 ${h-87} 240 ${h-70} T402 ${h-76}"/></g>
+      <g fill="#0C1A15" opacity=".5"><path d="M34 ${h} q22-82 2-134 q42 22 54 0 q-12 68 12 134Z"/>
+      <path d="M338 ${h} q-16-66 4-116 q36 20 42 0 q-6 60 10 116Z"/></g></svg>`;
+  }
+
+  // ===========================================================
+  //  HOME — VARIANT A (editorial calm)
+  // ===========================================================
+  const homeA = () => `
+  <div class="hero" style="margin-top:0">
+    ${heroSlot('villa-hero-a',420)}
+    <div class="hero-grad"></div>
+    <div style="position:absolute;left:24px;right:24px;bottom:54px;color:#F6F1E7;">
+      <div class="eyebrow" style="color:rgba(246,241,231,.75)">Добро пожаловать</div>
+      <h1 class="title" style="color:#fff;font-size:38px;margin-top:6px;">Villa Tampu</h1>
+      <div style="font-size:14.5px;opacity:.9;margin-top:6px;">Uluwatu, Bali · 3–10 июня</div>
+    </div>
+  </div>
+
+  <div class="pad" style="margin-top:-26px;position:relative;z-index:2;">
+    <div class="card card-pad" style="display:flex;align-items:center;gap:16px;">
+      <div>
+        <div class="eyebrow">До заезда</div>
+        <div style="font-family:var(--serif);font-size:30px;line-height:1;margin-top:4px;">2 дня</div>
+      </div>
+      <div style="width:1px;align-self:stretch;background:var(--line-soft);margin:0 2px;"></div>
+      <div style="flex:1;">
+        <div style="font-size:13.5px;color:var(--ink-2);font-weight:600;">Онлайн check-in открыт</div>
+        <div class="subtle" style="font-size:12.5px;margin-top:2px;">Заполните до приезда — отдадим ключ быстрее.</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block mt16" onclick="go('checkin')">Пройти check-in &nbsp;${svg('chev','width=16 height=16 stroke=#fff stroke-width=2.4')}</button>
+  </div>
+
+  <div class="pad mt32">
+    <div class="sec-t"><h2>Ваш сервис</h2></div>
+    <div class="card" style="padding:4px 20px;">
+      ${rowLink('concierge','concierge','Консьерж','Спросите что угодно — отвечаем 24/7')}
+      <hr class="divider"/>
+      ${rowLink('services','bell','Услуги и заказы','Завтрак, спа, трансфер, продукты')}
+      <hr class="divider"/>
+      ${rowLink('explore','pin','Рядом','Пляжи, рестораны, что посмотреть')}
+      <hr class="divider"/>
+      ${rowLink('guide','book','Гид по вилле','Wi-Fi, техника, правила дома')}
+    </div>
+  </div>
+
+  <div class="pad mt32">
+    <div class="sec-t"><h2>Ваше пребывание</h2></div>
+    <div class="card card-pad">
+      <div class="tl">
+        ${tlItem('3 июня · 15:00','Заезд','Вилла готова к 14:00. Менеджер встретит у ворот.',false)}
+        ${tlItem('4 июня · 09:00','Завтрак на террасе','Включён. Шеф уточнит меню накануне вечером.',false)}
+        ${tlItem('10 июня · 11:00','Выезд','Поздний выезд возможен по запросу.',false)}
+      </div>
+    </div>
+  </div>`;
+
+  // ===========================================================
+  //  HOME — VARIANT B (concierge-forward, plan of the day)
+  // ===========================================================
+  const homeB = () => `
+  <div class="pad" style="padding-top:64px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div>
+        <div class="eyebrow">Доброе утро, Sofia</div>
+        <h1 class="title mt8">Сегодня<br/>на вилле</h1>
+      </div>
+      <div class="weather card" style="flex-direction:column;align-items:center;gap:2px;padding:10px 14px;">
+        ${svg('sun')}<span style="font-family:var(--serif);font-size:19px;">29°</span>
+        <span style="font-size:10px;color:var(--ink-4)">Ясно</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad mt20">
+    <div class="card card-pad" style="background:var(--forest);border-color:var(--forest);color:#F4EFE6;">
+      <div class="eyebrow" style="color:rgba(244,239,230,.6)">Следующее</div>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:10px;">
+        <div style="width:46px;height:46px;border-radius:14px;background:rgba(220,198,145,.18);display:flex;align-items:center;justify-content:center;">${svg('spa','stroke=#DCC691 stroke-width=1.7')}</div>
+        <div style="flex:1;">
+          <div style="font-size:16px;font-weight:600;">Спа-процедура · 16:00</div>
+          <div style="font-size:13px;opacity:.8;margin-top:2px;">Балийский массаж · у бассейна</div>
+        </div>
+      </div>
+      <div class="gap10 mt16">
+        <button class="btn btn-block" style="background:rgba(244,239,230,.14);color:#F4EFE6;flex:1;padding:11px;font-size:13.5px;">Перенести</button>
+        <button class="btn btn-block" style="background:#DCC691;color:var(--forest-deep);flex:1;padding:11px;font-size:13.5px;">Детали</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pad mt24">
+    <div class="sec-t"><h2>Быстрые действия</h2></div>
+    <div class="qgrid">
+      ${qa('concierge','concierge','rgba(196,88,60,.1)','var(--terra)','Консьерж','Чат 24/7')}
+      ${qa('services','food','rgba(79,122,93,.12)','var(--ok)','Заказать','Еда и услуги')}
+      ${qa('checkin','key','rgba(188,154,92,.16)','#917339','Check-in','Готово на 60%')}
+      ${qa('explore','pin','rgba(61,90,122,.1)','var(--info)','Рядом','12 мест')}
+    </div>
+  </div>
+
+  <div class="pad mt24">
+    <div class="sec-t"><h2>План дня</h2></div>
+    <div class="card card-pad">
+      <div class="tl">
+        ${tlItem('09:00','Завтрак подан','Терраса у бассейна. Приятного аппетита.',false,true)}
+        ${tlItem('13:00','Уборка виллы','Хаускипинг зайдёт на ~40 минут.',false)}
+        ${tlItem('16:00','Спа у бассейна','Балийский массаж, 60 мин.',true)}
+        ${tlItem('19:30','Ужин — резерв','Single Fin, столик на 2. Трансфер в 19:00.',false)}
+      </div>
+    </div>
+  </div>
+
+  <div class="pad mt24">
+    <div class="card card-pad" style="display:flex;gap:14px;align-items:center;background:var(--cream);border-color:var(--line);">
+      <div style="width:40px;height:40px;border-radius:12px;background:var(--paper);display:flex;align-items:center;justify-content:center;flex:none;">${svg('concierge','stroke=var(--terra) stroke-width=1.7')}</div>
+      <div style="flex:1;font-size:13.5px;color:var(--ink-2);line-height:1.45;">Нужен трансфер в аэропорт на 10-е? Я организую.</div>
+      <button class="btn btn-primary" style="padding:9px 16px;font-size:13px;" onclick="go('concierge')">Да</button>
+    </div>
+  </div>`;
+
+  // ===========================================================
+  //  CHECK-IN
+  // ===========================================================
+  const checkin = () => sub('Онлайн check-in', `
+    <div class="pad mt20">
+      <div class="steps"><div class="st done"></div><div class="st done"></div><div class="st curr"></div><div class="st"></div></div>
+      <div class="eyebrow mt12">Шаг 3 из 4 · Гости и документы</div>
+      <h1 class="title mt8" style="font-size:27px;">Кто приезжает</h1>
+      <div class="subtle mt8">Данные нужны для регистрации по правилам Индонезии. Хранятся защищённо.</div>
+    </div>
+
+    <div class="pad mt24">
+      <div class="card card-pad">
+        <div class="field"><label>Имя гостя (как в паспорте)</label><input class="inp" value="Sofia Berg"/></div>
+        <div class="field"><label>Гражданство</label><input class="inp" value="Sweden"/></div>
+        <div class="gap10">
+          <div class="field" style="flex:1;margin-bottom:0;"><label>Паспорт №</label><input class="inp" placeholder="••• 4421"/></div>
+          <div class="field" style="flex:1;margin-bottom:0;"><label>Действителен до</label><input class="inp" placeholder="08 / 2029"/></div>
+        </div>
+      </div>
+
+      <div class="card card-pad mt16" style="display:flex;align-items:center;gap:14px;">
+        <div style="width:54px;height:54px;border-radius:14px;background:var(--cream);display:flex;align-items:center;justify-content:center;flex:none;">${svg('doc','stroke=var(--forest) stroke-width=1.6')}</div>
+        <div style="flex:1;">
+          <div style="font-size:14.5px;font-weight:600;">Скан паспорта</div>
+          <div class="subtle" style="font-size:12.5px;">Сфотографируйте страницу с фото</div>
+        </div>
+        <button class="btn btn-ghost" style="padding:10px 16px;font-size:13px;">Снять</button>
+      </div>
+
+      <div class="card card-pad mt16">
+        <div style="font-size:14.5px;font-weight:600;margin-bottom:4px;">Расчётное время прибытия</div>
+        <div class="chips" style="padding:0;margin-top:12px;">
+          <button class="chip">До 15:00</button>
+          <button class="chip on">15–17:00</button>
+          <button class="chip">17–20:00</button>
+          <button class="chip">Поздно</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pad mt24" style="padding-bottom:32px;">
+      <button class="btn btn-primary btn-block" onclick="toast('Сохранено · шаг 4: трансфер')">Продолжить</button>
+      <div class="center subtle mt12" style="font-size:12px;">Прогресс сохраняется автоматически</div>
+    </div>
+  `,true);
+
+  // ===========================================================
+  //  CONCIERGE (chat)
+  // ===========================================================
+  const concierge = () => `
+    <div class="shead"><button class="back" onclick="go(prev)">${svg('back')}</button>
+      <div style="flex:1;"><h2>Консьерж</h2><div style="font-size:12px;color:var(--ok);display:flex;align-items:center;gap:6px;margin-top:2px;"><span class="dot" style="background:var(--ok)"></span>Отвечаем в течение пары минут</div></div>
+    </div>
+    <div class="chat" style="padding-bottom:90px;">
+      <div class="daystamp">Сегодня</div>
+      <div class="msg them"><div class="who">Made · ваш консьерж</div>Доброе утро, Sofia! Завтрак подадим на террасе к 9:00. Если хотите что-то особенное — скажите 🌅</div>
+      <div class="msg me">Спасибо! Можно ужин на двоих сегодня вечером?</div>
+      <div class="msg them agent"><div class="who" style="color:var(--terra)">Помощник Arconique · авто</div>Конечно. Рядом есть отличные варианты с видом на закат. Вот что я бы порекомендовал:</div>
+      <div class="msg them" style="padding:8px;max-width:88%;">
+        <div class="svc" style="box-shadow:none;border:0;padding:6px;">
+          <div class="thumb" style="background:linear-gradient(135deg,#E08D72,#C4583C);"></div>
+          <div class="info"><div class="n">Single Fin</div><div class="d">Закат над океаном · 12 мин езды</div><div class="p">Резерв на 19:30</div></div>
+        </div>
+      </div>
+      <div class="msg me">Идеально, бронируйте на 19:30</div>
+      <div class="msg them"><div class="who">Made · ваш консьерж</div>Готово ✅ Столик у края на 19:30. Организовать трансфер к 19:00?</div>
+    </div>
+    <div class="composer">
+      <input placeholder="Сообщение консьержу…" onkeydown="if(event.key==='Enter')toast('Отправлено')"/>
+      <button class="send" onclick="toast('Отправлено')">${svg('send','stroke=#fff stroke-width=2')}</button>
+    </div>`;
+
+  // ===========================================================
+  //  SERVICES
+  // ===========================================================
+  const services = () => sub('Услуги и заказы', `
+    <div class="chips mt16">
+      <button class="chip on">Всё</button><button class="chip">Еда</button><button class="chip">Спа</button>
+      <button class="chip">Трансфер</button><button class="chip">Продукты</button><button class="chip">Уборка</button>
+    </div>
+    <div class="pad mt20" style="display:flex;flex-direction:column;gap:12px;">
+      ${svc('food','linear-gradient(135deg,#DCC691,#BC9A5C)','Завтрак на террасе','Континентальный или балийский','Включено')}
+      ${svc('spa','linear-gradient(135deg,#A7C3B6,#88A89A)','Спа на вилле','Массаж 60–90 мин · приедет терапевт','от 450K IDR')}
+      ${svc('car','linear-gradient(135deg,#9DB4CC,#3D5A7A)','Трансфер','Машина с водителем по запросу','от 250K IDR')}
+      ${svc('food','linear-gradient(135deg,#E08D72,#C4583C)','Частный шеф','Ужин из 4 блюд у вас на вилле','от 900K IDR')}
+      ${svc('house','linear-gradient(135deg,#C9D9C6,#88A89A)','Доп. уборка','Помимо ежедневной','350K IDR')}
+      ${svc('food','linear-gradient(135deg,#EBD89A,#DCC691)','Продукты','Заполним холодильник к приезду','по чеку')}
+    </div>
+    <div style="position:absolute;left:24px;right:24px;bottom:104px;">
+      <button class="btn btn-forest btn-block" style="box-shadow:var(--shadow-pop);" onclick="toast('Корзина · 1 услуга')">Корзина · 1 · оформить</button>
+    </div>
+  `);
+
+  // ===========================================================
+  //  GUIDE
+  // ===========================================================
+  const guide = () => sub('Гид по вилле', `
+    <div class="pad mt20">
+      <div class="card card-pad" style="background:linear-gradient(135deg,#23413A,#1F3A33);color:#F4EFE6;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:44px;height:44px;border-radius:13px;background:rgba(220,198,145,.18);display:flex;align-items:center;justify-content:center;">${svg('wifi','stroke=#DCC691 stroke-width=1.8')}</div>
+          <div style="flex:1;"><div class="eyebrow" style="color:rgba(244,239,230,.6)">Wi-Fi</div><div style="font-size:17px;font-weight:600;margin-top:2px;">VillaTampu_Guest</div></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:14px;border-top:1px solid rgba(244,239,230,.16);">
+          <div><div style="font-size:11px;opacity:.6;">Пароль</div><div style="font-family:var(--mono);font-size:16px;letter-spacing:1px;margin-top:2px;">tampu·sunset·24</div></div>
+          <button class="btn" style="background:rgba(244,239,230,.14);color:#F4EFE6;padding:9px 16px;font-size:13px;" onclick="toast('Скопировано')">Копировать</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pad mt24">
+      <div class="sec-t"><h2>В доме</h2></div>
+      <div class="card" style="padding:4px 20px;">
+        ${rowPlain('pool','Бассейн и джакузи','Подогрев · уборка по утрам')}
+        <hr class="divider"/>
+        ${rowPlain('house','Кондиционеры и свет','Управление со стены и с планшета')}
+        <hr class="divider"/>
+        ${rowPlain('food','Кухня','Кофемашина, посуда, всё необходимое')}
+        <hr class="divider"/>
+        ${rowPlain('bell','Вызов персонала','Кнопка у входа и в спальне')}
+      </div>
+    </div>
+
+    <div class="pad mt24">
+      <div class="sec-t"><h2>Правила дома</h2></div>
+      <div class="card card-pad">
+        ${ruleRow('Заезд с 15:00, выезд до 11:00')}
+        ${ruleRow('Без вечеринок и громкой музыки после 22:00')}
+        ${ruleRow('Курение только на открытых террасах')}
+        ${ruleRow('Уважение к местным традициям и храмам рядом',true)}
+      </div>
+    </div>
+  `);
+
+  // ===========================================================
+  //  REQUESTS
+  // ===========================================================
+  const requests = () => sub('Запросы', `
+    <div class="pad mt20">
+      <button class="btn btn-primary btn-block" onclick="toast('Новый запрос')">${svg('plus','width=18 height=18 stroke=#fff stroke-width=2.4')} &nbsp;Новый запрос</button>
+    </div>
+    <div class="pad mt24">
+      <div class="sec-t"><h2>Активные</h2></div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        ${reqCard('Дополнительные полотенца','Хаускипинг','В работе','pill-terra')}
+        ${reqCard('Поздний выезд 10 июня','Ресепшн','Подтверждаем','pill-gold')}
+      </div>
+    </div>
+    <div class="pad mt24">
+      <div class="sec-t"><h2>Выполнено</h2></div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        ${reqCard('Замена газового баллона BBQ','Техник','Готово','pill-ok',true)}
+        ${reqCard('Бутылка просекко к ужину','Консьерж','Готово','pill-ok',true)}
+      </div>
+    </div>
+  `);
+
+  // ===========================================================
+  //  EMERGENCY
+  // ===========================================================
+  const emergency = () => sub('Помощь и контакты', `
+    <div class="pad mt20 emerg">
+      <div class="card card-pad" style="background:rgba(177,65,50,.06);border-color:rgba(177,65,50,.2);">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:48px;height:48px;border-radius:14px;background:var(--danger);display:flex;align-items:center;justify-content:center;flex:none;">${svg('shield','stroke=#fff stroke-width=1.8')}</div>
+          <div style="flex:1;"><div style="font-size:16px;font-weight:700;color:var(--danger);">Экстренная связь</div><div class="subtle" style="font-size:13px;">Менеджер виллы на связи круглосуточно</div></div>
+        </div>
+        <button class="btn btn-block mt16" style="background:var(--danger);color:#fff;">${svg('phone','width=18 height=18 stroke=#fff stroke-width=2')} &nbsp;Позвонить менеджеру</button>
+      </div>
+    </div>
+    <div class="pad mt24 emerg" style="display:flex;flex-direction:column;gap:12px;">
+      ${emCard('phone','rgba(79,122,93,.12)','var(--ok)','Made · менеджер виллы','Говорит по-английски')}
+      ${emCard('shield','rgba(61,90,122,.1)','var(--info)','Полиция (Bali)','110')}
+      ${emCard('cross','rgba(177,65,50,.1)','var(--danger)','Скорая помощь','118 · 119')}
+      ${emCard('car','rgba(188,154,92,.16)','#917339','Водитель Wayan','По запросу через консьержа')}
+    </div>
+    <div class="pad mt24" style="padding-bottom:32px;">
+      <div class="card card-pad" style="display:flex;gap:12px;align-items:center;">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--cream);display:flex;align-items:center;justify-content:center;flex:none;">${svg('pin','stroke=var(--forest) stroke-width=1.7')}</div>
+        <div style="flex:1;"><div style="font-size:14px;font-weight:600;">Адрес виллы</div><div class="subtle" style="font-size:12.5px;">Jl. Pantai Suluban, Uluwatu · поделиться с водителем</div></div>
+        <button class="btn btn-ghost" style="padding:9px 14px;font-size:12.5px;" onclick="toast('Адрес скопирован')">Копи</button>
+      </div>
+    </div>
+  `);
+
+  // ===========================================================
+  //  EXPLORE / NEARBY (map)
+  // ===========================================================
+  const explore = () => `
+    <div class="shead"><button class="back" onclick="go(prev)">${svg('back')}</button><div style="flex:1;"><h2>Рядом</h2></div></div>
+    <div class="map">
+      <div class="road" style="left:0;top:120px;width:100%;height:10px;transform:rotate(-6deg)"></div>
+      <div class="road" style="left:140px;top:0;width:9px;height:100%;transform:rotate(8deg)"></div>
+      <div class="road" style="left:0;top:185px;width:100%;height:7px;transform:rotate(4deg)"></div>
+      <div class="pin gold" style="left:25%;top:62%;"><div class="head"><span>${''}</span></div></div>
+      <div class="pin" style="left:58%;top:42%;"><div class="head"><span></span></div></div>
+      <div class="pin forest" style="left:74%;top:70%;"><div class="head"><span></span></div></div>
+      <div class="pin" style="left:42%;top:78%;"><div class="head"><span></span></div></div>
+      <div style="position:absolute;left:16px;top:16px;" class="pill pill-cream">Uluwatu · 2 км вокруг</div>
+    </div>
+    <div class="chips mt16">
+      <button class="chip on">Всё</button><button class="chip">Пляжи</button><button class="chip">Еда</button><button class="chip">Закаты</button><button class="chip">Сёрф</button>
+    </div>
+    <div class="pad mt20" style="display:flex;flex-direction:column;gap:12px;">
+      ${place('linear-gradient(135deg,#E08D72,#C4583C)','Single Fin','Бар · закаты','12 мин','★ 4.7')}
+      ${place('linear-gradient(135deg,#9DB4CC,#3D5A7A)','Padang Padang Beach','Пляж · сёрф','8 мин','★ 4.8')}
+      ${place('linear-gradient(135deg,#DCC691,#BC9A5C)','Uluwatu Temple','Храм · танец кечак','15 мин','★ 4.9')}
+      ${place('linear-gradient(135deg,#C9D9C6,#88A89A)','Suluban Beach','Пляж в пещере','6 мин','★ 4.6')}
+    </div>
+  `;
+
+  // ---------- small builders ----------
+  function rowLink(view,ic,t,s){return `<button class="row" style="width:100%;border:0;background:none;text-align:left;cursor:pointer;" onclick="go('${view}')"><span class="ic">${svg(ic)}</span><span class="tx"><span class="t">${t}</span><span class="s">${s}</span></span><span class="chev">${svg('chev')}</span></button>`;}
+  function rowPlain(ic,t,s){return `<div class="row"><span class="ic">${svg(ic)}</span><span class="tx"><span class="t">${t}</span><span class="s">${s}</span></span><span class="chev">${svg('chev')}</span></div>`;}
+  function qa(view,ic,bg,col,l,s){return `<button class="qa" onclick="go('${view}')"><span class="qic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${I[ic]}</svg></span><span><span class="ql">${l}</span><span class="qs">${s}</span></span></button>`;}
+  function tlItem(time,h,s,now,done){return `<div class="tl-item ${now?'now':''}"><div class="tt">${time}</div><div class="th">${done?'✓ ':''}${h}</div><div class="ts">${s}</div></div>`;}
+  function svc(ic,grad,n,d,p){return `<div class="svc"><div class="thumb" style="background:${grad};display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" stroke="rgba(255,255,255,.9)" stroke-width="1.6" fill="none" width="26" height="26">${I[ic]}</svg></div><div class="info"><div class="n">${n}</div><div class="d">${d}</div><div class="p">${p}</div></div><button class="add" onclick="toast('Добавлено · ${n}')">+</button></div>`;}
+  function ruleRow(t,last){return `<div style="display:flex;gap:12px;align-items:flex-start;padding:11px 0;${last?'':'border-bottom:1px solid var(--line-soft);'}"><svg viewBox="0 0 24 24" stroke="var(--sage)" stroke-width="2" fill="none" width="19" height="19" style="flex:none;margin-top:1px;">${I.check}</svg><div style="font-size:14px;color:var(--ink-2);line-height:1.4;">${t}</div></div>`;}
+  function reqCard(t,who,st,cls,done){return `<div class="card card-pad" style="${done?'opacity:.72;':''}"><div style="display:flex;align-items:center;gap:10px;"><div style="flex:1;font-size:15px;font-weight:600;">${t}</div><span class="pill ${cls}">${st}</span></div><div class="subtle mt8" style="font-size:12.5px;display:flex;align-items:center;gap:6px;">${svg('clock','width=14 height=14 stroke=var(--ink-4) stroke-width=2')} ${who}</div></div>`;}
+  function emCard(ic,bg,col,n,s){return `<div class="ecard"><div class="ei" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${I[ic]}</svg></div><div class="et"><div class="n">${n}</div><div class="s">${s}</div></div><button class="call" onclick="toast('Звоним…')">${svg('phone','stroke=#fff stroke-width=2')}</button></div>`;}
+  function place(grad,n,cat,dist,rate){return `<div class="svc"><div class="thumb" style="background:${grad}"></div><div class="info"><div class="n">${n}</div><div class="d">${cat}</div><div class="p" style="color:var(--ink-3);display:flex;gap:10px;"><span>${svg('pin','width=13 height=13 stroke=var(--terra) stroke-width=2')} ${dist}</span><span style="color:var(--gold)">${rate}</span></div></div><button class="add" style="font-size:16px;" onclick="toast('Маршрут построен')">${svg('chev','width=16 height=16 stroke=var(--forest) stroke-width=2')}</button></div>`;}
+
+  // sub-screen wrapper (header + back)
+  function sub(title, inner, noTab){
+    return `<div class="shead"><button class="back" onclick="go(prev)">${svg('back')}</button><div style="flex:1;"><h2>${title}</h2></div></div>${inner}`;
+  }
+
+  // ===========================================================
+  //  NAV / RENDER
+  // ===========================================================
+  const TABS = [
+    {id:'home', label:'Stay', ic:'home'},
+    {id:'services', label:'Услуги', ic:'services'},
+    {id:'concierge', label:'Консьерж', ic:'concierge'},
+    {id:'explore', label:'Рядом', ic:'explore'},
+    {id:'guide', label:'Гид', ic:'guide'},
+  ];
+  const SCREENS = {
+    home:null, // special (variant)
+    checkin, concierge, services, guide, requests, emergency, explore,
+  };
+  const TAB_OF = {home:'home',services:'services',concierge:'concierge',explore:'explore',guide:'guide',
+    checkin:'home',requests:'home',emergency:'home'};
+  const LABELS = {home:'Stay',services:'Услуги',concierge:'Консьерж',explore:'Рядом',guide:'Гид',checkin:'Check-in',requests:'Запросы',emergency:'Помощь'};
+  const DARK_STATUS = {}; // none — all light screens
+
+  let homeVar = localStorage.getItem('gp_homevar') || 'a';
+  let cur = 'home';
+  window.prev = 'home';
+
+  const viewsEl = document.getElementById('views');
+  const tabbarEl = document.getElementById('tabbar');
+  const statusEl = document.getElementById('statusbar');
+  const labelEl = document.getElementById('curlabel');
+  const webContentEl = document.getElementById('gp-web-content');
+  const webNavEl = document.getElementById('gp-web-nav');
+
+  function renderTabs(){
+    if(!tabbarEl) return;
+    tabbarEl.innerHTML = TABS.map(t=>{
+      const on = TAB_OF[cur]===t.id;
+      return `<button class="tab ${on?'on':''}" onclick="go('${t.id}')"><svg viewBox="0 0 24 24">${I[t.ic]}</svg>${t.label}</button>`;
+    }).join('');
+  }
+  function renderWebNav(){
+    if(!webNavEl) return;
+    webNavEl.innerHTML = TABS.map(t=>{
+      const on = TAB_OF[cur]===t.id;
+      return `<button class="webtab ${on?'on':''}" onclick="go('${t.id}')">${t.label}</button>`;
+    }).join('') + `<button class="webtab sos-web" onclick="go('emergency')" title="Помощь">Помощь</button>`;
+  }
+
+  function content(view){
+    if(view==='home') return homeVar==='a'?homeA():homeB();
+    return (SCREENS[view]||homeA)();
+  }
+
+  window.go = function(view){
+    if(view!==cur){ window.prev = cur; }
+    cur = view;
+    const noTab = (view==='checkin');
+    // phone
+    if(viewsEl){
+      viewsEl.innerHTML = `<div class="view active ${noTab?'no-tabbar':''}" id="view-cur">${content(view)}</div>`;
+      const vc=document.getElementById('view-cur'); if(vc) vc.scrollTop = 0;
+      if(tabbarEl) tabbarEl.style.display = noTab ? 'none' : 'flex';
+      const sosBtn=document.querySelector('.sos'); if(sosBtn) sosBtn.style.display = (view==='emergency'||view==='concierge') ? 'none':'flex';
+      if(statusEl) statusEl.classList.toggle('on-dark', !!DARK_STATUS[view]);
+      if(labelEl) labelEl.textContent = LABELS[view]||'Stay';
+      renderTabs();
+    }
+    // desktop
+    if(webContentEl){
+      webContentEl.innerHTML = `<div class="view active">${content(view)}</div>`;
+      webContentEl.scrollTop = 0;
+      renderWebNav();
+    }
+  };
+
+  window.toast = function(msg){
+    document.querySelectorAll('.gp-toast').forEach(x=>x.remove());
+    let t = document.createElement('div');
+    t.className='gp-toast';
+    t.textContent = msg;
+    t.style.cssText='position:fixed;left:50%;bottom:40px;transform:translateX(-50%) translateY(8px);background:var(--forest);color:#F4EFE6;padding:12px 22px;border-radius:999px;font-size:14px;font-weight:500;z-index:300;box-shadow:var(--shadow-pop);opacity:0;transition:.25s;white-space:nowrap;max-width:90vw;';
+    document.body.appendChild(t);
+    requestAnimationFrame(()=>{t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';});
+    setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},1900);
+  };
+
+  // variant switch
+  document.getElementById('varswitch').addEventListener('click',e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    homeVar = b.dataset.v; localStorage.setItem('gp_homevar',homeVar);
+    document.querySelectorAll('#varswitch button').forEach(x=>x.classList.toggle('on',x.dataset.v===homeVar));
+    if(cur==='home') go('home');
+  });
+  document.querySelectorAll('#varswitch button').forEach(x=>x.classList.toggle('on',x.dataset.v===homeVar));
+
+  go('home');
+})();
+
+</script>
+</body>
+</html>

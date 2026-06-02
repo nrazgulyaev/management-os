@@ -20,6 +20,7 @@ import { runDirectBookingHoldExpiryJob } from "./direct-booking-hold-expiry-job"
 import { runDirectBookingDepositExpiryJob } from "./direct-booking-deposit-expiry-job";
 import { runOwnerBookingProjectionRebuildJob } from "./owner-booking-projection-rebuild-job";
 import { runStatementTransparencyRebuildJob } from "./statement-transparency-rebuild-job";
+import { runOwnerStatementAutoAckJob } from "./owner-statement-auto-ack-job";
 import {
   runDevOsBalanceAlert,
   runDevOsBalanceReconciliation,
@@ -270,6 +271,7 @@ export type JobKey =
   | "direct_booking_deposit_expiry"
   | "owner_booking_projection_rebuild"
   | "statement_transparency_rebuild"
+  | "owner_statement_auto_ack"
   | "dev_os_pricing_apply"
   | "dev_os_reservation_expiry"
   | "dev_os_milestone_pre_invoice"
@@ -453,6 +455,8 @@ export async function executeJob(
         return runOwnerBookingProjectionRebuildJob(handle);
       case "statement_transparency_rebuild":
         return runStatementTransparencyRebuildJob(handle);
+      case "owner_statement_auto_ack":
+        return runOwnerStatementAutoAckJob(handle);
       case "dev_os_pricing_apply":
         return runDevOsPricingApply(handle);
       case "dev_os_reservation_expiry":
@@ -670,6 +674,7 @@ export async function executeAllJobs(
     "direct_booking_deposit_expiry",
     "owner_booking_projection_rebuild",
     "statement_transparency_rebuild",
+    "owner_statement_auto_ack",
   ] as JobKey[]) {
     try {
       const { jobRunId, outcome } = await executeJob(jobKey, triggerType, createdBy);

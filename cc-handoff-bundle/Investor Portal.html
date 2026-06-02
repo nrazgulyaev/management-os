@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arconique · Investor Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style id="ip-css">
+/* ============================================================
+   Arconique · Investor Portal — Dev OS palette (engineering)
+   Investor-facing: calmer density, bigger numbers than internal Dev OS.
+   Desktop app shell, scaled-to-fit canvas.
+   ============================================================ */
+:root{
+  --bg:#F1ECE0; --bg-2:#F8F4EA; --bg-3:#FFFCF4; --panel:#FFFFFF;
+  --line:#E5DECC; --line-2:#D8CFB7; --line-3:#BAAF92; --line-soft:#ECE6D5;
+  --ink:#14130E; --ink-2:#3D3B33; --ink-3:#6E6B5E; --ink-4:#95917F;
+  --carbon:#14130E; --carbon-2:#22211B;
+  --amber:#FF6B35; --amber-soft:#FFB088; --amber-deep:#D8541F;
+  --steel:#3D5A7A; --steel-soft:#7E9DBF; --lime:#C9DC4A;
+  --ok:#4F8A5D; --warn:#C58A2E; --danger:#C2474E; --info:var(--steel);
+  --gold:#BC9A5C;
+  --r-xs:4px; --r-sm:8px; --r-md:10px; --r-card:14px; --r-card-lg:18px; --r-hero:22px; --r-pill:999px;
+  --disp:"Space Grotesk",system-ui,sans-serif; --sans:"Inter",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --shadow-card:0 1px 2px rgba(20,19,14,.04), 0 6px 22px rgba(20,19,14,.06);
+  --shadow-pop:0 12px 48px rgba(20,19,14,.18);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  background:#0E0D0A;min-height:100vh;font-family:var(--sans);color:var(--ink);
+  -webkit-font-smoothing:antialiased;display:flex;align-items:flex-start;justify-content:center;
+  padding:34px 24px;
+}
+.frame-wrap{display:flex;flex-direction:column;gap:16px;align-items:center;width:100%;}
+.toolbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;}
+.toolbar .tt{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:rgba(245,240,230,.5);}
+.toolbar .tt b{color:rgba(245,240,230,.9);font-weight:500;}
+.varswitch{display:inline-flex;background:rgba(40,38,30,.6);border:1px solid rgba(245,240,230,.16);border-radius:var(--r-pill);padding:4px;gap:2px;}
+.varswitch button{border:0;background:none;color:rgba(245,240,230,.6);font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:7px 14px;border-radius:var(--r-pill);cursor:pointer;}
+.varswitch button.on{background:var(--amber);color:#fff;}
+
+/* browser-ish window */
+.win{width:1320px;max-width:100%;border-radius:16px;overflow:hidden;background:var(--bg);box-shadow:0 40px 120px rgba(0,0,0,.5);border:1px solid #2a281f;}
+.winbar{height:42px;background:#1a1813;display:flex;align-items:center;padding:0 16px;gap:8px;}
+.winbar .dot{width:11px;height:11px;border-radius:50%;}
+.winbar .url{margin-left:14px;background:#2a271f;border-radius:7px;height:24px;flex:1;max-width:420px;display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:11px;color:#9a9686;}
+
+/* ── app shell ─────────────────────────────────────── */
+.app{display:grid;grid-template-columns:248px 1fr;height:840px;}
+.sidebar{background:var(--carbon);color:#E9E5D8;display:flex;flex-direction:column;padding:22px 0;}
+.brand{display:flex;align-items:center;gap:11px;padding:0 22px 22px;}
+.brand .mk{width:30px;height:30px;border-radius:8px;background:var(--amber);display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;color:#fff;font-size:16px;}
+.brand .nm{font-family:var(--disp);font-weight:500;font-size:16px;letter-spacing:-.01em;}
+.brand .nm span{color:var(--amber-soft);}
+.nav-g{padding:14px 14px 0;}
+.nav-g .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(233,229,216,.36);padding:0 10px 8px;}
+.nav-i{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;color:rgba(233,229,216,.7);cursor:pointer;font-size:13.5px;font-weight:500;border:0;background:none;width:100%;text-align:left;font-family:var(--sans);}
+.nav-i svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;}
+.nav-i:hover{background:rgba(233,229,216,.06);color:#fff;}
+.nav-i.on{background:rgba(255,107,53,.16);color:#fff;}
+.nav-i.on svg{stroke:var(--amber-soft);}
+.nav-i .badge-n{margin-left:auto;background:var(--amber);color:#fff;font-family:var(--mono);font-size:10px;font-weight:600;padding:1px 7px;border-radius:var(--r-pill);}
+.sidebar .foot{margin-top:auto;padding:14px 22px 0;border-top:1px solid rgba(233,229,216,.1);margin:14px 14px 0;}
+.sidebar .foot .who{display:flex;align-items:center;gap:10px;padding-top:14px;}
+.sidebar .foot .av{width:34px;height:34px;border-radius:9px;background:var(--steel);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:#fff;}
+.sidebar .foot .who .n{font-size:13px;font-weight:600;}
+.sidebar .foot .who .r{font-size:11px;color:rgba(233,229,216,.5);}
+
+/* ── content ───────────────────────────────────────── */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--bg);}
+.topbar{height:64px;display:flex;align-items:center;gap:16px;padding:0 30px;border-bottom:1px solid var(--line);background:var(--bg-2);flex:none;}
+.topbar h1{font-family:var(--disp);font-weight:500;font-size:21px;letter-spacing:-.01em;margin:0;}
+.proj-switch{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r-pill);padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-2);}
+.proj-switch svg{width:15px;height:15px;stroke:var(--ink-3);fill:none;stroke-width:2;}
+.proj-switch .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);}
+.tb-r{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+.icon-btn svg{width:18px;height:18px;stroke:var(--ink-2);fill:none;stroke-width:1.8;}
+.icon-btn .ping{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--amber);border:2px solid var(--panel);}
+
+.content{flex:1;overflow-y:auto;padding:28px 30px 44px;scrollbar-width:thin;}
+.content::-webkit-scrollbar{width:9px;}
+.content::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:5px;border:3px solid var(--bg);}
+
+.view{display:none;}
+.view.active{display:block;}
+
+/* ── primitives ────────────────────────────────────── */
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);}
+.page-h{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;}
+.page-h h2{font-family:var(--disp);font-weight:500;font-size:29px;letter-spacing:-.02em;margin:6px 0 0;}
+.page-h .sub{font-size:13.5px;color:var(--ink-3);margin-top:5px;}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card-lg);box-shadow:var(--shadow-card);}
+.card-pad{padding:22px;}
+.card-pad-lg{padding:28px;}
+.grid{display:grid;gap:16px;}
+.divider{height:1px;background:var(--line-soft);border:0;margin:0;}
+
+.btn{appearance:none;border:0;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:13.5px;border-radius:var(--r-sm);padding:11px 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:filter .12s,transform .12s;}
+.btn:active{transform:scale(.98);}
+.btn-amber{background:var(--amber);color:#fff;}
+.btn-carbon{background:var(--carbon);color:#F4EFE6;}
+.btn-ghost{background:var(--panel);color:var(--ink);border:1px solid var(--line-2);}
+.btn-sm{padding:8px 13px;font-size:12.5px;}
+
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card);padding:18px 20px;box-shadow:var(--shadow-card);}
+.kpi .l{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);}
+.kpi .v{font-family:var(--disp);font-size:32px;font-weight:500;letter-spacing:-.02em;margin-top:8px;line-height:1;font-variant-numeric:tabular-nums;}
+.kpi .d{font-size:12px;color:var(--ink-3);margin-top:8px;display:flex;align-items:center;gap:6px;}
+.kpi .d .up{color:var(--ok);font-weight:600;}
+.kpi .d .dn{color:var(--danger);font-weight:600;}
+.kpi.dark{background:var(--carbon);border-color:var(--carbon);color:#F4EFE6;}
+.kpi.dark .l{color:rgba(244,239,230,.5);}
+.kpi.dark .v{color:#fff;}
+.kpi.dark .d{color:rgba(244,239,230,.6);}
+.kpi.amber{background:linear-gradient(140deg,#FF7A47,#E8551F);border:0;color:#fff;}
+.kpi.amber .l,.kpi.amber .d{color:rgba(255,255,255,.8);}
+.kpi.amber .v{color:#fff;}
+
+.badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:var(--r-pill);font-weight:500;}
+.badge-ok{background:rgba(79,138,93,.12);color:var(--ok);}
+.badge-warn{background:rgba(197,138,46,.14);color:#9A6A1E;}
+.badge-danger{background:rgba(194,71,78,.12);color:var(--danger);}
+.badge-amber{background:rgba(255,107,53,.13);color:var(--amber-deep);}
+.badge-steel{background:rgba(61,90,122,.12);color:var(--steel);}
+.badge-ink{background:var(--bg);color:var(--ink-2);border:1px solid var(--line-2);}
+
+.sec-t{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 14px;}
+.sec-t h3{font-family:var(--disp);font-weight:500;font-size:17px;letter-spacing:-.01em;margin:0;}
+.sec-t a{font-size:12.5px;color:var(--amber-deep);font-weight:600;cursor:pointer;text-decoration:none;}
+
+/* table */
+table.data{width:100%;border-collapse:collapse;}
+table.data th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:0 16px 11px;border-bottom:1px solid var(--line);font-weight:500;}
+table.data td{padding:14px 16px;border-bottom:1px solid var(--line-soft);font-size:13.5px;color:var(--ink-2);}
+table.data tr:last-child td{border-bottom:0;}
+table.data td.num,table.data th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);}
+table.data tr.click{cursor:pointer;}
+table.data tr.click:hover td{background:var(--bg-3);}
+table.data .strong{font-weight:600;color:var(--ink);}
+
+/* progress */
+.prog{height:7px;border-radius:4px;background:var(--line-soft);overflow:hidden;}
+.prog .fill{height:100%;border-radius:4px;background:var(--amber);}
+.prog .fill.steel{background:var(--steel);}
+.prog .fill.ok{background:var(--ok);}
+
+/* project card */
+.pcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card-lg);box-shadow:var(--shadow-card);overflow:hidden;}
+.pcard .top{display:flex;gap:14px;padding:18px 20px;align-items:center;}
+.pcard .thumb{width:52px;height:52px;border-radius:12px;flex:none;}
+.pcard .meta{flex:1;min-width:0;}
+.pcard .meta .n{font-family:var(--disp);font-weight:500;font-size:16px;letter-spacing:-.01em;}
+.pcard .meta .loc{font-size:12px;color:var(--ink-3);margin-top:2px;}
+.pcard .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--line-soft);}
+.pcard .grid3 .c{padding:14px 20px;border-right:1px solid var(--line-soft);}
+.pcard .grid3 .c:last-child{border-right:0;}
+.pcard .grid3 .c .l{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);}
+.pcard .grid3 .c .v{font-family:var(--disp);font-size:19px;font-weight:500;margin-top:5px;font-variant-numeric:tabular-nums;}
+
+/* waterfall + charts */
+.chart{width:100%;}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;}
+.legend .li{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-2);}
+.legend .li .sw{width:11px;height:11px;border-radius:3px;}
+
+/* timeline / activity */
+.act{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--line-soft);}
+.act:last-child{border-bottom:0;}
+.act .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;}
+.act .ic svg{width:17px;height:17px;fill:none;stroke-width:1.8;}
+.act .tx{flex:1;min-width:0;}
+.act .tx .t{font-size:13.5px;font-weight:600;color:var(--ink);}
+.act .tx .s{font-size:12px;color:var(--ink-3);margin-top:2px;}
+.act .amt{font-family:var(--mono);font-size:13px;font-weight:500;text-align:right;font-variant-numeric:tabular-nums;}
+.act .amt.pos{color:var(--ok);}
+.act .amt.neg{color:var(--ink-2);}
+
+/* alert banner */
+.alert{display:flex;align-items:center;gap:15px;padding:18px 20px;border-radius:var(--r-card-lg);background:linear-gradient(135deg,#22211B,#14130E);color:#F4EFE6;box-shadow:var(--shadow-card);}
+.alert .ai{width:44px;height:44px;border-radius:12px;background:rgba(255,107,53,.2);display:flex;align-items:center;justify-content:center;flex:none;}
+.alert .ai svg{width:22px;height:22px;stroke:var(--amber-soft);fill:none;stroke-width:1.8;}
+.alert .at{flex:1;}
+.alert .at .t{font-family:var(--disp);font-weight:500;font-size:16px;}
+.alert .at .s{font-size:12.5px;opacity:.7;margin-top:3px;}
+
+/* doc rows */
+.doc{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line-soft);}
+.doc:last-child{border-bottom:0;}
+.doc .di{width:40px;height:48px;border-radius:7px;background:var(--bg);border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;flex:none;position:relative;}
+.doc .di svg{width:18px;height:18px;stroke:var(--ink-3);fill:none;stroke-width:1.7;}
+.doc .di .ext{position:absolute;bottom:4px;font-family:var(--mono);font-size:6.5px;font-weight:600;letter-spacing:.05em;color:var(--amber-deep);}
+.doc .info{flex:1;min-width:0;}
+.doc .info .n{font-size:13.5px;font-weight:600;color:var(--ink);}
+.doc .info .s{font-size:12px;color:var(--ink-3);margin-top:2px;}
+
+/* segmented */
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:3px;gap:2px;}
+.seg button{border:0;background:none;font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--ink-3);padding:7px 14px;border-radius:6px;cursor:pointer;}
+.seg button.on{background:var(--panel);color:var(--ink);box-shadow:var(--shadow-card);}
+
+.mt0{margin-top:0;}.mt8{margin-top:8px;}.mt14{margin-top:14px;}.mt20{margin-top:20px;}.mt28{margin-top:28px;}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.muted{color:var(--ink-3);font-size:13px;line-height:1.55;}
+.tnum{font-variant-numeric:tabular-nums;font-family:var(--mono);}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%) translateY(10px);background:var(--carbon);color:#F4EFE6;padding:12px 22px;border-radius:var(--r-pill);font-size:13.5px;font-weight:500;z-index:200;box-shadow:var(--shadow-pop);opacity:0;transition:.25s;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media(max-width:1360px){.win{width:100%;} .app{height:760px;}}
+
+/* ── mobile frame + stacking ────────────────────────── */
+.ip-phone{width:402px;height:830px;border-radius:54px;background:#0c0c0e;padding:13px;box-shadow:0 0 0 2px #2a2a2e, 0 30px 80px rgba(0,0,0,.5);position:relative;flex:none;}
+.ip-notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:120px;height:30px;background:#0c0c0e;border-radius:18px;z-index:45;}
+.ip-mscreen{position:relative;width:100%;height:100%;border-radius:42px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;}
+.ip-mstatus{height:50px;display:flex;align-items:center;justify-content:space-between;padding:16px 28px 0;font-size:14px;font-weight:600;color:var(--ink);flex:none;}
+.ip-mtop{display:flex;align-items:center;gap:10px;padding:6px 18px 14px;border-bottom:1px solid var(--line);flex:none;}
+.ip-mtop .ip-mbrand .mk{width:30px;height:30px;border-radius:8px;background:var(--amber);display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;color:#fff;font-size:15px;}
+.ip-mtop h1{font-family:var(--disp);font-weight:500;font-size:18px;letter-spacing:-.01em;margin:0;}
+.ip-mcontent{flex:1;overflow-y:auto;padding:20px 18px 100px;scrollbar-width:none;}
+.ip-mcontent::-webkit-scrollbar{display:none;}
+.ip-mtabbar{position:absolute;left:0;right:0;bottom:0;height:84px;background:rgba(248,244,234,.92);backdrop-filter:blur(18px);border-top:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-around;padding:11px 6px 0;}
+.iptab{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;color:var(--ink-4);font-family:var(--sans);font-size:10px;font-weight:500;cursor:pointer;flex:1;padding:0;}
+.iptab svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.8;}
+.iptab.on{color:var(--amber-deep);}
+.iptab.on svg{stroke:var(--amber-deep);}
+
+/* stack all multi-col grids on mobile */
+.ipm .grid{grid-template-columns:1fr !important;gap:12px !important;}
+.ipm .page-h{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:18px;}
+.ipm .page-h h2{font-size:25px;}
+.ipm .kpi .v,.ipm .kpiDark{font-size:27px;}
+.ipm .kpi .v{font-size:27px;}
+.ipm .seg{flex-wrap:wrap;}
+.ipm .card-pad,.ipm .card-pad-lg{padding:18px;}
+.ipm .pcard .grid3{grid-template-columns:repeat(3,1fr) !important;}
+.ipm table.data{font-size:12.5px;}
+.ipm table.data th,.ipm table.data td{padding:11px 10px;}
+.ipm .alert{flex-wrap:wrap;}
+.ipm .alert .btn{flex:1;}
+.ipm .chart{max-width:100%;}
+.ipm .sec-t h3{font-size:16px;}
+
+</style>
+</head>
+<body>
+<div class="frame-wrap">
+  <div class="toolbar">
+    <div class="tt">Investor Portal · <b>Arconique Capital</b> · investor.arconique.com</div>
+    <div class="varswitch" id="ip-varswitch">
+      <button data-v="a" class="on">Сводка · A</button>
+      <button data-v="b">Сводка · B</button>
+    </div>
+  </div>
+
+  <div class="win">
+    <div class="winbar">
+      <span class="dot" style="background:#ED6A5E"></span><span class="dot" style="background:#F4BF4F"></span><span class="dot" style="background:#61C554"></span>
+      <span class="url">investor.arconique.com/portfolio</span>
+    </div>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand"><span class="mk">A</span><span class="nm">Arconique<span> Capital</span></span></div>
+        <div id="ip-sidebar" style="flex:1;overflow-y:auto;"></div>
+        <div class="foot">
+          <div class="who"><span class="av">HL</span><div><div class="n">Henrik Lund</div><div class="r">LP · 3 проекта</div></div></div>
+        </div>
+      </aside>
+      <main class="main">
+        <header class="topbar">
+          <h1 id="ip-h1">Сводка</h1>
+          <button class="proj-switch" onclick="toast('Переключатель проектов')"><span class="dot"></span>Все проекты · 3<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button>
+          <div class="tb-r">
+            <button class="icon-btn" onclick="toast('Уведомления')"><span class="ping"></span><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
+            <button class="icon-btn" onclick="toast('Помощь IR')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 .9-1 1.7M12 16v.5"/></svg></button>
+          </div>
+        </header>
+        <div class="content" id="ip-content"></div>
+      </main>
+    </div>
+  </div>
+
+  <div class="tt" style="opacity:.6;">A — portfolio command (KPI + waterfall) · B — per-project narrative · 7 разделов кликабельны</div>
+
+  <!-- MOBILE -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:8px;">
+    <div class="ip-phone">
+      <div class="ip-notch"></div>
+      <div class="ip-mscreen ipm">
+        <div class="ip-mstatus"><span>9:41</span><span style="display:flex;gap:5px;align-items:center;"><svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="2" width="3" height="7" rx="1"/><rect x="4.5" y="0" width="3" height="9" rx="1"/><rect x="9" y="3" width="3" height="6" rx="1" opacity=".4"/><rect x="13.5" y="5" width="3" height="4" rx="1" opacity=".4"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="currentColor" stroke-opacity=".5"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="currentColor"/></svg></span></div>
+        <div class="ip-mtop">
+          <span class="ip-mbrand"><span class="mk">A</span></span>
+          <h1 id="ip-m-title">Сводка</h1>
+          <span style="margin-left:auto;display:flex;gap:8px;">
+            <button class="proj-switch" style="padding:6px 10px;font-size:11px;" onclick="toast('Все проекты · 3')"><span class="dot"></span>3</button>
+            <button class="icon-btn" style="width:32px;height:32px;" onclick="toast('Уведомления')"><span class="ping"></span><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
+          </span>
+        </div>
+        <div class="ip-mcontent" id="ip-m-content"></div>
+        <nav class="ip-mtabbar" id="ip-m-tabbar"></nav>
+      </div>
+    </div>
+    <div class="tt" style="opacity:.6;">Mobile · тот же портал · 390px · вариант A</div>
+  </div>
+</div>
+
+<script id="ip-screens">
+/* ============================================================
+   Investor Portal — screens, nav, charts
+   ============================================================ */
+(function(){
+  const I = {
+    grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    call:'<path d="M12 3v18M5 8l7-5 7 5"/><path d="M5 14l7 5 7-5" opacity=".5"/>',
+    dist:'<path d="M12 21V3M5 10l7-7 7 7"/>',
+    commit:'<path d="M9 11l3 3 8-8"/><path d="M21 12a9 9 0 1 1-6.2-8.5"/>',
+    forecast:'<path d="M3 17l5-5 4 4 8-9"/><path d="M3 21h18"/>',
+    doc:'<path d="M6 2h8l4 4v16H6Z"/><path d="M14 2v4h4M9 13h6M9 17h4"/>',
+    wallet:'<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 14h2"/>',
+    bell:'<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+    chev:'<path d="m9 6 6 6-6 6"/>',
+    down:'<path d="m6 9 6 6 6-6"/>',
+    dl:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>',
+    arrowUp:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+    arrowDn:'<path d="M12 5v14M5 12l7 7 7-7"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    pin:'<path d="M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/>',
+    check:'<path d="m5 13 4 4L19 7"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>',
+    shield:'<path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7Z"/>',
+    file:'<path d="M6 2h8l4 4v16H6Z"/><path d="M14 2v4h4"/>',
+  };
+  const svg=(k,e='')=>`<svg viewBox="0 0 24 24" ${e}>${I[k]||''}</svg>`;
+  const fmt=n=>'$'+n.toLocaleString('en-US');
+  const PROJECTS=[
+    {n:'Tampu Residences',loc:'Uluwatu, Bali',grad:'linear-gradient(135deg,#FF8A5B,#E8551F)',committed:1200000,called:996000,value:1430000,irr:21.2,moic:1.52,prog:83,status:'Construction',sb:'badge-amber'},
+    {n:'Subak Villas',loc:'Ubud, Bali',grad:'linear-gradient(135deg,#7E9DBF,#3D5A7A)',committed:800000,called:610000,value:880000,irr:16.8,moic:1.41,prog:62,status:'Pre-sales',sb:'badge-steel'},
+    {n:'Cliff House',loc:'Bingin, Bali',grad:'linear-gradient(135deg,#C9DC4A,#8FA22F)',committed:400000,called:254000,value:402000,irr:14.1,moic:1.33,prog:38,status:'Permitting',sb:'badge-warn'},
+  ];
+  const T={committed:2400000,called:1860000,distributed:920000,value:2712000,irr:18.4,moic:1.45,dpi:0.49};
+
+  // ===========================================================
+  //  OVERVIEW A — portfolio command
+  // ===========================================================
+  const overviewA = () => `
+    <div class="page-h">
+      <div><div class="eyebrow">Портфель · 3 проекта</div><h2>Сводка инвестора</h2>
+        <div class="sub">Henrik Lund Capital · по состоянию на 31 мая 2026</div></div>
+      <div class="seg"><button class="on">Портфель</button><button onclick="toast('Фильтр: 2026')">2026</button><button onclick="toast('Фильтр: с начала')">С начала</button></div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:repeat(5,1fr);">
+      ${kpi('Committed','$2.40M','Обязательство по 3 проектам','')}
+      ${kpi('Called','$1.86M','<span class="up">77.5%</span> задействовано','')}
+      ${kpi('Distributed','$0.92M','DPI 0.49×','')}
+      ${kpiAmber('Net IRR','18.4%','MOIC 1.45×')}
+      ${kpi('Current NAV','$2.71M','<span class="up">▲ 6.2%</span> кв/кв','')}
+    </div>
+
+    <div class="grid mt20" style="grid-template-columns:1.5fr 1fr;align-items:start;">
+      <div class="card card-pad">
+        <div class="sec-t"><h3>Распределения · waterfall</h3><a onclick="go('distributions')">Все выплаты →</a></div>
+        ${waterfall()}
+        <div class="legend">
+          <div class="li"><span class="sw" style="background:var(--steel)"></span>Возврат капитала</div>
+          <div class="li"><span class="sw" style="background:var(--amber)"></span>Pref 8%</div>
+          <div class="li"><span class="sw" style="background:var(--lime)"></span>Profit split</div>
+          <div class="li"><span class="sw" style="background:var(--ink-4)"></span>Carry 20%</div>
+        </div>
+      </div>
+      <div class="card card-pad">
+        <div class="sec-t"><h3>Развёртывание капитала</h3></div>
+        ${deployRow('Tampu Residences',83,'var(--amber)')}
+        ${deployRow('Subak Villas',62,'var(--steel)')}
+        ${deployRow('Cliff House',38,'var(--lime)')}
+        <hr class="divider mt20"/>
+        <div class="row-between mt20"><span class="muted">Незадействовано (dry powder)</span><span class="tnum strong">$540,000</span></div>
+      </div>
+    </div>
+
+    <div class="alert mt20">
+      <div class="ai">${svg('call','stroke=var(--amber-soft) stroke-width=1.8')}</div>
+      <div class="at"><div class="t">Capital call #4 · Cliff House</div><div class="s">$86,000 к оплате до 12 июня 2026 · pro-rata 21.5%</div></div>
+      <button class="btn" style="background:var(--amber);color:#fff;" onclick="go('calls')">Оплатить</button>
+      <button class="btn btn-ghost" onclick="go('calls')">Детали</button>
+    </div>
+
+    <div class="grid mt20" style="grid-template-columns:1fr 1fr;align-items:start;">
+      <div class="card card-pad">
+        <div class="sec-t"><h3>Недавняя активность</h3><a onclick="go('wallet')">Кошелёк →</a></div>
+        ${act('dist','rgba(79,138,93,.12)','var(--ok)','Распределение · Tampu','Возврат капитала · Q1','+ $124,000','pos')}
+        ${act('call','rgba(255,107,53,.12)','var(--amber-deep)','Capital call #3 · Subak','Оплачено 04 апр','− $95,000','neg')}
+        ${act('doc','rgba(61,90,122,.1)','var(--steel)','Отчёт Q1 2026','Опубликован','','')}
+        ${act('commit','rgba(79,138,93,.12)','var(--ok)','Договор подписан · Cliff','Subscription agreement','','')}
+      </div>
+      <div class="card card-pad">
+        <div class="sec-t"><h3>Прогноз доходности</h3><a onclick="go('forecasts')">Сценарии →</a></div>
+        ${irrCurve()}
+        <div class="row-between mt14"><span class="muted">Прогноз Net IRR на выходе</span><span class="badge badge-ok">базовый 19.6%</span></div>
+      </div>
+    </div>`;
+
+  // ===========================================================
+  //  OVERVIEW B — per-project narrative
+  // ===========================================================
+  const overviewB = () => `
+    <div class="page-h">
+      <div><div class="eyebrow">Портфель · 3 проекта</div><h2>Мои проекты</h2>
+        <div class="sub">Henrik Lund Capital · обзор по объектам</div></div>
+      <button class="btn btn-ghost" onclick="toast('Экспорт PDF')">${svg('dl','width=15 height=15 stroke=currentColor stroke-width=2')} Экспорт</button>
+    </div>
+
+    <div class="card card-pad" style="background:var(--carbon);border-color:var(--carbon);color:#F4EFE6;">
+      <div class="grid" style="grid-template-columns:repeat(4,1fr);">
+        ${kpiDark('Committed','$2.40M')}
+        ${kpiDark('Current NAV','$2.71M')}
+        ${kpiDark('Net IRR','18.4%')}
+        ${kpiDark('MOIC','1.45×')}
+      </div>
+    </div>
+
+    <div class="grid mt20" style="grid-template-columns:1fr;gap:16px;">
+      ${PROJECTS.map(projectCard).join('')}
+    </div>`;
+
+  function projectCard(p){
+    return `<div class="pcard">
+      <div class="top">
+        <div class="thumb" style="background:${p.grad}"></div>
+        <div class="meta"><div class="n">${p.n}</div><div class="loc">${svg('pin','width=12 height=12 stroke=var(--ink-4) stroke-width=2 style=vertical-align:-1px')} ${p.loc}</div></div>
+        <span class="badge ${p.sb}">${p.status}</span>
+        <button class="btn btn-ghost btn-sm" onclick="toast('Открыть ${p.n}')">Открыть</button>
+      </div>
+      <div style="padding:0 20px 16px;">
+        <div class="row-between" style="margin-bottom:7px;"><span class="muted" style="font-size:12px;">Развёрнуто ${p.prog}%</span><span class="tnum" style="font-size:12px;color:var(--ink-3)">${fmt(p.called)} / ${fmt(p.committed)}</span></div>
+        <div class="prog"><div class="fill" style="width:${p.prog}%;background:${p.grad}"></div></div>
+      </div>
+      <div class="grid3">
+        <div class="c"><div class="l">Committed</div><div class="v tnum">${fmt(p.committed)}</div></div>
+        <div class="c"><div class="l">Current value</div><div class="v tnum">${fmt(p.value)}</div></div>
+        <div class="c"><div class="l">Net IRR · MOIC</div><div class="v tnum">${p.irr}% · ${p.moic}×</div></div>
+      </div>
+    </div>`;
+  }
+
+  // ===========================================================
+  //  CAPITAL CALLS
+  // ===========================================================
+  const calls = () => `
+    <div class="page-h"><div><div class="eyebrow">Capital calls</div><h2>Запросы на капитал</h2>
+      <div class="sub">Pro-rata по вашей доле в каждом проекте</div></div></div>
+
+    <div class="alert" style="margin-bottom:20px;">
+      <div class="ai">${svg('clock','stroke=var(--amber-soft) stroke-width=1.8')}</div>
+      <div class="at"><div class="t">К оплате: $86,000</div><div class="s">Capital call #4 · Cliff House · срок 12 июня 2026</div></div>
+      <button class="btn" style="background:var(--amber);color:#fff;" onclick="toast('Открыта оплата')">Оплатить сейчас</button>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1.4fr 1fr;align-items:start;">
+      <div class="card" style="overflow:hidden;">
+        <div class="card-pad" style="padding-bottom:6px;"><div class="sec-t" style="margin:0;"><h3>История запросов</h3></div></div>
+        <table class="data">
+          <thead><tr><th>Call</th><th>Проект</th><th class="num">Сумма</th><th>Срок</th><th>Статус</th></tr></thead>
+          <tbody>
+            ${callRow('#4','Cliff House','$86,000','12 июн','badge-amber','К оплате')}
+            ${callRow('#3','Subak Villas','$95,000','04 апр','badge-ok','Оплачено')}
+            ${callRow('#3','Tampu Residences','$140,000','12 мар','badge-ok','Оплачено')}
+            ${callRow('#2','Subak Villas','$120,000','18 янв','badge-ok','Оплачено')}
+            ${callRow('#2','Tampu Residences','$180,000','06 дек','badge-ok','Оплачено')}
+            ${callRow('#1','Tampu Residences','$320,000','22 авг','badge-ok','Оплачено')}
+          </tbody>
+        </table>
+      </div>
+      <div class="card card-pad">
+        <div class="sec-t"><h3>Call #4 · разбивка</h3><span class="badge badge-amber">К оплате</span></div>
+        <div class="muted" style="margin-bottom:16px;">Cliff House · фаза «Permitting → Foundation». Запрос покрывает разрешения и земляные работы.</div>
+        ${brk('Ваше обязательство','$400,000')}
+        ${brk('Уже задействовано','$254,000')}
+        ${brk('Доля в проекте (pro-rata)','21.5%')}
+        <hr class="divider" style="margin:14px 0;"/>
+        ${brk('Запрос #4','$86,000',true)}
+        <div class="row-between mt14"><span class="muted" style="font-size:12px;">Останется незадействовано</span><span class="tnum" style="font-size:12px;">$60,000</span></div>
+        <button class="btn btn-amber mt20" style="width:100%;" onclick="toast('Перевод по реквизитам')">Оплатить $86,000</button>
+        <button class="btn btn-ghost mt8" style="width:100%;" onclick="toast('Реквизиты скачаны')">Скачать реквизиты (PDF)</button>
+      </div>
+    </div>`;
+
+  function callRow(c,proj,amt,due,bcls,st){return `<tr class="click" onclick="toast('Call ${c} · ${proj}')"><td class="strong">${c}</td><td>${proj}</td><td class="num strong">${amt}</td><td>${due}</td><td><span class="badge ${bcls}">${st}</span></td></tr>`;}
+  function brk(l,v,strong){return `<div class="row-between" style="padding:7px 0;"><span class="muted" style="font-size:13px;">${l}</span><span class="tnum ${strong?'strong':''}" style="font-size:${strong?'17px':'13px'};${strong?'color:var(--amber-deep)':''}">${v}</span></div>`;}
+
+  // ===========================================================
+  //  DISTRIBUTIONS
+  // ===========================================================
+  const distributions = () => `
+    <div class="page-h"><div><div class="eyebrow">Distributions</div><h2>Выплаты</h2>
+      <div class="sub">Возврат капитала, преференция и распределение прибыли</div></div>
+      <div class="seg"><button class="on">Waterfall</button><button onclick="toast('Вид: история')">История</button></div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+      ${kpi('Distributed · всего','$920,000','с начала','')}
+      ${kpi('Возврат капитала','$640,000','69.6%','')}
+      ${kpi('Pref 8%','$210,000','начислено','')}
+      ${kpi('Profit split','$70,000','после hurdle','')}
+    </div>
+
+    <div class="grid" style="grid-template-columns:1.4fr 1fr;align-items:start;">
+      <div class="card card-pad">
+        <div class="sec-t"><h3>Distribution waterfall</h3><span class="badge badge-ink">Tampu · Q1 2026</span></div>
+        ${waterfall(true)}
+        <div class="legend">
+          <div class="li"><span class="sw" style="background:var(--steel)"></span>Возврат капитала</div>
+          <div class="li"><span class="sw" style="background:var(--amber)"></span>Pref 8%</div>
+          <div class="li"><span class="sw" style="background:var(--lime)"></span>Profit split</div>
+          <div class="li"><span class="sw" style="background:var(--ink-4)"></span>Carry 20% (GP)</div>
+        </div>
+      </div>
+      <div class="card" style="overflow:hidden;">
+        <div class="card-pad" style="padding-bottom:6px;"><div class="sec-t" style="margin:0;"><h3>История выплат</h3></div></div>
+        <table class="data">
+          <thead><tr><th>Дата</th><th>Проект</th><th>Тип</th><th class="num">Сумма</th></tr></thead>
+          <tbody>
+            ${distRow('Q1 2026','Tampu','Возврат кап.','$124,000')}
+            ${distRow('Q4 2025','Tampu','Pref','$58,000')}
+            ${distRow('Q4 2025','Subak','Возврат кап.','$96,000')}
+            ${distRow('Q3 2025','Tampu','Возврат кап.','$140,000')}
+            ${distRow('Q2 2025','Tampu','Pref','$42,000')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card card-pad mt20 row-between">
+      <div><div class="sec-t" style="margin:0;"><h3>Следующая выплата</h3></div>
+        <div class="muted mt8">Tampu Residences · ориентировочно Q3 2026 после сдачи фазы 2.</div></div>
+      <div class="tnum strong" style="font-size:24px;font-family:var(--disp);">≈ $150,000</div>
+    </div>`;
+
+  function distRow(d,proj,t,amt){return `<tr class="click" onclick="toast('${proj} · ${d}')"><td class="strong">${d}</td><td>${proj}</td><td>${t}</td><td class="num strong" style="color:var(--ok)">${amt}</td></tr>`;}
+
+  // ===========================================================
+  //  COMMITMENTS
+  // ===========================================================
+  const commitments = () => `
+    <div class="page-h"><div><div class="eyebrow">Commitments</div><h2>Обязательства</h2>
+      <div class="sub">Подписанные обязательства по проектам и остаток к вызову</div></div></div>
+
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+      ${kpi('Всего committed','$2.40M','3 проекта','')}
+      ${kpi('Вызвано','$1.86M','77.5%','')}
+      ${kpi('Остаток к вызову','$540K','dry powder','')}
+    </div>
+
+    <div class="card" style="overflow:hidden;">
+      <table class="data">
+        <thead><tr><th>Проект</th><th>Подписано</th><th class="num">Committed</th><th class="num">Called</th><th class="num">Остаток</th><th>Договор</th></tr></thead>
+        <tbody>
+          ${commRow('Tampu Residences','12 авг 2024','$1,200,000','$996,000','$204,000')}
+          ${commRow('Subak Villas','03 ноя 2024','$800,000','$610,000','$190,000')}
+          ${commRow('Cliff House','22 мар 2025','$400,000','$254,000','$146,000')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card card-pad mt20">
+      <div class="sec-t"><h3>Структура участия</h3></div>
+      <div class="muted">Участие оформлено через SPV по каждому проекту. Доли: Tampu 18.0% · Subak 14.5% · Cliff 21.5%. Преференция 8%, GP carry 20% после возврата капитала и hurdle.</div>
+      <div class="grid mt20" style="grid-template-columns:repeat(3,1fr);">
+        ${miniStat('Tampu SPV','18.0%')}${miniStat('Subak SPV','14.5%')}${miniStat('Cliff SPV','21.5%')}
+      </div>
+    </div>`;
+
+  function commRow(p,signed,c,called,rem){return `<tr class="click" onclick="toast('${p}')"><td class="strong">${p}</td><td>${signed}</td><td class="num">${c}</td><td class="num">${called}</td><td class="num strong">${rem}</td><td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();go('documents')">${svg('file','width=13 height=13 stroke=currentColor stroke-width=2')} Открыть</button></td></tr>`;}
+  function miniStat(l,v){return `<div style="padding:14px 16px;background:var(--bg);border-radius:var(--r-md);border:1px solid var(--line-soft);"><div class="l" style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4)">${l}</div><div style="font-family:var(--disp);font-size:22px;font-weight:500;margin-top:6px;" class="tnum">${v}</div></div>`;}
+
+  // ===========================================================
+  //  FORECASTS
+  // ===========================================================
+  const forecasts = () => `
+    <div class="page-h"><div><div class="eyebrow">Forecasts</div><h2>Прогноз доходности</h2>
+      <div class="sub">XIRR по сценариям · горизонт выхода 2027–2028</div></div>
+      <div class="seg"><button class="on" onclick="toast('Базовый')">Базовый</button><button onclick="toast('Оптимистичный')">Upside</button><button onclick="toast('Пессимистичный')">Downside</button></div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+      ${kpi('Базовый Net IRR','19.6%','к выходу','')}
+      ${kpiAmber('Прогноз MOIC','1.68×','базовый сценарий')}
+      ${kpi('Горизонт','~22 мес','медианный выход','')}
+    </div>
+
+    <div class="card card-pad">
+      <div class="sec-t"><h3>Кривая XIRR · по кварталам</h3></div>
+      ${irrCurve(true)}
+    </div>
+
+    <div class="grid mt20" style="grid-template-columns:1fr 1fr;align-items:start;">
+      <div class="card card-pad">
+        <div class="sec-t"><h3>Сценарии выхода</h3></div>
+        ${scenarioRow('Upside','24.8%','1.92×','var(--ok)',92)}
+        ${scenarioRow('Базовый','19.6%','1.68×','var(--amber)',72)}
+        ${scenarioRow('Downside','11.2%','1.34×','var(--warn)',46)}
+      </div>
+      <div class="card card-pad">
+        <div class="sec-t"><h3>Допущения</h3></div>
+        ${assume('Темп продаж','базовый: 4 виллы/кв')}
+        ${assume('Средняя цена','$520K за виллу')}
+        ${assume('Себестоимость','в рамках BOQ +6% резерв')}
+        ${assume('Выход','продажа портфеля 2027–28')}
+        <div class="row-between mt14"><span class="muted" style="font-size:12px;">Модель обновлена</span><span class="tnum" style="font-size:12px;">31 мая 2026</span></div>
+      </div>
+    </div>`;
+
+  function scenarioRow(n,irr,moic,col,w){return `<div style="padding:12px 0;border-bottom:1px solid var(--line-soft);"><div class="row-between" style="margin-bottom:8px;"><span style="font-weight:600;font-size:14px;">${n}</span><span class="tnum" style="font-size:13px;color:var(--ink-2)">IRR ${irr} · ${moic}</span></div><div class="prog"><div class="fill" style="width:${w}%;background:${col}"></div></div></div>`;}
+  function assume(l,v){return `<div class="row-between" style="padding:9px 0;border-bottom:1px solid var(--line-soft);"><span class="muted" style="font-size:13px;">${l}</span><span style="font-size:13px;font-weight:600;color:var(--ink-2)">${v}</span></div>`;}
+
+  // ===========================================================
+  //  DOCUMENTS
+  // ===========================================================
+  const documents = () => `
+    <div class="page-h"><div><div class="eyebrow">Documents</div><h2>Документы</h2>
+      <div class="sub">Договоры, отчёты, налоговые формы · все проекты</div></div>
+      <button class="btn btn-ghost" onclick="toast('Скачан архив')">${svg('dl','width=15 height=15 stroke=currentColor stroke-width=2')} Скачать всё</button>
+    </div>
+
+    ${docGroup('Соглашения',[
+      ['Subscription Agreement · Cliff House','PDF · 2.4 MB · 22 мар 2025','PDF'],
+      ['Subscription Agreement · Subak Villas','PDF · 2.1 MB · 03 ноя 2024','PDF'],
+      ['Subscription Agreement · Tampu','PDF · 2.6 MB · 12 авг 2024','PDF'],
+    ])}
+    ${docGroup('Отчёты',[
+      ['Квартальный отчёт · Q1 2026','PDF · 5.1 MB · 30 апр 2026','PDF'],
+      ['Квартальный отчёт · Q4 2025','PDF · 4.8 MB · 31 янв 2026','PDF'],
+      ['Годовой отчёт · 2025','PDF · 9.2 MB · 28 фев 2026','PDF'],
+    ])}
+    ${docGroup('Налоговое',[
+      ['Capital account statement · 2025','XLSX · 320 KB · 15 фев 2026','XLS'],
+      ['K-1 эквивалент (SPV)','PDF · 740 KB · 15 фев 2026','PDF'],
+    ])}`;
+
+  function docGroup(title,items){
+    return `<div class="card card-pad" style="margin-bottom:16px;">
+      <div class="sec-t"><h3>${title}</h3><span class="badge badge-ink">${items.length}</span></div>
+      ${items.map(([n,s,ext])=>`<div class="doc"><div class="di">${svg('doc')}<span class="ext">${ext}</span></div><div class="info"><div class="n">${n}</div><div class="s">${s}</div></div><button class="btn btn-ghost btn-sm" onclick="toast('Скачивание…')">${svg('dl','width=13 height=13 stroke=currentColor stroke-width=2')}</button></div>`).join('')}
+    </div>`;
+  }
+
+  // ===========================================================
+  //  WALLET
+  // ===========================================================
+  const wallet = () => `
+    <div class="page-h"><div><div class="eyebrow">Wallet</div><h2>Кошелёк</h2>
+      <div class="sub">Баланс распределений и движения средств</div></div></div>
+
+    <div class="grid" style="grid-template-columns:1fr 2fr;align-items:start;">
+      <div>
+        <div class="kpi amber"><div class="l">Доступно к выводу</div><div class="v">$48,200</div><div class="d">после последнего распределения</div></div>
+        <button class="btn btn-carbon mt14" style="width:100%;" onclick="toast('Запрос на вывод создан')">Запросить вывод</button>
+        <div class="card card-pad mt20">
+          <div class="sec-t" style="margin-bottom:10px;"><h3>Метод выплаты</h3></div>
+          <div class="muted" style="font-size:13px;">Bank transfer · DBS Singapore</div>
+          <div class="tnum" style="font-size:13px;color:var(--ink-3);margin-top:4px;">•••• 8841 · USD</div>
+          <button class="btn btn-ghost btn-sm mt14" onclick="toast('Изменение метода · 2FA')">Изменить</button>
+        </div>
+      </div>
+      <div class="card" style="overflow:hidden;">
+        <div class="card-pad" style="padding-bottom:6px;"><div class="sec-t" style="margin:0;"><h3>Движения</h3><a onclick="toast('Экспорт CSV')">Экспорт CSV →</a></div></div>
+        <table class="data">
+          <thead><tr><th>Дата</th><th>Операция</th><th>Проект</th><th class="num">Сумма</th><th class="num">Баланс</th></tr></thead>
+          <tbody>
+            ${wRow('12 май','Распределение','Tampu','+ $124,000','$48,200','pos')}
+            ${wRow('30 апр','Вывод средств','—','− $90,000','−','neg')}
+            ${wRow('04 апр','Capital call #3','Subak','− $95,000','—','neg')}
+            ${wRow('28 мар','Распределение','Tampu','+ $58,000','$14,200','pos')}
+            ${wRow('12 мар','Capital call #3','Tampu','− $140,000','—','neg')}
+            ${wRow('06 фев','Распределение','Subak','+ $96,000','$96,200','pos')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  function wRow(d,op,proj,amt,bal,cls){return `<tr><td class="strong">${d}</td><td>${op}</td><td>${proj}</td><td class="num strong" style="${cls==='pos'?'color:var(--ok)':''}">${amt}</td><td class="num" style="color:var(--ink-3)">${bal}</td></tr>`;}
+
+  // ---------- chart builders ----------
+  function waterfall(big){
+    const h=big?220:180, W=560;
+    // steps: gross -> return of capital -> pref -> profit split -> carry -> net to LP
+    const bars=[
+      {l:'Валовая выплата',v:280,col:'var(--carbon)',base:0},
+      {l:'Возврат кап.',v:160,col:'var(--steel)',base:120},
+      {l:'Pref 8%',v:60,col:'var(--amber)',base:60},
+      {l:'Profit split',v:30,col:'var(--lime)',base:30},
+      {l:'Carry GP',v:20,col:'var(--ink-4)',base:10},
+      {l:'Чисто LP',v:250,col:'var(--ok)',base:0},
+    ];
+    const max=300, bw=58, gap=(W-bars.length*bw)/(bars.length+1);
+    const y=v=>h-(v/max)*(h-26);
+    let out=`<svg class="chart" viewBox="0 0 ${W} ${h+30}" preserveAspectRatio="xMidYMid meet">`;
+    out+=`<line x1="0" y1="${h}" x2="${W}" y2="${h}" stroke="var(--line-2)"/>`;
+    bars.forEach((b,i)=>{
+      const x=gap+i*(bw+gap);
+      const top=y(b.base+b.v), bh=(b.v/max)*(h-26);
+      out+=`<rect x="${x}" y="${top}" width="${bw}" height="${bh}" rx="3" fill="${b.col}"/>`;
+      out+=`<text x="${x+bw/2}" y="${top-7}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--ink-2)" font-weight="600">$${b.v}K</text>`;
+      out+=`<text x="${x+bw/2}" y="${h+16}" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" fill="var(--ink-3)">${b.l}</text>`;
+    });
+    out+=`</svg>`;
+    return out;
+  }
+  function irrCurve(big){
+    const h=big?200:140, W=560;
+    const pts=[2,3.5,5,6.8,9,11.5,13.8,15.6,17,18.4];
+    const proj=[18.4,18.9,19.2,19.6];
+    const max=26, n=pts.length+proj.length-1;
+    const x=i=>(i/(n))*W, y=v=>h-(v/max)*(h-16)-6;
+    let path=pts.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+    let pp=proj.map((v,i)=>`${i?'L':'M'}${x(pts.length-1+i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+    let area=path+` L${x(pts.length-1).toFixed(1)} ${h} L0 ${h} Z`;
+    let out=`<svg class="chart" viewBox="0 0 ${W} ${h+8}" preserveAspectRatio="none" style="height:${h+8}px">`;
+    out+=`<defs><linearGradient id="ig" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--amber)" stop-opacity=".18"/><stop offset="1" stop-color="var(--amber)" stop-opacity="0"/></linearGradient></defs>`;
+    [0,8.66,17.3,26].forEach(v=>{out+=`<line x1="0" y1="${y(v)}" x2="${W}" y2="${y(v)}" stroke="var(--line-soft)"/>`;});
+    out+=`<path d="${area}" fill="url(#ig)"/>`;
+    out+=`<path d="${path}" fill="none" stroke="var(--amber)" stroke-width="2.5"/>`;
+    out+=`<path d="${pp}" fill="none" stroke="var(--amber-deep)" stroke-width="2.5" stroke-dasharray="5 4"/>`;
+    out+=`<circle cx="${x(pts.length-1)}" cy="${y(18.4)}" r="4" fill="var(--amber)" stroke="#fff" stroke-width="2"/>`;
+    out+=`</svg>`;
+    return out;
+  }
+
+  // ---------- small builders ----------
+  function kpi(l,v,d){return `<div class="kpi"><div class="l">${l}</div><div class="v tnum">${v}</div><div class="d">${d}</div></div>`;}
+  function kpiDark(l,v){return `<div><div class="l" style="font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(244,239,230,.5)">${l}</div><div class="tnum" style="font-family:var(--disp);font-size:30px;font-weight:500;color:#fff;margin-top:8px;letter-spacing:-.02em;">${v}</div></div>`;}
+  function kpiAmber(l,v,d){return `<div class="kpi amber"><div class="l">${l}</div><div class="v tnum">${v}</div><div class="d">${d}</div></div>`;}
+  function deployRow(n,pct,col){return `<div style="padding:11px 0;"><div class="row-between" style="margin-bottom:7px;"><span style="font-size:13px;font-weight:600;">${n}</span><span class="tnum" style="font-size:12px;color:var(--ink-3)">${pct}%</span></div><div class="prog"><div class="fill" style="width:${pct}%;background:${col}"></div></div></div>`;}
+  function act(ic,bg,col,t,s,amt,cls){return `<div class="act"><div class="ic" style="background:${bg}"><svg viewBox="0 0 24 24" stroke="${col}">${I[ic]}</svg></div><div class="tx"><div class="t">${t}</div><div class="s">${s}</div></div>${amt?`<div class="amt ${cls}">${amt}</div>`:''}</div>`;}
+
+  // ===========================================================
+  //  NAV / RENDER
+  // ===========================================================
+  const NAV=[
+    {g:'Портфель',items:[
+      {id:'overview',label:'Сводка',ic:'grid'},
+      {id:'calls',label:'Capital calls',ic:'call',badge:'1'},
+      {id:'distributions',label:'Выплаты',ic:'dist'},
+    ]},
+    {g:'Участие',items:[
+      {id:'commitments',label:'Обязательства',ic:'commit'},
+      {id:'forecasts',label:'Прогнозы',ic:'forecast'},
+    ]},
+    {g:'Документы и счёт',items:[
+      {id:'documents',label:'Документы',ic:'doc'},
+      {id:'wallet',label:'Кошелёк',ic:'wallet'},
+    ]},
+  ];
+  const SCREENS={overview:null,calls,distributions,commitments,forecasts,documents,wallet};
+  const H1={overview:'Сводка',calls:'Capital calls',distributions:'Выплаты',commitments:'Обязательства',forecasts:'Прогнозы',documents:'Документы',wallet:'Кошелёк'};
+  const MTABS=[{id:'overview',label:'Сводка',ic:'grid'},{id:'calls',label:'Calls',ic:'call'},{id:'distributions',label:'Выплаты',ic:'dist'},{id:'forecasts',label:'Прогноз',ic:'forecast'},{id:'wallet',label:'Кошелёк',ic:'wallet'}];
+
+  let ovVar=localStorage.getItem('ip_ovvar')||'a';
+  let cur='overview';
+
+  const sidebarEl=document.getElementById('ip-sidebar');
+  const contentEl=document.getElementById('ip-content');
+  const h1El=document.getElementById('ip-h1');
+  const mContentEl=document.getElementById('ip-m-content');
+  const mTabbarEl=document.getElementById('ip-m-tabbar');
+  const mTitleEl=document.getElementById('ip-m-title');
+
+  function renderNav(){
+    sidebarEl.innerHTML = NAV.map(grp=>`<div class="nav-g"><div class="lbl">${grp.g}</div>${grp.items.map(it=>`<button class="nav-i ${cur===it.id?'on':''}" onclick="go('${it.id}')"><svg viewBox="0 0 24 24">${I[it.ic]}</svg>${it.label}${it.badge?`<span class="badge-n">${it.badge}</span>`:''}</button>`).join('')}</div>`).join('');
+  }
+  function renderMTabs(){
+    if(!mTabbarEl) return;
+    mTabbarEl.innerHTML = MTABS.map(t=>`<button class="iptab ${cur===t.id?'on':''}" onclick="go('${t.id}')"><svg viewBox="0 0 24 24">${I[t.ic]}</svg>${t.label}</button>`).join('');
+  }
+  function content(view){ if(view==='overview') return ovVar==='a'?overviewA():overviewB(); return (SCREENS[view]||overviewA)(); }
+
+  window.go=function(view){
+    cur=view;
+    if(contentEl){ contentEl.innerHTML=`<div class="view active">${content(view)}</div>`; contentEl.scrollTop=0; if(h1El)h1El.textContent=H1[view]||'Сводка'; renderNav(); }
+    if(mContentEl){ mContentEl.innerHTML=`<div class="view active">${content(view)}</div>`; mContentEl.scrollTop=0; if(mTitleEl)mTitleEl.textContent=H1[view]||'Сводка'; renderMTabs(); }
+  };
+  window.toast=function(m){let t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},1800);};
+
+  document.getElementById('ip-varswitch').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;ovVar=b.dataset.v;localStorage.setItem('ip_ovvar',ovVar);document.querySelectorAll('#ip-varswitch button').forEach(x=>x.classList.toggle('on',x.dataset.v===ovVar));if(cur==='overview')go('overview');});
+  document.querySelectorAll('#ip-varswitch button').forEach(x=>x.classList.toggle('on',x.dataset.v===ovVar));
+
+  go('overview');
+})();
+
+</script>
+</body>
+</html>

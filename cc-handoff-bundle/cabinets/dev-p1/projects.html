@@ -1,0 +1,2155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Projects + PM — Dev P1 · Phase 2.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style id="chrome-css">
+/* ===== ds/tokens.css ===== */
+/* ============================================================
+   Arconique Design System — tokens
+   Layer B (product-scoped). Layer A legacy is being deprecated.
+   ============================================================ */
+
+/* Management OS — warm hospitality */
+[data-product="management"],
+[data-product="owner"] {
+  /* Surfaces */
+  --cream:        #F4EFE6;
+  --cream-deep:   #ECE5D5;
+  --cream-warm:   #FAF7F1;
+  --paper:        #FFFCF7;
+
+  /* Ink */
+  --ink:          #14201C;
+  --ink-2:        #2A3934;
+  --ink-3:        #4A5A55;
+  --ink-4:        #7E8A85;
+
+  /* Brand */
+  --forest:       #1F3A33;
+  --forest-deep:  #122621;
+  --forest-fade:  #2E4F47;
+  --terra:        #C4583C;
+  --terra-soft:   #E48A6E;
+  --gold:         #BC9A5C;
+  --gold-soft:    #DCC691;
+  --sage:         #88A89A;
+
+  /* Lines */
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --line-strong:  #C2B89E;
+
+  /* Semantic */
+  --ok:           #4F7A5D;
+  --warn:         #C58A2E;
+  --danger:       #B14132;
+  --info:         #3D5A7A;
+
+  /* Accent pastels (bento cards, status pills) */
+  --mint:         #D8E8D6;
+  --mint-deep:    #B6D3B2;
+  --peach:        #F6D9CB;
+  --peach-deep:   #EDB89F;
+  --butter:       #F5E9B8;
+  --butter-deep:  #E8D77E;
+  --sky:          #D4E2EC;
+  --sky-deep:     #A8C1D4;
+
+  /* Type */
+  --display-font: 'Newsreader', Georgia, 'Iowan Old Style', serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-card: 18px;
+  --r-card-lg: 22px;
+  --r-hero: 28px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 12px 30px -18px rgba(20,32,28,0.18);
+  --shadow-soft:  0 18px 40px -24px rgba(20,32,28,0.22);
+  --shadow-pop:   0 24px 56px -28px rgba(20,32,28,0.28),
+                  0 2px 6px rgba(20,32,28,0.06);
+
+  /* Accent role (used by .btn-primary semantics) */
+  --accent:           var(--terra);
+  --accent-deep:      #A44627;
+  --accent-soft:      var(--terra-soft);
+  --on-accent:        var(--cream-warm);
+  --inverted-bg:      var(--forest);
+  --inverted-bg-deep: var(--forest-deep);
+  --inverted-fg:      var(--cream-warm);
+}
+
+/* Owner Portal — same palette, slightly calmer */
+[data-product="owner"] {
+  /* Owner is for non-technical users, used 2–4× per month.
+     Inherits Mgmt palette. The differentiation is density/sizing —
+     applied at the component level, not via different tokens. */
+}
+
+/* Development OS — engineering grade */
+[data-product="development"] {
+  /* Surfaces */
+  --bg:           #F1ECE0;
+  --bg-2:         #F8F4EA;
+  --bg-3:         #FFFCF4;
+  --panel:        #FFFFFF;
+
+  /* Compatibility aliases (cards/topbars look up --paper/--cream too) */
+  --paper:        var(--panel);
+  --cream:        var(--bg);
+  --cream-warm:   var(--bg-2);
+  --cream-deep:   var(--bg-2);
+
+  /* Lines */
+  --line:         #E5DECC;
+  --line-2:       #D8CFB7;
+  --line-3:       #BAAF92;
+  --line-soft:    #ECE6D5;
+  --line-strong:  var(--line-3);
+
+  /* Ink */
+  --concrete:     #2A2A26;
+  --concrete-2:   #4A4A42;
+  --concrete-3:   #6E6E64;
+  --ink:          #14130E;
+  --ink-2:        #3D3B33;
+  --ink-3:        #6E6B5E;
+  --ink-4:        #95917F;
+  --carbon:       #14130E;
+
+  /* Brand */
+  --amber:        #FF6B35;
+  --amber-soft:   #FFB088;
+  --amber-deep:   #D8541F;
+  --steel:        #3D5A7A;
+  --steel-soft:   #7E9DBF;
+  --lime:         #C9DC4A;
+
+  /* Semantic */
+  --ok:           #4F8A5D;
+  --warn:         #C58A2E;
+  --danger:       #C2474E;
+  --info:         var(--steel);
+
+  /* Pastels (status/event tags) */
+  --pastel-peach:  #F6D2BC;
+  --pastel-sky:    #C9DCEA;
+  --pastel-butter: #F0DE96;
+  --pastel-mint:   #CBDFC8;
+  --pastel-cream:  #ECE5D5;
+  --pastel-rose:   #EFC6BD;
+
+  /* Type */
+  --display-font: 'Space Grotesk', system-ui, sans-serif;
+  --sans-font:    'Inter', system-ui, -apple-system, sans-serif;
+  --mono-font:    'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-card: 14px;
+  --r-card-lg: 18px;
+  --r-hero: 22px;
+  --r-pill: 999px;
+
+  /* Shadows — more graphical, less soft */
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset,
+                  0 8px 22px -14px rgba(20,19,14,0.20);
+  --shadow-soft:  0 18px 38px -22px rgba(20,19,14,0.24);
+  --shadow-pop:   0 24px 50px -26px rgba(20,19,14,0.30),
+                  0 2px 6px rgba(20,19,14,0.07);
+
+  /* Accent role */
+  --accent:           var(--amber);
+  --accent-deep:      var(--amber-deep);
+  --accent-soft:      var(--amber-soft);
+  --on-accent:        var(--carbon);
+  --inverted-bg:      var(--carbon);
+  --inverted-bg-deep: #050402;
+  --inverted-fg:      #FFFFFF;
+}
+
+/* ============================================================
+   Documentation page chrome — neutral, NOT product-scoped
+   ============================================================ */
+:root {
+  --doc-bg:       #0F0F0E;
+  --doc-bg-2:     #16161A;
+  --doc-bg-3:     #1D1D22;
+  --doc-line:     #2A2A2F;
+  --doc-line-2:   #3A3A40;
+  --doc-fg:       #E8E5DE;
+  --doc-fg-2:     #B2AFA8;
+  --doc-fg-3:     #807D77;
+  --doc-accent:   #E4D9B8;
+
+  --doc-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --doc-sans:    'Inter', system-ui, sans-serif;
+}
+
+
+/* ===== ds/primitives.css ===== */
+/* ============================================================
+   Arconique Design System — primitives
+   Buttons, cards, badges, chips, KPI, pulse, type utilities.
+   Lives under [data-product=…]; the documentation chrome
+   (sections.css) provides the outer surface.
+   ============================================================ */
+
+/* ---------- Type utilities ---------- */
+[data-product] .display {
+  font-family: var(--display-font);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  color: var(--ink);
+}
+[data-product="development"] .display {
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+[data-product] .display em {
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 400;
+}
+
+[data-product] .label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+[data-product="development"] .label,
+[data-product="owner"] .label { letter-spacing: 0.18em; }
+
+[data-product] .mono {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+}
+[data-product] .num {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+[data-product] .body {
+  font-family: var(--sans-font);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ---------- */
+[data-product] .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease,
+              border-color 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+  text-decoration: none;
+}
+[data-product] .btn-lg { padding: 14px 22px; font-size: 15px; }
+[data-product] .btn-sm { padding: 7px 14px; font-size: 13px; }
+[data-product] .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Primary — uses inverted bg per product */
+[data-product] .btn-primary { background: var(--ink); color: var(--inverted-fg); }
+[data-product="management"] .btn-primary:hover,
+[data-product="owner"] .btn-primary:hover { background: var(--forest); }
+[data-product="development"] .btn-primary:hover { background: #25241D; }
+
+/* Accent — terra (Mgmt/Owner), amber (Dev) */
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); }
+[data-product] .btn-accent:hover { background: var(--accent-deep); }
+
+/* Secondary — light card with border */
+[data-product="management"] .btn-secondary,
+[data-product="owner"] .btn-secondary {
+  background: var(--cream-warm); color: var(--ink); border-color: var(--line);
+}
+[data-product="management"] .btn-secondary:hover,
+[data-product="owner"] .btn-secondary:hover { background: var(--paper); border-color: var(--ink-2); }
+[data-product="development"] .btn-secondary {
+  background: var(--bg-3); color: var(--ink); border-color: var(--line-2);
+}
+[data-product="development"] .btn-secondary:hover { background: var(--bg-2); border-color: var(--line-3); }
+
+/* Ghost */
+[data-product] .btn-ghost { background: transparent; color: var(--ink-2); }
+[data-product="management"] .btn-ghost:hover,
+[data-product="owner"] .btn-ghost:hover { background: var(--cream-deep); color: var(--ink); }
+[data-product="development"] .btn-ghost:hover { background: var(--bg-2); color: var(--ink); }
+
+/* Danger */
+[data-product] .btn-danger { background: var(--danger); color: var(--cream-warm); }
+[data-product] .btn-danger:hover { filter: brightness(0.92); }
+
+/* Round arrow / sticker buttons */
+[data-product] .ra-btn {
+  width: 46px; height: 46px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; cursor: pointer; transition: transform 0.15s ease, background 0.18s ease;
+  background: var(--ink); color: var(--inverted-fg);
+}
+[data-product] .ra-btn:hover { transform: translateX(2px); }
+[data-product] .ra-btn.light {
+  background: var(--paper); color: var(--ink); border: 1px solid var(--line);
+}
+[data-product] .ra-btn.accent { background: var(--accent); color: var(--on-accent); }
+
+/* ---------- Cards ---------- */
+[data-product="management"] .card,
+[data-product="owner"] .card {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+}
+[data-product="development"] .card,
+[data-product="development"] .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+}
+[data-product] .card-lg { border-radius: var(--r-card-lg); }
+[data-product] .card-hero { border-radius: var(--r-hero); }
+[data-product] .card-pad { padding: 20px; }
+[data-product] .card-pad-lg { padding: 28px; }
+
+/* Inverted hero band */
+[data-product] .card-inverted {
+  background: var(--inverted-bg);
+  color: var(--inverted-fg);
+  border-color: var(--inverted-bg);
+}
+[data-product] .card-inverted .label { color: rgba(255,255,255,0.55); }
+
+/* ---------- Badges ---------- */
+[data-product] .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-family: var(--mono-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  background: var(--paper);
+}
+[data-product] .badge-ok     { background: color-mix(in oklab, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklab, var(--ok) 35%, transparent); }
+[data-product] .badge-warn   { background: color-mix(in oklab, var(--warn) 12%, transparent); color: var(--warn); border-color: color-mix(in oklab, var(--warn) 35%, transparent); }
+[data-product] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product] .badge-info   { background: color-mix(in oklab, var(--info) 12%, transparent); color: var(--info); border-color: color-mix(in oklab, var(--info) 35%, transparent); }
+[data-product] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product="management"] .badge-gold,
+[data-product="owner"] .badge-gold { background: rgba(188,154,92,0.15); color: #8c6f33; border-color: rgba(188,154,92,0.35); }
+[data-product] .badge-ink {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .badge-soft {
+  background: var(--cream-warm, var(--bg-2)); color: var(--ink-2); border-color: var(--line-soft, var(--line-2));
+}
+
+/* ---------- Chips ---------- */
+[data-product] .chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px;
+  border-radius: var(--r-pill);
+  font-family: var(--sans-font);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+[data-product="development"] .chip { background: var(--bg-2); border-color: var(--line-2); }
+[data-product] .chip-dot::before {
+  content: ""; width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent); display: inline-block;
+}
+[data-product] .chip-ink { background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
+[data-product] .chip-active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+/* ---------- Pulse dot ---------- */
+[data-product] .pulse-dot {
+  width: 7px; height: 7px; border-radius: 999px; display: inline-block;
+  background: var(--ok);
+  animation: ds-pulse 2.4s ease-in-out infinite;
+}
+[data-product] .pulse-dot.accent { background: var(--accent); color: var(--accent); }
+@keyframes ds-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; }
+}
+
+/* ---------- Avatar ---------- */
+[data-product] .avatar {
+  width: 32px; height: 32px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-fg);
+  font-family: var(--sans-font);
+  font-size: 11px; font-weight: 500;
+  background: linear-gradient(135deg, var(--gold-soft, var(--amber-soft)), var(--accent));
+}
+[data-product] .avatar-lg { width: 44px; height: 44px; font-size: 14px; }
+[data-product] .avatar-sm { width: 24px; height: 24px; font-size: 10px; }
+
+/* ---------- KPI tile ---------- */
+[data-product] .kpi {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line-soft, var(--line));
+  background: var(--paper, var(--panel));
+}
+[data-product] .kpi .label { font-size: 10.5px; }
+[data-product] .kpi .v {
+  font-family: var(--mono-font);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  margin-top: 4px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.05;
+}
+[data-product] .kpi .sub {
+  margin-top: 3px;
+  font-family: var(--sans-font);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+[data-product] .kpi.accent .v { color: var(--accent); }
+[data-product] .kpi.ok .v { color: var(--ok); }
+[data-product] .kpi.warn .v { color: var(--warn); }
+[data-product] .kpi.gold .v { color: var(--gold, var(--amber)); }
+[data-product] .kpi-lg .v { font-size: 36px; }
+[data-product] .kpi-lg { padding: 22px 22px; }
+
+/* Owner has a calmer, bigger KPI variant for statement clarity */
+[data-product="owner"] .kpi-narrative {
+  padding: 28px 28px;
+  border-radius: var(--r-card-lg);
+}
+[data-product="owner"] .kpi-narrative .label { font-size: 11px; }
+[data-product="owner"] .kpi-narrative .v {
+  font-family: var(--display-font);
+  font-feature-settings: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-top: 10px;
+}
+[data-product="owner"] .kpi-narrative .sub {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+/* ---------- Section heading ---------- */
+[data-product] .section-heading { margin-bottom: 22px; }
+[data-product] .section-heading .eyebrow { margin-bottom: 8px; }
+[data-product] .section-heading h2,
+[data-product] .section-heading h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .section-heading h2,
+[data-product="development"] .section-heading h1 { font-weight: 500; letter-spacing: -0.025em; }
+[data-product] .section-heading p {
+  margin: 10px 0 0;
+  color: var(--ink-3);
+  font-size: 15px;
+  max-width: 680px;
+  line-height: 1.55;
+}
+[data-product="owner"] .section-heading h2,
+[data-product="owner"] .section-heading h1 { font-size: 44px; }
+[data-product="owner"] .section-heading p { font-size: 16px; }
+
+/* ---------- Page header (with breadcrumbs) ---------- */
+[data-product] .page-header {
+  display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 22px;
+}
+[data-product] .page-header .left { flex: 1; min-width: 0; }
+[data-product] .page-header .crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+[data-product] .page-header .crumb a { color: var(--ink-3); text-decoration: none; }
+[data-product] .page-header .crumb a:hover { color: var(--ink); }
+[data-product] .page-header h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .page-header h1 { font-weight: 500; }
+[data-product] .page-header .actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+
+/* ===== ds/layout.css ===== */
+/* ============================================================
+   Arconique Design System — layout (sidebar, topbar, tables)
+   ============================================================ */
+
+/* ---------- App shell wrapper used in previews ---------- */
+[data-product] .app-shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  height: 580px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  overflow: hidden;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-content {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--cream, var(--bg));
+}
+[data-product] .app-shell .shell-body {
+  padding: 22px 28px;
+  overflow: auto;
+  flex: 1;
+}
+
+/* ---------- Sidebar ---------- */
+[data-product] .sidebar {
+  border-right: 1px solid var(--line-soft, var(--line));
+  display: flex; flex-direction: column;
+  background: var(--paper, var(--panel));
+  overflow-y: auto;
+}
+[data-product] .sidebar::-webkit-scrollbar { width: 6px; }
+[data-product] .sidebar::-webkit-scrollbar-thumb {
+  background: var(--line); border-radius: 999px;
+}
+[data-product] .sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 18px 14px;
+  text-decoration: none; color: var(--ink);
+}
+[data-product] .sb-brand .logo {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-bg);
+}
+[data-product] .sb-brand .wordmark {
+  font-family: var(--display-font);
+  font-size: 20px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace {
+  margin: 0 18px 12px;
+  padding: 10px 12px;
+  background: var(--cream-deep, var(--bg-2));
+  border-radius: 10px;
+}
+[data-product] .sb-workspace .label { font-size: 9.5px; }
+[data-product] .sb-workspace .name {
+  font-family: var(--display-font);
+  font-size: 16px;
+  margin-top: 2px;
+  color: var(--ink);
+}
+[data-product] .sb-workspace .sub {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+[data-product] .sb-group {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .sb-group:last-child { border-bottom: 0; }
+[data-product] .sb-group-title {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 10px 18px 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+[data-product] .sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 18px;
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer; border: 0; background: transparent;
+  width: 100%; text-align: left;
+  border-left: 2px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease;
+  text-decoration: none;
+}
+[data-product="management"] .sb-item:hover,
+[data-product="owner"] .sb-item:hover { background: var(--cream-warm); }
+[data-product="development"] .sb-item:hover { background: var(--bg-2); }
+[data-product] .sb-item.on {
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product="management"] .sb-item.on,
+[data-product="owner"] .sb-item.on {
+  background: var(--cream-warm);
+  border-left-color: var(--accent);
+}
+[data-product="development"] .sb-item.on {
+  background: var(--bg-2);
+  border-left-color: var(--accent);
+}
+[data-product] .sb-badge {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-3);
+}
+[data-product] .sb-item.on .sb-badge {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Topbar ---------- */
+[data-product] .topbar {
+  position: sticky; top: 0; z-index: 30;
+  padding: 12px 28px;
+  display: flex; align-items: center; gap: 16px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--cream, var(--bg)) 92%, transparent);
+}
+[data-product] .tb-crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+[data-product] .tb-crumb b { color: var(--ink); font-weight: 500; }
+[data-product] .tb-spacer { flex: 1; }
+[data-product] .tb-search {
+  position: relative;
+  width: 280px;
+}
+[data-product] .tb-search input {
+  width: 100%;
+  padding: 7px 38px 7px 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  outline: none;
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper, var(--panel));
+}
+[data-product] .tb-search .sx {
+  position: absolute; left: 10px; top: 8px;
+  color: var(--ink-4);
+}
+[data-product] .tb-search .kbd {
+  position: absolute; right: 8px; top: 6px;
+  font-family: var(--mono-font);
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink-3);
+}
+[data-product] .tb-bell {
+  position: relative;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-2);
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+[data-product] .tb-bell:hover { background: var(--cream-deep, var(--bg-2)); }
+[data-product] .tb-bell .dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px; border-radius: 999px;
+  background: var(--accent);
+}
+[data-product] .tb-user {
+  display: flex; align-items: center; gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+[data-product] .tb-user .meta {
+  display: flex; flex-direction: column;
+  line-height: 1.15;
+}
+[data-product] .tb-user .name { font-size: 13px; font-weight: 500; color: var(--ink); }
+[data-product] .tb-user .role { font-size: 10.5px; color: var(--ink-3); }
+
+/* ---------- Tables ---------- */
+[data-product] table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans-font);
+  font-size: 13px;
+}
+[data-product] table.data th,
+[data-product] table.data td {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] table.data th {
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+[data-product="management"] table.data th,
+[data-product="owner"] table.data th {
+  background: var(--cream);
+  border-bottom-color: var(--line-soft);
+}
+[data-product="development"] table.data th {
+  background: var(--bg-2);
+  border-bottom-color: var(--line-2);
+}
+[data-product] table.data tbody tr:hover {
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 60%, transparent);
+}
+[data-product] table.data td.num,
+[data-product] table.data th.num {
+  text-align: right;
+  font-family: var(--mono-font);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] table.data .row-title {
+  font-family: var(--display-font);
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+/* Mgmt-soft variant: airier rows, serif row titles */
+[data-product="management"] table.guests,
+[data-product="owner"] table.guests {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--sans-font);
+}
+[data-product="management"] table.guests th,
+[data-product="management"] table.guests td,
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 14px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--line-soft);
+}
+[data-product="management"] table.guests th,
+[data-product="owner"] table.guests th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  color: var(--ink-3);
+  background: var(--cream);
+}
+[data-product="owner"] table.guests th,
+[data-product="owner"] table.guests td { padding: 18px 22px; }
+[data-product="management"] table.guests tbody tr:hover,
+[data-product="owner"] table.guests tbody tr:hover { background: var(--cream); }
+
+/* ---------- Forms ---------- */
+[data-product] .field { display: flex; flex-direction: column; gap: 6px; }
+[data-product] .field-label {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+[data-product] .input,
+[data-product] .select,
+[data-product] .textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper, var(--panel));
+  font-family: var(--sans-font);
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+[data-product] .textarea { min-height: 96px; resize: vertical; }
+[data-product] .input:focus,
+[data-product] .select:focus,
+[data-product] .textarea:focus {
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
+[data-product] .input::placeholder,
+[data-product] .textarea::placeholder { color: var(--ink-4); }
+[data-product] .field-help { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+[data-product] .field-error { font-size: 12px; color: var(--danger); margin-top: 2px; }
+
+[data-product] .check {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--sans-font); font-size: 14px; color: var(--ink);
+  cursor: pointer;
+}
+[data-product] .check input { appearance: none; -webkit-appearance: none; }
+[data-product] .check .box {
+  width: 18px; height: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--paper, var(--panel));
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+[data-product] .check input:checked + .box {
+  background: var(--ink); border-color: var(--ink);
+}
+[data-product] .check input:checked + .box::after {
+  content: "";
+  width: 9px; height: 5px;
+  border-left: 2px solid var(--inverted-fg);
+  border-bottom: 2px solid var(--inverted-fg);
+  transform: rotate(-45deg) translate(0, -2px);
+}
+
+[data-product] .radio .box { border-radius: 999px; }
+[data-product] .radio input:checked + .box {
+  background: var(--paper, var(--panel));
+  border-color: var(--accent);
+}
+[data-product] .radio input:checked + .box::after {
+  content: ""; width: 9px; height: 9px;
+  border: 0; transform: none; background: var(--accent);
+  border-radius: 999px;
+}
+
+[data-product] .toggle {
+  position: relative; width: 38px; height: 22px;
+  background: var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+[data-product] .toggle::after {
+  content: ""; position: absolute;
+  top: 2px; left: 2px;
+  width: 18px; height: 18px;
+  background: var(--paper, var(--panel));
+  border-radius: 999px;
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+[data-product] .toggle.on { background: var(--accent); }
+[data-product] .toggle.on::after { transform: translateX(16px); }
+
+/* ---------- Filter bar ---------- */
+[data-product] .filter-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--paper, var(--panel));
+  margin-bottom: 14px;
+}
+[data-product] .filter-bar .divider {
+  width: 1px; height: 22px; background: var(--line); margin: 0 2px;
+}
+
+/* ---------- Empty state ---------- */
+[data-product] .empty {
+  padding: 40px 28px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-card);
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 50%, transparent);
+  text-align: center;
+}
+[data-product] .empty .glyph {
+  width: 44px; height: 44px; margin: 0 auto 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  background: var(--cream-deep, var(--bg-3));
+  border-radius: 999px;
+}
+[data-product] .empty .title {
+  font-family: var(--display-font);
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+[data-product] .empty .copy {
+  font-size: 13px;
+  color: var(--ink-3);
+  max-width: 360px;
+  margin: 0 auto 14px;
+  line-height: 1.5;
+}
+
+/* ---------- Pagination ---------- */
+[data-product] .pagination {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono-font);
+  font-size: 12px;
+}
+[data-product] .pagination button {
+  min-width: 30px; height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper, var(--panel));
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .pagination button:hover { border-color: var(--ink-2); color: var(--ink); }
+[data-product] .pagination button.on {
+  background: var(--ink); color: var(--inverted-fg); border-color: var(--ink);
+}
+[data-product] .pagination .meta {
+  margin-left: 12px; color: var(--ink-3);
+}
+
+/* ---------- Modal ---------- */
+[data-product] .modal-backdrop {
+  position: relative;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  padding: 36px 28px;
+  border-radius: var(--r-card);
+  display: flex; align-items: flex-start; justify-content: center;
+}
+[data-product] .modal {
+  width: 480px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border-radius: var(--r-card-lg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  box-shadow: var(--shadow-pop);
+}
+[data-product] .modal-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+}
+[data-product] .modal-header h3 {
+  margin: 0;
+  font-family: var(--display-font); font-weight: 400; font-size: 19px;
+  color: var(--ink);
+}
+[data-product] .modal-header p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
+[data-product] .modal-body { padding: 18px 22px; }
+[data-product] .modal-footer {
+  padding: 14px 22px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* ---------- Command palette preview ---------- */
+[data-product] .cmdk {
+  width: 540px; max-width: 100%;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--r-card-lg);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+[data-product] .cmdk-input {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  font-family: var(--sans-font);
+  font-size: 15px;
+  color: var(--ink-2);
+  display: flex; align-items: center; gap: 10px;
+}
+[data-product] .cmdk-input .sx { color: var(--ink-4); }
+[data-product] .cmdk-group {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .cmdk-group:last-child { border-bottom: 0; }
+[data-product] .cmdk-group-title {
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-4);
+  padding: 8px 18px 4px;
+}
+[data-product] .cmdk-item {
+  padding: 8px 18px;
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--sans-font); font-size: 13.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+[data-product] .cmdk-item.on,
+[data-product] .cmdk-item:hover { background: var(--cream-warm, var(--bg-2)); color: var(--ink); }
+[data-product] .cmdk-item .hint {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+
+/* ---------- Detail page skeleton ---------- */
+[data-product] .detail-shell {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 18px;
+}
+[data-product] .detail-shell .related { display: flex; flex-direction: column; gap: 14px; }
+[data-product] .detail-tabs {
+  display: flex; align-items: center; gap: 4px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 18px;
+}
+[data-product] .detail-tabs .tab {
+  padding: 10px 14px;
+  border: 0; background: transparent;
+  font-family: var(--sans-font);
+  font-size: 13.5px; color: var(--ink-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+[data-product] .detail-tabs .tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- Mobile preview frame ---------- */
+.mobile-frame {
+  width: 360px;
+  border: 1px solid var(--line, #DAD2C0);
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--cream, var(--bg, #F4EFE6));
+  box-shadow: 0 16px 40px -18px rgba(15,15,14,0.22),
+              0 2px 6px rgba(15,15,14,0.06);
+  height: 640px;
+  display: flex; flex-direction: column;
+}
+.mobile-frame .mobile-status {
+  height: 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  font-family: var(--mono-font, monospace);
+  font-size: 11px;
+  color: var(--ink, #14201C);
+}
+.mobile-frame .mobile-body {
+  flex: 1;
+  overflow: auto;
+}
+
+/* Mobile tabbar */
+[data-product] .mobile-tabbar {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+}
+[data-product] .mobile-tabbar .tb {
+  flex: 1;
+  padding: 8px 0 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  cursor: pointer;
+  border: 0; background: transparent;
+}
+[data-product] .mobile-tabbar .tb.on {
+  color: var(--ink);
+}
+[data-product] .mobile-tabbar .tb.on .ico {
+  color: var(--accent);
+}
+[data-product] .mobile-tabbar .ico {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+
+/* ===== ds/meta.css ===== */
+/* ============================================================
+   Documentation page chrome — neutral surface that hosts
+   the product previews. NOT product-scoped.
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--doc-sans);
+  background: var(--doc-bg);
+  color: var(--doc-fg);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+  min-height: 100vh;
+}
+
+/* ---------- App layout ---------- */
+.ds-app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- Left rail (TOC) ---------- */
+.ds-toc {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--doc-line);
+  padding: 24px 16px 32px;
+  background: var(--doc-bg-2);
+}
+.ds-toc .ds-mark {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  padding: 4px 8px 16px;
+}
+.ds-toc .ds-mark .glyph {
+  width: 6px; height: 6px;
+  background: var(--doc-accent);
+  border-radius: 2px;
+  display: inline-block;
+}
+.ds-toc h1 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0 0 22px;
+  padding: 0 8px;
+  color: var(--doc-fg);
+  letter-spacing: -0.005em;
+}
+.ds-toc .ds-toc-group {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 18px;
+}
+.ds-toc .ds-toc-group-title {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  padding: 8px 8px 6px;
+}
+.ds-toc .ds-toc-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  text-decoration: none;
+  border-radius: 6px;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+}
+.ds-toc .ds-toc-item:hover {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+}
+.ds-toc .ds-toc-item.on {
+  background: var(--doc-bg-3);
+  color: var(--doc-fg);
+  border-left-color: var(--doc-accent);
+}
+.ds-toc .ds-toc-item .num {
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  color: var(--doc-fg-3);
+  width: 18px;
+}
+
+/* ---------- Right side ---------- */
+.ds-main {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--doc-bg);
+}
+
+/* ---------- Product tab bar ---------- */
+.ds-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1px solid var(--doc-line);
+  background: var(--doc-bg);
+  padding: 0 32px;
+}
+.ds-tab {
+  padding: 18px 18px;
+  font-family: var(--doc-sans);
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  border: 0; background: transparent;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex; align-items: center; gap: 10px;
+}
+.ds-tab:hover { color: var(--doc-fg); }
+.ds-tab.on {
+  color: var(--doc-fg);
+  border-bottom-color: var(--doc-accent);
+}
+.ds-tab .swatch {
+  width: 10px; height: 10px;
+  border-radius: 999px;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+}
+.ds-tab .tag {
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  margin-left: 6px;
+}
+.ds-tab.on .tag { color: var(--doc-fg-2); }
+.ds-tabs .ds-meta {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 4px;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.ds-tabs .ds-meta .pill {
+  padding: 4px 10px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 999px;
+  color: var(--doc-fg-2);
+}
+
+/* ---------- Content area ---------- */
+.ds-content {
+  padding: 0 32px 96px;
+}
+
+/* ---------- Section ---------- */
+.ds-section {
+  padding: 56px 0 24px;
+  border-bottom: 1px solid var(--doc-line);
+}
+.ds-section:last-child { border-bottom: 0; }
+.ds-section-head {
+  display: flex; align-items: flex-end; gap: 18px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.ds-section-head .ds-section-eyebrow {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--doc-fg-3);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.ds-section-head h2 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 28px;
+  margin: 0;
+  letter-spacing: -0.015em;
+  color: var(--doc-fg);
+}
+.ds-section-head p {
+  margin: 8px 0 0;
+  max-width: 580px;
+  color: var(--doc-fg-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.ds-section-head .ds-section-meta {
+  margin-left: auto;
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  display: flex; gap: 14px;
+  align-items: center;
+}
+
+/* ---------- Sub-section ---------- */
+.ds-sub {
+  margin-bottom: 36px;
+}
+.ds-sub-head {
+  display: flex; align-items: baseline; gap: 12px;
+  margin-bottom: 14px;
+}
+.ds-sub-head h3 {
+  font-family: var(--doc-sans);
+  font-weight: 500;
+  font-size: 16px;
+  margin: 0;
+  color: var(--doc-fg);
+}
+.ds-sub-head .code {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+  padding: 1px 6px;
+  border: 1px solid var(--doc-line-2);
+  border-radius: 4px;
+}
+.ds-sub-head p {
+  margin: 0;
+  color: var(--doc-fg-2);
+  font-size: 13px;
+}
+
+/* ---------- Preview surface (the warm card the product previews sit on) ---------- */
+.ds-preview {
+  background: var(--cream, var(--bg, #F4EFE6));
+  border-radius: 14px;
+  padding: 28px;
+  border: 1px solid var(--doc-line);
+  position: relative;
+  overflow: hidden;
+}
+.ds-preview.tight { padding: 18px; }
+.ds-preview.flush { padding: 0; }
+.ds-preview .ds-preview-tag {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-family: var(--doc-mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--doc-fg-3);
+  background: rgba(15,15,14,0.05);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* ---------- Code snippet ---------- */
+.ds-code {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 12px 14px;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+  border-radius: 8px;
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.ds-code .kw { color: #c5b889; }
+.ds-code .str { color: #b6cd97; }
+.ds-code .com { color: var(--doc-fg-3); font-style: italic; }
+
+/* ---------- Spec list (key = value rows) ---------- */
+.ds-spec {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 6px 18px;
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+  padding: 14px 0 0;
+}
+.ds-spec dt { color: var(--doc-fg-3); }
+.ds-spec dd { margin: 0; color: var(--doc-fg); }
+
+/* ---------- Two/three column grid for showcase ---------- */
+.ds-grid { display: grid; gap: 14px; }
+.ds-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+.ds-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.ds-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.ds-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+.ds-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.ds-grid.cols-mobile { grid-template-columns: 1fr 360px; gap: 28px; align-items: start; }
+
+/* ---------- Color swatch ---------- */
+.swatch-card {
+  display: flex; flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--doc-bg-3);
+  border: 1px solid var(--doc-line-2);
+}
+.swatch-card .chip {
+  height: 80px;
+  background: var(--c);
+  display: flex; align-items: flex-end;
+  padding: 10px 12px;
+  color: var(--cfg, #fff);
+  font-family: var(--doc-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.swatch-card .meta {
+  padding: 8px 12px 10px;
+}
+.swatch-card .name {
+  font-family: var(--doc-sans);
+  font-size: 12.5px;
+  color: var(--doc-fg);
+  margin-bottom: 1px;
+}
+.swatch-card .var {
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Type specimen ---------- */
+.type-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--doc-line);
+  align-items: baseline;
+}
+.type-row:last-child { border-bottom: 0; }
+.type-row .meta {
+  font-family: var(--doc-mono);
+  font-size: 11px;
+  color: var(--doc-fg-3);
+}
+.type-row .meta .name { color: var(--doc-fg-2); margin-bottom: 2px; }
+.type-row .specimen { color: var(--ink, var(--doc-fg)); }
+
+/* ---------- Token row (radii, shadows) ---------- */
+.token-row {
+  display: grid;
+  grid-template-columns: 64px 140px 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--doc-line);
+}
+.token-row:last-child { border-bottom: 0; }
+.token-row .visual {
+  width: 64px; height: 64px;
+  background: var(--cream, var(--bg, #F4EFE6));
+  border: 1px solid var(--line, #DAD2C0);
+  display: flex; align-items: center; justify-content: center;
+}
+.token-row .name {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-2);
+}
+.token-row .value {
+  font-family: var(--doc-mono);
+  font-size: 11.5px;
+  color: var(--doc-fg-3);
+}
+
+/* ---------- Inline label inside the meta dark area ---------- */
+.ds-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--doc-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--doc-line-2);
+  color: var(--doc-fg-2);
+}
+.ds-tag.accent {
+  background: var(--doc-accent);
+  color: var(--doc-bg);
+  border-color: var(--doc-accent);
+}
+
+/* ---------- Mobile preview row ---------- */
+.ds-mobile-row {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.ds-mobile-row .ds-mobile-notes {
+  padding-top: 16px;
+}
+.ds-mobile-row .ds-mobile-notes h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--doc-fg);
+}
+.ds-mobile-row .ds-mobile-notes p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--doc-fg-2);
+  line-height: 1.55;
+}
+
+/* ---------- Small viewport gracefully ---------- */
+@media (max-width: 1280px) {
+  .ds-grid.cols-mobile,
+  .ds-mobile-row { grid-template-columns: 1fr; }
+  .ds-grid.cols-5, .ds-grid.cols-6 { grid-template-columns: repeat(3, 1fr); }
+  .ds-content { padding: 0 22px 80px; }
+  .ds-tabs { padding: 0 22px; }
+}
+@media (max-width: 900px) {
+  .ds-app { grid-template-columns: 1fr; }
+  .ds-toc {
+    position: relative; height: auto;
+    border-right: 0; border-bottom: 1px solid var(--doc-line);
+  }
+  .ds-grid.cols-3, .ds-grid.cols-4, .ds-grid.cols-5, .ds-grid.cols-6 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ds-content { padding: 0 16px 64px; }
+  .ds-tabs { padding: 0 16px; overflow-x: auto; }
+  .ds-tabs .ds-meta { display: none; }
+}
+
+</style>
+<style>
+/* Shared cabinet doc styles (compact) */
+.shell-preview { display: flex; background: var(--bg, var(--cream)); border-radius: var(--r-card-lg); overflow: hidden; border: 1px solid var(--line); }
+.shell-preview > main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.frame-cap { font-family: var(--doc-mono); font-size: 10px; color: var(--doc-fg-3); text-transform: uppercase; letter-spacing: 0.18em; margin-top: 10px; text-align: center; }
+.spec-grid { display: grid; grid-template-columns: 200px 1fr; gap: 0; }
+.spec-grid > div { padding: 12px 16px; border-bottom: 1px solid var(--doc-line); font-size: 13px; }
+.spec-grid > div:nth-child(odd) { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg-3); text-transform: uppercase; letter-spacing: 0.14em; }
+.spec-grid > div:nth-child(even) { color: var(--doc-fg); }
+.spec-grid code { font-family: var(--doc-mono); font-size: 12px; color: var(--doc-accent); background: rgba(228,217,184,0.08); padding: 1px 6px; border-radius: 4px; }
+.spec-card-warm { background: #1D1D22; border: 1px solid var(--doc-line); border-radius: 14px; padding: 24px; margin-top: 20px; }
+.spec-card-warm h4 { margin: 0 0 4px; font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); }
+.spec-card-warm p { margin: 0; font-family: var(--doc-sans); font-size: 14px; color: var(--doc-fg-2); line-height: 1.6; }
+.tpl-nav { display: flex; flex-direction: column; gap: 2px; }
+.tpl-nav a { display: flex; align-items: center; gap: 10px; padding: 7px 8px; font-family: var(--doc-sans); font-size: 13px; color: var(--doc-fg-2); text-decoration: none; border-radius: 6px; border-left: 2px solid transparent; }
+.tpl-nav a:hover { background: var(--doc-bg-3); color: var(--doc-fg); }
+.tpl-nav a.on { background: var(--doc-bg-3); color: var(--doc-fg); border-left-color: var(--doc-accent); }
+.tpl-nav a .num { font-family: var(--doc-mono); font-size: 10px; color: var(--doc-fg-3); width: 18px; }
+.anchor-nav { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding: 14px 0; border-top: 1px solid var(--doc-line); border-bottom: 1px solid var(--doc-line); }
+.anchor-nav a { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-fg-2); text-decoration: none; padding: 4px 10px; border: 1px solid var(--doc-line); border-radius: 999px; letter-spacing: 0.1em; text-transform: uppercase; }
+.anchor-nav a:hover { color: var(--doc-fg); border-color: var(--doc-fg-2); }
+.ia { background: #1D1D22; border: 1px solid var(--doc-line); border-radius: 14px; padding: 24px; display: grid; grid-template-columns: 200px 1fr; gap: 32px; align-items: start; }
+.ia .lhs h4 { font-family: var(--doc-mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--doc-accent); margin: 0 0 8px; }
+.ia .lhs .v { font-family: var(--doc-sans); font-size: 13px; color: var(--doc-fg-2); line-height: 1.6; }
+.ia ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.ia li { display: flex; align-items: center; gap: 12px; padding: 8px 12px; font-family: var(--doc-sans); font-size: 13px; color: var(--doc-fg-2); background: rgba(228,217,184,0.04); border-radius: 6px; }
+.ia li code { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-accent); background: rgba(228,217,184,0.08); padding: 1px 6px; border-radius: 4px; }
+.ia li .badge { margin-left: auto; font-family: var(--doc-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--doc-fg-3); }
+.ia li .badge.live { color: #88B894; }
+.ia li .badge.new  { color: #D8B354; }
+
+/* Dev-specific: project card on list */
+[data-product="development"] .proj-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto auto auto;
+  gap: 16px;
+  align-items: center;
+}
+[data-product="development"] .proj-thumb {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, var(--carbon), var(--amber));
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-family: var(--mono-font); font-size: 11px;
+  font-weight: 500; letter-spacing: 0.06em;
+}
+[data-product="development"] .proj-name {
+  font-family: var(--display-font); font-weight: 500;
+  font-size: 16px; color: var(--ink); margin: 0;
+}
+[data-product="development"] .proj-sub {
+  font-family: var(--mono-font); font-size: 10.5px;
+  color: var(--ink-3); letter-spacing: 0.08em;
+  margin-top: 3px;
+}
+[data-product="development"] .progress-bar {
+  width: 140px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+[data-product="development"] .progress-bar .bar {
+  height: 6px; background: var(--bg-3);
+  border-radius: 999px; overflow: hidden;
+}
+[data-product="development"] .progress-bar .fill {
+  height: 100%; background: var(--amber);
+  border-radius: 999px;
+}
+[data-product="development"] .progress-bar .label {
+  font-family: var(--mono-font); font-size: 10px;
+  color: var(--ink-3); letter-spacing: 0.08em;
+  display: flex; justify-content: space-between;
+}
+
+[data-product="development"] .health-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px;
+  border-radius: 4px;
+  font-family: var(--mono-font); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  border: 1px solid transparent;
+}
+[data-product="development"] .health-pill.green { color: var(--ok); border-color: rgba(79,138,93,0.4); background: rgba(79,138,93,0.08); }
+[data-product="development"] .health-pill.amber { color: var(--amber); border-color: rgba(255,107,53,0.4); background: rgba(255,107,53,0.08); }
+[data-product="development"] .health-pill.red { color: var(--danger); border-color: rgba(194,71,78,0.4); background: rgba(194,71,78,0.08); }
+
+[data-product="development"] .num-kpi {
+  font-family: var(--mono-font);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product="development"] .num-kpi .l {
+  display: block;
+  font-family: var(--mono-font); font-size: 9.5px;
+  color: var(--ink-3); letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  font-weight: 400;
+}
+
+/* Milestone timeline */
+[data-product="development"] .milestone-row {
+  display: grid;
+  grid-template-columns: 100px 1fr auto auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+[data-product="development"] .milestone-row .when {
+  font-family: var(--mono-font); font-size: 11px;
+  color: var(--ink-3); letter-spacing: 0.08em;
+}
+[data-product="development"] .milestone-row .name { color: var(--ink); font-weight: 500; }
+[data-product="development"] .milestone-row.done .name { text-decoration: line-through; color: var(--ink-3); }
+[data-product="development"] .milestone-row .check {
+  width: 16px; height: 16px;
+  border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--line-2);
+  color: transparent;
+  font-size: 10px;
+}
+[data-product="development"] .milestone-row.done .check {
+  background: var(--ok); border-color: var(--ok); color: #fff;
+}
+[data-product="development"] .milestone-row.next .check {
+  border-color: var(--amber); background: var(--bg-3);
+}
+</style>
+</head>
+<body>
+<div class="ds-app">
+  <aside class="ds-toc">
+    <div class="ds-mark"><span class="glyph"></span> Arconique · Phase 2.2</div>
+    <h1>Mgmt + Dev P1</h1>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Mgmt P1</div>
+      <nav class="tpl-nav">
+        <a href="../mgmt-p1/bookings.html"><span class="num">01</span> Bookings</a>
+        <a href="../mgmt-p1/finance.html"><span class="num">02</span> Finance · Statements</a>
+        <a href="../mgmt-p1/owners.html"><span class="num">03</span> Owners</a>
+        <a href="../mgmt-p1/operations.html"><span class="num">04</span> Operations</a>
+      </nav>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Dev P1</div>
+      <nav class="tpl-nav">
+        <a href="projects.html" class="on"><span class="num">01</span> Projects + PM</a>
+        <a href="cfo.html"><span class="num">02</span> CFO / Finance</a>
+        <a href="boq-qs.html"><span class="num">03</span> BOQ + QS</a>
+        <a href="procurement.html"><span class="num">04</span> Procurement</a>
+      </nav>
+    </div>
+    <div class="ds-toc-group">
+      <div class="ds-toc-group-title">Reference</div>
+      <nav class="tpl-nav">
+        <a href="../../templates/index.html">↗ Templates (Phase 2.1)</a>
+        <a href="../../design-system.html">↗ Design system (Phase 2.0)</a>
+      </nav>
+    </div>
+  </aside>
+
+  <div class="ds-main">
+    <header class="ds-tabs">
+      <button class="ds-tab on" data-product-tab="development" style="--swatch:#FF6B35">
+        <span class="swatch"></span> Development OS <span class="tag">DEV</span>
+      </button>
+      <div class="ds-meta">
+        <span>Dev P1 · 01 · Projects + PM</span>
+        <span class="pill">Engineering-grade</span>
+      </div>
+    </header>
+
+    <div class="ds-content">
+
+      <!-- INTRO -->
+      <section class="ds-section">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Dev P1 · 01</div>
+            <h2>Projects + project-manager cabinet</h2>
+            <p>4-6 active villa-development projects at any time. Each project = a 12-30 month build (Eternal Phase 02 cluster, Ahau Phase 01 retrofit, etc.). Owned by a Project Manager who tracks budget burn, milestone schedule, RFI/RFA queue, and contractor performance. CFO and BOQ-QS cabinets read from Project records; this cabinet is where PM actually <em>works</em>.</p>
+          </div>
+          <div class="ds-section-meta">
+            <span>Project Manager · CFO read</span>
+            <span>•</span>
+            <span>Engineering-grade UI</span>
+          </div>
+        </div>
+
+        <div class="anchor-nav">
+          <a href="#ia">↓ IA</a>
+          <a href="#list">↓ List</a>
+          <a href="#detail">↓ Project detail</a>
+          <a href="#milestones">↓ Milestones</a>
+          <a href="#new">↓ New project</a>
+          <a href="#spec">↓ For Claude Code</a>
+        </div>
+
+        <div class="spec-card-warm">
+          <h4>Visual tone — engineering-grade</h4>
+          <p>Dev OS uses Space Grotesk + IBM Plex Mono, amber accent on carbon-tinted surfaces. <strong style="color:var(--doc-fg)">Less warmth than Mgmt, more precision.</strong> Numbers are everywhere — every column is tabular-nums, every variance gets a percentage, every milestone has a target date + actual date. Read like an engineer's spreadsheet, not a hotelier's dashboard.</p>
+        </div>
+      </section>
+
+      <!-- IA -->
+      <section class="ds-section" id="ia">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Anatomy</div>
+            <h2 style="font-size:22px">Information architecture</h2>
+          </div>
+        </div>
+
+        <div class="ia">
+          <div class="lhs"><h4>Routes</h4><div class="v">Top-level: <code style="font-family:var(--doc-mono);color:var(--doc-accent);background:rgba(228,217,184,0.08);padding:1px 6px;border-radius:4px;font-size:11px;">/development-os/projects/*</code></div></div>
+          <ul>
+            <li><code>/development-os/projects</code> · List · 6 active projects <span class="badge new">2.2</span></li>
+            <li><code>/development-os/projects/[id]</code> · Detail · 6 tabs (Overview / Milestones / BOQ → / Procurement → / Team / Documents) <span class="badge new">2.2</span></li>
+            <li><code>/development-os/projects/[id]/milestones</code> · Standalone milestone editor (gantt-lite) <span class="badge new">2.2</span></li>
+            <li><code>/development-os/projects/new</code> · Lg-modal-or-page <span class="badge new">2.2</span></li>
+            <li><code>/development-os/cabinets/project-manager</code> · PM personal queue (cross-project) <span class="badge live">refactored 2.1 scaffold</span></li>
+          </ul>
+        </div>
+
+        <div class="ia" style="margin-top:14px">
+          <div class="lhs"><h4>Agents</h4></div>
+          <ul>
+            <li><code>schedule-variance-detector</code> · Compares planned vs actual milestone slip · daily 05:30 <span class="badge new">2.2</span></li>
+            <li><code>rfi-router</code> · Routes incoming RFIs to right discipline (arch / struct / MEP) <span class="badge new">2.2</span></li>
+            <li><code>weekly-report-composer</code> · Auto-drafts Friday investor update per project <span class="badge new">2.2</span></li>
+          </ul>
+        </div>
+
+        <div class="ia" style="margin-top:14px">
+          <div class="lhs"><h4>Modals</h4></div>
+          <ul>
+            <li><code>&lt;NewProjectModal&gt;</code> · form-lg · 4 steps (Identity → Site → Phasing → Team) <span class="badge new">2.2</span></li>
+            <li><code>&lt;AddMilestoneModal&gt;</code> · form-md · dependency picker <span class="badge new">2.2</span></li>
+            <li><code>&lt;AssignPmModal&gt;</code> · form-sm · staff picker filtered by role=PM <span class="badge new">2.2</span></li>
+            <li><code>&lt;RFIComposeModal&gt;</code> · form-md · routes via <code>rfi-router</code> <span class="badge new">2.2</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- LIST -->
+      <section class="ds-section" id="list">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Screen 1</div>
+            <h2 style="font-size:22px">Projects list · <code style="font-family:var(--doc-mono);color:var(--doc-accent);background:rgba(228,217,184,0.08);padding:1px 6px;border-radius:4px;font-size:14px;">/development-os/projects</code></h2>
+            <p>Card-list (not table) — projects deserve more vertical real estate than a tabular row. Each card: thumbnail · name + sub · progress bar · budget num · schedule pill · health pill.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" data-product="development" style="padding:20px;background:#1A1A1F;">
+          <div class="shell-preview">
+            <main>
+              <div class="page-header" style="padding:24px 28px 18px;margin:0;border-bottom:1px solid var(--line);background:var(--bg-2)">
+                <div class="left">
+                  <div class="crumb" style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);letter-spacing:0.12em;text-transform:uppercase"><a href="#">Dev OS</a> / <span>Projects</span></div>
+                  <h1>Projects</h1>
+                </div>
+                <div class="actions">
+                  <button class="btn btn-ghost btn-sm">Export</button>
+                  <button class="btn btn-dark btn-sm">↗ Investor view</button>
+                  <button class="btn btn-amber btn-sm">+ New project</button>
+                </div>
+              </div>
+
+              <div style="padding:18px 28px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                <div class="kpi accent"><div class="label">Active projects</div><div class="v">6</div><div class="sub">3 building · 2 design · 1 closing</div></div>
+                <div class="kpi"><div class="label">Capex committed</div><div class="v">$14.2M</div><div class="sub">of $24.6M total budget</div></div>
+                <div class="kpi"><div class="label">RFIs open</div><div class="v">11</div><div class="sub">2 &gt; 5d unresolved</div></div>
+                <div class="kpi"><div class="label">Schedule health</div><div class="v">4 ★</div><div class="sub">2 amber · 0 red</div></div>
+              </div>
+
+              <div style="padding:20px 28px 28px;display:flex;flex-direction:column;gap:10px">
+                <div class="proj-card">
+                  <div class="proj-thumb">EV02</div>
+                  <div>
+                    <h3 class="proj-name">Eternal Villa · Phase 02</h3>
+                    <div class="proj-sub">UBUD · 8 VILLAS · BUILDING · WEEK 36 OF 64</div>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="label"><span>58%</span><span>est. Dec 2026</span></div>
+                    <div class="bar"><div class="fill" style="width:58%"></div></div>
+                  </div>
+                  <span class="num-kpi"><span class="l">Budget</span>$1.42M / $2.45M</span>
+                  <span class="num-kpi"><span class="l">Variance</span><span style="color:var(--warn)">+8.6%</span></span>
+                  <span class="health-pill amber">Amber · BOQ alert</span>
+                  <button class="btn btn-dark btn-sm">Open →</button>
+                </div>
+
+                <div class="proj-card">
+                  <div class="proj-thumb" style="background:linear-gradient(135deg,#2A4D5F,#88A89A)">EV03</div>
+                  <div>
+                    <h3 class="proj-name">Eternal Villa · Phase 03</h3>
+                    <div class="proj-sub">CANGGU · 6 VILLAS · DESIGN · WEEK 12 OF 18</div>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="label"><span>68%</span><span>design lock Q3</span></div>
+                    <div class="bar"><div class="fill" style="width:68%"></div></div>
+                  </div>
+                  <span class="num-kpi"><span class="l">Design fee</span>$184K / $260K</span>
+                  <span class="num-kpi"><span class="l">Variance</span><span style="color:var(--ok)">−2.1%</span></span>
+                  <span class="health-pill green">Green · on track</span>
+                  <button class="btn btn-dark btn-sm">Open →</button>
+                </div>
+
+                <div class="proj-card">
+                  <div class="proj-thumb" style="background:linear-gradient(135deg,#4A4A42,#6E6E64)">AH01</div>
+                  <div>
+                    <h3 class="proj-name">Ahau · Phase 01 retrofit</h3>
+                    <div class="proj-sub">CANGGU · 4 VILLAS · BUILDING · WEEK 22 OF 28</div>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="label"><span>82%</span><span>est. Aug 2026</span></div>
+                    <div class="bar"><div class="fill" style="width:82%"></div></div>
+                  </div>
+                  <span class="num-kpi"><span class="l">Budget</span>$1.86M / $2.30M</span>
+                  <span class="num-kpi"><span class="l">Variance</span><span style="color:var(--ok)">−1.4%</span></span>
+                  <span class="health-pill green">Green · MEP done</span>
+                  <button class="btn btn-dark btn-sm">Open →</button>
+                </div>
+
+                <div class="proj-card">
+                  <div class="proj-thumb" style="background:linear-gradient(135deg,#9C7F3F,#D8B354)">EN05</div>
+                  <div>
+                    <h3 class="proj-name">Enso · Pool annex</h3>
+                    <div class="proj-sub">UBUD · 1 AMENITY · BUILDING · WEEK 8 OF 14</div>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="label"><span>34%</span><span>est. Sep 2026</span></div>
+                    <div class="bar"><div class="fill" style="width:34%"></div></div>
+                  </div>
+                  <span class="num-kpi"><span class="l">Budget</span>$224K / $384K</span>
+                  <span class="num-kpi"><span class="l">Variance</span><span style="color:var(--warn)">+4.8%</span></span>
+                  <span class="health-pill amber">Amber · schedule slip</span>
+                  <button class="btn btn-dark btn-sm">Open →</button>
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+        <div class="frame-cap">List · 4 of 6 cards · progress bar · variance % · health pill (amber/green) · tabular nums</div>
+      </section>
+
+      <!-- DETAIL -->
+      <section class="ds-section" id="detail">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Screen 2</div>
+            <h2 style="font-size:22px">Project detail · <code style="font-family:var(--doc-mono);color:var(--doc-accent);background:rgba(228,217,184,0.08);padding:1px 6px;border-radius:4px;font-size:14px;">/development-os/projects/[id]</code></h2>
+            <p>Template 05 assembly A · 6 tabs. Overview = current state at a glance. <strong style="color:var(--doc-fg)">BOQ + Procurement tabs link to those cabinets</strong> filtered by project — they're not embedded, they're cross-references.</p>
+          </div>
+        </div>
+
+        <div class="ds-preview" data-product="development" style="padding:20px;background:#1A1A1F;">
+          <div class="shell-preview" style="display:block">
+            <main>
+              <div class="page-header" style="padding:24px 28px 18px;margin:0;border-bottom:1px solid var(--line);background:var(--bg-2)">
+                <div class="left">
+                  <div class="crumb" style="font-family:var(--mono-font);font-size:11px;color:var(--ink-3);letter-spacing:0.12em;text-transform:uppercase"><a href="#">Dev OS</a> / <a href="#">Projects</a> / <span>EV-Phase-02</span></div>
+                  <h1>Eternal Villa · Phase 02</h1>
+                  <div style="display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;align-items:center">
+                    <span class="health-pill amber">AMBER</span>
+                    <span style="font-family:var(--mono-font);font-size:11.5px;color:var(--ink-3);letter-spacing:0.08em">UBUD · 8 VILLAS · WK 36/64 · 58% DONE · $1.42M / $2.45M (+8.6%)</span>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn btn-ghost btn-sm">Weekly report</button>
+                  <button class="btn btn-dark btn-sm">+ RFI</button>
+                  <button class="btn btn-amber btn-sm">+ Milestone</button>
+                </div>
+              </div>
+
+              <nav style="display:flex;padding:0 28px;border-bottom:1px solid var(--line);background:var(--bg-2)">
+                <button class="dp-tab on" style="padding:14px 16px;font-size:13.5px;color:var(--ink);border:0;background:transparent;cursor:pointer;border-bottom:2px solid var(--amber);margin-bottom:-1px;font-weight:500">Overview</button>
+                <button class="dp-tab" style="padding:14px 16px;font-size:13.5px;color:var(--ink-3);border:0;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px">Milestones <span style="font-family:var(--mono-font);font-size:10.5px;padding:1px 6px;background:var(--bg-3);border-radius:999px;color:var(--ink-3);margin-left:6px">22</span></button>
+                <button class="dp-tab" style="padding:14px 16px;font-size:13.5px;color:var(--ink-3);border:0;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px">BOQ ↗</button>
+                <button class="dp-tab" style="padding:14px 16px;font-size:13.5px;color:var(--ink-3);border:0;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px">Procurement ↗</button>
+                <button class="dp-tab" style="padding:14px 16px;font-size:13.5px;color:var(--ink-3);border:0;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px">Team <span style="font-family:var(--mono-font);font-size:10.5px;padding:1px 6px;background:var(--bg-3);border-radius:999px;color:var(--ink-3);margin-left:6px">14</span></button>
+                <button class="dp-tab" style="padding:14px 16px;font-size:13.5px;color:var(--ink-3);border:0;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px">Documents</button>
+              </nav>
+
+              <div style="display:flex;flex:1">
+                <div style="flex:1;padding:22px 28px 60px;min-width:0">
+                  <!-- KPIs -->
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+                    <div class="kpi"><div class="label">Schedule</div><div class="v">58%</div><div class="sub">3w behind plan</div></div>
+                    <div class="kpi accent"><div class="label">Budget burn</div><div class="v">$1.42M</div><div class="sub">+8.6% vs plan</div></div>
+                    <div class="kpi"><div class="label">RFIs open</div><div class="v">4</div><div class="sub">1 &gt; 5d</div></div>
+                    <div class="kpi"><div class="label">Next milestone</div><div class="v">14d</div><div class="sub">MEP rough-in done</div></div>
+                  </div>
+
+                  <!-- Next milestones panel -->
+                  <div class="panel" style="background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:0;overflow:hidden;margin-bottom:14px">
+                    <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center">
+                      <h3 style="margin:0;font-family:var(--display-font);font-weight:500;font-size:18px;color:var(--ink)">Upcoming milestones</h3>
+                      <span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);letter-spacing:0.1em;text-transform:uppercase;margin-left:auto">4 NEXT · NEXT 90D</span>
+                    </div>
+                    <div style="padding:6px 18px">
+                      <div class="milestone-row next">
+                        <span class="when">10 JUN</span>
+                        <div><span class="name">MEP rough-in complete</span><span style="color:var(--ink-3);margin-left:8px;font-size:12px">all 8 villas</span></div>
+                        <span class="num-kpi" style="font-size:12.5px">14d away</span>
+                        <span class="health-pill green">Forecast hit</span>
+                        <span class="check">✓</span>
+                      </div>
+                      <div class="milestone-row">
+                        <span class="when">28 JUN</span>
+                        <div><span class="name">Marble &amp; tile lay starts</span><span style="color:var(--ink-3);margin-left:8px;font-size:12px">WP-04</span></div>
+                        <span class="num-kpi" style="font-size:12.5px">32d away</span>
+                        <span class="health-pill amber">Supply risk · Hindari</span>
+                        <span class="check">✓</span>
+                      </div>
+                      <div class="milestone-row">
+                        <span class="when">22 JUL</span>
+                        <div><span class="name">Pool deck waterproofing</span><span style="color:var(--ink-3);margin-left:8px;font-size:12px">villas 1-4</span></div>
+                        <span class="num-kpi" style="font-size:12.5px">8w away</span>
+                        <span class="health-pill green">On plan</span>
+                        <span class="check">✓</span>
+                      </div>
+                      <div class="milestone-row">
+                        <span class="when">18 AUG</span>
+                        <div><span class="name">Joinery installation</span><span style="color:var(--ink-3);margin-left:8px;font-size:12px">all 8</span></div>
+                        <span class="num-kpi" style="font-size:12.5px">12w away</span>
+                        <span class="health-pill green">On plan</span>
+                        <span class="check">✓</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- RFIs panel -->
+                  <div class="panel" style="background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:0;overflow:hidden">
+                    <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center">
+                      <h3 style="margin:0;font-family:var(--display-font);font-weight:500;font-size:18px;color:var(--ink)">Open RFIs · 4</h3>
+                      <span style="font-family:var(--mono-font);font-size:10px;color:var(--ink-3);letter-spacing:0.1em;text-transform:uppercase;margin-left:auto"><span class="pulse-dot accent"></span>RFI-ROUTER · 8M AGO</span>
+                    </div>
+                    <table class="data">
+                      <thead><tr><th>Ref</th><th>Question</th><th>Discipline</th><th>Routed to</th><th>Age</th><th></th></tr></thead>
+                      <tbody>
+                        <tr><td class="mono" style="font-size:11px">RFI-EV02-038</td><td>Door frame depth — kitchen pantry</td><td><span class="badge">Arch</span></td><td>Aditya (Studio Lim)</td><td class="mono" style="color:var(--warn);font-size:11px">6d</td><td style="text-align:right;color:var(--ink-3)">→</td></tr>
+                        <tr><td class="mono" style="font-size:11px">RFI-EV02-037</td><td>Structural — cantilever load villa 5</td><td><span class="badge">Struct</span></td><td>PT. Bali Engineers</td><td class="mono" style="color:var(--ink-3);font-size:11px">3d</td><td style="text-align:right;color:var(--ink-3)">→</td></tr>
+                        <tr><td class="mono" style="font-size:11px">RFI-EV02-036</td><td>HVAC ductwork clearance</td><td><span class="badge">MEP</span></td><td>Putra (MEP lead)</td><td class="mono" style="color:var(--ink-3);font-size:11px">2d</td><td style="text-align:right;color:var(--ink-3)">→</td></tr>
+                        <tr><td class="mono" style="font-size:11px">RFI-EV02-035</td><td>Pool depth zoning villa 7</td><td><span class="badge">Arch</span></td><td>Aditya (Studio Lim)</td><td class="mono" style="color:var(--ink-3);font-size:11px">1d</td><td style="text-align:right;color:var(--ink-3)">→</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <aside style="width:300px;flex-shrink:0;background:var(--bg-2);border-left:1px solid var(--line);padding:22px;display:flex;flex-direction:column;gap:14px;overflow-y:auto">
+                  <div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px">
+                    <div style="font-family:var(--mono-font);font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px">PM</div>
+                    <h4 style="margin:0;font-family:var(--display-font);font-weight:500;font-size:16px;color:var(--ink)">Ravi Kumar</h4>
+                    <div style="font-family:var(--sans-font);font-size:12.5px;color:var(--ink-3);line-height:1.5">Sr. PM · 14y · led EV Phase 01</div>
+                  </div>
+                  <div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px">
+                    <div style="font-family:var(--mono-font);font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px">Contractors · 4</div>
+                    <div style="font-family:var(--sans-font);font-size:12.5px;color:var(--ink);line-height:1.6">PT. Cipta Karya (main)<br>Studio Lim (arch)<br>PT. Bali Engineers (struct)<br>Putra MEP</div>
+                  </div>
+                  <div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px">
+                    <div style="font-family:var(--mono-font);font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px">Investors · 6</div>
+                    <div style="font-family:var(--sans-font);font-size:12.5px;color:var(--ink-3);line-height:1.5">$2.45M raised · last update 4d ago</div>
+                    <button class="btn btn-dark btn-sm" style="width:100%;margin-top:8px">Compose update</button>
+                  </div>
+                </aside>
+              </div>
+            </main>
+          </div>
+        </div>
+        <div class="frame-cap">Detail · Overview tab · 4 KPIs · milestones + RFIs panels · side: PM, contractors, investors</div>
+      </section>
+
+      <!-- MILESTONES + NEW + SPEC (compact) -->
+      <section class="ds-section" id="milestones">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Milestone editor</div>
+            <h2 style="font-size:22px">Milestone editor</h2>
+            <p>Standalone tab + standalone route. Gantt-lite — flat list with dependency indicator. Click any milestone → side-sheet for editing dates, dependencies, owners. Don't build a real Gantt — it's not worth the complexity for &lt;30 milestones per project.</p>
+          </div>
+        </div>
+
+        <div class="spec-grid">
+          <div>Columns</div><div>Target date · name · owner staff · status · dependencies (chip list) · actual completion date · delta days</div>
+          <div>Status enum</div><div><code>planned → in-progress → blocked → done</code> · plus <code>at-risk</code> derived state (target &lt;14d but not started)</div>
+          <div>Dependencies</div><div>Many-to-many via <code>milestone_dependencies</code> table. Mark dependency as <code>finish-to-start</code> (default) or <code>start-to-start</code>. Drag to reorder visually.</div>
+          <div>Schedule variance</div><div>Per milestone: <code>actual - target</code> in days. Aggregated to project-level. Drives the project-level "schedule health" pill (Green ≤7d slip · Amber 7-21d · Red &gt;21d).</div>
+        </div>
+      </section>
+
+      <section class="ds-section" id="new">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> Flow · New project</div>
+            <h2 style="font-size:22px">Onboard new project · 4-step lg flow</h2>
+          </div>
+        </div>
+
+        <div class="spec-grid">
+          <div>Step 1 · Identity</div><div>Project name · code prefix (EV-Phase-02 style) · type (new-build / retrofit / amenity) · target completion · brief description</div>
+          <div>Step 2 · Site</div><div>Location · land size · zoning · villa count · permits status</div>
+          <div>Step 3 · Phasing</div><div>Total budget · funding source · phases (design → permit → build → punchlist → handover) · target start/end per phase</div>
+          <div>Step 4 · Team + intake</div><div>Assign PM · core team roles · contractor pre-selection (optional) · enable AI agents (schedule variance / RFI router / weekly composer)</div>
+          <div>On submit</div><div>1. Creates project row<br>2. Seeds 4 baseline phase milestones<br>3. Provisions BOQ scaffold (empty workpackages)<br>4. Notifies PM with welcome packet<br>5. Schedules first weekly report for Friday</div>
+        </div>
+      </section>
+
+      <!-- FOR CLAUDE CODE -->
+      <section class="ds-section" id="spec">
+        <div class="ds-section-head">
+          <div>
+            <div class="ds-section-eyebrow"><span style="display:inline-block;width:6px;height:6px;background:var(--doc-accent);border-radius:2px;"></span> For Claude Code</div>
+            <h2 style="font-size:22px">Where this lands</h2>
+          </div>
+        </div>
+
+        <div class="spec-grid">
+          <div>Routes</div><div>
+            <code>src/app/(development-app)/development-os/projects/page.tsx</code> · list (new)<br>
+            <code>src/app/(development-app)/development-os/projects/[id]/page.tsx</code> · detail (new)<br>
+            <code>src/app/(development-app)/development-os/projects/[id]/milestones/page.tsx</code> · milestone editor (new)<br>
+            <code>src/app/(development-app)/development-os/cabinets/project-manager/page.tsx</code> · PM personal queue (refactor — exists from 2.1)
+          </div>
+          <div>Components</div><div>
+            <code>&lt;ProjectCard&gt;</code> · list-row card (grid layout, not table)<br>
+            <code>&lt;HealthPill level="green"|"amber"|"red" reason?&gt;</code><br>
+            <code>&lt;ProgressBar value pct?&gt;</code><br>
+            <code>&lt;NumKpi label value&gt;</code> · compact inline number+label combo<br>
+            <code>&lt;MilestoneRow milestone&gt;</code> · row in editor + overview panel<br>
+            All in <code>src/components/projects/</code>.
+          </div>
+          <div>Variance derivation</div><div>New <code>src/features/projects/health.ts</code> · <code>computeHealth(project): { schedule, budget, overall }</code>. Aggregates from milestones (schedule) + BOQ totals (budget). Cached daily, recomputed on milestone-edit.</div>
+          <div>Schema</div><div>
+            <code>projects</code> · new · id, code, name, type, status, target_completion, total_budget, pm_user_id<br>
+            <code>milestones</code> · new · FK project_id, name, target_date, actual_date?, status, owner_staff_id<br>
+            <code>milestone_dependencies</code> · new · FK from/to milestone_id, kind<br>
+            <code>rfis</code> · new · FK project_id, ref, question, discipline, routed_to_contact_id, opened_at, resolved_at?
+          </div>
+          <div>Cross-cabinet links</div><div>BOQ tab + Procurement tab are external links (pre-filtered by project_id). Don't embed those cabinets here — link out + breadcrumb back.</div>
+          <div>Modals</div><div>NewProjectModal (form-lg, 4 steps) · AddMilestoneModal · AssignPmModal · RFIComposeModal — all in <code>src/components/projects/</code></div>
+          <div>Agents</div><div>schedule-variance-detector · rfi-router · weekly-report-composer — all under <code>src/features/ai-agents/projects/</code></div>
+          <div>NOT in 2.2</div><div>Real Gantt with drag/drop · Critical Path computation · investor portal sub-route (deferred to investor cabinet · 2.6) · public progress page</div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function setProduct(p) {
+  document.querySelectorAll("[data-product-tab]").forEach(b => b.classList.toggle("on", b.dataset.productTab === p));
+  document.querySelectorAll(".ds-preview").forEach(d => d.setAttribute("data-product", p));
+}
+document.querySelectorAll("[data-product-tab]").forEach(b => b.addEventListener("click", () => setProduct(b.dataset.productTab)));
+setProduct("development");
+(function() {
+  const params = window.location.search;
+  if (!params) return;
+  document.querySelectorAll('a[href$=".html"], a[href*=".html#"]').forEach(a => {
+    const href = a.getAttribute('href');
+    if (!href || href.includes('?') || href.startsWith('http') || href.startsWith('#')) return;
+    const [path, hash] = href.split('#');
+    a.setAttribute('href', path + params + (hash ? '#' + hash : ''));
+  });
+})();
+</script>
+</body>
+</html>
