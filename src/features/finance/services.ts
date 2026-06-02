@@ -18,6 +18,7 @@ import {
 import { villas, projects } from "@/lib/db/schema/projects";
 import { owners } from "@/lib/db/schema/ownership";
 import type { WithSource } from "@/features/types";
+import type { OwnerStatementState } from "@/features/owner-statements/state-machine";
 
 // -----------------------------------------------------------------------------
 // Common row shapes
@@ -146,6 +147,8 @@ export interface OwnerStatementRow {
   adrMinor: bigint | null;
   revparMinor: bigint | null;
   status: "draft" | "issued" | "approved" | "paid" | "voided";
+  /** Owner-side lifecycle state (FC-OWNER-STATEMENTS) — drives the Mgmt list's owner column. */
+  ownerState: OwnerStatementState;
   issuedAt: string | null;
   createdAt: string;
 }
@@ -459,6 +462,7 @@ export async function listOwnerStatements(opts?: {
     adrMinor: row.s.adrMinor === null ? null : BigInt(row.s.adrMinor),
     revparMinor: row.s.revparMinor === null ? null : BigInt(row.s.revparMinor),
     status: row.s.status as OwnerStatementRow["status"],
+    ownerState: row.s.ownerState as OwnerStatementState,
     issuedAt: row.s.issuedAt?.toISOString() ?? null,
     createdAt: row.s.createdAt.toISOString(),
   }));

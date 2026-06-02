@@ -49,6 +49,7 @@ test("statementPdfFilename produces a stable Arconique-prefixed filename", async
     adrMinor: null,
     revparMinor: null,
     status: "issued",
+    ownerState: "pending" as const,
     issuedAt: null,
     createdAt: new Date().toISOString(),
   });
@@ -83,6 +84,7 @@ test("generateStatementExplanation produces deterministic bullets for empty inpu
     adrMinor: null,
     revparMinor: null,
     status: "issued" as const,
+    ownerState: "pending" as const,
     issuedAt: null,
     createdAt: new Date().toISOString(),
   };
@@ -120,6 +122,7 @@ test("generateStatementExplanation reports negative payout as deficit", async ()
     adrMinor: null,
     revparMinor: null,
     status: "issued" as const,
+    ownerState: "pending" as const,
     issuedAt: null,
     createdAt: new Date().toISOString(),
   };

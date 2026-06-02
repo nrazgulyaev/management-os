@@ -5,12 +5,18 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { ownerStatements } from "@/lib/db/schema/finance";
+import { ownerStatements, statementLines } from "@/lib/db/schema/finance";
+import { ownerThreads } from "@/lib/db/schema/owner-threads";
+import { recordAuditEvent } from "@/features/audit/services";
 import {
   generateAllPendingStatements,
   generateStatementForOwnerVilla,
 } from "@/features/finance/statement-generation";
-import { AUTO_ACK_DAYS } from "@/features/owner-statements/state-machine";
+import {
+  AUTO_ACK_DAYS,
+  assertTransition,
+  type OwnerStatementState,
+} from "@/features/owner-statements/state-machine";
 
 /**
  * STATEMENT-1 — Statement workflow server actions.
@@ -153,6 +159,137 @@ export async function markStatementSent(
   revalidatePath("/dashboard/finance");
   revalidatePath("/owner/statements");
   return { ok: true, emailReason };
+}
+
+/**
+ * FC-OWNER-STATEMENTS §4.4 — Director resolves a dispute and reissues a
+ * corrected statement (the bidirectional half: "owner disputes → admin
+ * resolves → revised statement appears for the owner").
+ *
+ *   1. create a revised statement (draft) copying the disputed row's facts +
+ *      its line items — the builder edits the correction, then approves+sends
+ *      (which re-arms the owner lifecycle via markStatementSent).
+ *   2. flip the old row owner_state disputed → superseded + link
+ *      superseded_by_id → the new row (migration 0117).
+ *   3. resolve the linked Mgmt Inbox dispute thread.
+ *
+ * Mgmt/org-scoped. The owner sees the old row as "Superseded" and re-enters at
+ * `pending` on the new row once it is sent.
+ */
+export async function resolveDisputeAndReissue(
+  statementId: string,
+): Promise<ActionResult & { newStatementId?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, error: "DB not configured" };
+  const user = await getCurrentAppUser();
+  if (!user) return { ok: false, error: "Sign in required" };
+
+  const old = await loadStatementForOrg(statementId);
+  if (!old) return { ok: false, error: "Statement not found" };
+  if (old.ownerState !== "disputed") {
+    return { ok: false, error: "Only a disputed statement can be resolved & reissued." };
+  }
+  // Server-enforced transition (MASTER §6).
+  assertTransition(old.ownerState as OwnerStatementState, "superseded");
+
+  // Unique revised code: strip any prior -R{n} suffix, append the count of
+  // statements already sharing (owner, period) so repeated reissues stay unique.
+  const base = old.statementCode.replace(/-R\d+$/, "");
+  const siblings = await db
+    .select({ id: ownerStatements.id })
+    .from(ownerStatements)
+    .where(
+      and(eq(ownerStatements.ownerId, old.ownerId), eq(ownerStatements.periodId, old.periodId)),
+    );
+  const revisedCode = `${base}-R${siblings.length}`;
+
+  // 1) revised statement — a draft copy the builder can correct.
+  const [created] = await db
+    .insert(ownerStatements)
+    .values({
+      ownerId: old.ownerId,
+      villaId: old.villaId,
+      projectId: old.projectId,
+      periodId: old.periodId,
+      statementCode: revisedCode,
+      managementModel: old.managementModel,
+      currency: old.currency,
+      grossRevenueMinor: old.grossRevenueMinor,
+      totalFeesMinor: old.totalFeesMinor,
+      totalExpensesMinor: old.totalExpensesMinor,
+      totalTaxesMinor: old.totalTaxesMinor,
+      totalReservesMinor: old.totalReservesMinor,
+      managementFeeMinor: old.managementFeeMinor,
+      netPayoutMinor: old.netPayoutMinor,
+      occupancyRate: old.occupancyRate,
+      adrMinor: old.adrMinor,
+      revparMinor: old.revparMinor,
+      annualizedYield: old.annualizedYield,
+      status: "draft",
+      organizationId: old.organizationId,
+      periodMonth: old.periodMonth,
+      operatorCommissionPct: old.operatorCommissionPct,
+      fxRateSnapshot: old.fxRateSnapshot,
+      netToOwnerUsdMinor: old.netToOwnerUsdMinor,
+      createdBy: user.id,
+      ownerState: "pending",
+    })
+    .returning({ id: ownerStatements.id });
+
+  // copy the line items so the revised draft is a valid starting point.
+  const oldLines = await db
+    .select()
+    .from(statementLines)
+    .where(eq(statementLines.statementId, statementId));
+  if (oldLines.length) {
+    await db.insert(statementLines).values(
+      oldLines.map((l) => ({
+        statementId: created.id,
+        lineType: l.lineType,
+        sourceTable: l.sourceTable,
+        sourceId: l.sourceId,
+        category: l.category,
+        description: l.description,
+        amountMinor: l.amountMinor,
+        currency: l.currency,
+        ownerVisible: l.ownerVisible,
+        sortOrder: l.sortOrder,
+      })),
+    );
+  }
+
+  // 2) supersede the old row (forward link).
+  await db
+    .update(ownerStatements)
+    .set({ ownerState: "superseded", supersededById: created.id, updatedAt: new Date() })
+    .where(eq(ownerStatements.id, statementId));
+
+  // 3) resolve the dispute thread.
+  if (old.disputeThreadId) {
+    await db
+      .update(ownerThreads)
+      .set({ status: "resolved", lastMessageAt: new Date() })
+      .where(eq(ownerThreads.id, old.disputeThreadId));
+  }
+
+  await recordAuditEvent({
+    actorUserId: user.id,
+    action: "statement.superseded",
+    entityType: "owner_statement",
+    entityId: statementId,
+    after: { supersededById: created.id, revisedCode },
+  });
+  await recordAuditEvent({
+    actorUserId: user.id,
+    action: "statement.reissued",
+    entityType: "owner_statement",
+    entityId: created.id,
+    after: { revisedFrom: statementId },
+  });
+
+  revalidatePath("/dashboard/finance");
+  revalidatePath("/owner/statements");
+  return { ok: true, newStatementId: created.id };
 }
 
 export async function generateAllForPeriod(periodMonth: string): Promise<ActionResult & { count?: number }> {

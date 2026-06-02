@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Download, Lock } from "lucide-react";
@@ -9,6 +9,7 @@ import {
 } from "@/features/finance/services";
 import { StatementDetail } from "@/components/finance/statement-detail";
 import { setStatementStatusAction } from "@/features/finance/actions";
+import { resolveDisputeAndReissue } from "@/features/finance/statement-actions";
 import { DetailPage } from "@/components/dashboard/detail/detail-page";
 import { DetailHeader } from "@/components/dashboard/detail/detail-header";
 import { DetailActionBar } from "@/components/dashboard/detail/detail-actionbar";
@@ -67,6 +68,8 @@ export default async function StatementDetailPage({
             <span>{statement.managementModel} model</span>
             <span>·</span>
             <span>STATUS: {statement.status}</span>
+            <span>·</span>
+            <span>OWNER: {statement.ownerState}</span>
           </>
         }
         actions={
@@ -97,6 +100,21 @@ export default async function StatementDetailPage({
                 </Button>
               </form>
             ))}
+            {statement.ownerState === "disputed" && (
+              <form
+                action={async () => {
+                  "use server";
+                  const res = await resolveDisputeAndReissue(id);
+                  if (res.ok && res.newStatementId) {
+                    redirect(`/dashboard/finance/statements/${res.newStatementId}`);
+                  }
+                }}
+              >
+                <Button type="submit" size="sm">
+                  Resolve &amp; reissue
+                </Button>
+              </form>
+            )}
           </div>
         }
       />

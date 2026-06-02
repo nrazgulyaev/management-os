@@ -134,3 +134,26 @@ export function canDispute(state: OwnerStatementState): boolean {
 export function isPending(state: OwnerStatementState): boolean {
   return state === "pending" || state === "viewed";
 }
+
+/**
+ * Mgmt-perspective label for the owner_state column on the Finance statements
+ * list (FC-OWNER-STATEMENTS §4.2). pending/viewed collapse to the derived
+ * "Awaiting" label the contract specifies.
+ */
+export function ownerStateMgmtLabel(state: OwnerStatementState): string {
+  switch (state) {
+    case "pending":
+    case "viewed":
+      return "Awaiting · owner has not acted";
+    case "acknowledged":
+      return "Acknowledged";
+    case "auto_acknowledged":
+      return "Auto-acknowledged";
+    case "disputed":
+      return "Disputed";
+    case "superseded":
+      return "Superseded";
+    default:
+      return state;
+  }
+}
