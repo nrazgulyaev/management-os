@@ -179,6 +179,8 @@ export const MGMT_DASHBOARD_NAV: DashboardNavGroup[] = [
     icon: "receipt",
     items: [
       { href: "/dashboard/finance", label: "Finance" },
+      { href: "/dashboard/finance/statements", label: "Owner statements" },
+      { href: "/dashboard/finance/disputes", label: "Owner disputes" },
       { href: "/dashboard/finance/transparency", label: "Statement transparency" },
       { href: "/dashboard/finance/material-usage", label: "Material usage bridge" },
       { href: "/dashboard/payments", label: "Payments" },
