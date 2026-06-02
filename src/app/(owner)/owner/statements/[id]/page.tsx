@@ -5,6 +5,7 @@ import {
   listStatementLines,
 } from "@/features/finance/services";
 import { getStatementDisputeState } from "@/features/owner-portal/get-statement-dispute-state";
+import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import {
   canAcknowledge,
   AUTO_ACK_DAYS,
@@ -39,6 +40,13 @@ export default async function OwnerStatementDetail({
   const { id } = await params;
   const statement = await getOwnerStatementById(id);
   if (!statement) notFound();
+
+  // Owner-scope guard: this statement must belong to the current owner.
+  // getOwnerStatementById reuses the mgmt (unscoped) query, so we enforce
+  // ownership here (defence-in-depth alongside RLS) now that the owner list
+  // links straight to this route.
+  const owner = await getCurrentOwnerContext();
+  if (!owner || statement.ownerId !== owner.ownerId) notFound();
 
   // Owner audience can only see lines flagged owner_visible. RLS restricts
   // access at the DB level; the audience flag is a UI safeguard.
