@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   integer,
+  boolean,
   jsonb,
   index,
   uniqueIndex,
@@ -117,6 +118,38 @@ export const smartLockAccessCodes = pgTable(
     index("smart_lock_access_codes_booking_idx").on(t.bookingId),
     index("smart_lock_access_codes_villa_idx").on(t.villaId),
     index("smart_lock_access_codes_status_idx").on(t.status),
+  ],
+);
+
+/**
+ * Guest check-in lifecycle (FC-GUEST-STAY-PORTAL / FC-MANAGEMENT-FRONT-OFFICE).
+ * One row per booking. The door code (smart_lock_access_codes) is only revealed
+ * to the guest once status = 'code_issued' (operator approval in Front office).
+ *   not_started → in_progress → submitted → approved → code_issued
+ * Migration 0118.
+ */
+export const checkins = pgTable(
+  "checkins",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bookingId: uuid("booking_id")
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("not_started"),
+    guestCount: integer("guest_count"),
+    eta: text("eta"),
+    passportUploaded: boolean("passport_uploaded").notNull().default(false),
+    notes: text("notes"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    codeIssuedAt: timestamp("code_issued_at", { withTimezone: true }),
+    approvedBy: uuid("approved_by").references(() => appUsers.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("checkins_booking_unique").on(t.bookingId),
+    index("checkins_status_idx").on(t.status),
   ],
 );
 
