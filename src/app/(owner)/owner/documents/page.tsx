@@ -1,75 +1,64 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FileText } from "lucide-react";
-import { SectionHeading, Card } from "@/components/dashboard/primitives";
-import { Badge } from "@/components/ui/badge";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
-import { listMyDocuments } from "@/features/owner-portal/owner-portal-queries";
+import { getOwnerDocuments, type OwnerDocument } from "@/features/owner-portal/get-documents";
+import { DocGroup } from "@/components/owner-portal/doc-group";
+import { DocRow } from "@/components/owner-portal/doc-row";
 
 /**
- * STORAGE-1-WIRE — Owner documents page wired to live `documents` rows.
- * Filtered to visibility ∈ {owner_visible, owner, public, investor_visible}
- * across the owner's villas/projects.
+ * Sprint OWNER-PORTAL · redesign owner-06 — Documents.
  *
- * Download links route through /api/storage/documents/[id]/signed-url
- * which returns a 1h signed URL from Supabase Storage. Endpoint is
- * STORAGE-1-WIRE-API follow-up (current visible-data state surfaces
- * directly; download flow goes through the existing endpoint when
- * deployed).
+ * Visual port of cc-handoff-bundle/cabinets/owner-p1/06-documents.html.
+ * Wires the Phase 2.3 owner-06 primitives (DocGroup / DocRow) to the
+ * `getOwnerDocuments` aggregate, which buckets owner-visible `documents`
+ * rows into the 4 cabinet sections (Agreements / Tax / Statements /
+ * Property & insurance). Download links route through the per-row
+ * `fileUrl` (/api/documents/[id]/download).
  */
 
 export const metadata = { title: "Documents" };
 export const dynamic = "force-dynamic";
 
-function fmtSize(bytes: number | null): string {
-  if (!bytes) return "—";
-  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
-  if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(0)} KB`;
-  return `${bytes} B`;
-}
-
-function typeColor(documentType: string): "outline" | "info" | "success" | "gold" {
-  switch (documentType) {
-    case "statement":
-    case "invoice":
-    case "receipt":
-      return "gold";
-    case "contract":
-    case "policy":
-      return "info";
-    case "kyc":
-    case "certificate":
-      return "success";
-    default:
-      return "outline";
-  }
+function subFor(d: OwnerDocument): string | undefined {
+  if (d.sub) return d.sub;
+  if (d.status === "expired" && d.expiresAt) return `Expired ${d.expiresAt}`;
+  if (d.signedAt) return `Signed ${d.signedAt}`;
+  if (d.expiresAt) return `Valid to ${d.expiresAt}`;
+  return undefined;
 }
 
 export default async function OwnerDocumentsPage() {
   const owner = await getCurrentOwnerContext();
   if (!owner) redirect("/dashboard");
-  const docs = await listMyDocuments(owner.ownerId).catch(() => []);
+
+  const { groups } = await getOwnerDocuments(owner.ownerId);
+  const totalDocs = groups.reduce((n, g) => n + g.documents.length, 0);
 
   return (
-    <>
-      <SectionHeading
-        eyebrow="Portfolio · documents"
-        title="Documents"
-        subtitle={
-          docs.length === 0
-            ? "Operator-shared documents for your villas. Nothing on file yet."
-            : `${docs.length} ${docs.length === 1 ? "document" : "documents"} on file for your villas. Statement PDFs are on the Statements page.`
-        }
-      />
+    <div className="flex flex-col gap-6">
+      <div>
+        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary mb-2">
+          Your documents
+        </div>
+        <h1
+          className="display"
+          style={{ fontSize: 36, fontWeight: 400, margin: 0, lineHeight: 1.05, letterSpacing: "-0.02em", color: "var(--ink)" }}
+        >
+          Documents
+        </h1>
+        <p className="text-[14px] text-ink-tertiary mt-2 max-w-[680px]">
+          {totalDocs === 0
+            ? "Operator-shared documents for your villas appear here — management agreements, tax filings, statement archives, and insurance certificates."
+            : `${totalDocs} ${totalDocs === 1 ? "document" : "documents"} on file across your villas. Monthly statement PDFs also live on the Statements page.`}
+        </p>
+      </div>
 
-      {docs.length === 0 ? (
-        <Card style={{ padding: 32, borderStyle: "dashed" }}>
-          <FileText className="w-8 h-8 text-ink-tertiary mb-3" strokeWidth={1.5} />
-          <p className="text-sm text-ink-tertiary italic mb-2">
-            No documents shared yet. Your operator can upload management
-            agreements, financial filings, insurance certificates, and
-            building permits — they appear here.
+      {totalDocs === 0 ? (
+        <div className="rounded-[14px] border border-dashed border-line-strong p-8 flex flex-col gap-2">
+          <p className="text-sm text-ink-tertiary italic">
+            Nothing shared yet. Your operator can upload management agreements,
+            financial filings, insurance certificates, and building permits —
+            they appear here, grouped by type.
           </p>
           <p className="text-xs text-ink-tertiary">
             Statement PDFs are always available on the{" "}
@@ -78,58 +67,38 @@ export default async function OwnerDocumentsPage() {
             </Link>{" "}
             page.
           </p>
-        </Card>
+        </div>
       ) : (
         <>
-          <h2 className="display" style={{ fontSize: 22, marginBottom: 14, fontWeight: 500 }}>
-            All documents · on file
-          </h2>
-          <Card style={{ padding: 0, overflow: "hidden" }}>
-            <Table>
-              <THead>
-                <TR>
-                  <TH>Title</TH>
-                  <TH>Type</TH>
-                  <TH>Filename</TH>
-                  <TH className="text-right">Size</TH>
-                  <TH>Uploaded</TH>
-                  <TH />
-                </TR>
-              </THead>
-              <TBody>
-                {docs.map((d) => (
-                  <TR key={d.id}>
-                    <TD className="font-medium">{d.title}</TD>
-                    <TD>
-                      <Badge tone={typeColor(d.documentType)}>
-                        {d.documentType.replace(/_/g, " ")}
-                      </Badge>
-                    </TD>
-                    <TD className="font-mono text-xs text-ink-tertiary">
-                      {d.fileName ?? "—"}
-                    </TD>
-                    <TD className="text-right font-mono tabular-nums text-sm">
-                      {fmtSize(d.sizeBytes)}
-                    </TD>
-                    <TD className="font-mono text-xs text-ink-tertiary">
-                      {new Date(d.createdAt).toLocaleDateString("en-GB")}
-                    </TD>
-                    <TD className="text-right">
-                      <Link
-                        href={`/api/storage/documents/${d.id}/signed-url`}
-                        target="_blank"
-                        className="text-xs text-ink-secondary hover:text-terra"
-                      >
-                        Download →
-                      </Link>
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </Card>
+          {groups.map((g) => (
+            <DocGroup key={g.key} title={g.title} helper={g.helper}>
+              {g.documents.length === 0 ? (
+                <p className="dr-sub mono" style={{ padding: "10px 4px", color: "var(--ink-4)" }}>
+                  Nothing on file yet.
+                </p>
+              ) : (
+                g.documents.map((d) => (
+                  <DocRow
+                    key={d.id}
+                    name={d.name}
+                    sub={subFor(d)}
+                    kind={d.kind}
+                    status={d.status}
+                    fileUrl={d.fileUrl}
+                  />
+                ))
+              )}
+            </DocGroup>
+          ))}
+
+          <p className="text-[12px] text-ink-tertiary">
+            Looking for a monthly statement?{" "}
+            <Link href="/owner/statements" className="text-terra hover:underline">
+              Open Statements →
+            </Link>
+          </p>
         </>
       )}
-    </>
+    </div>
   );
 }
