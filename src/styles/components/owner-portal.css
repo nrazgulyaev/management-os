@@ -14,6 +14,24 @@
      .quick-action-grid     — 4-up / 2-up action cards
    ============================================================= */
 
+/* ---------- --c-* token alias (owner-03/04/06/07 namespace) ----------
+   The later owner primitives (calendar / villa-hero / photo-grid / docs /
+   settings / inbox) reference a --c-* namespace that was never defined.
+   Alias it onto the standard owner palette here, scoped to the owner
+   cabinet (OwnerShell sets data-product="owner"), so all 90+ usages
+   resolve in one place. */
+[data-product="owner"] {
+  --c-surface:    var(--paper);
+  --c-border:     var(--line-soft, var(--line));
+  --c-bg-muted:   var(--cream-warm);
+  --c-text:       var(--ink);
+  --c-text-muted: var(--ink-3);
+}
+/* The owner Toggle draws its knob via .toggle-knob; suppress the forms.css
+   `.toggle::after` phantom knob inside the owner cabinet (both match the
+   same element) so the switch doesn't render a double dot. */
+[data-product="owner"] .toggle::after { content: none; }
+
 /* ---------- Narrative typography overrides ---------- */
 [data-density="narrative"] .greet,
 .owner-portal .greet,

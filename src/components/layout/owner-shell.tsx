@@ -25,7 +25,12 @@ export function OwnerShell({
 }) {
   const pathname = usePathname();
   return (
-    <div className="min-h-screen bg-canvas">
+    // data-product="owner" scopes the owner-portal component CSS
+    // (owner-portal.css uses [data-product="owner"] selectors + the --c-*
+    // token alias). The owner cabinet is served on the management host, so
+    // the html element is data-product="management" — this nested scope is
+    // what makes the calendar / villa / docs / settings primitives resolve.
+    <div data-product="owner" className="min-h-screen bg-canvas">
       {ownerContext.isImpersonating && (
         <div
           style={{
