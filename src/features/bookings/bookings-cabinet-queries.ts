@@ -1,7 +1,11 @@
 import "server-only";
 
-import { sql } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, lt, lte, notInArray, sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { villas } from "@/lib/db/schema/projects";
+import { bookings, guests } from "@/lib/db/schema/bookings";
+import { ownerStayRequests } from "@/lib/db/schema/owner-stays";
+import { villaCalendarBlocks } from "@/lib/db/schema/availability";
 // SHAPE-FIX-1 / DAILY-DIGEST P0 — rowsOf handles postgres-js Array shape.
 // TODO(DB-SHAPE-CODEMOD-1): adjacent files in this module still pending full sweep.
 
@@ -213,84 +217,171 @@ export async function getBookingsKpis(): Promise<BookingsKpis> {
   };
 }
 
+export type CalendarBlockKind = "confirmed" | "hold" | "owner";
+export interface CalendarBlock {
+  id: string;
+  kind: CalendarBlockKind;
+  label: string;
+  /** ISO YYYY-MM-DD */
+  checkIn: string;
+  checkOut: string;
+  href?: string;
+}
 export interface CalendarVillaRow {
   villaId: string;
   villaCode: string;
-  blocks: Array<{
-    bookingId: string;
-    bookingCode: string;
-    guestName: string | null;
-    checkIn: string;
-    checkOut: string;
-    status: string;
-    channelKey: string | null;
-  }>;
+  villaName: string | null;
+  blocks: CalendarBlock[];
 }
 
-export async function getNext14NightsTimeline(startDate?: string): Promise<CalendarVillaRow[]> {
+/**
+ * Occupancy timeline for the Bookings calendar grid: every active villa
+ * over an N-night window with its guest bookings (confirmed = green,
+ * tentative/inquiry = hold/terra), owner stays (gold) and internal holds
+ * (terra) merged into colour-coded blocks. Rate plans / channel sync are
+ * NOT here — they live in their own cabinets.
+ */
+export async function getNext14NightsTimeline(
+  startDate?: string,
+  nights = 14,
+): Promise<CalendarVillaRow[]> {
   const db = getDb();
   if (!db) return [];
   const start = startDate ?? new Date().toISOString().slice(0, 10);
-  // 14-night window: any booking that overlaps [start, start+14).
-  const rows = await db.execute<{
-    villa_id: string;
-    villa_code: string;
-    booking_id: string | null;
-    booking_code: string | null;
-    guest_name: string | null;
-    check_in: string | null;
-    check_out: string | null;
-    status: string | null;
-    channel_key: string | null;
-  }>(sql`
-    SELECT v.id::text             AS villa_id,
-           v.unit_code             AS villa_code,
-           b.id::text              AS booking_id,
-           b.booking_code          AS booking_code,
-           b.notes                 AS guest_name,
-           b.check_in::text        AS check_in,
-           b.check_out::text       AS check_out,
-           b.status                AS status,
-           bc.key                  AS channel_key
-      FROM villas v
-      LEFT JOIN bookings b ON b.villa_id = v.id
-                          AND b.check_in <  (${start}::date + INTERVAL '14 days')
-                          AND b.check_out > ${start}::date
-                          AND b.status IN ('confirmed','checked_in','checked_out')
-      LEFT JOIN booking_channels bc ON bc.id = b.channel_id
-     WHERE v.status NOT IN ('archived','out_of_service')
-     ORDER BY v.unit_code, b.check_in NULLS LAST
-  `);
-  const data = rowsOf<{
-    villa_id: string;
-    villa_code: string;
-    booking_id: string | null;
-    booking_code: string | null;
-    guest_name: string | null;
-    check_in: string | null;
-    check_out: string | null;
-    status: string | null;
-    channel_key: string | null;
-  }>(rows);
+  const endIso = new Date(new Date(`${start}T00:00:00.000Z`).getTime() + nights * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const startTs = new Date(`${start}T00:00:00.000Z`);
+  const endTs = new Date(`${endIso}T00:00:00.000Z`);
+
+  const villaRows = await db
+    .select({ id: villas.id, unitCode: villas.unitCode, name: villas.name })
+    .from(villas)
+    .where(notInArray(villas.status, ["archived", "out_of_service"]))
+    .orderBy(asc(villas.unitCode));
+  if (villaRows.length === 0) return [];
+  const villaIds = villaRows.map((v) => v.id);
+
+  const [bookingRows, ownerRows, holdRows] = await Promise.all([
+    db
+      .select({
+        id: bookings.id,
+        villaId: bookings.villaId,
+        code: bookings.bookingCode,
+        notes: bookings.notes,
+        guestName: guests.fullName,
+        checkIn: bookings.checkIn,
+        checkOut: bookings.checkOut,
+        status: bookings.status,
+      })
+      .from(bookings)
+      .leftJoin(guests, eq(guests.id, bookings.guestId))
+      .where(
+        and(
+          inArray(bookings.villaId, villaIds),
+          inArray(bookings.status, [
+            "confirmed",
+            "checked_in",
+            "checked_out",
+            "tentative",
+            "inquiry",
+          ]),
+          lt(bookings.checkIn, endIso),
+          gt(bookings.checkOut, start),
+        ),
+      ),
+    db
+      .select({
+        id: ownerStayRequests.id,
+        villaId: ownerStayRequests.villaId,
+        checkIn: ownerStayRequests.requestedStart,
+        checkOut: ownerStayRequests.requestedEnd,
+        status: ownerStayRequests.status,
+      })
+      .from(ownerStayRequests)
+      .where(
+        and(
+          inArray(ownerStayRequests.villaId, villaIds),
+          inArray(ownerStayRequests.status, [
+            "requested",
+            "approved",
+            "confirmed",
+            "active",
+            "completed",
+          ]),
+          lte(ownerStayRequests.requestedStart, endIso),
+          gte(ownerStayRequests.requestedEnd, start),
+        ),
+      ),
+    db
+      .select({
+        id: villaCalendarBlocks.id,
+        villaId: villaCalendarBlocks.villaId,
+        startsAt: villaCalendarBlocks.startsAt,
+        endsAt: villaCalendarBlocks.endsAt,
+        title: villaCalendarBlocks.title,
+      })
+      .from(villaCalendarBlocks)
+      .where(
+        and(
+          inArray(villaCalendarBlocks.villaId, villaIds),
+          eq(villaCalendarBlocks.status, "active"),
+          eq(villaCalendarBlocks.blockType, "internal_hold"),
+          lte(villaCalendarBlocks.startsAt, endTs),
+          gte(villaCalendarBlocks.endsAt, startTs),
+        ),
+      ),
+  ]);
+
+  const clean = (s: string | null | undefined) =>
+    s?.replace(/^\[DEMO2?\]\s*/, "").trim() || null;
 
   const byVilla = new Map<string, CalendarVillaRow>();
-  for (const r of data) {
-    let row = byVilla.get(r.villa_id);
-    if (!row) {
-      row = { villaId: r.villa_id, villaCode: r.villa_code, blocks: [] };
-      byVilla.set(r.villa_id, row);
-    }
-    if (r.booking_id && r.check_in && r.check_out && r.booking_code) {
-      row.blocks.push({
-        bookingId: r.booking_id,
-        bookingCode: r.booking_code,
-        guestName: r.guest_name?.replace(/^\[DEMO2\] /, "").trim() || null,
-        checkIn: r.check_in,
-        checkOut: r.check_out,
-        status: r.status ?? "confirmed",
-        channelKey: r.channel_key,
-      });
-    }
+  for (const v of villaRows) {
+    byVilla.set(v.id, {
+      villaId: v.id,
+      villaCode: v.unitCode,
+      villaName: v.name,
+      blocks: [],
+    });
+  }
+
+  for (const b of bookingRows) {
+    const row = byVilla.get(b.villaId);
+    if (!row) continue;
+    const confirmed =
+      b.status === "confirmed" || b.status === "checked_in" || b.status === "checked_out";
+    row.blocks.push({
+      id: `b-${b.id}`,
+      kind: confirmed ? "confirmed" : "hold",
+      label: clean(b.guestName) ?? clean(b.notes) ?? b.code ?? "Guest",
+      checkIn: b.checkIn,
+      checkOut: b.checkOut,
+      href: `/dashboard/bookings/${b.id}`,
+    });
+  }
+  for (const o of ownerRows) {
+    if (!o.villaId) continue;
+    const row = byVilla.get(o.villaId);
+    if (!row) continue;
+    row.blocks.push({
+      id: `o-${o.id}`,
+      kind: "owner",
+      label: "Owner stay",
+      checkIn: o.checkIn,
+      checkOut: o.checkOut,
+    });
+  }
+  for (const h of holdRows) {
+    const row = byVilla.get(h.villaId);
+    if (!row) continue;
+    row.blocks.push({
+      id: `h-${h.id}`,
+      kind: "hold",
+      label: h.title || "Hold",
+      checkIn: h.startsAt.toISOString().slice(0, 10),
+      checkOut: h.endsAt.toISOString().slice(0, 10),
+    });
   }
   return Array.from(byVilla.values());
 }
