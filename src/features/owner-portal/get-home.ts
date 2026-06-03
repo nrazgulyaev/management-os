@@ -221,7 +221,7 @@ async function readHome(ownerId: string): Promise<OwnerHome> {
       href: `/owner/villas/${v.villaId}`,
       code: v.villaCode ?? "—",
       name: v.villaName ?? v.villaCode ?? "Villa",
-      bedrooms: 0, // future: surfaced from `villas` join
+      bedrooms: v.bedrooms,
       occupancyPct: Math.round(v.occupancyPct),
       netUsd: Number(v.mtdNetUsdMinor) / 100,
       location: v.projectName ?? undefined,
