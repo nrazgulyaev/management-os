@@ -50,6 +50,22 @@ function nightsBetween(checkIn: string, checkOut: string): number {
   return Math.max(1, Math.round((b.getTime() - a.getTime()) / 86_400_000));
 }
 
+/**
+ * Owner-portal privacy: owners never see full guest names on their
+ * calendar — only masked initials (preserves the masking the legacy
+ * owner-calendar enforced; emails / phones / access codes are never
+ * selected here). Booking codes (no PII) pass through unchanged.
+ */
+function maskGuestName(fullName: string): string {
+  const initials = fullName
+    .split(/[\s·.,]+/)
+    .filter((p) => p.length > 0)
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join("");
+  return initials ? `Guest ${initials}` : "Guest";
+}
+
 const BOOKING_STATUSES_FOR_CAL = ["confirmed", "checked_in", "checked_out"] as const;
 
 export async function getOwnerCalendar(
@@ -128,8 +144,7 @@ export async function getOwnerCalendar(
       kind: "guest",
       startDate: r.checkIn,
       endDate: r.checkOut,
-      label:
-        r.guestName ?? r.bookingCode,
+      label: r.guestName ? maskGuestName(r.guestName) : r.bookingCode,
     });
   }
   for (const r of stayRows) {
@@ -196,8 +211,7 @@ export async function getOwnerCalendar(
       id: `b-${r.id}`,
       villaCode: villaCodeById.get(r.villaId) ?? "Villa",
       dateLabel: r.checkIn,
-      guestOrLabel:
-        r.guestName ?? r.bookingCode,
+      guestOrLabel: r.guestName ? maskGuestName(r.guestName) : r.bookingCode,
       nights: nightsBetween(r.checkIn, r.checkOut),
       kind: "guest",
       state: "confirmed",
