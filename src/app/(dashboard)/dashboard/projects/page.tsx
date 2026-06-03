@@ -31,6 +31,9 @@ export default async function ProjectsPage() {
         actions={
           <div className="flex gap-2 items-center">
             <SourceBadge source={source} />
+            <Link href="/dashboard/projects/new-complex" className="btn btn-secondary btn-sm">
+              + New complex
+            </Link>
             <ProjectAddButton />
           </div>
         }
