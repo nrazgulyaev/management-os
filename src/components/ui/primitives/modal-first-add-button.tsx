@@ -69,7 +69,7 @@ export interface ModalFirstAddButtonProps<TFormProps extends object> {
   /** Modal width tier — defaults to "lg" to fit most entity forms. */
   size?: "sm" | "md" | "lg" | "xl";
   /** Button variant — defaults to primary. */
-  variant?: "primary" | "secondary";
+  variant?: "primary" | "secondary" | "accent";
   /** Optional data-testid for E2E selectors. */
   testId?: string;
   /** Hide the leading "+" icon (rare; default is to show it). */
@@ -107,7 +107,7 @@ export function ModalFirstAddButton<TFormProps extends object>({
     <>
       <Button
         onClick={() => setOpen(true)}
-        variant={variant === "primary" ? "primary" : "secondary"}
+        variant={variant}
         disabled={disabled}
         data-testid={testId}
       >
