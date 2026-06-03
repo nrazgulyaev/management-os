@@ -24,6 +24,7 @@ export function BookingAddButton({
   return (
     <ModalFirstAddButton
       label={label}
+      variant="accent"
       modalTitle="New manual booking"
       modalDescription="Record a booking that arrived outside an OTA — direct, agent referral, or in-person request. Fees follow the channel default; override per booking when needed."
       formComponent={BookingForm}

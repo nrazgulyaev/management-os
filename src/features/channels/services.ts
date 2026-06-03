@@ -29,14 +29,25 @@ export async function listBookingChannels(): Promise<WithSource<ChannelRow>[]> {
   const db = getDb();
   if (!db) return fallback;
   const rows = await db.select().from(bookingChannels).orderBy(asc(bookingChannels.name));
-  return rows.map((r) => ({
-    source: "db",
-    id: r.id,
-    key: r.key,
-    name: r.name,
-    type: r.type as ChannelRow["type"],
-    commissionModel: r.commissionModel as ChannelRow["commissionModel"],
-    defaultCommissionPct: r.defaultCommissionPct === null ? null : Number(r.defaultCommissionPct),
-    status: r.status as ChannelRow["status"],
-  }));
+  // De-dupe channels that were seeded more than once (same key or display
+  // name) so the picker + roster show each channel once. Keeps the first
+  // (alphabetical) row per identity; the underlying rows are untouched.
+  const seen = new Set<string>();
+  return rows
+    .map((r) => ({
+      source: "db" as const,
+      id: r.id,
+      key: r.key,
+      name: r.name,
+      type: r.type as ChannelRow["type"],
+      commissionModel: r.commissionModel as ChannelRow["commissionModel"],
+      defaultCommissionPct: r.defaultCommissionPct === null ? null : Number(r.defaultCommissionPct),
+      status: r.status as ChannelRow["status"],
+    }))
+    .filter((c) => {
+      const ident = c.name.trim().toLowerCase();
+      if (seen.has(ident)) return false;
+      seen.add(ident);
+      return true;
+    });
 }

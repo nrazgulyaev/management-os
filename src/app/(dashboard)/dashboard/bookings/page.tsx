@@ -1,16 +1,9 @@
 import Link from "next/link";
-import {
-  Kpi,
-  Card,
-  HandoffBadge,
-} from "@/components/dashboard/primitives";
+import { Kpi, Card } from "@/components/dashboard/primitives";
 import {
   listBookingsForCabinet,
   getBookingsKpis,
   getNext14NightsTimeline,
-  getRatePlans,
-  getChannelSyncStatus,
-  getConflictResolverItems,
 } from "@/features/bookings/bookings-cabinet-queries";
 import { BookingsListClient, type BookingRowVM } from "./_list-client";
 import { BookingAddButton } from "@/components/bookings/booking-add-button";
@@ -75,13 +68,10 @@ export default async function BookingsPage({
   // helper; today the filters are display-only.
   const initialActive = parseFilters(params, ["status", "channel", "date"]);
 
-  const [list, kpis, timeline, ratePlans, channels, conflicts] = await Promise.all([
+  const [list, kpis, timeline] = await Promise.all([
     listBookingsForCabinet(25).catch(() => []),
     getBookingsKpis().catch(() => null),
     getNext14NightsTimeline().catch(() => []),
-    getRatePlans().catch(() => []),
-    getChannelSyncStatus().catch(() => []),
-    getConflictResolverItems().catch(() => []),
   ]);
   // Data for the "New booking" modal (the real BookingForm — villa dropdown,
   // channels, guests). Same shapes as /dashboard/bookings/new.
@@ -255,93 +245,6 @@ export default async function BookingsPage({
         )}
       </Card>
 
-      {/* 2-up: Rate plans + Channel sync */}
-      <div
-        id="rate-plans"
-        className="grid grid-cols-[1.2fr_1fr] gap-3.5 mb-[18px]"
-      >
-        <Card padding="none" overflowHidden>
-          <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
-            <h3 className="display-sm">Rate plans · active</h3>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed ml-auto"
-              disabled
-              title="Coming soon"
-            >
-              + New plan
-            </button>
-          </div>
-          {ratePlans.length === 0 ? (
-            <p className="p-5 text-[13px] text-ink-3 italic m-0">
-              No rate plans configured. Dynamic-pricing schema lands in DEMO-3.
-            </p>
-          ) : (
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>Plan</th>
-                  <th>Channels</th>
-                  <th>Base</th>
-                  <th>Multipliers</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ratePlans.map((p) => (
-                  <tr key={p.planName}>
-                    <td className="serif text-[14px]">{p.planName}</td>
-                    <td className="text-[12px] text-ink-3">{p.channels.join(", ")}</td>
-                    <td className="mono text-[12px]">
-                      {fmtUsdMinor(p.basePriceUsdMinor)}/night
-                    </td>
-                    <td className="text-[12px] text-ink-3">{p.multipliers}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </Card>
-
-        <Card id="channels" padding="none" overflowHidden>
-          <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
-            <h3 className="display-sm">Channels</h3>
-            <span className="mono ml-auto text-[10px] text-ink-3">
-              SYNC NOT CONFIGURED
-            </span>
-          </div>
-          {channels.length === 0 ? (
-            <p className="p-5 text-[13px] text-ink-3 italic m-0">
-              No channels yet.
-            </p>
-          ) : (
-            <ul className="clean py-1">
-              {channels.map((c) => (
-                <li key={c.channelKey} className="px-[18px] py-2.5">
-                  <span className="w-2 h-2 rounded-full bg-ink-3" />
-                  <div className="flex-1">
-                    <div className="text-[13px] font-medium">{c.channelName}</div>
-                    <div className="mono text-[10.5px] text-ink-4">
-                      sync schema lands in DEMO-3
-                    </div>
-                  </div>
-                  <HandoffBadge>Roster</HandoffBadge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-
-      {/* Conflict resolver — empty state */}
-      {conflicts.length > 0 && (
-        <Card
-          id="sync"
-          className="p-5 mb-[18px] bg-cream-warm border border-dashed border-terra"
-        >
-          <div className="label text-terra">
-            {conflicts.length} channel {conflicts.length === 1 ? "conflict" : "conflicts"}
-          </div>
-        </Card>
-      )}
     </>
   );
 }
