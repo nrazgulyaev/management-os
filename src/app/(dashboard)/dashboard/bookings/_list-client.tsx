@@ -1,19 +1,17 @@
 "use client";
 
 /**
- * Phase 2.1 PR 2 — Bookings list client wrapper (proof-of-life for
- * template 04 ListPage shell).
+ * Bookings list client — mgmt-p1/bookings prototype.
  *
- * Owns selection + sort + filter state on the client. The parent
- * server page resolves the row data, formats it (no `bigint` across
- * the RSC boundary), and hands it down as a plain array. The FilterBar
- * URL-syncs `?status=`/`?channel=`/`?date=` via `useRouter().replace`;
- * the parent server page reads those on next render for SSR
- * filtering once a real filter resolver lands.
+ * Owns selection + sort + filter state on the client and filters the
+ * rows live: the FilterBar chips (status / channel / date) and the
+ * search box now actually narrow the table (no server round-trip).
+ * Channel column renders brand-tinted pills; rows tint by arrival
+ * state (arriving / departing / in-stay); the status cell derives an
+ * arrival-centric badge from status + dates.
  *
- * Bulk actions are no-ops in this proof-of-life — they alert() to
- * confirm the wire-through and write nothing. Wiring real mutations
- * is a 2.2 task.
+ * Bulk actions remain proof-of-life (alert/no-op) pending the 2.2
+ * mutation wiring.
  */
 
 import * as React from "react";
@@ -32,8 +30,10 @@ export interface BookingRowVM {
   id: string;
   bookingCode: string;
   villaCode: string;
+  channelKey: string | null;
   channelName: string | null;
   guestName: string | null;
+  /** Raw ISO YYYY-MM-DD (the client formats + derives arrival state). */
   checkIn: string;
   checkOut: string;
   nights: number;
@@ -46,15 +46,29 @@ interface BookingsListClientProps {
   initialActive: ActiveFilter[];
 }
 
-const STATE_BADGE: Record<string, { tone?: "ok" | "info" | "gold" | "warn"; label: string }> = {
-  confirmed: { tone: "ok", label: "Confirmed" },
-  checked_in: { tone: "gold", label: "In-house" },
-  checked_out: { tone: "warn", label: "Checked out" },
-  inquiry: { label: "Inquiry" },
-  tentative: { label: "Tentative" },
-  cancelled: { label: "Cancelled" },
-  no_show: { label: "No show" },
-};
+// ---- channel pill ---------------------------------------------------------
+function channelPill(key: string | null, name: string | null): { cls: string; label: string } {
+  const k = (key ?? "").toLowerCase();
+  if (k.includes("airbnb")) return { cls: "airbnb", label: "AIRBNB" };
+  if (k.includes("booking")) return { cls: "bcom", label: "BOOKING.COM" };
+  if (k.includes("agoda")) return { cls: "agoda", label: "AGODA" };
+  if (k.includes("travel") || k === "ta") return { cls: "ta", label: "TRAVEL AGENT" };
+  if (k.includes("direct") || !k) return { cls: "direct", label: "DIRECT" };
+  return { cls: "direct", label: (name ?? "DIRECT").toUpperCase() };
+}
+
+// ---- arrival-centric state -----------------------------------------------
+type ArrivalBadge = { tone?: "ok" | "info" | "gold"; label: string; rowClass: string };
+function arrivalBadge(status: string, checkIn: string, checkOut: string, today: string): ArrivalBadge {
+  if (status === "cancelled") return { label: "Cancelled", rowClass: "row-cancelled" };
+  if (status === "no_show") return { label: "No show", rowClass: "row-cancelled" };
+  if (status === "checked_out" || checkOut < today) return { label: "Checked out", rowClass: "" };
+  if (checkIn === today) return { tone: "ok", label: "Arriving", rowClass: "row-arriving" };
+  if (checkOut === today) return { tone: "gold", label: "Departs", rowClass: "row-departing" };
+  if (checkIn < today && checkOut > today) return { tone: "ok", label: "In stay", rowClass: "row-instay" };
+  if (checkIn > today) return { tone: "info", label: "Pre-arrival", rowClass: "" };
+  return { label: status.replace(/_/g, " "), rowClass: "" };
+}
 
 function initials(name: string | null): string {
   if (!name) return "—";
@@ -64,6 +78,15 @@ function initials(name: string | null): string {
     .map((p) => p[0])
     .join("")
     .slice(0, 2)
+    .toUpperCase();
+}
+
+function fmtCheckIn(iso: string, today: string): string {
+  const d = new Date(iso + "T00:00:00Z");
+  if (Number.isNaN(d.getTime())) return iso;
+  if (iso === today) return "TODAY";
+  return d
+    .toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })
     .toUpperCase();
 }
 
@@ -101,20 +124,54 @@ const FILTER_DEFS: FilterDef[] = [
   },
 ];
 
+function dateMatches(checkIn: string, value: string, today: string): boolean {
+  if (!value || value === "all") return true;
+  const ci = new Date(checkIn + "T00:00:00Z").getTime();
+  const t = new Date(today + "T00:00:00Z").getTime();
+  const day = 86_400_000;
+  if (value === "next-30") return ci >= t && ci <= t + 30 * day;
+  if (value === "last-30") return ci <= t && ci >= t - 30 * day;
+  if (value === "this-month") return checkIn.slice(0, 7) === today.slice(0, 7);
+  return true;
+}
+
 export function BookingsListClient({ rows, initialActive }: BookingsListClientProps) {
   const [active, setActive] = React.useState<ActiveFilter[]>(initialActive);
+  const [search, setSearch] = React.useState("");
   const [sortDir, setSortDir] = React.useState<SortDirection>("desc");
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [confirmCancel, setConfirmCancel] = React.useState(false);
+  // Stable "today" for arrival derivation + date filters (same SSR/CSR value).
+  const [today] = React.useState(() => new Date().toISOString().slice(0, 10));
 
-  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
-  const someSelected = selected.size > 0 && !allSelected;
+  const filtered = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (q) {
+        const hay = `${r.bookingCode} ${r.villaCode} ${r.guestName ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      for (const f of active) {
+        if (!f.values.length) continue;
+        if (f.key === "status" && !f.values.includes(r.status)) return false;
+        if (f.key === "channel") {
+          const ck = (r.channelKey ?? "direct").toLowerCase();
+          if (!f.values.some((v) => ck.includes(v))) return false;
+        }
+        if (f.key === "date" && !dateMatches(r.checkIn, f.values[0], today)) return false;
+      }
+      return true;
+    });
+  }, [rows, active, search, today]);
 
   const sorted = React.useMemo(() => {
-    if (sortDir === null) return rows;
-    const out = [...rows].sort((a, b) => a.bookingCode.localeCompare(b.bookingCode));
+    if (sortDir === null) return filtered;
+    const out = [...filtered].sort((a, b) => a.bookingCode.localeCompare(b.bookingCode));
     return sortDir === "desc" ? out.reverse() : out;
-  }, [rows, sortDir]);
+  }, [filtered, sortDir]);
+
+  const allSelected = sorted.length > 0 && sorted.every((r) => selected.has(r.id));
+  const someSelected = selected.size > 0 && !allSelected;
 
   function toggleRow(id: string) {
     setSelected((prev) => {
@@ -124,30 +181,26 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
       return next;
     });
   }
-
   function toggleAll() {
     if (allSelected) setSelected(new Set());
-    else setSelected(new Set(rows.map((r) => r.id)));
+    else setSelected(new Set(sorted.map((r) => r.id)));
   }
 
   const bulkActions: BulkAction[] = [
-    { id: "move", label: "Move to project", onRun: () => alert(`Move ${selected.size} → project (PR 2 proof-of-life)`) },
-    { id: "edit", label: "Bulk edit", onRun: () => alert(`Bulk edit ${selected.size} (PR 2 proof-of-life)`) },
-    { id: "export", label: `Export ${selected.size}`, onRun: () => alert(`Export ${selected.size} (PR 2 proof-of-life)`) },
+    { id: "move", label: "Move to project", onRun: () => alert(`Move ${selected.size} → project (proof-of-life)`) },
+    { id: "edit", label: "Bulk edit", onRun: () => alert(`Bulk edit ${selected.size} (proof-of-life)`) },
+    { id: "export", label: `Export ${selected.size}`, onRun: () => alert(`Export ${selected.size} (proof-of-life)`) },
     { id: "cancel", label: "Cancel bookings", danger: true, onRun: () => setConfirmCancel(true) },
   ];
 
   const topBar = selected.size > 0 ? (
-    <BulkBar
-      selectedCount={selected.size}
-      actions={bulkActions}
-      onClear={() => setSelected(new Set())}
-    />
+    <BulkBar selectedCount={selected.size} actions={bulkActions} onClear={() => setSelected(new Set())} />
   ) : (
     <FilterBar
       filters={FILTER_DEFS}
       active={active}
       onChange={setActive}
+      onSearchChange={setSearch}
       searchPlaceholder="Search villa, guest, code…"
     />
   );
@@ -161,14 +214,16 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
           body="Add a villa to your portfolio first, then bookings will sync from Airbnb, Booking.com and direct."
           actions={
             <>
-              <Link href="/dashboard/villas" className="btn btn-primary btn-sm">
-                Add a villa
-              </Link>
-              <Link href="/dashboard/channels" className="btn btn-secondary btn-sm">
-                Connect channels →
-              </Link>
+              <Link href="/dashboard/villas" className="btn btn-primary btn-sm">Add a villa</Link>
+              <Link href="/dashboard/channels" className="btn btn-secondary btn-sm">Connect channels →</Link>
             </>
           }
+        />
+      ) : sorted.length === 0 ? (
+        <EmptyState
+          variant="no-results"
+          title="No bookings match"
+          body="Try clearing a filter or widening the date range."
         />
       ) : (
         <table className="data">
@@ -185,30 +240,28 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
                   aria-label="Select all on this page"
                 />
               </th>
-              <SortableHeader
-                column="bookingCode"
-                direction={sortDir}
-                onToggle={setSortDir}
-              >
+              <SortableHeader column="bookingCode" direction={sortDir} onToggle={setSortDir}>
                 Code
               </SortableHeader>
-              <th>Guest</th>
               <th>Villa</th>
+              <th>Guest</th>
               <th>Channel</th>
-              <th>Stay</th>
-              <th className="num">Nights</th>
+              <th>Check-in</th>
+              <th className="num">N</th>
               <th className="num">Gross</th>
-              <th>State</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {sorted.map((b) => {
-              const badge = STATE_BADGE[b.status] ?? { label: b.status };
+              const badge = arrivalBadge(b.status, b.checkIn, b.checkOut, today);
+              const pill = channelPill(b.channelKey, b.channelName);
               const isSelected = selected.has(b.id);
               return (
                 <tr
                   key={b.id}
-                  style={isSelected ? { background: "color-mix(in oklab, var(--terra) 5%, transparent)" } : undefined}
+                  className={badge.rowClass || undefined}
+                  style={isSelected ? { background: "color-mix(in oklab, var(--terra) 6%, transparent)" } : undefined}
                 >
                   <td className="cb">
                     <input
@@ -219,19 +272,22 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
                     />
                   </td>
                   <td className="mono text-[11px] text-ink-3">{b.bookingCode}</td>
+                  <td className="row-title">{b.villaCode}</td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <span className="w-[26px] h-[26px] rounded-full bg-muted border border-line flex items-center justify-center text-[10px]">
+                      <span className="w-[24px] h-[24px] rounded-full bg-muted border border-line flex items-center justify-center text-[10px]">
                         {initials(b.guestName)}
                       </span>
                       <span>{b.guestName ?? "Guest"}</span>
                     </div>
                   </td>
-                  <td className="mono">{b.villaCode}</td>
-                  <td className="text-ink-3">{b.channelName ?? "Direct"}</td>
-                  <td className="mono text-[12px]">
-                    {b.checkIn} → {b.checkOut}
+                  <td>
+                    <span className={`channel-pill ${pill.cls}`}>
+                      <span className="dot" />
+                      {pill.label}
+                    </span>
                   </td>
+                  <td className="mono text-[12px]">{fmtCheckIn(b.checkIn, today)}</td>
                   <td className="num">{b.nights}</td>
                   <td className="num">{b.grossUsdFormatted}</td>
                   <td>
@@ -244,13 +300,8 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
         </table>
       )}
 
-      {rows.length > 0 && (
-        <PagerNumbered
-          total={rows.length}
-          page={1}
-          perPage={20}
-          urlKeyPrefix=""
-        />
+      {sorted.length > 0 && (
+        <PagerNumbered total={sorted.length} page={1} perPage={20} urlKeyPrefix="" />
       )}
 
       <DestructiveConfirmModal
@@ -265,12 +316,7 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
         }
         confirmLabel="Yes, cancel & refund"
         cancelLabel="Keep bookings"
-        onConfirm={() => {
-          // PR 3 proof-of-life — wires to the cancel server action
-          // in 2.2; today we just clear the selection so the bar
-          // collapses back to the FilterBar.
-          setSelected(new Set());
-        }}
+        onConfirm={() => setSelected(new Set())}
       />
     </ListPage>
   );

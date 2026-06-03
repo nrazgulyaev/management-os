@@ -1,6 +1,6 @@
+import Link from "next/link";
 import {
   Kpi,
-  SectionHeading,
   Card,
   HandoffBadge,
 } from "@/components/dashboard/primitives";
@@ -55,11 +55,6 @@ function fmtIdrFromUsd(usdMinor: bigint): string {
   return `IDR ${Math.round(idr / 1000)}K`;
 }
 
-function fmtDateShort(iso: string): string {
-  const d = new Date(iso + "T00:00:00Z");
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-}
-
 // PR 2 — STATE_BADGE + initials helpers moved into _list-client.tsx
 // when the table rendering became client-side (selection + sort
 // require client state).
@@ -106,72 +101,57 @@ export default async function BookingsPage({
 
   return (
     <>
-      <SectionHeading
-        eyebrow={`Bookings · live across ${channels.length || "—"} channels`}
-        title={
-          <>
-            {list.length === 0
-              ? "No bookings yet."
-              : `${list.length} ${list.length === 1 ? "booking" : "bookings"}`}{" "}
-            <em>in motion</em>
-          </>
-        }
-        subtitle="One source of truth for every channel. Live rows from your bookings table — channel sync and per-villa rate plans coming soon."
-        actions={
-          <>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Import iCal
-            </button>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Export CSV
-            </button>
-            <BookingAddButton
-              villas={villaList.map((v) => ({
-                id: v.id,
-                label: `${v.unitCode} · ${v.projectName}`,
-              }))}
-              channels={channelList.map((c) => ({ id: c.id, label: c.name, key: c.key }))}
-              guests={guestList.map((g) => ({ id: g.id, label: g.fullName }))}
-              label="New booking"
-            />
-          </>
-        }
-      />
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> / <span>Bookings</span>
+          </div>
+          <h1>Bookings</h1>
+        </div>
+        <div className="actions">
+          <button
+            className="btn btn-ghost btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            Export
+          </button>
+          <Link href="/dashboard/bookings/calendar" className="btn btn-secondary btn-sm">
+            ↗ Calendar
+          </Link>
+          <BookingAddButton
+            villas={villaList.map((v) => ({
+              id: v.id,
+              label: `${v.unitCode} · ${v.projectName}`,
+            }))}
+            channels={channelList.map((c) => ({ id: c.id, label: c.name, key: c.key }))}
+            guests={guestList.map((g) => ({ id: g.id, label: g.fullName }))}
+            label="New booking"
+          />
+        </div>
+      </div>
 
-      <div className="grid grid-cols-5 gap-3 mb-[18px]">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
         <Kpi
-          label="Bookings · MTD"
-          value={kpis && kpis.bookingsMtd > 0 ? String(kpis.bookingsMtd) : "—"}
-          sub="this month"
+          label="Today · arrivals"
+          value={kpis ? String(kpis.todayArrivals) : "—"}
+          sub="checking in today"
+          tone="accent"
         />
         <Kpi
-          label="ADR · MTD"
-          value={kpis && kpis.adrMtdUsdMinor > 0n ? fmtIdrFromUsd(kpis.adrMtdUsdMinor) : "—"}
-          sub="avg per night"
-          tone={kpis && kpis.adrMtdUsdMinor > 0n ? "accent" : undefined}
+          label="In-stay tonight"
+          value={kpis ? String(kpis.inStayTonight) : "—"}
+          sub="across your villas"
         />
         <Kpi
-          label="Lead time avg"
-          value={kpis && kpis.leadTimeAvgDays > 0 ? `${kpis.leadTimeAvgDays} days` : "—"}
-          sub="created → check-in · YTD"
+          label="7d gross"
+          value={kpis && kpis.gross7dUsdMinor > 0n ? fmtIdrFromUsd(kpis.gross7dUsdMinor) : "—"}
+          sub="last 7 days"
         />
         <Kpi
-          label="Channel conflicts"
+          label="Auto-reply rate"
           value="—"
-          sub="channel sync coming soon"
-        />
-        <Kpi
-          label="Cancellation rate"
-          value={kpis ? `${kpis.cancellationRatePct}%` : "—"}
-          sub="YTD"
+          sub="messaging metrics soon"
         />
       </div>
 
@@ -183,10 +163,11 @@ export default async function BookingsPage({
             id: b.id,
             bookingCode: b.bookingCode,
             villaCode: b.villaCode,
+            channelKey: b.channelKey,
             channelName: b.channelName,
             guestName: b.guestName,
-            checkIn: fmtDateShort(b.checkIn),
-            checkOut: fmtDateShort(b.checkOut),
+            checkIn: b.checkIn,
+            checkOut: b.checkOut,
             nights: b.nights,
             grossUsdFormatted: fmtUsdMinor(b.grossUsdMinor),
             status: b.status,
