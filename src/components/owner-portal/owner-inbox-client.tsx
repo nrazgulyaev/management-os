@@ -1,0 +1,62 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { ThreadList, type ThreadListItem } from "@/components/owner-portal/thread-list";
+import { ThreadView, type ThreadMessage } from "@/components/owner-portal/thread-view";
+import { postOwnerThreadReplyAction } from "@/features/owner-portal/thread-actions";
+
+/**
+ * redesign owner-05 — inbox master-detail wrapper.
+ *
+ * Thread selection routes through ?thread=<id> (server reloads the
+ * selected thread + messages); replies post through the existing
+ * postOwnerThreadReplyAction and refresh the stream. Read-only under
+ * impersonation (the action enforces requireOwnerWrite server-side).
+ */
+export function OwnerInboxClient({
+  threads,
+  selectedId,
+  subject,
+  counterpart,
+  messages,
+}: {
+  threads: ThreadListItem[];
+  selectedId: string | null;
+  subject: string | null;
+  counterpart: string;
+  messages: ThreadMessage[];
+}) {
+  const router = useRouter();
+
+  async function send(body: string) {
+    if (!selectedId) return;
+    const fd = new FormData();
+    fd.set("threadId", selectedId);
+    fd.set("body", body);
+    const res = await postOwnerThreadReplyAction(null, fd);
+    if (res.ok) router.refresh();
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 items-start">
+      <ThreadList
+        threads={threads}
+        selectedId={selectedId}
+        onSelect={(id) => router.push(`/owner/inbox?thread=${id}`)}
+      />
+      {selectedId && subject ? (
+        <ThreadView
+          subject={subject}
+          counterpart={counterpart}
+          messages={messages}
+          onSend={send}
+        />
+      ) : (
+        <div className="rounded-[14px] border border-line-soft bg-surface flex items-center justify-center p-10 text-sm text-ink-tertiary">
+          Select a conversation to read and reply.
+        </div>
+      )}
+    </div>
+  );
+}
