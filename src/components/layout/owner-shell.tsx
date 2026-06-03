@@ -70,7 +70,7 @@ export function OwnerShell({
       )}
       <header className="sticky top-0 z-40 border-b border-line-soft bg-canvas/90 backdrop-blur">
         <div className="max-w-[1120px] mx-auto flex items-center justify-between px-6 md:px-8 h-16">
-          <Logo />
+          <Logo subtitle="Owner Portal" title="Arconique Owner Portal" />
           <nav className="hidden md:flex items-center gap-1">
             {ownerNav.map((item) => {
               const active =
@@ -82,7 +82,7 @@ export function OwnerShell({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "px-3 py-2 rounded-sm text-sm transition-colors",
+                    "px-3 py-2 rounded-sm text-sm whitespace-nowrap transition-colors",
                     active
                       ? "text-ink"
                       : "text-ink-secondary hover:text-ink"

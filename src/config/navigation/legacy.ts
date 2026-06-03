@@ -326,16 +326,19 @@ export const dashboardNav: NavGroup[] = [
   },
 ];
 
+// Owner cabinet nav — mirrors the 7 owner-p1 prototype screens
+// (home / villas / calendar / statements / documents / inbox / settings).
+// The standalone /owner/bookings, /owner/revenue and /owner/stays routes
+// still exist but are folded into Calendar + Statements per the prototype,
+// so they're intentionally not top-level nav items.
 export const ownerNav: NavItem[] = [
   { href: "/owner", label: "Portfolio", icon: LayoutDashboard },
   { href: "/owner/villas", label: "My villas", icon: Home },
   { href: "/owner/calendar", label: "Calendar", icon: CalendarRange },
-  { href: "/owner/bookings", label: "Bookings", icon: Bed },
-  { href: "/owner/revenue", label: "Revenue", icon: FileText },
   { href: "/owner/statements", label: "Statements", icon: FileText },
-  { href: "/owner/stays", label: "Stays", icon: Bed },
+  { href: "/owner/documents", label: "Documents", icon: FileText },
   { href: "/owner/inbox", label: "Inbox", icon: BellRing },
-  { href: "/owner/preferences/calendar", label: "Preferences", icon: Settings },
+  { href: "/owner/preferences", label: "Settings", icon: Settings },
 ];
 
 export const fieldNav: NavItem[] = [
