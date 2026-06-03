@@ -196,5 +196,8 @@ export async function setBookingStatusAction(
   });
   revalidatePath("/dashboard/bookings");
   revalidatePath(`/dashboard/bookings/${parsed.data.id}`);
+  // A desk check-in/out also moves the Front office boards.
+  revalidatePath("/dashboard/front-office");
+  revalidatePath("/dashboard/front-office/arrivals");
   return { ok: true };
 }
