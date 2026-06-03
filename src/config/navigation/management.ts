@@ -132,6 +132,7 @@ export const MGMT_DASHBOARD_NAV: DashboardNavGroup[] = [
     items: [
       { href: "/dashboard/front-office", label: "Today" },
       { href: "/dashboard/front-office/arrivals", label: "Arrivals" },
+      { href: "/dashboard/front-office/watch", label: "Watch (agents)" },
       { href: "/dashboard/front-office/departures", label: "Departures" },
       { href: "/dashboard/front-office/in-house", label: "In-house" },
       { href: "/dashboard/availability", label: "Availability" },
