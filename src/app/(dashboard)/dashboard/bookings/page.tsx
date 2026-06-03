@@ -13,7 +13,10 @@ import {
   getConflictResolverItems,
 } from "@/features/bookings/bookings-cabinet-queries";
 import { BookingsListClient, type BookingRowVM } from "./_list-client";
-import { NewBookingCta } from "./_new-booking-cta";
+import { BookingAddButton } from "@/components/bookings/booking-add-button";
+import { listVillas } from "@/features/villas/services";
+import { listBookingChannels } from "@/features/channels/services";
+import { listGuests } from "@/features/guests/services";
 import { parseFilters } from "@/lib/url-state";
 
 /**
@@ -85,6 +88,13 @@ export default async function BookingsPage({
     getChannelSyncStatus().catch(() => []),
     getConflictResolverItems().catch(() => []),
   ]);
+  // Data for the "New booking" modal (the real BookingForm — villa dropdown,
+  // channels, guests). Same shapes as /dashboard/bookings/new.
+  const [villaList, channelList, guestList] = await Promise.all([
+    listVillas().catch(() => []),
+    listBookingChannels().catch(() => []),
+    listGuests().catch(() => []),
+  ]);
 
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
@@ -123,7 +133,15 @@ export default async function BookingsPage({
             >
               Export CSV
             </button>
-            <NewBookingCta />
+            <BookingAddButton
+              villas={villaList.map((v) => ({
+                id: v.id,
+                label: `${v.unitCode} · ${v.projectName}`,
+              }))}
+              channels={channelList.map((c) => ({ id: c.id, label: c.name, key: c.key }))}
+              guests={guestList.map((g) => ({ id: g.id, label: g.fullName }))}
+              label="New booking"
+            />
           </>
         }
       />
