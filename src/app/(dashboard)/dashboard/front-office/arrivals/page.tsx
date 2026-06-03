@@ -4,8 +4,9 @@ import { Section } from "@/components/ui/section";
 import { listArrivals } from "@/features/front-office/services";
 import { CheckInButton } from "@/components/front-office/check-in-out-buttons";
 import { CheckinApproveButton } from "@/components/front-office/checkin-approve-button";
-import { getCheckinStatusMap } from "@/features/checkins/queries";
+import { getCheckinStatusMap, getGuestIdMap } from "@/features/checkins/queries";
 import { readinessBlocksCheckin } from "@/features/checkins/readiness";
+import { GuestIdReview } from "@/components/front-office/guest-id-review";
 
 export const metadata = { title: "Arrivals" };
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ export default async function ArrivalsPage({
   const date = sp.date ? new Date(sp.date) : new Date();
   const rows = await listArrivals(date);
   const checkinMap = await getCheckinStatusMap(rows.map((r) => r.bookingId));
+  const guestIdMap = await getGuestIdMap(rows.map((r) => r.bookingId));
   const dateStr = date.toISOString().slice(0, 10);
 
   return (
@@ -67,6 +69,7 @@ export default async function ArrivalsPage({
               <tbody className="divide-y divide-line-soft">
                 {rows.map((r) => {
                   const cstatus = checkinMap[r.bookingId];
+                  const idDoc = guestIdMap[r.bookingId];
                   return (
                     <tr key={r.bookingId}>
                       <td className="px-3 py-2 text-ink font-medium">{r.bookingCode}</td>
@@ -93,17 +96,22 @@ export default async function ArrivalsPage({
                         )}
                       </td>
                       <td className="px-3 py-2">
-                        {cstatus === "submitted" ? (
-                          <Badge tone="warning">awaiting review</Badge>
-                        ) : cstatus === "code_issued" ? (
-                          <Badge tone="success">code issued</Badge>
-                        ) : cstatus === "approved" ? (
-                          <Badge tone="success">approved</Badge>
-                        ) : cstatus === "in_progress" ? (
-                          <Badge tone="info">in progress</Badge>
-                        ) : (
-                          <span className="text-ink-tertiary text-xs">—</span>
-                        )}
+                        <div className="flex flex-col gap-1.5">
+                          {cstatus === "submitted" ? (
+                            <Badge tone="warning">awaiting review</Badge>
+                          ) : cstatus === "code_issued" ? (
+                            <Badge tone="success">code issued</Badge>
+                          ) : cstatus === "approved" ? (
+                            <Badge tone="success">approved</Badge>
+                          ) : cstatus === "in_progress" ? (
+                            <Badge tone="info">in progress</Badge>
+                          ) : (
+                            <span className="text-ink-tertiary text-xs">—</span>
+                          )}
+                          {(cstatus === "submitted" || idDoc) && (
+                            <GuestIdReview bookingId={r.bookingId} idDoc={idDoc} />
+                          )}
+                        </div>
                       </td>
                       <td className="px-3 py-2">
                         {cstatus === "submitted" ? (
