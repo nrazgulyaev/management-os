@@ -113,6 +113,10 @@ export interface BookingsKpis {
   leadTimeAvgDays: number;
   cancellationRatePct: number;
   channelConflicts: number;
+  /** Operational KPIs (mgmt-p1/bookings prototype). */
+  todayArrivals: number;
+  inStayTonight: number;
+  gross7dUsdMinor: bigint;
 }
 
 export async function getBookingsKpis(): Promise<BookingsKpis> {
@@ -124,6 +128,9 @@ export async function getBookingsKpis(): Promise<BookingsKpis> {
       leadTimeAvgDays: 0,
       cancellationRatePct: 0,
       channelConflicts: 0,
+      todayArrivals: 0,
+      inStayTonight: 0,
+      gross7dUsdMinor: 0n,
     };
   }
   const rows = await db.execute<{
@@ -133,6 +140,9 @@ export async function getBookingsKpis(): Promise<BookingsKpis> {
     lead_time_avg: string;
     cancellations_ytd: string;
     bookings_ytd: string;
+    today_arrivals: string;
+    in_stay_tonight: string;
+    gross_7d: string;
   }>(sql`
     SELECT
       (SELECT COUNT(*)::text FROM bookings
@@ -152,7 +162,17 @@ export async function getBookingsKpis(): Promise<BookingsKpis> {
         WHERE status = 'cancelled'
           AND check_in >= date_trunc('year', CURRENT_DATE)::date) AS cancellations_ytd,
       (SELECT COUNT(*)::text FROM bookings
-        WHERE check_in >= date_trunc('year', CURRENT_DATE)::date) AS bookings_ytd
+        WHERE check_in >= date_trunc('year', CURRENT_DATE)::date) AS bookings_ytd,
+      (SELECT COUNT(*)::text FROM bookings
+        WHERE check_in = CURRENT_DATE
+          AND status IN ('confirmed','checked_in')) AS today_arrivals,
+      (SELECT COUNT(*)::text FROM bookings
+        WHERE check_in <= CURRENT_DATE AND check_out > CURRENT_DATE
+          AND status IN ('confirmed','checked_in')) AS in_stay_tonight,
+      COALESCE((SELECT SUM(gross_amount)::text FROM bookings
+        WHERE check_in >= CURRENT_DATE - INTERVAL '7 days'
+          AND check_in <= CURRENT_DATE
+          AND status IN ('confirmed','checked_in','checked_out')), '0') AS gross_7d
   `);
   const r = rowsOf<{
     bookings_mtd: string;
@@ -161,6 +181,9 @@ export async function getBookingsKpis(): Promise<BookingsKpis> {
     lead_time_avg: string;
     cancellations_ytd: string;
     bookings_ytd: string;
+    today_arrivals: string;
+    in_stay_tonight: string;
+    gross_7d: string;
   }>(rows)[0];
   if (!r) {
     return {
@@ -169,6 +192,9 @@ export async function getBookingsKpis(): Promise<BookingsKpis> {
       leadTimeAvgDays: 0,
       cancellationRatePct: 0,
       channelConflicts: 0,
+      todayArrivals: 0,
+      inStayTonight: 0,
+      gross7dUsdMinor: 0n,
     };
   }
   const revenue = Number(r.revenue_mtd || 0);
@@ -181,6 +207,9 @@ export async function getBookingsKpis(): Promise<BookingsKpis> {
     leadTimeAvgDays: Math.round(Number(r.lead_time_avg || 0) * 10) / 10,
     cancellationRatePct: totalYtd > 0 ? Math.round((cxYtd / totalYtd) * 1000) / 10 : 0,
     channelConflicts: 0,
+    todayArrivals: Number(r.today_arrivals || 0),
+    inStayTonight: Number(r.in_stay_tonight || 0),
+    gross7dUsdMinor: BigInt(Math.round(Number(r.gross_7d || 0) * 100)),
   };
 }
 
