@@ -20,6 +20,7 @@ import { guests } from "@/lib/db/schema/bookings";
 import { ownerStayRequests } from "@/lib/db/schema/owner-stays";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
 import { listMyVillas } from "@/features/owner-portal/owner-portal-queries";
+import { maskGuestName } from "@/features/owner-portal/guest-privacy";
 import type { CalendarEvent } from "@/components/owner-portal/month-calendar";
 import type { PipelineBooking } from "@/components/owner-portal/pipeline-list";
 
@@ -51,21 +52,6 @@ function nightsBetween(checkIn: string, checkOut: string): number {
   return Math.max(1, Math.round((b.getTime() - a.getTime()) / 86_400_000));
 }
 
-/**
- * Owner-portal privacy: owners never see full guest names on their
- * calendar — only masked initials (preserves the masking the legacy
- * owner-calendar enforced; emails / phones / access codes are never
- * selected here). Booking codes (no PII) pass through unchanged.
- */
-function maskGuestName(fullName: string): string {
-  const initials = fullName
-    .split(/[\s·.,]+/)
-    .filter((p) => p.length > 0)
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join("");
-  return initials ? `Guest ${initials}` : "Guest";
-}
 
 /** Owner-facing label for an owner-visible villa block. */
 function blockLabel(blockType: string): string {

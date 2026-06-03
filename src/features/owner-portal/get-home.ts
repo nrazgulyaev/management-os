@@ -24,6 +24,7 @@ import {
   listMyStatements,
   listMyVillas,
 } from "@/features/owner-portal/owner-portal-queries";
+import { maskedGuestLabel } from "@/features/owner-portal/guest-privacy";
 
 export interface OwnerHomeUpcoming {
   id: string;
@@ -165,7 +166,7 @@ async function readHome(ownerId: string): Promise<OwnerHome> {
           id: `b-${r.id}`,
           href: `/owner/calendar?month=${r.checkIn.slice(0, 7)}`,
           dateLabel: r.checkIn,
-          guest: r.guestName ?? r.bookingCode,
+          guest: maskedGuestLabel(r.guestName, r.bookingCode),
           villaCode: villaCodeById.get(r.villaId) ?? "Villa",
           nights: nightsBetween(r.checkIn, r.checkOut),
           state: r.status,
