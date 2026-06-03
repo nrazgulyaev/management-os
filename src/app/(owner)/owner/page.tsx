@@ -1,423 +1,276 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight } from "lucide-react";
-import { SectionHeading, Card } from "@/components/dashboard/primitives";
-import { Button } from "@/components/ui/button";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
+import { getOwnerHome } from "@/features/owner-portal/get-home";
+import { OwnerGreeting } from "@/components/owner-portal/owner-greeting";
+import { HeroTile } from "@/components/owner-portal/hero-tile";
+import { VillaCard } from "@/components/owner-portal/villa-card";
+import { UpcomingList } from "@/components/owner-portal/upcoming-list";
 import {
-  getOwnerDashboardKpis,
-  getTwelveMonthNetSeries,
-  listMyStatements,
-  listMyVillas,
-  getOwnerStayQuota,
-} from "@/features/owner-portal/owner-portal-queries";
-import { getActiveOwnerInsights } from "@/features/owner-portal/get-owner-insights";
-import { mapPoolAll } from "@/lib/db/map-pool";
+  QuickActionGrid,
+  type QuickAction,
+} from "@/components/owner-portal/quick-action-grid";
 
 /**
- * Sprint OWNER-PORTAL-1A — Owner home (dashboard).
+ * Sprint OWNER-PORTAL-1A · redesign owner-01 — Owner home.
  *
- * Real data flow:
- *   - latest statement   → owner_statements LIMIT 1 by period
- *   - 4-up KPIs          → net-to-you + 30-day occupancy + ADR + channel mix
- *   - 12-month chart     → owner_statements bucketed monthly
- *   - my villas          → ownership_shares × villas, MTD aggregates
- *
- * Owner stays quota + documents = empty state (DEMO-3 dependency).
+ * Visual port of cc-handoff-bundle/cabinets/owner-p1/01-home.html. Wires the
+ * Phase 2.3 owner-portal presentational primitives (OwnerGreeting / HeroTile /
+ * VillaCard / UpcomingList / QuickActionGrid) to the live `getOwnerHome`
+ * aggregate. Layout per the prototype's "Where this lands" spec:
+ *   greeting → 3-tile hero (YTD / Pending / Next) → villa card(s)
+ *            → upcoming (14d) → quick actions.
  */
 
 export const metadata = { title: "Your portfolio" };
 export const dynamic = "force-dynamic";
 
-function fmtUsd(usdMinor: bigint): string {
-  const usd = Number(usdMinor) / 100;
-  if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
-  if (usd >= 1_000) return `$${(usd / 1_000).toFixed(1)}K`;
-  return `$${usd.toFixed(0)}`;
+function fmtUsd(usd: number): string {
+  if (Math.abs(usd) >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
+  if (Math.abs(usd) >= 1_000) return `$${(usd / 1_000).toFixed(1)}K`;
+  return `$${Math.round(usd)}`;
 }
 
-const VILLA_GRADIENTS = [
-  "linear-gradient(135deg, #c4a572 0%, #6b5436 100%)",
-  "linear-gradient(135deg, #5a6e7a 0%, #2c3848 100%)",
-  "linear-gradient(135deg, #8c6f4f 0%, #3a2c1d 100%)",
-  "linear-gradient(135deg, #6b7d62 0%, #2f3a26 100%)",
-];
+function fmtDay(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d
+    .toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })
+    .toUpperCase();
+}
+
+const ICON = {
+  stay: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  ),
+  guest: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
+    </svg>
+  ),
+  message: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  ),
+  call: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+};
+
+function SectionHead({
+  title,
+  href,
+  link,
+}: {
+  title: string;
+  href: string;
+  link: string;
+}) {
+  return (
+    <div className="flex items-baseline gap-3">
+      <h2
+        className="display"
+        style={{ fontSize: 28, fontWeight: 400, margin: 0, lineHeight: 1.1, color: "var(--ink)" }}
+      >
+        {title}
+      </h2>
+      <Link
+        href={href}
+        className="ml-auto font-mono text-[11px] uppercase tracking-[0.08em] text-terra no-underline hover:opacity-70"
+      >
+        {link}
+      </Link>
+    </div>
+  );
+}
 
 export default async function OwnerHomePage() {
   const owner = await getCurrentOwnerContext();
   if (!owner) redirect("/dashboard");
 
-  // DB-POOL-FANOUT-1 — 6 concurrent reads (>4) bounded to 4 at a time so
-  // the owner home never over-subscribes the postgres-js pool.
-  const [kpis, villas, monthly, latestStatements, quota, insights] =
-    await mapPoolAll(
-      [
-        () => getOwnerDashboardKpis(owner.ownerId).catch(() => null),
-        () => listMyVillas(owner.ownerId).catch(() => []),
-        () => getTwelveMonthNetSeries(owner.ownerId).catch(() => []),
-        () => listMyStatements(owner.ownerId, { limit: 1 }).catch(() => []),
-        () => getOwnerStayQuota(owner.ownerId).catch(() => null),
-        () => getActiveOwnerInsights(owner.ownerId).catch(() => []),
-      ] as const,
-      4,
-    );
-  const latest = latestStatements[0] ?? null;
-  const quotaUsedPct = quota
-    ? Math.min(100, Math.round((quota.usedNights / Math.max(quota.freeNightsPerYear, 1)) * 100))
-    : 0;
+  const home = await getOwnerHome(owner.ownerId);
 
-  // Light templated AI-narrative based on real data — no LLM call.
-  const monthlyAvg = monthly.length > 0
-    ? monthly.reduce((s, m) => s + Number(m.netUsdMinor), 0) / monthly.length
-    : 0;
-  const latestUsd = latest ? Number(latest.netToOwnerUsdMinor) : 0;
-  const aiInsight = latest
-    ? latestUsd > monthlyAvg
-      ? `${latest.monthLabel} closed above your 12-month average — a strong period for ${latest.villaCode ?? "your villa"}.`
-      : `${latest.monthLabel} closed below your 12-month average. Review the line items below to see what moved.`
-    : "Once your first statement is generated, a summary lands here.";
+  const year = new Date().getFullYear();
+  const eyebrow = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+    .format(new Date())
+    .toUpperCase();
 
-  const monthlyMaxMinor = Math.max(0, ...monthly.map((m) => Number(m.netUsdMinor)));
+  const upcomingCount = home.upcoming.length;
+  const narrative = home.pendingStatement ? (
+    <>
+      Your <strong>{home.pendingStatement.periodLabel}</strong> statement is ready
+      for your review — net <strong>{fmtUsd(home.pendingStatement.netUsd)}</strong>.
+      {upcomingCount > 0
+        ? ` ${upcomingCount} arrival${upcomingCount === 1 ? "" : "s"} over the next 14 days.`
+        : ""}
+    </>
+  ) : home.ytdNetUsd > 0 ? (
+    <>
+      You&rsquo;re all caught up. Your villas have paid out{" "}
+      <strong>{fmtUsd(home.ytdNetUsd)}</strong> so far in {year}.
+      {upcomingCount > 0
+        ? ` ${upcomingCount} upcoming over the next 14 days.`
+        : ""}
+    </>
+  ) : (
+    <>
+      Welcome to your portfolio. Your first statement will appear here once your
+      operator generates it.
+    </>
+  );
+
+  const actions: QuickAction[] = [
+    {
+      id: "stay",
+      href: "/owner/stays/new",
+      label: "Request personal stay",
+      context: "Pick dates · mgmt confirms",
+      icon: ICON.stay,
+    },
+    {
+      id: "guest",
+      href: "/owner/inbox",
+      label: "Pre-approve a guest",
+      context: "Friends without a booking",
+      icon: ICON.guest,
+    },
+    {
+      id: "msg",
+      href: "/owner/inbox",
+      label: "Message mgmt team",
+      context: "Your dedicated operators",
+      icon: ICON.message,
+    },
+    {
+      id: "call",
+      href: "/owner/preferences",
+      label: "Schedule a review call",
+      context: "15-min · director",
+      icon: ICON.call,
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-10">
-      <SectionHeading
-        eyebrow={
-          latest
-            ? `${latest.monthLabel} · statement ${latest.status === "sent" ? "delivered" : latest.status}`
-            : new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date())
-        }
-        title={`Good morning, ${owner.ownerName.split(" ")[0]}.`}
-        subtitle={aiInsight}
-        actions={
-          latest ? (
-            <Button asChild>
-              <Link href={`/api/finance/statements/${latest.statementId}/pdf`} target="_blank">
-                Download {latest.monthLabel} statement
-                <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
-              </Link>
-            </Button>
-          ) : (
-            <Button asChild variant="ghost">
-              <Link href="/owner/statements">View statements</Link>
-            </Button>
-          )
-        }
+      <OwnerGreeting
+        ownerName={owner.ownerName}
+        eyebrow={eyebrow}
+        narrative={narrative}
       />
 
-      {/* 4-up KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiTile
-          label="Net to you"
-          value={kpis && kpis.netToYouLatestUsdMinor > 0n ? fmtUsd(kpis.netToYouLatestUsdMinor) : "—"}
-          sub={kpis?.latestPeriodLabel ?? "no statements yet"}
+      {/* 3-tile hero — YTD net / pending review / next statement */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <HeroTile
+          variant="dark"
+          label={`YTD net · ${year}`}
+          value={home.ytdNetUsd > 0 ? fmtUsd(home.ytdNetUsd) : "—"}
+          sub="Net to you · across your villas"
+          foot="Wired monthly"
         />
-        <KpiTile
-          label="Occupancy · 30-day"
-          value={kpis && kpis.occupancy30DayPct > 0 ? `${kpis.occupancy30DayPct}%` : "—"}
-          sub="across your villas"
-        />
-        <KpiTile
-          label="ADR"
-          value={kpis && kpis.adrUsdMinor > 0n ? fmtUsd(kpis.adrUsdMinor) : "—"}
-          sub="per night · 30d"
-        />
-        <KpiTile
-          label="Direct vs OTA"
-          value={
-            kpis && (kpis.directPct > 0 || kpis.otaPct > 0)
-              ? `${kpis.directPct}% / ${kpis.otaPct}%`
-              : "—"
-          }
-          sub="channel mix · 30d"
-        />
-      </div>
-
-      {/* What needs you — active owner insights (PR4) */}
-      {insights.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <div>
-            <div className="label">What needs you</div>
-            <h2 className="display" style={{ fontSize: 22, marginTop: 6, fontWeight: 500 }}>
-              Worth a look
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {insights.map((it) => {
-              const tone =
-                it.level === "act"
-                  ? "var(--terra)"
-                  : it.level === "watch"
-                    ? "var(--gold)"
-                    : "var(--forest)";
-              return (
-                <div
-                  key={it.id}
-                  className="rounded-md border border-line-soft bg-surface p-4 flex gap-3"
-                >
-                  <span
-                    className="w-1 rounded-full shrink-0"
-                    style={{ background: tone }}
-                    aria-hidden
-                  />
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-sm font-medium text-ink">{it.title}</span>
-                    {it.detail && (
-                      <span className="text-xs text-ink-tertiary">{it.detail}</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Statement detail + sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
-        <Card style={{ padding: 20 }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-            <div>
-              <div className="label">{latest ? `Statement · ${latest.monthLabel}` : "Statements"}</div>
-              <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 0, fontWeight: 500 }}>
-                {latest ? `${latest.villaCode ?? "—"} · ${latest.monthLabel}` : "No statements yet"}
-              </h2>
-            </div>
-            {latest && (
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/owner/statements">All statements →</Link>
-              </Button>
-            )}
-          </div>
-          {latest ? (
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pb-4 border-b border-line-soft">
-                <div>
-                  <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
-                    Net to you
-                  </div>
-                  <div className="text-display text-[22px] leading-tight font-medium text-terra mt-1 font-mono tabular-nums">
-                    {fmtUsd(latest.netToOwnerUsdMinor)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
-                    Status
-                  </div>
-                  <div className="text-sm font-medium text-ink mt-1 capitalize">
-                    {latest.status.replace(/_/g, " ")}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
-                    Hash
-                  </div>
-                  <div className="text-xs font-mono text-ink-tertiary mt-1">
-                    {latest.contentHash?.slice(0, 12) ?? "—"}…
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-ink-secondary">
-                {latest.sentAt
-                  ? `Delivered ${new Date(latest.sentAt).toLocaleDateString("en-GB")} to ${latest.sentToEmail ?? "—"}. Hash-signed · auditable.`
-                  : latest.approvedAt
-                    ? `Approved ${new Date(latest.approvedAt).toLocaleDateString("en-GB")}. Awaiting delivery.`
-                    : "Draft — awaiting operator approval."}
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                <Button asChild size="sm">
-                  <Link href={`/api/finance/statements/${latest.statementId}/pdf`} target="_blank">
-                    Statement PDF ↓
-                  </Link>
-                </Button>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href="/owner/distributions">Distributions →</Link>
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-ink-tertiary italic">
-              Once your first statement is generated by your operator, it will appear here
-              with the net-to-you amount, the line breakdown, and a download link.
-            </p>
-          )}
-        </Card>
-
-        <div className="flex flex-col gap-4">
-          {/* 12-month chart */}
-          <div className="rounded-md border border-line-soft bg-surface p-5">
-            <div className="text-[10px] uppercase tracking-widest text-ink-tertiary mb-3">
-              Last 12 months · net to you
-            </div>
-            {monthly.every((m) => m.netUsdMinor === 0n) ? (
-              <p className="text-xs text-ink-tertiary italic">
-                Chart populates as monthly statements land.
-              </p>
-            ) : (
-              <div className="flex items-end gap-1 h-32">
-                {monthly.map((m, i) => {
-                  const v = Number(m.netUsdMinor);
-                  const h = monthlyMaxMinor > 0 ? (v / monthlyMaxMinor) * 110 : 0;
-                  return (
-                    <div key={m.monthIso} className="flex-1 flex flex-col items-center gap-1.5">
-                      <div className="w-full flex items-end h-full justify-center">
-                        <div
-                          style={{
-                            width: "100%",
-                            height: `${Math.max(h, 2)}px`,
-                            background:
-                              i === monthly.length - 1 ? "var(--terra)" : "var(--forest)",
-                            borderRadius: "2px 2px 0 0",
-                          }}
-                        />
-                      </div>
-                      <span className="text-[9px] text-ink-tertiary font-mono">
-                        {m.monthLabel.split(" ")[0]}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Owner stays quota — live via OWNER-PORTAL-1B */}
-          {quota ? (
-            <div className="rounded-md border border-line-soft bg-surface p-5">
-              <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
-                Owner stays · {quota.year}
-              </div>
-              <div className="text-display text-[20px] leading-tight font-medium text-ink mt-2 tabular-nums">
-                {quota.usedNights}
-                <span className="text-ink-tertiary"> / {quota.freeNightsPerYear}</span>
-              </div>
-              <div className="text-[11px] text-ink-tertiary mt-1">
-                free nights used · {quota.remainingNights} remaining
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-cream-deep overflow-hidden mt-3">
-                <div
-                  style={{
-                    width: `${quotaUsedPct}%`,
-                    height: "100%",
-                    background:
-                      quotaUsedPct >= 90
-                        ? "var(--terra)"
-                        : quotaUsedPct >= 60
-                          ? "var(--gold)"
-                          : "var(--forest)",
-                    borderRadius: 999,
-                  }}
-                />
-              </div>
-              <Link
-                href="/owner/stays"
-                className="text-[11px] text-ink-secondary hover:text-terra mt-3 inline-block"
-              >
-                View stays →
+        {home.pendingStatement ? (
+          <HeroTile
+            variant="flat"
+            className="gold"
+            label="Pending review"
+            value={home.pendingStatement.periodLabel}
+            sub={`${home.pendingStatement.statementCode} · ${fmtUsd(home.pendingStatement.netUsd)} net`}
+            foot={
+              <Link href={home.pendingStatement.href} className="btn btn-accent btn-sm">
+                Review →
               </Link>
-            </div>
-          ) : (
-            <div className="rounded-md border border-dashed border-line-strong bg-canvas p-5">
-              <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
-                Owner stays
-              </div>
-              <p className="text-sm text-ink-tertiary italic mt-2">
-                Sign in as an owner to see your allowance.
-              </p>
-            </div>
-          )}
-        </div>
+            }
+          />
+        ) : (
+          <HeroTile
+            variant="flat"
+            label="Statements"
+            value="All clear"
+            sub="Nothing awaiting your review"
+            foot={
+              <Link href="/owner/statements" className="text-terra no-underline">
+                All statements →
+              </Link>
+            }
+          />
+        )}
+        <HeroTile
+          variant="flat"
+          label="Next statement"
+          value={home.nextStatementLabel}
+          sub="Auto-prepares early next month"
+          foot="Cadence · monthly"
+        />
       </div>
 
-      {/* My villas */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-        <div>
-          <div className="label">Owned villas</div>
-          <h2 className="display" style={{ fontSize: 26, marginTop: 6, marginBottom: 0, fontWeight: 500 }}>
-            Your villas
-          </h2>
-        </div>
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/owner/villas">All villas</Link>
-        </Button>
-      </div>
-      <section>
-        {villas.length === 0 ? (
+      {/* Your villa(s) */}
+      <section className="flex flex-col gap-4">
+        <SectionHead
+          title={home.villas.length === 1 ? "Your villa" : "Your villas"}
+          href="/owner/villas"
+          link={`All villas (${home.villas.length}) →`}
+        />
+        {home.villas.length === 0 ? (
           <p className="text-sm text-ink-tertiary italic">
             No villa ownership recorded. Contact your operator to confirm shares.
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {villas.slice(0, 4).map((v, i) => (
-              <div
-                key={v.villaId}
-                className="group rounded-lg border border-line-soft bg-surface overflow-hidden flex flex-col"
-              >
-                <div
-                  style={{
-                    background: VILLA_GRADIENTS[i % VILLA_GRADIENTS.length],
-                    height: 80,
-                  }}
-                />
-                <div className="p-5 flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs text-ink-tertiary">
-                      {v.villaCode}
-                    </span>
-                    <span className="text-[10px] text-ink-tertiary tabular-nums">
-                      {v.sharePercent}% share
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-display text-[18px] leading-tight font-medium text-ink">
-                      {v.villaName ?? v.villaCode ?? "Villa"}
-                    </h3>
-                    <p className="text-xs text-ink-tertiary mt-0.5">{v.projectName ?? "—"}</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 pt-3 border-t border-line-soft text-xs">
-                    <div>
-                      <div className="text-[9px] uppercase tracking-wider text-ink-tertiary">
-                        MTD net
-                      </div>
-                      <div className="font-mono tabular-nums text-ink mt-0.5">
-                        {v.mtdNetUsdMinor > 0n ? fmtUsd(v.mtdNetUsdMinor) : "—"}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] uppercase tracking-wider text-ink-tertiary">
-                        Occupancy
-                      </div>
-                      <div className="font-mono tabular-nums text-ink mt-0.5">
-                        {v.occupancyPct > 0 ? `${v.occupancyPct}%` : "—"}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] uppercase tracking-wider text-ink-tertiary">
-                        ADR
-                      </div>
-                      <div className="font-mono tabular-nums text-ink mt-0.5">
-                        {v.adrUsdMinor > 0n ? fmtUsd(v.adrUsdMinor) : "—"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {home.villas.map((v) => (
+              <VillaCard
+                key={v.id}
+                href={v.href}
+                code={v.code}
+                name={v.name}
+                imageUrl={v.imageUrl}
+                bedrooms={v.bedrooms}
+                occupancyPct={v.occupancyPct}
+                netUsd={v.netUsd}
+                location={v.location}
+                orientation="col"
+              />
             ))}
           </div>
         )}
       </section>
-    </div>
-  );
-}
 
-function KpiTile({ label, value, sub }: { label: string; value: string; sub: string }) {
-  return (
-    <div className="rounded-md border border-line-soft bg-surface p-4">
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</div>
-      <div className="text-display text-[22px] leading-tight font-medium text-ink mt-2 font-mono tabular-nums">
-        {value}
-      </div>
-      <div className="text-[11px] text-ink-tertiary mt-1">{sub}</div>
+      {/* Upcoming · next 14 days */}
+      <section className="flex flex-col gap-4">
+        <SectionHead
+          title="Upcoming · next 14 days"
+          href="/owner/calendar"
+          link="Full calendar →"
+        />
+        <UpcomingList
+          items={home.upcoming.map((u) => ({ ...u, dateLabel: fmtDay(u.dateLabel) }))}
+          emptyMessage="No arrivals or stays in the next 14 days."
+        />
+      </section>
+
+      {/* Quick actions */}
+      <section className="flex flex-col gap-4">
+        <h2
+          className="display"
+          style={{ fontSize: 28, fontWeight: 400, margin: 0, lineHeight: 1.1, color: "var(--ink)" }}
+        >
+          Quick actions
+        </h2>
+        <QuickActionGrid actions={actions} />
+      </section>
     </div>
   );
 }

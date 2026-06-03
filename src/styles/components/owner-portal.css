@@ -82,6 +82,12 @@
   color: var(--cream-warm, #fff);
   border-color: var(--ink);
 }
+/* Pending-review variant — gold border + soft shadow (01-home.html). */
+[data-product] .hero-tile.gold {
+  border-color: color-mix(in oklab, var(--gold) 26%, transparent);
+  box-shadow: 0 2px 12px -6px rgba(216, 179, 84, 0.3);
+}
+[data-product] .hero-tile.gold .ht-label { color: #8a6b2d; }
 [data-product] .hero-tile .ht-label {
   font-family: var(--mono-font), monospace;
   font-size: 11px;

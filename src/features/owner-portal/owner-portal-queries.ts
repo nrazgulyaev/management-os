@@ -29,6 +29,7 @@ export interface OwnerVillaRow {
   mtdNetUsdMinor: bigint;
   occupancyPct: number;
   adrUsdMinor: bigint;
+  bedrooms: number;
 }
 
 export async function listMyVillas(ownerId: string): Promise<OwnerVillaRow[]> {
@@ -43,6 +44,7 @@ export async function listMyVillas(ownerId: string): Promise<OwnerVillaRow[]> {
     mtd_net_usd: string;
     mtd_nights: string;
     mtd_revenue_usd: string;
+    bedrooms: number;
   }>(sql`
     WITH mtd AS (
       SELECT b.villa_id,
@@ -63,7 +65,8 @@ export async function listMyVillas(ownerId: string): Promise<OwnerVillaRow[]> {
            COALESCE(
              ((mtd.revenue_usd_units * os.share_percent / 100) * 0.8)::text,
              '0'
-           ) AS mtd_net_usd
+           ) AS mtd_net_usd,
+           COALESCE(v.bedrooms, 0)                          AS bedrooms
       FROM ownership_shares os
       JOIN villas v ON v.id = os.villa_id
       LEFT JOIN projects p ON p.id = v.project_id
@@ -84,6 +87,7 @@ export async function listMyVillas(ownerId: string): Promise<OwnerVillaRow[]> {
     mtd_net_usd: string;
     mtd_nights: string;
     mtd_revenue_usd: string;
+    bedrooms: number;
   }>(rows);
 
   const dayOfMonth = new Date().getUTCDate();
@@ -103,6 +107,7 @@ export async function listMyVillas(ownerId: string): Promise<OwnerVillaRow[]> {
       mtdNetUsdMinor: BigInt(Math.round(netUsd * 100)),
       occupancyPct: Math.round(occupancy * 10) / 10,
       adrUsdMinor: BigInt(Math.round(adrUsd * 100)),
+      bedrooms: Number(r.bedrooms) || 0,
     };
   });
 }
