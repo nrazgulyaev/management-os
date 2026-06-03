@@ -187,7 +187,17 @@ export default async function BookingDetailPage({
             <SourceBadge source={b.source} />
           </>
         }
-        actions={<RunAutomationButton bookingId={b.id} />}
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href={`/dashboard/bookings/${b.id}/guest-stay`}
+              className="btn btn-secondary btn-sm"
+            >
+              Guest stay →
+            </Link>
+            <RunAutomationButton bookingId={b.id} />
+          </div>
+        }
       />
 
       <DetailMainAndSide>
