@@ -992,52 +992,52 @@
   color: var(--c-text-muted);
 }
 [data-product="owner"] .month-calendar .mc-grid {
-  position: relative;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
 }
 [data-product="owner"] .month-calendar .mc-cell {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   border-right: 1px solid var(--c-border);
   border-bottom: 1px solid var(--c-border);
-  padding: 6px 8px;
+  padding: 6px;
   text-align: left;
   background: transparent;
   cursor: pointer;
-  min-height: 96px;
+  min-height: 92px;
+  overflow: hidden;
 }
 [data-product="owner"] .month-calendar .mc-cell:nth-child(7n) { border-right: 0; }
 [data-product="owner"] .month-calendar .mc-cell-out { background: var(--c-bg-muted); cursor: default; }
 [data-product="owner"] .month-calendar .mc-day {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--c-text-muted);
+  margin-bottom: 2px;
 }
-[data-product="owner"] .month-calendar .mc-strip {
-  position: relative;
-  height: 18px;
-  margin: 2px 0;
-  align-self: end;
-  border-radius: 0;
-  padding: 0 6px;
+/* Per-day event pill — one per active day (matches 04-calendar.html).
+   Multi-day events render a pill on each spanned day; start gets "→",
+   end gets a dashed underline. */
+[data-product="owner"] .month-calendar .mc-ev {
+  display: block;
   font-size: 11px;
-  line-height: 18px;
-  color: #fff;
+  line-height: 1.35;
+  padding: 2px 7px;
+  border-radius: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  z-index: 1;
 }
-[data-product="owner"] .month-calendar .mc-strip.is-start { border-top-left-radius: 9px; border-bottom-left-radius: 9px; }
-[data-product="owner"] .month-calendar .mc-strip.is-end   { border-top-right-radius: 9px; border-bottom-right-radius: 9px; }
-[data-product="owner"] .month-calendar .mc-strip-guest          { background: #c08456; }
-[data-product="owner"] .month-calendar .mc-strip-owner_request  { background: #c79633; }
-[data-product="owner"] .month-calendar .mc-strip-owner_confirmed{ background: #4a7c59; }
-[data-product="owner"] .month-calendar .mc-strip-turnover       { background: var(--c-bg-muted); color: var(--c-text-muted); border: 1px dashed var(--c-border); }
+[data-product="owner"] .month-calendar .mc-ev.is-end { border-bottom: 1px dashed currentColor; }
+[data-product="owner"] .month-calendar .mc-ev-guest           { background: color-mix(in oklab, var(--terra) 14%, transparent); color: #9c4329; }
+[data-product="owner"] .month-calendar .mc-ev-owner_confirmed { background: color-mix(in oklab, #4a7c59 18%, transparent); color: #3a6147; }
+[data-product="owner"] .month-calendar .mc-ev-owner_request   { background: color-mix(in oklab, var(--gold) 18%, transparent); color: #8a6b2d; }
+[data-product="owner"] .month-calendar .mc-ev-turnover        { background: var(--c-bg-muted); color: var(--c-text-muted); }
 /* Villa blocked (maintenance / out-of-order / hold) — grey hatch reads
-   as "unavailable", distinct from the guest/owner colour bars. */
-[data-product="owner"] .month-calendar .mc-strip-block {
-  background: repeating-linear-gradient(45deg, #b9b3a5, #b9b3a5 6px, #a8a294 6px, #a8a294 12px);
-  color: #fff;
+   as "unavailable", distinct from the guest/owner tints. */
+[data-product="owner"] .month-calendar .mc-ev-block {
+  background: repeating-linear-gradient(45deg, #e2ddd2, #e2ddd2 5px, #d4cdbd 5px, #d4cdbd 10px);
+  color: var(--ink-3);
 }
 
 [data-product="owner"] .pipeline-list {

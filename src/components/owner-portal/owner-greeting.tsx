@@ -21,7 +21,7 @@ export function OwnerGreeting({ ownerName, eyebrow, narrative, className }: Owne
     <header className={`owner-greeting${className ? ` ${className}` : ""}`}>
       {eyebrow && <div className="owner-eyebrow mono">{eyebrow}</div>}
       <h1 className="greet">
-        Hello, <em>{ownerName.split(/\s+/)[0]}.</em>
+        Welcome back, <em>{ownerName.split(/\s+/)[0]}.</em>
       </h1>
       <p className="owner-narr">{narrative}</p>
     </header>
