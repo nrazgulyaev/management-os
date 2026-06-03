@@ -112,8 +112,8 @@ export default async function OwnerCalendarPage({
         className="font-mono text-[10.5px] tracking-[0.08em] text-center"
         style={{ color: "var(--ink-4)" }}
       >
-        LEGEND · TERRA = GUEST BOOKING · GOLD = YOUR REQUEST (PENDING) · GREEN ={" "}
-        YOUR CONFIRMED STAY · GUEST NAMES MASKED
+        LEGEND · TERRA = GUEST · GOLD = YOUR REQUEST (PENDING) · GREEN = YOUR{" "}
+        CONFIRMED STAY · GREY = VILLA BLOCKED · GUEST NAMES MASKED
       </p>
     </div>
   );
