@@ -13,7 +13,12 @@ import * as React from "react";
  * day-detail drawer.
  */
 
-export type CalendarEventKind = "guest" | "owner_request" | "owner_confirmed" | "turnover";
+export type CalendarEventKind =
+  | "guest"
+  | "owner_request"
+  | "owner_confirmed"
+  | "turnover"
+  | "block";
 
 export interface CalendarEvent {
   id: string;
