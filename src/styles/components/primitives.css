@@ -34,6 +34,13 @@
 [data-product] .btn-lg { padding: 14px 22px; font-size: 15px; }
 [data-product] .btn-sm { padding: 7px 14px; font-size: 13px; }
 
+/* Product-agnostic accent CTA — resolves terra under management/owner,
+   amber under development (Layer B --accent/--on-accent/--accent-deep).
+   Mirrors cc-handoff-bundle/cabinets/chrome.css. Used by the owner
+   statement acknowledge button + any primary call-to-action. */
+[data-product] .btn-accent { background: var(--accent); color: var(--on-accent); }
+[data-product] .btn-accent:hover { background: var(--accent-deep); }
+
 [data-product="management"] .btn-primary { background: var(--ink); color: var(--cream-warm); }
 [data-product="management"] .btn-primary:hover { background: var(--forest); }
 [data-product="management"] .btn-secondary { background: var(--cream-warm); color: var(--ink); border-color: var(--line); }
