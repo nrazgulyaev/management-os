@@ -5,6 +5,7 @@ import { listArrivals } from "@/features/front-office/services";
 import { CheckInButton } from "@/components/front-office/check-in-out-buttons";
 import { CheckinApproveButton } from "@/components/front-office/checkin-approve-button";
 import { getCheckinStatusMap } from "@/features/checkins/queries";
+import { readinessBlocksCheckin } from "@/features/checkins/readiness";
 
 export const metadata = { title: "Arrivals" };
 export const dynamic = "force-dynamic";
@@ -106,7 +107,11 @@ export default async function ArrivalsPage({
                       </td>
                       <td className="px-3 py-2">
                         {cstatus === "submitted" ? (
-                          <CheckinApproveButton bookingId={r.bookingId} />
+                          <CheckinApproveButton
+                            bookingId={r.bookingId}
+                            disabled={readinessBlocksCheckin(r.readinessStatus)}
+                            disabledReason={`villa ${r.readinessStatus}`}
+                          />
                         ) : (
                           <CheckInButton bookingId={r.bookingId} bookingStatus={r.bookingStatus} />
                         )}

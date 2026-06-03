@@ -1,14 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { checkins } from "@/lib/db/schema/guest-stays";
 import { bookings } from "@/lib/db/schema/bookings";
+import { villaReadinessStates } from "@/lib/db/schema/availability";
 import { canManageEntity } from "@/features/auth/permissions";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { createOrGetStubSmartLockCode } from "@/features/guest-stays/smart-lock-stub";
 import { assertTransition, canApprove, type CheckinStatus } from "./state-machine";
+import { readinessBlocksCheckin } from "./readiness";
 import { emitCheckinEvent } from "./events";
 
 export type ApproveResult = { ok: boolean; error?: string };
@@ -38,6 +40,35 @@ export async function approveStayCheckinAction(bookingId: string): Promise<Appro
   if (!canApprove(from)) {
     return { ok: false, error: `Can't approve a ${from} check-in (must be submitted).` };
   }
+
+  // Readiness gate (FC-MANAGEMENT-FRONT-OFFICE §readiness): block issuing the
+  // door code until the villa is ready. Server-enforced (the UI also disables
+  // Approve when not ready).
+  const [bk] = await db
+    .select({ villaId: bookings.villaId })
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+  if (bk?.villaId) {
+    const [rd] = await db
+      .select({ status: villaReadinessStates.readinessStatus })
+      .from(villaReadinessStates)
+      .where(
+        and(
+          eq(villaReadinessStates.villaId, bk.villaId),
+          isNull(villaReadinessStates.effectiveTo),
+        ),
+      )
+      .orderBy(desc(villaReadinessStates.effectiveFrom))
+      .limit(1);
+    if (readinessBlocksCheckin(rd?.status)) {
+      return {
+        ok: false,
+        error: `Villa isn't ready (${rd?.status}). Clear readiness blockers before issuing the door code.`,
+      };
+    }
+  }
+
   // submitted → approved → code_issued (both edges legal, chained in one action).
   assertTransition(from, "approved");
   assertTransition("approved", "code_issued");
