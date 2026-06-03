@@ -1009,6 +1009,12 @@
 [data-product="owner"] .month-calendar .mc-strip-owner_request  { background: #c79633; }
 [data-product="owner"] .month-calendar .mc-strip-owner_confirmed{ background: #4a7c59; }
 [data-product="owner"] .month-calendar .mc-strip-turnover       { background: var(--c-bg-muted); color: var(--c-text-muted); border: 1px dashed var(--c-border); }
+/* Villa blocked (maintenance / out-of-order / hold) — grey hatch reads
+   as "unavailable", distinct from the guest/owner colour bars. */
+[data-product="owner"] .month-calendar .mc-strip-block {
+  background: repeating-linear-gradient(45deg, #b9b3a5, #b9b3a5 6px, #a8a294 6px, #a8a294 12px);
+  color: #fff;
+}
 
 [data-product="owner"] .pipeline-list {
   display: flex;

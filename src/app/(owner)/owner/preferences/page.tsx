@@ -1,100 +1,141 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
-import { SectionHeading, Card } from "@/components/dashboard/primitives";
-import { getDb } from "@/lib/db/client";
-import { owners } from "@/lib/db/schema/ownership";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
+import { getOwnerSettings } from "@/features/owner-portal/get-settings";
 import { getOwnerNotificationPrefs } from "@/features/owner-portal/notification-prefs";
 import { DEFAULT_NOTIFICATION_PREFS } from "@/features/owner-portal/notification-prefs-types";
-import { NotificationPrefsForm } from "@/components/owner/notification-prefs-form";
-import { OwnerProfileForm } from "@/components/owner/profile-form";
+import { SettingsSection } from "@/components/owner-portal/settings-section";
+import { SettingsRow } from "@/components/owner-portal/settings-row";
+import { OwnerNotificationToggles } from "@/components/owner-portal/owner-notification-toggles";
 
 /**
- * Owner preferences hub — profile + notifications (PR4 owner-write-wave-1).
- * Calendar prefs keep their own page at /owner/preferences/calendar.
- * Payout editing is intentionally NOT here (2FA-gated; flagged for a
- * separate product decision).
+ * Sprint OWNER-PORTAL · redesign owner-07 — Settings.
+ *
+ * Visual port of cc-handoff-bundle/cabinets/owner-p1/07-settings.html.
+ * Wires the Phase 2.3 owner-07 primitives (SettingsSection / SettingsRow
+ * / Toggle) to `getOwnerSettings` (profile / masked payout / 2FA) +
+ * `getOwnerNotificationPrefs` (the live toggle state).
+ *
+ * Interactive: notification toggles persist via
+ * updateOwnerNotificationPrefsAction (see OwnerNotificationToggles).
+ *
+ * Deferred per the prototype spec (flows not built — 2FA-gated):
+ * profile inline edit, payout change/reveal, 2FA management. These read
+ * as display rows here; the prototype routes each through a dedicated
+ * flow (e.g. /owner/settings/payout/edit + owner-2fa).
  */
 
-export const metadata = { title: "Preferences" };
+export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
 
-export default async function OwnerPreferencesPage() {
+const H1: React.CSSProperties = {
+  fontSize: 36,
+  fontWeight: 400,
+  margin: 0,
+  lineHeight: 1.05,
+  letterSpacing: "-0.02em",
+  color: "var(--ink)",
+};
+
+export default async function OwnerSettingsPage() {
   const owner = await getCurrentOwnerContext();
   if (!owner) redirect("/dashboard");
 
-  const db = getDb();
-  const [profileRow] = db
-    ? await db
-        .select({
-          displayName: owners.displayName,
-          email: owners.email,
-          phone: owners.phone,
-        })
-        .from(owners)
-        .where(eq(owners.id, owner.ownerId))
-        .limit(1)
-    : [];
-
-  const prefs = await getOwnerNotificationPrefs(owner.ownerId).catch(
-    () => DEFAULT_NOTIFICATION_PREFS,
-  );
+  const [settings, prefs] = await Promise.all([
+    getOwnerSettings(owner.ownerId),
+    getOwnerNotificationPrefs(owner.ownerId).catch(() => DEFAULT_NOTIFICATION_PREFS),
+  ]);
+  const readOnly = owner.isImpersonating;
 
   return (
-    <div className="flex flex-col gap-10">
-      <SectionHeading
-        eyebrow="Preferences"
-        title="Your preferences"
-        subtitle="Manage your profile and how Arconique notifies you. Calendar display options live under Calendar preferences."
-        actions={
-          <Link
-            href="/owner/preferences/calendar"
-            className="text-sm text-ink-secondary hover:text-terra"
-          >
-            Calendar preferences →
-          </Link>
-        }
-      />
+    <div className="flex flex-col gap-6">
+      <div>
+        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary mb-2">
+          Your account
+        </div>
+        <h1 className="display" style={H1}>
+          Settings
+        </h1>
+      </div>
 
-      {owner.isImpersonating && (
-        <Card style={{ padding: "12px 16px" }}>
-          <p className="text-xs text-ink-secondary m-0">
-            You&apos;re viewing as this owner (read-only). Saving is disabled
-            while impersonating.
-          </p>
-        </Card>
+      {readOnly && (
+        <p className="text-xs text-ink-secondary">
+          You&rsquo;re viewing as this owner — changes are disabled while
+          impersonating.
+        </p>
       )}
 
-      <section className="flex flex-col gap-3">
-        <div>
-          <div className="label">Profile</div>
-          <h2 className="display" style={{ fontSize: 22, marginTop: 6, fontWeight: 500 }}>
-            Your details
-          </h2>
-        </div>
-        <Card style={{ padding: 20 }}>
-          <OwnerProfileForm
-            initial={{
-              displayName: profileRow?.displayName ?? owner.ownerName,
-              email: profileRow?.email ?? owner.ownerEmail ?? "",
-              phone: profileRow?.phone ?? "",
-            }}
-          />
-        </Card>
-      </section>
+      <SettingsSection
+        title="Profile"
+        helper="Your contact info — the team uses these for statements, alerts, and review scheduling."
+      >
+        <SettingsRow label="Full name" value={settings.profile.name} />
+        <SettingsRow label="Email" value={settings.profile.email} />
+        <SettingsRow label="Phone" value={settings.profile.phone} />
+        <SettingsRow label="Language" value={settings.profile.language} />
+      </SettingsSection>
 
-      <section className="flex flex-col gap-3">
-        <div>
-          <div className="label">Notifications</div>
-          <h2 className="display" style={{ fontSize: 22, marginTop: 6, fontWeight: 500 }}>
-            What we email you
-          </h2>
+      <SettingsSection
+        title="Payout method"
+        helper="Where your monthly statement payouts wire. Editing requires 2FA and email confirmation."
+      >
+        <SettingsRow
+          label="Account"
+          value={<span className="font-mono">{settings.payout.maskedAccount}</span>}
+        />
+        <SettingsRow label="Currency" value={settings.payout.currency} />
+        {settings.payout.bankName && settings.payout.bankName !== "—" && (
+          <SettingsRow label="Bank" value={settings.payout.bankName} />
+        )}
+        {settings.payout.lastUpdatedLabel && (
+          <SettingsRow label="Last changed" value={settings.payout.lastUpdatedLabel} />
+        )}
+        <SettingsRow
+          label="Wire schedule"
+          value="1st of each month"
+          action={
+            <span className="font-mono text-[10.5px] tracking-[0.06em] text-ink-tertiary">
+              FIXED
+            </span>
+          }
+        />
+      </SettingsSection>
+
+      <SettingsSection
+        title="Notifications"
+        helper="When and how Arconique reaches out. SMS is for arrival alerts only."
+      >
+        <OwnerNotificationToggles initial={prefs} disabled={readOnly} />
+      </SettingsSection>
+
+      <SettingsSection title="Security" helper="Sign-in protection for your portal.">
+        <SettingsRow
+          label="Two-factor auth"
+          helper="Protects sign-in with a second step."
+          value={settings.twoFactorEnabled ? "Enabled" : "Not enabled"}
+        />
+        <SettingsRow
+          label="Calendar preferences"
+          helper="Display options for your calendar."
+          action={
+            <Link href="/owner/preferences/calendar" className="btn btn-ghost btn-sm">
+              Open →
+            </Link>
+          }
+        />
+      </SettingsSection>
+
+      <SettingsSection
+        title="Leaving Arconique"
+        tone="warn"
+        helper="Off-boarding runs through your MSA termination clause — there's a 90-day grace period and a final statement. Speak with the Director first; it's always human-mediated, never self-service."
+      >
+        <div style={{ padding: "12px 0" }}>
+          <Link href="/owner/inbox" className="btn btn-secondary btn-sm">
+            Request termination call
+          </Link>
         </div>
-        <Card style={{ padding: 20 }}>
-          <NotificationPrefsForm initial={prefs} />
-        </Card>
-      </section>
+      </SettingsSection>
     </div>
   );
 }

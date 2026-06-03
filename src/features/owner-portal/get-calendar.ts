@@ -18,6 +18,7 @@ import { getDb } from "@/lib/db/client";
 import { bookings } from "@/lib/db/schema/bookings";
 import { guests } from "@/lib/db/schema/bookings";
 import { ownerStayRequests } from "@/lib/db/schema/owner-stays";
+import { villaCalendarBlocks } from "@/lib/db/schema/availability";
 import { listMyVillas } from "@/features/owner-portal/owner-portal-queries";
 import type { CalendarEvent } from "@/components/owner-portal/month-calendar";
 import type { PipelineBooking } from "@/components/owner-portal/pipeline-list";
@@ -64,6 +65,13 @@ function maskGuestName(fullName: string): string {
     .map((p) => p[0]!.toUpperCase())
     .join("");
   return initials ? `Guest ${initials}` : "Guest";
+}
+
+/** Owner-facing label for an owner-visible villa block. */
+function blockLabel(blockType: string): string {
+  if (blockType === "out_of_order") return "Out of order";
+  if (blockType === "maintenance") return "Maintenance";
+  return "Blocked";
 }
 
 const BOOKING_STATUSES_FOR_CAL = ["confirmed", "checked_in", "checked_out"] as const;
@@ -155,6 +163,38 @@ export async function getOwnerCalendar(
       startDate: r.checkIn,
       endDate: r.checkOut,
       label: "Your stay",
+    });
+  }
+
+  // Villa blocks (maintenance / out-of-order / holds) overlapping the month.
+  // Only operator-flagged `owner_visible` blocks surface; titles/notes are
+  // never shown — owners see a generic type label so internal ops detail
+  // stays private.
+  const blockRows = await db
+    .select({
+      id: villaCalendarBlocks.id,
+      blockType: villaCalendarBlocks.blockType,
+      startsAt: villaCalendarBlocks.startsAt,
+      endsAt: villaCalendarBlocks.endsAt,
+    })
+    .from(villaCalendarBlocks)
+    .where(
+      and(
+        inArray(villaCalendarBlocks.villaId, villaIds),
+        eq(villaCalendarBlocks.status, "active"),
+        eq(villaCalendarBlocks.ownerVisible, true),
+        lte(villaCalendarBlocks.startsAt, new Date(`${end}T23:59:59.999Z`)),
+        gte(villaCalendarBlocks.endsAt, new Date(`${start}T00:00:00.000Z`)),
+      ),
+    )
+    .limit(100);
+  for (const r of blockRows) {
+    events.push({
+      id: `k-${r.id}`,
+      kind: "block",
+      startDate: r.startsAt.toISOString().slice(0, 10),
+      endDate: r.endsAt.toISOString().slice(0, 10),
+      label: blockLabel(r.blockType),
     });
   }
 
