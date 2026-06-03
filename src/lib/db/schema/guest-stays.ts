@@ -5,14 +5,16 @@ import {
   timestamp,
   integer,
   boolean,
+  numeric,
   jsonb,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { bookings } from "./bookings";
+import { bookings, guests } from "./bookings";
 import { appUsers } from "./identity";
 import { villas } from "./projects";
+import { documents } from "./documents";
 
 /**
  * V9E — production guest stay primitives.
@@ -150,6 +152,40 @@ export const checkins = pgTable(
   (t) => [
     uniqueIndex("checkins_booking_unique").on(t.bookingId),
     index("checkins_status_idx").on(t.status),
+  ],
+);
+
+/**
+ * Guest ID documents (Phase 3: passport OCR). The scan file lives in
+ * `documents`; this row holds the id-ocr extraction + the human-in-the-loop
+ * review status. confidence < 0.85 stays `pending_review` for manual override.
+ * Migration 0119.
+ */
+export const guestIdDocuments = pgTable(
+  "guest_id_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bookingId: uuid("booking_id")
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    guestId: uuid("guest_id").references(() => guests.id, { onDelete: "set null" }),
+    documentId: uuid("document_id").references(() => documents.id, { onDelete: "set null" }),
+    docType: text("doc_type").notNull().default("passport"),
+    status: text("status").notNull().default("pending_review"),
+    fullName: text("full_name"),
+    nationality: text("nationality"),
+    documentNumber: text("document_number"),
+    expiresAt: text("expires_at"),
+    confidence: numeric("confidence", { precision: 4, scale: 3 }).notNull().default("0"),
+    raw: jsonb("raw"),
+    extractedAt: timestamp("extracted_at", { withTimezone: true }),
+    reviewedBy: uuid("reviewed_by").references(() => appUsers.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("guest_id_documents_booking_unique").on(t.bookingId),
+    index("guest_id_documents_status_idx").on(t.status),
   ],
 );
 

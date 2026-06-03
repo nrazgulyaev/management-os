@@ -2,7 +2,7 @@ import "server-only";
 
 import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { checkins } from "@/lib/db/schema/guest-stays";
+import { checkins, guestIdDocuments } from "@/lib/db/schema/guest-stays";
 import type { CheckinStatus } from "./state-machine";
 
 export interface CheckinRecord {
@@ -49,5 +49,49 @@ export async function getCheckinStatusMap(
     .where(inArray(checkins.bookingId, bookingIds));
   const map: Record<string, CheckinStatus> = {};
   for (const r of rows) map[r.bookingId] = r.status as CheckinStatus;
+  return map;
+}
+
+export interface GuestIdRecord {
+  status: string;
+  docType: string;
+  fullName: string | null;
+  nationality: string | null;
+  documentNumber: string | null;
+  expiresAt: string | null;
+  confidence: number;
+}
+
+/** bookingId → guest-ID extraction, for the Front office check-in review. */
+export async function getGuestIdMap(
+  bookingIds: string[],
+): Promise<Record<string, GuestIdRecord>> {
+  const db = getDb();
+  if (!db || bookingIds.length === 0) return {};
+  const rows = await db
+    .select({
+      bookingId: guestIdDocuments.bookingId,
+      status: guestIdDocuments.status,
+      docType: guestIdDocuments.docType,
+      fullName: guestIdDocuments.fullName,
+      nationality: guestIdDocuments.nationality,
+      documentNumber: guestIdDocuments.documentNumber,
+      expiresAt: guestIdDocuments.expiresAt,
+      confidence: guestIdDocuments.confidence,
+    })
+    .from(guestIdDocuments)
+    .where(inArray(guestIdDocuments.bookingId, bookingIds));
+  const map: Record<string, GuestIdRecord> = {};
+  for (const r of rows) {
+    map[r.bookingId] = {
+      status: r.status,
+      docType: r.docType,
+      fullName: r.fullName,
+      nationality: r.nationality,
+      documentNumber: r.documentNumber,
+      expiresAt: r.expiresAt,
+      confidence: Number(r.confidence ?? "0"),
+    };
+  }
   return map;
 }
