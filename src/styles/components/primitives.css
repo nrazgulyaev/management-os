@@ -43,8 +43,10 @@
 
 [data-product="management"] .btn-primary { background: var(--ink); color: var(--cream-warm); }
 [data-product="management"] .btn-primary:hover { background: var(--forest); }
-[data-product="management"] .btn-secondary { background: var(--cream-warm); color: var(--ink); border-color: var(--line); }
-[data-product="management"] .btn-secondary:hover { background: var(--paper); border-color: var(--ink); }
+[data-product="management"] .btn-secondary,
+[data-product="owner"] .btn-secondary { background: var(--cream-warm); color: var(--ink); border-color: var(--line); }
+[data-product="management"] .btn-secondary:hover,
+[data-product="owner"] .btn-secondary:hover { background: var(--paper); border-color: var(--ink-2); }
 [data-product="management"] .btn-ghost { background: transparent; color: var(--ink); }
 [data-product="management"] .btn-ghost:hover { background: var(--cream-deep); }
 [data-product="management"] .btn-terra { background: var(--terra); color: var(--cream-warm); }
@@ -55,6 +57,8 @@
 [data-product="development"] .btn-light { background: var(--ink); color: #fff; }
 [data-product="development"] .btn-dark { background: var(--bg-3); color: var(--ink); border-color: var(--line-2); }
 [data-product="development"] .btn-dark:hover { background: var(--bg-2); border-color: var(--line-3); }
+[data-product="development"] .btn-secondary { background: var(--bg-3); color: var(--ink); border-color: var(--line-2); }
+[data-product="development"] .btn-secondary:hover { background: var(--bg-2); border-color: var(--line-3); }
 [data-product="development"] .btn-ghost { background: transparent; color: var(--ink-2); }
 [data-product="development"] .btn-ghost:hover { color: var(--ink); }
 

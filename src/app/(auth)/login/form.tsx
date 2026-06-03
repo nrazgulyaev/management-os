@@ -8,8 +8,11 @@ import { useFormStatus } from "react-dom";
 
 const initial: AuthResult | null = null;
 
-const inputClass =
-  "h-12 w-full pl-10 pr-3 rounded-md border border-line bg-surface text-sm text-ink placeholder:text-ink-tertiary focus:outline-none focus:border-line-strong transition-colors disabled:opacity-60";
+// Icon overlay sits inside the relative wrapper; the input itself uses the
+// shared `.input` primitive (terra focus-ring, radius 10, bg --paper) + inline
+// paddingLeft/height to mirror the prototype's auth-screens.jsx <Field>.
+const inputClass = "input disabled:opacity-60";
+const inputStyle = { paddingLeft: 40, height: 46 } as const;
 const iconClass =
   "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-tertiary";
 
@@ -19,8 +22,7 @@ function Submit({ disabled }: { disabled?: boolean }) {
     <button
       type="submit"
       disabled={pending || disabled}
-      className="mt-1 h-12 w-full rounded-full inline-flex items-center justify-center gap-2 text-sm font-medium transition-[background,opacity] disabled:opacity-60"
-      style={{ background: "var(--terra)", color: "var(--paper, #fff)" }}
+      className="btn btn-accent btn-lg w-full justify-center mt-1 disabled:opacity-60"
     >
       {pending ? (
         "Signing in…"
@@ -57,8 +59,8 @@ export function LoginForm({
         </div>
       )}
 
-      <label className="flex flex-col gap-2">
-        <span className="label">Work email</span>
+      <label className="field" style={{ gap: 7 }}>
+        <span className="field-label">Work email</span>
         <div className="relative">
           <Mail className={iconClass} strokeWidth={1.7} aria-hidden />
           <input
@@ -69,13 +71,14 @@ export function LoginForm({
             placeholder="you@company.com"
             disabled={!supabaseReady}
             className={inputClass}
+            style={inputStyle}
           />
         </div>
       </label>
 
-      <label className="flex flex-col gap-2">
+      <label className="field" style={{ gap: 7 }}>
         <div className="flex items-baseline justify-between">
-          <span className="label">Password</span>
+          <span className="field-label">Password</span>
           <Link
             href="/forgot-password"
             className="text-xs text-ink-secondary hover:text-ink underline underline-offset-2 decoration-line-strong"
@@ -93,18 +96,14 @@ export function LoginForm({
             placeholder="••••••••"
             disabled={!supabaseReady}
             className={inputClass}
+            style={inputStyle}
           />
         </div>
       </label>
 
-      <label className="flex items-center gap-2 text-[13.5px] text-ink-secondary select-none">
-        <input
-          type="checkbox"
-          name="remember"
-          defaultChecked
-          className="h-4 w-4 rounded-sm"
-          style={{ accentColor: "var(--ink)" }}
-        />
+      <label className="check" style={{ fontSize: 13.5 }}>
+        <input type="checkbox" name="remember" defaultChecked />
+        <span className="box" />
         Keep me signed in on this device
       </label>
 
@@ -121,7 +120,7 @@ export function LoginForm({
           </div>
           <button
             type="button"
-            className="h-12 w-full rounded-full inline-flex items-center justify-center gap-2 text-sm font-medium border border-line-strong bg-surface text-ink transition-colors hover:bg-muted"
+            className="btn btn-secondary btn-lg w-full justify-center"
           >
             <ShieldCheck className="w-4 h-4" strokeWidth={1.7} /> Continue with SSO
           </button>
