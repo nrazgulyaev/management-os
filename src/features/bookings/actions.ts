@@ -11,6 +11,7 @@ import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
 import { bookingStatusEnum, createBookingSchema } from "./schema";
+import { assertHoldDatesStillAvailable } from "@/features/direct-booking/availability";
 import type { ActionResult } from "@/features/projects/actions";
 
 const idSchema = z.string().uuid();
@@ -37,6 +38,28 @@ export async function createBookingAction(
   const d = parsed.data;
   const nights = differenceInCalendarDays(new Date(d.checkOut), new Date(d.checkIn));
   if (nights <= 0) return { ok: false, error: "Check-out must be after check-in." };
+
+  // Overlap guard — a villa can't hold two stays on the same nights.
+  // Skips cancelled / no-show (they don't occupy the calendar). Reuses
+  // the canonical availability check (existing bookings + active blocks
+  // / holds, half-open [check_in, check_out)).
+  if (d.status !== "cancelled" && d.status !== "no_show") {
+    const avail = await assertHoldDatesStillAvailable(d.villaId, d.checkIn, d.checkOut);
+    if (!avail.available) {
+      const reasonMsg =
+        avail.reason === "booking_conflict"
+          ? "This villa is already booked for one or more of those nights."
+          : avail.reason === "hold_conflict"
+            ? "Those nights are on hold for this villa — release the hold first."
+            : "This villa is blocked (maintenance / out-of-order) for those nights.";
+      return {
+        ok: false,
+        error: reasonMsg,
+        fieldErrors: { checkIn: [reasonMsg], villaId: [reasonMsg] },
+      };
+    }
+  }
+
   const me = await getCurrentAppUser();
   const netExpected =
     d.grossAmount + d.cleaningFeeAmount - d.channelFeeAmount - d.paymentFeeAmount;
