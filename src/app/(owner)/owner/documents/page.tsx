@@ -38,7 +38,7 @@ export default async function OwnerDocumentsPage() {
     <div className="flex flex-col gap-6">
       <div>
         <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary mb-2">
-          Your documents
+          Your archive
         </div>
         <h1
           className="display"

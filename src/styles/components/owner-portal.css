@@ -1434,6 +1434,7 @@
   border-color: rgba(192,132,86,0.5);
   background: rgba(192,132,86,0.04);
 }
+[data-product="owner"] .settings-section.ss-warn .ss-title { color: var(--terra); }
 
 [data-product="owner"] .settings-row {
   display: grid;
@@ -1445,8 +1446,11 @@
 }
 [data-product="owner"] .settings-row:last-child { border-bottom: 0; }
 [data-product="owner"] .settings-row .sr-label-text {
-  font-size: 13px;
-  color: var(--c-text);
+  font-size: 11px;
+  font-family: var(--mono-font), monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
 }
 [data-product="owner"] .settings-row .sr-label-helper {
   font-size: 11px;

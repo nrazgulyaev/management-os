@@ -108,15 +108,30 @@ export default async function OwnerSettingsPage() {
         <OwnerNotificationToggles initial={prefs} disabled={readOnly} />
       </SettingsSection>
 
-      <SettingsSection title="Security" helper="Sign-in protection for your portal.">
+      <SettingsSection
+        title="Portal access"
+        helper="Who can sign into this portal as you. Multi-user access is deferred to 2.5."
+      >
         <SettingsRow
-          label="Two-factor auth"
-          helper="Protects sign-in with a second step."
-          value={settings.twoFactorEnabled ? "Enabled" : "Not enabled"}
+          label="Primary"
+          value={`${settings.profile.email} · 2FA ${settings.twoFactorEnabled ? "via SMS" : "not enabled"}`}
+          action={
+            <button
+              className="btn btn-secondary btn-sm opacity-60 cursor-not-allowed"
+              disabled
+              title="2FA management coming soon"
+            >
+              Manage 2FA
+            </button>
+          }
         />
         <SettingsRow
-          label="Calendar preferences"
-          helper="Display options for your calendar."
+          label="Delegates"
+          value="None · invite delegate available in 2.5"
+        />
+        <SettingsRow
+          label="Calendar"
+          value="Display options for your calendar"
           action={
             <Link href="/owner/preferences/calendar" className="btn btn-ghost btn-sm">
               Open →

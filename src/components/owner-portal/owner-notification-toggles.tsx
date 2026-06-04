@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { SettingsRow } from "@/components/owner-portal/settings-row";
 import { Toggle } from "@/components/owner-portal/toggle";
 import { updateOwnerNotificationPrefsAction } from "@/features/owner-portal/notification-prefs";
 import type { OwnerNotificationPrefsView } from "@/features/owner-portal/notification-prefs-types";
@@ -20,12 +19,12 @@ const FIELDS: {
   label: string;
   helper: string;
 }[] = [
-  { key: "statementReady", label: "Statement ready", helper: "Email when your monthly statement is approved." },
-  { key: "maintenanceUpdates", label: "Maintenance updates", helper: "Email when the team files a maintenance ticket on your villa." },
-  { key: "qReviewReminder", label: "Quarterly digest", helper: "A quarter-close summary from the Director." },
-  { key: "arrivalAlerts", label: "Guest arrivals", helper: "SMS the day before each guest arrival." },
-  { key: "taxDocReady", label: "Tax document ready", helper: "Email when an annual tax document is filed." },
-  { key: "marketingUpdates", label: "Product updates", helper: "Occasional Arconique product news. Off by default." },
+  { key: "statementReady", label: "Statement ready", helper: "Email when Mgmt approves your monthly statement." },
+  { key: "taxDocReady", label: "Statement reminder", helper: "Email 3 days before auto-acknowledgement." },
+  { key: "arrivalAlerts", label: "Guest arrivals", helper: "SMS the day before each arrival." },
+  { key: "maintenanceUpdates", label: "Maintenance updates", helper: "Email when Mgmt files a maintenance ticket." },
+  { key: "qReviewReminder", label: "Quarterly digest", helper: "Email Q-summary from the Director on quarter-close." },
+  { key: "marketingUpdates", label: "Inbox replies", helper: "Email when Mgmt replies in your inbox." },
 ];
 
 export function OwnerNotificationToggles({
@@ -53,19 +52,20 @@ export function OwnerNotificationToggles({
   return (
     <>
       {FIELDS.map((f) => (
-        <SettingsRow
-          key={f.key}
-          label={f.label}
-          helper={f.helper}
-          action={
+        <div className="settings-row" key={f.key}>
+          <div className="sr-label">
+            <div className="sr-label-text">{f.label}</div>
+          </div>
+          <div className="text-[13px] text-ink-2 leading-snug">{f.helper}</div>
+          <div className="sr-action">
             <Toggle
               checked={prefs[f.key]}
               onCheckedChange={(n) => update(f.key, n)}
               ariaLabel={f.label}
               disabled={disabled || pending}
             />
-          }
-        />
+          </div>
+        </div>
       ))}
       <div
         className="mono"
