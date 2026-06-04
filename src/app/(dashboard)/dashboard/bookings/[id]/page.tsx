@@ -33,6 +33,49 @@ export default async function BookingDetailPage({
   if (!b) notFound();
   const automationRuns = await listBookingAutomationRuns({ bookingId: id });
 
+  const pillCls = (() => {
+    const k = (b.channelKey ?? "").toLowerCase();
+    if (k.includes("airbnb")) return "airbnb";
+    if (k.includes("booking")) return "bcom";
+    if (k.includes("agoda")) return "agoda";
+    if (k.includes("travel") || k === "ta") return "ta";
+    return "direct";
+  })();
+  const channelPill = (
+    <span className={`channel-pill ${pillCls}`}>
+      <span className="dot" />
+      {(b.channelName ?? "Direct").toUpperCase()}
+    </span>
+  );
+  const netToOperator =
+    b.netExpectedAmount ??
+    b.grossAmount + b.cleaningFeeAmount - b.channelFeeAmount - b.paymentFeeAmount;
+  const fmtAmt = (n: number) =>
+    `${b.currency} ${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+  const chargesPanel = (
+    <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
+      <div className="px-5 py-4 border-b border-line-soft flex items-center justify-between">
+        <span className="text-label">Charges</span>
+        <span className="font-mono text-[11px] text-ink-tertiary">4 lines</span>
+      </div>
+      <table className="w-full text-sm">
+        <tbody className="[&_tr]:border-b [&_tr]:border-line-soft">
+          <ChargeRow type="NIGHTLY" desc={`${b.nights} night${b.nights === 1 ? "" : "s"}`} display={`+${fmtAmt(b.grossAmount)}`} />
+          <ChargeRow type="SERVICE" desc="Cleaning / turnover" display={`+${fmtAmt(b.cleaningFeeAmount)}`} />
+          <ChargeRow type="FEE" desc="Channel commission" display={`−${fmtAmt(b.channelFeeAmount)}`} muted />
+          <ChargeRow type="FEE" desc="Payment processing" display={`−${fmtAmt(b.paymentFeeAmount)}`} muted />
+        </tbody>
+      </table>
+      <div className="px-5 py-3.5 border-t border-line-soft flex items-center justify-between bg-muted/20">
+        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+          Net to operator after fees
+        </span>
+        <span className="font-mono tabular-nums text-terra font-semibold">{fmtAmt(netToOperator)}</span>
+      </div>
+    </div>
+  );
+
   const sideCards: SideCard[] = [
     {
       id: "guest",
@@ -118,25 +161,7 @@ export default async function BookingDetailPage({
         <Stat label="Channel" value={b.channelName ?? "Direct"} />
       </div>
 
-      <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
-        <div className="px-5 py-4 border-b border-line-soft">
-          <span className="text-label">Money</span>
-        </div>
-        <table className="w-full text-sm">
-          <tbody className="[&_tr]:border-b [&_tr]:border-line-soft [&_tr:last-child]:border-0">
-            <Row label="Gross" amount={b.grossAmount} currency={b.currency} />
-            <Row label="Cleaning fee" amount={b.cleaningFeeAmount} currency={b.currency} />
-            <Row label="Channel fee" amount={-b.channelFeeAmount} currency={b.currency} />
-            <Row label="Payment fee" amount={-b.paymentFeeAmount} currency={b.currency} />
-            <Row
-              label="Net expected"
-              amount={b.netExpectedAmount ?? b.grossAmount + b.cleaningFeeAmount - b.channelFeeAmount - b.paymentFeeAmount}
-              currency={b.currency}
-              strong
-            />
-          </tbody>
-        </table>
-      </div>
+      {chargesPanel}
 
       <div className="rounded-md border border-line-soft bg-muted/30 p-5">
         <span className="text-label">Next steps</span>
@@ -171,20 +196,23 @@ export default async function BookingDetailPage({
         ]}
         title={
           <>
-            {b.bookingCode}{" "}
+            {b.guestName || "Guest"}{" "}
             <span style={{ fontSize: 18, color: "var(--ink-3)" }}>
-              · {b.guestName}
+              · {b.villaCode ?? "—"}
             </span>
           </>
         }
         meta={
           <>
-            <Badge tone="success">{b.status.replace("_", " ")}</Badge>
-            <span>{b.checkIn} → {b.checkOut}</span>
+            <Badge tone={b.status === "cancelled" || b.status === "no_show" ? "neutral" : "success"}>
+              {b.status.replace(/_/g, " ")}
+            </Badge>
+            <span>
+              {b.checkIn} → {b.checkOut} · {b.nights}N
+            </span>
             <span>·</span>
-            <span>{b.nights} night{b.nights === 1 ? "" : "s"}</span>
-            <span>·</span>
-            <SourceBadge source={b.source} />
+            {channelPill}
+            <span>· {fmtAmt(b.grossAmount)} gross</span>
           </>
         }
         actions={
@@ -212,7 +240,7 @@ export default async function BookingDetailPage({
           ]}
           panels={{
             overview: overviewPanel,
-            charges: placeholderPanel("Charges table"),
+            charges: <div className="px-7 py-6">{chargesPanel}</div>,
             guests: placeholderPanel("Guests list"),
             activity: placeholderPanel("Activity timeline"),
             docs: placeholderPanel("Document attachments"),
@@ -251,27 +279,29 @@ function Stat({
   );
 }
 
-function Row({
-  label,
-  amount,
-  currency,
-  strong,
+function ChargeRow({
+  type,
+  desc,
+  display,
+  muted,
 }: {
-  label: string;
-  amount: number;
-  currency: string;
-  strong?: boolean;
+  type: string;
+  desc: string;
+  display: string;
+  muted?: boolean;
 }) {
   return (
     <tr>
-      <td className={`px-5 py-3 ${strong ? "text-ink font-medium" : "text-ink-secondary"}`}>
-        {label}
+      <td className="px-5 py-3 w-[88px]">
+        <span className="inline-flex items-center rounded-md border border-line-soft bg-muted/40 px-2 py-0.5 font-mono text-[10px] tracking-wide text-ink-secondary uppercase">
+          {type}
+        </span>
       </td>
+      <td className="px-2 py-3 text-ink-secondary">{desc}</td>
       <td
-        className={`px-5 py-3 text-right font-mono tabular-nums ${strong ? "text-accent font-semibold" : "text-ink"}`}
+        className={`px-5 py-3 text-right font-mono tabular-nums ${muted ? "text-ink-tertiary" : "text-ink"}`}
       >
-        {amount < 0 ? "−" : ""}
-        {currency} {Math.abs(amount).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+        {display}
       </td>
     </tr>
   );
