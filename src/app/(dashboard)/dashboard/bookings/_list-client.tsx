@@ -24,6 +24,7 @@ import { ListPage } from "@/components/dashboard/list-page";
 import { DestructiveConfirmModal } from "@/components/ui/modal";
 import type { ActiveFilter } from "@/lib/url-state";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { HandoffBadge } from "@/components/dashboard/primitives";
 
 export interface BookingRowVM {
@@ -136,6 +137,7 @@ function dateMatches(checkIn: string, value: string, today: string): boolean {
 }
 
 export function BookingsListClient({ rows, initialActive }: BookingsListClientProps) {
+  const router = useRouter();
   const [active, setActive] = React.useState<ActiveFilter[]>(initialActive);
   const [search, setSearch] = React.useState("");
   const [sortDir, setSortDir] = React.useState<SortDirection>("desc");
@@ -260,10 +262,12 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
               return (
                 <tr
                   key={b.id}
-                  className={badge.rowClass || undefined}
+                  className={`${badge.rowClass ?? ""} cursor-pointer`.trim() || undefined}
                   style={isSelected ? { background: "color-mix(in oklab, var(--terra) 6%, transparent)" } : undefined}
+                  onClick={() => router.push(`/dashboard/bookings/${b.id}`)}
+                  title={`Open ${b.bookingCode}`}
                 >
-                  <td className="cb">
+                  <td className="cb" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={isSelected}
@@ -271,7 +275,15 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
                       aria-label={`Select ${b.bookingCode}`}
                     />
                   </td>
-                  <td className="mono text-[11px] text-ink-3">{b.bookingCode}</td>
+                  <td className="mono text-[11px] text-ink-3">
+                    <Link
+                      href={`/dashboard/bookings/${b.id}`}
+                      className="hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {b.bookingCode}
+                    </Link>
+                  </td>
                   <td className="row-title">{b.villaCode}</td>
                   <td>
                     <div className="flex items-center gap-2">
