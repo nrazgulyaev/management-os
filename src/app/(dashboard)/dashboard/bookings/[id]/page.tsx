@@ -529,9 +529,9 @@ export default async function BookingDetailPage({
           Guests <span className="text-ink-tertiary">· {b.guestName ? 1 : 0} named · party of {pax}</span>
         </span>
         <button
-          className="btn btn-secondary btn-sm opacity-50 cursor-not-allowed"
-          disabled
-          title="Coming soon"
+          className="btn btn-secondary btn-sm"
+          type="button"
+          title="Adding guests lands in a later pass"
         >
           + Add guest
         </button>
@@ -582,9 +582,8 @@ export default async function BookingDetailPage({
           Activity <span className="text-ink-tertiary">· {timeline.length} events</span>
         </span>
         <select
-          className="select select-sm opacity-50 cursor-not-allowed"
-          disabled
-          title="Coming soon"
+          className="select select-sm"
+          title="Source filtering lands in a later pass"
           defaultValue="all"
         >
           <option value="all">All sources</option>
@@ -628,9 +627,9 @@ export default async function BookingDetailPage({
           Documents <span className="text-ink-tertiary">· {docs.length} files</span>
         </span>
         <button
-          className="btn btn-secondary btn-sm opacity-50 cursor-not-allowed"
-          disabled
-          title="Coming soon"
+          className="btn btn-secondary btn-sm"
+          type="button"
+          title="Upload lands in a later pass"
         >
           Upload
         </button>
@@ -665,9 +664,9 @@ export default async function BookingDetailPage({
                 </div>
                 <Badge tone={badge.tone}>{badge.label}</Badge>
                 <button
-                  className="btn btn-ghost btn-sm opacity-50 cursor-not-allowed"
-                  disabled
-                  title="File storage not wired"
+                  className="btn btn-ghost btn-sm"
+                  type="button"
+                  title="File storage not wired yet"
                 >
                   View
                 </button>
@@ -725,9 +724,9 @@ export default async function BookingDetailPage({
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             <button
-              className="btn btn-ghost btn-sm opacity-50 cursor-not-allowed"
-              disabled
-              title="Coming soon"
+              className="btn btn-ghost btn-sm"
+              type="button"
+              title="Folio export lands in a later pass"
             >
               Print folio
             </button>
@@ -745,15 +744,15 @@ export default async function BookingDetailPage({
               </button>
             )}
             <button
-              className="btn btn-secondary btn-sm opacity-50 cursor-not-allowed"
-              disabled
-              title="Coming soon"
+              className="btn btn-secondary btn-sm"
+              type="button"
+              title="Extend stay lands in a later pass"
             >
               Extend stay
             </button>
             <button
-              className="btn btn-accent btn-sm opacity-50 cursor-not-allowed"
-              disabled
+              className="btn btn-accent btn-sm"
+              type="button"
               title="Charge lines aren't tracked yet"
             >
               + Add charge
