@@ -610,10 +610,64 @@ export default async function BookingDetailPage({
     </div>
   );
 
-  const adultGuests = party.filter((g) => g.kind !== "child");
-  const childGuests = party.filter((g) => g.kind === "child");
-  const namedCount = party.length > 0 ? adultGuests.length : b.guestName ? 1 : 0;
+  const partyAdults = party.filter((g) => g.kind !== "child");
+  const partyChildren = party.filter((g) => g.kind === "child");
+  const hasPartyPrimary = partyAdults.some((g) => g.role === "primary");
   const hasReq = !!meta && !!(meta.dietary || meta.mobility || meta.opsNotes);
+
+  // Adult guest cards = the booking-level lead guest (bookings.guestId) shown
+  // as PRIMARY, PLUS the named party members. The lead guest is skipped only
+  // when a party row already claims the primary slot (e.g. the seeded demo,
+  // where the booking-level guest is just a party label like "Whitmore party").
+  type AdultCard = {
+    key: string;
+    name: string;
+    isPrimary: boolean;
+    roleLabel: string;
+    ownerVillaCode: string | null;
+    email: string | null;
+    phone: string | null;
+    nationality: string | null;
+    idType: string | null;
+    idLast4: string | null;
+    idVerified: boolean;
+  };
+  const adultCards: AdultCard[] = [];
+  if (!hasPartyPrimary && b.guestName) {
+    adultCards.push({
+      key: "lead",
+      name: b.guestName,
+      isPrimary: true,
+      roleLabel: "Lead booker",
+      ownerVillaCode: selfOwner && b.villaCode ? b.villaCode : null,
+      email: b.guestEmail,
+      phone: b.guestPhone,
+      nationality: b.guestNationality,
+      idType: null,
+      idLast4: null,
+      idVerified: false,
+    });
+  }
+  for (const g of partyAdults) {
+    adultCards.push({
+      key: g.id,
+      name: g.fullName,
+      isPrimary: g.role === "primary",
+      roleLabel: g.isLeadBooker
+        ? "Lead booker"
+        : g.role === "primary"
+          ? "Primary"
+          : "Accompanying",
+      ownerVillaCode: g.ownerVillaCode,
+      email: g.email,
+      phone: g.phone,
+      nationality: g.nationality,
+      idType: g.idType,
+      idLast4: g.idLast4,
+      idVerified: g.idVerified,
+    });
+  }
+  const namedCount = adultCards.length;
 
   const guestsPanel = (
     <div className="flex flex-col gap-5 px-7 py-6">
@@ -624,27 +678,26 @@ export default async function BookingDetailPage({
         <AddGuestButton bookingId={b.id} />
       </div>
 
-      {party.length > 0 ? (
+      {adultCards.length === 0 && partyChildren.length === 0 ? (
+        <div className="rounded-lg border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
+          No named guest yet — use <span className="text-ink font-medium">+ Add guest</span>.
+        </div>
+      ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {adultGuests.map((g) => (
-              <div key={g.id} className="rounded-lg border border-line-soft bg-surface p-5">
+            {adultCards.map((g) => (
+              <div key={g.key} className="rounded-lg border border-line-soft bg-surface p-5">
                 <div className="flex items-center gap-3">
                   <span className="w-9 h-9 rounded-full bg-gradient-coral-soft border border-line-soft inline-flex items-center justify-center font-mono text-[12px] text-ink">
-                    {initials(g.fullName)}
+                    {initials(g.name)}
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-display text-[17px] text-ink">{g.fullName}</span>
-                      {g.role === "primary" && <Badge tone="neutral">PRIMARY</Badge>}
+                      <span className="text-display text-[17px] text-ink">{g.name}</span>
+                      {g.isPrimary && <Badge tone="neutral">PRIMARY</Badge>}
                     </div>
                     <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary mt-0.5">
-                      Adult
-                      {g.isLeadBooker
-                        ? " · Lead booker"
-                        : g.role === "accompanying"
-                          ? " · Accompanying"
-                          : ""}
+                      Adult · {g.roleLabel}
                       {g.ownerVillaCode ? ` · Owner of ${g.ownerVillaCode}` : ""}
                     </div>
                   </div>
@@ -673,11 +726,11 @@ export default async function BookingDetailPage({
             ))}
           </div>
 
-          {childGuests.length > 0 && (
+          {partyChildren.length > 0 && (
             <div className="rounded-lg border border-line-soft bg-surface p-5">
               <div className="text-label mb-3">Children in party · no ID required</div>
               <div className="flex flex-wrap gap-6">
-                {childGuests.map((g) => (
+                {partyChildren.map((g) => (
                   <div key={g.id} className="flex items-center gap-2">
                     <span className="w-7 h-7 rounded-full bg-muted border border-line-soft inline-flex items-center justify-center font-mono text-[10px] text-ink-secondary">
                       {initials(g.fullName)}
@@ -705,40 +758,6 @@ export default async function BookingDetailPage({
             </div>
           )}
         </>
-      ) : b.guestName ? (
-        <>
-          <div className="rounded-lg border border-line-soft bg-surface p-5">
-            <div className="flex items-center gap-3">
-              <span className="w-9 h-9 rounded-full bg-gradient-coral-soft border border-line-soft inline-flex items-center justify-center font-mono text-[12px] text-ink">
-                {initials(b.guestName)}
-              </span>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-display text-[17px] text-ink">{b.guestName}</span>
-                  <Badge tone="neutral">PRIMARY</Badge>
-                </div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary mt-0.5">
-                  Adult · Lead booker
-                  {selfOwner && b.villaCode ? ` · Owner of ${b.villaCode}` : ""}
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 flex flex-col gap-2">
-              <Row k="Email">{b.guestEmail ?? "—"}</Row>
-              <Row k="Phone">{b.guestPhone ?? "—"}</Row>
-              <Row k="Nationality">{b.guestNationality ?? "—"}</Row>
-            </div>
-          </div>
-          <div className="rounded-md border border-line-soft bg-muted/30 p-5 text-[13px] text-ink-secondary leading-relaxed">
-            Party of {pax}
-            {hasPax ? ` · ${b.adults ?? 0} adult${b.adults === 1 ? "" : "s"} + ${b.children ?? 0} child${b.children === 1 ? "" : "ren"}` : ""}.
-            Accompanying guests aren&rsquo;t itemised for this booking yet.
-          </div>
-        </>
-      ) : (
-        <div className="rounded-lg border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
-          No named guest on this booking.
-        </div>
       )}
     </div>
   );
