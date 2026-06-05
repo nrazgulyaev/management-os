@@ -45,13 +45,6 @@ const STATE_TILES: Array<{ key: VillaState; label: string; color: string }> = [
   { key: "ooo", label: "OOO", color: "var(--line-strong)" },
 ];
 
-const SEVERITY_TONE: Record<string, "ok" | "info" | "gold" | "warn" | undefined> = {
-  p3: undefined, // low
-  p2: "info", // normal
-  p1: "warn", // high
-  p0: "warn", // urgent
-};
-
 const STATUS_LABEL: Record<string, { tone?: "ok" | "info" | "gold" | "warn"; text: string }> = {
   open: { text: "Open" },
   triaged: { tone: "info", text: "Triaged" },
@@ -60,6 +53,43 @@ const STATUS_LABEL: Record<string, { tone?: "ok" | "info" | "gold" | "warn"; tex
   waiting_parts: { tone: "warn", text: "Waiting parts" },
   resolved: { tone: "ok", text: "Resolved" },
 };
+
+type SlaState = { cls: "ok" | "warn" | "danger"; rowClass: string; label: string; hint?: string };
+function slaState(severity: string, daysOpen: number): SlaState {
+  if (severity === "p0" || (severity === "p1" && daysOpen >= 1)) {
+    return {
+      cls: "danger",
+      rowClass: "status-breached",
+      label: "Breached",
+      hint: daysOpen > 0 ? `${daysOpen}d` : undefined,
+    };
+  }
+  if (severity === "p1" || (severity === "p2" && daysOpen >= 7)) {
+    return {
+      cls: "warn",
+      rowClass: "status-at-risk",
+      label: "At risk",
+      hint: daysOpen > 0 ? `${daysOpen}d` : undefined,
+    };
+  }
+  return { cls: "ok", rowClass: "", label: "On track" };
+}
+function staffInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+const PRI_RANK: Record<string, number> = { p0: 0, p1: 1, p2: 2, p3: 3 };
+const TURNOVER_COLS: { key: string; label: string; statuses: string[] }[] = [
+  { key: "to_clean", label: "To clean", statuses: ["pending", "scheduled", "queued", "to_clean", "open", ""] },
+  { key: "in_progress", label: "In progress", statuses: ["in_progress", "cleaning", "started"] },
+  { key: "inspected", label: "Inspected", statuses: ["inspection", "inspected", "review"] },
+  { key: "ready", label: "Ready", statuses: ["ready", "done", "completed", "verified"] },
+];
 
 export default async function OperationsPage() {
   const today = new Date();
@@ -107,6 +137,18 @@ export default async function OperationsPage() {
     timeZone: "Asia/Makassar",
   });
 
+  // Maintenance queue: sort by SLA risk → priority.
+  const sortedTickets = [...tickets].sort(
+    (a, b) => (PRI_RANK[a.severity] ?? 9) - (PRI_RANK[b.severity] ?? 9) || b.daysOpen - a.daysOpen,
+  );
+  // Turnover kanban roll-ups (from housekeeping status).
+  const turnoverDone = housekeeping.filter((h) =>
+    TURNOVER_COLS[3].statuses.includes(h.status),
+  ).length;
+  const turnoverInProgress = housekeeping.filter((h) =>
+    TURNOVER_COLS[1].statuses.includes(h.status),
+  ).length;
+
   return (
     <>
       <div className="page-header" style={{ marginBottom: 0 }}>
@@ -139,7 +181,7 @@ export default async function OperationsPage() {
       {/* Zone 1 — Today hero strip (3 tiles) */}
       <div className="ops-hero mt-[18px] mb-[18px]">
         {/* Dark arrivals tile — the urgent action */}
-        <div className="ops-tile dark">
+        <div className="ops-tile ot-dark">
           <div className="ot-label">
             <span className="pulse-dot" style={{ background: "var(--ok)" }} /> Today ·{" "}
             {arrivals.length} {arrivals.length === 1 ? "arrival" : "arrivals"}
@@ -251,58 +293,121 @@ export default async function OperationsPage() {
       </Card>
 
       {/* Housekeeping + status board */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
-        <Card id="housekeeping" padding="none" overflowHidden>
-          <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
-            <h2 className="display-md">Housekeeping · today</h2>
-            <span className="mono ml-auto text-[11px] text-ink-3">
-              NOT SEEDED
-            </span>
-          </div>
-          {housekeeping.length === 0 ? (
-            <p className="p-5 text-[13px] text-ink-3 italic m-0">
-              No housekeeping tasks scheduled. Seed `operation_tasks` rows or
-              wire the Mgmt OS scheduler to populate this board.
-            </p>
-          ) : (
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>Villa</th>
-                  <th>Time</th>
-                  <th>Assignee</th>
-                  <th>Progress</th>
-                  <th>Status</th>
-                  <th>Pri.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {housekeeping.map((t) => (
-                  <tr key={t.taskId}>
-                    <td className="mono">{t.villaCode}</td>
-                    <td className="mono">{t.scheduledAt}</td>
-                    <td>{t.assigneeName ?? "—"}</td>
-                    <td className="num">{t.progressPct}%</td>
-                    <td>
-                      <HandoffBadge>{t.status}</HandoffBadge>
-                    </td>
-                    <td className="mono">{t.priority}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+      {/* Maintenance queue — sorted by SLA risk → priority */}
+      <div className="flex items-baseline gap-3.5 mb-3 flex-wrap">
+        <h2 className="display-md">
+          Maintenance <em className="text-ink-3">· {tickets.length} open</em>
+        </h2>
+        <span className="mono text-[10.5px] uppercase tracking-[0.1em] text-ink-3">
+          Sorted by SLA risk → priority
+        </span>
+        <span className="mono text-[10.5px] uppercase tracking-[0.1em] text-ink-3 ml-auto inline-flex items-center gap-2">
+          <span className="pulse-dot" style={{ background: "var(--terra)" }} /> Triage agent
+        </span>
+      </div>
+      {sortedTickets.length === 0 ? (
+        <Card className="p-5 mb-[18px]">
+          <p className="text-[13px] text-ink-3 italic m-0">
+            No open tickets. Maintenance tickets surface here once reported.
+          </p>
         </Card>
+      ) : (
+        <div className="maintenance-queue mb-[18px]">
+          {sortedTickets.map((t) => {
+            const sla = slaState(t.severity, t.daysOpen);
+            const statusText = (STATUS_LABEL[t.status] ?? { text: t.status }).text;
+            const urgent = t.severity === "p0" || t.severity === "p1";
+            return (
+              <div key={t.id} className={`mq-row ${sla.rowClass}`.trim()}>
+                <span className={`priority-badge ${t.severity}`}>
+                  {t.severity.toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[14px] text-ink font-medium truncate">{t.title}</div>
+                  <div className="mono text-[11px] text-ink-3 mt-0.5 tracking-[0.06em]">
+                    {t.ticketCode} · {t.villaCode ?? "—"} · {statusText} · {t.daysOpen}d open
+                  </div>
+                </div>
+                <span className={`sla-pill ${sla.cls}`}>
+                  <span className="dot" />
+                  {sla.label}
+                  {sla.hint && <span className="hint">{sla.hint}</span>}
+                </span>
+                <Link
+                  href={`/dashboard/operations/maintenance/${t.id}`}
+                  className={`btn btn-${urgent ? "accent" : "secondary"} btn-sm`}
+                >
+                  {urgent ? "Resolve →" : "Open"}
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
+      {/* Turnovers — 4-column kanban from housekeeping status */}
+      <div className="flex items-baseline gap-3.5 mb-3 flex-wrap">
+        <h2 className="display-md">
+          Turnovers <em className="text-ink-3">· today</em>
+        </h2>
+        <span className="mono text-[10.5px] uppercase tracking-[0.1em] text-ink-3">
+          {housekeeping.length} scheduled · {turnoverDone} done · {turnoverInProgress} in progress
+        </span>
+        <Link
+          href="/dashboard/operations/turnovers"
+          className="mono text-[10.5px] uppercase tracking-[0.1em] text-ink-3 ml-auto hover:text-ink"
+        >
+          ↗ Full board
+        </Link>
+      </div>
+      <div className="turnover-board mb-[18px]">
+        {TURNOVER_COLS.map((col) => {
+          const cards = housekeeping.filter((h) => col.statuses.includes(h.status));
+          return (
+            <div key={col.key} className="tb-col">
+              <div className="tb-col-head">
+                <span className="tb-col-label">{col.label}</span>
+                <span className="tb-col-count">{cards.length}</span>
+              </div>
+              <div className="tb-col-body">
+                {cards.length === 0 ? (
+                  <div className="rounded-[10px] border border-dashed border-line bg-cream-warm py-[18px] text-center mono text-[11px] text-ink-4 tracking-[0.1em]">
+                    EMPTY
+                  </div>
+                ) : (
+                  cards.map((h) => (
+                    <div key={h.taskId} className="tb-card">
+                      <div className="tb-card-head">
+                        <span className="villa">{h.villaCode}</span>
+                        {col.key === "in_progress" && (
+                          <span className="badge">~{h.progressPct}%</span>
+                        )}
+                      </div>
+                      <div className="tb-card-meta">{h.scheduledAt}</div>
+                      {h.assigneeName && (
+                        <span className="staff-chip self-start">
+                          <span className="initials">{staffInitials(h.assigneeName)}</span>
+                          {h.assigneeName}
+                        </span>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Status board + preventive */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-3.5 mb-[18px]">
         <Card className="p-5">
           <h3 className="display-sm">
             Status board · {totalVillas} {totalVillas === 1 ? "villa" : "villas"}
           </h3>
           <div className="label mt-1">Live readiness</div>
           {totalVillas === 0 ? (
-            <p className="mt-3.5 text-[13px] text-ink-3 italic">
-              No villas yet.
-            </p>
+            <p className="mt-3.5 text-[13px] text-ink-3 italic">No villas yet.</p>
           ) : (
             <div className="mt-3.5 grid grid-cols-2 gap-2">
               {STATE_TILES.map((s) => (
@@ -310,10 +415,7 @@ export default async function OperationsPage() {
                   key={s.key}
                   className="px-3 py-2.5 border border-line-soft rounded-[10px] bg-cream-warm flex items-center gap-2"
                 >
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ background: s.color }}
-                  />
+                  <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
                   <span className="text-[13px] flex-1">{s.label}</span>
                   <span className="num text-[14px] font-medium">
                     {tileCounts.get(s.key) ?? 0}
@@ -323,64 +425,11 @@ export default async function OperationsPage() {
             </div>
           )}
         </Card>
-      </div>
-
-      {/* Maintenance + preventive */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
-        <Card id="maintenance" padding="none" overflowHidden>
-          <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
-            <h2 className="display-md">Maintenance tickets</h2>
-            <span className="mono ml-auto text-[11px] text-ink-3">
-              {tickets.length} OPEN
-            </span>
-          </div>
-          {tickets.length === 0 ? (
-            <p className="p-5 text-[13px] text-ink-3 italic m-0">
-              No open tickets. Maintenance tickets surface here once reported.
-            </p>
-          ) : (
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>Villa</th>
-                  <th>Issue</th>
-                  <th>Cat.</th>
-                  <th>Severity</th>
-                  <th>Status</th>
-                  <th>Age</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tickets.map((t) => {
-                  const status = STATUS_LABEL[t.status] ?? { text: t.status };
-                  return (
-                    <tr key={t.id}>
-                      <td className="mono">{t.villaCode ?? "—"}</td>
-                      <td className="max-w-[280px] text-[13px]">{t.title}</td>
-                      <td>
-                        <HandoffBadge>{t.issueCategory}</HandoffBadge>
-                      </td>
-                      <td>
-                        <HandoffBadge tone={SEVERITY_TONE[t.severity]}>{t.severity}</HandoffBadge>
-                      </td>
-                      <td>
-                        <HandoffBadge tone={status.tone}>{status.text}</HandoffBadge>
-                      </td>
-                      <td className="mono">{t.daysOpen}d</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </Card>
 
         <Card padding="none" overflowHidden>
           <div className="px-[18px] py-3.5 border-b border-line-soft">
             <h2 className="display-md">Preventive · upcoming</h2>
-            <div className="label mt-1">
-              Templates · no schedule yet
-            </div>
+            <div className="label mt-1">Templates · no schedule yet</div>
           </div>
           {preventive.length === 0 ? (
             <p className="p-5 text-[13px] text-ink-3 italic m-0">
@@ -391,14 +440,10 @@ export default async function OperationsPage() {
               {preventive.map((p) => (
                 <li key={p.templateKey} className="flex flex-col items-start gap-1.5 px-[18px] py-3">
                   <div className="flex items-center gap-2.5 w-full">
-                    <span className="serif text-[15px] flex-1">
-                      {p.templateName}
-                    </span>
+                    <span className="serif text-[15px] flex-1">{p.templateName}</span>
                     <HandoffBadge>{p.defaultFrequency}</HandoffBadge>
                   </div>
-                  <div className="mono text-[10.5px] text-ink-4">
-                    {p.category}
-                  </div>
+                  <div className="mono text-[10.5px] text-ink-4">{p.category}</div>
                 </li>
               ))}
             </ul>
