@@ -1,5 +1,5 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -20,21 +20,27 @@ export default async function RuleSetDetailPage({
   if (!set) notFound();
   const rules = await listPricingRulesForSet(id);
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Dynamic pricing", href: "/dashboard/pricing" },
-          { label: "Rule sets", href: "/dashboard/pricing/rule-sets" },
-          { label: set.name },
-        ]}
-        title={set.name}
-        description={`${set.scopeType} · priority ${set.priority} · ${set.ruleSetCode}`}
-        actions={
-          <Badge tone={set.status === "active" ? "success" : set.status === "paused" ? "warning" : "neutral"}>
+    <div className="flex flex-col gap-6">
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/pricing">Dynamic pricing</Link> /{" "}
+            <Link href="/dashboard/pricing/rule-sets">Rule sets</Link> /{" "}
+            <span>{set.name}</span>
+          </div>
+          <h1>{set.name}</h1>
+          <p className="font-mono text-[12px] text-ink-3 mt-2">
+            {set.scopeType} · priority {set.priority} · {set.ruleSetCode}
+          </p>
+        </div>
+        <div className="actions">
+          <Badge
+            tone={set.status === "active" ? "success" : set.status === "paused" ? "warning" : "neutral"}
+          >
             {set.status}
           </Badge>
-        }
-      />
+        </div>
+      </div>
 
       <Section eyebrow="Base" title="Base rate / clamps">
         <dl className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
