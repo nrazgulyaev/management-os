@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { MetricCard } from "@/components/ui/metric-card";
 import { getPricingHubMetrics } from "@/features/dynamic-pricing/services";
@@ -30,12 +29,19 @@ export default async function PricingHub() {
       villasMissingRuleSet: 0,
     } as Awaited<ReturnType<typeof getPricingHubMetrics>>);
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Dynamic pricing" }]}
-        title="Dynamic pricing"
-        description="Rule-based nightly pricing layered above the legacy rate plans. Rule sets compose: villa > project > global, with priority breaking ties."
-      />
+    <div className="flex flex-col gap-6">
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> / <span>Dynamic pricing</span>
+          </div>
+          <h1>Dynamic pricing</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[700px]">
+            Rule-based nightly pricing layered above the legacy rate plans. Rule sets
+            compose: villa &gt; project &gt; global, with priority breaking ties.
+          </p>
+        </div>
+      </div>
       <QueryWarningCard result={metricsResult} tableName="pricing_rule_sets" />
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <MetricCard label="Active rule sets" value={String(m.activeRuleSets)} />
