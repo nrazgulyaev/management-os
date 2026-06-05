@@ -7,11 +7,23 @@ import { DetailSide, type SideCard } from "@/components/dashboard/detail/detail-
 import { DetailRelated, type RelatedItem } from "@/components/dashboard/detail/detail-related";
 import { BookingDetailTabs } from "./_detail-client";
 import { BookingNotesEditor } from "./_notes-editor";
+import { ExtendStayButton } from "./_extend-stay";
+import { AddGuestButton } from "./_guest-add";
+import { AddChargeButton } from "./_charge-add";
+import { UploadDocButton, DocViewButton, PrintFolioButton } from "./_doc-controls";
 import {
   getBookingDetail,
   listBookingAuditTimeline,
+  listBookingParty,
+  listBookingChargeLines,
+  getBookingPayment,
+  getBookingMeta,
   type BookingDetail,
   type BookingAuditRow,
+  type BookingPartyGuest,
+  type BookingChargeLine,
+  type BookingPaymentRow,
+  type BookingMetaRow,
 } from "@/features/bookings/booking-detail-queries";
 import { listDocuments, type DocumentRow } from "@/features/documents/services";
 import {
@@ -129,7 +141,7 @@ function ChargeRow({
   );
 }
 
-function chargesPanel(b: BookingDetail) {
+function chargesPanel(b: BookingDetail, realLines: BookingChargeLine[]) {
   const m = makeMoney(b.currency);
   type Line = {
     type: string;
@@ -138,42 +150,62 @@ function chargesPanel(b: BookingDetail) {
     sign: "+" | "−";
     muted?: boolean;
     note?: string;
+    date?: string;
   };
-  const lines: Line[] = [
-    {
-      type: "NIGHTLY",
-      desc: `${b.nights} night${b.nights === 1 ? "" : "s"} × ${m.compact(b.grossAmount / Math.max(1, b.nights))}`,
-      amount: b.grossAmount,
-      sign: "+",
-      note: "BASE",
-    },
-  ];
-  if (b.cleaningFeeAmount > 0)
-    lines.push({
-      type: "SERVICE",
-      desc: "Turnover cleaning",
-      amount: b.cleaningFeeAmount,
-      sign: "+",
-    });
-  if (b.channelFeeAmount > 0)
-    lines.push({
-      type: "FEE",
-      desc: `${b.channelName ?? "Channel"} commission`,
-      amount: b.channelFeeAmount,
-      sign: "−",
-      muted: true,
-    });
-  if (b.paymentFeeAmount > 0)
-    lines.push({
-      type: "FEE",
-      desc: "Payment processing",
-      amount: b.paymentFeeAmount,
-      sign: "−",
-      muted: true,
-    });
-  const net =
-    b.netExpectedAmount ??
-    b.grossAmount + b.cleaningFeeAmount - b.channelFeeAmount - b.paymentFeeAmount;
+
+  let lines: Line[];
+  let net: number;
+
+  if (realLines.length > 0) {
+    // Real itemised ledger (booking_charges).
+    lines = realLines.map((l) => ({
+      type: l.chargeType.toUpperCase(),
+      desc: l.description,
+      amount: l.amount,
+      sign: l.amount < 0 ? "−" : "+",
+      muted: l.amount < 0,
+      note: l.note ?? undefined,
+      date: l.occurredOn ? dateLong(l.occurredOn) : undefined,
+    }));
+    net = realLines.reduce((s, l) => s + l.amount, 0);
+  } else {
+    // Derived from the flat fee columns when no ledger rows exist.
+    lines = [
+      {
+        type: "NIGHTLY",
+        desc: `${b.nights} night${b.nights === 1 ? "" : "s"} × ${m.compact(b.grossAmount / Math.max(1, b.nights))}`,
+        amount: b.grossAmount,
+        sign: "+",
+        note: "BASE",
+      },
+    ];
+    if (b.cleaningFeeAmount > 0)
+      lines.push({
+        type: "SERVICE",
+        desc: "Turnover cleaning",
+        amount: b.cleaningFeeAmount,
+        sign: "+",
+      });
+    if (b.channelFeeAmount > 0)
+      lines.push({
+        type: "FEE",
+        desc: `${b.channelName ?? "Channel"} commission`,
+        amount: b.channelFeeAmount,
+        sign: "−",
+        muted: true,
+      });
+    if (b.paymentFeeAmount > 0)
+      lines.push({
+        type: "FEE",
+        desc: "Payment processing",
+        amount: b.paymentFeeAmount,
+        sign: "−",
+        muted: true,
+      });
+    net =
+      b.netExpectedAmount ??
+      b.grossAmount + b.cleaningFeeAmount - b.channelFeeAmount - b.paymentFeeAmount;
+  }
 
   const dateStr = dateLong(b.createdAt.slice(0, 10));
 
@@ -199,7 +231,7 @@ function chargesPanel(b: BookingDetail) {
               key={i}
               type={l.type}
               desc={l.desc}
-              date={dateStr}
+              date={l.date ?? dateStr}
               display={`${l.sign}${m.full(l.amount)}`}
               note={l.note}
               muted={l.muted}
@@ -219,36 +251,66 @@ function chargesPanel(b: BookingDetail) {
   );
 }
 
-function settlementPanel(b: BookingDetail) {
+function settlementPanel(b: BookingDetail, payment: BookingPaymentRow | null) {
+  const statusTone =
+    payment?.status === "captured"
+      ? "success"
+      : payment?.status === "refunded" || payment?.status === "failed"
+        ? "danger"
+        : payment
+          ? "neutral"
+          : b.statement?.status === "draft"
+            ? "neutral"
+            : "success";
+  const methodLine = payment
+    ? [
+        payment.provider,
+        payment.providerPaymentId,
+        payment.cardBrand
+          ? `${payment.cardBrand}${payment.cardLast4 ? ` ···· ${payment.cardLast4}` : ""}`
+          : payment.method,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
+
   return (
     <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
       <div className="px-5 py-3.5 border-b border-line-soft flex items-center justify-between">
         <span className="text-label">Settlement</span>
-        {b.statement && (
-          <Badge tone={b.statement.status === "draft" ? "neutral" : "success"}>
-            {b.statement.status}
+        {(payment || b.statement) && (
+          <Badge tone={statusTone}>
+            {(payment?.status ?? b.statement?.status ?? "").toUpperCase()}
           </Badge>
         )}
       </div>
-      <div className="px-5 py-4 text-sm">
+      <div className="px-5 py-4 text-sm flex flex-col gap-2">
+        {payment && (
+          <>
+            {methodLine && (
+              <Row k="Method">
+                <span className="font-mono capitalize">{methodLine}</span>
+              </Row>
+            )}
+            {payment.capturedAt && (
+              <Row k="Captured">
+                {dateTimeLabel(payment.capturedAt)}
+                {payment.captureNote ? ` · ${payment.captureNote}` : ""}
+              </Row>
+            )}
+          </>
+        )}
         {b.statement ? (
-          <div className="flex flex-col gap-2">
-            <Row k="Settles into">
-              <span className="font-mono text-terra">{b.statement.code}</span>
-              <span className="text-ink-tertiary"> · owner statement</span>
-            </Row>
-            <p className="text-[12px] text-ink-tertiary mt-1">
-              Charges post to this statement at checkout; the operator share above
-              is what flows through after channel + processing fees.
-            </p>
-          </div>
-        ) : (
+          <Row k="Settles into">
+            <span className="font-mono text-terra">{b.statement.code}</span>
+            <span className="text-ink-tertiary"> · owner statement · {b.statement.status}</span>
+          </Row>
+        ) : !payment ? (
           <p className="text-[13px] text-ink-secondary leading-relaxed">
             No owner statement linked yet — revenue posts to the owner statement on
-            the checkout date. Card / Stripe settlement isn&rsquo;t recorded for
-            channel bookings.
+            the checkout date.
           </p>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -358,11 +420,18 @@ export default async function BookingDetailPage({
   const b = await getBookingDetail(id);
   if (!b) notFound();
 
-  const [audit, docsRaw, runs] = await Promise.all([
-    listBookingAuditTimeline(id),
-    listDocuments({ entityType: "booking", entityId: id }),
-    listBookingAutomationRuns({ bookingId: id }).catch(() => [] as WithSource<AutomationRunRow>[]),
-  ]);
+  const [audit, docsRaw, runs, party, chargeLines, payment, meta] =
+    await Promise.all([
+      listBookingAuditTimeline(id),
+      listDocuments({ entityType: "booking", entityId: id }),
+      listBookingAutomationRuns({ bookingId: id }).catch(
+        () => [] as WithSource<AutomationRunRow>[],
+      ),
+      listBookingParty(id).catch(() => [] as BookingPartyGuest[]),
+      listBookingChargeLines(id).catch(() => [] as BookingChargeLine[]),
+      getBookingPayment(id).catch(() => null as BookingPaymentRow | null),
+      getBookingMeta(id).catch(() => null as BookingMetaRow | null),
+    ]);
   const docs = docsRaw.filter((d) => d.status !== "archived");
 
   const m = makeMoney(b.currency);
@@ -372,6 +441,13 @@ export default async function BookingDetailPage({
     !!b.owner?.email && !!b.guestEmail
       ? b.owner.email.toLowerCase() === b.guestEmail.toLowerCase()
       : false;
+
+  // The booking-level guest (bookings.guestId) drives the title (e.g. a party
+  // label); the rail's "Primary guest" prefers the named primary party member.
+  const primaryParty = party.find((g) => g.role === "primary") ?? null;
+  const railGuestName = primaryParty?.fullName ?? b.guestName ?? "Guest";
+  const railEmail = primaryParty?.email ?? b.guestEmail;
+  const railPhone = primaryParty?.phone ?? b.guestPhone;
 
   const channelPill = (
     <span className={`channel-pill ${channelPillClass(b.channelKey)}`}>
@@ -389,17 +465,17 @@ export default async function BookingDetailPage({
     {
       id: "guest",
       eyebrow: "Primary guest",
-      title: b.guestName ?? "Guest",
+      title: railGuestName,
       body: (
         <div className="flex flex-col gap-0.5">
-          <span className="text-ink">{b.guestPhone ?? "—"}</span>
-          <span className="text-ink truncate">{b.guestEmail ?? "—"}</span>
+          <span className="text-ink">{railPhone ?? "—"}</span>
+          <span className="text-ink truncate">{railEmail ?? "—"}</span>
         </div>
       ),
       footer: (
         <div className="flex gap-2">
-          {b.guestEmail ? (
-            <a className="btn btn-secondary btn-sm flex-1" href={`mailto:${b.guestEmail}`}>
+          {railEmail ? (
+            <a className="btn btn-secondary btn-sm flex-1" href={`mailto:${railEmail}`}>
               Email
             </a>
           ) : (
@@ -407,10 +483,10 @@ export default async function BookingDetailPage({
               Email
             </button>
           )}
-          {b.guestPhone ? (
+          {railPhone ? (
             <a
               className="btn btn-secondary btn-sm flex-1"
-              href={`sms:${b.guestPhone.replace(/[^\d+]/g, "")}`}
+              href={`sms:${railPhone.replace(/[^\d+]/g, "")}`}
             >
               SMS
             </a>
@@ -428,11 +504,19 @@ export default async function BookingDetailPage({
       title: b.channelName ?? "Direct",
       body: (
         <span className="text-ink-secondary">
-          {b.lastSyncedAt
-            ? `Synced ${ago(b.lastSyncedAt)}`
-            : b.channelName
-              ? "No calendar sync recorded"
-              : "Direct booking — no channel"}
+          {(() => {
+            const syncedAt = meta?.syncLastAt ?? b.lastSyncedAt;
+            if (!syncedAt)
+              return b.channelName
+                ? "No calendar sync recorded"
+                : "Direct booking — no channel";
+            const parts = [`Synced ${ago(syncedAt)}`];
+            if (meta) {
+              parts.push(`${meta.syncMessagesAutoReplied} messages auto-replied`);
+              parts.push(`${meta.syncMessagesRouted} routed`);
+            }
+            return parts.join(" · ");
+          })()}
         </span>
       ),
     },
@@ -455,8 +539,12 @@ export default async function BookingDetailPage({
     {
       id: "guest-r",
       href: "/dashboard/guests",
-      title: <>{b.guestName ?? "Guest"}</>,
-      meta: selfOwner && b.villaCode ? `OWNER OF ${b.villaCode}` : "PRIMARY GUEST",
+      title: <>{railGuestName}</>,
+      meta: primaryParty?.ownerVillaCode
+        ? `OWNER OF ${primaryParty.ownerVillaCode}`
+        : selfOwner && b.villaCode
+          ? `OWNER OF ${b.villaCode}`
+          : "PRIMARY GUEST",
     },
     {
       id: "villa-r",
@@ -509,7 +597,7 @@ export default async function BookingDetailPage({
         </div>
       </div>
 
-      {chargesPanel(b)}
+      {chargesPanel(b, chargeLines)}
 
       <DetailRelated eyebrow="Also see" items={related} />
     </div>
@@ -517,61 +605,141 @@ export default async function BookingDetailPage({
 
   const chargesTabPanel = (
     <div className="flex flex-col gap-6 px-7 py-6">
-      {chargesPanel(b)}
-      {settlementPanel(b)}
+      {chargesPanel(b, chargeLines)}
+      {settlementPanel(b, payment)}
     </div>
   );
+
+  const adultGuests = party.filter((g) => g.kind !== "child");
+  const childGuests = party.filter((g) => g.kind === "child");
+  const namedCount = party.length > 0 ? adultGuests.length : b.guestName ? 1 : 0;
+  const hasReq = !!meta && !!(meta.dietary || meta.mobility || meta.opsNotes);
 
   const guestsPanel = (
     <div className="flex flex-col gap-5 px-7 py-6">
       <div className="flex items-center justify-between">
         <span className="text-label">
-          Guests <span className="text-ink-tertiary">· {b.guestName ? 1 : 0} named · party of {pax}</span>
+          Guests <span className="text-ink-tertiary">· {namedCount} named · party of {pax}</span>
         </span>
-        <button
-          className="btn btn-secondary btn-sm opacity-50 cursor-not-allowed"
-          disabled
-          title="Coming soon"
-        >
-          + Add guest
-        </button>
+        <AddGuestButton bookingId={b.id} />
       </div>
 
-      {b.guestName ? (
-        <div className="rounded-lg border border-line-soft bg-surface p-5">
-          <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-full bg-gradient-coral-soft border border-line-soft inline-flex items-center justify-center font-mono text-[12px] text-ink">
-              {initials(b.guestName)}
-            </span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-display text-[17px] text-ink">{b.guestName}</span>
-                <Badge tone="neutral">PRIMARY</Badge>
+      {party.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {adultGuests.map((g) => (
+              <div key={g.id} className="rounded-lg border border-line-soft bg-surface p-5">
+                <div className="flex items-center gap-3">
+                  <span className="w-9 h-9 rounded-full bg-gradient-coral-soft border border-line-soft inline-flex items-center justify-center font-mono text-[12px] text-ink">
+                    {initials(g.fullName)}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-display text-[17px] text-ink">{g.fullName}</span>
+                      {g.role === "primary" && <Badge tone="neutral">PRIMARY</Badge>}
+                    </div>
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary mt-0.5">
+                      Adult
+                      {g.isLeadBooker
+                        ? " · Lead booker"
+                        : g.role === "accompanying"
+                          ? " · Accompanying"
+                          : ""}
+                      {g.ownerVillaCode ? ` · Owner of ${g.ownerVillaCode}` : ""}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-col gap-2">
+                  <Row k="Email">{g.email ?? "—"}</Row>
+                  <Row k="Phone">{g.phone ?? "—"}</Row>
+                  <Row k="Nationality">{g.nationality ?? "—"}</Row>
+                  <Row k="ID">
+                    {g.idType ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Badge tone={g.idVerified ? "success" : "neutral"}>
+                          {g.idType.toUpperCase()}
+                          {g.idVerified ? " VERIFIED" : ""}
+                        </Badge>
+                        {g.idLast4 && (
+                          <span className="font-mono text-ink-tertiary">···· {g.idLast4}</span>
+                        )}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </Row>
+                </div>
               </div>
-              <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary mt-0.5">
-                Adult · Lead booker
-                {selfOwner && b.villaCode ? ` · Owner of ${b.villaCode}` : ""}
+            ))}
+          </div>
+
+          {childGuests.length > 0 && (
+            <div className="rounded-lg border border-line-soft bg-surface p-5">
+              <div className="text-label mb-3">Children in party · no ID required</div>
+              <div className="flex flex-wrap gap-6">
+                {childGuests.map((g) => (
+                  <div key={g.id} className="flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-muted border border-line-soft inline-flex items-center justify-center font-mono text-[10px] text-ink-secondary">
+                      {initials(g.fullName)}
+                    </span>
+                    <div>
+                      <div className="text-sm text-ink">{g.fullName}</div>
+                      <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary">
+                        Child{g.ageYears != null ? ` · age ${g.ageYears}` : ""}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
+
+          {hasReq && (
+            <div className="rounded-lg border border-line-soft bg-surface p-5">
+              <div className="text-label mb-3">Special requirements</div>
+              <div className="flex flex-col gap-2">
+                {meta?.dietary && <Row k="Dietary">{meta.dietary}</Row>}
+                {meta?.mobility && <Row k="Mobility">{meta.mobility}</Row>}
+                {meta?.opsNotes && <Row k="Ops notes">{meta.opsNotes}</Row>}
+              </div>
+            </div>
+          )}
+        </>
+      ) : b.guestName ? (
+        <>
+          <div className="rounded-lg border border-line-soft bg-surface p-5">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-full bg-gradient-coral-soft border border-line-soft inline-flex items-center justify-center font-mono text-[12px] text-ink">
+                {initials(b.guestName)}
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-display text-[17px] text-ink">{b.guestName}</span>
+                  <Badge tone="neutral">PRIMARY</Badge>
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary mt-0.5">
+                  Adult · Lead booker
+                  {selfOwner && b.villaCode ? ` · Owner of ${b.villaCode}` : ""}
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-col gap-2">
+              <Row k="Email">{b.guestEmail ?? "—"}</Row>
+              <Row k="Phone">{b.guestPhone ?? "—"}</Row>
+              <Row k="Nationality">{b.guestNationality ?? "—"}</Row>
+            </div>
           </div>
-          <div className="mt-4 flex flex-col gap-2">
-            <Row k="Email">{b.guestEmail ?? "—"}</Row>
-            <Row k="Phone">{b.guestPhone ?? "—"}</Row>
-            <Row k="Nationality">{b.guestNationality ?? "—"}</Row>
+          <div className="rounded-md border border-line-soft bg-muted/30 p-5 text-[13px] text-ink-secondary leading-relaxed">
+            Party of {pax}
+            {hasPax ? ` · ${b.adults ?? 0} adult${b.adults === 1 ? "" : "s"} + ${b.children ?? 0} child${b.children === 1 ? "" : "ren"}` : ""}.
+            Accompanying guests aren&rsquo;t itemised for this booking yet.
           </div>
-        </div>
+        </>
       ) : (
         <div className="rounded-lg border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
           No named guest on this booking.
         </div>
       )}
-
-      <div className="rounded-md border border-line-soft bg-muted/30 p-5 text-[13px] text-ink-secondary leading-relaxed">
-        Party of {pax}
-        {hasPax ? ` · ${b.adults ?? 0} adult${b.adults === 1 ? "" : "s"} + ${b.children ?? 0} child${b.children === 1 ? "" : "ren"}` : ""}.
-        Accompanying guests, per-guest IDs, and dietary / mobility requirements
-        aren&rsquo;t itemised for this booking yet.
-      </div>
     </div>
   );
 
@@ -582,9 +750,8 @@ export default async function BookingDetailPage({
           Activity <span className="text-ink-tertiary">· {timeline.length} events</span>
         </span>
         <select
-          className="select select-sm opacity-50 cursor-not-allowed"
-          disabled
-          title="Coming soon"
+          className="select select-sm"
+          title="Source filtering lands in a later pass"
           defaultValue="all"
         >
           <option value="all">All sources</option>
@@ -627,13 +794,7 @@ export default async function BookingDetailPage({
         <span className="text-label">
           Documents <span className="text-ink-tertiary">· {docs.length} files</span>
         </span>
-        <button
-          className="btn btn-secondary btn-sm opacity-50 cursor-not-allowed"
-          disabled
-          title="Coming soon"
-        >
-          Upload
-        </button>
+        <UploadDocButton bookingId={b.id} />
       </div>
 
       {docs.length === 0 ? (
@@ -664,13 +825,7 @@ export default async function BookingDetailPage({
                   </div>
                 </div>
                 <Badge tone={badge.tone}>{badge.label}</Badge>
-                <button
-                  className="btn btn-ghost btn-sm opacity-50 cursor-not-allowed"
-                  disabled
-                  title="File storage not wired"
-                >
-                  View
-                </button>
+                <DocViewButton documentId={d.id} hasFile={d.hasFile} />
               </div>
             );
           })}
@@ -678,9 +833,9 @@ export default async function BookingDetailPage({
       )}
 
       <div className="rounded-lg border border-dashed border-line-soft bg-muted/20 px-5 py-8 text-center">
-        <p className="text-sm text-ink-secondary">Drop files to upload</p>
+        <p className="text-sm text-ink-secondary">Add a document</p>
         <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-tertiary mt-1">
-          PDF · JPG · PNG up to 10 MB · upload lands in a later pass
+          PDF · JPG · PNG up to 25 MB · use Upload above
         </p>
       </div>
     </div>
@@ -724,15 +879,9 @@ export default async function BookingDetailPage({
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              className="btn btn-ghost btn-sm opacity-50 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Print folio
-            </button>
-            {b.guestEmail ? (
-              <a className="btn btn-secondary btn-sm" href={`mailto:${b.guestEmail}`}>
+            <PrintFolioButton />
+            {railEmail ? (
+              <a className="btn btn-secondary btn-sm" href={`mailto:${railEmail}`}>
                 Message guest
               </a>
             ) : (
@@ -744,20 +893,8 @@ export default async function BookingDetailPage({
                 Message guest
               </button>
             )}
-            <button
-              className="btn btn-secondary btn-sm opacity-50 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Extend stay
-            </button>
-            <button
-              className="btn btn-accent btn-sm opacity-50 cursor-not-allowed"
-              disabled
-              title="Charge lines aren't tracked yet"
-            >
-              + Add charge
-            </button>
+            <ExtendStayButton bookingId={b.id} checkIn={b.checkIn} checkOut={b.checkOut} />
+            <AddChargeButton bookingId={b.id} currency={b.currency} />
           </div>
         }
       />
@@ -766,8 +903,12 @@ export default async function BookingDetailPage({
         <BookingDetailTabs
           tabs={[
             { id: "overview", label: "Overview" },
-            { id: "charges", label: "Charges", count: chargeLineCount(b) },
-            { id: "guests", label: "Guests", count: b.guestName ? 1 : 0 },
+            {
+              id: "charges",
+              label: "Charges",
+              count: chargeLines.length > 0 ? chargeLines.length : chargeLineCount(b),
+            },
+            { id: "guests", label: "Guests", count: namedCount },
             { id: "activity", label: "Activity", count: timeline.length },
             { id: "docs", label: "Documents", count: docs.length },
           ]}

@@ -1,8 +1,14 @@
 import "server-only";
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { bookings, bookingChannels, guests } from "@/lib/db/schema/bookings";
+import {
+  bookingGuests,
+  bookingCharges,
+  bookingPayments,
+  bookingMeta,
+} from "@/lib/db/schema/booking-detail";
 import { villas, projects } from "@/lib/db/schema/projects";
 import { owners, ownershipShares } from "@/lib/db/schema/ownership";
 import { ownerBookingSummaries } from "@/lib/db/schema/owner-bookings";
@@ -228,4 +234,149 @@ export async function listBookingAuditTimeline(
     metadata: r.e.metadata,
     createdAt: r.e.createdAt.toISOString(),
   }));
+}
+
+/* ------------------ booking-detail data layer (0120) ------------------ */
+
+export interface BookingPartyGuest {
+  id: string;
+  fullName: string;
+  role: string; // primary | accompanying | child
+  kind: string; // adult | child
+  isLeadBooker: boolean;
+  ownerVillaCode: string | null;
+  ageYears: number | null;
+  email: string | null;
+  phone: string | null;
+  nationality: string | null;
+  idType: string | null;
+  idLast4: string | null;
+  idVerified: boolean;
+}
+
+export async function listBookingParty(
+  bookingId: string,
+): Promise<BookingPartyGuest[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db
+    .select()
+    .from(bookingGuests)
+    .where(eq(bookingGuests.bookingId, bookingId))
+    .orderBy(asc(bookingGuests.sortOrder));
+  return rows.map((r) => ({
+    id: r.id,
+    fullName: r.fullName,
+    role: r.role,
+    kind: r.kind,
+    isLeadBooker: r.isLeadBooker,
+    ownerVillaCode: r.ownerVillaCode,
+    ageYears: r.ageYears,
+    email: r.email,
+    phone: r.phone,
+    nationality: r.nationality,
+    idType: r.idType,
+    idLast4: r.idLast4,
+    idVerified: r.idVerified,
+  }));
+}
+
+export interface BookingChargeLine {
+  id: string;
+  chargeType: string;
+  description: string;
+  amount: number;
+  currency: string;
+  note: string | null;
+  occurredOn: string | null;
+}
+
+export async function listBookingChargeLines(
+  bookingId: string,
+): Promise<BookingChargeLine[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db
+    .select()
+    .from(bookingCharges)
+    .where(eq(bookingCharges.bookingId, bookingId))
+    .orderBy(asc(bookingCharges.sortOrder));
+  return rows.map((r) => ({
+    id: r.id,
+    chargeType: r.chargeType,
+    description: r.description,
+    amount: Number(r.amount),
+    currency: r.currency,
+    note: r.note,
+    occurredOn: r.occurredOn,
+  }));
+}
+
+export interface BookingPaymentRow {
+  provider: string;
+  providerPaymentId: string | null;
+  method: string | null;
+  cardBrand: string | null;
+  cardLast4: string | null;
+  amount: number | null;
+  currency: string;
+  status: string;
+  capturedAt: string | null;
+  captureNote: string | null;
+}
+
+export async function getBookingPayment(
+  bookingId: string,
+): Promise<BookingPaymentRow | null> {
+  const db = getDb();
+  if (!db) return null;
+  const [r] = await db
+    .select()
+    .from(bookingPayments)
+    .where(eq(bookingPayments.bookingId, bookingId))
+    .orderBy(desc(bookingPayments.createdAt))
+    .limit(1);
+  if (!r) return null;
+  return {
+    provider: r.provider,
+    providerPaymentId: r.providerPaymentId,
+    method: r.method,
+    cardBrand: r.cardBrand,
+    cardLast4: r.cardLast4,
+    amount: r.amount === null ? null : Number(r.amount),
+    currency: r.currency,
+    status: r.status,
+    capturedAt: r.capturedAt ? r.capturedAt.toISOString() : null,
+    captureNote: r.captureNote,
+  };
+}
+
+export interface BookingMetaRow {
+  dietary: string | null;
+  mobility: string | null;
+  opsNotes: string | null;
+  syncMessagesAutoReplied: number;
+  syncMessagesRouted: number;
+  syncLastAt: string | null;
+}
+
+export async function getBookingMeta(
+  bookingId: string,
+): Promise<BookingMetaRow | null> {
+  const db = getDb();
+  if (!db) return null;
+  const [r] = await db
+    .select()
+    .from(bookingMeta)
+    .where(eq(bookingMeta.bookingId, bookingId))
+    .limit(1);
+  if (!r) return null;
+  return {
+    dietary: r.dietary,
+    mobility: r.mobility,
+    opsNotes: r.opsNotes,
+    syncMessagesAutoReplied: r.syncMessagesAutoReplied,
+    syncMessagesRouted: r.syncMessagesRouted,
+    syncLastAt: r.syncLastAt ? r.syncLastAt.toISOString() : null,
+  };
 }
