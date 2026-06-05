@@ -125,6 +125,9 @@ export default async function BookingsPage({
           <Link href="/dashboard/bookings/calendar" className="btn btn-secondary btn-sm">
             ↗ Calendar
           </Link>
+          <Link href="/dashboard/bookings/new-by-type" className="btn btn-secondary btn-sm">
+            Book by type
+          </Link>
           <BookingAddButton
             villas={villaList.map((v) => ({
               id: v.id,
