@@ -1,6 +1,6 @@
+import Link from "next/link";
 import {
   Kpi,
-  SectionHeading,
   Card,
   HandoffBadge,
 } from "@/components/dashboard/primitives";
@@ -81,49 +81,50 @@ export default async function OperationsPage() {
 
   return (
     <>
-      <SectionHeading
-        eyebrow="Today · live command center"
-        title={
-          <>
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> / <span>Operations</span>
+          </div>
+          <h1>Operations</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[720px]">
             {kpis && kpis.arrivalsToday > 0
               ? `${kpis.arrivalsToday} arrivals today`
               : "No arrivals today"}
             {", "}
-            <em>
-              {ticketsOpen} open {ticketsOpen === 1 ? "ticket" : "tickets"}
-            </em>
-            {kpis && kpis.turnoversToday > 0 ? `, ${kpis.turnoversToday} turnovers in motion.` : "."}
-          </>
-        }
-        subtitle="Housekeeping, maintenance, preventive tasks and service requests in one inbox. Photos and voice notes coming soon."
-        actions={
-          <>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Morning brief PDF ↓
-            </button>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Assignments
-            </button>
-            <button
-              className="btn btn-primary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              New task +
-            </button>
-          </>
-        }
-      />
+            {ticketsOpen} open {ticketsOpen === 1 ? "ticket" : "tickets"}
+            {kpis && kpis.turnoversToday > 0
+              ? `, ${kpis.turnoversToday} turnovers in motion.`
+              : "."}{" "}
+            Housekeeping, maintenance, preventive tasks and service requests in one inbox.
+          </p>
+        </div>
+        <div className="actions">
+          <button
+            className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            Morning brief PDF ↓
+          </button>
+          <button
+            className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            Assignments
+          </button>
+          <button
+            className="btn btn-primary btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            New task +
+          </button>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-6 gap-3 mb-[18px]">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mt-[18px] mb-[18px]">
         <Kpi
           label="Turnovers · today"
           value={kpis && kpis.turnoversToday > 0 ? String(kpis.turnoversToday) : "—"}
@@ -176,7 +177,7 @@ export default async function OperationsPage() {
       </Card>
 
       {/* Housekeeping + status board */}
-      <div className="grid grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
         <Card id="housekeeping" padding="none" overflowHidden>
           <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
             <h2 className="display-md">Housekeeping · today</h2>
@@ -251,7 +252,7 @@ export default async function OperationsPage() {
       </div>
 
       {/* Maintenance + preventive */}
-      <div className="grid grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
         <Card id="maintenance" padding="none" overflowHidden>
           <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
             <h2 className="display-md">Maintenance tickets</h2>
