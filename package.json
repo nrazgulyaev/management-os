@@ -55,6 +55,7 @@
     "smoke:cabinet-queries": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/smoke-cabinet-queries.ts",
     "seed:auth-owner-grants": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-auth-owner-grants.ts",
     "seed:checkin-demo": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-checkin-demo.ts",
+    "seed:booking-detail-demo": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-booking-detail-demo.ts",
     "seed:auth-investor-grants": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-auth-investor-grants.ts",
     "stripe:provision": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/stripe-provision.ts",
     "stripe:provision:apply": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/stripe-provision.ts --apply"
