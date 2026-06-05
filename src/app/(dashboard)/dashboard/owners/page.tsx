@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SectionHeading } from "@/components/dashboard/primitives";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
@@ -32,19 +32,50 @@ export default async function OwnersPage() {
   const source = owners[0]?.source ?? "mock";
   const canImpersonate = ctx.isSuperAdmin;
 
+  const activeCount = owners.filter((o) => o.status === "active").length;
+  const onboardingCount = owners.filter((o) => o.status === "onboarding").length;
+  const archivedCount = owners.filter((o) => o.status === "archived").length;
+
   return (
-    <div className="flex flex-col gap-10">
-      <SectionHeading
-        eyebrow="Portfolio · owners & investors"
-        title="Owners & investors"
-        subtitle="Individuals, companies, and family offices participating across the portfolio."
-        actions={
-          <div className="flex items-center gap-2">
-            <SourceBadge source={source} />
-            <OwnerAddButton />
+    <>
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> / <span>Owners &amp; investors</span>
           </div>
-        }
-      />
+          <h1>Owners &amp; investors</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Individuals, companies, and family offices participating across the portfolio.
+          </p>
+        </div>
+        <div className="actions">
+          <SourceBadge source={source} />
+          <OwnerAddButton />
+        </div>
+      </div>
+
+      {owners.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
+          <Kpi label="Owners · total" value={String(owners.length)} sub="stakeholders" />
+          <Kpi
+            label="Active"
+            value={String(activeCount)}
+            sub="participating"
+            tone={activeCount > 0 ? "success" : undefined}
+          />
+          <Kpi
+            label="Onboarding"
+            value={onboardingCount > 0 ? String(onboardingCount) : "—"}
+            sub="in setup"
+            tone={onboardingCount > 0 ? "gold" : undefined}
+          />
+          <Kpi
+            label="Archived"
+            value={archivedCount > 0 ? String(archivedCount) : "—"}
+            sub="inactive"
+          />
+        </div>
+      )}
 
       <DbStatusNotice />
 
@@ -138,6 +169,6 @@ export default async function OwnersPage() {
         </Table>
         </ListTableCard>
       )}
-    </div>
+    </>
   );
 }
