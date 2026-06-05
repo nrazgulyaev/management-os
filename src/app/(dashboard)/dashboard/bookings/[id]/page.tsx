@@ -7,6 +7,10 @@ import { DetailSide, type SideCard } from "@/components/dashboard/detail/detail-
 import { DetailRelated, type RelatedItem } from "@/components/dashboard/detail/detail-related";
 import { BookingDetailTabs } from "./_detail-client";
 import { BookingNotesEditor } from "./_notes-editor";
+import { ExtendStayButton } from "./_extend-stay";
+import { AddGuestButton } from "./_guest-add";
+import { AddChargeButton } from "./_charge-add";
+import { UploadDocButton, DocViewButton, PrintFolioButton } from "./_doc-controls";
 import {
   getBookingDetail,
   listBookingAuditTimeline,
@@ -617,13 +621,7 @@ export default async function BookingDetailPage({
         <span className="text-label">
           Guests <span className="text-ink-tertiary">· {namedCount} named · party of {pax}</span>
         </span>
-        <button
-          className="btn btn-secondary btn-sm"
-          type="button"
-          title="Adding guests lands in a later pass"
-        >
-          + Add guest
-        </button>
+        <AddGuestButton bookingId={b.id} />
       </div>
 
       {party.length > 0 ? (
@@ -796,13 +794,7 @@ export default async function BookingDetailPage({
         <span className="text-label">
           Documents <span className="text-ink-tertiary">· {docs.length} files</span>
         </span>
-        <button
-          className="btn btn-secondary btn-sm"
-          type="button"
-          title="Upload lands in a later pass"
-        >
-          Upload
-        </button>
+        <UploadDocButton bookingId={b.id} />
       </div>
 
       {docs.length === 0 ? (
@@ -833,13 +825,7 @@ export default async function BookingDetailPage({
                   </div>
                 </div>
                 <Badge tone={badge.tone}>{badge.label}</Badge>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  type="button"
-                  title="File storage not wired yet"
-                >
-                  View
-                </button>
+                <DocViewButton documentId={d.id} hasFile={d.hasFile} />
               </div>
             );
           })}
@@ -847,9 +833,9 @@ export default async function BookingDetailPage({
       )}
 
       <div className="rounded-lg border border-dashed border-line-soft bg-muted/20 px-5 py-8 text-center">
-        <p className="text-sm text-ink-secondary">Drop files to upload</p>
+        <p className="text-sm text-ink-secondary">Add a document</p>
         <p className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-tertiary mt-1">
-          PDF · JPG · PNG up to 10 MB · upload lands in a later pass
+          PDF · JPG · PNG up to 25 MB · use Upload above
         </p>
       </div>
     </div>
@@ -893,13 +879,7 @@ export default async function BookingDetailPage({
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              className="btn btn-ghost btn-sm"
-              type="button"
-              title="Folio export lands in a later pass"
-            >
-              Print folio
-            </button>
+            <PrintFolioButton />
             {railEmail ? (
               <a className="btn btn-secondary btn-sm" href={`mailto:${railEmail}`}>
                 Message guest
@@ -913,20 +893,8 @@ export default async function BookingDetailPage({
                 Message guest
               </button>
             )}
-            <button
-              className="btn btn-secondary btn-sm"
-              type="button"
-              title="Extend stay lands in a later pass"
-            >
-              Extend stay
-            </button>
-            <button
-              className="btn btn-accent btn-sm"
-              type="button"
-              title="Charge lines aren't tracked yet"
-            >
-              + Add charge
-            </button>
+            <ExtendStayButton bookingId={b.id} checkIn={b.checkIn} checkOut={b.checkOut} />
+            <AddChargeButton bookingId={b.id} currency={b.currency} />
           </div>
         }
       />

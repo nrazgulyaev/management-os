@@ -18,6 +18,7 @@ export interface DocumentRow {
   status: "active" | "archived";
   createdAt: string;
   signedAt: string | null;
+  hasFile: boolean;
 }
 
 export async function listDocuments(opts?: {
@@ -55,5 +56,6 @@ export async function listDocuments(opts?: {
     status: (r.status as "active" | "archived") ?? "active",
     createdAt: r.createdAt.toISOString(),
     signedAt: r.signedAt ? r.signedAt.toISOString() : null,
+    hasFile: !!(r.storageBucket && r.storagePath && r.storageBucket !== "dry_run"),
   }));
 }
