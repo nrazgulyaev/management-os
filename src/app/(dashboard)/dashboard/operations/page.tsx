@@ -1,6 +1,5 @@
+import Link from "next/link";
 import {
-  Kpi,
-  SectionHeading,
   Card,
   HandoffBadge,
 } from "@/components/dashboard/primitives";
@@ -13,6 +12,7 @@ import {
   getServiceRequestsForCabinet,
   type VillaState,
 } from "@/features/operations/operations-cabinet-queries";
+import { listArrivals, listDepartures } from "@/features/front-office/services";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Operations cabinet live wiring.
@@ -62,14 +62,18 @@ const STATUS_LABEL: Record<string, { tone?: "ok" | "info" | "gold" | "warn"; tex
 };
 
 export default async function OperationsPage() {
-  const [kpis, board, tickets, preventive, housekeeping, serviceRequests] = await Promise.all([
-    getOperationsKpis().catch(() => null),
-    getVillaStatusBoard().catch(() => []),
-    getMaintenanceTickets(12).catch(() => []),
-    getPreventiveUpcoming(6).catch(() => []),
-    getHousekeepingProgress().catch(() => []),
-    getServiceRequestsForCabinet().catch(() => []),
-  ]);
+  const today = new Date();
+  const [kpis, board, tickets, preventive, housekeeping, serviceRequests, arrivals, departures] =
+    await Promise.all([
+      getOperationsKpis().catch(() => null),
+      getVillaStatusBoard().catch(() => []),
+      getMaintenanceTickets(12).catch(() => []),
+      getPreventiveUpcoming(6).catch(() => []),
+      getHousekeepingProgress().catch(() => []),
+      getServiceRequestsForCabinet().catch(() => []),
+      listArrivals(today).catch(() => []),
+      listDepartures(today).catch(() => []),
+    ]);
 
   // Tile counts from the live board.
   const tileCounts = new Map<VillaState, number>();
@@ -79,74 +83,145 @@ export default async function OperationsPage() {
   const totalVillas = board.length;
   const ticketsOpen = kpis?.ticketsOpen ?? tickets.length;
 
+  // ---- hero band roll-ups ----
+  const guestsTonight = arrivals.reduce((s, a) => s + (a.guestsCount || 1), 0);
+  const arrivalVillas = new Set(arrivals.map((a) => a.villaCode).filter(Boolean)).size;
+  const sevP3 = tickets.filter((t) => t.severity === "p3").length;
+  const sevP2 = tickets.filter((t) => t.severity === "p2").length;
+  const sevP1 = tickets.filter((t) => t.severity === "p1" || t.severity === "p0").length;
+  const atRisk = tickets.filter((t) => t.severity === "p0" || t.severity === "p1");
+  const topRisk = atRisk[0] ?? null;
+  const turnoversToday = kpis?.turnoversToday ?? departures.length;
+  const cleanedDone = housekeeping.filter((h) =>
+    ["ready", "inspected", "done", "completed", "verified"].includes(h.status),
+  ).length;
+  const dateEyebrow = today.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    timeZone: "Asia/Makassar",
+  });
+  const timeEyebrow = today.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Makassar",
+  });
+
   return (
     <>
-      <SectionHeading
-        eyebrow="Today · live command center"
-        title={
-          <>
-            {kpis && kpis.arrivalsToday > 0
-              ? `${kpis.arrivalsToday} arrivals today`
-              : "No arrivals today"}
-            {", "}
-            <em>
-              {ticketsOpen} open {ticketsOpen === 1 ? "ticket" : "tickets"}
-            </em>
-            {kpis && kpis.turnoversToday > 0 ? `, ${kpis.turnoversToday} turnovers in motion.` : "."}
-          </>
-        }
-        subtitle="Housekeeping, maintenance, preventive tasks and service requests in one inbox. Photos and voice notes coming soon."
-        actions={
-          <>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Morning brief PDF ↓
-            </button>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Assignments
-            </button>
-            <button
-              className="btn btn-primary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              New task +
-            </button>
-          </>
-        }
-      />
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <span>Operations</span> <span className="text-ink-4">·</span>{" "}
+            <span className="mono text-[11px] uppercase tracking-[0.1em] text-ink-3">
+              {dateEyebrow} · {timeEyebrow} WITA
+            </span>
+          </div>
+          <h1>Operations</h1>
+        </div>
+        <div className="actions">
+          <Link href="/dashboard/operations/turnovers" className="btn btn-ghost btn-sm">
+            ↗ Turnovers
+          </Link>
+          <Link href="/dashboard/operations/maintenance/new" className="btn btn-secondary btn-sm">
+            + New ticket
+          </Link>
+          <button
+            className="btn btn-accent btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            Brief team →
+          </button>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-6 gap-3 mb-[18px]">
-        <Kpi
-          label="Turnovers · today"
-          value={kpis && kpis.turnoversToday > 0 ? String(kpis.turnoversToday) : "—"}
-          sub="check-outs today"
-        />
-        <Kpi
-          label="Arrivals · today"
-          value={kpis && kpis.arrivalsToday > 0 ? String(kpis.arrivalsToday) : "—"}
-          sub="check-ins today"
-        />
-        <Kpi
-          label="Tickets open"
-          value={ticketsOpen > 0 ? String(ticketsOpen) : "—"}
-          sub="across portfolio"
-          tone={ticketsOpen > 0 ? "accent" : undefined}
-        />
-        <Kpi label="Preventive due" value="—" sub="preventive schedule coming soon" />
-        <Kpi
-          label="Service requests"
-          value={kpis && kpis.serviceRequestsOpen > 0 ? String(kpis.serviceRequestsOpen) : "—"}
-          sub={kpis && kpis.serviceRequestsOpen > 0 ? "open" : "none seeded"}
-        />
-        <Kpi label="Photo evidence" value="—" sub="documents pipeline coming soon" />
+      {/* Zone 1 — Today hero strip (3 tiles) */}
+      <div className="ops-hero mt-[18px] mb-[18px]">
+        {/* Dark arrivals tile — the urgent action */}
+        <div className="ops-tile dark">
+          <div className="ot-label">
+            <span className="pulse-dot" style={{ background: "var(--ok)" }} /> Today ·{" "}
+            {arrivals.length} {arrivals.length === 1 ? "arrival" : "arrivals"}
+          </div>
+          <h3 className="font-display text-[20px] leading-snug mt-0.5 mb-1.5">
+            {arrivals.length === 0
+              ? "No arrivals tonight."
+              : `Tonight, ${guestsTonight} ${guestsTonight === 1 ? "guest" : "guests"} across ${arrivalVillas} ${arrivalVillas === 1 ? "villa" : "villas"}.`}
+          </h3>
+          <ul className="flex flex-col gap-1.5 text-[12.5px]">
+            {arrivals.slice(0, 3).map((a) => (
+              <li
+                key={a.bookingId}
+                className="flex items-center gap-3 rounded-md bg-white/[0.06] px-2.5 py-1.5"
+              >
+                <span className="flex-1 truncate">
+                  {a.guestDisplay} · {a.guestsCount} pax
+                </span>
+                <span className="font-mono text-[11px] opacity-80">{a.villaCode ?? "—"}</span>
+              </li>
+            ))}
+            {departures.slice(0, 1).map((d) => (
+              <li
+                key={d.bookingId}
+                className="flex items-center gap-3 rounded-md bg-white/[0.06] px-2.5 py-1.5"
+              >
+                <span className="flex-1 truncate">{d.guestDisplay} · departure</span>
+                <span className="font-mono text-[11px] opacity-80">{d.villaCode ?? "—"}</span>
+              </li>
+            ))}
+            {arrivals.length === 0 && departures.length === 0 && (
+              <li className="opacity-60 px-2.5 py-1.5">A quiet day on the desk.</li>
+            )}
+          </ul>
+          <div className="ot-footer">Morning brief — coming soon.</div>
+        </div>
+
+        {/* SLA tile */}
+        <div className={`ops-tile ${atRisk.length > 0 ? "tone-warn" : "tone-ok"}`}>
+          <div className="ot-label">SLA · Open tickets</div>
+          <h3 className="ot-value">
+            {sevP3} / {sevP2} / {sevP1}
+          </h3>
+          <div className="ot-context">
+            P3 open · P2 watch · P1 breached.
+            {topRisk
+              ? ` At risk: ${topRisk.title}${topRisk.villaCode ? ` @ ${topRisk.villaCode}` : ""}.`
+              : " Nothing breaching."}
+          </div>
+          <div className="ot-footer flex items-center">
+            <span>{ticketsOpen} open</span>
+            <span
+              className="ml-auto"
+              style={atRisk.length > 0 ? { color: "var(--warn)" } : undefined}
+            >
+              {atRisk.length > 0 ? `⚠ ${atRisk.length} at risk` : "on track"}
+            </span>
+          </div>
+        </div>
+
+        {/* Turnovers tile */}
+        <div className={`ops-tile ${turnoversToday > 0 ? "tone-accent" : ""}`}>
+          <div className="ot-label">Turnovers today</div>
+          <h3 className="ot-value">{turnoversToday > 0 ? turnoversToday : "—"}</h3>
+          <div className="ot-context">
+            {departures.length > 0
+              ? departures
+                  .map((d) => d.villaCode)
+                  .filter(Boolean)
+                  .slice(0, 4)
+                  .join(" · ")
+              : "No same-day turnovers."}
+          </div>
+          <div className="ot-footer flex items-center">
+            <span>
+              {cleanedDone}/{turnoversToday || 0} cleaned
+            </span>
+            <span className="ml-auto" style={{ color: "var(--ok)" }}>
+              on track
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* AI Operations Copilot — empty state until daily-digest agent runs.
@@ -176,7 +251,7 @@ export default async function OperationsPage() {
       </Card>
 
       {/* Housekeeping + status board */}
-      <div className="grid grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
         <Card id="housekeeping" padding="none" overflowHidden>
           <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
             <h2 className="display-md">Housekeeping · today</h2>
@@ -251,7 +326,7 @@ export default async function OperationsPage() {
       </div>
 
       {/* Maintenance + preventive */}
-      <div className="grid grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
         <Card id="maintenance" padding="none" overflowHidden>
           <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center">
             <h2 className="display-md">Maintenance tickets</h2>
