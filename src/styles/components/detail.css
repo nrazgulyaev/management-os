@@ -1,5 +1,51 @@
 /* ---------- Detail page (template 05) ---------- */
 [data-product] .detail-page { display: flex; flex-direction: column; }
+
+/* ---------- Page header chrome (list + detail) ----------
+ * Ported from the handoff `_chrome.css`. Without this base rule
+ * `.page-header > .left / .actions` stack vertically (actions land
+ * under the title, crumb loses its mono/upper treatment). The flex
+ * row + `.left { flex: 1 }` pushes the action cluster to the right. */
+[data-product] .page-header {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 22px;
+}
+[data-product] .page-header .left { flex: 1; min-width: 0; }
+[data-product] .page-header .crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+[data-product] .page-header .crumb a { color: var(--ink-3); text-decoration: none; }
+[data-product] .page-header .crumb a:hover { color: var(--ink); }
+[data-product] .page-header h1 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .page-header h1 { font-weight: 500; }
+[data-product] .page-header .actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 [data-product] .page-header-meta {
   display: flex; gap: 12px; margin-top: 8px;
   font-family: var(--mono-font), monospace;
