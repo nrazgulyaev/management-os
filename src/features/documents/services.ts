@@ -17,6 +17,7 @@ export interface DocumentRow {
   visibility: "internal" | "owner" | "guest" | "public";
   status: "active" | "archived";
   createdAt: string;
+  signedAt: string | null;
 }
 
 export async function listDocuments(opts?: {
@@ -53,5 +54,6 @@ export async function listDocuments(opts?: {
     visibility: r.visibility as DocumentRow["visibility"],
     status: (r.status as "active" | "archived") ?? "active",
     createdAt: r.createdAt.toISOString(),
+    signedAt: r.signedAt ? r.signedAt.toISOString() : null,
   }));
 }
