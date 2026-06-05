@@ -44,22 +44,24 @@ export function BookingNotesEditor({
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-2 w-full">
       <textarea
         value={value}
         onChange={(e) => setValue(e.target.value)}
         rows={2}
         placeholder="Add a note — arrival timing, special requests…"
-        className="w-full -mx-2 resize-none rounded px-2 py-1 text-sm leading-relaxed text-ink bg-transparent hover:bg-muted/30 focus:bg-surface focus:outline-none focus:ring-1 focus:ring-line-strong transition-colors"
+        className="w-full resize-none rounded-md border border-line-soft px-3 py-2 text-sm leading-relaxed text-ink bg-surface hover:border-line-strong focus:outline-none focus:ring-1 focus:ring-terra transition-colors"
       />
 
-      {dirty && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full border border-line-soft bg-surface px-5 py-2.5 shadow-elevated-card">
-          <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-terra">
-            1 unsaved edit · notes
-          </span>
+      {(dirty || error) && (
+        <div className="flex items-center gap-3">
+          {dirty && (
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-terra">
+              Unsaved
+            </span>
+          )}
           {error && <span className="text-[11px] text-danger">{error}</span>}
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
               className="btn btn-ghost btn-sm"
@@ -67,7 +69,7 @@ export function BookingNotesEditor({
                 setValue(baseline);
                 setError(null);
               }}
-              disabled={pending}
+              disabled={pending || !dirty}
             >
               Discard
             </button>
@@ -75,13 +77,13 @@ export function BookingNotesEditor({
               type="button"
               className="btn btn-accent btn-sm"
               onClick={save}
-              disabled={pending}
+              disabled={pending || !dirty}
             >
-              {pending ? "Saving…" : "Save changes"}
+              {pending ? "Saving…" : "Save note"}
             </button>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
