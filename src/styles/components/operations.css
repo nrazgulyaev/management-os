@@ -25,7 +25,7 @@
   border: 1px solid var(--line-soft, var(--line));
   border-radius: 14px;
 }
-[data-product] .ops-tile.dark {
+[data-product] .ops-tile.ot-dark {
   background: var(--ink);
   color: var(--cream-warm, #fff);
   border-color: var(--ink);
@@ -37,7 +37,7 @@
   letter-spacing: 0.12em;
   color: var(--ink-3);
 }
-[data-product] .ops-tile.dark .ot-label { color: rgba(255,255,255,0.6); }
+[data-product] .ops-tile.ot-dark .ot-label { color: rgba(255,255,255,0.6); }
 [data-product] .ops-tile .ot-value {
   font-family: var(--mono-font), monospace;
   font-size: 36px;
@@ -46,7 +46,7 @@
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
-[data-product] .ops-tile.dark .ot-value { color: var(--cream-warm, #fff); }
+[data-product] .ops-tile.ot-dark .ot-value { color: var(--cream-warm, #fff); }
 [data-product] .ops-tile.tone-ok .ot-value { color: var(--ok); }
 [data-product] .ops-tile.tone-warn .ot-value { color: var(--warn); }
 [data-product] .ops-tile.tone-danger .ot-value { color: var(--danger); }
@@ -56,14 +56,14 @@
   font-size: 12px;
   color: var(--ink-3);
 }
-[data-product] .ops-tile.dark .ot-context { color: rgba(255,255,255,0.7); }
+[data-product] .ops-tile.ot-dark .ot-context { color: rgba(255,255,255,0.7); }
 [data-product] .ops-tile .ot-footer {
   margin-top: 4px;
   font-family: var(--mono-font), monospace;
   font-size: 11px;
   color: var(--ink-3);
 }
-[data-product] .ops-tile.dark .ot-footer { color: rgba(255,255,255,0.6); }
+[data-product] .ops-tile.ot-dark .ot-footer { color: rgba(255,255,255,0.6); }
 
 /* ---------- SlaPill ---------- */
 [data-product] .sla-pill {

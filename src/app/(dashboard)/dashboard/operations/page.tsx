@@ -181,7 +181,7 @@ export default async function OperationsPage() {
       {/* Zone 1 — Today hero strip (3 tiles) */}
       <div className="ops-hero mt-[18px] mb-[18px]">
         {/* Dark arrivals tile — the urgent action */}
-        <div className="ops-tile dark">
+        <div className="ops-tile ot-dark">
           <div className="ot-label">
             <span className="pulse-dot" style={{ background: "var(--ok)" }} /> Today ·{" "}
             {arrivals.length} {arrivals.length === 1 ? "arrival" : "arrivals"}
