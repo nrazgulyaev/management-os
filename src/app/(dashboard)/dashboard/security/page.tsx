@@ -21,6 +21,8 @@ import { Section } from "@/components/ui/section";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { listSecurityCameraDevices } from "@/features/security/services";
 import { listSecurityEventsForAdmin } from "@/features/security-baseline/mfa-services";
+import { listRecentLoginAttempts } from "@/features/security-baseline/login-throttle";
+import { safeList } from "@/features/system/db-health";
 import { listOperationTasks } from "@/features/operations/services";
 import { loadSecurityCopilotOutputs } from "@/lib/development/server/ai/security-copilot-queries";
 import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
@@ -105,13 +107,22 @@ export default async function SecurityCabinetPage() {
     securityTasks,
     copilotOutputs,
     copilotEnabled,
+    loginAttemptsRes,
   ] = await Promise.all([
     listSecurityCameraDevices(),
     listSecurityEventsForAdmin(50),
     listOperationTasks({ category: "security", limit: 100 }),
     loadSecurityCopilotOutputs({ limit: 3 }).catch(() => []),
     isAgentEnabledForCurrentOrg("security_copilot").catch(() => false),
+    safeList("security.loginAttempts", () => listRecentLoginAttempts(50)),
   ]);
+
+  const loginAttempts = loginAttemptsRes.ok ? loginAttemptsRes.value : [];
+  const since24 = now.getTime() - 24 * 86_400_000;
+  const attempts24h = loginAttempts.filter(
+    (a) => new Date(a.createdAt).getTime() >= since24,
+  );
+  const failedAttempts24h = attempts24h.filter((a) => !a.succeeded).length;
 
   const totalCameras = cameras.length;
   const activeCameras = cameras.filter((c) => c.status === "active").length;
@@ -340,6 +351,79 @@ export default async function SecurityCabinetPage() {
             moreHref="/dashboard/security/events"
           />
         )}
+      </Section>
+
+      <Section
+        eyebrow="Authentication"
+        title="Login attempts · 24h"
+        description="Server-side login attempts — IP and user-agent are stored as salted SHA-256 hashes; raw values never persist."
+        action={
+          <Link
+            href="/dashboard/security/login-attempts"
+            className="text-xs text-ink-tertiary hover:underline"
+          >
+            All attempts →
+          </Link>
+        }
+      >
+        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-line-soft">
+            <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
+              Last 24h
+            </span>
+            <span className="text-xs text-ink-tertiary tabular-nums">
+              {attempts24h.length} attempt{attempts24h.length === 1 ? "" : "s"} ·{" "}
+              {failedAttempts24h} failed
+            </span>
+          </div>
+          {!loginAttemptsRes.ok ? (
+            <p className="p-5 text-xs text-ink-tertiary">
+              {loginAttemptsRes.error?.kind === "missing_relation"
+                ? "Migration pending — login-attempt log not yet provisioned."
+                : "Could not load login attempts."}
+            </p>
+          ) : loginAttempts.length === 0 ? (
+            <p className="p-5 text-sm text-ink-tertiary">
+              No login attempts on file. Successful + failed sign-ins surface
+              here as they happen.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-canvas/50 text-left">
+                  <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                    <th className="px-4 py-3">When</th>
+                    <th className="px-4 py-3">Email</th>
+                    <th className="px-4 py-3">Outcome</th>
+                    <th className="px-4 py-3">Reason</th>
+                    <th className="px-4 py-3">IP hash</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loginAttempts.slice(0, 8).map((a) => (
+                    <tr key={a.id} className="border-t border-line-soft">
+                      <td className="px-4 py-3 font-mono tabular-nums text-xs whitespace-nowrap">
+                        {a.createdAt.slice(0, 16).replace("T", " ")}
+                      </td>
+                      <td className="px-4 py-3 text-xs">{a.emailNormalized ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        <Badge tone={a.succeeded ? "success" : "warning"}>
+                          {a.succeeded ? "ok" : "failed"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-[11px] text-ink-tertiary">
+                        {a.failureReason ?? ""}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
+                        {a.ipHash ? `${a.ipHash.slice(0, 8)}…` : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </Section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
