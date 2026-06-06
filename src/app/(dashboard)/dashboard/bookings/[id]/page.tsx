@@ -11,6 +11,7 @@ import { ExtendStayButton } from "./_extend-stay";
 import { AddGuestButton } from "./_guest-add";
 import { AddChargeButton } from "./_charge-add";
 import { UploadDocButton, DocViewButton, PrintFolioButton } from "./_doc-controls";
+import { BookingActivity } from "./_activity-client";
 import {
   getBookingDetail,
   listBookingAuditTimeline,
@@ -354,12 +355,15 @@ function auditDetail(a: BookingAuditRow): string | null {
   return null;
 }
 
+export type TimelineKind = "system" | "automated" | "manual";
+
 type TimelineItem = {
   id: string;
   title: string;
   detail: string | null;
   when: string;
   source: string;
+  kind: TimelineKind;
   dot: string;
 };
 
@@ -374,6 +378,7 @@ function buildTimeline(
       detail: auditDetail(a),
       when: a.createdAt,
       source: a.actorName ? `by ${a.actorName}` : "SYSTEM",
+      kind: (a.actorName ? "manual" : "system") as TimelineKind,
       dot: auditDot(a.action),
     })),
     ...runs.map((r) => ({
@@ -382,6 +387,7 @@ function buildTimeline(
       detail: r.reason,
       when: r.createdAt,
       source: "AUTOMATED",
+      kind: "automated" as TimelineKind,
       dot: "var(--info, #3b6ea5)",
     })),
   ];
@@ -763,48 +769,17 @@ export default async function BookingDetailPage({
   );
 
   const activityPanel = (
-    <div className="flex flex-col gap-4 px-7 py-6">
-      <div className="flex items-center justify-between">
-        <span className="text-label">
-          Activity <span className="text-ink-tertiary">· {timeline.length} events</span>
-        </span>
-        <select
-          className="select select-sm"
-          title="Source filtering lands in a later pass"
-          defaultValue="all"
-        >
-          <option value="all">All sources</option>
-        </select>
-      </div>
-
-      {timeline.length === 0 ? (
-        <p className="text-sm text-ink-tertiary italic">No activity recorded yet.</p>
-      ) : (
-        <ol className="flex flex-col">
-          {timeline.map((t) => (
-            <li
-              key={t.id}
-              className="grid grid-cols-[16px_1fr] gap-3 py-3 border-b border-line-soft last:border-0"
-            >
-              <span
-                className="w-2 h-2 rounded-full mt-1.5"
-                style={{ background: t.dot }}
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <div className="text-sm text-ink">{t.title}</div>
-                {t.detail && (
-                  <div className="text-[12px] text-ink-secondary mt-0.5">{t.detail}</div>
-                )}
-                <div className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-ink-tertiary mt-1">
-                  {dateTimeLabel(t.when)} · {t.source}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
+    <BookingActivity
+      items={timeline.map((t) => ({
+        id: t.id,
+        title: t.title,
+        detail: t.detail,
+        whenLabel: dateTimeLabel(t.when),
+        source: t.source,
+        kind: t.kind,
+        dot: t.dot,
+      }))}
+    />
   );
 
   const documentsPanel = (
