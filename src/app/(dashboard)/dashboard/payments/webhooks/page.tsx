@@ -1,5 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { listPaymentWebhookEvents } from "@/features/direct-booking/deposits";
 
@@ -16,59 +15,73 @@ const STATUS_TONES: Record<
   failed: "danger",
 };
 
+function fmtDateTime(d: Date | string): string {
+  return new Date(d).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+}
+
 export default async function WebhooksPage() {
   const rows = await listPaymentWebhookEvents({ limit: 200 });
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Payments", href: "/dashboard/payments" },
-          { label: "Webhooks" },
-        ]}
-        title="Payment webhooks"
-        description="Incoming provider events. Idempotent via UNIQUE (provider_key, external_event_id). Manual stub never writes here."
-      />
-      <Section eyebrow="History" title={`${rows.length} events`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">When</th>
-                <th className="px-4 py-3">Provider</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">External ID</th>
-                <th className="px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-ink-tertiary">
-                    No webhook events yet.
-                  </td>
-                </tr>
-              )}
-              {rows.map((e) => (
-                <tr key={e.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 font-mono text-[11px]">
-                    {e.createdAt.toISOString()}
-                  </td>
-                  <td className="px-4 py-3 text-xs">{e.providerKey}</td>
-                  <td className="px-4 py-3 text-xs">{e.eventType}</td>
-                  <td className="px-4 py-3 font-mono text-[11px]">
-                    {e.externalEventId ?? "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={STATUS_TONES[e.status] ?? "neutral"}>
-                      {e.status}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <>
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/payments">Payments</Link> / <span>Webhooks</span>
+          </div>
+          <h1>Payment webhooks</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Incoming provider events — idempotent via{" "}
+            <code>UNIQUE (provider_key, external_event_id)</code>. The manual stub
+            never writes here.
+          </p>
         </div>
-      </Section>
-    </div>
+        <div className="actions">
+          <span className="mono text-[11px] text-ink-3">{rows.length} events</span>
+        </div>
+      </div>
+
+      <div className="card p-0 overflow-hidden mt-[18px]">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Provider</th>
+              <th>Type</th>
+              <th>External ID</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center text-ink-3 italic py-8">
+                  No webhook events yet.
+                </td>
+              </tr>
+            ) : (
+              rows.map((e) => (
+                <tr key={e.id}>
+                  <td className="mono text-[11px] text-ink-3 whitespace-nowrap">
+                    {fmtDateTime(e.createdAt)}
+                  </td>
+                  <td className="mono text-[12px]">{e.providerKey}</td>
+                  <td className="text-[12px]">{e.eventType}</td>
+                  <td className="mono text-[11px] text-ink-3">{e.externalEventId ?? "—"}</td>
+                  <td>
+                    <Badge tone={STATUS_TONES[e.status] ?? "neutral"}>{e.status}</Badge>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
