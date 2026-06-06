@@ -1,5 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import Link from "next/link";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -15,7 +15,9 @@ const actionTone: Record<string, "neutral" | "success" | "warning" | "danger"> =
   unarchive: "success",
 };
 
-function classify(action: string): "create" | "update" | "archive" | "unarchive" | "other" {
+function classify(
+  action: string,
+): "create" | "update" | "archive" | "unarchive" | "other" {
   if (action.endsWith(".create")) return "create";
   if (action.endsWith(".archive") || action.endsWith(".end")) return "archive";
   if (action.endsWith(".unarchive")) return "unarchive";
@@ -27,93 +29,129 @@ export default async function AuditPage() {
   const events = await listAuditEvents({ limit: 200 });
   const source = events[0]?.source ?? "mock";
 
+  const since24 = Date.now() - 24 * 86_400_000;
+  const events24h = events.filter(
+    (e) => new Date(e.createdAt).getTime() >= since24,
+  ).length;
+  const financeWrites = events.filter((e) => e.action.startsWith("finance.")).length;
+  const aiInvocations = events.filter((e) => e.action.startsWith("ai.")).length;
+  const actors = new Set(
+    events.map((e) => e.actorName ?? e.actorEmail).filter(Boolean),
+  ).size;
+
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[{ label: "System", href: "/dashboard" }, { label: "Audit log" }]}
-        title="Audit log"
-        description="Append-only record of meaningful mutations. 200 most recent entries shown."
-        actions={<SourceBadge source={source} />}
-      />
+    <>
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> / <span>Audit log</span>
+          </div>
+          <h1>Audit log</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Append-only record of meaningful mutations — every server action,
+            finance write, and AI invocation. The 200 most recent entries are
+            shown.
+          </p>
+        </div>
+        <div className="actions">
+          <SourceBadge source={source} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
+        <Kpi label="Events · 24h" value={String(events24h)} sub={`${events.length} visible`} />
+        <Kpi
+          label="Finance writes"
+          value={String(financeWrites)}
+          sub="signed mutations"
+          tone={financeWrites > 0 ? "success" : undefined}
+        />
+        <Kpi label="AI invocations" value={String(aiInvocations)} sub="agent + copilot" />
+        <Kpi label="Distinct actors" value={String(actors)} sub="users + system" tone="gold" />
+      </div>
+
       <DbStatusNotice />
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Time</TH>
-            <TH>Actor</TH>
-            <TH>Action</TH>
-            <TH>Entity</TH>
-            <TH>Summary</TH>
-          </TR>
-        </THead>
-        <TBody>
-          {events.length === 0 ? (
-            <TR>
-              <TD colSpan={5} className="text-ink-tertiary text-center py-8">
-                No audit events yet.
-              </TD>
-            </TR>
-          ) : (
-            events.map((e) => {
-              const c = classify(e.action);
-              const tone = actionTone[c] ?? "neutral";
-              const after = (e.after ?? null) as Record<string, unknown> | null;
-              const before = (e.before ?? null) as Record<string, unknown> | null;
-              const summary =
-                c === "archive"
-                  ? "Archived"
-                  : c === "create"
-                    ? `Created ${e.entityType}`
-                    : c === "update"
-                      ? Object.keys({ ...(before ?? {}), ...(after ?? {}) })
-                          .filter((k) => before?.[k] !== after?.[k])
-                          .slice(0, 3)
-                          .map((k) => `${k}`)
-                          .join(", ") || "Updated"
-                      : (e.metadata as Record<string, unknown> | null)?.note?.toString() ??
-                        "—";
+      <div className="card p-0 overflow-hidden mt-[18px]">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Actor</th>
+              <th>Action</th>
+              <th>Entity</th>
+              <th>Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center text-ink-3 italic py-8">
+                  No audit events yet.
+                </td>
+              </tr>
+            ) : (
+              events.map((e) => {
+                const c = classify(e.action);
+                const tone = actionTone[c] ?? "neutral";
+                const after = (e.after ?? null) as Record<string, unknown> | null;
+                const before = (e.before ?? null) as Record<string, unknown> | null;
+                const summary =
+                  c === "archive"
+                    ? "Archived"
+                    : c === "create"
+                      ? `Created ${e.entityType}`
+                      : c === "update"
+                        ? Object.keys({ ...(before ?? {}), ...(after ?? {}) })
+                            .filter((k) => before?.[k] !== after?.[k])
+                            .slice(0, 3)
+                            .map((k) => `${k}`)
+                            .join(", ") || "Updated"
+                        : (e.metadata as Record<string, unknown> | null)?.note?.toString() ??
+                          "—";
 
-              return (
-                <TR key={e.id}>
-                  <TD className="text-xs text-ink-tertiary tabular-nums">
-                    {new Date(e.createdAt).toLocaleString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </TD>
-                  <TD>
-                    {e.actorName ? (
-                      <div className="flex flex-col">
-                        <span className="text-sm text-ink">{e.actorName}</span>
-                        <span className="text-[11px] text-ink-tertiary">{e.actorEmail}</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-ink-tertiary">System</span>
-                    )}
-                  </TD>
-                  <TD>
-                    <Badge tone={tone}>{e.action}</Badge>
-                  </TD>
-                  <TD className="text-sm text-ink-secondary">
-                    {e.entityType}
-                    {e.entityId && (
-                      <span className="ml-2 font-mono text-[11px] text-ink-tertiary">
-                        {e.entityId.slice(0, 8)}…
-                      </span>
-                    )}
-                  </TD>
-                  <TD className="text-xs text-ink-secondary truncate max-w-md">
-                    {summary as string}
-                  </TD>
-                </TR>
-              );
-            })
-          )}
-        </TBody>
-      </Table>
-    </div>
+                return (
+                  <tr key={e.id}>
+                    <td className="mono text-[11px] text-ink-3 whitespace-nowrap">
+                      {new Date(e.createdAt).toLocaleString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "UTC",
+                      })}
+                    </td>
+                    <td>
+                      {e.actorName ? (
+                        <div className="flex flex-col">
+                          <span className="text-[13px] text-ink">{e.actorName}</span>
+                          <span className="text-[11px] text-ink-4">{e.actorEmail}</span>
+                        </div>
+                      ) : (
+                        <span className="text-[12px] text-ink-3">System</span>
+                      )}
+                    </td>
+                    <td>
+                      <Badge tone={tone}>{e.action}</Badge>
+                    </td>
+                    <td className="text-[13px] text-ink-secondary">
+                      {e.entityType}
+                      {e.entityId && (
+                        <span className="ml-2 mono text-[11px] text-ink-4">
+                          {e.entityId.slice(0, 8)}…
+                        </span>
+                      )}
+                    </td>
+                    <td className="text-[12px] text-ink-3 truncate max-w-[420px]">
+                      {summary as string}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
