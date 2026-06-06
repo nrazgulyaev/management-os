@@ -1,9 +1,6 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { NotificationStatusPill } from "@/components/jobs/job-status-pill";
 import { NotificationActions } from "@/components/notifications/notification-actions";
@@ -39,44 +36,69 @@ export default async function NotificationsPage({
   const canWrite = hasPermission(ctx, "notifications.write");
 
   const queued = rows.filter((r) => r.status === "queued").length;
+  const sent = rows.filter((r) => r.status === "sent").length;
   const failed = rows.filter((r) => r.status === "failed").length;
   const dryRun = isNotificationsDryRun();
   const resendOn = isResendConfigured();
   const twilioOn = isTwilioConfigured();
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Notifications" }]}
-        title="Notification queue"
-        description="Durable queue + provider deliveries. In-app inbox always works; email / SMS / WhatsApp ship when Resend / Twilio env is configured and dry-run is off."
-        actions={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link
-              href="/dashboard/notifications/inbox"
-              className="rounded-md border border-line-soft bg-surface px-3 py-1.5 text-xs hover:border-line-strong inline-flex items-center gap-2"
-            >
-              Inbox
-              {unreadCount > 0 && <Badge tone="warning">{unreadCount}</Badge>}
-            </Link>
-            <Link
-              href="/dashboard/notifications/deliveries"
-              className="text-xs underline text-ink-secondary"
-            >
-              Deliveries →
-            </Link>
-            <Link
-              href="/dashboard/notifications/preferences"
-              className="text-xs underline text-ink-secondary"
-            >
-              Preferences →
-            </Link>
+    <>
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> / <span>Notifications</span>
           </div>
-        }
-      />
+          <h1>Notification queue</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            In-app inbox + durable delivery queue. The inbox always works; email /
+            SMS / WhatsApp ship when Resend / Twilio is configured and dry-run is
+            off.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/dashboard/notifications/deliveries" className="btn btn-secondary btn-sm">
+            Deliveries →
+          </Link>
+          <Link
+            href="/dashboard/notifications/inbox"
+            className="btn btn-secondary btn-sm inline-flex items-center gap-2"
+          >
+            Inbox
+            {unreadCount > 0 && <Badge tone="warning">{unreadCount}</Badge>}
+          </Link>
+          <Link href="/dashboard/notifications/preferences" className="btn btn-accent btn-sm">
+            Preferences
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
+        <Kpi
+          label="Unread"
+          value={String(unreadCount)}
+          sub="your inbox"
+          tone={unreadCount > 0 ? "accent" : undefined}
+        />
+        <Kpi label="Queued" value={String(queued)} sub="pending delivery" />
+        <Kpi
+          label="Sent"
+          value={String(sent)}
+          sub="delivered"
+          tone={sent > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Failed"
+          value={String(failed)}
+          sub={failed > 0 ? "need retry" : "none"}
+          tone={failed > 0 ? "accent" : undefined}
+        />
+      </div>
+
       <DbStatusNotice />
 
-      <div className="rounded-md border border-line-soft bg-surface px-4 py-3 flex items-center gap-3 flex-wrap text-xs">
+      {/* Provider mode */}
+      <div className="rounded-md border border-line-soft bg-surface px-4 py-3 flex items-center gap-3 flex-wrap text-xs mt-[18px]">
         <span className="text-ink-tertiary">Provider mode</span>
         <Badge tone={dryRun ? "warning" : "success"}>
           {dryRun ? "dry-run (noop)" : "live"}
@@ -95,17 +117,7 @@ export default async function NotificationsPage({
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Total (visible)" value={String(rows.length)} />
-        <MetricCard label="Queued" value={String(queued)} accent={queued > 0} />
-        <MetricCard label="Failed" value={String(failed)} accent={failed > 0} />
-        <MetricCard
-          label="In-app"
-          value={String(rows.filter((r) => r.channel === "in_app").length)}
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mt-4">
         <FilterPill label="All" href="/dashboard/notifications" active={!sp.status} />
         {STATUSES.map((s) => (
           <FilterPill
@@ -117,46 +129,49 @@ export default async function NotificationsPage({
         ))}
       </div>
 
-      <Section eyebrow="Queue" title="Recent notifications">
-        {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No notifications match these filters.
-          </p>
-        ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Status</TH>
-                <TH>Channel</TH>
-                <TH>Template</TH>
-                <TH>Title / body</TH>
-                <TH>Recipient</TH>
-                <TH>Attempts</TH>
-                <TH>Created</TH>
-                <TH>Action</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {rows.map((r) => (
-                <TR key={r.id}>
-                  <TD>
+      <h2 className="display text-[22px] font-normal mt-6 mb-3.5">Recent notifications</h2>
+      <div className="card p-0 overflow-hidden">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Channel</th>
+              <th>Template</th>
+              <th>Title / body</th>
+              <th>Recipient</th>
+              <th className="num">Attempts</th>
+              <th>Created</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center text-ink-3 italic py-8">
+                  No notifications match these filters.
+                </td>
+              </tr>
+            ) : (
+              rows.map((r) => (
+                <tr key={r.id} className={r.status === "queued" ? "bg-cream-warm" : ""}>
+                  <td>
                     <NotificationStatusPill status={r.status} />
-                  </TD>
-                  <TD>
+                  </td>
+                  <td>
                     <Badge tone="outline">{r.channel}</Badge>
-                  </TD>
-                  <TD className="font-mono text-xs">{r.templateKey}</TD>
-                  <TD className="text-xs max-w-[420px]">
-                    <div className="text-ink">{r.title}</div>
-                    <div className="text-ink-tertiary truncate">{r.body}</div>
-                  </TD>
-                  <TD className="text-xs">
+                  </td>
+                  <td className="mono text-[11px] text-ink-3">{r.templateKey}</td>
+                  <td className="max-w-[420px]">
+                    <div className="text-ink text-[13px]">{r.title}</div>
+                    <div className="text-ink-3 text-[12px] truncate">{r.body}</div>
+                  </td>
+                  <td>
                     <Badge tone="outline">{r.recipientType}</Badge>
-                  </TD>
-                  <TD className="text-xs font-mono tabular-nums">
+                  </td>
+                  <td className="num mono text-[12px]">
                     <div>{r.deliveryAttempts}</div>
                     {r.lastAttemptedAt && (
-                      <div className="text-[10px] text-ink-tertiary">
+                      <div className="text-[10px] text-ink-4">
                         last {r.lastAttemptedAt.slice(0, 16).replace("T", " ")}
                       </div>
                     )}
@@ -165,11 +180,11 @@ export default async function NotificationsPage({
                         next {r.nextAttemptAt.slice(0, 16).replace("T", " ")}
                       </div>
                     )}
-                  </TD>
-                  <TD className="text-xs text-ink-tertiary tabular-nums">
+                  </td>
+                  <td className="mono text-[11px] text-ink-3 whitespace-nowrap">
                     {r.createdAt.slice(0, 16).replace("T", " ")}
-                  </TD>
-                  <TD>
+                  </td>
+                  <td>
                     <div className="flex flex-col gap-1">
                       <NotificationActions
                         id={r.id}
@@ -181,14 +196,14 @@ export default async function NotificationsPage({
                         <RetryNotificationButton id={r.id} />
                       )}
                     </div>
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        )}
-      </Section>
-    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
