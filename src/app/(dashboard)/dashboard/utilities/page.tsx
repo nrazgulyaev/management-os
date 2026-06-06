@@ -1,79 +1,197 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Section } from "@/components/ui/section";
+import { Kpi } from "@/components/dashboard/primitives";
+import { Badge } from "@/components/ui/badge";
+import { QueryWarningCard } from "@/components/system/query-warning-card";
 import {
   listUtilityAccounts,
   listUtilityPaymentReminders,
+  listUtilityReadings,
 } from "@/features/utilities/services";
 import { listMaintenanceRiskEvents } from "@/features/maintenance-intelligence/services";
 import { safeList } from "@/features/system/db-health";
-import { QueryWarningCard } from "@/components/system/query-warning-card";
 
 export const metadata = { title: "Utilities" };
 export const dynamic = "force-dynamic";
 
+function money(minor: number | null, currency: string | null): string {
+  if (minor === null) return "—";
+  return `${currency ?? ""} ${Math.round(minor / 100).toLocaleString()}`.trim();
+}
+
+function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+}
+
 export default async function UtilitiesHub() {
-  const [accountsResult, openPaymentsResult, allRisksResult] = await Promise.all([
-    safeList("utility_accounts", () => listUtilityAccounts({ status: "active" })),
-    safeList("utility_payment_reminders", () =>
-      listUtilityPaymentReminders({ status: ["open", "overdue"], limit: 200 }),
-    ),
-    safeList("maintenance_risk_events", () =>
-      listMaintenanceRiskEvents({ status: "open", limit: 500 }),
-    ),
-  ]);
+  const [accountsResult, openPaymentsResult, allRisksResult, readingsResult] =
+    await Promise.all([
+      safeList("utility_accounts", () => listUtilityAccounts({ status: "active" })),
+      safeList("utility_payment_reminders", () =>
+        listUtilityPaymentReminders({ status: ["open", "overdue"], limit: 200 }),
+      ),
+      safeList("maintenance_risk_events", () =>
+        listMaintenanceRiskEvents({ status: "open", limit: 500 }),
+      ),
+      safeList("utility_readings", () => listUtilityReadings({ limit: 12 })),
+    ]);
   const accounts = accountsResult.value;
   const openPayments = openPaymentsResult.value;
-  const allRisks = allRisksResult.value;
-  const utilityRisks = allRisks.filter((r) =>
-    r.riskType.startsWith("utility_") || r.riskType === "no_recent_reading",
+  const readings = readingsResult.value;
+  const utilityRisks = allRisksResult.value.filter(
+    (r) => r.riskType.startsWith("utility_") || r.riskType === "no_recent_reading",
   );
+
+  const tokenMeters = accounts.filter((a) => a.tokenMeter).length;
+  const categories = new Set(accounts.map((a) => a.utilityType)).size;
+
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Utilities" }]}
-        title="Utilities"
-        description="Per-villa accounts (electricity tokens, water, internet…), readings, and payment reminders. The risk scanner watches balances + reading freshness."
-      />
+    <>
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> / <span>Utilities</span>
+          </div>
+          <h1>Utilities</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Per-villa accounts (electricity tokens, water, internet, gas…),
+            readings, and payment reminders. The risk scanner watches balances +
+            reading freshness.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/dashboard/utilities/readings" className="btn btn-secondary btn-sm">
+            Readings →
+          </Link>
+          <Link href="/dashboard/utilities/accounts" className="btn btn-accent btn-sm">
+            All accounts →
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
+        <Kpi label="Accounts" value={String(accounts.length)} sub={`${categories} categories`} />
+        <Kpi
+          label="Open payments"
+          value={String(openPayments.length)}
+          sub={openPayments.length > 0 ? "due / overdue" : "all settled"}
+          tone={openPayments.length > 0 ? "accent" : undefined}
+        />
+        <Kpi
+          label="Utility risks"
+          value={String(utilityRisks.length)}
+          sub={utilityRisks.length > 0 ? "balance / reading" : "all clear"}
+          tone={utilityRisks.length > 0 ? "accent" : undefined}
+        />
+        <Kpi label="Token meters" value={String(tokenMeters)} sub="prepaid" tone="gold" />
+        <Kpi label="Readings logged" value={String(readings.length)} sub="recent window" />
+      </div>
+
       <QueryWarningCard result={accountsResult} tableName="utility_accounts" />
       <QueryWarningCard result={openPaymentsResult} tableName="utility_payment_reminders" />
       <QueryWarningCard result={allRisksResult} tableName="maintenance_risk_events" />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Active accounts" value={String(accounts.length)} />
-        <MetricCard
-          label="Open payments"
-          value={String(openPayments.length)}
-          accent={openPayments.length > 0}
-        />
-        <MetricCard
-          label="Open utility risks"
-          value={String(utilityRisks.length)}
-          accent={utilityRisks.length > 0}
-        />
+      {/* Accounts */}
+      <div className="flex items-end justify-between mt-2 mb-3.5">
+        <h2 className="display text-[22px] font-normal" id="accounts">Accounts</h2>
+        <Link
+          href="/dashboard/utilities/payments"
+          className="text-[12px] text-ink-3 hover:text-ink underline"
+        >
+          Payments →
+        </Link>
+      </div>
+      <div className="card p-0 overflow-hidden mb-[18px]">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Type</th>
+              <th>Villa / scope</th>
+              <th>Provider</th>
+              <th className="num">Avg / mo</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {accounts.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center text-ink-3 italic py-8">
+                  No utility accounts yet.
+                </td>
+              </tr>
+            ) : (
+              accounts.slice(0, 14).map((a) => (
+                <tr key={a.id}>
+                  <td className="mono text-[12px]">{a.accountNumber ?? a.providerName ?? "—"}</td>
+                  <td>
+                    <Badge tone="outline">{a.utilityType}</Badge>
+                    {a.tokenMeter && <span className="ml-1.5 text-[10px] text-ink-4">token</span>}
+                  </td>
+                  <td className="mono text-[12px] text-ink-3">
+                    {a.villaCode ?? a.projectName ?? "—"}
+                  </td>
+                  <td className="text-[12px] text-ink-3">{a.providerName ?? "—"}</td>
+                  <td className="num mono text-[12px]">
+                    {money(a.averageMonthlyCostMinor, a.currency)}
+                  </td>
+                  <td>
+                    <Badge tone={a.status === "active" ? "success" : "neutral"}>{a.status}</Badge>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      <Section eyebrow="Surfaces" title="Jump to">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Card href="/dashboard/utilities/accounts" title="Accounts" detail={`${accounts.length} active`} />
-          <Card href="/dashboard/utilities/readings" title="Readings" detail="Field & manual captures" />
-          <Card href="/dashboard/utilities/payments" title="Payments" detail={`${openPayments.length} open`} />
-          <Card href="/dashboard/utilities/risks" title="Utility risks" detail={`${utilityRisks.length} open`} />
-        </div>
-      </Section>
-    </div>
-  );
-}
-
-function Card({ href, title, detail }: { href: string; title: string; detail: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-md border border-line-soft bg-surface p-5 hover:border-line-strong transition-colors block"
-    >
-      <div className="text-ink font-medium text-base">{title}</div>
-      <div className="text-sm text-ink-secondary mt-1">{detail}</div>
-    </Link>
+      {/* Recent readings */}
+      <h2 className="display text-[22px] font-normal mt-8 mb-3.5" id="readings">
+        Recent readings
+      </h2>
+      <div className="card p-0 overflow-hidden">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Villa</th>
+              <th>Type</th>
+              <th className="num">Reading</th>
+              <th className="num">Balance</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {readings.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center text-ink-3 italic py-8">
+                  No readings captured yet.
+                </td>
+              </tr>
+            ) : (
+              readings.map((r) => (
+                <tr key={r.id}>
+                  <td className="mono text-[11px] text-ink-3 whitespace-nowrap">
+                    {fmtDateTime(r.readingAt)}
+                  </td>
+                  <td className="mono">{r.villaCode ?? "—"}</td>
+                  <td className="text-[12px] text-ink-3">{r.readingType}</td>
+                  <td className="num mono text-[12px]">{r.readingValue ?? "—"}</td>
+                  <td className="num mono text-[12px]">{money(r.balanceMinor, r.currency)}</td>
+                  <td>
+                    <Badge tone="outline">{r.source}</Badge>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
