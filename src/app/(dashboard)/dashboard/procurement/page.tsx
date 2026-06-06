@@ -1,11 +1,7 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { ListPlus } from "lucide-react";
+import { Kpi } from "@/components/dashboard/primitives";
+import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { RequestCard } from "@/components/procurement/request-card";
 import { PurchaseOrderStatusPill } from "@/components/procurement/purchase-status-pill";
 import { PurchaseRequestAddButton } from "@/components/procurement/request-add-button";
 import { PurchaseOrderAddButton } from "@/components/procurement/order-add-button";
@@ -20,6 +16,27 @@ import { listVillas } from "@/features/villas/services";
 export const metadata = { title: "Procurement" };
 export const dynamic = "force-dynamic";
 
+const PR_TONE: Record<
+  string,
+  "warning" | "neutral" | "success" | "danger" | "info"
+> = {
+  submitted: "warning",
+  draft: "neutral",
+  approved: "success",
+  rejected: "danger",
+  ordered: "info",
+  received: "success",
+  cancelled: "neutral",
+};
+
+const CLOSED_PR = new Set(["received", "cancelled", "rejected"]);
+const CLOSED_PO = new Set(["received", "cancelled"]);
+
+function money(minor: bigint | null, currency: string | null): string {
+  if (minor === null) return "—";
+  return `${currency ?? ""} ${Math.round(Number(minor) / 100).toLocaleString()}`.trim();
+}
+
 export default async function ProcurementHomePage() {
   const [requests, orders, suppliers, projects, villas] = await Promise.all([
     listPurchaseRequests(),
@@ -33,113 +50,175 @@ export default async function ProcurementHomePage() {
   const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
 
   const pending = requests.filter((r) => r.status === "submitted").length;
-  const draft = requests.filter((r) => r.status === "draft").length;
-  const openOrders = orders.filter(
-    (o) => !["received", "cancelled"].includes(o.status),
-  ).length;
+  const approved = requests.filter((r) => r.status === "approved").length;
+  const openRequests = requests.filter((r) => !CLOSED_PR.has(r.status));
+  const openOrders = orders.filter((o) => !CLOSED_PO.has(o.status));
+
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const spendMtdMinor = orders
+    .filter((o) => new Date(o.createdAt) >= monthStart)
+    .reduce((s, o) => s + Number(o.totalMinor ?? 0n), 0);
+  const spendCurrency =
+    orders.find((o) => o.currency)?.currency ??
+    requests.find((r) => r.currency)?.currency ??
+    "";
+  const spendLabel =
+    spendMtdMinor > 0
+      ? `${spendCurrency} ${Math.round(spendMtdMinor / 100).toLocaleString()}`.trim()
+      : "—";
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Procurement" }]}
-        title="Procurement"
-        description="Purchase requests, purchase orders, and supplier coordination."
-        actions={
-          <div className="flex gap-2">
-            <PurchaseOrderAddButton
-              suppliers={supplierOpts}
-              projects={projectOpts}
-              villas={villaOpts}
-            />
-            <PurchaseRequestAddButton
-              suppliers={supplierOpts}
-              projects={projectOpts}
-              villas={villaOpts}
-            />
+    <>
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/inventory">Inventory</Link> / <span>Procurement</span>
           </div>
-        }
-      />
-      <DbStatusNotice />
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Drafts" value={String(draft)} />
-        <MetricCard
-          label="Awaiting approval"
-          value={String(pending)}
-          accent={pending > 0}
-          hint={pending > 0 ? "review" : undefined}
-        />
-        <MetricCard label="Open POs" value={String(openOrders)} />
-        <MetricCard label="Purchase requests" value={String(requests.length)} />
+          <h1>Procurement</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            PR → RFQ → PO → receive. Auto-PR from low stock, vendor comparison,
+            per-line receipts, approval thresholds enforced per role.
+          </p>
+        </div>
+        <div className="actions">
+          <PurchaseOrderAddButton suppliers={supplierOpts} projects={projectOpts} villas={villaOpts} />
+          <PurchaseRequestAddButton suppliers={supplierOpts} projects={projectOpts} villas={villaOpts} />
+        </div>
       </div>
 
-      <Section
-        eyebrow="Awaiting approval"
-        title="Submitted purchase requests"
-        action={
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/dashboard/procurement/requests">All requests</Link>
-          </Button>
-        }
-      >
-        <div className="flex flex-col gap-2">
-          {requests.filter((r) => r.status === "submitted").length === 0 ? (
-            <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary flex items-center gap-2">
-              <ListPlus className="w-4 h-4" strokeWidth={1.75} />
-              No requests waiting on approval.
-            </p>
-          ) : (
-            requests
-              .filter((r) => r.status === "submitted")
-              .slice(0, 6)
-              .map((r) => (
-                <RequestCard
-                  key={r.id}
-                  request={r}
-                  href={`/dashboard/procurement/requests/${r.id}`}
-                />
-              ))
-          )}
-        </div>
-      </Section>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
+        <Kpi
+          label="PR · open"
+          value={String(openRequests.length)}
+          sub={`${pending} pending approval`}
+          tone={pending > 0 ? "accent" : undefined}
+        />
+        <Kpi label="PO · open" value={String(openOrders.length)} sub="not yet received" />
+        <Kpi label="Spend · MTD" value={spendLabel} sub="purchase orders" />
+        <Kpi label="Suppliers" value={String(suppliers.length)} sub="vendors on file" />
+        <Kpi
+          label="Approved PRs"
+          value={String(approved)}
+          sub="ready to order"
+          tone={approved > 0 ? "success" : undefined}
+        />
+      </div>
 
-      <Section
-        eyebrow="Recent POs"
-        title="Purchase orders"
-        action={
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/dashboard/procurement/orders">All orders</Link>
-          </Button>
-        }
-      >
-        {orders.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No purchase orders yet.
-          </p>
-        ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <ul className="divide-y divide-line-soft">
-              {orders.slice(0, 8).map((o) => (
-                <li key={o.id} className="p-4 flex items-center justify-between gap-4">
-                  <Link href={`/dashboard/procurement/orders/${o.id}`} className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-[11px] text-ink-tertiary">{o.poCode}</span>
-                      <PurchaseOrderStatusPill status={o.status} />
-                    </div>
-                    <div className="text-sm text-ink mt-1">
-                      {o.supplierName ?? "—"}
-                      {o.projectName ? ` · ${o.projectName}` : ""}
-                    </div>
-                  </Link>
-                  <div className="text-xs text-ink-tertiary tabular-nums">
-                    {o.expectedDelivery ?? "—"}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </Section>
-    </div>
+      <DbStatusNotice />
+
+      {/* Open purchase requests */}
+      <div className="flex items-end justify-between mt-2 mb-3.5">
+        <h2 className="display text-[22px] font-normal">Open purchase requests</h2>
+        <Link
+          href="/dashboard/procurement/requests"
+          className="text-[12px] text-ink-3 hover:text-ink underline"
+        >
+          All requests →
+        </Link>
+      </div>
+      <div className="card p-0 overflow-hidden mb-[18px]">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>PR</th>
+              <th>Title</th>
+              <th>Requested by</th>
+              <th className="num">Total</th>
+              <th>Priority</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {openRequests.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center text-ink-3 italic py-8">
+                  No open purchase requests.
+                </td>
+              </tr>
+            ) : (
+              openRequests.slice(0, 12).map((r) => (
+                <tr key={r.id}>
+                  <td className="mono text-[11px] text-ink-3">
+                    <Link href={`/dashboard/procurement/requests/${r.id}`} className="hover:text-terra">
+                      {r.requestCode}
+                    </Link>
+                  </td>
+                  <td>
+                    {r.title}{" "}
+                    <span className="text-ink-4 text-[11px]">· {r.lineCount} line{r.lineCount === 1 ? "" : "s"}</span>
+                  </td>
+                  <td className="text-[12px] text-ink-3">{r.requestedByName ?? "—"}</td>
+                  <td className="num mono text-[12px]">
+                    {money(r.totalEstimatedMinor, r.currency)}
+                  </td>
+                  <td>
+                    <Badge tone={r.priority === "urgent" || r.priority === "high" ? "warning" : "neutral"}>
+                      {r.priority}
+                    </Badge>
+                  </td>
+                  <td>
+                    <Badge tone={PR_TONE[r.status] ?? "neutral"}>{r.status}</Badge>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Purchase orders */}
+      <div className="flex items-end justify-between mt-8 mb-3.5">
+        <h2 className="display text-[22px] font-normal" id="orders">
+          Purchase orders
+        </h2>
+        <Link
+          href="/dashboard/procurement/orders"
+          className="text-[12px] text-ink-3 hover:text-ink underline"
+        >
+          All orders →
+        </Link>
+      </div>
+      <div className="card p-0 overflow-hidden">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>PO</th>
+              <th>Supplier</th>
+              <th>Project</th>
+              <th className="num">Total</th>
+              <th>ETA</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center text-ink-3 italic py-8">
+                  No purchase orders yet.
+                </td>
+              </tr>
+            ) : (
+              orders.slice(0, 12).map((o) => (
+                <tr key={o.id}>
+                  <td className="mono text-[11px] text-ink-3">
+                    <Link href={`/dashboard/procurement/orders/${o.id}`} className="hover:text-terra">
+                      {o.poCode}
+                    </Link>
+                  </td>
+                  <td>{o.supplierName ?? "—"}</td>
+                  <td className="text-[12px] text-ink-3">{o.projectName ?? "—"}</td>
+                  <td className="num mono text-[12px]">{money(o.totalMinor, o.currency)}</td>
+                  <td className="mono text-[11px] text-ink-3">{o.expectedDelivery ?? "—"}</td>
+                  <td>
+                    <PurchaseOrderStatusPill status={o.status} />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
