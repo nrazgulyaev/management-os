@@ -11,6 +11,7 @@ import {
   listSafetyEventsForCabinet,
   listConciergeMemoryNotes,
 } from "@/features/guest-ai-concierge/concierge-cabinet-queries";
+import { ConciergeWorkspace } from "./_concierge-workspace";
 
 /**
  * Sprint TASK-6-DATA-PART-2 — Mgmt OS Concierge cabinet live wiring.
@@ -112,76 +113,8 @@ export default async function ConciergePage() {
         <Kpi label="CSAT · 30d" value="—" sub="feedback collection coming soon" />
       </div>
 
-      {/* 2-up: request inbox + active transcript panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-3.5 mb-[18px] items-stretch">
-        <div className="request-inbox">
-          <div className="ri-head">
-            <h3 className="ri-title">Sessions</h3>
-            <div className="ri-filters">
-              <span className="ri-chip is-on">All · {sessions.length}</span>
-              <span className="ri-chip">Live</span>
-              <span className="ri-chip">Handoff</span>
-            </div>
-          </div>
-          <div className="ri-list">
-            {sessions.length === 0 ? (
-              <div className="ri-empty">
-                No active sessions. They appear here when guests message via WhatsApp,
-                the in-stay portal, or direct chat.
-              </div>
-            ) : (
-              sessions.map((s, i) => {
-                const urgent = s.status === "handoff";
-                return (
-                  <div
-                    key={s.id}
-                    className={`ri-row${i === 0 ? " is-active" : ""}${urgent ? " is-urgent" : ""}`}
-                  >
-                    <div className="ri-meta">
-                      <span>
-                        {s.villaCode ?? "—"}
-                        {s.language ? ` · ${s.language.toUpperCase()}` : ""}
-                      </span>
-                      <span>{fmtTime(s.lastMessageAt)}</span>
-                    </div>
-                    <div className="ri-name">{s.guestName ?? "Guest"}</div>
-                    <div className="ri-preview">
-                      {s.messageCount} message{s.messageCount === 1 ? "" : "s"} · {s.status}
-                    </div>
-                    <div className="ri-foot">
-                      <span className="ri-channel">concierge</span>
-                      <span className="ri-tag">
-                        {s.status === "active" ? "Live" : s.status}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Transcript panel — empty state until session selected */}
-        <Card padding="none" overflowHidden className="flex flex-col min-h-[380px]">
-          <div className="px-[18px] py-3.5 border-b border-line-soft flex items-center gap-2.5">
-            <div>
-              <div className="text-[14px] font-medium">
-                {sessions.length === 0 ? "No session selected" : "Select a session"}
-              </div>
-              <div className="mono text-[11px] text-ink-3">
-                {sessions.length === 0
-                  ? "Live transcript renders here once guests start messaging"
-                  : "Open a session on the left to view the transcript"}
-              </div>
-            </div>
-          </div>
-          <div className="p-6 flex-1 bg-cream-warm flex items-center justify-center text-ink-3 text-[13px] italic">
-            {sessions.length === 0
-              ? "Configure WhatsApp / in-stay portal channels on the AI hub to start receiving messages."
-              : "Click a session to load its transcript."}
-          </div>
-        </Card>
-      </div>
+      {/* 2-up: request inbox + live transcript with staff composer */}
+      <ConciergeWorkspace sessions={sessions} />
 
       <h2 className="display text-[30px] mt-8 mb-3.5 font-normal">
         Handoffs needing <em>your eyes</em>

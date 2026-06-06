@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listBookingChannels } from "@/features/channels/services";
+import { listVillas } from "@/features/villas/services";
 import { getChannelVillaCoverage } from "@/features/channels/queries";
 import { ChannelRowActions } from "./_channel-row-actions";
 import { ChannelModalButton } from "./_channel-modal";
+import { ConnectVillaWizardButton } from "./_connect-wizard";
 
 export const metadata = { title: "Booking channels" };
 export const dynamic = "force-dynamic";
@@ -21,9 +23,10 @@ const typeTone: Record<string, "accent" | "gold" | "info" | "neutral"> = {
 };
 
 export default async function ChannelsPage() {
-  const [channels, coverage] = await Promise.all([
+  const [channels, coverage, villas] = await Promise.all([
     listBookingChannels(),
     getChannelVillaCoverage().catch(() => ({ villaCount: 0, channels: [] })),
+    listVillas().catch(() => []),
   ]);
   const source = channels[0]?.source ?? "mock";
 
@@ -35,6 +38,25 @@ export default async function ChannelsPage() {
     : null;
 
   const { villaCount, channels: cov } = coverage;
+
+  const wizardChannels = channels
+    .filter((c) => c.status !== "archived")
+    .map((c) => ({
+      id: c.id,
+      key: c.key,
+      name: c.name,
+      type: c.type,
+      connectedCount: cov.find((x) => x.id === c.id)?.connectedCount ?? 0,
+    }));
+  const wizardVillas = villas
+    .filter((v) => v.status !== "archived")
+    .map((v) => ({
+      id: v.id,
+      unitCode: v.unitCode,
+      projectName: v.projectName,
+      projectId: v.projectId,
+    }));
+
   const buckets = [
     {
       cls: "matched",
@@ -71,6 +93,12 @@ export default async function ChannelsPage() {
           <Link href="/dashboard/integrations/calendar-feeds" className="btn btn-secondary btn-sm">
             Calendar feeds →
           </Link>
+          <ConnectVillaWizardButton
+            villas={wizardVillas}
+            channels={wizardChannels}
+            triggerClassName="btn btn-secondary btn-sm"
+            triggerLabel="Connect villa"
+          />
           <ChannelModalButton
             mode="create"
             triggerClassName="btn btn-accent btn-sm"
