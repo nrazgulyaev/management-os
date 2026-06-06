@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
@@ -60,7 +59,7 @@ export async function createChannelAction(
   }
 
   revalidatePath("/dashboard/channels");
-  redirect("/dashboard/channels");
+  return { ok: true };
 }
 
 export async function updateChannelAction(
@@ -121,7 +120,7 @@ export async function updateChannelAction(
   });
 
   revalidatePath("/dashboard/channels");
-  redirect("/dashboard/channels");
+  return { ok: true };
 }
 
 async function transition(
