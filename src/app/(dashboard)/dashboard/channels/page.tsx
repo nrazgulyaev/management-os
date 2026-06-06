@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listBookingChannels } from "@/features/channels/services";
+import { getChannelVillaCoverage } from "@/features/channels/queries";
+import { ChannelRowActions } from "./_channel-row-actions";
 
 export const metadata = { title: "Booking channels" };
 export const dynamic = "force-dynamic";
@@ -18,7 +20,10 @@ const typeTone: Record<string, "accent" | "gold" | "info" | "neutral"> = {
 };
 
 export default async function ChannelsPage() {
-  const channels = await listBookingChannels();
+  const [channels, coverage] = await Promise.all([
+    listBookingChannels(),
+    getChannelVillaCoverage().catch(() => ({ villaCount: 0, channels: [] })),
+  ]);
   const source = channels[0]?.source ?? "mock";
 
   const connected = channels.filter((c) => c.status === "active").length;
@@ -27,6 +32,25 @@ export default async function ChannelsPage() {
   const avgCommission = otaWithPct.length
     ? otaWithPct.reduce((s, c) => s + (c.defaultCommissionPct ?? 0), 0) / otaWithPct.length
     : null;
+
+  const { villaCount, channels: cov } = coverage;
+  const buckets = [
+    {
+      cls: "matched",
+      label: "Connected · all villas",
+      rows: cov.filter((c) => villaCount > 0 && c.connectedCount >= villaCount),
+    },
+    {
+      cls: "ambiguous",
+      label: "Partial coverage",
+      rows: cov.filter((c) => c.connectedCount > 0 && c.connectedCount < villaCount),
+    },
+    {
+      cls: "unmatched",
+      label: "Not connected",
+      rows: cov.filter((c) => c.connectedCount === 0),
+    },
+  ];
 
   return (
     <>
@@ -37,12 +61,18 @@ export default async function ChannelsPage() {
           </div>
           <h1>Booking channels</h1>
           <p className="text-[13px] text-ink-3 mt-2 max-w-[700px]">
-            OTAs, direct, agent, and social channels — each with a default commission
-            applied to incoming bookings.
+            Channels are workspace-wide commission defaults; each villa connects to a
+            channel via a calendar feed.
           </p>
         </div>
         <div className="actions">
           <SourceBadge source={source} />
+          <Link href="/dashboard/integrations/calendar-feeds" className="btn btn-secondary btn-sm">
+            Calendar feeds →
+          </Link>
+          <Link href="/dashboard/channels/new" className="btn btn-accent btn-sm">
+            + New channel
+          </Link>
         </div>
       </div>
 
@@ -81,12 +111,13 @@ export default async function ChannelsPage() {
               <TH>Commission model</TH>
               <TH className="text-right">Default %</TH>
               <TH>Status</TH>
+              <TH className="text-right">Actions</TH>
             </TR>
           </THead>
           <TBody>
             {channels.length === 0 ? (
               <TR>
-                <TD colSpan={6} className="text-ink-tertiary text-center py-8">
+                <TD colSpan={7} className="text-ink-tertiary text-center py-8">
                   No channels yet.
                 </TD>
               </TR>
@@ -109,12 +140,60 @@ export default async function ChannelsPage() {
                       {c.status}
                     </Badge>
                   </TD>
+                  <TD className="text-right">
+                    <ChannelRowActions id={c.id} status={c.status} />
+                  </TD>
                 </TR>
               ))
             )}
           </TBody>
         </Table>
       </div>
+
+      {/* Per-villa connection coverage (listing matcher) */}
+      {channels.length > 0 && (
+        <>
+          <h2 className="display text-[22px] font-normal mt-8 mb-1">Per-villa connections</h2>
+          <p className="text-[13px] text-ink-3 mb-3.5 max-w-[760px]">
+            Coverage across {villaCount} active villa{villaCount === 1 ? "" : "s"} — which
+            channels have a calendar feed wired per villa.{" "}
+            <Link
+              href="/dashboard/integrations/calendar-feeds"
+              className="underline hover:text-ink"
+            >
+              Manage feeds →
+            </Link>
+          </p>
+          <div className="listing-matcher mb-[18px]">
+            {buckets.map((b) => (
+              <div key={b.cls} className={`lm-bucket lm-${b.cls}`}>
+                <div className="lm-bucket-head">
+                  <span className="lm-bucket-label">{b.label}</span>
+                  <span className="lm-bucket-count">{b.rows.length}</span>
+                </div>
+                {b.rows.length === 0 ? (
+                  <div className="lm-row">
+                    <span className="lm-listing-name text-ink-3 italic">None</span>
+                    <span />
+                  </div>
+                ) : (
+                  b.rows.map((r) => (
+                    <div key={r.id} className="lm-row">
+                      <span className="lm-listing-name">
+                        {r.name}{" "}
+                        <span className="font-mono text-[11px] text-ink-4">· {r.key}</span>
+                      </span>
+                      <span className="lm-listing-id">
+                        {r.connectedCount}/{villaCount} villas connected
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }

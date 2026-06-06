@@ -5,13 +5,25 @@ import Link from "next/link";
 import { Field, FormShell, inputCls, selectCls } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { Button } from "@/components/ui/button";
-import { createChannelAction } from "@/features/channels/actions";
+import { createChannelAction, updateChannelAction } from "@/features/channels/actions";
 import type { ActionResult } from "@/features/projects/actions";
+
+export interface ChannelFormData {
+  id: string;
+  key: string;
+  name: string;
+  type: string;
+  commissionModel: string | null;
+  defaultCommissionPct: number | null;
+  status: string;
+}
 
 const initial: ActionResult | null = null;
 
-export function ChannelForm() {
-  const [state, dispatch] = useActionState(createChannelAction, initial);
+export function ChannelForm({ channel }: { channel?: ChannelFormData } = {}) {
+  const isEdit = !!channel;
+  const action = channel ? updateChannelAction.bind(null, channel.id) : createChannelAction;
+  const [state, dispatch] = useActionState(action, initial);
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
   return (
     <form action={dispatch}>
@@ -22,7 +34,7 @@ export function ChannelForm() {
             <Button asChild variant="ghost">
               <Link href="/dashboard/channels">Cancel</Link>
             </Button>
-            <SubmitButton>Create channel</SubmitButton>
+            <SubmitButton>{isEdit ? "Save changes" : "Create channel"}</SubmitButton>
           </>
         }
       >
@@ -33,15 +45,33 @@ export function ChannelForm() {
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Field label="Name" required error={errs.name?.[0]}>
-            <input name="name" required className={inputCls} placeholder="Booking.com" />
+            <input
+              name="name"
+              required
+              className={inputCls}
+              placeholder="Booking.com"
+              defaultValue={channel?.name}
+            />
           </Field>
-          <Field label="Key" required hint="lowercase, used in code" error={errs.key?.[0]}>
-            <input name="key" required className={inputCls} placeholder="booking" />
+          <Field
+            label="Key"
+            required={!isEdit}
+            hint={isEdit ? "code identifier — not editable" : "lowercase, used in code"}
+            error={errs.key?.[0]}
+          >
+            <input
+              name="key"
+              required={!isEdit}
+              readOnly={isEdit}
+              className={`${inputCls}${isEdit ? " opacity-60 cursor-not-allowed" : ""}`}
+              placeholder="booking"
+              defaultValue={channel?.key}
+            />
           </Field>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Field label="Type" required>
-            <select name="type" defaultValue="ota" className={selectCls}>
+            <select name="type" defaultValue={channel?.type ?? "ota"} className={selectCls}>
               <option value="ota">OTA</option>
               <option value="direct">Direct</option>
               <option value="agent">Agent</option>
@@ -50,7 +80,11 @@ export function ChannelForm() {
             </select>
           </Field>
           <Field label="Commission model">
-            <select name="commissionModel" defaultValue="" className={selectCls}>
+            <select
+              name="commissionModel"
+              defaultValue={channel?.commissionModel ?? ""}
+              className={selectCls}
+            >
               <option value="">—</option>
               <option value="percent">Percent</option>
               <option value="fixed">Fixed</option>
@@ -67,11 +101,12 @@ export function ChannelForm() {
               step="0.01"
               className={inputCls}
               placeholder="15"
+              defaultValue={channel?.defaultCommissionPct ?? undefined}
             />
           </Field>
         </div>
         <Field label="Status" required hint="active · paused · inactive · archived">
-          <select name="status" defaultValue="active" className={selectCls}>
+          <select name="status" defaultValue={channel?.status ?? "active"} className={selectCls}>
             <option value="active">Active</option>
             <option value="paused">Paused</option>
             <option value="inactive">Inactive</option>
