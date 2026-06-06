@@ -1,9 +1,8 @@
+import Link from "next/link";
 import {
   Kpi,
-  SectionHeading,
   Card,
   HandoffBadge,
-  Pulse,
 } from "@/components/dashboard/primitives";
 import {
   getConciergeKpis,
@@ -29,17 +28,6 @@ import {
 export const metadata = { title: "Concierge AI" };
 export const dynamic = "force-dynamic";
 
-function initials(name: string | null): string {
-  if (!name) return "—";
-  return name
-    .split(" ")
-    .filter((p) => p && /[A-Za-z]/.test(p[0]))
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
 function fmtTime(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("en-GB", {
@@ -61,52 +49,44 @@ export default async function ConciergePage() {
 
   return (
     <>
-      <SectionHeading
-        eyebrow={
-          kpis
-            ? `Concierge AI · ${kpis.activeSessions} active · ${kpis.handoffsOpen} handoffs`
-            : "Concierge AI"
-        }
-        title={
-          sessions.length === 0 ? (
-            <>
-              Ready for guests to <em>start messaging.</em>
-            </>
-          ) : (
-            <>
-              {sessions.length} sessions <em>across channels.</em>
-            </>
-          )
-        }
-        subtitle="Multilingual replies on WhatsApp, in-stay portal and email. Escalates only what truly needs you. Audit log per reply."
-        actions={
-          <>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Templates
-            </button>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Memory
-            </button>
-            <button
-              className="btn btn-primary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Review handoffs · {kpis?.handoffsOpen ?? 0}
-            </button>
-          </>
-        }
-      />
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> / <span>Concierge AI</span>
+          </div>
+          <h1>Concierge AI</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[720px]">
+            {kpis ? `${kpis.activeSessions} active · ${kpis.handoffsOpen} handoffs. ` : ""}
+            Multilingual replies on WhatsApp, in-stay portal and email — escalates only
+            what truly needs you, with an audit log per reply.
+          </p>
+        </div>
+        <div className="actions">
+          <button
+            className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            Templates
+          </button>
+          <button
+            className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            Memory
+          </button>
+          <button
+            className="btn btn-primary btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            Review handoffs · {kpis?.handoffsOpen ?? 0}
+          </button>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-5 gap-3 mb-[18px]">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
         <Kpi
           label="Active sessions"
           value={kpis && kpis.activeSessions > 0 ? String(kpis.activeSessions) : "—"}
@@ -132,65 +112,54 @@ export default async function ConciergePage() {
         <Kpi label="CSAT · 30d" value="—" sub="feedback collection coming soon" />
       </div>
 
-      {/* 2-up: sessions list + active transcript panel */}
-      <div className="grid grid-cols-[1fr_1.3fr] gap-3.5 mb-[18px]">
-        <Card padding="none" overflowHidden>
-          <div className="px-[18px] py-3.5 flex items-center border-b border-line-soft">
-            <h3 className="display-sm">Sessions</h3>
-            <span className="mono ml-auto text-[11px] text-ink-3">
-              {sessions.length} · ALL CHANNELS
-            </span>
+      {/* 2-up: request inbox + active transcript panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-3.5 mb-[18px] items-stretch">
+        <div className="request-inbox">
+          <div className="ri-head">
+            <h3 className="ri-title">Sessions</h3>
+            <div className="ri-filters">
+              <span className="ri-chip is-on">All · {sessions.length}</span>
+              <span className="ri-chip">Live</span>
+              <span className="ri-chip">Handoff</span>
+            </div>
           </div>
-          {sessions.length === 0 ? (
-            <p className="p-5 text-[13px] text-ink-3 italic m-0">
-              No active sessions. Concierge sessions appear here when guests
-              message via WhatsApp, the in-stay portal, or direct chat.
-            </p>
-          ) : (
-            <ul className="clean p-0">
-              {sessions.map((s, i) => (
-                <li
-                  key={s.id}
-                  className={
-                    "flex flex-col items-stretch gap-1.5 px-[18px] py-3 cursor-pointer border-l-[3px] " +
-                    (i === 0
-                      ? "border-terra bg-cream-warm"
-                      : "border-transparent")
-                  }
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-7 h-7 rounded-full bg-muted border border-line flex items-center justify-center text-[10px]">
-                      {initials(s.guestName)}
-                    </span>
-                    <span className="font-medium text-[13.5px]">
-                      {s.guestName ?? "Guest"}
-                    </span>
-                    <span className="mono text-[10px] text-ink-4">
-                      {s.villaCode ?? "—"} {s.language ? `· ${s.language.toUpperCase()}` : ""}
-                    </span>
-                    <span className="mono ml-auto text-[10px] text-ink-4">
-                      {fmtTime(s.lastMessageAt)}
-                    </span>
+          <div className="ri-list">
+            {sessions.length === 0 ? (
+              <div className="ri-empty">
+                No active sessions. They appear here when guests message via WhatsApp,
+                the in-stay portal, or direct chat.
+              </div>
+            ) : (
+              sessions.map((s, i) => {
+                const urgent = s.status === "handoff";
+                return (
+                  <div
+                    key={s.id}
+                    className={`ri-row${i === 0 ? " is-active" : ""}${urgent ? " is-urgent" : ""}`}
+                  >
+                    <div className="ri-meta">
+                      <span>
+                        {s.villaCode ?? "—"}
+                        {s.language ? ` · ${s.language.toUpperCase()}` : ""}
+                      </span>
+                      <span>{fmtTime(s.lastMessageAt)}</span>
+                    </div>
+                    <div className="ri-name">{s.guestName ?? "Guest"}</div>
+                    <div className="ri-preview">
+                      {s.messageCount} message{s.messageCount === 1 ? "" : "s"} · {s.status}
+                    </div>
+                    <div className="ri-foot">
+                      <span className="ri-channel">concierge</span>
+                      <span className="ri-tag">
+                        {s.status === "active" ? "Live" : s.status}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex gap-1.5 items-center pl-9">
-                    {s.status === "active" ? (
-                      <HandoffBadge tone="ok">
-                        <Pulse /> Live
-                      </HandoffBadge>
-                    ) : s.status === "handoff" ? (
-                      <HandoffBadge tone="warn">Handoff</HandoffBadge>
-                    ) : (
-                      <HandoffBadge>{s.status}</HandoffBadge>
-                    )}
-                    <span className="mono text-[10px] text-ink-4">
-                      {s.messageCount} msgs
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+                );
+              })
+            )}
+          </div>
+        </div>
 
         {/* Transcript panel — empty state until session selected */}
         <Card padding="none" overflowHidden className="flex flex-col min-h-[380px]">
@@ -273,7 +242,7 @@ export default async function ConciergePage() {
       </Card>
 
       {/* Safety events + Memory editor */}
-      <div className="grid grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
         <Card padding="none" overflowHidden>
           <div className="px-[18px] py-3.5 border-b border-line-soft">
             <h3 className="display-sm">Safety events · last 24h</h3>
