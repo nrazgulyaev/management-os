@@ -7,6 +7,7 @@ import { DbStatusNotice } from "@/components/admin/db-status";
 import { listBookingChannels } from "@/features/channels/services";
 import { getChannelVillaCoverage } from "@/features/channels/queries";
 import { ChannelRowActions } from "./_channel-row-actions";
+import { ChannelModalButton } from "./_channel-modal";
 
 export const metadata = { title: "Booking channels" };
 export const dynamic = "force-dynamic";
@@ -70,9 +71,11 @@ export default async function ChannelsPage() {
           <Link href="/dashboard/integrations/calendar-feeds" className="btn btn-secondary btn-sm">
             Calendar feeds →
           </Link>
-          <Link href="/dashboard/channels/new" className="btn btn-accent btn-sm">
-            + New channel
-          </Link>
+          <ChannelModalButton
+            mode="create"
+            triggerClassName="btn btn-accent btn-sm"
+            triggerLabel="+ New channel"
+          />
         </div>
       </div>
 
@@ -141,7 +144,17 @@ export default async function ChannelsPage() {
                     </Badge>
                   </TD>
                   <TD className="text-right">
-                    <ChannelRowActions id={c.id} status={c.status} />
+                    <ChannelRowActions
+                      channel={{
+                        id: c.id,
+                        key: c.key,
+                        name: c.name,
+                        type: c.type,
+                        commissionModel: c.commissionModel,
+                        defaultCommissionPct: c.defaultCommissionPct,
+                        status: c.status,
+                      }}
+                    />
                   </TD>
                 </TR>
               ))

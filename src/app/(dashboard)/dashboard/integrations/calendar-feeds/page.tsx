@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { FeedStatusPill } from "@/components/integrations/feed-status-pill";
 import { SyncAllButton } from "@/components/integrations/sync-all-button";
@@ -22,26 +21,30 @@ export default async function CalendarFeedsPage() {
   const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName ?? ""}` }));
   const channelOpts = channels.map((c) => ({ id: c.id, label: c.name }));
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Integrations", href: "/dashboard/integrations" },
-          { label: "Calendar feeds" },
-        ]}
-        title="Calendar feeds"
-        description="iCal/ICS feeds from Airbnb, Booking.com, Vrbo, and any external calendar."
-        actions={
-          <div className="flex items-center gap-2">
-            <SyncAllButton />
-            <CalendarFeedAddButton
-              villas={villaOpts}
-              channels={channelOpts}
-              cancelHref="/dashboard/integrations/calendar-feeds"
-            />
+    <>
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/integrations">Integrations</Link> / <span>Calendar feeds</span>
           </div>
-        }
-      />
-      <DbStatusNotice />
+          <h1>Calendar feeds</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[700px]">
+            iCal/ICS feeds from Airbnb, Booking.com, Vrbo, and any external calendar —
+            each maps a villa to a booking channel.
+          </p>
+        </div>
+        <div className="actions">
+          <SyncAllButton />
+          <CalendarFeedAddButton
+            villas={villaOpts}
+            channels={channelOpts}
+            cancelHref="/dashboard/integrations/calendar-feeds"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-6 mt-[18px]">
+        <DbStatusNotice />
       {feeds.length === 0 ? (
         <NoItemsYet
           entityLabel="calendar feeds"
@@ -94,6 +97,7 @@ export default async function CalendarFeedsPage() {
           </ul>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
