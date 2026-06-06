@@ -21,3 +21,7 @@ export const createChannelSchema = z.object({
 });
 
 export type CreateChannelInput = z.infer<typeof createChannelSchema>;
+
+/** Key is the immutable code identifier — not editable. */
+export const updateChannelSchema = createChannelSchema.omit({ key: true });
+export type UpdateChannelInput = z.infer<typeof updateChannelSchema>;

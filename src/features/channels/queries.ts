@@ -10,7 +10,75 @@
  */
 
 import "server-only";
+import { asc, ne, notInArray } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { bookingChannels } from "@/lib/db/schema/bookings";
+import { villas } from "@/lib/db/schema/projects";
+import { channelCalendarFeeds } from "@/lib/db/schema/integrations";
 import type { ChannelGridVilla, ChannelGridChannel, RateCell, Stay } from "@/components/channels/channel-grid";
+
+export interface ChannelCoverageRow {
+  id: string;
+  name: string;
+  key: string;
+  type: string;
+  connectedCount: number;
+}
+
+export interface ChannelVillaCoverage {
+  villaCount: number;
+  channels: ChannelCoverageRow[];
+}
+
+/**
+ * Per-villa connection coverage: for each non-archived channel, how many of the
+ * active villas have a calendar feed wired (channel_calendar_feeds). Powers the
+ * listing-matcher "connected / partial / not-connected" buckets.
+ */
+export async function getChannelVillaCoverage(): Promise<ChannelVillaCoverage> {
+  const db = getDb();
+  if (!db) return { villaCount: 0, channels: [] };
+
+  const villaRows = await db
+    .select({ id: villas.id })
+    .from(villas)
+    .where(notInArray(villas.status, ["archived", "out_of_service"]));
+  const villaCount = villaRows.length;
+
+  const chans = await db
+    .select({
+      id: bookingChannels.id,
+      name: bookingChannels.name,
+      key: bookingChannels.key,
+      type: bookingChannels.type,
+    })
+    .from(bookingChannels)
+    .where(ne(bookingChannels.status, "archived"))
+    .orderBy(asc(bookingChannels.name));
+
+  const feeds = await db
+    .select({
+      channelId: channelCalendarFeeds.bookingChannelId,
+      villaId: channelCalendarFeeds.villaId,
+    })
+    .from(channelCalendarFeeds);
+
+  const byChannel = new Map<string, Set<string>>();
+  for (const f of feeds) {
+    if (!f.channelId || !f.villaId) continue;
+    const set = byChannel.get(f.channelId) ?? new Set<string>();
+    set.add(f.villaId);
+    byChannel.set(f.channelId, set);
+  }
+
+  return {
+    villaCount,
+    channels: chans.map((c) => ({
+      ...c,
+      connectedCount: byChannel.get(c.id)?.size ?? 0,
+    })),
+  };
+}
 
 export interface ChannelGridData {
   villas: ChannelGridVilla[];
