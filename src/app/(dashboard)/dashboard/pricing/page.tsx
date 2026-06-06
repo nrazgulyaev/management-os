@@ -186,6 +186,10 @@ export default async function PricingProductionView({
   const activePath = cells
     .map((c, i) => `${i === 0 ? "M" : "L"} ${xAt(i).toFixed(1)},${yAt(prices[i] || baseVal).toFixed(1)}`)
     .join(" ");
+  const areaPath =
+    n > 0
+      ? `${activePath} L ${xAt(n - 1).toFixed(1)},${(H - padB).toFixed(1)} L ${xAt(0).toFixed(1)},${(H - padB).toFixed(1)} Z`
+      : "";
   const baseY = yAt(baseVal);
   const yTicks = [0, 1, 2, 3].map((k) => minP + (span * k) / 3);
   const xTickIdx = n > 0 ? [0, Math.floor(n / 4), Math.floor(n / 2), Math.floor((3 * n) / 4), n - 1] : [];
@@ -294,21 +298,23 @@ export default async function PricingProductionView({
                   {dLabel(cells[i].date)}
                 </text>
               ))}
+              {/* area fill under the active curve */}
+              {areaPath && <path d={areaPath} fill="var(--terra)" fillOpacity="0.06" />}
               {/* base flat line */}
               {baseVal > 0 && (
                 <line x1={padL} y1={baseY} x2={W - padR} y2={baseY} stroke="var(--ink-3)" strokeWidth="1.5" strokeDasharray="3 4" />
               )}
               {/* active curve */}
-              <path d={activePath} fill="none" stroke="var(--terra)" strokeWidth="2.5" />
+              <path d={activePath} fill="none" stroke="var(--terra)" strokeWidth="2.5" strokeLinejoin="round" />
               {/* stop-sell markers */}
               {cells.map((c, i) =>
                 !c.available ? (
                   <circle key={i} cx={xAt(i)} cy={padT + 4} r="3" fill="var(--danger)" />
                 ) : null,
               )}
-              {/* today marker */}
+              {/* today marker — label sits at the bottom of the line, clear of the y-axis labels */}
               <line x1={padL} y1={padT} x2={padL} y2={H - padB} stroke="var(--terra)" strokeWidth="1" />
-              <text x={padL + 3} y={padT + 8} fontFamily="var(--mono-font)" fontSize="9" fill="var(--terra)">
+              <text x={padL + 4} y={H - padB - 6} fontFamily="var(--mono-font)" fontSize="9" fill="var(--terra)">
                 today
               </text>
             </svg>
