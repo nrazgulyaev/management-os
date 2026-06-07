@@ -3,17 +3,23 @@ import {
   Kpi,
   SectionHeading,
   Card,
-  HandoffBadge,
 } from "@/components/dashboard/primitives";
 import { safeQuery } from "@/lib/development/safe-query";
-import { getCfoKpis } from "@/lib/development/server/cabinets/cfo-cabinet-queries";
+import {
+  getCfoKpis,
+  getPnlByProject,
+  getCashStrip6Week,
+  getActiveTaxTypes,
+  getSharedCostsBreakdown,
+} from "@/lib/development/server/cabinets/cfo-cabinet-queries";
 import { WaterfallChart } from "@/components/cfo/waterfall-chart";
 
 /**
- * Dev OS CFO summary cabinet. KPI strip is live (cash on hand,
- * receivables, payables-next-30, MTD spend, 30-day forecast burn) via
- * getCfoKpis(). P&L table + cash-strip + tax + shared-costs tables
- * remain mock — full wiring lands in CFO-DATA-WIRING-2.
+ * Dev OS CFO summary cabinet. KPI strip + P&L-by-project + 6-week cash
+ * strip + active tax types + shared-cost allocation are all live
+ * (getCfoKpis / getPnlByProject / getCashStrip6Week / getActiveTaxTypes /
+ * getSharedCostsBreakdown). The capital-waterfall viz is illustrative
+ * (no single aggregate query backs it yet).
  */
 
 export const metadata = { title: "Development OS · CFO" };
@@ -21,36 +27,33 @@ export const dynamic = "force-dynamic";
 
 function fmtUsd(minor: number): string {
   const usd = minor / 100;
-  if (Math.abs(usd) >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
-  if (Math.abs(usd) >= 1_000) return `$${(usd / 1_000).toFixed(0)}K`;
-  return `$${Math.round(usd)}`;
+  const sign = usd < 0 ? "-" : "";
+  const abs = Math.abs(usd);
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`;
+  return `${sign}$${Math.round(abs)}`;
 }
 
-const PL_ROWS = [
-  { code: "EP02", hardCost: "$1,840K", softCost: "$420K", financing: "$84K", total: "$2,344K" },
-  { code: "ES10", hardCost: "$680K", softCost: "$220K", financing: "$42K", total: "$942K" },
-  { code: "AHP3", hardCost: "$0", softCost: "$180K", financing: "$24K", total: "$204K" },
-];
-
-const CASH_BARS = [760, 720, 684, 624, 580, 540, 510, 480];
-const CASH_LABELS = ["W34", "W35", "W36", "W37", "W38", "W39", "W40", "W41"];
-const CASH_MAX = Math.max(...CASH_BARS);
-
-const TAX_ROWS = [
-  { type: "PPN (Indonesia VAT)", rate: "11%", mtd: "$18,420", ytd: "$84,210", status: "filed", label: "Filed Q1" },
-  { type: "PPh 21 (Income tax · staff)", rate: "5–30%", mtd: "$4,840", ytd: "$24,180", status: "ok", label: "On schedule" },
-  { type: "PPh 23 (Withholding · vendors)", rate: "2%", mtd: "$1,820", ytd: "$8,420", status: "warn", label: "Awaiting filing · 4d" },
-  { type: "PBB (Property tax)", rate: "0.5%", mtd: "—", ytd: "$12,400", status: "ok", label: "Paid annually" },
-];
-
-const SHARED_COSTS = [
-  { category: "Director salary", total: "$8,400", rule: "By revenue weight", ep02: "$3,920", es10: "$2,940", ahp3: "$1,540" },
-  { category: "Office rent", total: "$2,800", rule: "Equal split", ep02: "$933", es10: "$933", ahp3: "$933" },
-  { category: "Software licenses", total: "$1,400", rule: "Per-user weight", ep02: "$580", es10: "$520", ahp3: "$300" },
-];
-
 export default async function DevCfoPage() {
-  const kpis = await safeQuery("devCfoKpis", getCfoKpis(), null);
+  const [kpis, pnl, cash, taxTypes, sharedCosts] = await Promise.all([
+    safeQuery("devCfoKpis", getCfoKpis(), null),
+    safeQuery("devCfoPnl", getPnlByProject(), []),
+    safeQuery("devCfoCash", getCashStrip6Week(), []),
+    safeQuery("devCfoTax", getActiveTaxTypes(), []),
+    safeQuery("devCfoShared", getSharedCostsBreakdown(), []),
+  ]);
+
+  const pnlTotal = pnl.reduce(
+    (a, r) => ({
+      hard: a.hard + r.hardCostMinor,
+      soft: a.soft + r.softCostMinor,
+      fin: a.fin + r.financingMinor,
+      total: a.total + r.totalMinor,
+    }),
+    { hard: 0, soft: 0, fin: 0, total: 0 },
+  );
+  const cashMaxAbs = Math.max(1, ...cash.map((c) => Math.abs(c.netMinor)));
+
   return (
     <>
       <SectionHeading
@@ -112,7 +115,7 @@ export default async function DevCfoPage() {
           <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
             Capital waterfall · YTD
           </h3>
-          <span className="label">USD · cost basis</span>
+          <span className="label">USD · illustrative</span>
           <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
             <Link href="/development-os/cfo/cashflow" className="btn btn-secondary btn-sm">
               Cashflow forecast →
@@ -157,75 +160,73 @@ export default async function DevCfoPage() {
               </tr>
             </thead>
             <tbody>
-              {PL_ROWS.map((r) => (
-                <tr key={r.code}>
-                  <td className="mono">{r.code}</td>
-                  <td className="num">{r.hardCost}</td>
-                  <td className="num">{r.softCost}</td>
-                  <td className="num">{r.financing}</td>
-                  <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>
-                    {r.total}
+              {pnl.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center", color: "var(--ink-3)", padding: "28px 0", fontStyle: "italic" }}>
+                    No project transactions yet.
                   </td>
                 </tr>
-              ))}
-              <tr style={{ background: "var(--bg-2)", fontWeight: 500 }}>
-                <td>Portfolio</td>
-                <td className="num">$2,520K</td>
-                <td className="num">$820K</td>
-                <td className="num">$150K</td>
-                <td className="num" style={{ color: "var(--amber)" }}>$3,490K</td>
-              </tr>
+              ) : (
+                <>
+                  {pnl.map((r) => (
+                    <tr key={r.projectId}>
+                      <td className="mono">{r.projectCode}</td>
+                      <td className="num">{fmtUsd(r.hardCostMinor)}</td>
+                      <td className="num">{fmtUsd(r.softCostMinor)}</td>
+                      <td className="num">{fmtUsd(r.financingMinor)}</td>
+                      <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>
+                        {fmtUsd(r.totalMinor)}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: "var(--bg-2)", fontWeight: 500 }}>
+                    <td>Portfolio</td>
+                    <td className="num">{fmtUsd(pnlTotal.hard)}</td>
+                    <td className="num">{fmtUsd(pnlTotal.soft)}</td>
+                    <td className="num">{fmtUsd(pnlTotal.fin)}</td>
+                    <td className="num" style={{ color: "var(--amber)" }}>{fmtUsd(pnlTotal.total)}</td>
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
         </Card>
 
         <Card style={{ padding: 20 }}>
           <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
-            Cash position · 6 weeks
+            Net cash flow · 6 weeks
           </h3>
-          <div style={{ marginTop: 14, display: "flex", alignItems: "flex-end", gap: 6, height: 140 }}>
-            {CASH_BARS.map((v, i) => (
-              <div
-                key={i}
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 5,
-                }}
-              >
-                <span className="num" style={{ fontSize: 9, color: "var(--ink-3)" }}>
-                  {v}
-                </span>
+          <div className="label" style={{ marginTop: 4 }}>USD · weekly inflow − outflow</div>
+          {cash.length === 0 ? (
+            <p style={{ marginTop: 14, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+              No transactions in the window yet.
+            </p>
+          ) : (
+            <div style={{ marginTop: 14, display: "flex", alignItems: "flex-end", gap: 6, height: 140 }}>
+              {cash.map((c) => (
                 <div
-                  style={{
-                    width: "100%",
-                    height: `${(v / CASH_MAX) * 110}px`,
-                    background: i < 3 ? "var(--steel)" : "var(--amber)",
-                    borderRadius: "3px 3px 0 0",
-                    opacity: i < 3 ? 1 : 0.7,
-                  }}
-                />
-                <span className="mono" style={{ fontSize: 8, color: "var(--ink-4)" }}>
-                  {CASH_LABELS[i]}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div
-            style={{
-              marginTop: 12,
-              padding: 12,
-              background: "var(--bg-3)",
-              border: "1px solid var(--line)",
-              borderRadius: 10,
-              fontSize: 12,
-              color: "var(--ink-2)",
-            }}
-          >
-            Forecast crosses <strong style={{ color: "var(--amber)" }}>$500K minimum reserve</strong> in week 41. Capital call 05 likely needed by 15 May.
-          </div>
+                  key={c.weekIso}
+                  style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}
+                >
+                  <span className="num" style={{ fontSize: 9, color: "var(--ink-3)" }}>
+                    {fmtUsd(c.netMinor)}
+                  </span>
+                  <div
+                    style={{
+                      width: "100%",
+                      height: `${(Math.abs(c.netMinor) / cashMaxAbs) * 110}px`,
+                      background: c.isFuture ? "var(--amber)" : c.netMinor < 0 ? "var(--steel)" : "var(--ok)",
+                      borderRadius: "3px 3px 0 0",
+                      opacity: c.isFuture ? 0.7 : 1,
+                    }}
+                  />
+                  <span className="mono" style={{ fontSize: 8, color: "var(--ink-4)" }}>
+                    {c.weekLabel}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -238,23 +239,27 @@ export default async function DevCfoPage() {
             <tr>
               <th>Type</th>
               <th>Rate</th>
-              <th className="num">MTD</th>
-              <th className="num">YTD</th>
-              <th>Status</th>
+              <th>Reporting period</th>
+              <th>Country</th>
             </tr>
           </thead>
           <tbody>
-            {TAX_ROWS.map((t) => (
-              <tr key={t.type}>
-                <td>{t.type}</td>
-                <td className="mono">{t.rate}</td>
-                <td className="num">{t.mtd}</td>
-                <td className="num">{t.ytd}</td>
-                <td>
-                  <HandoffBadge tone={t.status === "warn" ? "warn" : "ok"}>{t.label}</HandoffBadge>
+            {taxTypes.length === 0 ? (
+              <tr>
+                <td colSpan={4} style={{ textAlign: "center", color: "var(--ink-3)", padding: "28px 0", fontStyle: "italic" }}>
+                  No tax types configured.
                 </td>
               </tr>
-            ))}
+            ) : (
+              taxTypes.map((t) => (
+                <tr key={t.typeKey}>
+                  <td>{t.displayName}</td>
+                  <td className="mono">{t.ratePercentage}%</td>
+                  <td style={{ color: "var(--ink-3)" }}>{t.reportingPeriod}</td>
+                  <td className="mono">{t.countryCode ?? "—"}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </Card>
@@ -264,31 +269,33 @@ export default async function DevCfoPage() {
         className="display"
         style={{ fontSize: 24, marginBottom: 14, fontWeight: 500, marginTop: 24 }}
       >
-        Shared costs · allocation
+        Shared costs · MTD by category
       </h2>
-      <Card style={{ padding: 20 }}>
+      <Card style={{ padding: 0, overflow: "hidden" }}>
         <table className="data">
           <thead>
             <tr>
               <th>Cost category</th>
-              <th className="num">Total · MTD</th>
-              <th>Allocation rule</th>
-              <th className="num">EP02</th>
-              <th className="num">ES10</th>
-              <th className="num">AHP3</th>
+              <th>Code</th>
+              <th className="num">MTD</th>
             </tr>
           </thead>
           <tbody>
-            {SHARED_COSTS.map((s) => (
-              <tr key={s.category}>
-                <td>{s.category}</td>
-                <td className="num">{s.total}</td>
-                <td style={{ color: "var(--ink-3)" }}>{s.rule}</td>
-                <td className="num">{s.ep02}</td>
-                <td className="num">{s.es10}</td>
-                <td className="num">{s.ahp3}</td>
+            {sharedCosts.length === 0 ? (
+              <tr>
+                <td colSpan={3} style={{ textAlign: "center", color: "var(--ink-3)", padding: "28px 0", fontStyle: "italic" }}>
+                  No shared-cost categories yet.
+                </td>
               </tr>
-            ))}
+            ) : (
+              sharedCosts.map((s) => (
+                <tr key={s.categoryId}>
+                  <td>{s.displayName}</td>
+                  <td className="mono" style={{ color: "var(--ink-3)" }}>{s.categoryCode}</td>
+                  <td className="num">{fmtUsd(s.mtdMinor)}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </Card>
