@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { getLeadSourceByKey } from "@/lib/development/server/lead-sources/lead-source-queries";
 
 export const metadata: Metadata = { title: "Lead source · Marketing" };
@@ -25,9 +25,7 @@ export default async function LeadSourceDetailPage({
     const r = await db.execute<{ n: string }>(sql`
       SELECT COUNT(*)::text AS n FROM leads WHERE lead_source_key = ${key}
     `);
-    leadCount = Number(
-      (r as unknown as { rows: Array<{ n: string }> }).rows?.[0]?.n ?? "0",
-    );
+    leadCount = Number(rowsOf<{ n: string }>(r)[0]?.n ?? "0");
   }
   return (
     <DevelopmentShell>

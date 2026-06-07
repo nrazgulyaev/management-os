@@ -7,6 +7,9 @@ viewports (desktop 1280 / tablet 768 / mobile 390), per the redesign plan
 - Spec: `public-landings.spec.ts`
 - Config: `../../playwright.visual.config.ts`
 - Baselines: `public-landings.spec.ts-snapshots/<name>-<project>.png` (committed)
+- CI: `.github/workflows/visual-regression.yml` — diffs on every PR that
+  touches public pages / styles / components; generate baselines by running
+  that workflow with `update = true` and committing the uploaded artifact.
 
 ## Why baselines aren't committed yet
 

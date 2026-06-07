@@ -7,7 +7,7 @@ import {
   Card,
   HandoffBadge,
 } from "@/components/dashboard/primitives";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import {
   updatePlatformAgentFromForm,
   rotateAgentApiKeyFromForm,
@@ -102,14 +102,6 @@ interface RecentRunRow {
   user_email: string | null;
 }
 
-function asRows<T>(result: unknown): T[] {
-  if (Array.isArray(result)) return result as T[];
-  if (result && typeof result === "object" && "rows" in result) {
-    return ((result as { rows: T[] }).rows) ?? [];
-  }
-  return [];
-}
-
 const VALID_TABS = ["config", "subs", "knowledge", "runs", "test"] as const;
 type Tab = (typeof VALID_TABS)[number];
 
@@ -146,7 +138,7 @@ export default async function PlatformAgentDetailPage({
     );
   }
 
-  const agentRows = asRows<AgentRow>(
+  const agentRows = rowsOf<AgentRow>(
     await db.execute(sql`
       SELECT id::text                          AS id,
              agent_code                         AS agent_code,
@@ -173,7 +165,7 @@ export default async function PlatformAgentDetailPage({
   // Knowledge base — doc rows for the Knowledge tab.
   const docRows =
     tab === "knowledge"
-      ? asRows<DocRow>(
+      ? rowsOf<DocRow>(
           await db.execute(sql`
             SELECT d.id::text                  AS id,
                    d.filename                   AS filename,
@@ -197,7 +189,7 @@ export default async function PlatformAgentDetailPage({
   // Org list for the scope dropdown (knowledge tab only).
   const orgPickRows =
     tab === "knowledge"
-      ? asRows<OrgPickRow>(
+      ? rowsOf<OrgPickRow>(
           await db.execute(sql`
             SELECT id::text                  AS id,
                    organization_code          AS code,
@@ -213,7 +205,7 @@ export default async function PlatformAgentDetailPage({
   // even on agents with weeks of history.
   const runsKpiRows =
     tab === "runs"
-      ? asRows<RunsKpiRow>(
+      ? rowsOf<RunsKpiRow>(
           await db.execute(sql`
             SELECT
               COUNT(*)::int                                                   AS total_runs,
@@ -234,7 +226,7 @@ export default async function PlatformAgentDetailPage({
 
   const runsStatusBuckets =
     tab === "runs"
-      ? asRows<RunsStatusBucketRow>(
+      ? rowsOf<RunsStatusBucketRow>(
           await db.execute(sql`
             SELECT status, COUNT(*)::int AS count
               FROM agent_runs
@@ -248,7 +240,7 @@ export default async function PlatformAgentDetailPage({
 
   const runsDaily =
     tab === "runs"
-      ? asRows<RunsDailyRow>(
+      ? rowsOf<RunsDailyRow>(
           await db.execute(sql`
             SELECT to_char(date_trunc('day', started_at), 'YYYY-MM-DD') AS day,
                    COUNT(*)::int                                          AS runs,
@@ -264,7 +256,7 @@ export default async function PlatformAgentDetailPage({
 
   const recentRuns =
     tab === "runs"
-      ? asRows<RecentRunRow>(
+      ? rowsOf<RecentRunRow>(
           await db.execute(sql`
             SELECT r.id::text             AS id,
                    r.started_at::text     AS started_at,
@@ -287,7 +279,7 @@ export default async function PlatformAgentDetailPage({
   // Org list + subscription state for the Subscriptions tab.
   const orgRows =
     tab === "subs"
-      ? asRows<OrgSubRow>(
+      ? rowsOf<OrgSubRow>(
           await db.execute(sql`
             SELECT o.id::text                            AS organization_id,
                    o.organization_code                    AS organization_code,

@@ -1,0 +1,94 @@
+name: Visual regression
+
+# Screenshots the public landing pages (3 viewports) and diffs them against
+# committed baselines, so the redesign can't silently drift.
+#
+# First-time setup (no baselines committed yet):
+#   1. Actions → "Visual regression" → Run workflow → update = true
+#   2. Download the "visual-baselines" artifact, unzip into the repo root
+#      (it contains tests/visual/**/*-snapshots/), and commit it.
+#   3. From then on every PR runs the diff automatically.
+
+on:
+  workflow_dispatch:
+    inputs:
+      update:
+        description: "Regenerate baselines (then commit the uploaded artifact)"
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - "src/app/(public)/**"
+      - "src/app/(product-landings)/**"
+      - "src/styles/**"
+      - "src/components/**"
+      - "tests/visual/**"
+      - "playwright.visual.config.ts"
+
+concurrency:
+  group: visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_ENABLE_DEMO_MODE: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      PLAYWRIGHT_BASE_URL: "http://localhost:3101"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Start prod server
+        run: |
+          PORT=3101 npm run start &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3101 >/dev/null; then echo "up"; break; fi
+            sleep 2
+          done
+          curl -sf http://localhost:3101 >/dev/null || { echo "server did not start"; exit 1; }
+
+      - name: Regenerate baselines
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.update == 'true' }}
+        run: npm run test:visual:update
+
+      - name: Upload regenerated baselines
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.update == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: tests/visual/**/*-snapshots/**
+          if-no-files-found: error
+
+      - name: Compare against baselines
+        if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.update == 'true') }}
+        run: |
+          if ! find tests/visual -path '*-snapshots*' -name '*.png' | grep -q .; then
+            echo "::notice::No committed baselines yet. Run this workflow with update=true, commit the visual-baselines artifact, then re-run."
+            exit 0
+          fi
+          npm run test:visual
+
+      - name: Upload diff report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-visual-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
