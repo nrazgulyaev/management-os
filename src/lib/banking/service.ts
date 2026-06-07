@@ -26,6 +26,7 @@ import {
 } from "@/lib/db/schema/banking";
 import { invoices } from "@/lib/db/schema/sales";
 import { selectBankProvider } from "./select-provider";
+import { openCredentials } from "@/lib/secure-connection-credentials";
 import {
   decideMatchStatus,
   findMatches,
@@ -88,7 +89,7 @@ export async function syncTransactionsForConnection(
       apiCallsCount: 0,
     };
   }
-  const credentials = (conn.credentials as BankCredentials | null) ?? null;
+  const credentials = openCredentials<BankCredentials>(conn.credentials);
   const provider = selectBankProvider(
     conn.provider as Parameters<typeof selectBankProvider>[0],
     credentials,

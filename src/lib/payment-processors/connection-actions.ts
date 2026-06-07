@@ -20,6 +20,10 @@ import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
 import { selectPaymentProvider } from "./select-provider";
+import {
+  sealCredentials,
+  openCredentials,
+} from "@/lib/secure-connection-credentials";
 import type { PaymentCredentials } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -177,9 +181,9 @@ export async function createPaymentConnectionAction(input: {
       externalAccountId,
       accountName: parsed.data.accountName,
       mode: parsed.data.mode,
-      // Plaintext to match service.ts read path. Encryption-at-rest is
-      // a coordinated cross-cutting follow-up.
-      credentials: credentials as never,
+      // Encrypted at rest (AES-256-GCM via STAY_LINK_KMS_SECRET). Read
+      // back through openCredentials() which also handles legacy rows.
+      credentials: sealCredentials(credentials) as never,
       status: "pending",
       connectedBy: me?.id ?? null,
       connectedAt: new Date(),
@@ -224,7 +228,7 @@ export async function testPaymentConnectionAction(args: {
     .limit(1);
   if (!row) return { ok: false, error: "Connection not found." };
 
-  const credentials = (row.credentials as PaymentCredentials | null) ?? null;
+  const credentials = openCredentials<PaymentCredentials>(row.credentials);
   const provider = selectPaymentProvider(
     row.provider as PaymentProviderName,
     credentials,
