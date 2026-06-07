@@ -4,6 +4,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listInventoryCategories } from "@/features/inventory/services";
 import { InventoryRowActions } from "@/components/dashboard/inventory/inventory-row-actions";
+import { AddInventoryCategoryButton } from "@/components/dashboard/inventory/inventory-add-buttons";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Inventory · Categories" };
@@ -20,6 +21,7 @@ export default async function CategoriesPage() {
         ]}
         title="Inventory categories"
         description="Tree of item categories — linens, towels, chemicals, spare parts, FF&E."
+        actions={<AddInventoryCategoryButton />}
       />
       <DbStatusNotice />
       {rows.length === 0 ? (
