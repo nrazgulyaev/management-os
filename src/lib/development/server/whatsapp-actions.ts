@@ -10,11 +10,12 @@ import {
   whatsappPhoneNumbers,
 } from "@/lib/db/schema/whatsapp";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
-  getWhatsAppProvider,
   normalisePhone,
   type SendMessageResult,
 } from "@/lib/whatsapp/providers";
+import { getWhatsAppProviderForOrg } from "@/lib/whatsapp/org-credentials";
 
 /**
  * Outbound WhatsApp dispatch — internal-only server actions.
@@ -62,8 +63,11 @@ export async function sendWhatsAppMessage(
 ): Promise<SendWhatsAppOutcome> {
   const parsed = textSendSchema.parse(input);
   await requireInternalUser();
+  const orgId = await requireOrgId();
   const db = requireDb();
 
+  // Per-org provider: saved Twilio creds drive the runtime, else env.
+  const provider = await getWhatsAppProviderForOrg(orgId);
   const fromPhone = await resolveOutboundFromPhone(parsed.fromProjectId);
   const toPhone = normalisePhone(parsed.toPhone);
 
@@ -71,7 +75,7 @@ export async function sendWhatsAppMessage(
   const [queued] = await db
     .insert(whatsappMessages)
     .values({
-      provider: getWhatsAppProvider().name,
+      provider: provider.name,
       direction: "outbound",
       fromPhone,
       toPhone,
@@ -85,7 +89,7 @@ export async function sendWhatsAppMessage(
   // 2) Send.
   let result: SendMessageResult;
   try {
-    result = await getWhatsAppProvider().sendMessage({
+    result = await provider.sendMessage({
       fromPhone,
       toPhone,
       body: parsed.body,
@@ -132,7 +136,11 @@ export async function sendWhatsAppTemplateMessage(
 ): Promise<SendWhatsAppOutcome> {
   const parsed = templateSendSchema.parse(input);
   await requireInternalUser();
+  const orgId = await requireOrgId();
   const db = requireDb();
+
+  // Per-org provider: saved Twilio creds drive the runtime, else env.
+  const provider = await getWhatsAppProviderForOrg(orgId);
 
   // 1) Resolve template + verify approval.
   const [template] = await db
@@ -172,7 +180,7 @@ export async function sendWhatsAppTemplateMessage(
   const [queued] = await db
     .insert(whatsappMessages)
     .values({
-      provider: getWhatsAppProvider().name,
+      provider: provider.name,
       direction: "outbound",
       fromPhone,
       toPhone,
@@ -191,7 +199,7 @@ export async function sendWhatsAppTemplateMessage(
   // passed as-is and the provider returns 'failed' for unapproved).
   let result: SendMessageResult;
   try {
-    result = await getWhatsAppProvider().sendTemplateMessage({
+    result = await provider.sendTemplateMessage({
       fromPhone,
       toPhone,
       templateKey: template.twilioTemplateSid ?? template.templateKey,

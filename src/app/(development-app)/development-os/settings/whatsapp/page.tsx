@@ -172,14 +172,14 @@ export default async function WhatsappSetupPage() {
         <Section
           eyebrow="Per-org credentials"
           title="Per-org credentials (in-app form)"
-          description="Saves Twilio credentials encrypted to oauth_connections. The runtime today still reads env vars; per-org routing is the future swap. The test-message button uses the env-based runtime for verification."
+          description="Saves Twilio credentials encrypted to oauth_connections and drives the runtime: outbound sends + the test message use these per-org credentials, falling back to env only when none are saved."
         >
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 mb-4">
-            <strong>Heads-up:</strong> credentials saved here are encrypted
-            but not yet picked up by the runtime — env vars take precedence
-            until the per-org runtime swap lands. Save them to keep your
-            secrets out of git + audit trail; verify operations via env
-            for now.
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 mb-4">
+            <strong>Live:</strong> credentials saved here are encrypted at
+            rest and now drive outbound WhatsApp for this organization. The
+            test message below uses them; if you haven't saved any, the
+            runtime falls back to the platform env credentials. Use
+            <em> Disconnect</em> to revert this org to env.
           </div>
           <WhatsappCredentialForm
             organizationId={orgId}
