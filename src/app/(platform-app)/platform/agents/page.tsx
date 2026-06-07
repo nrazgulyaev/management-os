@@ -2,7 +2,7 @@ import Link from "next/link";
 import { sql } from "drizzle-orm";
 import { ArrowLeft, Bot, Plus } from "lucide-react";
 import { SectionHeading, Card, HandoffBadge } from "@/components/dashboard/primitives";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 
 /**
  * P5.3.1 AGENT-ADMIN-ROUTES — super_admin agent list.
@@ -35,14 +35,6 @@ interface AgentRow {
   created_at: string;
 }
 
-function asRows<T>(result: unknown): T[] {
-  if (Array.isArray(result)) return result as T[];
-  if (result && typeof result === "object" && "rows" in result) {
-    return ((result as { rows: T[] }).rows) ?? [];
-  }
-  return [];
-}
-
 function fmtUsd(minor: number): string {
   const usd = minor / 100;
   if (usd >= 1000) return `$${(usd / 1000).toFixed(1)}K`;
@@ -63,7 +55,7 @@ export default async function PlatformAgentsListPage() {
     );
   }
 
-  const rows = asRows<AgentRow>(
+  const rows = rowsOf<AgentRow>(
     await db.execute(sql`
       SELECT
         c.id::text                      AS id,

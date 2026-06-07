@@ -1,7 +1,7 @@
 import "server-only";
 
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import {
   notificationDeliveries,
   notificationPreferences,
@@ -663,11 +663,7 @@ export async function deliverPendingNotifications(
            LIMIT ${limit}
            FOR UPDATE SKIP LOCKED`,
     );
-    const claimedRows = (
-      Array.isArray(claimed)
-        ? (claimed as Array<{ id: string }>)
-        : ((claimed as { rows?: Array<{ id: string }> }).rows ?? [])
-    );
+    const claimedRows = rowsOf<{ id: string }>(claimed);
     if (claimedRows.length > 0) {
       await tx.execute(
         sql`UPDATE "notification_queue"

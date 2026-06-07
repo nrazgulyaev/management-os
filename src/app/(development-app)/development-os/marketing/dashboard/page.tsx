@@ -6,7 +6,7 @@ import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard } from "@/components/ui/metric-card";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = {
@@ -44,15 +44,13 @@ export default async function MarketingDashboardPage() {
     null as unknown as Awaited<ReturnType<typeof db.execute>>,
   );
   const row =
-    (summaryResult as unknown as {
-      rows?: Array<{
-        active_campaigns: string;
-        total_leads: string;
-        content_published: string;
-        content_scheduled: string;
-        open_followup_alerts: string;
-      }>;
-    })?.rows?.[0] ?? null;
+    rowsOf<{
+      active_campaigns: string;
+      total_leads: string;
+      content_published: string;
+      content_scheduled: string;
+      open_followup_alerts: string;
+    }>(summaryResult)[0] ?? null;
 
   const sourceMixResult = await safeQuery(
     "leadSourceMix",
@@ -66,9 +64,7 @@ export default async function MarketingDashboardPage() {
     `),
     null as unknown as Awaited<ReturnType<typeof db.execute>>,
   );
-  const sourceRows =
-    (sourceMixResult as unknown as { rows?: Array<{ source: string; n: string }> })
-      ?.rows ?? [];
+  const sourceRows = rowsOf<{ source: string; n: string }>(sourceMixResult);
 
   return (
     <DevelopmentShell>

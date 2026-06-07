@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { MetricCard } from "@/components/ui/metric-card";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import {
   getApproximateRowCounts,
   type SafeReadResult,
@@ -103,9 +103,7 @@ export default async function SystemHealthPage() {
   const exec = db
     ? async (s: string): Promise<unknown[]> => {
         const rows = await db.execute(sql.raw(s));
-        return Array.isArray(rows)
-          ? (rows as unknown[])
-          : ((rows as { rows?: unknown[] }).rows ?? []);
+        return rowsOf<unknown>(rows);
       }
     : null;
   const countMap = await getApproximateRowCounts(exec, TRACKED_TABLES);
