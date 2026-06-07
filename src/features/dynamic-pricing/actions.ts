@@ -11,6 +11,7 @@ import {
   pricingOccupancyRules,
   pricingRuleSets,
   pricingStopSellRules,
+  villaRateOverrides,
 } from "@/lib/db/schema/dynamic-pricing";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -534,6 +535,85 @@ export async function simulateChannelPushAction(
   });
   revalidatePath("/dashboard/pricing/channel-push");
   return { ok: true, eventCode: out.eventCode };
+}
+
+// =============================================================================
+// MANUAL RATE OVERRIDES (per villa + night) — drag pins / override form
+// =============================================================================
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function upsertVillaRateOverrideAction(
+  villaId: string,
+  stayDate: string,
+  nightlyRateMinor: number,
+  note?: string | null,
+): Promise<ActionResult> {
+  await requirePermission("dynamic_pricing.write");
+  if (!villaId || !ISO_DATE_RE.test(stayDate)) {
+    return { ok: false, error: "Invalid villa or date." };
+  }
+  if (!Number.isFinite(nightlyRateMinor) || nightlyRateMinor <= 0) {
+    return { ok: false, error: "Rate must be greater than zero." };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const rateMinor = BigInt(Math.round(nightlyRateMinor));
+  await db
+    .insert(villaRateOverrides)
+    .values({
+      villaId,
+      stayDate,
+      nightlyRateMinor: rateMinor,
+      note: note ?? null,
+      createdBy: me?.id ?? null,
+    })
+    .onConflictDoUpdate({
+      target: [villaRateOverrides.villaId, villaRateOverrides.stayDate],
+      set: { nightlyRateMinor: rateMinor, note: note ?? null, updatedAt: new Date() },
+    });
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "dynamic_pricing.override.upsert",
+    entityType: "villa_rate_override",
+    entityId: null,
+    after: { villaId, stayDate, nightlyRateMinor },
+  });
+  revalidatePath("/dashboard/pricing");
+  revalidatePath("/dashboard/pricing/calendar");
+  return { ok: true };
+}
+
+export async function deleteVillaRateOverrideAction(
+  villaId: string,
+  stayDate: string,
+): Promise<ActionResult> {
+  await requirePermission("dynamic_pricing.write");
+  if (!villaId || !ISO_DATE_RE.test(stayDate)) {
+    return { ok: false, error: "Invalid villa or date." };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  await db
+    .delete(villaRateOverrides)
+    .where(
+      and(
+        eq(villaRateOverrides.villaId, villaId),
+        eq(villaRateOverrides.stayDate, stayDate),
+      ),
+    );
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "dynamic_pricing.override.delete",
+    entityType: "villa_rate_override",
+    entityId: null,
+    after: { villaId, stayDate },
+  });
+  revalidatePath("/dashboard/pricing");
+  revalidatePath("/dashboard/pricing/calendar");
+  return { ok: true };
 }
 
 // -----------------------------------------------------------------------------
