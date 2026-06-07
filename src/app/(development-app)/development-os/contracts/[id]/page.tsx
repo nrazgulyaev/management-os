@@ -10,6 +10,11 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getContractGroupById } from "@/lib/development/server/contracts";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { DiscountProposalModalForm } from "@/components/development/sales/discount-proposal-modal-form";
+import {
+  SignContractButton,
+  IssueInvoiceButton,
+  CancelGroupButton,
+} from "./_actions";
 import { formatDate, formatUSD } from "@/lib/utils";
 import {
   CONTRACT_GROUP_STATUS_LABEL,
@@ -101,6 +106,11 @@ export default async function ContractDetailPage({
                 originalPriceUsdMinor={detail.totalContractValueUsdMinor}
               />
             )}
+            {ctx.appUser &&
+              detail.status !== "cancelled" &&
+              detail.status !== "completed" && (
+                <CancelGroupButton contractGroupId={id} />
+              )}
             <Button asChild variant="secondary">
               <Link href="/development-os/contracts">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
@@ -174,6 +184,11 @@ export default async function ContractDetailPage({
                         {formatDate(c.signedAt, "short")}
                       </div>
                     )}
+                    {ctx.appUser &&
+                      (c.status === "draft" ||
+                        c.status === "pending_signature") && (
+                        <SignContractButton contractId={c.id} />
+                      )}
                   </td>
                 </tr>
               ))}
@@ -234,6 +249,9 @@ export default async function ContractDetailPage({
                   <Badge tone={milestoneTone[m.status] ?? "neutral"}>
                     {MILESTONE_STATUS_LABEL[m.status] ?? m.status}
                   </Badge>
+                  {ctx.appUser && m.status === "pending" && (
+                    <IssueInvoiceButton milestoneId={m.id} />
+                  )}
                 </div>
               </li>
             ))}
