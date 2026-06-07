@@ -31,7 +31,10 @@ import {
   type EncryptedCredentialsBlob,
 } from "@/lib/channel-manager/credentials-crypto";
 import { stayLinkKmsSecret } from "@/lib/env";
-import { getWhatsAppProvider } from "@/lib/whatsapp/providers";
+import {
+  getWhatsAppProviderForOrg,
+  loadOrgWhatsAppCredentials,
+} from "@/lib/whatsapp/org-credentials";
 
 const credentialsSchema = z.object({
   organizationId: z.string().uuid(),
@@ -143,6 +146,7 @@ export async function saveWhatsappCredentialsAction(
 }
 
 const testMessageSchema = z.object({
+  organizationId: z.string().uuid(),
   toPhoneNumber: z
     .string()
     .regex(/^whatsapp:\+\d{8,16}$/, "Format: whatsapp:+<digits>"),
@@ -152,7 +156,7 @@ const testMessageSchema = z.object({
 export async function sendWhatsappTestMessageAction(
   input: z.input<typeof testMessageSchema>,
 ): Promise<
-  | { ok: true; messageSid: string | null; provider: string }
+  | { ok: true; messageSid: string | null; provider: string; usedSavedCredentials: boolean }
   | { ok: false; error: string }
 > {
   await requirePermission("whatsapp.admin");
@@ -163,14 +167,18 @@ export async function sendWhatsappTestMessageAction(
       error: parsed.error.issues[0]?.message ?? "Invalid input",
     };
   }
-  const provider = getWhatsAppProvider();
-  // Read fromPhone from env (the runtime is still env-based; per-org
-  // routing is the future swap).
-  const fromPhone = process.env.TWILIO_WHATSAPP_FROM_NUMBER ?? "";
+  // Use the SAVED per-org credentials (the whole point of the form). The
+  // factory falls back to the env provider when nothing is saved; the
+  // from-number comes from the saved creds, else env.
+  const saved = await loadOrgWhatsAppCredentials(parsed.data.organizationId);
+  const provider = await getWhatsAppProviderForOrg(parsed.data.organizationId);
+  const fromPhone =
+    saved?.fromNumber ?? process.env.TWILIO_WHATSAPP_FROM_NUMBER ?? "";
   if (!fromPhone) {
     return {
       ok: false,
-      error: "TWILIO_WHATSAPP_FROM_NUMBER not configured.",
+      error:
+        "No WhatsApp sender number — save credentials (with a from-number) above, or set TWILIO_WHATSAPP_FROM_NUMBER.",
     };
   }
   try {
@@ -183,6 +191,7 @@ export async function sendWhatsappTestMessageAction(
       ok: true,
       messageSid: result.externalMessageSid ?? null,
       provider: provider.name,
+      usedSavedCredentials: Boolean(saved),
     };
   } catch (err) {
     return {
@@ -190,4 +199,58 @@ export async function sendWhatsappTestMessageAction(
       error: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+/**
+ * Disconnect WhatsApp: deactivate the org's saved Twilio credential
+ * row(s). The runtime then falls back to env (or DryRun) on the next
+ * send, and the operator UI shows "not connected" — a real, honest
+ * disconnect to pair with the connect form.
+ */
+export async function disconnectWhatsappCredentialsAction(input: {
+  organizationId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requirePermission("whatsapp.admin");
+  const orgId = z.string().uuid().safeParse(input.organizationId);
+  if (!orgId.success) return { ok: false, error: "Invalid organization." };
+  const db = requireDb();
+  const me = await getCurrentAppUser();
+  if (!me) return { ok: false, error: "Not signed in." };
+
+  const active = await db
+    .select({ id: oauthConnections.id })
+    .from(oauthConnections)
+    .where(
+      and(
+        eq(oauthConnections.organizationId, orgId.data),
+        eq(oauthConnections.provider, "twilio_whatsapp"),
+        eq(oauthConnections.isActive, true),
+      ),
+    );
+  if (active.length === 0) {
+    return { ok: false, error: "No active WhatsApp connection to disconnect." };
+  }
+
+  await db
+    .update(oauthConnections)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(
+      and(
+        eq(oauthConnections.organizationId, orgId.data),
+        eq(oauthConnections.provider, "twilio_whatsapp"),
+        eq(oauthConnections.isActive, true),
+      ),
+    );
+
+  await recordAuditEvent({
+    actorUserId: me.id,
+    action: "whatsapp.credentials.disconnect",
+    entityType: "oauth_connection",
+    entityId: active[0].id,
+    before: { isActive: true, count: active.length },
+    after: { isActive: false },
+  });
+
+  revalidatePath("/development-os/settings/whatsapp");
+  return { ok: true };
 }

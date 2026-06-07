@@ -38,10 +38,20 @@ export class TwilioWhatsAppProvider implements WhatsAppProvider {
   private readonly authToken: string | undefined;
   private readonly fromNumber: string | undefined;
 
-  constructor() {
-    this.accountSid = process.env.TWILIO_ACCOUNT_SID;
-    this.authToken = process.env.TWILIO_AUTH_TOKEN;
+  /**
+   * Explicit per-org credentials (from the saved oauth_connections row)
+   * take priority; each field falls back to the process env so the
+   * env-based runtime behaviour is unchanged when no creds are passed.
+   */
+  constructor(creds?: {
+    accountSid?: string;
+    authToken?: string;
+    fromNumber?: string;
+  }) {
+    this.accountSid = creds?.accountSid ?? process.env.TWILIO_ACCOUNT_SID;
+    this.authToken = creds?.authToken ?? process.env.TWILIO_AUTH_TOKEN;
     this.fromNumber =
+      creds?.fromNumber ??
       process.env.TWILIO_WHATSAPP_FROM_NUMBER ??
       process.env.TWILIO_FROM_WHATSAPP;
   }

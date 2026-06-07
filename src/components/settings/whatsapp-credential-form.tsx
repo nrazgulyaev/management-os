@@ -1,17 +1,19 @@
 "use client";
 
 /**
- * Stage 7.F.C.2 — WhatsApp credential form (client).
+ * WhatsApp credential form (client).
  *
- * Saves Twilio credentials to oauth_connections (per-org). The runtime
- * still reads env vars; this form is the operator-facing surface +
- * future-proofing storage.
+ * Saves per-org Twilio credentials (encrypted) to oauth_connections. The
+ * runtime now honours these — outbound sends + the test message resolve
+ * the per-org provider first and fall back to env only when none are
+ * saved. Disconnect deactivates the saved row.
  */
 
 import { useState, useTransition } from "react";
 import {
   saveWhatsappCredentialsAction,
   sendWhatsappTestMessageAction,
+  disconnectWhatsappCredentialsAction,
 } from "@/lib/development/server/whatsapp-credential-form-actions";
 
 interface Props {
@@ -57,6 +59,7 @@ export function WhatsappCredentialForm({
     setSuccess(null);
     startTransition(async () => {
       const result = await sendWhatsappTestMessageAction({
+        organizationId,
         toPhoneNumber: (formData.get("toPhoneNumber") ?? "").toString().trim(),
         message: (formData.get("message") ?? "").toString().trim(),
       });
@@ -65,10 +68,26 @@ export function WhatsappCredentialForm({
         return;
       }
       setSuccess(
-        `Test message sent via ${result.provider}${
-          result.messageSid ? ` (sid ${result.messageSid})` : ""
-        }`,
+        `Test message sent via ${result.provider} using ${
+          result.usedSavedCredentials ? "your saved credentials" : "env credentials"
+        }${result.messageSid ? ` (sid ${result.messageSid})` : ""}`,
       );
+    });
+  }
+
+  function handleDisconnect() {
+    setError(null);
+    setSuccess(null);
+    startTransition(async () => {
+      const result = await disconnectWhatsappCredentialsAction({
+        organizationId,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSuccess("WhatsApp disconnected — the runtime falls back to env.");
+      setShowTest(false);
     });
   }
 
@@ -110,21 +129,34 @@ export function WhatsappCredentialForm({
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="px-4 py-2 rounded bg-stone-900 text-white hover:bg-stone-700 disabled:opacity-50"
-        >
-          {pending ? "Saving…" : hasExistingConnection ? "Update credentials" : "Save credentials"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={pending}
+            className="px-4 py-2 rounded bg-stone-900 text-white hover:bg-stone-700 disabled:opacity-50"
+          >
+            {pending ? "Saving…" : hasExistingConnection ? "Update credentials" : "Save credentials"}
+          </button>
+          {hasExistingConnection && (
+            <button
+              type="button"
+              onClick={handleDisconnect}
+              disabled={pending}
+              className="px-4 py-2 rounded border border-red-300 bg-white text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              Disconnect
+            </button>
+          )}
+        </div>
       </form>
 
       {(showTest || hasExistingConnection) && (
         <form action={handleTest} className="space-y-3 pt-6 border-t border-stone-200">
           <h3 className="text-sm font-semibold">Send test message</h3>
           <p className="text-xs text-stone-600">
-            Uses the currently-active env-based provider. Recipient must
-            have opted into the Twilio sandbox if you're in test mode.
+            Uses your saved per-org credentials (falls back to env if none
+            saved). Recipient must have opted into the Twilio sandbox if
+            you're in test mode.
           </p>
           <Field
             name="toPhoneNumber"
