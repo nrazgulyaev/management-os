@@ -26,6 +26,10 @@ import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
 import { selectBankProvider } from "./select-provider";
+import {
+  sealCredentials,
+  openCredentials,
+} from "@/lib/secure-connection-credentials";
 import type { BankCredentials } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -198,9 +202,9 @@ export async function createBankConnectionAction(input: {
       accountName: parsed.data.accountName,
       currency:
         "currency" in parsed.data ? parsed.data.currency : "IDR",
-      // Plaintext to match service.ts read path (see note in marketing
-      // connection-actions). Encryption-at-rest is a follow-up.
-      credentials: credentials as never,
+      // Encrypted at rest (AES-256-GCM via STAY_LINK_KMS_SECRET). Read
+      // back through openCredentials() which also handles legacy rows.
+      credentials: sealCredentials(credentials) as never,
       status: "pending",
       connectedBy: me?.id ?? null,
       connectedAt: new Date(),
@@ -244,7 +248,7 @@ export async function testBankConnectionAction(args: {
     .limit(1);
   if (!row) return { ok: false, error: "Connection not found." };
 
-  const credentials = (row.credentials as BankCredentials | null) ?? null;
+  const credentials = openCredentials<BankCredentials>(row.credentials);
   const provider = selectBankProvider(
     row.provider as BankProviderName,
     credentials,

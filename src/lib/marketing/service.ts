@@ -24,6 +24,7 @@ import {
   type ConversionType,
 } from "@/lib/db/schema/attribution";
 import { selectMarketingProvider } from "./select-provider";
+import { openCredentials } from "@/lib/secure-connection-credentials";
 import {
   serializeTouchpoint,
   type SerializeTouchpointInput,
@@ -75,7 +76,7 @@ export async function syncCampaignsForConnection(
       failed: 0,
     };
   }
-  const credentials = (conn.credentials as MarketingCredentials | null) ?? null;
+  const credentials = openCredentials<MarketingCredentials>(conn.credentials);
   const provider = selectMarketingProvider(
     conn.provider as MarketingProviderName,
     credentials,
@@ -200,7 +201,7 @@ export async function syncMetricsForConnection(
   if (!conn || conn.status !== "active") {
     return { inserted: 0, updated: 0, failed: 0 };
   }
-  const credentials = (conn.credentials as MarketingCredentials | null) ?? null;
+  const credentials = openCredentials<MarketingCredentials>(conn.credentials);
   const provider = selectMarketingProvider(
     conn.provider as MarketingProviderName,
     credentials,

@@ -26,6 +26,10 @@ import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
 import { selectMarketingProvider } from "./select-provider";
+import {
+  sealCredentials,
+  openCredentials,
+} from "@/lib/secure-connection-credentials";
 import type { MarketingCredentials } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -269,9 +273,9 @@ export async function createMarketingConnectionAction(input: {
       provider: parsed.data.provider,
       externalAccountId,
       accountName,
-      // Stored plaintext to match existing service read path. See note
-      // above re: encryption-at-rest follow-up.
-      credentials: credentials as never,
+      // Encrypted at rest (AES-256-GCM via STAY_LINK_KMS_SECRET). Read
+      // back through openCredentials() which also handles legacy rows.
+      credentials: sealCredentials(credentials) as never,
       status: "pending",
       connectedBy: me?.id ?? null,
       connectedAt: new Date(),
@@ -321,7 +325,7 @@ export async function testMarketingConnectionAction(args: {
     .limit(1);
   if (!row) return { ok: false, error: "Connection not found." };
 
-  const credentials = (row.credentials as MarketingCredentials | null) ?? null;
+  const credentials = openCredentials<MarketingCredentials>(row.credentials);
   const provider = selectMarketingProvider(
     row.provider as MarketingProviderName,
     credentials,
