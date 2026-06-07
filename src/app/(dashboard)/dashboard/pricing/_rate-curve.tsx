@@ -50,6 +50,7 @@ export function RateCurve({ villaId, currency, baseRate, cells }: RateCurveProps
   const svgRef = React.useRef<SVGSVGElement>(null);
   const [drag, setDrag] = React.useState<{ i: number; date: string } | null>(null);
   const [dragValue, setDragValue] = React.useState<number | null>(null);
+  const movedRef = React.useRef(false);
   const [pending, start] = React.useTransition();
 
   const n = cells.length;
@@ -88,25 +89,28 @@ export function RateCurve({ villaId, currency, baseRate, cells }: RateCurveProps
     if (pending) return;
     e.preventDefault();
     svgRef.current?.setPointerCapture(e.pointerId);
+    movedRef.current = false;
     setDrag({ i, date });
     setDragValue(prices[i] || baseRate);
   }
   function onPointerMove(e: React.PointerEvent) {
     if (!drag) return;
+    movedRef.current = true;
     setDragValue(Math.round(valueAtClientY(e.clientY)));
   }
   function commit() {
-    if (!drag || dragValue === null) {
-      setDrag(null);
-      setDragValue(null);
-      return;
-    }
-    const { date } = drag;
-    const minor = Math.round(dragValue * 100);
+    const d = drag;
+    const value = dragValue;
     setDrag(null);
     setDragValue(null);
+    // A plain click (no drag) or a drag back to the same rate must NOT write an
+    // override — only a real change persists.
+    if (!d || value === null || !movedRef.current) return;
+    const originalMinor = Math.round((prices[d.i] || baseRate) * 100);
+    const minor = Math.round(value * 100);
+    if (minor <= 0 || minor === originalMinor) return;
     start(async () => {
-      await upsertVillaRateOverrideAction(villaId, date, minor);
+      await upsertVillaRateOverrideAction(villaId, d.date, minor);
       router.refresh();
     });
   }
