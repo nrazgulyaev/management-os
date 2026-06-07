@@ -13,7 +13,7 @@ export interface CompRow {
   id: string;
   isUs: boolean;
   name: string;
-  source: "us" | "airbnb" | "booking-com";
+  source: "us" | "airbnb" | "booking-com" | "peer";
   similarity: number;
   adrUsd: number;
   occupancyPct?: number;
