@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listCampaigns } from "@/lib/development/server/campaigns/campaign-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { CampaignCreateForm } from "./_create-form";
+import { CampaignStatusControl } from "./_status-control";
 
 export const metadata: Metadata = { title: "Campaigns · Marketing" };
 export const dynamic = "force-dynamic";
@@ -33,6 +35,7 @@ export default async function CampaignsPage() {
           { label: "Campaigns" },
         ]}
         description={`${rows.length} campaign(s).`}
+        actions={<CampaignCreateForm />}
       />
       <Section title="All campaigns">
         {rows.length === 0 ? (
@@ -54,6 +57,7 @@ export default async function CampaignsPage() {
                 <th>Status</th>
                 <th>Period</th>
                 <th>Budget / Spent</th>
+                <th>Set status</th>
               </tr>
             </thead>
             <tbody>
@@ -79,6 +83,12 @@ export default async function CampaignsPage() {
                     {(Number(c.totalBudgetMinor) / 100).toLocaleString()} /{" "}
                     {(Number(c.spentToDateMinor) / 100).toLocaleString()}{" "}
                     <span className="text-ink-tertiary">{c.currency}</span>
+                  </td>
+                  <td className="py-2">
+                    <CampaignStatusControl
+                      campaignCode={c.campaignCode}
+                      status={c.status}
+                    />
                   </td>
                 </tr>
               ))}
