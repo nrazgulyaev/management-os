@@ -6,6 +6,7 @@ import {
   type QuoteCalendarCell,
 } from "@/features/dynamic-pricing/services";
 import { VillaPicker } from "./_villa-picker";
+import { RateCurve } from "./_rate-curve";
 
 /**
  * Dynamic pricing — per-villa "production view" (prototype mgmt-p2).
@@ -47,14 +48,6 @@ function fmtMod(
   }
   if (type === "stop_sell") return "stop-sell";
   return type;
-}
-
-function dLabel(iso: string): string {
-  return new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    timeZone: "UTC",
-  });
 }
 
 type RuleRow = {
@@ -167,32 +160,14 @@ export default async function PricingProductionView({
       });
   }
 
-  /* ---- rate-curve geometry ---- */
-  const prices = cells.map((c) => Number(c.finalRateMinor) / 100);
+  /* ---- rate-curve data (geometry + drag live in <RateCurve>) ---- */
   const baseVal = Number(baseMinor) / 100;
-  const vals = [...prices.filter((p) => p > 0), ...(baseVal > 0 ? [baseVal] : [])];
-  const maxP = vals.length ? Math.max(...vals) * 1.12 : 100;
-  const minP = vals.length ? Math.min(...vals) * 0.88 : 0;
-  const span = Math.max(1, maxP - minP);
-  const W = 920,
-    H = 280,
-    padL = 50,
-    padR = 14,
-    padT = 18,
-    padB = 32;
-  const n = cells.length;
-  const xAt = (i: number) => padL + (n <= 1 ? 0 : (i / (n - 1)) * (W - padL - padR));
-  const yAt = (p: number) => padT + (1 - (p - minP) / span) * (H - padT - padB);
-  const activePath = cells
-    .map((c, i) => `${i === 0 ? "M" : "L"} ${xAt(i).toFixed(1)},${yAt(prices[i] || baseVal).toFixed(1)}`)
-    .join(" ");
-  const areaPath =
-    n > 0
-      ? `${activePath} L ${xAt(n - 1).toFixed(1)},${(H - padB).toFixed(1)} L ${xAt(0).toFixed(1)},${(H - padB).toFixed(1)} Z`
-      : "";
-  const baseY = yAt(baseVal);
-  const yTicks = [0, 1, 2, 3].map((k) => minP + (span * k) / 3);
-  const xTickIdx = n > 0 ? [0, Math.floor(n / 4), Math.floor(n / 2), Math.floor((3 * n) / 4), n - 1] : [];
+  const curveCells = cells.map((c) => ({
+    date: c.date,
+    available: c.available,
+    finalRate: Number(c.finalRateMinor) / 100,
+    override: c.overrideMinor !== null ? Number(c.overrideMinor) / 100 : null,
+  }));
 
   return (
     <>
@@ -273,52 +248,12 @@ export default async function PricingProductionView({
               : "No active rule set for this villa — nothing to chart yet."}
           </p>
         ) : (
-          <div className="overflow-x-auto px-2 py-3">
-            <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[680px]" style={{ height: 280 }}>
-              {/* gridlines + y labels */}
-              {yTicks.map((p, k) => (
-                <g key={k}>
-                  <line x1={padL} y1={yAt(p)} x2={W - padR} y2={yAt(p)} stroke="var(--line-soft)" strokeWidth="1" />
-                  <text x={padL - 8} y={yAt(p) + 3} textAnchor="end" fontFamily="var(--mono-font)" fontSize="10" fill="var(--ink-4)">
-                    {money(BigInt(Math.round(p * 100)), currency)}
-                  </text>
-                </g>
-              ))}
-              {/* x date labels */}
-              {xTickIdx.map((i) => (
-                <text
-                  key={i}
-                  x={xAt(i)}
-                  y={H - 8}
-                  textAnchor={i === 0 ? "start" : i === n - 1 ? "end" : "middle"}
-                  fontFamily="var(--mono-font)"
-                  fontSize="9"
-                  fill="var(--ink-4)"
-                >
-                  {dLabel(cells[i].date)}
-                </text>
-              ))}
-              {/* area fill under the active curve */}
-              {areaPath && <path d={areaPath} fill="var(--terra)" fillOpacity="0.06" />}
-              {/* base flat line */}
-              {baseVal > 0 && (
-                <line x1={padL} y1={baseY} x2={W - padR} y2={baseY} stroke="var(--ink-3)" strokeWidth="1.5" strokeDasharray="3 4" />
-              )}
-              {/* active curve */}
-              <path d={activePath} fill="none" stroke="var(--terra)" strokeWidth="2.5" strokeLinejoin="round" />
-              {/* stop-sell markers */}
-              {cells.map((c, i) =>
-                !c.available ? (
-                  <circle key={i} cx={xAt(i)} cy={padT + 4} r="3" fill="var(--danger)" />
-                ) : null,
-              )}
-              {/* today marker — label sits at the bottom of the line, clear of the y-axis labels */}
-              <line x1={padL} y1={padT} x2={padL} y2={H - padB} stroke="var(--terra)" strokeWidth="1" />
-              <text x={padL + 4} y={H - padB - 6} fontFamily="var(--mono-font)" fontSize="9" fill="var(--terra)">
-                today
-              </text>
-            </svg>
-          </div>
+          <RateCurve
+            villaId={selectedVillaId ?? ""}
+            currency={currency}
+            baseRate={baseVal}
+            cells={curveCells}
+          />
         )}
       </div>
 
