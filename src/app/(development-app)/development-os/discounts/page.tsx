@@ -19,6 +19,8 @@ import {
   DISCOUNT_STATUS_LABEL,
 } from "@/lib/development/constants/discount-constants";
 import type { DiscountStatus } from "@/lib/development/types/discounts";
+import { getCurrentAppUser } from "@/features/auth/current-user";
+import { DiscountApprovalActions } from "./_approval-actions";
 
 export const metadata: Metadata = { title: "Discounts · Development OS" };
 export const dynamic = "force-dynamic";
@@ -43,7 +45,7 @@ function fmtPercent(v: number | null): string {
 export default async function DiscountsPage() {
   // Stage 10.6.B.2-fix.2 — wrap each query individually so a single
   // failing loader doesn't 500 the whole page.
-  const [pending, all, limits] = await Promise.all([
+  const [pending, all, limits, me] = await Promise.all([
     safeQuery(
       "discounts.getPendingDiscountApprovals",
       getPendingDiscountApprovals(),
@@ -59,6 +61,7 @@ export default async function DiscountsPage() {
       getAllAuthorizationLimits(),
       [] as Awaited<ReturnType<typeof getAllAuthorizationLimits>>,
     ),
+    getCurrentAppUser().catch(() => null),
   ]);
 
   return (
@@ -176,6 +179,16 @@ export default async function DiscountsPage() {
                   Proposed {formatDate(d.proposedAt, "short")}
                   {d.escalatedAt && ` · escalated ${formatDate(d.escalatedAt, "short")}`}
                 </div>
+                {me?.id ? (
+                  <DiscountApprovalActions
+                    discountId={d.id}
+                    approverUserId={me.id}
+                  />
+                ) : (
+                  <span className="text-[11px] text-ink-tertiary">
+                    Sign in to approve.
+                  </span>
+                )}
               </article>
             ))}
           </div>
