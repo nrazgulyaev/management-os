@@ -18,6 +18,7 @@ import { eq } from "drizzle-orm";
 import { safeQuery } from "@/lib/development/safe-query";
 import { ReservationModalForm } from "@/components/development/sales/reservation-modal-form";
 import { ExportButton } from "@/components/development/bulk-import/export-button";
+import { ReservationRowActions } from "./_row-actions";
 
 export const metadata: Metadata = { title: "Reservations · Development OS" };
 export const dynamic = "force-dynamic";
@@ -132,6 +133,7 @@ export default async function ReservationsPage() {
                     <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary text-right">Fee</th>
                     <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary">Expires</th>
                     <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary">Status</th>
+                    <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -171,6 +173,17 @@ export default async function ReservationsPage() {
                         <Badge tone={statusTone[r.status]}>
                           {RESERVATION_STATUS_LABEL[r.status]}
                         </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <ReservationRowActions
+                          reservationId={r.id}
+                          status={r.status}
+                          expiresAt={
+                            r.expiresAt
+                              ? new Date(r.expiresAt).toISOString()
+                              : null
+                          }
+                        />
                       </td>
                     </tr>
                   ))}
