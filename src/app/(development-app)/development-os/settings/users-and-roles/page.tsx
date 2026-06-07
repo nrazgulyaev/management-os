@@ -5,7 +5,7 @@ import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = { title: "Users & roles · Settings" };
@@ -45,8 +45,7 @@ export default async function UsersAndRolesAdminPage() {
     `),
     null as unknown as Awaited<ReturnType<typeof db.execute>>,
   );
-  const rows =
-    ((rowsResult as unknown as { rows?: RoleRow[] })?.rows ?? []) as RoleRow[];
+  const rows = rowsOf<RoleRow>(rowsResult);
   return (
     <DevelopmentShell>
       <PageHeader

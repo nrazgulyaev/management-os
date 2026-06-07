@@ -22,7 +22,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { z } from "zod";
-import { requireDb } from "@/lib/db/client";
+import { requireDb, rowsOf } from "@/lib/db/client";
 import { teamInvitations } from "@/lib/db/schema/team-invitations";
 import { organizations } from "@/lib/db/schema/saas";
 import { appUsers } from "@/lib/db/schema/identity";
@@ -336,11 +336,7 @@ export async function acceptInvitationAction(
       ${invitation.roleKey}::text
     ) AS provision_app_user`,
   );
-  const provisionRows = (
-    Array.isArray(provisionResult)
-      ? provisionResult
-      : ((provisionResult as { rows?: Array<{ provision_app_user: string }> }).rows ?? [])
-  ) as Array<{ provision_app_user: string }>;
+  const provisionRows = rowsOf<{ provision_app_user: string }>(provisionResult);
   const appUserId = provisionRows[0]?.provision_app_user;
   if (!appUserId) {
     return { ok: false, error: "Could not provision your account. Please contact support." };

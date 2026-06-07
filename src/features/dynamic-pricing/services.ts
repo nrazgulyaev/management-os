@@ -1,7 +1,7 @@
 import "server-only";
 
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, rowsOf } from "@/lib/db/client";
 import {
   channelPushEvents,
   pricingChannelRules,
@@ -581,22 +581,12 @@ export async function getPricingHubMetrics(): Promise<PricingHubMetrics> {
     `),
   ]);
 
-  const pricingRow = (
-    Array.isArray(pricingActivity)
-      ? pricingActivity
-      : ((pricingActivity as { rows?: unknown[] }).rows ?? [])
-  )[0] as
-    | {
-        public_quotes_24h?: number;
-        simulated_pushes?: number;
-        stop_sell_nights?: number;
-      }
-    | undefined;
-  const villaRow = (
-    Array.isArray(villaCounts)
-      ? villaCounts
-      : ((villaCounts as { rows?: unknown[] }).rows ?? [])
-  )[0] as { missing?: number } | undefined;
+  const pricingRow = rowsOf<{
+    public_quotes_24h?: number;
+    simulated_pushes?: number;
+    stop_sell_nights?: number;
+  }>(pricingActivity)[0];
+  const villaRow = rowsOf<{ missing?: number }>(villaCounts)[0];
 
   return {
     activeRuleSets: ruleSetCounts?.active ?? 0,
