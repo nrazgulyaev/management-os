@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { eq } from "drizzle-orm";
 import { Badge } from "@/components/ui/badge";
 import { listPaymentProviderAccounts } from "@/features/direct-booking/deposits";
@@ -73,22 +74,18 @@ export default async function ProvidersPage() {
         <table className="data">
           <thead>
             <tr>
-              <th>Provider</th>
-              <th>Account label</th>
-              <th>Mode</th>
-              <th>Status</th>
-              <th>Connected</th>
-              <th />
+              <th scope="col">Provider</th>
+              <th scope="col">Account label</th>
+              <th scope="col">Mode</th>
+              <th scope="col">Status</th>
+              <th scope="col">Connected</th>
+              <th scope="col" />
             </tr>
           </thead>
           <tbody>
             {connections.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No connections yet. Wire Stripe, Wise, PayPal or Manual to start
-                  collecting payments.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No connections yet. Wire Stripe, Wise, PayPal or Manual to start
+                  collecting payments.</TableEmpty>
             ) : (
               connections.map((c) => (
                 <tr key={c.id}>
@@ -139,20 +136,16 @@ export default async function ProvidersPage() {
         <table className="data">
           <thead>
             <tr>
-              <th>Provider</th>
-              <th>Display name</th>
-              <th>Mode</th>
-              <th>Currencies</th>
-              <th>Status</th>
+              <th scope="col">Provider</th>
+              <th scope="col">Display name</th>
+              <th scope="col">Mode</th>
+              <th scope="col">Currencies</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center text-ink-3 italic py-8">
-                  No providers configured.
-                </td>
-              </tr>
+              <TableEmpty colSpan={5}>No providers configured.</TableEmpty>
             ) : (
               rows.map((p) => (
                 <tr key={p.id}>

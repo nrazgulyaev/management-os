@@ -68,7 +68,10 @@ export function DashboardTopbar({
           <span className="sx">
             <DashboardIcon name="search" width={14} height={14} />
           </span>
-          <input placeholder="Search villa, booking, owner, guest…" />
+          <input
+            aria-label="Search villas, bookings, owners, guests"
+            placeholder="Search villa, booking, owner, guest…"
+          />
           <span className="kbd absolute right-2.5 top-1.5">⌘K</span>
         </div>
         {actions}

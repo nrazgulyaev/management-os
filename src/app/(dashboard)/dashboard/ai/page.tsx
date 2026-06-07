@@ -188,11 +188,11 @@ export default async function AiHubPage() {
           <table className="data">
             <thead>
               <tr>
-                <th>Run</th>
-                <th>Agent</th>
-                <th>Subject</th>
-                <th>Severity</th>
-                <th>Time</th>
+                <th scope="col">Run</th>
+                <th scope="col">Agent</th>
+                <th scope="col">Subject</th>
+                <th scope="col">Severity</th>
+                <th scope="col">Time</th>
               </tr>
             </thead>
             <tbody>
@@ -245,13 +245,13 @@ export default async function AiHubPage() {
           <table className="data">
             <thead>
               <tr>
-                <th>Run</th>
-                <th>Agent</th>
-                <th>Model</th>
-                <th>Status</th>
-                <th className="num">Latency</th>
-                <th className="num">Cost</th>
-                <th>Time</th>
+                <th scope="col">Run</th>
+                <th scope="col">Agent</th>
+                <th scope="col">Model</th>
+                <th scope="col">Status</th>
+                <th scope="col" className="num">Latency</th>
+                <th scope="col" className="num">Cost</th>
+                <th scope="col">Time</th>
               </tr>
             </thead>
             <tbody>

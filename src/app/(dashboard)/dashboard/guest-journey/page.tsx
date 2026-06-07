@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -91,21 +92,17 @@ export default async function GuestJourneyHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Rule</th>
-              <th>Stage</th>
-              <th>Trigger</th>
-              <th>Channel</th>
-              <th>Priority</th>
-              <th>Status</th>
+              <th scope="col">Rule</th>
+              <th scope="col">Stage</th>
+              <th scope="col">Trigger</th>
+              <th scope="col">Channel</th>
+              <th scope="col">Priority</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {rules.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No journey rules yet.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No journey rules yet.</TableEmpty>
             ) : (
               rules.map((r) => (
                 <tr key={r.id}>

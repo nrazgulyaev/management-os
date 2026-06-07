@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
@@ -76,20 +77,16 @@ export default async function AuditPage() {
         <table className="data">
           <thead>
             <tr>
-              <th>When</th>
-              <th>Actor</th>
-              <th>Action</th>
-              <th>Entity</th>
-              <th>Summary</th>
+              <th scope="col">When</th>
+              <th scope="col">Actor</th>
+              <th scope="col">Action</th>
+              <th scope="col">Entity</th>
+              <th scope="col">Summary</th>
             </tr>
           </thead>
           <tbody>
             {events.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center text-ink-3 italic py-8">
-                  No audit events yet.
-                </td>
-              </tr>
+              <TableEmpty colSpan={5}>No audit events yet.</TableEmpty>
             ) : (
               events.map((e) => {
                 const c = classify(e.action);

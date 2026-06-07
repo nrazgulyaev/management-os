@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -98,21 +99,17 @@ export default async function ServiceFulfilmentHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Vendor</th>
-              <th>Category</th>
-              <th className="num">Rating</th>
-              <th className="num">Ratings</th>
-              <th>Channel</th>
-              <th>Status</th>
+              <th scope="col">Vendor</th>
+              <th scope="col">Category</th>
+              <th scope="col" className="num">Rating</th>
+              <th scope="col" className="num">Ratings</th>
+              <th scope="col">Channel</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {vendors.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No vendors yet. Add one to start routing service orders.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No vendors yet. Add one to start routing service orders.</TableEmpty>
             ) : (
               vendors.slice(0, 14).map((v) => (
                 <tr key={v.id}>

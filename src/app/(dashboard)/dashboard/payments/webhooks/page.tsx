@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Badge } from "@/components/ui/badge";
 import { listPaymentWebhookEvents } from "@/features/direct-booking/deposits";
 
@@ -50,20 +51,16 @@ export default async function WebhooksPage() {
         <table className="data">
           <thead>
             <tr>
-              <th>When</th>
-              <th>Provider</th>
-              <th>Type</th>
-              <th>External ID</th>
-              <th>Status</th>
+              <th scope="col">When</th>
+              <th scope="col">Provider</th>
+              <th scope="col">Type</th>
+              <th scope="col">External ID</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center text-ink-3 italic py-8">
-                  No webhook events yet.
-                </td>
-              </tr>
+              <TableEmpty colSpan={5}>No webhook events yet.</TableEmpty>
             ) : (
               rows.map((e) => (
                 <tr key={e.id}>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -110,22 +111,18 @@ export default async function IntegrationsHomePage() {
         <table className="data">
           <thead>
             <tr>
-              <th>Feed</th>
-              <th>Villa</th>
-              <th>Source</th>
-              <th>Last sync</th>
-              <th className="num">Events</th>
-              <th>Status</th>
+              <th scope="col">Feed</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Source</th>
+              <th scope="col">Last sync</th>
+              <th scope="col" className="num">Events</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {feeds.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No calendar feeds yet. Add one to start importing channel
-                  bookings.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No calendar feeds yet. Add one to start importing channel
+                  bookings.</TableEmpty>
             ) : (
               feeds.slice(0, 12).map((f) => (
                 <tr key={f.id}>
@@ -194,19 +191,15 @@ export default async function IntegrationsHomePage() {
         <table className="data">
           <thead>
             <tr>
-              <th>Rule</th>
-              <th>Trigger</th>
-              <th>Creates</th>
-              <th>Status</th>
+              <th scope="col">Rule</th>
+              <th scope="col">Trigger</th>
+              <th scope="col">Creates</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {rules.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="text-center text-ink-3 italic py-8">
-                  No automation rules configured.
-                </td>
-              </tr>
+              <TableEmpty colSpan={4}>No automation rules configured.</TableEmpty>
             ) : (
               rules.map((r) => (
                 <tr key={r.id}>

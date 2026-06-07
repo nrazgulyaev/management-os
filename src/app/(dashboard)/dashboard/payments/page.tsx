@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -126,21 +127,17 @@ export default async function PaymentsHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Provider</th>
-              <th>Display name</th>
-              <th>Mode</th>
-              <th>Currencies</th>
-              <th>Status</th>
+              <th scope="col">Provider</th>
+              <th scope="col">Display name</th>
+              <th scope="col">Mode</th>
+              <th scope="col">Currencies</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {providers.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center text-ink-3 italic py-8">
-                  No providers configured. Wire Stripe, Wise, PayPal or the
-                  manual stub to start collecting payments.
-                </td>
-              </tr>
+              <TableEmpty colSpan={5}>No providers configured. Wire Stripe, Wise, PayPal or the
+                  manual stub to start collecting payments.</TableEmpty>
             ) : (
               providers.map((p) => (
                 <tr key={p.id}>
@@ -178,21 +175,17 @@ export default async function PaymentsHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>When</th>
-              <th>Provider</th>
-              <th>Type</th>
-              <th>External ID</th>
-              <th>Status</th>
+              <th scope="col">When</th>
+              <th scope="col">Provider</th>
+              <th scope="col">Type</th>
+              <th scope="col">External ID</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {webhooks.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center text-ink-3 italic py-8">
-                  No webhook events yet. Live providers post idempotent envelopes
-                  here; the manual stub never writes.
-                </td>
-              </tr>
+              <TableEmpty colSpan={5}>No webhook events yet. Live providers post idempotent envelopes
+                  here; the manual stub never writes.</TableEmpty>
             ) : (
               webhooks.map((e) => (
                 <tr key={e.id}>

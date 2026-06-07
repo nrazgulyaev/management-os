@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -134,23 +135,19 @@ export default async function NotificationsPage({
         <table className="data">
           <thead>
             <tr>
-              <th>Status</th>
-              <th>Channel</th>
-              <th>Template</th>
-              <th>Title / body</th>
-              <th>Recipient</th>
-              <th className="num">Attempts</th>
-              <th>Created</th>
-              <th>Action</th>
+              <th scope="col">Status</th>
+              <th scope="col">Channel</th>
+              <th scope="col">Template</th>
+              <th scope="col">Title / body</th>
+              <th scope="col">Recipient</th>
+              <th scope="col" className="num">Attempts</th>
+              <th scope="col">Created</th>
+              <th scope="col">Action</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center text-ink-3 italic py-8">
-                  No notifications match these filters.
-                </td>
-              </tr>
+              <TableEmpty colSpan={8}>No notifications match these filters.</TableEmpty>
             ) : (
               rows.map((r) => (
                 <tr key={r.id} className={r.status === "queued" ? "bg-cream-warm" : ""}>

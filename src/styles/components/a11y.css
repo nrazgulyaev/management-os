@@ -1,0 +1,39 @@
+/* ---------------------------------------------------------------
+ * Accessibility — visible keyboard focus across cabinets.
+ *
+ * No :focus-visible rules existed before this. Mouse interaction stays
+ * quiet (no ring on click); keyboard navigation gets a clear ring in the
+ * product accent (terra for management, amber for development). Covers the
+ * surfaces the redesign added: crumb links, table row links, KPI links,
+ * buttons, and form controls.
+ * --------------------------------------------------------------- */
+
+[data-product] a:focus-visible,
+[data-product] button:focus-visible,
+[data-product] [role="button"]:focus-visible,
+[data-product] summary:focus-visible,
+[data-product] [tabindex]:not([tabindex="-1"]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+[data-product] input:focus-visible,
+[data-product] select:focus-visible,
+[data-product] textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Clickable table rows — ring inset so it doesn't clip against the card edge. */
+[data-product] table.data tbody tr:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Breadcrumb links read small; give them a tight, legible ring. */
+[data-product] .page-header .crumb a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}

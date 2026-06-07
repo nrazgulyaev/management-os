@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -138,21 +139,17 @@ export default async function InventoryHomePage() {
         <table className="data">
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Category</th>
-              <th>SKU</th>
-              <th className="num">Stock</th>
-              <th className="num">Reorder</th>
-              <th>Status</th>
+              <th scope="col">Item</th>
+              <th scope="col">Category</th>
+              <th scope="col">SKU</th>
+              <th scope="col" className="num">Stock</th>
+              <th scope="col" className="num">Reorder</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {itemRows.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No items yet. Add one with “+ Item”.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No items yet. Add one with “+ Item”.</TableEmpty>
             ) : (
               itemRows.map((i) => (
                 <tr key={i.id}>
@@ -196,22 +193,18 @@ export default async function InventoryHomePage() {
         <table className="data">
           <thead>
             <tr>
-              <th>When</th>
-              <th>Type</th>
-              <th>Item</th>
-              <th>From</th>
-              <th>To</th>
-              <th className="num">Qty</th>
-              <th>Reference</th>
+              <th scope="col">When</th>
+              <th scope="col">Type</th>
+              <th scope="col">Item</th>
+              <th scope="col">From</th>
+              <th scope="col">To</th>
+              <th scope="col" className="num">Qty</th>
+              <th scope="col">Reference</th>
             </tr>
           </thead>
           <tbody>
             {recentMovements.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center text-ink-3 italic py-8">
-                  No inventory movements yet.
-                </td>
-              </tr>
+              <TableEmpty colSpan={7}>No inventory movements yet.</TableEmpty>
             ) : (
               recentMovements.map((mv) => (
                 <tr key={mv.id}>

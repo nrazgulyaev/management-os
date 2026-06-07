@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { QueryWarningCard } from "@/components/system/query-warning-card";
@@ -128,20 +129,16 @@ export default async function MaintenanceIntelligenceHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Template</th>
-              <th>Category</th>
-              <th>Cadence</th>
-              <th>Disruption</th>
-              <th>Priority</th>
+              <th scope="col">Template</th>
+              <th scope="col">Category</th>
+              <th scope="col">Cadence</th>
+              <th scope="col">Disruption</th>
+              <th scope="col">Priority</th>
             </tr>
           </thead>
           <tbody>
             {templates.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center text-ink-3 italic py-8">
-                  No active templates.
-                </td>
-              </tr>
+              <TableEmpty colSpan={5}>No active templates.</TableEmpty>
             ) : (
               templates.map((t) => (
                 <tr key={t.id}>
@@ -173,22 +170,18 @@ export default async function MaintenanceIntelligenceHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Risk</th>
-              <th>Villa</th>
-              <th>Severity</th>
-              <th>Source</th>
-              <th>First seen</th>
-              <th />
+              <th scope="col">Risk</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Severity</th>
+              <th scope="col">Source</th>
+              <th scope="col">First seen</th>
+              <th scope="col" />
             </tr>
           </thead>
           <tbody>
             {openRisks.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No open risks. The scanner surfaces overdue maintenance, low
-                  balances and repeat tickets here.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No open risks. The scanner surfaces overdue maintenance, low
+                  balances and repeat tickets here.</TableEmpty>
             ) : (
               openRisks.slice(0, 14).map((r) => (
                 <tr key={r.id}>

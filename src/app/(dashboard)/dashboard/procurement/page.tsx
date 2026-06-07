@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -121,21 +122,17 @@ export default async function ProcurementHomePage() {
         <table className="data">
           <thead>
             <tr>
-              <th>PR</th>
-              <th>Title</th>
-              <th>Requested by</th>
-              <th className="num">Total</th>
-              <th>Priority</th>
-              <th>Status</th>
+              <th scope="col">PR</th>
+              <th scope="col">Title</th>
+              <th scope="col">Requested by</th>
+              <th scope="col" className="num">Total</th>
+              <th scope="col">Priority</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {openRequests.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No open purchase requests.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No open purchase requests.</TableEmpty>
             ) : (
               openRequests.slice(0, 12).map((r) => (
                 <tr key={r.id}>
@@ -183,21 +180,17 @@ export default async function ProcurementHomePage() {
         <table className="data">
           <thead>
             <tr>
-              <th>PO</th>
-              <th>Supplier</th>
-              <th>Project</th>
-              <th className="num">Total</th>
-              <th>ETA</th>
-              <th>Status</th>
+              <th scope="col">PO</th>
+              <th scope="col">Supplier</th>
+              <th scope="col">Project</th>
+              <th scope="col" className="num">Total</th>
+              <th scope="col">ETA</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No purchase orders yet.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No purchase orders yet.</TableEmpty>
             ) : (
               orders.slice(0, 12).map((o) => (
                 <tr key={o.id}>

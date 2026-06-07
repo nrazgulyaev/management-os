@@ -108,9 +108,9 @@ function StatementDetailCard({ detail }: { detail: RealStatementDetail }) {
       <table className="data">
         <thead>
           <tr>
-            <th>Type</th>
-            <th>Description</th>
-            <th className="num">Amount (IDR)</th>
+            <th scope="col">Type</th>
+            <th scope="col">Description</th>
+            <th scope="col" className="num">Amount (IDR)</th>
           </tr>
         </thead>
         <tbody>
@@ -317,13 +317,13 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
           <table className="data">
             <thead>
               <tr>
-                <th>Owner</th>
-                <th>Villa</th>
-                <th>Period</th>
-                <th className="num">Net (IDR)</th>
-                <th className="num">≈ USD</th>
-                <th>Status</th>
-                <th></th>
+                <th scope="col">Owner</th>
+                <th scope="col">Villa</th>
+                <th scope="col">Period</th>
+                <th scope="col" className="num">Net (IDR)</th>
+                <th scope="col" className="num">≈ USD</th>
+                <th scope="col">Status</th>
+                <th scope="col"></th>
               </tr>
             </thead>
             <tbody>
@@ -379,9 +379,9 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
           <table className="data">
             <thead>
               <tr>
-                <th>Recipient</th>
-                <th className="num">Amount</th>
-                <th>Status</th>
+                <th scope="col">Recipient</th>
+                <th scope="col" className="num">Amount</th>
+                <th scope="col">Status</th>
               </tr>
             </thead>
             <tbody>

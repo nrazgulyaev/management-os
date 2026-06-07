@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -93,20 +94,16 @@ export default async function VillaGuidesHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Section</th>
-              <th>Key</th>
-              <th>Scope</th>
-              <th>Status</th>
-              <th>Updated</th>
+              <th scope="col">Section</th>
+              <th scope="col">Key</th>
+              <th scope="col">Scope</th>
+              <th scope="col">Status</th>
+              <th scope="col">Updated</th>
             </tr>
           </thead>
           <tbody>
             {recent.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center text-ink-3 italic py-8">
-                  No guide sections yet.
-                </td>
-              </tr>
+              <TableEmpty colSpan={5}>No guide sections yet.</TableEmpty>
             ) : (
               recent.map((s) => (
                 <tr key={s.id}>

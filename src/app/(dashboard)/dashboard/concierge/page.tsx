@@ -129,13 +129,13 @@ export default async function ConciergePage() {
           <table className="data">
             <thead>
               <tr>
-                <th>Session</th>
-                <th>Villa</th>
-                <th>Guest</th>
-                <th>What</th>
-                <th>Priority</th>
-                <th>Status</th>
-                <th>Age</th>
+                <th scope="col">Session</th>
+                <th scope="col">Villa</th>
+                <th scope="col">Guest</th>
+                <th scope="col">What</th>
+                <th scope="col">Priority</th>
+                <th scope="col">Status</th>
+                <th scope="col">Age</th>
               </tr>
             </thead>
             <tbody>
