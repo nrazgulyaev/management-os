@@ -7,6 +7,7 @@ import {
 } from "@/features/dynamic-pricing/services";
 import { VillaPicker } from "./_villa-picker";
 import { RateCurve } from "./_rate-curve";
+import { CompTable, type CompRow } from "@/components/pricing/comp-table";
 
 /**
  * Dynamic pricing — per-villa "production view" (prototype mgmt-p2).
@@ -71,6 +72,56 @@ export default async function PricingProductionView({
   const selectedVillaId =
     sp.villa && villas.some((v) => v.id === sp.villa) ? sp.villa : villas[0]?.id ?? null;
   const selectedVilla = villas.find((v) => v.id === selectedVillaId) ?? null;
+
+  /* ---- comp set: portfolio peers (same project or bedroom count) ---- */
+  const compRows: CompRow[] = selectedVilla
+    ? [
+        {
+          id: selectedVilla.id,
+          isUs: true,
+          name: selectedVilla.unitCode,
+          source: "us",
+          similarity: 1,
+          adrUsd: selectedVilla.currentNightlyRateUsd ?? 0,
+          beds: selectedVilla.bedrooms,
+        },
+        ...villas
+          .filter(
+            (v) =>
+              v.status !== "archived" &&
+              v.id !== selectedVilla.id &&
+              (v.projectId === selectedVilla.projectId ||
+                v.bedrooms === selectedVilla.bedrooms),
+          )
+          .map<CompRow>((v) => {
+            const sameProject = v.projectId === selectedVilla.projectId;
+            const sameBeds = v.bedrooms === selectedVilla.bedrooms;
+            return {
+              id: v.id,
+              isUs: false,
+              name: v.unitCode,
+              source: "peer",
+              similarity: sameProject && sameBeds ? 0.95 : sameBeds ? 0.8 : 0.6,
+              adrUsd: v.currentNightlyRateUsd ?? 0,
+              beds: v.bedrooms,
+            };
+          }),
+      ]
+    : [];
+  const peerAdrs = compRows
+    .filter((r) => !r.isUs && r.adrUsd > 0)
+    .map((r) => r.adrUsd)
+    .sort((a, b) => a - b);
+  const peerMedian = peerAdrs.length
+    ? peerAdrs.length % 2 === 1
+      ? peerAdrs[(peerAdrs.length - 1) / 2]
+      : Math.round(
+          (peerAdrs[peerAdrs.length / 2 - 1] + peerAdrs[peerAdrs.length / 2]) / 2,
+        )
+    : 0;
+  const usAdr = compRows.find((r) => r.isUs)?.adrUsd ?? 0;
+  const compIndex =
+    peerMedian > 0 && usAdr > 0 ? Math.round((usAdr / peerMedian) * 100) : null;
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const { ruleSet, cells } = selectedVillaId
@@ -217,7 +268,12 @@ export default async function PricingProductionView({
           sub={`of next ${cells.length || DAYS}`}
           tone={stopSellNights > 0 ? "gold" : undefined}
         />
-        <Kpi label="Comp index" value="—" sub="comp set not integrated" />
+        <Kpi
+          label="Comp index"
+          value={compIndex != null ? String(compIndex) : "—"}
+          sub={compIndex != null ? "100 = at peer median" : "no priced peers"}
+          tone={compIndex != null ? "accent" : undefined}
+        />
       </div>
 
       {/* Rate curve */}
@@ -297,14 +353,26 @@ export default async function PricingProductionView({
         </div>
 
         <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-line-soft">
-            <span className="text-label">Comp set</span>
+          <div className="px-5 py-3.5 border-b border-line-soft flex items-center justify-between">
+            <span className="text-label">
+              Comp set <span className="text-ink-tertiary">· portfolio peers</span>
+            </span>
+            <span className="font-mono text-[11px] text-ink-4">
+              {Math.max(0, compRows.length - 1)} peer
+              {compRows.length - 1 === 1 ? "" : "s"}
+            </span>
           </div>
-          <div className="p-6 text-[13px] text-ink-secondary leading-relaxed">
-            Competitor pricing isn&rsquo;t integrated yet. Once a comp-set feed lands, the
-            similarity scorer ranks nearby villas by bedrooms, capacity, location, and ADR —
-            and a comp-median line overlays the rate curve above.
-          </div>
+          {compRows.length <= 1 ? (
+            <div className="p-6 text-[13px] text-ink-3 italic leading-relaxed">
+              No comparable villas — peers are sibling villas in the same project or
+              with the same bedroom count. (External-channel competitor rates would
+              need a comp feed, which isn&rsquo;t integrated.)
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <CompTable rows={compRows} />
+            </div>
+          )}
         </div>
       </div>
 
