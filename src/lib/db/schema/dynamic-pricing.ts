@@ -334,3 +334,37 @@ export type PricingQuoteLog = typeof pricingQuoteLogs.$inferSelect;
 export type NewPricingQuoteLog = typeof pricingQuoteLogs.$inferInsert;
 export type ChannelPushEvent = typeof channelPushEvents.$inferSelect;
 export type NewChannelPushEvent = typeof channelPushEvents.$inferInsert;
+
+/**
+ * Dynamic pricing depth — per-villa, per-night manual nightly-rate override.
+ * Consumed by quoteDynamicStay (wins over all rule modifiers) and written by
+ * the draggable rate pins / override form on the pricing curve.
+ */
+export const villaRateOverrides = pgTable(
+  "villa_rate_overrides",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    villaId: uuid("villa_id")
+      .notNull()
+      .references(() => villas.id, { onDelete: "cascade" }),
+    stayDate: date("stay_date").notNull(),
+    nightlyRateMinor: bigint("nightly_rate_minor", { mode: "bigint" }).notNull(),
+    currency: text("currency").notNull().default("USD"),
+    note: text("note"),
+    createdBy: uuid("created_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("villa_rate_overrides_villa_date_uq").on(t.villaId, t.stayDate),
+  ],
+);
+
+export type VillaRateOverride = typeof villaRateOverrides.$inferSelect;
+export type NewVillaRateOverride = typeof villaRateOverrides.$inferInsert;

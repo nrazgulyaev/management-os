@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, lte, sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import {
   channelPushEvents,
@@ -12,6 +12,7 @@ import {
   pricingQuoteLogs,
   pricingRuleSets,
   pricingStopSellRules,
+  villaRateOverrides,
   type ChannelPushEvent,
   type NewPricingQuoteLog,
   type PricingRuleSet,
@@ -271,6 +272,76 @@ async function loadBundle(
   };
 }
 
+// =============================================================================
+// MANUAL RATE OVERRIDES (per villa + night)
+// =============================================================================
+
+export interface VillaRateOverrideRow {
+  id: string;
+  stayDate: string;
+  nightlyRateMinor: bigint;
+  currency: string;
+  note: string | null;
+}
+
+/**
+ * Map of stayDate (YYYY-MM-DD) → override nightly rate (minor) for the
+ * half-open range [startIso, endIso). Fed into quoteStay so an override wins
+ * over every rule modifier.
+ */
+export async function getVillaRateOverridesByDate(
+  villaId: string,
+  startIso: string,
+  endIso: string,
+): Promise<Record<string, bigint>> {
+  const db = getDb();
+  if (!db) return {};
+  const rows = await db
+    .select({
+      stayDate: villaRateOverrides.stayDate,
+      nightlyRateMinor: villaRateOverrides.nightlyRateMinor,
+    })
+    .from(villaRateOverrides)
+    .where(
+      and(
+        eq(villaRateOverrides.villaId, villaId),
+        gte(villaRateOverrides.stayDate, startIso),
+        lt(villaRateOverrides.stayDate, endIso),
+      ),
+    );
+  const out: Record<string, bigint> = {};
+  for (const r of rows) out[r.stayDate] = BigInt(r.nightlyRateMinor);
+  return out;
+}
+
+/** List-view of overrides for a villa within [startIso, endIso). */
+export async function listVillaRateOverrides(
+  villaId: string,
+  startIso: string,
+  endIso: string,
+): Promise<VillaRateOverrideRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db
+    .select()
+    .from(villaRateOverrides)
+    .where(
+      and(
+        eq(villaRateOverrides.villaId, villaId),
+        gte(villaRateOverrides.stayDate, startIso),
+        lt(villaRateOverrides.stayDate, endIso),
+      ),
+    )
+    .orderBy(villaRateOverrides.stayDate);
+  return rows.map((r) => ({
+    id: r.id,
+    stayDate: r.stayDate,
+    nightlyRateMinor: BigInt(r.nightlyRateMinor),
+    currency: r.currency,
+    note: r.note,
+  }));
+}
+
 export interface QuoteDynamicStayInput {
   villaId: string;
   checkIn: string;
@@ -282,6 +353,8 @@ export interface QuoteDynamicStayInput {
 export interface QuoteDynamicStayResult {
   stay: QuoteStay;
   ruleSet: PricingRuleSet | null;
+  /** stayDate → override nightly rate (minor) applied to this quote. */
+  overridesByDate: Record<string, bigint>;
 }
 
 export async function quoteDynamicStay(
@@ -293,6 +366,7 @@ export async function quoteDynamicStay(
     return {
       stay: emptyStay(input.checkIn, input.checkOut, "USD"),
       ruleSet: null,
+      overridesByDate: {},
     };
   }
   const bundle = await loadBundle(ruleSet);
@@ -363,6 +437,12 @@ export async function quoteDynamicStay(
     }
   }
 
+  const manualOverridesByDate = await getVillaRateOverridesByDate(
+    input.villaId,
+    input.checkIn,
+    input.checkOut,
+  );
+
   const stay = quoteStay({
     checkIn: input.checkIn,
     checkOut: input.checkOut,
@@ -370,8 +450,9 @@ export async function quoteDynamicStay(
     channelKey,
     bundle,
     manualBlocksByDate,
+    manualOverridesByDate,
   });
-  return { stay, ruleSet };
+  return { stay, ruleSet, overridesByDate: manualOverridesByDate };
 }
 
 function emptyStay(
@@ -408,6 +489,8 @@ export interface QuoteCalendarCell {
   reason: string;
   finalRateMinor: bigint;
   currency: string;
+  /** Manual override applied to this night (minor), else null. */
+  overrideMinor: bigint | null;
 }
 
 export async function quoteDynamicCalendar(
@@ -434,6 +517,7 @@ export async function quoteDynamicCalendar(
       reason: n.unavailableReason ?? "available",
       finalRateMinor: n.finalRateMinor,
       currency: n.currency,
+      overrideMinor: result.overridesByDate[n.date] ?? null,
     });
   }
   // Pad missing nights when stay was rejected before per-night quoting.
@@ -446,6 +530,7 @@ export async function quoteDynamicCalendar(
         reason: result.stay.reason,
         finalRateMinor: 0n,
         currency: ruleSet.currency,
+        overrideMinor: null,
       });
     }
   }
