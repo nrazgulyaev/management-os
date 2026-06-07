@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { JobStatusPill } from "@/components/jobs/job-status-pill";
@@ -115,22 +116,18 @@ export default async function SystemCabinetPage() {
         <table className="data">
           <thead>
             <tr>
-              <th>When</th>
-              <th>Job</th>
-              <th>Trigger</th>
-              <th>Status</th>
-              <th className="num">Duration</th>
-              <th>Summary</th>
+              <th scope="col">When</th>
+              <th scope="col">Job</th>
+              <th scope="col">Trigger</th>
+              <th scope="col">Status</th>
+              <th scope="col" className="num">Duration</th>
+              <th scope="col">Summary</th>
             </tr>
           </thead>
           <tbody>
             {recentRuns.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No job runs recorded yet. Cron + manual runs surface here with
-                  status, duration and summary.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No job runs recorded yet. Cron + manual runs surface here with
+                  status, duration and summary.</TableEmpty>
             ) : (
               recentRuns.map((r) => (
                 <tr key={r.id}>
@@ -167,10 +164,10 @@ export default async function SystemCabinetPage() {
         <table className="data">
           <thead>
             <tr>
-              <th>Gate</th>
-              <th>Severity</th>
-              <th>Result</th>
-              <th>Detail</th>
+              <th scope="col">Gate</th>
+              <th scope="col">Severity</th>
+              <th scope="col">Result</th>
+              <th scope="col">Detail</th>
             </tr>
           </thead>
           <tbody>

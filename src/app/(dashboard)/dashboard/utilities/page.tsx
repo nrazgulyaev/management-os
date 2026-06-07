@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { QueryWarningCard } from "@/components/system/query-warning-card";
@@ -110,21 +111,17 @@ export default async function UtilitiesHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Account</th>
-              <th>Type</th>
-              <th>Villa / scope</th>
-              <th>Provider</th>
-              <th className="num">Avg / mo</th>
-              <th>Status</th>
+              <th scope="col">Account</th>
+              <th scope="col">Type</th>
+              <th scope="col">Villa / scope</th>
+              <th scope="col">Provider</th>
+              <th scope="col" className="num">Avg / mo</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {accounts.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No utility accounts yet.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No utility accounts yet.</TableEmpty>
             ) : (
               accounts.slice(0, 14).map((a) => (
                 <tr key={a.id}>
@@ -158,21 +155,17 @@ export default async function UtilitiesHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>When</th>
-              <th>Villa</th>
-              <th>Type</th>
-              <th className="num">Reading</th>
-              <th className="num">Balance</th>
-              <th>Source</th>
+              <th scope="col">When</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Type</th>
+              <th scope="col" className="num">Reading</th>
+              <th scope="col" className="num">Balance</th>
+              <th scope="col">Source</th>
             </tr>
           </thead>
           <tbody>
             {readings.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No readings captured yet.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No readings captured yet.</TableEmpty>
             ) : (
               readings.map((r) => (
                 <tr key={r.id}>

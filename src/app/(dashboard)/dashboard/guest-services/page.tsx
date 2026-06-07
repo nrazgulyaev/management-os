@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -103,21 +104,17 @@ export default async function GuestServicesHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Service</th>
-              <th>Category</th>
-              <th>Type</th>
-              <th className="num">Price</th>
-              <th className="num">Margin</th>
-              <th>Status</th>
+              <th scope="col">Service</th>
+              <th scope="col">Category</th>
+              <th scope="col">Type</th>
+              <th scope="col" className="num">Price</th>
+              <th scope="col" className="num">Margin</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {topServices.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No active catalog services yet.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No active catalog services yet.</TableEmpty>
             ) : (
               topServices.map((s) => {
                 const base = Number(s.basePriceMinor);
@@ -160,22 +157,18 @@ export default async function GuestServicesHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Order</th>
-              <th>Service</th>
-              <th>Villa</th>
-              <th>Guest</th>
-              <th>Booking</th>
-              <th className="num">Price</th>
-              <th>State</th>
+              <th scope="col">Order</th>
+              <th scope="col">Service</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Guest</th>
+              <th scope="col">Booking</th>
+              <th scope="col" className="num">Price</th>
+              <th scope="col">State</th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center text-ink-3 italic py-8">
-                  No orders yet. Guests order from the in-stay services page.
-                </td>
-              </tr>
+              <TableEmpty colSpan={7}>No orders yet. Guests order from the in-stay services page.</TableEmpty>
             ) : (
               orders.map((o) => (
                 <tr key={o.id}>

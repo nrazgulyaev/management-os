@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -109,22 +110,18 @@ export default async function OwnerStaysOverview() {
         <table className="data">
           <thead>
             <tr>
-              <th>Request</th>
-              <th>Owner</th>
-              <th>Villa</th>
-              <th>Stay</th>
-              <th className="num">Nights</th>
-              <th className="num">Charge</th>
-              <th>Status</th>
+              <th scope="col">Request</th>
+              <th scope="col">Owner</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Stay</th>
+              <th scope="col" className="num">Nights</th>
+              <th scope="col" className="num">Charge</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
             {allRequests.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="text-center text-ink-3 italic py-8">
-                  No owner-stay requests yet.
-                </td>
-              </tr>
+              <TableEmpty colSpan={7}>No owner-stay requests yet.</TableEmpty>
             ) : (
               allRequests.slice(0, 12).map((r) => (
                 <tr key={r.id}>

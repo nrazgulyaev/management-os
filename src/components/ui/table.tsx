@@ -66,6 +66,7 @@ export function TH({
 }: React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
+      scope="col"
       className={cn(
         "h-10 px-4 text-left align-middle font-medium text-[11px] tracking-wide uppercase text-ink-tertiary whitespace-nowrap",
         className

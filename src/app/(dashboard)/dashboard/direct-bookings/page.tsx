@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -109,22 +110,18 @@ export default async function DirectBookingsHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Hold</th>
-              <th>Villa</th>
-              <th>Dates</th>
-              <th className="num">Total</th>
-              <th>Status</th>
-              <th>Expires</th>
+              <th scope="col">Hold</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Dates</th>
+              <th scope="col" className="num">Total</th>
+              <th scope="col">Status</th>
+              <th scope="col">Expires</th>
             </tr>
           </thead>
           <tbody>
             {holds.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No active holds. Holds appear here when guests reserve dates
-                  from a public quote.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No active holds. Holds appear here when guests reserve dates
+                  from a public quote.</TableEmpty>
             ) : (
               holds.map(({ hold, villaCode }) => {
                 const lab = adminHoldStatusLabel(

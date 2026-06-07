@@ -216,11 +216,11 @@ export default async function DashboardOverviewPage() {
             <table className="data">
               <thead>
                 <tr>
-                  <th>Time</th>
-                  <th>Type</th>
-                  <th>Villa</th>
-                  <th>Guest / Notes</th>
-                  <th>Nights</th>
+                  <th scope="col">Time</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Villa</th>
+                  <th scope="col">Guest / Notes</th>
+                  <th scope="col">Nights</th>
                 </tr>
               </thead>
               <tbody>
@@ -424,13 +424,13 @@ export default async function DashboardOverviewPage() {
           <table className="data">
             <thead>
               <tr>
-                <th>Project</th>
-                <th>Area</th>
-                <th className="num">Villas</th>
-                <th>Model</th>
-                <th className="num">Occ. YTD</th>
-                <th className="num">ADR (IDR M)</th>
-                <th className="num">YTD revenue</th>
+                <th scope="col">Project</th>
+                <th scope="col">Area</th>
+                <th scope="col" className="num">Villas</th>
+                <th scope="col">Model</th>
+                <th scope="col" className="num">Occ. YTD</th>
+                <th scope="col" className="num">ADR (IDR M)</th>
+                <th scope="col" className="num">YTD revenue</th>
               </tr>
             </thead>
             <tbody>

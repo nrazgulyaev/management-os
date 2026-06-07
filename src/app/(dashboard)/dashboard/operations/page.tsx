@@ -468,12 +468,12 @@ export default async function OperationsPage() {
           <table className="data">
             <thead>
               <tr>
-                <th>Code</th>
-                <th>Villa</th>
-                <th>Guest</th>
-                <th>Request</th>
-                <th>Vendor</th>
-                <th>Status</th>
+                <th scope="col">Code</th>
+                <th scope="col">Villa</th>
+                <th scope="col">Guest</th>
+                <th scope="col">Request</th>
+                <th scope="col">Vendor</th>
+                <th scope="col">Status</th>
               </tr>
             </thead>
             <tbody>

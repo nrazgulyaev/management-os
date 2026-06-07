@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -128,23 +129,19 @@ export default async function GuestStaysHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Token</th>
-              <th>Booking</th>
-              <th>Guest</th>
-              <th>Villa</th>
-              <th>Project</th>
-              <th>Accesses</th>
-              <th>Status</th>
-              <th />
+              <th scope="col">Token</th>
+              <th scope="col">Booking</th>
+              <th scope="col">Guest</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Project</th>
+              <th scope="col">Accesses</th>
+              <th scope="col">Status</th>
+              <th scope="col" />
             </tr>
           </thead>
           <tbody>
             {recent.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center text-ink-3 italic py-8">
-                  No tokens issued yet. Issue one from a booking.
-                </td>
-              </tr>
+              <TableEmpty colSpan={8}>No tokens issued yet. Issue one from a booking.</TableEmpty>
             ) : (
               recent.map((t) => (
                 <tr key={t.id}>
@@ -183,22 +180,18 @@ export default async function GuestStaysHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>When</th>
-              <th>Type</th>
-              <th>Severity</th>
-              <th>Token</th>
-              <th>IP hash</th>
-              <th>Detail</th>
+              <th scope="col">When</th>
+              <th scope="col">Type</th>
+              <th scope="col">Severity</th>
+              <th scope="col">Token</th>
+              <th scope="col">IP hash</th>
+              <th scope="col">Detail</th>
             </tr>
           </thead>
           <tbody>
             {recentEvents.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center text-ink-3 italic py-8">
-                  No security events logged. Verifications, rate limits and
-                  lock / Wi-Fi reveals all surface here.
-                </td>
-              </tr>
+              <TableEmpty colSpan={6}>No security events logged. Verifications, rate limits and
+                  lock / Wi-Fi reveals all surface here.</TableEmpty>
             ) : (
               recentEvents.map((e) => (
                 <tr key={e.id}>

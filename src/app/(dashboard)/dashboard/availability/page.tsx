@@ -280,11 +280,11 @@ export default async function AvailabilityPage() {
         <table className="data">
           <thead>
             <tr>
-              <th>Villa</th>
-              <th>Status</th>
-              <th>Tonight</th>
-              <th>Next change</th>
-              <th>Project</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Status</th>
+              <th scope="col">Tonight</th>
+              <th scope="col">Next change</th>
+              <th scope="col">Project</th>
             </tr>
           </thead>
           <tbody>

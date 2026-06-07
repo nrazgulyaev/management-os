@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -200,24 +201,20 @@ export default async function OwnerIntelligenceHub() {
         <table className="data">
           <thead>
             <tr>
-              <th>Villa</th>
-              <th>Project</th>
-              <th>Health</th>
-              <th className="num">Occupancy</th>
-              <th className="num">Booked nights</th>
-              <th className="num">Open tickets</th>
-              <th className="num">Avg rating</th>
-              <th>Period</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Project</th>
+              <th scope="col">Health</th>
+              <th scope="col" className="num">Occupancy</th>
+              <th scope="col" className="num">Booked nights</th>
+              <th scope="col" className="num">Open tickets</th>
+              <th scope="col" className="num">Avg rating</th>
+              <th scope="col">Period</th>
             </tr>
           </thead>
           <tbody>
             {snaps.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center text-ink-3 italic py-8">
-                  No health snapshots yet. Generate them from the health reports
-                  page.
-                </td>
-              </tr>
+              <TableEmpty colSpan={8}>No health snapshots yet. Generate them from the health reports
+                  page.</TableEmpty>
             ) : (
               snaps.map((s) => {
                 const v = villaMap.get(s.villaId);
