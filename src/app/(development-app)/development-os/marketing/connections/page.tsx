@@ -104,7 +104,9 @@ export default async function MarketingConnectionsPage() {
                           ? "success"
                           : c.status === "error"
                             ? "danger"
-                            : "neutral"
+                            : c.status === "dry_run"
+                              ? "warning"
+                              : "neutral"
                       }
                     >
                       {c.status}

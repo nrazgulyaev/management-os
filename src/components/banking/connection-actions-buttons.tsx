@@ -43,12 +43,19 @@ export function BankConnectionActions({
         setMessage({ kind: "err", text: r.error });
         return;
       }
-      setMessage({
-        kind: r.connected ? "ok" : "warn",
-        text: r.connected
-          ? "Connection verified ✓"
-          : "Test returned negative.",
-      });
+      setMessage(
+        r.mode === "dry_run"
+          ? {
+              kind: "warn",
+              text: "Dry-run — no live bank API wired; no real sync runs.",
+            }
+          : {
+              kind: r.connected ? "ok" : "warn",
+              text: r.connected
+                ? "Connection verified ✓"
+                : "Test returned negative.",
+            },
+      );
       router.refresh();
     });
   };

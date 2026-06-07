@@ -302,7 +302,12 @@ export async function createMarketingConnectionAction(input: {
 export async function testMarketingConnectionAction(args: {
   connectionId: string;
 }): Promise<
-  | { ok: true; connected: boolean; details?: Record<string, unknown> }
+  | {
+      ok: true;
+      connected: boolean;
+      mode?: "live" | "dry_run";
+      details?: Record<string, unknown>;
+    }
   | { ok: false; error: string }
 > {
   await requirePermission("marketing.read");
@@ -349,12 +354,25 @@ export async function testMarketingConnectionAction(args: {
     return { ok: false, error: msg };
   }
 
+  // A dry-run provider is not a live source — record it as "dry_run",
+  // never "active".
+  const isDryRun = result.mode === "dry_run";
+  const nextStatus = isDryRun
+    ? "dry_run"
+    : result.connected
+      ? "active"
+      : "error";
+
   await db
     .update(marketingConnections)
     .set({
-      status: result.connected ? "active" : "error",
-      lastSyncStatus: result.connected ? "success" : "error",
-      lastSyncError: result.connected ? null : "testConnection returned false",
+      status: nextStatus,
+      lastSyncStatus: result.connected ? "success" : isDryRun ? "idle" : "error",
+      lastSyncError: result.connected
+        ? null
+        : isDryRun
+          ? "dry-run — no live marketing API configured"
+          : "testConnection returned false",
       updatedAt: new Date(),
     })
     .where(eq(marketingConnections.id, args.connectionId));
@@ -364,13 +382,18 @@ export async function testMarketingConnectionAction(args: {
     action: "marketing.connection.test",
     entityType: "marketing_connection",
     entityId: args.connectionId,
-    after: { connected: result.connected, details: result.details },
+    after: {
+      connected: result.connected,
+      mode: result.mode ?? "live",
+      details: result.details,
+    },
   });
 
   revalidatePath(`/development-os/marketing/connections/${args.connectionId}`);
   return {
     ok: true,
     connected: result.connected,
+    mode: result.mode,
     details: result.details ?? undefined,
   };
 }

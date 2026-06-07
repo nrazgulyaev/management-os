@@ -72,9 +72,12 @@ export class DryRunBankProvider implements BankProviderInterface {
     return null;
   }
 
+  /** Reports a NON-connected dry-run result so the operator UI never
+   *  shows a false "verified" for a bank feed that makes no real calls. */
   async testConnection(): Promise<ConnectionTestResult> {
     return {
-      connected: true,
+      connected: false,
+      mode: "dry_run",
       details: {
         provider: this.provider,
         mode: "dry_run",

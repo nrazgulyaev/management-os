@@ -225,7 +225,12 @@ export async function createBankConnectionAction(input: {
 export async function testBankConnectionAction(args: {
   connectionId: string;
 }): Promise<
-  | { ok: true; connected: boolean; details?: Record<string, unknown> }
+  | {
+      ok: true;
+      connected: boolean;
+      mode?: "live" | "dry_run";
+      details?: Record<string, unknown>;
+    }
   | { ok: false; error: string }
 > {
   await requirePermission("banking.read");
@@ -270,12 +275,25 @@ export async function testBankConnectionAction(args: {
     return { ok: false, error: msg };
   }
 
+  // A dry-run provider (Plaid/manual today) is not a live feed — record
+  // it as "dry_run", never "active".
+  const isDryRun = result.mode === "dry_run";
+  const nextStatus = isDryRun
+    ? "dry_run"
+    : result.connected
+      ? "active"
+      : "error";
+
   await db
     .update(bankConnections)
     .set({
-      status: result.connected ? "active" : "error",
-      lastSyncStatus: result.connected ? "success" : "error",
-      lastSyncError: result.connected ? null : "testConnection returned false",
+      status: nextStatus,
+      lastSyncStatus: result.connected ? "success" : isDryRun ? "idle" : "error",
+      lastSyncError: result.connected
+        ? null
+        : isDryRun
+          ? "dry-run — no live bank API configured"
+          : "testConnection returned false",
       updatedAt: new Date(),
     })
     .where(eq(bankConnections.id, args.connectionId));
@@ -285,13 +303,18 @@ export async function testBankConnectionAction(args: {
     action: "banking.connection.test",
     entityType: "bank_connection",
     entityId: args.connectionId,
-    after: { connected: result.connected, details: result.details },
+    after: {
+      connected: result.connected,
+      mode: result.mode ?? "live",
+      details: result.details,
+    },
   });
 
   revalidatePath(`/development-os/banking/${args.connectionId}`);
   return {
     ok: true,
     connected: result.connected,
+    mode: result.mode,
     details: result.details ?? undefined,
   };
 }

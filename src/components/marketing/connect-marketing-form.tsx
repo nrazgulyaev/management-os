@@ -72,10 +72,12 @@ export function ConnectMarketingForm({ organizationId }: FormProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [statusTone, setStatusTone] = useState<"ok" | "warn" | "err">("ok");
 
   function handleSubmit(formData: FormData) {
     setError(null);
     setStatusMsg(null);
+    setStatusTone("ok");
     const data = buildPayload(provider, formData);
     if (!data) {
       setError("Form data invalid.");
@@ -97,12 +99,18 @@ export function ConnectMarketingForm({ organizationId }: FormProps) {
       });
       if (test.ok) {
         setStatusMsg(
-          test.connected
-            ? "Connection verified ✓ — redirecting…"
-            : "Connection saved but test returned negative. Check credentials.",
+          test.mode === "dry_run"
+            ? "Saved in dry-run mode — no live marketing API is wired, so no real data syncs. Add live credentials to go live."
+            : test.connected
+              ? "Connection verified ✓ — redirecting…"
+              : "Connection saved but test returned negative. Check credentials.",
+        );
+        setStatusTone(
+          test.mode === "dry_run" ? "warn" : test.connected ? "ok" : "warn",
         );
       } else {
         setStatusMsg(`Connection saved but test failed: ${test.error}`);
+        setStatusTone("err");
       }
       // Redirect to detail page either way.
       setTimeout(() => {
@@ -146,7 +154,15 @@ export function ConnectMarketingForm({ organizationId }: FormProps) {
         </div>
       )}
       {statusMsg && (
-        <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <div
+          className={`rounded border px-3 py-2 text-sm ${
+            statusTone === "err"
+              ? "border-red-200 bg-red-50 text-red-700"
+              : statusTone === "warn"
+                ? "border-amber-200 bg-amber-50 text-amber-700"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}
+        >
           {statusMsg}
         </div>
       )}

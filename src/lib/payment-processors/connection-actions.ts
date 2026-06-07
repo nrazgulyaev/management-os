@@ -205,7 +205,12 @@ export async function createPaymentConnectionAction(input: {
 export async function testPaymentConnectionAction(args: {
   connectionId: string;
 }): Promise<
-  | { ok: true; connected: boolean; details?: Record<string, unknown> }
+  | {
+      ok: true;
+      connected: boolean;
+      mode?: "live" | "dry_run";
+      details?: Record<string, unknown>;
+    }
   | { ok: false; error: string }
 > {
   await requirePermission("payments.read");
@@ -245,10 +250,20 @@ export async function testPaymentConnectionAction(args: {
     return { ok: false, error: msg };
   }
 
+  // A dry-run provider (Wise/PayPal/Manual today) is NOT a live, verified
+  // connection — record it as "dry_run", never "active". Only a real
+  // provider returning connected:true earns "active".
+  const nextStatus =
+    result.mode === "dry_run"
+      ? "dry_run"
+      : result.connected
+        ? "active"
+        : "error";
+
   await db
     .update(paymentProcessorConnections)
     .set({
-      status: result.connected ? "active" : "error",
+      status: nextStatus,
       updatedAt: new Date(),
     })
     .where(eq(paymentProcessorConnections.id, args.connectionId));
@@ -258,13 +273,18 @@ export async function testPaymentConnectionAction(args: {
     action: "payments.connection.test",
     entityType: "payment_processor_connection",
     entityId: args.connectionId,
-    after: { connected: result.connected, details: result.details },
+    after: {
+      connected: result.connected,
+      mode: result.mode ?? "live",
+      details: result.details,
+    },
   });
 
   revalidatePath(`/dashboard/payments/providers/${args.connectionId}`);
   return {
     ok: true,
     connected: result.connected,
+    mode: result.mode,
     details: result.details ?? undefined,
   };
 }
