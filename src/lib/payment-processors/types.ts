@@ -147,6 +147,11 @@ export interface PaymentWebhookEvent {
 
 export interface ConnectionTestResult {
   connected: boolean;
+  /** "dry_run" when no live provider is wired (credentials missing or
+   *  provider not yet implemented). Real providers omit this (→ "live").
+   *  A dry-run result MUST report `connected: false` so the UI never
+   *  shows a misleading "verified" state for a non-live connection. */
+  mode?: "live" | "dry_run";
   details: Record<string, unknown>;
 }
 

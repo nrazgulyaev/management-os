@@ -90,9 +90,15 @@ export class DryRunPaymentProvider implements PaymentProviderInterface {
     return null;
   }
 
+  /** Reports a NON-connected dry-run result. Returning `connected: true`
+   *  here would surface a false "Connection verified ✓" for Wise/PayPal/
+   *  Manual (which all route through DryRun) — a dangerous lie on a
+   *  money surface. The `mode` flag lets the UI render an honest
+   *  "not live" state distinct from a real error. */
   async testConnection(): Promise<ConnectionTestResult> {
     return {
-      connected: true,
+      connected: false,
+      mode: "dry_run",
       details: {
         provider: this.provider,
         mode: "dry_run",

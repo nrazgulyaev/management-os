@@ -38,10 +38,19 @@ export function MarketingConnectionActions({ connectionId, status }: Props) {
         setMessage({ kind: "err", text: r.error });
         return;
       }
-      setMessage({
-        kind: r.connected ? "ok" : "warn",
-        text: r.connected ? "Connection verified ✓" : "Test returned negative.",
-      });
+      setMessage(
+        r.mode === "dry_run"
+          ? {
+              kind: "warn",
+              text: "Dry-run — no live marketing API wired; no real data syncs.",
+            }
+          : {
+              kind: r.connected ? "ok" : "warn",
+              text: r.connected
+                ? "Connection verified ✓"
+                : "Test returned negative.",
+            },
+      );
       router.refresh();
     });
   };

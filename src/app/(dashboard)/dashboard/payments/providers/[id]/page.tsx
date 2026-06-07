@@ -19,6 +19,7 @@ const STATUS_TONE: Record<string, "success" | "danger" | "warning" | "neutral"> 
     error: "danger",
     pending: "warning",
     paused: "warning",
+    dry_run: "warning",
     archived: "neutral",
   };
 

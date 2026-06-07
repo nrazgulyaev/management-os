@@ -38,10 +38,19 @@ export function PaymentConnectionActions({ connectionId, status }: Props) {
         setMessage({ kind: "err", text: r.error });
         return;
       }
-      setMessage({
-        kind: r.connected ? "ok" : "warn",
-        text: r.connected ? "Connection verified ✓" : "Test returned negative.",
-      });
+      setMessage(
+        r.mode === "dry_run"
+          ? {
+              kind: "warn",
+              text: "Dry-run — no live provider wired; nothing will charge.",
+            }
+          : {
+              kind: r.connected ? "ok" : "warn",
+              text: r.connected
+                ? "Connection verified ✓"
+                : "Test returned negative.",
+            },
+      );
       router.refresh();
     });
   };

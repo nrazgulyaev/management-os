@@ -240,6 +240,10 @@ export interface MarketingWebhookEvent {
 
 export interface ConnectionTestResult {
   connected: boolean;
+  /** "dry_run" when no live provider is wired. Real providers omit this
+   *  (→ "live"). A dry-run result MUST report `connected: false` so the
+   *  UI never shows a misleading "verified" state for a non-live source. */
+  mode?: "live" | "dry_run";
   details: Record<string, unknown>;
 }
 
