@@ -24,13 +24,65 @@ import { VendorModalForm } from "@/components/development/finance/vendor-modal-f
 import { ExportButton } from "@/components/development/bulk-import/export-button";
 import { DevOsRowActions } from "@/components/development/dev-os-row-actions";
 import { NoItemsYet } from "@/components/ui/primitives";
+import {
+  loadVendorScorecards,
+  type VendorScorecard,
+} from "./_vendor-scorecard";
 
 export const metadata: Metadata = { title: "Vendors · Development OS" };
 export const dynamic = "force-dynamic";
 
+const BAND_TONE: Record<
+  VendorScorecard["band"],
+  "success" | "warning" | "danger"
+> = {
+  high: "success",
+  mid: "warning",
+  low: "danger",
+};
+
+const BAND_LABEL: Record<VendorScorecard["band"], string> = {
+  high: "Preferred",
+  mid: "Standard",
+  low: "Watch",
+};
+
+/** Renders a 0–100 / star vendor scorecard cell. */
+function VendorScoreCell({ card }: { card: VendorScorecard | undefined }) {
+  if (!card) {
+    return <span className="text-ink-tertiary text-xs">—</span>;
+  }
+  const fullStars = Math.floor(card.stars);
+  const half = card.stars - fullStars >= 0.5;
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        <span
+          className="font-mono text-sm tabular-nums"
+          aria-label={`Composite score ${card.composite} out of 100`}
+        >
+          {card.composite}
+        </span>
+        <Badge tone={BAND_TONE[card.band]}>{BAND_LABEL[card.band]}</Badge>
+      </div>
+      <div
+        className="text-[13px] leading-none text-amber"
+        title={`${card.stars.toFixed(1)} / 5 · ${card.persisted ? "nightly score" : "computed live"}`}
+        aria-hidden
+      >
+        {"★".repeat(fullStars)}
+        {half ? "⯨" : ""}
+        <span className="text-line-soft">
+          {"☆".repeat(5 - fullStars - (half ? 1 : 0))}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default async function VendorsPage() {
   const db = getDb();
-  const [list, metrics] = db
+  const [list, metrics, scorecards] = db
     ? await Promise.all([
         safeQuery("getVendors", getVendors(), [], 4000),
         safeQuery(
@@ -48,8 +100,23 @@ export default async function VendorsPage() {
           },
           4000,
         ),
+        safeQuery(
+          "loadVendorScorecards",
+          loadVendorScorecards(),
+          new Map<string, VendorScorecard>(),
+          4000,
+        ),
       ])
-    : [[], null];
+    : [[], null, new Map<string, VendorScorecard>()];
+
+  // Average AI composite across vendors that have a score, for the snapshot.
+  const scoredCards = Array.from(scorecards.values());
+  const avgComposite =
+    scoredCards.length > 0
+      ? Math.round(
+          scoredCards.reduce((s, c) => s + c.composite, 0) / scoredCards.length,
+        )
+      : null;
 
   return (
     <DevelopmentShell>
@@ -90,7 +157,7 @@ export default async function VendorsPage() {
         <>
           {metrics && (
             <Section eyebrow="Snapshot" title="At a glance">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 <MetricCard
                   label="Total"
                   value={String(metrics.totalVendors)}
@@ -118,6 +185,15 @@ export default async function VendorsPage() {
                       : "—"
                   }
                 />
+                <MetricCard
+                  label="Avg AI score"
+                  value={avgComposite != null ? `${avgComposite} / 100` : "—"}
+                  hint={
+                    scoredCards.length > 0
+                      ? `${scoredCards.length} scored`
+                      : "no signal yet"
+                  }
+                />
               </div>
             </Section>
           )}
@@ -139,6 +215,7 @@ export default async function VendorsPage() {
                     <TH>Active eng.</TH>
                     <TH>On-time</TH>
                     <TH>Quality</TH>
+                    <TH>AI score</TH>
                     <TH>Status</TH>
                     <TH />
                   </TR>
@@ -170,6 +247,9 @@ export default async function VendorsPage() {
                           ? `${Number(v.qualityRating).toFixed(2)} / 5`
                           : "—"}
                       </TDNum>
+                      <TD>
+                        <VendorScoreCell card={scorecards.get(v.id)} />
+                      </TD>
                       <TD>
                         <Badge
                           tone={
