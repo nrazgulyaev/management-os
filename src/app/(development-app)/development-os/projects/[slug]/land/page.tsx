@@ -17,6 +17,7 @@ import {
   getLandTransactionCosts,
 } from "@/lib/development/server/land/land-actions";
 import { safeQuery } from "@/lib/development/safe-query";
+import { InstallmentPay } from "./_installment-pay";
 
 export const metadata: Metadata = { title: "Land profile · Development OS" };
 export const dynamic = "force-dynamic";
@@ -190,6 +191,7 @@ export default async function LandProfilePage({
                     <TH>Status</TH>
                     <TH>Paid date</TH>
                     <TH>Paid amount</TH>
+                    <TH>Actions</TH>
                   </TR>
                 </THead>
                 <TBody>
@@ -209,6 +211,15 @@ export default async function LandProfilePage({
                           ? fmtUsd(inst.paidAmountMinor)
                           : "—"}
                       </TDNum>
+                      <TD>
+                        <InstallmentPay
+                          installmentId={inst.id}
+                          slug={slug}
+                          amountMinor={String(inst.amountMinor)}
+                          currency={schedule.schedule.currency}
+                          status={inst.status}
+                        />
+                      </TD>
                     </TR>
                   ))}
                 </TBody>
