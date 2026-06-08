@@ -11,6 +11,9 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listCashflowForecasts } from "@/lib/development/server/cashflow/cashflow-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { projects } from "@/lib/db/schema/projects";
+import { asc } from "drizzle-orm";
+import { GenerateForecastForm, CashflowTransition } from "./_controls";
 
 export const metadata: Metadata = {
   title: "Cashflow forecast · Development OS",
@@ -52,12 +55,20 @@ export default async function CashflowForecastPage({
     params.scope === "project" || params.scope === "company_wide"
       ? params.scope
       : undefined;
-  const forecasts = await safeQuery(
-    "listCashflowForecasts",
-    listCashflowForecasts({ status: params.status, scope: scopeFilter }),
-    [],
-    4000,
-  );
+  const [forecasts, projectList] = await Promise.all([
+    safeQuery(
+      "listCashflowForecasts",
+      listCashflowForecasts({ status: params.status, scope: scopeFilter }),
+      [],
+      4000,
+    ),
+    safeQuery(
+      "cashflow projects",
+      db.select({ id: projects.id, name: projects.name }).from(projects).orderBy(asc(projects.name)),
+      [],
+      4000,
+    ),
+  ]);
   const activeCount = forecasts.filter((f) => f.status === "active").length;
 
   return (
@@ -71,12 +82,15 @@ export default async function CashflowForecastPage({
         title="Monthly cashflow forecasts"
         description="JSONB snapshots of month-by-month inflow / outflow / cumulative cash. Forecasts are immutable after save; the auto-generate cron creates a fresh draft on the 1st of each month — operator must promote to `active`."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <GenerateForecastForm projects={projectList} />
+            <Button asChild variant="secondary">
+              <Link href="/development-os">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Command center
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -101,6 +115,7 @@ export default async function CashflowForecastPage({
                 <TH className="text-right">Peak required</TH>
                 <TH className="text-right">Ending cash</TH>
                 <TH>Status</TH>
+                <TH>Actions</TH>
               </TR>
             </THead>
             <TBody>
@@ -134,6 +149,9 @@ export default async function CashflowForecastPage({
                       <Badge tone={STATUS_TONE[f.status] ?? "neutral"}>
                         {f.status}
                       </Badge>
+                    </TD>
+                    <TD>
+                      <CashflowTransition forecastId={f.id} status={f.status} />
                     </TD>
                   </TR>
                 );
