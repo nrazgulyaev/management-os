@@ -19,6 +19,11 @@ import { safeQuery } from "@/lib/development/safe-query";
 import { ReservationModalForm } from "@/components/development/sales/reservation-modal-form";
 import { ExportButton } from "@/components/development/bulk-import/export-button";
 import { ReservationRowActions } from "./_row-actions";
+import { ContractModalForm } from "@/components/development/sales/contract-modal-form";
+import {
+  getContractTemplates,
+  getSalesSchemes,
+} from "@/lib/development/server/contracts";
 
 export const metadata: Metadata = { title: "Reservations · Development OS" };
 export const dynamic = "force-dynamic";
@@ -38,7 +43,7 @@ function fmtUsd(minor: bigint): string {
 
 export default async function ReservationsPage() {
   const db = getDb();
-  const [reservations, contactRows, villaRows] = await Promise.all([
+  const [reservations, contactRows, villaRows, templates, schemes] = await Promise.all([
     // STAB-2 fix: getReservations() was unwrapped while the sibling
     // queries on this same page were protected by safeQuery with a
     // 4000ms timeout. When the reservations join hung at the DB
@@ -76,7 +81,11 @@ export default async function ReservationsPage() {
           4000,
         )
       : Promise.resolve([]),
+    safeQuery("contract templates", getContractTemplates(), [], 4000),
+    safeQuery("sales schemes", getSalesSchemes(), [], 4000),
   ]);
+  const templateOptions = templates.map((t) => ({ id: t.id, name: t.name }));
+  const schemeOptions = schemes.map((s) => ({ id: s.id, name: s.name }));
   const active = reservations.filter(
     (r) => r.status === "active" || r.status === "pending_payment",
   );
@@ -175,15 +184,28 @@ export default async function ReservationsPage() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
-                        <ReservationRowActions
-                          reservationId={r.id}
-                          status={r.status}
-                          expiresAt={
-                            r.expiresAt
-                              ? new Date(r.expiresAt).toISOString()
-                              : null
-                          }
-                        />
+                        <div className="flex flex-col items-end gap-2">
+                          <ReservationRowActions
+                            reservationId={r.id}
+                            status={r.status}
+                            expiresAt={
+                              r.expiresAt
+                                ? new Date(r.expiresAt).toISOString()
+                                : null
+                            }
+                          />
+                          {r.status === "active" && (
+                            <ContractModalForm
+                              reservationId={r.id}
+                              reservationLabel={`${r.contactFullName} · ${r.villaCode}`}
+                              contractTemplates={templateOptions}
+                              salesSchemes={schemeOptions}
+                              suggestedTotalUsd={
+                                Number(r.priceLockedUsdMinor) / 100
+                              }
+                            />
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
