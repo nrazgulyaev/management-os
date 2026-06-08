@@ -10,7 +10,10 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listSharedCostAllocations } from "@/lib/development/server/shared-costs/shared-cost-actions";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
+import { getTransactions } from "@/lib/development/server/transactions";
 import { safeQuery } from "@/lib/development/safe-query";
+import { ProposeSharedCostForm } from "./_propose-form";
 
 export const metadata: Metadata = { title: "Shared costs · Development OS" };
 export const dynamic = "force-dynamic";
@@ -33,12 +36,18 @@ export default async function SharedCostsPage() {
       </DevelopmentShell>
     );
   }
-  const allocations = await safeQuery(
-    "listSharedCostAllocations",
-    listSharedCostAllocations(),
-    [],
-    4000,
-  );
+  const [allocations, projectRows, txRows] = await Promise.all([
+    safeQuery("listSharedCostAllocations", listSharedCostAllocations(), [], 4000),
+    safeQuery("projects", getDevelopmentProjects(), []),
+    safeQuery("outflow tx", getTransactions({ direction: "outflow" }, { limit: 100 }), []),
+  ]);
+  const projectOpts = projectRows
+    .filter((p) => p.source !== "mock")
+    .map((p) => ({ id: p.realProjectId, name: p.name }));
+  const sourceOpts = txRows.map((t) => ({
+    id: t.id,
+    label: `${t.transactionCode} · ${t.description.slice(0, 40)} · ${(Number(t.amountMinor) / 100).toLocaleString()} ${t.currency}`,
+  }));
 
   return (
     <DevelopmentShell>
@@ -52,12 +61,15 @@ export default async function SharedCostsPage() {
         title="Shared cost allocations"
         description="Allocate one transaction (office rent, payroll, marketing) across multiple projects. DB trigger enforces percentages sum to exactly 100%. Approval creates derivative dev_transactions atomically."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Finance
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ProposeSharedCostForm projects={projectOpts} sources={sourceOpts} />
+            <Button asChild variant="secondary">
+              <Link href="/development-os/finance">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Finance
+              </Link>
+            </Button>
+          </div>
         }
       />
 
