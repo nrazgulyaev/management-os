@@ -14,6 +14,7 @@ import {
   listPayrollPeriods,
   listTeamCapacityTracking,
 } from "@/lib/development/server/project-cycle/cycle-queries";
+import { CycleReviewActions } from "./_review-actions";
 import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = {
@@ -107,6 +108,7 @@ export default async function ProjectCyclePage() {
                 <TH>Confidence</TH>
                 <TH>Status</TH>
                 <TH>Generated</TH>
+                <TH>Decision</TH>
               </TR>
             </THead>
             <TBody>
@@ -129,6 +131,12 @@ export default async function ProjectCyclePage() {
                     </Badge>
                   </TD>
                   <TD className="text-xs">{r.generatedForDate}</TD>
+                  <TD>
+                    <CycleReviewActions
+                      recommendationId={r.id}
+                      currentStatus={r.operatorStatus}
+                    />
+                  </TD>
                 </TR>
               ))}
             </TBody>

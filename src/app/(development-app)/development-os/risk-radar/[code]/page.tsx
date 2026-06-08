@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getAlertByCode } from "@/lib/development/server/risk-radar/risk-radar-queries";
+import { getCurrentAppUser } from "@/features/auth/current-user";
+import { AlertActions } from "./_alert-actions";
 
 export const metadata: Metadata = { title: "Risk alert · Development OS" };
 export const dynamic = "force-dynamic";
@@ -29,7 +31,10 @@ export default async function RiskAlertDetailPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const alert = await getAlertByCode(code);
+  const [alert, me] = await Promise.all([
+    getAlertByCode(code),
+    getCurrentAppUser().catch(() => null),
+  ]);
   if (!alert) notFound();
 
   return (
@@ -63,6 +68,15 @@ export default async function RiskAlertDetailPage({
           )}
           {alert.isRecurring && <Badge tone="warning">recurring pattern</Badge>}
         </div>
+        {me?.id && (
+          <div className="mt-4">
+            <AlertActions
+              alertCode={alert.alertCode}
+              status={alert.status}
+              userId={me.id}
+            />
+          </div>
+        )}
       </Section>
 
       <Section title="Description">

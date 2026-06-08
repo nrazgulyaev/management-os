@@ -21,6 +21,7 @@ import {
   SAFETY_STATUS_LABEL,
 } from "@/lib/development/constants/safety-constants";
 import { safeQuery } from "@/lib/development/safe-query";
+import { SafetyStatusControl } from "./_status-control";
 
 export const metadata: Metadata = { title: "Safety · Development OS" };
 export const dynamic = "force-dynamic";
@@ -151,6 +152,7 @@ export default async function SafetyPage() {
                     <TH>Affected</TH>
                     <TH>Description</TH>
                     <TH>Status</TH>
+                    <TH>Set status</TH>
                   </TR>
                 </THead>
                 <TBody>
@@ -184,6 +186,9 @@ export default async function SafetyPage() {
                         >
                           {SAFETY_STATUS_LABEL[i.status]}
                         </Badge>
+                      </TD>
+                      <TD>
+                        <SafetyStatusControl id={i.id} status={i.status} />
                       </TD>
                     </TR>
                   ))}
