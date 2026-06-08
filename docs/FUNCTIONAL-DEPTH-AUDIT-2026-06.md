@@ -135,6 +135,35 @@ These are work items where the engine/component/table exists and the build is **
 - `statement_anomalies` (0112) → finance anomaly band + approve-gate.
 - `boq_revisions` / `boq_actuals` (0113) → QS variance queue.
 
+### 3.1 Verification correction (2026-06-08)
+
+The §3 register above was assembled from the 27-agent probe. A **deterministic re-verification** against the live tree (exact grep for JSX renders / route mounts, not agent inference) found the probe had a **meaningful false-negative rate on "is it mounted?"** — much of the register was already wired by the earlier wire-up sweep (PRs #111–#121). Corrected status:
+
+**Already wired (do NOT rebuild — probe false-negatives):**
+- Owner statement **Acknowledge / Dispute** → `OwnerStatementActionBar` → `acknowledgeStatementAction` / `raiseStatementDisputeAction`.
+- **Discount approve/reject** (`DiscountApprovalActions`), **contract Sign + Issue-invoice** (`SignContractButton` / `IssueInvoiceButton` via `contracts/[id]/_actions.tsx`).
+- **Marketing campaign status FSM** (`transitionCampaignStatus` → `marketing/campaigns/_status-control.tsx`).
+- **Exec risk act** (`acknowledgeAlert` / `resolveAlert` → `risk-radar/[code]/_alert-actions.tsx`).
+- **Concierge transcript + manual staff reply** (`_concierge-workspace.tsx` → `loadConciergeThreadAction` / `postConciergeStaffReplyAction`) — only the **AI-draft generate** is still missing.
+- Owner **month-calendar** (display) is mounted; `booking status FSM` shipped in PR #131.
+
+**Confirmed genuinely orphaned (real remaining work — verified 0 renders):**
+- Finance accountant modals `approve-modal` / `prepare-modal` / `send-modal` / `section-pill` (files exist, **0 JSX renders**).
+- Investor `DistributionFlow` + `CapitalCallModal` + `capital_calls` table (cabinet has only MetricCards + Table).
+- Owner `personal-stay-modal` (book-a-stay range select + quota calc).
+- Front-office `checkin-flow` + `id-ocr-preview` (+ stubbed `front-office/queries.ts`).
+- Revenue `pricing-curve` + `channel-grid` + `upsertOverride` (+ stubbed `pricing/queries.ts`, `channels/queries.ts`).
+- Sales `payment-ladder` + `offer-modal`.
+- QS `VarianceCard` + `boq_revisions` / `boq_actuals`.
+- Site-supervisor `capture-flow` / `storyboard-log` / `voice-input` (+ stubbed `site-reports/queries.ts`).
+- PM `RFIComposeModal` + `rfis` table (only consumer is the agent stub file, no route).
+- Knowledge `transitionDrawingRevision` (FSM exists, **0 UI buttons**).
+- Marketing `recordCampaignCost`.
+- Finance `statement_anomalies` table + anomaly `run()` (returns `[]`).
+- Net-new (not a mount): `DrawingViewer` takeoff, `recordMilestonePayment` PSP collect.
+
+**Takeaway:** the functional-roadmap is even smaller than §3 first implied — roughly a third of the "orphaned" items were already wired. Build planning should treat this corrected list as authoritative and re-verify any §3 item with an exact grep before estimating it.
+
 ---
 
 ## 4. AI-everywhere matrix
