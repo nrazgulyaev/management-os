@@ -6,6 +6,7 @@ import { DetailHeader } from "@/components/dashboard/detail/detail-header";
 import { DetailSide, type SideCard } from "@/components/dashboard/detail/detail-side";
 import { DetailRelated, type RelatedItem } from "@/components/dashboard/detail/detail-related";
 import { BookingDetailTabs } from "./_detail-client";
+import { BookingStatusActions } from "./_status-actions";
 import { BookingNotesEditor } from "./_notes-editor";
 import { ExtendStayButton } from "./_extend-stay";
 import { AddGuestButton } from "./_guest-add";
@@ -874,6 +875,7 @@ export default async function BookingDetailPage({
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
+            <BookingStatusActions bookingId={b.id} status={b.status} />
             <PrintFolioButton />
             {railEmail ? (
               <a className="btn btn-secondary btn-sm" href={`mailto:${railEmail}`}>
