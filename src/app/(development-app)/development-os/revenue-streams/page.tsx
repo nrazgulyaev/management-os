@@ -10,7 +10,9 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listRevenueStreams } from "@/lib/development/server/revenue-streams/revenue-stream-queries";
+import { listAssets } from "@/lib/development/server/assets/asset-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { LogRevenueStreamForm } from "./_create-form";
 
 export const metadata: Metadata = { title: "Revenue streams · Development OS" };
 export const dynamic = "force-dynamic";
@@ -36,12 +38,20 @@ export default async function RevenueStreamsPage({
       </DevelopmentShell>
     );
   }
-  const streams = await safeQuery(
-    "listRevenueStreams",
-    listRevenueStreams({ streamType: params.type }),
-    [],
-    4000,
-  );
+  const [streams, assetRows] = await Promise.all([
+    safeQuery(
+      "listRevenueStreams",
+      listRevenueStreams({ streamType: params.type }),
+      [],
+      4000,
+    ),
+    safeQuery("listAssets", listAssets(), [], 4000),
+  ]);
+  const assetOpts = assetRows.map((a) => ({
+    id: a.id,
+    projectId: a.projectId,
+    label: `${a.unitCode} · ${a.name}`,
+  }));
 
   return (
     <DevelopmentShell>
@@ -54,12 +64,15 @@ export default async function RevenueStreamsPage({
         title="Revenue streams"
         description="Per-period gross + net revenue by asset. `net_revenue_minor` is computed in Postgres as `gross - direct_costs` (GENERATED STORED) so it's always consistent."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <LogRevenueStreamForm assets={assetOpts} />
+            <Button asChild variant="secondary">
+              <Link href="/development-os">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Command center
+              </Link>
+            </Button>
+          </div>
         }
       />
 
