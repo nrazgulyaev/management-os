@@ -7,6 +7,7 @@ import {
   User,
   Briefcase,
   TrendingUp,
+  PhoneCall,
 } from "lucide-react";
 import type { PortalStrings } from "@/lib/investor-portal/translations";
 
@@ -30,6 +31,7 @@ export function PortalShell({
   const navItems: { href: string; label: string; Icon: typeof Wallet }[] = [
     { href: "/investor-portal/dashboard", label: strings.navDashboard, Icon: LayoutDashboard },
     { href: "/investor-portal/commitments", label: strings.navCommitments, Icon: Briefcase },
+    { href: "/investor-portal/capital-calls", label: "Capital calls", Icon: PhoneCall },
     { href: "/investor-portal/distributions", label: strings.navDistributions, Icon: HandCoins },
     { href: "/investor-portal/forecasts", label: "Forecasts", Icon: TrendingUp },
     { href: "/investor-portal/documents", label: strings.navDocuments, Icon: FileText },
