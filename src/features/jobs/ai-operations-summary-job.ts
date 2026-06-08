@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getDb } from "@/lib/db/client";
+
 import { generateOperationsCopilotSummary } from "@/features/ai/operations-copilot/service";
 import type { JobOutcome, JobRunHandle } from "./runner";
 
@@ -15,6 +17,14 @@ import type { JobOutcome, JobRunHandle } from "./runner";
 export async function runAiOperationsSummaryJob(
   handle: JobRunHandle,
 ): Promise<JobOutcome> {
+  if (!getDb()) {
+    return {
+      status: "failed",
+      summary: "Database is not configured.",
+      metrics: { fallbackUsed: false },
+      error: "DB unavailable",
+    };
+  }
   await handle.event("info", "Generating Operations Co-pilot summary…");
   const out = await generateOperationsCopilotSummary({
     triggerType: "scheduled",

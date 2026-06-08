@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getDb } from "@/lib/db/client";
+
 import { listLowStockItems } from "@/features/inventory/services";
 import { queueNotification } from "@/features/notifications/services";
 import { recordAuditEvent } from "@/features/audit/services";
@@ -14,6 +16,14 @@ const ALERT_ROLE_RECIPIENTS = ["operations_manager", "procurement_manager"];
 export { lowStockDedupeKey };
 
 export async function runLowStockScanJob(handle: JobRunHandle): Promise<JobOutcome> {
+  if (!getDb()) {
+    return {
+      status: "failed",
+      summary: "Database is not configured.",
+      metrics: { lowStockCount: 0, notificationsQueued: 0, deduped: 0 },
+      error: "DB unavailable",
+    };
+  }
   const items = await listLowStockItems();
   const lowStockCount = items.length;
 

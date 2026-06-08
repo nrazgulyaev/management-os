@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getDb } from "@/lib/db/client";
+
 import { deliverPendingNotifications } from "@/features/notifications/delivery";
 import type { JobOutcome, JobRunHandle } from "./runner";
 
@@ -13,6 +15,14 @@ const BATCH_LIMIT = 100;
 export async function runNotificationDeliveryJob(
   handle: JobRunHandle,
 ): Promise<JobOutcome> {
+  if (!getDb()) {
+    return {
+      status: "failed",
+      summary: "Database is not configured.",
+      metrics: { notificationsChecked: 0, sent: 0, failed: 0, suppressed: 0, retriesScheduled: 0 },
+      error: "DB unavailable",
+    };
+  }
   const metrics = await deliverPendingNotifications(BATCH_LIMIT);
 
   await handle.event("info", "Delivery batch complete", { ...metrics });

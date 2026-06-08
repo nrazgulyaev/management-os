@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getDb } from "@/lib/db/client";
+
 import { runDueGuestJourneyRules } from "@/features/guest-journey/runner";
 import type { JobOutcome, JobRunHandle } from "./runner";
 
@@ -13,6 +15,14 @@ const BATCH_LIMIT = 100;
 export async function runGuestJourneyDueRulesJob(
   handle: JobRunHandle,
 ): Promise<JobOutcome> {
+  if (!getDb()) {
+    return {
+      status: "failed",
+      summary: "Database is not configured.",
+      metrics: { executed: 0, skipped: 0, failed: 0 },
+      error: "DB unavailable",
+    };
+  }
   const out = await runDueGuestJourneyRules(BATCH_LIMIT);
   await handle.event("info", "Due guest journey runs processed", { ...out });
   const status =

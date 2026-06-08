@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getDb } from "@/lib/db/client";
+
 import {
   defaultRebuildWindow,
   rebuildOwnerBookingSummariesForAllOwners,
@@ -16,6 +18,14 @@ import type { JobOutcome, JobRunHandle } from "./runner";
 export async function runOwnerBookingProjectionRebuildJob(
   handle: JobRunHandle,
 ): Promise<JobOutcome> {
+  if (!getDb()) {
+    return {
+      status: "failed",
+      summary: "Database is not configured.",
+      metrics: { ownersProcessed: 0, summaries: 0, breakdowns: 0, monthlyBuckets: 0 },
+      error: "DB unavailable",
+    };
+  }
   const window = defaultRebuildWindow();
   const out = await rebuildOwnerBookingSummariesForAllOwners(window);
   await handle.event("info", "Owner booking projection rebuilt", {

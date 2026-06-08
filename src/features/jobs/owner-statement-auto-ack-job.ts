@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getDb } from "@/lib/db/client";
+
 import { runOwnerStatementAutoAck } from "@/features/owner-statements/auto-ack";
 import type { JobOutcome, JobRunHandle } from "./runner";
 
@@ -11,6 +13,14 @@ import type { JobOutcome, JobRunHandle } from "./runner";
 export async function runOwnerStatementAutoAckJob(
   handle: JobRunHandle,
 ): Promise<JobOutcome> {
+  if (!getDb()) {
+    return {
+      status: "failed",
+      summary: "Database is not configured.",
+      metrics: { autoAcked: 0 },
+      error: "DB unavailable",
+    };
+  }
   const out = await runOwnerStatementAutoAck();
   await handle.event("info", "Owner-statement auto-ack sweep complete", { ...out });
   return {

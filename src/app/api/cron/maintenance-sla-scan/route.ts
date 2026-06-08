@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getDb } from "@/lib/db/client";
 import { verifyCronAuthFromRequest } from "@/features/jobs/auth";
 import { runMaintenanceSlaScan } from "@/features/jobs/maintenance-sla-scan-job";
 
@@ -23,6 +24,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { ok: false, error: auth.reason ?? "unauthorised" },
       { status: 401 },
+    );
+  }
+
+  // DB-down guard: this route bypasses withJobRun, and runMaintenanceSlaScan
+  // returns zeros (not a failure) when the DB is unconfigured — which would
+  // otherwise report ok:true and mask the outage to the cron dispatcher.
+  if (!getDb()) {
+    return NextResponse.json(
+      { ok: false, error: "Database is not configured." },
+      { status: 503 },
     );
   }
 
