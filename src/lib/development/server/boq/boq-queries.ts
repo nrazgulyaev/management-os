@@ -8,6 +8,30 @@ import {
   boqItems,
 } from "@/lib/db/schema/boq";
 
+/**
+ * Flat list of BOQ sections across all documents in the org, for a
+ * "save a takeoff line into this section" picker. The label combines the
+ * document title + section name.
+ */
+export async function listBoqSectionTargets(): Promise<
+  Array<{ sectionId: string; label: string }>
+> {
+  const db = requireDb();
+  const rows = await db
+    .select({
+      sectionId: boqSections.id,
+      sectionName: boqSections.sectionName,
+      docTitle: boqDocuments.title,
+    })
+    .from(boqSections)
+    .innerJoin(boqDocuments, eq(boqDocuments.id, boqSections.boqDocumentId))
+    .orderBy(asc(boqDocuments.title), asc(boqSections.displayOrder));
+  return rows.map((r) => ({
+    sectionId: r.sectionId,
+    label: `${r.docTitle} · ${r.sectionName}`,
+  }));
+}
+
 export async function listBoqDocuments(filters?: {
   projectId?: string;
   villaId?: string;
