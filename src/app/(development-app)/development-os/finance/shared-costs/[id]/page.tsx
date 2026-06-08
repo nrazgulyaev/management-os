@@ -12,6 +12,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getSharedCostAllocation } from "@/lib/development/server/shared-costs/shared-cost-actions";
 import { SharedCostApproveButton } from "@/components/development/finance/shared-cost-approve-button";
+import { SharedCostReverseButton } from "@/components/development/finance/shared-cost-reverse-button";
 
 export const metadata: Metadata = {
   title: "Shared cost allocation · Development OS",
@@ -128,6 +129,17 @@ export default async function SharedCostDetailPage({
           <p className="text-[11px] text-ink-tertiary mt-2">
             Approve creates derivative dev_transactions on each project's books
             atomically. The source transaction stays as the canonical cash record.
+          </p>
+        </Section>
+      )}
+
+      {allocation.status === "applied" && (
+        <Section eyebrow="HITL" title="Reverse allocation">
+          <SharedCostReverseButton allocationId={allocation.id} />
+          <p className="text-[11px] text-ink-tertiary mt-2">
+            Marks the allocation reversed and records the reason. Note: the
+            derivative transactions are not auto-deleted — adjust the project
+            ledgers manually if needed.
           </p>
         </Section>
       )}
