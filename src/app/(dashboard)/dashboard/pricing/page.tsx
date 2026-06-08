@@ -8,6 +8,7 @@ import {
 import { VillaPicker } from "./_villa-picker";
 import { RateCurve } from "./_rate-curve";
 import { CompTable, type CompRow } from "@/components/pricing/comp-table";
+import { buildPricingRecommendations } from "@/features/dynamic-pricing/recommendations";
 
 /**
  * Dynamic pricing — per-villa "production view" (prototype mgmt-p2).
@@ -148,6 +149,22 @@ export default async function PricingProductionView({
   const overrideCount =
     (rules?.stopSell.length ?? 0) +
     (rules?.closeOut.filter((r) => r.modifierType === "stop_sell").length ?? 0);
+
+  // Pricing assistant — deterministic recommendations over the live curve.
+  const pricingRecs =
+    cells.length > 0
+      ? buildPricingRecommendations({
+          cells,
+          baseMinor,
+          currency,
+          compIndexPct: compIndex != null ? compIndex - 100 : 0,
+        })
+      : [];
+  const REC_TONE: Record<string, string> = {
+    opportunity: "border-success/40 bg-success/5",
+    watch: "border-warning/40 bg-warning-weak/40",
+    info: "border-line-soft bg-muted/30",
+  };
 
   /* ---- flatten rule families into display rows ---- */
   const ruleRows: RuleRow[] = [];
@@ -312,6 +329,29 @@ export default async function PricingProductionView({
           />
         )}
       </div>
+
+      {/* Pricing assistant — recommendations over the live curve */}
+      {pricingRecs.length > 0 && (
+        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden mb-[18px]">
+          <div className="px-5 py-3.5 border-b border-line-soft flex items-center gap-2">
+            <span className="text-label">Pricing assistant</span>
+            <span className="text-[11px] text-ink-tertiary">
+              {pricingRecs.length} recommendation{pricingRecs.length === 1 ? "" : "s"} · next {DAYS} nights
+            </span>
+          </div>
+          <ul className="p-3.5 flex flex-col gap-2">
+            {pricingRecs.map((r) => (
+              <li
+                key={r.kind}
+                className={`rounded-md border px-3.5 py-2.5 ${REC_TONE[r.tone] ?? REC_TONE.info}`}
+              >
+                <div className="text-[13px] font-medium text-ink">{r.title}</div>
+                <div className="text-xs text-ink-secondary mt-0.5">{r.detail}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Rule stack + comp set */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-3.5 mb-[18px]">
