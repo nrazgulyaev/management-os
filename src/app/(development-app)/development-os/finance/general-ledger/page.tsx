@@ -15,6 +15,7 @@ import {
   getTrialBalance,
   listGlAccounts,
 } from "@/lib/development/server/general-ledger/trial-balance";
+import { JournalComposer } from "./_journal-composer";
 
 export const metadata: Metadata = {
   title: "General ledger · Development OS",
@@ -84,6 +85,16 @@ export default async function GeneralLedgerPage() {
         />
       ) : (
         <>
+          <Section eyebrow="Post" title="New journal entry">
+            <JournalComposer
+              accounts={accounts.map((a) => ({
+                code: a.code,
+                name: a.name,
+                type: a.type,
+              }))}
+            />
+          </Section>
+
           <Section eyebrow="Tie-out" title="Whole-ledger balance check">
             <div className="flex flex-wrap items-center gap-4">
               <Badge tone={tb.balanced ? "success" : "danger"}>
