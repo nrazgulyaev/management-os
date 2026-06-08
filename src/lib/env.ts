@@ -51,6 +51,11 @@ const serverSchema = z.object({
   MFA_ISSUER: z.string().optional(),
   /** "1" = enable login throttling (default in production). */
   LOGIN_THROTTLE_ENABLED: z.string().optional(),
+  /**
+   * P0 security — "1"/"true" enables super-admin "view as customer"
+   * impersonation. Defaults OFF (see isImpersonationEnabled).
+   */
+  PLATFORM_IMPERSONATION_ENABLED: z.string().optional(),
   /** Failed-login threshold per email per 10-minute window. */
   LOGIN_MAX_FAILED_PER_EMAIL: z.coerce.number().int().min(1).optional(),
   /** Failed-login threshold per IP per 10-minute window. */
@@ -105,6 +110,7 @@ const parsedServer = serverSchema.safeParse({
   SECURITY_ENCRYPTION_SECRET: process.env.SECURITY_ENCRYPTION_SECRET,
   MFA_ISSUER: process.env.MFA_ISSUER,
   LOGIN_THROTTLE_ENABLED: process.env.LOGIN_THROTTLE_ENABLED,
+  PLATFORM_IMPERSONATION_ENABLED: process.env.PLATFORM_IMPERSONATION_ENABLED,
   LOGIN_MAX_FAILED_PER_EMAIL: process.env.LOGIN_MAX_FAILED_PER_EMAIL,
   LOGIN_MAX_FAILED_PER_IP: process.env.LOGIN_MAX_FAILED_PER_IP,
   LOGIN_LOCK_MINUTES: process.env.LOGIN_LOCK_MINUTES,
@@ -248,6 +254,19 @@ export function mfaIssuer(): string {
 export function isLoginThrottleEnabled(): boolean {
   const flag = env.server.LOGIN_THROTTLE_ENABLED;
   if (flag === undefined) return true;
+  return flag === "1" || flag.toLowerCase() === "true";
+}
+
+/**
+ * P0 security — super-admin "view as customer" impersonation is disabled
+ * by default and must be explicitly opted into per environment. Unlike
+ * login throttling (default ON), this defaults OFF: a live impersonation
+ * path is a standing account-takeover surface, so it stays dark until an
+ * operator deliberately sets PLATFORM_IMPERSONATION_ENABLED=1.
+ */
+export function isImpersonationEnabled(): boolean {
+  const flag = env.server.PLATFORM_IMPERSONATION_ENABLED;
+  if (flag === undefined) return false;
   return flag === "1" || flag.toLowerCase() === "true";
 }
 

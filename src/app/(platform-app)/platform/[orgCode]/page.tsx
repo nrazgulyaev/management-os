@@ -26,6 +26,7 @@ import {
 import { PerOrgActionButtons } from "@/components/subscription-os/per-org-action-buttons";
 import { ImpersonationStartButton } from "@/components/subscription-os/impersonation-start-button";
 import { safeQuery } from "@/lib/development/safe-query";
+import { isImpersonationEnabled } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Org detail · Platform Admin OS",
@@ -72,6 +73,10 @@ export default async function OrgDetailPage({
   const { orgCode } = await params;
   const org = await getSubscriptionOsOrgByCode(orgCode);
   if (!org) notFound();
+
+  // P0 security — impersonation is OFF by default; only surface the
+  // "View as customer" control when the env flag is explicitly enabled.
+  const impersonationEnabled = isImpersonationEnabled();
 
   const events = await safeQuery(
     `subscription-os.lifecycle.${orgCode}`,
@@ -182,7 +187,9 @@ export default async function OrgDetailPage({
             <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
               Quick actions
             </span>
-            <ImpersonationStartButton organizationCode={org.organizationCode} />
+            {impersonationEnabled ? (
+              <ImpersonationStartButton organizationCode={org.organizationCode} />
+            ) : null}
             <Link
               href={`mailto:${org.organizationCode}@example.com`}
               className="inline-flex items-center gap-2 text-sm text-ink hover:text-accent"
@@ -212,13 +219,15 @@ export default async function OrgDetailPage({
               Roadmap
             </span>
             <p className="text-xs text-ink-secondary leading-relaxed">
-              <strong>Impersonation scaffold ships now</strong> — clicking
-              "View as customer" sets the cookie + emits a
-              <code> platform.impersonate.start</code> audit entry + renders
-              the warning banner overlay across Platform Admin OS pages. The
-              middleware org_id resolution swap (so /dashboard/* actually
-              loads the impersonated org's data) is a focused follow-up
-              that pairs with RLS policy review.
+              <strong>Impersonation is disabled by default</strong> — the
+              "View as customer" control only appears when an operator sets
+              <code> PLATFORM_IMPERSONATION_ENABLED=1</code>. When enabled it
+              sets the cookie, emits a
+              <code> platform.impersonate.start</code> audit entry, and
+              renders the warning banner overlay across Platform Admin OS
+              pages. The middleware org_id resolution swap (so /dashboard/*
+              actually loads the impersonated org's data) is a focused
+              follow-up that pairs with RLS policy review.
             </p>
             <p className="text-xs text-ink-secondary leading-relaxed">
               Stripe Customer Portal per-org link ships once 10.6.D.2.2

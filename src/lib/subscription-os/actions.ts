@@ -42,6 +42,7 @@ import {
   transitionSubscription,
   recordLifecycleEvent,
 } from "@/lib/billing/lifecycle";
+import { isImpersonationEnabled } from "@/lib/env";
 
 const IMPERSONATION_COOKIE = "__platform_impersonation";
 const IMPERSONATION_TTL_SECONDS = 60 * 60; // 1 hour
@@ -272,6 +273,12 @@ export interface ImpersonationCookiePayload {
 export async function startImpersonationAction(
   organizationCode: string,
 ): Promise<ActionResult> {
+  // P0 security — impersonation is OFF by default. Gate BEFORE the
+  // super-admin check so the path is fully dark (no audit row, no cookie)
+  // unless an operator deliberately sets PLATFORM_IMPERSONATION_ENABLED=1.
+  if (!isImpersonationEnabled()) {
+    return { ok: false, error: "Impersonation is disabled." };
+  }
   try {
     const { appUserId } = await requireSuperAdmin();
     const { org } = await loadOrgWithSub(organizationCode);
