@@ -5,54 +5,25 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { CapitalCallCard } from "@/components/cfo/capital-call-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { loadCfoCapitalCalls } from "@/lib/development/server/investor/cfo-capital-call-reads";
 
 /**
  * Phase 2.2 dev-02 — Capital calls list.
  *
- * Renders one CapitalCallCard per call. Today the data is mocked;
- * real reads against the `capital_calls` table land alongside the
- * data-wiring slice.
+ * Renders one CapitalCallCard per call. De-mocked in W1B: rows now come
+ * from `capital_calls` (+ `capital_call_allocations`) via
+ * loadCfoCapitalCalls. Empty-state shown when there are no active
+ * (non-cancelled) calls or the DB is unavailable.
  */
 
 export const metadata: Metadata = { title: "Capital calls · Development OS" };
 export const dynamic = "force-dynamic";
 
-const MOCK_CALLS = [
-  {
-    id: "cc-001",
-    ref: "CC-EV02-2026-Q1",
-    projectLabel: "Eternal Phase 02 · Foundation pour",
-    totalUsdMinor: 800_000_00,
-    receivedUsdMinor: 600_000_00,
-    investorsPaid: 9,
-    investorsTotal: 12,
-    status: "partial" as const,
-    issuedAt: "2026-01-12",
-  },
-  {
-    id: "cc-002",
-    ref: "CC-AH01-2026-Q1",
-    projectLabel: "Ahau 01 · Finishes",
-    totalUsdMinor: 320_000_00,
-    receivedUsdMinor: 320_000_00,
-    investorsPaid: 4,
-    investorsTotal: 4,
-    status: "received" as const,
-    issuedAt: "2025-12-04",
-  },
-  {
-    id: "cc-003",
-    ref: "CC-EV08-2026-Q2-DRAFT",
-    projectLabel: "Eternal Phase 08 · Mobilization",
-    totalUsdMinor: 1_500_000_00,
-    receivedUsdMinor: 0,
-    investorsPaid: 0,
-    investorsTotal: 14,
-    status: "drafting" as const,
-  },
-];
-
 export default async function CapitalCallsListPage() {
+  const calls = await loadCfoCapitalCalls();
+  const count = calls.length;
+
   return (
     <DevelopmentShell>
       <PageHeader
@@ -61,7 +32,7 @@ export default async function CapitalCallsListPage() {
           { label: "CFO", href: "/development-os/cfo" },
           { label: "Capital calls" },
         ]}
-        eyebrow={`${MOCK_CALLS.length} capital calls`}
+        eyebrow={`${count} capital ${count === 1 ? "call" : "calls"}`}
         title="Capital calls"
         description="Active + recent calls across every project. Partial-receipt tracking shows the percent paid + how many investors have wired."
         actions={
@@ -73,22 +44,30 @@ export default async function CapitalCallsListPage() {
           </Button>
         }
       />
-      <div className="capital-calls-list">
-        {MOCK_CALLS.map((c) => (
-          <CapitalCallCard
-            key={c.id}
-            href={`/development-os/cfo/capital-calls/${c.id}`}
-            ref={c.ref}
-            projectLabel={c.projectLabel}
-            totalUsdMinor={c.totalUsdMinor}
-            receivedUsdMinor={c.receivedUsdMinor}
-            investorsPaid={c.investorsPaid}
-            investorsTotal={c.investorsTotal}
-            status={c.status}
-            issuedAt={c.issuedAt}
-          />
-        ))}
-      </div>
+      {count === 0 ? (
+        <EmptyState
+          variant="caught-up"
+          title="No active capital calls"
+          body="Calls drafted by the capital-call-drafter agent, or issued by finance, will appear here."
+        />
+      ) : (
+        <div className="capital-calls-list">
+          {calls.map((c) => (
+            <CapitalCallCard
+              key={c.id}
+              href={`/development-os/cfo/capital-calls/${c.id}`}
+              ref={c.ref}
+              projectLabel={c.projectLabel}
+              totalUsdMinor={c.totalUsdMinor}
+              receivedUsdMinor={c.receivedUsdMinor}
+              investorsPaid={c.investorsPaid}
+              investorsTotal={c.investorsTotal}
+              status={c.status}
+              issuedAt={c.issuedAt}
+            />
+          ))}
+        </div>
+      )}
     </DevelopmentShell>
   );
 }
