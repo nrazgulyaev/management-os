@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Ruler } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,12 @@ export default async function BoqListPage() {
         actions={
           <div className="flex gap-2">
             <AddBoqButton projects={projectRows} />
+            <Button asChild variant="secondary">
+              <Link href="/development-os/boq/takeoff">
+                <Ruler className="w-4 h-4" strokeWidth={1.75} />
+                Drawing takeoff
+              </Link>
+            </Button>
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
