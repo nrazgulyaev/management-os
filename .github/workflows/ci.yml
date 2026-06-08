@@ -1,0 +1,49 @@
+name: CI
+
+# Type-check, lint, and build on every PR and on pushes to main.
+#
+# Why these run as explicit, separate steps: next.config.mjs sets
+# `typescript.ignoreBuildErrors` and `eslint.ignoreDuringBuilds` so that
+# `next build` survives the memory-constrained Vercel builder. That means
+# `next build` alone is NOT a correctness gate — type and lint errors slip
+# through. This workflow is the gate: `npm run typecheck` and
+# `npm run lint` fail the PR before a regression can merge, and the build
+# step still verifies the bundle actually compiles.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Demo mode → the build renders mock fallbacks instead of requiring
+      # DATABASE_URL / Supabase secrets in CI (matches visual-regression.yml).
+      NEXT_PUBLIC_ENABLE_DEMO_MODE: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
