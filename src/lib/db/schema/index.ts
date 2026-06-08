@@ -100,3 +100,5 @@ export * from "./owner-notification-prefs";
 // Packet C PR 1 — owner-data-l2.
 export * from "./villa-photos";
 export * from "./owner-activity-log";
+// Double-entry GL foundation (migration 0122).
+export * from "./general-ledger";
