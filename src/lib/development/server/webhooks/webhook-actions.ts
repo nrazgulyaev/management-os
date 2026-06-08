@@ -10,11 +10,18 @@ import {
 } from "@/lib/db/schema/saas";
 import { generateSigningSecret } from "./webhook-helpers";
 import { dispatchWebhookDelivery } from "./webhook-dispatcher";
+import { isObviouslyPrivateUrl } from "@/lib/net/safe-url";
 
 const subscribeSchema = z.object({
   organizationId: z.string().uuid(),
   webhookLabel: z.string().min(2).max(120),
-  endpointUrl: z.string().url(),
+  endpointUrl: z
+    .string()
+    .url()
+    .refine(
+      (u) => !isObviouslyPrivateUrl(u),
+      "Endpoint must be a public address (private / loopback / metadata hosts are blocked)",
+    ),
   subscribedEvents: z.array(z.string().min(1)).min(1),
   createdBy: z.string().uuid().optional(),
   notes: z.string().max(500).optional(),

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isObviouslyPrivateUrl } from "@/lib/net/safe-url";
 
 const optionalUuid = z
   .string()
@@ -30,6 +31,10 @@ export const createCalendarFeedSchema = z.object({
     .refine(
       (u) => /^https?:\/\//i.test(u),
       "Only http(s) URLs are accepted",
+    )
+    .refine(
+      (u) => !isObviouslyPrivateUrl(u),
+      "URL must be a public address (private / loopback / metadata hosts are blocked)",
     ),
   feedType: feedTypeEnum.default("ical"),
   syncIntervalMinutes: z.coerce.number().int().min(15).max(60 * 24).optional().default(180),

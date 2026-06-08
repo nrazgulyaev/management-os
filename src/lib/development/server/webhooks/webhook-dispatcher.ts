@@ -10,6 +10,7 @@ import {
   buildSignatureHeader,
   computeNextRetryDelay,
 } from "./webhook-helpers";
+import { assertPublicUrl } from "@/lib/net/safe-url";
 
 /** Subscriptions get auto-disabled after this many consecutive failures. */
 const AUTO_DISABLE_AFTER_FAILURES = 10;
@@ -120,6 +121,10 @@ export async function dispatchWebhookDelivery(args: {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), DELIVERY_TIMEOUT_MS);
     try {
+      // SSRF guard: re-validate the operator-supplied endpoint at delivery
+      // time. Throws SsrfError → caught below → recorded as a failed
+      // delivery (counts toward auto-disable), never reaches a private host.
+      await assertPublicUrl(sub.endpointUrl);
       const resp = await fetch(sub.endpointUrl, {
         method: "POST",
         headers: {
@@ -131,6 +136,7 @@ export async function dispatchWebhookDelivery(args: {
         },
         body: payload,
         signal: controller.signal,
+        redirect: "error",
       });
       httpStatusCode = resp.status;
       const text = await resp.text().catch(() => "");
