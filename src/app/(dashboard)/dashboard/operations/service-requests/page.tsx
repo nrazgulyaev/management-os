@@ -4,14 +4,23 @@ import { ServiceRequestStatusPill } from "@/components/operations/task-status-pi
 import { PriorityPill } from "@/components/operations/priority-pill";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listServiceRequests } from "@/features/operations/services";
+import { listVillas } from "@/features/villas/services";
 import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
+import { ServiceRequestAddButton } from "@/components/operations/service-request-add-button";
 import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Operations · Service requests" };
 export const dynamic = "force-dynamic";
 
 export default async function ServiceRequestsPage() {
-  const requests = await listServiceRequests({ limit: 200 });
+  const [requests, villas] = await Promise.all([
+    listServiceRequests({ limit: 200 }),
+    listVillas(),
+  ]);
+  const villaOpts = villas.map((v) => ({
+    id: v.id,
+    label: `${v.unitCode} · ${v.projectName}`,
+  }));
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -21,6 +30,7 @@ export default async function ServiceRequestsPage() {
         ]}
         title="Service requests"
         description="Guest- and concierge-initiated requests routed through operations."
+        actions={<ServiceRequestAddButton villas={villaOpts} />}
       />
       <DbStatusNotice />
       <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
