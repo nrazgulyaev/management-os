@@ -5,11 +5,28 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
+import { getVendors } from "@/lib/development/server/vendors";
+import { safeQuery } from "@/lib/development/safe-query";
+import { CalendarForm } from "./_calendar-form";
 
 export const metadata: Metadata = { title: "New calendar · Schedule" };
 export const dynamic = "force-dynamic";
 
-export default function NewCalendarPage() {
+export default async function NewCalendarPage() {
+  const [projectRows, vendorRows] = await Promise.all([
+    safeQuery("projects", getDevelopmentProjects(), []),
+    safeQuery("vendors", getVendors({ status: "active" }), []),
+  ]);
+  // Only real DB projects carry a usable FK id; mock rows would FK-fail.
+  const projects = projectRows
+    .filter((p) => p.source !== "mock")
+    .map((p) => ({ id: p.realProjectId, name: p.name }));
+  const vendors = vendorRows.map((v) => ({
+    id: v.id,
+    label: `${v.legalName} · ${v.vendorCode}`,
+  }));
+
   return (
     <DevelopmentShell>
       <PageHeader
@@ -30,11 +47,7 @@ export default function NewCalendarPage() {
         }
       />
       <Section title="Create calendar">
-        <p className="text-sm text-ink-secondary leading-relaxed">
-          Use the <code>createCalendar</code> server action. Required:{" "}
-          <code>calendarCode</code> (UPPER_SNAKE_CASE), <code>name</code>,{" "}
-          <code>scope</code>, <code>workingDaysOfWeek</code> (array of 0-6).
-        </p>
+        <CalendarForm projects={projects} vendors={vendors} />
       </Section>
     </DevelopmentShell>
   );

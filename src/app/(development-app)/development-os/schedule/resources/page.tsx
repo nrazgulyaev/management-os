@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listResourcePools } from "@/lib/development/server/schedule/resource-pool-queries";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -23,6 +24,11 @@ export default async function ResourcePoolsPage() {
           { label: "Resources" },
         ]}
         description="Vendor teams, internal teams, individuals, equipment with daily capacity."
+        actions={
+          <Button asChild>
+            <Link href="/development-os/schedule/resources/new">New resource pool</Link>
+          </Button>
+        }
       />
       <Section title={`${rows.length} pool(s)`}>
         {rows.length === 0 ? (

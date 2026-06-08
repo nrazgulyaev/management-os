@@ -5,11 +5,20 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { getVendors } from "@/lib/development/server/vendors";
+import { safeQuery } from "@/lib/development/safe-query";
+import { ResourcePoolForm } from "./_resource-pool-form";
 
 export const metadata: Metadata = { title: "New resource pool · Schedule" };
 export const dynamic = "force-dynamic";
 
-export default function NewResourcePoolPage() {
+export default async function NewResourcePoolPage() {
+  const vendorRows = await safeQuery("vendors", getVendors({ status: "active" }), []);
+  const vendors = vendorRows.map((v) => ({
+    id: v.id,
+    label: `${v.legalName} · ${v.vendorCode}`,
+  }));
+
   return (
     <DevelopmentShell>
       <PageHeader
@@ -30,11 +39,7 @@ export default function NewResourcePoolPage() {
         }
       />
       <Section title="Create resource pool">
-        <p className="text-sm text-ink-secondary leading-relaxed">
-          Use the <code>createResourcePool</code> server action. Required:{" "}
-          <code>resourceCode</code>, <code>displayName</code>,{" "}
-          <code>resourceType</code>.
-        </p>
+        <ResourcePoolForm vendors={vendors} />
       </Section>
     </DevelopmentShell>
   );

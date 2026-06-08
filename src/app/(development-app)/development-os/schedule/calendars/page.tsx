@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listCalendars } from "@/lib/development/server/calendar/calendar-queries";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -23,6 +24,11 @@ export default async function CalendarsPage() {
           { label: "Calendars" },
         ]}
         description="Working week + holidays per project / vendor / company. Pre-seeded with COMPANY_DEFAULT and BALI_STANDARD."
+        actions={
+          <Button asChild>
+            <Link href="/development-os/schedule/calendars/new">New calendar</Link>
+          </Button>
+        }
       />
       <Section title={`${rows.length} calendar(s)`}>
         {rows.length === 0 ? (
