@@ -49,6 +49,7 @@
     "seed:ai-agent-config": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-ai-agent-config.ts",
     "migrate:force-0109": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/force-apply-migration-0109.ts",
     "backfill:encrypt-credentials": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/backfill-encrypt-credentials.ts",
+    "seed:gl-coa": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-gl-coa.ts",
     "migrate:daily-digest": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/apply-daily-digest-migrations.ts",
     "seed:daily-digest": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-daily-digest-agents.ts",
     "test:mgmt-os-tools": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/test-mgmt-os-tools.ts",
