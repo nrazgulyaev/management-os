@@ -23,6 +23,7 @@ import {
   createSupplierAction,
   createInventoryLocationAction,
   createInventoryItemAction,
+  createInventoryCategoryAction,
 } from "@/features/inventory/actions";
 
 type ServerActionShape = (
@@ -147,6 +148,23 @@ const LOCATION_FIELDS: EntityFormField<Record<string, unknown>>[] = [
   { name: "description", label: "Description", type: "textarea", span: 2 },
 ];
 
+const CATEGORY_FIELDS: EntityFormField<Record<string, unknown>>[] = [
+  {
+    name: "key",
+    label: "Key",
+    required: true,
+    placeholder: "linens",
+    helper: "Lowercase slug — letters, digits, underscores.",
+    validate: (v) =>
+      /^[a-z][a-z0-9_]*$/.test(String(v ?? ""))
+        ? null
+        : "Start with a letter; lowercase letters, digits, underscores only.",
+  },
+  { name: "name", label: "Name", required: true, span: 2 },
+  { name: "defaultUnit", label: "Default unit", placeholder: "pcs" },
+  { name: "isConsumable", label: "Consumable", type: "checkbox" },
+];
+
 const ITEM_FIELDS: EntityFormField<Record<string, unknown>>[] = [
   { name: "name", label: "Name", required: true, span: 2 },
   { name: "sku", label: "SKU" },
@@ -185,6 +203,20 @@ export function AddInventoryLocationButton(props: AddButtonProps = {}) {
       fields={LOCATION_FIELDS}
       initialValues={{ locationType: "warehouse" }}
       action={createInventoryLocationAction as unknown as ServerActionShape}
+    />
+  );
+}
+
+export function AddInventoryCategoryButton(props: AddButtonProps = {}) {
+  return (
+    <GenericAddButton
+      label={props.label ?? "New category"}
+      variant={props.variant}
+      modalTitle="Add inventory category"
+      modalDescription="Tree of item categories — linens, towels, chemicals, spare parts, FF&E."
+      fields={CATEGORY_FIELDS}
+      initialValues={{ defaultUnit: "pcs", isConsumable: true }}
+      action={createInventoryCategoryAction as unknown as ServerActionShape}
     />
   );
 }

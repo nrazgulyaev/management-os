@@ -23,6 +23,8 @@ import {
   listTaskMaterialUsage,
 } from "@/features/inventory/services";
 import { getCurrentUserContext, hasPermission } from "@/features/auth/permissions";
+import { listAppUsers } from "@/features/auth/users-service";
+import { TaskAssignControl } from "@/components/operations/task-assign-control";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Operations · Task" };
@@ -44,7 +46,7 @@ export default async function OperationTaskDetail({
   const canLogMaterial = hasPermission(ctx, "inventory.write");
   const canBridge = hasPermission(ctx, "finance.bridge_material_usage");
 
-  const [checklist, templates, attachments, materialUsage, items, locations] =
+  const [checklist, templates, attachments, materialUsage, items, locations, staff] =
     await Promise.all([
       getTaskChecklist(id),
       listChecklistTemplates(),
@@ -52,6 +54,7 @@ export default async function OperationTaskDetail({
       listTaskMaterialUsage(id),
       canLogMaterial ? listInventoryItems({ status: "active" }) : Promise.resolve([]),
       canLogMaterial ? listInventoryLocations() : Promise.resolve([]),
+      canManage ? listAppUsers() : Promise.resolve([]),
     ]);
 
   return (
@@ -91,7 +94,20 @@ export default async function OperationTaskDetail({
         />
         <Stat
           label="Assignee"
-          value={task.assignedToName ?? <span className="text-ink-tertiary">Unassigned</span>}
+          value={
+            canManage ? (
+              <TaskAssignControl
+                taskId={task.id}
+                currentAssignedTo={task.assignedTo}
+                currentName={task.assignedToName}
+                staff={staff.map((u) => ({ id: u.id, name: u.fullName }))}
+              />
+            ) : (
+              task.assignedToName ?? (
+                <span className="text-ink-tertiary">Unassigned</span>
+              )
+            )
+          }
         />
         <Stat
           label="Scheduled"
