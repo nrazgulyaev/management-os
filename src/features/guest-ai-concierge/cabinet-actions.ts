@@ -10,6 +10,7 @@ import {
   appendMessage,
   listMessagesForSession,
 } from "./services";
+import { callGuestConcierge } from "./provider";
 import type { GuestAiConciergeMessage } from "@/lib/db/schema/guest-ai-concierge";
 
 const idSchema = z.string().uuid();
@@ -72,6 +73,62 @@ export async function loadConciergeThreadAction(
       error: err instanceof Error ? err.message : "Could not load transcript.",
     };
   }
+}
+
+export type DraftResult =
+  | { ok: true; draft: string }
+  | { ok: false; error: string };
+
+const DRAFT_SYSTEM =
+  "You are a villa-stay concierge drafting the NEXT reply for a human staff " +
+  "member to review before sending. Write a warm, concise, professional reply " +
+  "to the guest's latest message, grounded ONLY in the conversation. Do not " +
+  "invent prices, availability, addresses, or policies you were not told. If " +
+  "you lack the information, draft a polite holding reply that promises to " +
+  "check. Output only the reply text — no preamble, no quotes.";
+
+/**
+ * Generate an AI draft reply for the active concierge session, for staff to
+ * review/edit before sending (HITL). Wraps the live concierge provider
+ * (callGuestConcierge); returns ok:false when AI is unconfigured / dry-run so
+ * the staff just types manually. Never auto-sends.
+ */
+export async function generateConciergeDraftAction(
+  sessionId: string,
+): Promise<DraftResult> {
+  if (!(await canManageEntity("guest"))) {
+    return { ok: false, error: "Not authorised." };
+  }
+  if (!idSchema.safeParse(sessionId).success) {
+    return { ok: false, error: "Invalid session." };
+  }
+  let messages: ThreadMessage[];
+  try {
+    messages = toThread(await listMessagesForSession(sessionId, 200));
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Could not load transcript.",
+    };
+  }
+  const convo = messages.filter((m) => m.author !== "system");
+  if (convo.length === 0) {
+    return { ok: false, error: "No messages to draft from yet." };
+  }
+  const transcript = convo
+    .map((m) => `${m.author === "guest" ? "Guest" : "Concierge"}: ${m.content}`)
+    .join("\n");
+  const res = await callGuestConcierge(
+    DRAFT_SYSTEM,
+    `Conversation so far:\n\n${transcript}\n\nDraft the concierge's next reply to the guest.`,
+  );
+  if (!res.ok || !res.text) {
+    return {
+      ok: false,
+      error: res.errorMessage ?? "AI is unavailable — type a reply manually.",
+    };
+  }
+  return { ok: true, draft: res.text.trim() };
 }
 
 const replySchema = z.string().trim().min(1, "Type a reply.").max(2000);
