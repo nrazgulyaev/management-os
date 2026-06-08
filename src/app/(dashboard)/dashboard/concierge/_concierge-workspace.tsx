@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  generateConciergeDraftAction,
   loadConciergeThreadAction,
   postConciergeStaffReplyAction,
   type ThreadMessage,
@@ -53,7 +54,18 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
   const [error, setError] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState("");
   const [sending, setSending] = React.useState(false);
+  const [generating, setGenerating] = React.useState(false);
   const streamRef = React.useRef<HTMLDivElement>(null);
+
+  async function generateDraft() {
+    if (!activeId || generating) return;
+    setGenerating(true);
+    setError(null);
+    const res = await generateConciergeDraftAction(activeId);
+    if (res.ok) setDraft(res.draft);
+    else setError(res.error);
+    setGenerating(false);
+  }
 
   const active = sessions.find((s) => s.id === activeId) ?? null;
 
@@ -252,6 +264,15 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void send(e);
             }}
           />
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={generateDraft}
+            disabled={!active || generating || sending}
+            title="Generate an AI draft for you to review and edit before sending"
+          >
+            {generating ? "Drafting…" : "✨ AI draft"}
+          </button>
           <button
             type="submit"
             className="btn btn-primary btn-sm"
