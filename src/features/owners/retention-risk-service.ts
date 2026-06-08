@@ -18,7 +18,7 @@ import "server-only";
  * = 0 when < 12 statements exist.
  */
 
-import { and, eq, inArray, isNull, lt, sql } from "drizzle-orm";
+import { and, inArray, isNull, lt, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { statementAnomalies } from "@/lib/db/schema/statement-anomalies";
 import { maintenanceTickets } from "@/lib/db/schema/operations";
