@@ -17,6 +17,7 @@ import {
   listChecklistTemplates,
 } from "@/features/operations/services";
 import { listTaskAttachments } from "@/features/attachments/services";
+import { mapPoolAll } from "@/lib/db/map-pool";
 import {
   listInventoryItems,
   listInventoryLocations,
@@ -47,15 +48,15 @@ export default async function OperationTaskDetail({
   const canBridge = hasPermission(ctx, "finance.bridge_material_usage");
 
   const [checklist, templates, attachments, materialUsage, items, locations, staff] =
-    await Promise.all([
-      getTaskChecklist(id),
-      listChecklistTemplates(),
-      listTaskAttachments(id),
-      listTaskMaterialUsage(id),
-      canLogMaterial ? listInventoryItems({ status: "active" }) : Promise.resolve([]),
-      canLogMaterial ? listInventoryLocations() : Promise.resolve([]),
-      canManage ? listAppUsers() : Promise.resolve([]),
-    ]);
+    await mapPoolAll([
+      () => getTaskChecklist(id),
+      () => listChecklistTemplates(),
+      () => listTaskAttachments(id),
+      () => listTaskMaterialUsage(id),
+      () => (canLogMaterial ? listInventoryItems({ status: "active" }) : Promise.resolve([])),
+      () => (canLogMaterial ? listInventoryLocations() : Promise.resolve([])),
+      () => (canManage ? listAppUsers() : Promise.resolve([])),
+    ] as const, 4);
 
   return (
     <div className="flex flex-col gap-8">

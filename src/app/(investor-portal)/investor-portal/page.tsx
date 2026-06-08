@@ -5,6 +5,7 @@ import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentInvestorContext } from "@/features/investor-portal/investor-context";
+import { mapPoolAll } from "@/lib/db/map-pool";
 import {
   getInvestorDashboard,
   getCapitalLedger,
@@ -34,14 +35,14 @@ export default async function InvestorPortalHomePage() {
   const ctx = await getCurrentInvestorContext();
   if (!ctx) redirect("/dashboard/investors");
 
-  const [kpis, ledger, interest, nav, dists, construction] = await Promise.all([
-    getInvestorDashboard(ctx.investorId).catch(() => null),
-    getCapitalLedger(ctx.investorId, 10).catch(() => []),
-    getYourInterest(ctx.investorId).catch(() => []),
-    getNavSeries(ctx.investorId).catch(() => []),
-    getInvestorDistributions(ctx.investorId).catch(() => []),
-    getConstructionProgress(ctx.investorId).catch(() => []),
-  ]);
+  const [kpis, ledger, interest, nav, dists, construction] = await mapPoolAll([
+    () => getInvestorDashboard(ctx.investorId).catch(() => null),
+    () => getCapitalLedger(ctx.investorId, 10).catch(() => []),
+    () => getYourInterest(ctx.investorId).catch(() => []),
+    () => getNavSeries(ctx.investorId).catch(() => []),
+    () => getInvestorDistributions(ctx.investorId).catch(() => []),
+    () => getConstructionProgress(ctx.investorId).catch(() => []),
+  ] as const, 4);
 
   const ytdDist = dists.reduce((s, d) => s + d.shareUsdMinor, 0n);
   const navMax = Math.max(0, ...nav.map((p) => Number(p.totalNavUsdMinor)));

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { getOwnerStatementById, listStatementLines } from "@/features/finance/services";
+import { mapPoolAll } from "@/lib/db/map-pool";
 import {
   getStatementExplanationSnapshot,
   getStatementReconciliationStatus,
@@ -30,14 +31,14 @@ export default async function TransparencyStatementDetail({
   const statement = await getOwnerStatementById(id);
   if (!statement) notFound();
   const [groups, groupLines, snapshot, allWarnings, recon, lines] =
-    await Promise.all([
-      listStatementSourceGroups(id),
-      listStatementSourceGroupLines(id),
-      getStatementExplanationSnapshot(id),
-      listStatementReconciliationWarnings(id),
-      getStatementReconciliationStatus(id),
-      listStatementLines(id),
-    ]);
+    await mapPoolAll([
+      () => listStatementSourceGroups(id),
+      () => listStatementSourceGroupLines(id),
+      () => getStatementExplanationSnapshot(id),
+      () => listStatementReconciliationWarnings(id),
+      () => getStatementReconciliationStatus(id),
+      () => listStatementLines(id),
+    ] as const, 4);
   const fallbackExplanation = generateStatementExplanation(statement, lines);
   return (
     <div className="flex flex-col gap-10">

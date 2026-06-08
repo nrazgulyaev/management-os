@@ -23,6 +23,7 @@ import {
 } from "@/features/inventory/services";
 import { getCurrentUserContext, hasPermission } from "@/features/auth/permissions";
 import { getDb } from "@/lib/db/client";
+import { mapPoolAll } from "@/lib/db/map-pool";
 import { villas } from "@/lib/db/schema/projects";
 
 /** Stage 11.B.1 — minimal villa coordinates lookup for the field
@@ -68,14 +69,14 @@ export default async function FieldTaskDetail({
   const canLogMaterial = hasPermission(ctx, "inventory.write");
 
   const [checklist, attachments, materialUsage, items, locations, villaAnchor] =
-    await Promise.all([
-      getTaskChecklist(id),
-      listTaskAttachments(id),
-      listTaskMaterialUsage(id),
-      canLogMaterial ? listInventoryItems({ status: "active" }) : Promise.resolve([]),
-      canLogMaterial ? listInventoryLocations() : Promise.resolve([]),
-      getVillaAnchor(task.villaId),
-    ]);
+    await mapPoolAll([
+      () => getTaskChecklist(id),
+      () => listTaskAttachments(id),
+      () => listTaskMaterialUsage(id),
+      () => (canLogMaterial ? listInventoryItems({ status: "active" }) : Promise.resolve([])),
+      () => (canLogMaterial ? listInventoryLocations() : Promise.resolve([])),
+      () => getVillaAnchor(task.villaId),
+    ] as const, 4);
 
   return (
     <div className="flex flex-col gap-5">

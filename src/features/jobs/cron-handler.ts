@@ -3,6 +3,7 @@ import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyCronAuthFromRequest } from "./auth";
 import { executeAllJobs, executeJob, type JobKey } from "./actions";
+import { logger } from "@/lib/observability/logger";
 
 export interface CronJsonResponse {
   ok: boolean;
@@ -42,6 +43,11 @@ export async function handleCronJobRequest(
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "uncaught error";
+    logger.error("Cron job threw an uncaught error", {
+      area: "cron.handler",
+      jobKey,
+      error: message,
+    });
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

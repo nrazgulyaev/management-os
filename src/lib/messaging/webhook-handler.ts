@@ -6,6 +6,7 @@ import { selectMessagingProvider } from "./select-provider";
 import { handleIncomingMessage } from "./service";
 import { decryptMessagingCredentials } from "./credentials-store";
 import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
+import { logger } from "@/lib/observability/logger";
 import type { MessagingChannel } from "./types";
 
 /**
@@ -131,7 +132,11 @@ export async function handleMessagingWebhook(
       } else {
         failed++;
       }
-    } catch {
+    } catch (e) {
+      logger.error("Inbound webhook message handling failed", {
+        area: "messaging.webhook",
+        error: e instanceof Error ? e.message : "unknown error",
+      });
       failed++;
     }
   }
