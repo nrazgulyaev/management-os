@@ -5,6 +5,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { getDb } from "@/lib/db/client";
+import { listBoqSectionTargets } from "@/lib/development/server/boq/boq-queries";
+import { safeQuery } from "@/lib/development/safe-query";
 import { TakeoffWorkbench } from "./_takeoff-workbench";
 
 export const metadata: Metadata = { title: "Drawing takeoff · Development OS" };
@@ -17,7 +20,10 @@ export const dynamic = "force-dynamic";
  * measured quantities into costed lines. This surface was entirely absent
  * — the BOQ cabinet shipped only read-only tables + import/export.
  */
-export default function TakeoffPage() {
+export default async function TakeoffPage() {
+  const boqTargets = getDb()
+    ? await safeQuery("boqSectionTargets", listBoqSectionTargets(), [], 4000)
+    : [];
   return (
     <DevelopmentShell>
       <PageHeader
@@ -36,10 +42,10 @@ export default function TakeoffPage() {
           Load a floor-plan or elevation, calibrate the scale once (pick two
           points a known distance apart and type the real distance), then draw
           area polygons, length polylines, or counts. Each measurement converts
-          to a real quantity; type a unit rate to cost it. (Saving a takeoff
-          line into the BOQ and an org rate library are the next step.)
+          to a real quantity; type a unit rate to cost it, then save it straight
+          into a BOQ section. (An org rate/assembly library is the next step.)
         </p>
-        <TakeoffWorkbench />
+        <TakeoffWorkbench boqTargets={boqTargets} />
       </Section>
     </DevelopmentShell>
   );
