@@ -11,6 +11,7 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getDrawingByCode } from "@/lib/development/server/drawings/drawing-queries";
+import { RevisionActions } from "./_revision-actions";
 
 export const metadata: Metadata = { title: "Drawing · Development OS" };
 export const dynamic = "force-dynamic";
@@ -116,6 +117,7 @@ export default async function DrawingDetailPage({
                 <TH>Document</TH>
                 <TH>Approved</TH>
                 <TH>IFC at</TH>
+                <TH>Actions</TH>
               </TR>
             </THead>
             <TBody>
@@ -144,6 +146,9 @@ export default async function DrawingDetailPage({
                           .toISOString()
                           .slice(0, 10)
                       : "—"}
+                  </TD>
+                  <TD>
+                    <RevisionActions revisionId={r.id} status={r.status} />
                   </TD>
                 </TR>
               ))}
