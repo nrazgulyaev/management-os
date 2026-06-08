@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowUpRight, KeyRound } from "lucide-react";
 import { getOwnerById, listOwnershipShares } from "@/features/owners/services";
 import { listAccessGrantsForOwner } from "@/features/access-grants/services";
+import { getOwnerRetentionRisk } from "@/features/owners/retention-risk-service";
+import { RiskPill } from "@/components/owners/risk-pill";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DetailPage } from "@/components/dashboard/detail/detail-page";
 import { DetailHeader } from "@/components/dashboard/detail/detail-header";
@@ -37,6 +39,13 @@ export default async function OwnerDetailPage({
   const grants = await listAccessGrantsForOwner(id);
   const activeGrants = grants.filter((g) => g.status === "active");
 
+  // Retention-risk intelligence — run the (previously orphaned) engine over
+  // this owner's real statements / anomalies / maintenance.
+  const villaIds = [
+    ...new Set(shares.map((s) => s.villaId).filter(Boolean)),
+  ] as string[];
+  const risk = await getOwnerRetentionRisk(id, villaIds).catch(() => null);
+
   // PR 2 — synthetic activity timeline. The dedicated
   // `src/features/activity/get-activity.ts` resolver lands in 2.2;
   // until then we surface the few existing signals (shares + grants)
@@ -66,6 +75,36 @@ export default async function OwnerDetailPage({
 
   const overviewPanel = (
     <div className="flex flex-col gap-8 px-7 py-6">
+      {risk && (
+        <Card style={{ padding: 20 }}>
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
+              Retention risk
+            </span>
+            <RiskPill level={risk.level} />
+            <span className="text-xs text-ink-tertiary">
+              {risk.signals.length === 0
+                ? "No risk signals — this owner looks healthy."
+                : `${risk.signals.length} signal${risk.signals.length === 1 ? "" : "s"}`}
+            </span>
+          </div>
+          {risk.signals.length > 0 && (
+            <ul className="flex flex-col gap-2">
+              {risk.signals.map((s) => (
+                <li key={s.kind} className="flex items-center gap-2 text-sm">
+                  <RiskPill level={s.level} />
+                  <span className="text-ink-secondary">{s.reason}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-[11px] text-ink-tertiary mt-3">
+            Signals: payout drift vs 3-mo avg · statement disputes/revisions ·
+            unread anomalies · maintenance open &gt;14d · occupancy YoY.
+            Portal-disengagement signal pending a sign-in log.
+          </p>
+        </Card>
+      )}
       <Card style={{ padding: 20 }}>
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <SourceBadge source={owner.source} />
