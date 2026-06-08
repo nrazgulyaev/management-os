@@ -3,6 +3,7 @@ import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listChecklistTemplates } from "@/features/operations/services";
+import { ChecklistTemplateAddButton } from "@/components/operations/checklist-template-add-button";
 
 export const metadata = { title: "Operations · Checklists" };
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export default async function ChecklistsPage() {
         ]}
         title="Checklist templates"
         description="Library of reusable cleaning, inspection, and maintenance checklists."
+        actions={<ChecklistTemplateAddButton />}
       />
       <DbStatusNotice />
       <Section eyebrow="Library" title="Templates available">

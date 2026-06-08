@@ -347,3 +347,41 @@ export const assignMaintenanceTicketSchema = z.object({
 export type EditOperationTaskInput = z.infer<typeof editOperationTaskSchema>;
 export type EditMaintenanceTicketInput = z.infer<typeof editMaintenanceTicketSchema>;
 export type EditDamageReportInput = z.infer<typeof editDamageReportSchema>;
+
+// ---------------------------------------------------------------------------
+// Checklist template authoring (header + items in one create call).
+// ---------------------------------------------------------------------------
+
+export const checklistTemplateItemTypes = [
+  "checkbox",
+  "photo_required",
+  "number",
+  "text",
+  "pass_fail",
+] as const;
+
+export const createChecklistTemplateSchema = z.object({
+  key: z
+    .string()
+    .min(2)
+    .max(80)
+    .regex(/^[a-z][a-z0-9_]*$/, "Lowercase slug: letters, digits, underscores."),
+  name: z.string().min(2).max(200),
+  category: z.string().min(2).max(80),
+  description: z.string().max(2000).optional(),
+  villaType: z.string().max(80).optional(),
+  items: z
+    .array(
+      z.object({
+        section: z.string().min(1).max(120),
+        label: z.string().min(1).max(200),
+        itemType: z.enum(checklistTemplateItemTypes).default("checkbox"),
+        isRequired: z.boolean().default(true),
+      }),
+    )
+    .min(1, "Add at least one checklist item."),
+});
+
+export type CreateChecklistTemplateInput = z.input<
+  typeof createChecklistTemplateSchema
+>;
