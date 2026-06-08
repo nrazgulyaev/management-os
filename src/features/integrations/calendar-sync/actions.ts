@@ -14,6 +14,7 @@ import { villas } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { assertPublicUrl } from "@/lib/net/safe-url";
 import {
   calendarEventIdSchema,
   conflictIdSchema,
@@ -219,9 +220,15 @@ export async function syncCalendarFeed(feedId: string): Promise<SyncFeedResult> 
   const now = new Date();
   let icsText: string;
   try {
+    // SSRF guard: re-validate at fetch time (the stored URL could have been
+    // written before this guard existed). SsrfError flows to the catch below
+    // → feed marked status='error', same as any fetch failure.
+    await assertPublicUrl(feed.feedUrl);
     const res = await fetch(feed.feedUrl, {
       cache: "no-store",
       headers: { "User-Agent": "Arconique-Management-OS/0.1" },
+      redirect: "error",
+      signal: AbortSignal.timeout(15_000),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     icsText = await res.text();
