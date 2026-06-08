@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listContent } from "@/lib/development/server/content/content-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { getCurrentAppUser } from "@/features/auth/current-user";
+import { ContentStatusControl } from "./_status-control";
 
 export const metadata: Metadata = { title: "Content pipeline · Marketing" };
 export const dynamic = "force-dynamic";
@@ -21,7 +23,10 @@ const KANBAN_COLUMNS: Array<{ status: string; label: string }> = [
 ];
 
 export default async function ContentPipelinePage() {
-  const rows = await safeQuery("content", listContent({ limit: 500 }), []);
+  const [rows, me] = await Promise.all([
+    safeQuery("content", listContent({ limit: 500 }), []),
+    getCurrentAppUser().catch(() => null),
+  ]);
   const byStatus: Record<string, typeof rows> = {};
   for (const c of KANBAN_COLUMNS) byStatus[c.status] = [];
   for (const r of rows) {
@@ -75,6 +80,13 @@ export default async function ContentPipelinePage() {
                           {c.contentType}
                         </span>
                       </Link>
+                      {me?.id && (
+                        <ContentStatusControl
+                          contentCode={c.contentCode}
+                          status={c.status}
+                          userId={me.id}
+                        />
+                      )}
                     </li>
                   ))}
                 </ul>
