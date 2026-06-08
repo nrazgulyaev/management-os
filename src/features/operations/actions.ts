@@ -21,6 +21,8 @@ import {
   approveChecklistSchema,
   approveTaskSchema,
   archiveDamageReportSchema,
+  createChecklistTemplateSchema,
+  type CreateChecklistTemplateInput,
   archiveMaintenanceTicketSchema,
   archiveOperationTaskSchema,
   assignMaintenanceTicketSchema,
@@ -1556,4 +1558,72 @@ export async function archiveServiceRequestAction(
   });
   revalidatePath("/dashboard/operations/service-requests");
   return { ok: true };
+}
+
+/**
+ * New backend — create a checklist template WITH its items in one call.
+ * A template with zero items is useless (instantiateChecklistFromTemplate
+ * copies items), so this inserts the header + ≥1 item atomically. The
+ * `key` column is UNIQUE — duplicate keys return a friendly error.
+ */
+export async function createChecklistTemplateAction(
+  input: CreateChecklistTemplateInput,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = createChecklistTemplateSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+
+  try {
+    const [tpl] = await db
+      .insert(checklistTemplates)
+      .values({
+        key: d.key,
+        name: d.name,
+        category: d.category,
+        description: d.description ?? null,
+        villaType: d.villaType ?? null,
+      })
+      .returning({ id: checklistTemplates.id });
+
+    await db.insert(checklistTemplateItems).values(
+      d.items.map((it, i) => ({
+        templateId: tpl.id,
+        section: it.section,
+        label: it.label,
+        itemType: it.itemType,
+        isRequired: it.isRequired,
+        sortOrder: i,
+      })),
+    );
+
+    await recordAuditEvent({
+      actorUserId: me?.id ?? null,
+      action: "operations.checklist_template.create",
+      entityType: "checklist_template",
+      entityId: tpl.id,
+      after: { key: d.key, name: d.name, items: d.items.length },
+    });
+
+    revalidatePath("/dashboard/operations/checklists");
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Create failed.";
+    if (
+      msg.includes("checklist_templates_key") ||
+      msg.toLowerCase().includes("unique")
+    ) {
+      return { ok: false, error: `A template with key "${d.key}" already exists.` };
+    }
+    return { ok: false, error: msg };
+  }
 }
