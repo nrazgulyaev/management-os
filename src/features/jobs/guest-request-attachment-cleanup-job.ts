@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getDb } from "@/lib/db/client";
+
 import { cleanupStalePendingAttachments } from "@/features/guest-ai-concierge/attachment-cleanup";
 import type { JobOutcome, JobRunHandle } from "./runner";
 
@@ -12,6 +14,14 @@ import type { JobOutcome, JobRunHandle } from "./runner";
 export async function runGuestRequestAttachmentCleanupJob(
   handle: JobRunHandle,
 ): Promise<JobOutcome> {
+  if (!getDb()) {
+    return {
+      status: "failed",
+      summary: "Database is not configured.",
+      metrics: { scanned: 0, deleted: 0, failed: 0 },
+      error: "DB unavailable",
+    };
+  }
   await handle.event("info", "scanning stale pending guest attachments");
   const out = await cleanupStalePendingAttachments({});
   if (out.failed > 0) {

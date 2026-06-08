@@ -185,6 +185,15 @@ export async function GET(request: NextRequest) {
   if (!auth.ok) {
     return NextResponse.json({ ok: false, error: auth.reason ?? "unauthorised" }, { status: 401 });
   }
+  // DB-down guard: runOnce() returns [] when the DB is unconfigured, which
+  // would report ok:true / totalGenerated:0 — masking the outage on the
+  // highest-financial-impact cron. Fail loudly instead.
+  if (!getDb()) {
+    return NextResponse.json(
+      { ok: false, error: "Database is not configured." },
+      { status: 503 },
+    );
+  }
   const url = new URL(request.url);
   const periodMonth = url.searchParams.get("period") ?? previousMonthIso();
   try {

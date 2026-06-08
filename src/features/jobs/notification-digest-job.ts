@@ -89,6 +89,14 @@ function renderBody(snapshot: DigestSnapshot): string {
 export async function runNotificationDigestJob(
   handle: JobRunHandle,
 ): Promise<JobOutcome> {
+  if (!getDb()) {
+    return {
+      status: "failed",
+      summary: "Database is not configured.",
+      metrics: { openConflicts: 0, failedJobs24h: 0, urgentTasks: 0, lowStock: 0, pendingBridge: 0 },
+      error: "DB unavailable",
+    };
+  }
   const snapshot = await buildSnapshot();
   await handle.event("info", "Digest snapshot built", snapshot as unknown as Record<string, unknown>);
 

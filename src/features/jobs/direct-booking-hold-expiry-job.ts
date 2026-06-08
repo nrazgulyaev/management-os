@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getDb } from "@/lib/db/client";
+
 import { runDirectBookingExpiry } from "@/features/direct-booking/expiry";
 import type { JobOutcome, JobRunHandle } from "./runner";
 
@@ -11,6 +13,14 @@ import type { JobOutcome, JobRunHandle } from "./runner";
 export async function runDirectBookingHoldExpiryJob(
   handle: JobRunHandle,
 ): Promise<JobOutcome> {
+  if (!getDb()) {
+    return {
+      status: "failed",
+      summary: "Database is not configured.",
+      metrics: { expiredHolds: 0, expiredRequests: 0, releasedBlocks: 0 },
+      error: "DB unavailable",
+    };
+  }
   const out = await runDirectBookingExpiry();
   await handle.event("info", "Direct-booking hold expiry sweep complete", {
     ...out,
