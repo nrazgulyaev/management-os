@@ -11,8 +11,11 @@
  */
 
 import "server-only";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { bookingCheckinFlow } from "@/lib/db/schema/checkin-flow";
 import type { GuestCardFlavour } from "@/components/front-office/guest-card";
-import type { CheckinFlowState } from "./checkin-state";
+import type { CheckinFlowState, CheckinStep, CheckinStepState } from "./checkin-state";
 import type { RegistryRow } from "@/components/front-office/registry-table";
 import type { TurnoverRow } from "@/components/front-office/turnover-monitor";
 
@@ -47,7 +50,7 @@ export async function getTodayBoard(): Promise<TodayBoardResult> {
   };
 }
 
-export async function getCheckinFlowState(bookingId: string): Promise<CheckinFlowState> {
+function freshFlowState(bookingId: string): CheckinFlowState {
   return {
     bookingId,
     currentStep: "identity",
@@ -58,6 +61,49 @@ export async function getCheckinFlowState(bookingId: string): Promise<CheckinFlo
       handover: { step: "handover" },
     },
   };
+}
+
+/**
+ * Load a booking's persisted check-in flow (migration 0123). Returns the
+ * stored steps + current step + issued door code when one exists; otherwise a
+ * fresh state so the wizard starts at identity.
+ */
+export async function getCheckinFlowState(bookingId: string): Promise<CheckinFlowState> {
+  const db = getDb();
+  if (!db) return freshFlowState(bookingId);
+  const [row] = await db
+    .select()
+    .from(bookingCheckinFlow)
+    .where(eq(bookingCheckinFlow.bookingId, bookingId))
+    .limit(1);
+  if (!row) return freshFlowState(bookingId);
+  const fresh = freshFlowState(bookingId);
+  const stored = (row.stepsJson ?? {}) as Partial<Record<CheckinStep, CheckinStepState>>;
+  return {
+    bookingId,
+    currentStep: (row.currentStep as CheckinStep) ?? "identity",
+    steps: {
+      identity: stored.identity ?? fresh.steps.identity,
+      stay: stored.stay ?? fresh.steps.stay,
+      sign: stored.sign ?? fresh.steps.sign,
+      handover: stored.handover ?? fresh.steps.handover,
+    },
+  };
+}
+
+/** The door code issued for a completed check-in, if any. */
+export async function getIssuedDoorCode(bookingId: string): Promise<{
+  doorCode: string | null;
+  completedAt: Date | null;
+} | null> {
+  const db = getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select({ doorCode: bookingCheckinFlow.doorCode, completedAt: bookingCheckinFlow.completedAt })
+    .from(bookingCheckinFlow)
+    .where(eq(bookingCheckinFlow.bookingId, bookingId))
+    .limit(1);
+  return row ?? null;
 }
 
 export async function getRegistry(): Promise<RegistryRow[]> {

@@ -102,3 +102,5 @@ export * from "./villa-photos";
 export * from "./owner-activity-log";
 // Double-entry GL foundation (migration 0122).
 export * from "./general-ledger";
+// Front-office check-in flow persistence (migration 0123).
+export * from "./checkin-flow";
