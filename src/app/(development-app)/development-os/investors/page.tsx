@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Briefcase } from "lucide-react";
+import { ArrowLeft, Briefcase, Waves } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -94,6 +94,12 @@ export default async function InvestorsPage() {
           <div className="flex items-center gap-2">
             <InvestorModalForm />
             <ExportButton entity="investors" />
+            <Button asChild variant="secondary">
+              <Link href="/development-os/investors/waterfall">
+                <Waves className="w-4 h-4" strokeWidth={1.75} />
+                Waterfall &amp; calls
+              </Link>
+            </Button>
             <Button asChild variant="secondary">
               <Link href="/development-os">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
