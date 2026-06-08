@@ -14,6 +14,7 @@ import {
   listAllTaxTypes,
 } from "@/lib/development/server/tax/tax-actions";
 import { safeQuery } from "@/lib/development/safe-query";
+import { FinalizeReportButton } from "./_finalize-button";
 
 export const metadata: Metadata = {
   title: "Tax reports · Development OS",
@@ -83,6 +84,7 @@ export default async function TaxReportsListPage() {
                 <TH>Unclassified</TH>
                 <TH>Status</TH>
                 <TH>Finalized</TH>
+                <TH>Actions</TH>
               </TR>
             </THead>
             <TBody>
@@ -121,6 +123,13 @@ export default async function TaxReportsListPage() {
                       {r.finalizedAt
                         ? new Date(r.finalizedAt).toISOString().slice(0, 10)
                         : "—"}
+                    </TD>
+                    <TD>
+                      <FinalizeReportButton
+                        id={r.id}
+                        status={r.status}
+                        unclassifiedCount={r.unclassifiedTransactionCount}
+                      />
                     </TD>
                   </TR>
                 );

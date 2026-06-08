@@ -249,6 +249,76 @@ export async function listTaxPeriodReports() {
     .orderBy(sql`${taxPeriodReports.periodStart} desc`);
 }
 
+const finalizeReportSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["finalized", "submitted"]).default("finalized"),
+});
+
+/**
+ * Finalize (or mark submitted) a tax period report. Stamps finalizedAt/By
+ * and submittedAt, org-scoped. Precondition: all transactions in the
+ * period must be classified (unclassifiedTransactionCount === 0) — a
+ * filed return must not silently exclude pending transactions. Once
+ * submitted, the report is terminal here. (The monthly cron still
+ * UPSERTs on (tax_type, period); a follow-up should make it skip
+ * finalized/submitted rows so a filed return can't be silently
+ * re-aggregated.)
+ */
+export async function finalizeTaxPeriodReport(
+  input: z.input<typeof finalizeReportSchema>,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const ctx = await requireInternalUser();
+    const parsed = finalizeReportSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    }
+    const db = requireDb();
+    const organizationId = await requireOrgId();
+
+    const [report] = await db
+      .select()
+      .from(taxPeriodReports)
+      .where(
+        and(
+          eq(taxPeriodReports.id, parsed.data.id),
+          eq(taxPeriodReports.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!report) return { ok: false, error: "Report not found." };
+    if (report.unclassifiedTransactionCount > 0) {
+      return {
+        ok: false,
+        error: `Clear the ${report.unclassifiedTransactionCount} unclassified transaction(s) before finalising.`,
+      };
+    }
+    if (report.status === "submitted") {
+      return { ok: false, error: "Report is already submitted." };
+    }
+
+    const now = new Date();
+    await db
+      .update(taxPeriodReports)
+      .set({
+        status: parsed.data.status,
+        finalizedAt: report.finalizedAt ?? now,
+        finalizedBy: report.finalizedBy ?? ctx.appUser?.id ?? null,
+        submittedAt: parsed.data.status === "submitted" ? now : report.submittedAt,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(taxPeriodReports.id, parsed.data.id),
+          eq(taxPeriodReports.organizationId, organizationId),
+        ),
+      );
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Finalize failed." };
+  }
+}
+
 function toBig(v: bigint | string | number): bigint {
   if (typeof v === "bigint") return v;
   return BigInt(typeof v === "number" ? Math.trunc(v) : v);
