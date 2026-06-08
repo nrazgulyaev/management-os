@@ -7,6 +7,7 @@ import {
   listOwnerStayPolicies,
   listEquivalenceGroups,
 } from "@/features/owner-stays/services";
+import { mapPoolAll } from "@/lib/db/map-pool";
 
 export const metadata = { title: "Owner stays" };
 export const dynamic = "force-dynamic";
@@ -28,14 +29,14 @@ function money(minor: number, currency: string | null): string {
 
 export default async function OwnerStaysOverview() {
   const [allRequests, pending, requiresRelocation, approved, policies, groups] =
-    await Promise.all([
-      listOwnerStayRequests({ limit: 50 }),
-      listOwnerStayRequests({ status: "pending_admin_approval", limit: 50 }),
-      listOwnerStayRequests({ status: "requires_relocation", limit: 50 }),
-      listOwnerStayRequests({ status: "approved", limit: 50 }),
-      listOwnerStayPolicies({ status: "active" }),
-      listEquivalenceGroups(),
-    ]);
+    await mapPoolAll([
+      () => listOwnerStayRequests({ limit: 50 }),
+      () => listOwnerStayRequests({ status: "pending_admin_approval", limit: 50 }),
+      () => listOwnerStayRequests({ status: "requires_relocation", limit: 50 }),
+      () => listOwnerStayRequests({ status: "approved", limit: 50 }),
+      () => listOwnerStayPolicies({ status: "active" }),
+      () => listEquivalenceGroups(),
+    ] as const, 4);
 
   const queuedCharge = [...pending, ...requiresRelocation, ...approved].reduce(
     (s, r) => s + (r.estimatedTotalOwnerChargeMinor ?? 0),

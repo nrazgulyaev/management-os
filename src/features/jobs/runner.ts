@@ -8,6 +8,7 @@ import {
   jobRuns,
 } from "@/lib/db/schema/jobs";
 import { recordAuditEvent } from "@/features/audit/services";
+import { logger } from "@/lib/observability/logger";
 import { findJobDefinition } from "./definitions";
 
 export type TriggerType = "cron" | "manual" | "system" | "retry";
@@ -189,6 +190,12 @@ export async function withJobRun(
     return { jobRunId: handle.id, outcome };
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown error";
+    logger.error("Job threw inside withJobRun", {
+      area: "jobs.runner",
+      jobKey,
+      jobRunId: handle.id,
+      error: message,
+    });
     await handle.event("error", `Job threw: ${message}`);
     await finishJobRun(handle, {
       status: "failed",

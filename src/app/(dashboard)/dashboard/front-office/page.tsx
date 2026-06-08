@@ -13,6 +13,7 @@ import {
 } from "@/features/front-office/services";
 import { loadFrontOfficeCopilotOutputs } from "@/lib/development/server/ai/front-office-copilot-queries";
 import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
+import { mapPoolAll } from "@/lib/db/map-pool";
 
 /**
  * Phase 2.4 mgmt-03 — Front-office "today board" wiring.
@@ -213,14 +214,14 @@ export default async function FrontOfficeTodayPage() {
   const todayIso = ymd(today);
 
   const [arrivals, departures, inHouse, openRequests, copilotOutputs, copilotEnabled] =
-    await Promise.all([
-      listArrivals(today),
-      listDepartures(today),
-      listInHouseGuests(today),
-      listCheckinCheckoutRequests({ status: "requested", limit: 50 }),
-      loadFrontOfficeCopilotOutputs({ limit: 3 }).catch(() => []),
-      isAgentEnabledForCurrentOrg("front_office_copilot").catch(() => false),
-    ]);
+    await mapPoolAll([
+      () => listArrivals(today),
+      () => listDepartures(today),
+      () => listInHouseGuests(today),
+      () => listCheckinCheckoutRequests({ status: "requested", limit: 50 }),
+      () => loadFrontOfficeCopilotOutputs({ limit: 3 }).catch(() => []),
+      () => isAgentEnabledForCurrentOrg("front_office_copilot").catch(() => false),
+    ] as const, 4);
 
   // KPI roll-ups.
   const readyArrivals = arrivals.filter(

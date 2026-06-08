@@ -13,6 +13,7 @@ import {
   type VillaState,
 } from "@/features/operations/operations-cabinet-queries";
 import { listArrivals, listDepartures } from "@/features/front-office/services";
+import { mapPoolAll } from "@/lib/db/map-pool";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Operations cabinet live wiring.
@@ -94,16 +95,16 @@ const TURNOVER_COLS: { key: string; label: string; statuses: string[] }[] = [
 export default async function OperationsPage() {
   const today = new Date();
   const [kpis, board, tickets, preventive, housekeeping, serviceRequests, arrivals, departures] =
-    await Promise.all([
-      getOperationsKpis().catch(() => null),
-      getVillaStatusBoard().catch(() => []),
-      getMaintenanceTickets(12).catch(() => []),
-      getPreventiveUpcoming(6).catch(() => []),
-      getHousekeepingProgress().catch(() => []),
-      getServiceRequestsForCabinet().catch(() => []),
-      listArrivals(today).catch(() => []),
-      listDepartures(today).catch(() => []),
-    ]);
+    await mapPoolAll([
+      () => getOperationsKpis().catch(() => null),
+      () => getVillaStatusBoard().catch(() => []),
+      () => getMaintenanceTickets(12).catch(() => []),
+      () => getPreventiveUpcoming(6).catch(() => []),
+      () => getHousekeepingProgress().catch(() => []),
+      () => getServiceRequestsForCabinet().catch(() => []),
+      () => listArrivals(today).catch(() => []),
+      () => listDepartures(today).catch(() => []),
+    ] as const, 4);
 
   // Tile counts from the live board.
   const tileCounts = new Map<VillaState, number>();

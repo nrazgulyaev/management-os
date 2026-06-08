@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { logger } from "@/lib/observability/logger";
 import { withJobRun, type JobOutcome, type TriggerType } from "./runner";
 import { runCalendarSyncJob } from "./calendar-sync-job";
 import { runPreventiveTasksJob } from "./preventive-tasks-job";
@@ -682,6 +683,11 @@ export async function executeAllJobs(
     } catch (e) {
       // Per spec: run-all must NOT throw if one job fails.
       const message = e instanceof Error ? e.message : "unknown error";
+      logger.error("Job threw during run-all", {
+        area: "jobs.run-all",
+        jobKey,
+        error: message,
+      });
       results.push({
         jobKey,
         jobRunId: null,

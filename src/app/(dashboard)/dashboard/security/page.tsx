@@ -25,6 +25,7 @@ import { listRecentLoginAttempts } from "@/features/security-baseline/login-thro
 import { safeList } from "@/features/system/db-health";
 import { listOperationTasks } from "@/features/operations/services";
 import { loadSecurityCopilotOutputs } from "@/lib/development/server/ai/security-copilot-queries";
+import { mapPoolAll } from "@/lib/db/map-pool";
 import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
 
 /**
@@ -108,14 +109,14 @@ export default async function SecurityCabinetPage() {
     copilotOutputs,
     copilotEnabled,
     loginAttemptsRes,
-  ] = await Promise.all([
-    listSecurityCameraDevices(),
-    listSecurityEventsForAdmin(50),
-    listOperationTasks({ category: "security", limit: 100 }),
-    loadSecurityCopilotOutputs({ limit: 3 }).catch(() => []),
-    isAgentEnabledForCurrentOrg("security_copilot").catch(() => false),
-    safeList("security.loginAttempts", () => listRecentLoginAttempts(50)),
-  ]);
+  ] = await mapPoolAll([
+    () => listSecurityCameraDevices(),
+    () => listSecurityEventsForAdmin(50),
+    () => listOperationTasks({ category: "security", limit: 100 }),
+    () => loadSecurityCopilotOutputs({ limit: 3 }).catch(() => []),
+    () => isAgentEnabledForCurrentOrg("security_copilot").catch(() => false),
+    () => safeList("security.loginAttempts", () => listRecentLoginAttempts(50)),
+  ] as const, 4);
 
   const loginAttempts = loginAttemptsRes.ok ? loginAttemptsRes.value : [];
   const since24 = now.getTime() - 24 * 86_400_000;

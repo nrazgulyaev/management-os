@@ -32,6 +32,7 @@ import {
   type AutomationRunRow,
 } from "@/features/booking-automation/services";
 import type { WithSource } from "@/features/types";
+import { mapPoolAll } from "@/lib/db/map-pool";
 
 export const metadata = { title: "Booking" };
 export const dynamic = "force-dynamic";
@@ -427,17 +428,17 @@ export default async function BookingDetailPage({
   if (!b) notFound();
 
   const [audit, docsRaw, runs, party, chargeLines, payment, meta] =
-    await Promise.all([
-      listBookingAuditTimeline(id),
-      listDocuments({ entityType: "booking", entityId: id }),
-      listBookingAutomationRuns({ bookingId: id }).catch(
+    await mapPoolAll([
+      () => listBookingAuditTimeline(id),
+      () => listDocuments({ entityType: "booking", entityId: id }),
+      () => listBookingAutomationRuns({ bookingId: id }).catch(
         () => [] as WithSource<AutomationRunRow>[],
       ),
-      listBookingParty(id).catch(() => [] as BookingPartyGuest[]),
-      listBookingChargeLines(id).catch(() => [] as BookingChargeLine[]),
-      getBookingPayment(id).catch(() => null as BookingPaymentRow | null),
-      getBookingMeta(id).catch(() => null as BookingMetaRow | null),
-    ]);
+      () => listBookingParty(id).catch(() => [] as BookingPartyGuest[]),
+      () => listBookingChargeLines(id).catch(() => [] as BookingChargeLine[]),
+      () => getBookingPayment(id).catch(() => null as BookingPaymentRow | null),
+      () => getBookingMeta(id).catch(() => null as BookingMetaRow | null),
+    ] as const, 4);
   const docs = docsRaw.filter((d) => d.status !== "archived");
 
   const m = makeMoney(b.currency);

@@ -6,6 +6,7 @@ import {
   Card,
   HandoffBadge,
 } from "@/components/dashboard/primitives";
+import { mapPoolAll } from "@/lib/db/map-pool";
 import {
   getActiveProjectsRollup,
   getTeamRoster,
@@ -54,14 +55,14 @@ const ROLE_DISPLAY: Record<string, string> = {
 };
 
 export default async function DevelopmentOverviewPage() {
-  const [projects, team, latestAnomaly, risks, siteActivity, kpis] = await Promise.all([
-    getActiveProjectsRollup().catch(() => []),
-    getTeamRoster().catch(() => []),
-    getLatestQsAnomaly().catch(() => null),
-    getRiskRadar(5).catch(() => []),
-    getSiteActivityFeed(6).catch(() => []),
-    getDevPortfolioKpis().catch(() => null),
-  ]);
+  const [projects, team, latestAnomaly, risks, siteActivity, kpis] = await mapPoolAll([
+    () => getActiveProjectsRollup().catch(() => []),
+    () => getTeamRoster().catch(() => []),
+    () => getLatestQsAnomaly().catch(() => null),
+    () => getRiskRadar(5).catch(() => []),
+    () => getSiteActivityFeed(6).catch(() => []),
+    () => getDevPortfolioKpis().catch(() => null),
+  ] as const, 4);
 
   const totalVillas = projects.reduce((s, p) => s + p.villaCount, 0);
   const projectCount = projects.length;

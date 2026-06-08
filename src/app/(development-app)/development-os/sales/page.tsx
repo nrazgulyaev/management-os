@@ -18,6 +18,7 @@ import {
   getLeadsPipeline,
 } from "@/lib/development/server/leads";
 import { getDb } from "@/lib/db/client";
+import { mapPoolAll } from "@/lib/db/map-pool";
 import { projects } from "@/lib/db/schema/projects";
 import { agents, contactInteractions, contacts } from "@/lib/db/schema/contacts";
 import {
@@ -84,10 +85,10 @@ export default async function SalesPage() {
 
   if (db) {
     [leads, metrics, projectOptions, sourceOptions, agentOptions, pendingDrafts] =
-      await Promise.all([
+      await mapPoolAll([
         // Primary: pipeline data. Falls back to [] with a visible warning if it
         // fails — page still renders rather than throwing 500.
-        safeQuery(
+        () => safeQuery(
           "getLeadsPipeline",
           getLeadsPipeline(),
           [] as Awaited<ReturnType<typeof getLeadsPipeline>>,
@@ -97,14 +98,14 @@ export default async function SalesPage() {
             if (t.usedFallback) primaryError = "leads pipeline";
           },
         ),
-        safeQuery(
+        () => safeQuery(
           "getLeadPipelineMetrics",
           getLeadPipelineMetrics(),
           EMPTY_METRICS,
           SECONDARY_TIMEOUT_MS,
           onTiming,
         ),
-        safeQuery(
+        () => safeQuery<{ id: string; name: string }[]>(
           "projects select",
           db
             .select({ id: projects.id, name: projects.name })
@@ -114,7 +115,12 @@ export default async function SalesPage() {
           SECONDARY_TIMEOUT_MS,
           onTiming,
         ),
-        safeQuery(
+        () => safeQuery<{
+          code: string;
+          category: string;
+          id: string;
+          campaignName?: string | null;
+        }[]>(
           "getActiveLeadSources",
           getActiveLeadSources().then((rows) =>
             rows.map((s) => ({
@@ -133,7 +139,7 @@ export default async function SalesPage() {
           SECONDARY_TIMEOUT_MS,
           onTiming,
         ),
-        safeQuery(
+        () => safeQuery<{ id: string; name: string }[]>(
           "agents+contacts list",
           db
             .select({
@@ -154,14 +160,14 @@ export default async function SalesPage() {
           SECONDARY_TIMEOUT_MS,
           onTiming,
         ),
-        safeQuery(
+        () => safeQuery(
           "getPendingDraftCountsByRole",
           getPendingDraftCountsByRole(),
           {} as Record<string, number>,
           SECONDARY_TIMEOUT_MS,
           onTiming,
         ),
-      ]);
+      ] as const, 4);
   }
 
   logSafeQueryTimings("sales", timings);

@@ -18,6 +18,7 @@ import {
   type ProjectTab,
 } from "@/components/development/project-detail-tabs";
 import { formatDate, formatUSD } from "@/lib/utils";
+import { mapPoolAll } from "@/lib/db/map-pool";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
 import { getActiveLeadSources, getProjectLeads } from "@/lib/development/server/leads";
 import { LeadPipelineBoard } from "@/components/development/sales/lead-pipeline-board";
@@ -114,29 +115,29 @@ export default async function ProjectDetailPage({
     sustainCheck,
     projectBalance,
     projectTransactions,
-  ] = await Promise.all([
-    detail.source === "db" ? getProjectLeads(project.realProjectId) : Promise.resolve([]),
-    detail.source === "db" ? getActiveLeadSources() : Promise.resolve([]),
-    detail.source === "db"
+  ] = await mapPoolAll([
+    () => (detail.source === "db" ? getProjectLeads(project.realProjectId) : Promise.resolve([])),
+    () => (detail.source === "db" ? getActiveLeadSources() : Promise.resolve([])),
+    () => (detail.source === "db"
       ? getProjectSalesData(project.realProjectId)
-      : Promise.resolve(null),
-    detail.source === "db"
+      : Promise.resolve(null)),
+    () => (detail.source === "db"
       ? safeQuery(
           "getCommitments(project)",
           getCommitments({ projectId: project.realProjectId }),
           [],
           4000,
         )
-      : Promise.resolve([]),
-    detail.source === "db"
+      : Promise.resolve([])),
+    () => (detail.source === "db"
       ? safeQuery(
           "getBudgetVsActual(project)",
           getBudgetVsActual(project.realProjectId),
           [],
           4000,
         )
-      : Promise.resolve([]),
-    detail.source === "db"
+      : Promise.resolve([])),
+    () => (detail.source === "db"
       ? safeQuery(
           "getProjectFinancialSummary",
           getProjectFinancialSummary(project.realProjectId),
@@ -155,8 +156,8 @@ export default async function ProjectDetailPage({
           },
           4000,
         )
-      : Promise.resolve(null),
-    detail.source === "db"
+      : Promise.resolve(null)),
+    () => (detail.source === "db"
       ? safeQuery(
           "evaluateSelfSustainingThreshold",
           evaluateSelfSustainingThreshold(project.realProjectId),
@@ -171,16 +172,16 @@ export default async function ProjectDetailPage({
           },
           4000,
         )
-      : Promise.resolve(null),
-    detail.source === "db"
+      : Promise.resolve(null)),
+    () => (detail.source === "db"
       ? safeQuery(
           "getProjectBalance",
           getProjectBalance(project.realProjectId),
           0n,
           4000,
         )
-      : Promise.resolve(0n),
-    detail.source === "db"
+      : Promise.resolve(0n)),
+    () => (detail.source === "db"
       ? safeQuery(
           "getTransactions(project)",
           getTransactions(
@@ -190,8 +191,8 @@ export default async function ProjectDetailPage({
           [],
           4000,
         )
-      : Promise.resolve([]),
-  ]);
+      : Promise.resolve([])),
+  ] as const, 4);
 
   // Stage 3.C — active distribution suggestion for the Capital tab card.
   const distributionSuggestion =
@@ -210,40 +211,40 @@ export default async function ProjectDetailPage({
     projectVendorEngagements,
     projectMaterialPos,
     projectSafetyIncidents,
-  ] = await Promise.all([
-    detail.source === "db"
+  ] = await mapPoolAll([
+    () => (detail.source === "db"
       ? safeQuery(
           "getSiteReports(project)",
           getSiteReports({ projectId: project.realProjectId }),
           [],
           4000,
         )
-      : Promise.resolve([]),
-    detail.source === "db"
+      : Promise.resolve([])),
+    () => (detail.source === "db"
       ? safeQuery(
           "getVendorEngagements(project)",
           getVendorEngagements({ projectId: project.realProjectId }),
           [],
           4000,
         )
-      : Promise.resolve([]),
-    detail.source === "db"
+      : Promise.resolve([])),
+    () => (detail.source === "db"
       ? safeQuery(
           "getMaterialPurchaseOrders(project)",
           getMaterialPurchaseOrders({ projectId: project.realProjectId }),
           [],
           4000,
         )
-      : Promise.resolve([]),
-    detail.source === "db"
+      : Promise.resolve([])),
+    () => (detail.source === "db"
       ? safeQuery(
           "getSafetyIncidents(project)",
           getSafetyIncidents({ projectId: project.realProjectId }),
           [],
           4000,
         )
-      : Promise.resolve([]),
-  ]);
+      : Promise.resolve([])),
+  ] as const, 4);
   const sourceOptions = allSourcesRaw.map((s) => ({
     id: s.id,
     code: s.sourceCode,

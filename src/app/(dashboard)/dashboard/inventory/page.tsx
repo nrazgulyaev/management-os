@@ -16,6 +16,7 @@ import {
 } from "@/features/inventory/services";
 import { getLastRunByJobKey } from "@/features/jobs/services";
 import { safeList } from "@/features/system/db-health";
+import { mapPoolAll } from "@/lib/db/map-pool";
 
 export const metadata = { title: "Inventory" };
 export const dynamic = "force-dynamic";
@@ -43,14 +44,14 @@ export default async function InventoryHomePage() {
   // safeList: an RLS denial / missing relation on any one feed must not 500
   // the whole hub.
   const [itemsR, lowStockR, locationsR, recentMovementsR, categoriesR, suppliersR] =
-    await Promise.all([
-      safeList("inventory.items", () => listInventoryItems({ limit: 500 })),
-      safeList("inventory.lowStock", () => listLowStockItems()),
-      safeList("inventory.locations", () => listInventoryLocations()),
-      safeList("inventory.movements", () => listInventoryMovements({ limit: 12 })),
-      safeList("inventory.categories", () => listInventoryCategories()),
-      safeList("inventory.suppliers", () => listSuppliers()),
-    ]);
+    await mapPoolAll([
+      () => safeList("inventory.items", () => listInventoryItems({ limit: 500 })),
+      () => safeList("inventory.lowStock", () => listLowStockItems()),
+      () => safeList("inventory.locations", () => listInventoryLocations()),
+      () => safeList("inventory.movements", () => listInventoryMovements({ limit: 12 })),
+      () => safeList("inventory.categories", () => listInventoryCategories()),
+      () => safeList("inventory.suppliers", () => listSuppliers()),
+    ] as const, 4);
   const items = itemsR.value;
   const lowStock = lowStockR.value;
   const locations = locationsR.value;
