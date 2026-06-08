@@ -12,6 +12,8 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getDrawingByCode } from "@/lib/development/server/drawings/drawing-queries";
 import { RevisionActions } from "./_revision-actions";
+import { resolveRevisionImage } from "./_resolve-revision-image";
+import { RevisionImageViewer } from "./_revision-image-viewer";
 
 export const metadata: Metadata = { title: "Drawing · Development OS" };
 export const dynamic = "force-dynamic";
@@ -45,6 +47,13 @@ export default async function DrawingDetailPage({
   const { drawing, revisions } = data;
 
   const ifc = revisions.find((r) => r.status === "issued_for_construction");
+
+  // Preview the active drawing: the IFC revision when one exists, otherwise
+  // the most recent revision (revisions are ordered by revisionDate desc).
+  const previewRevision = ifc ?? revisions[0] ?? null;
+  const previewImage = previewRevision
+    ? await resolveRevisionImage(previewRevision.documentId)
+    : null;
 
   return (
     <DevelopmentShell>
@@ -95,6 +104,42 @@ export default async function DrawingDetailPage({
             value={ifc ? `Rev ${ifc.revisionLabel}` : "—"}
           />
         </div>
+      </Section>
+
+      <Section
+        eyebrow="Preview"
+        title={
+          previewRevision
+            ? `${ifc ? "IFC" : "Latest"} revision · Rev ${previewRevision.revisionLabel}`
+            : "Drawing preview"
+        }
+        description={
+          previewRevision
+            ? "Read-only view of the active revision's drawing. Pan and use the measurement overlay; takeoff lives in BOQ → Takeoff."
+            : undefined
+        }
+      >
+        {!previewRevision ? (
+          <EmptyState
+            title="No revision to preview"
+            description="Add a revision with an attached document to preview the drawing."
+          />
+        ) : previewImage?.url && !previewImage.isPdf ? (
+          <RevisionImageViewer
+            imageUrl={previewImage.url}
+            imageAlt={`${drawing.drawingCode} — Rev ${previewRevision.revisionLabel}`}
+          />
+        ) : previewImage?.isPdf ? (
+          <EmptyState
+            title="PDF revision"
+            description="This revision's document is a PDF. Inline preview is not yet supported — image revisions render here. (Follow-up: rasterise PDF pages.)"
+          />
+        ) : (
+          <EmptyState
+            title="No drawing image available"
+            description="This revision has no stored image file, or storage is not configured."
+          />
+        )}
       </Section>
 
       <Section
