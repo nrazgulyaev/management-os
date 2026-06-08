@@ -61,12 +61,47 @@ interface RateEntry {
   rate: number; // unit rate in major currency units (estimator-entered)
 }
 
-export function TakeoffWorkbench() {
+interface BoqTarget {
+  sectionId: string;
+  label: string;
+}
+
+export function TakeoffWorkbench({ boqTargets = [] }: { boqTargets?: BoqTarget[] }) {
   const [imageUrl, setImageUrl] = React.useState<string>("");
   const [strokes, setStrokes] = React.useState<DrawingStroke[]>([]);
   const [scale, setScale] = React.useState<ScaleCalibration | null>(null);
   const [rates, setRates] = React.useState<Record<string, RateEntry>>({});
   const [currency, setCurrency] = React.useState("IDR");
+  const [targetSectionId, setTargetSectionId] = React.useState("");
+  const [savingId, setSavingId] = React.useState<string | null>(null);
+  const [savedIds, setSavedIds] = React.useState<Set<string>>(new Set());
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+
+  async function saveRow(strokeId: string, opts: {
+    qty: number;
+    rate: number;
+    label: string;
+    kind: DrawingStroke["kind"];
+  }) {
+    if (!targetSectionId || opts.qty <= 0 || opts.rate <= 0) return;
+    setSavingId(strokeId);
+    setSaveError(null);
+    const { addTakeoffLineToBoqAction } = await import("./_save-action");
+    const res = await addTakeoffLineToBoqAction({
+      sectionId: targetSectionId,
+      description: opts.label || `Takeoff ${opts.kind}`,
+      quantity: opts.qty,
+      unitOfMeasure: UNIT[opts.kind],
+      unitRateMinor: BigInt(Math.round(opts.rate * 100)).toString(),
+      currency,
+    });
+    setSavingId(null);
+    if (!res.ok) {
+      setSaveError(res.error ?? "Could not save.");
+      return;
+    }
+    setSavedIds((prev) => new Set(prev).add(strokeId));
+  }
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -125,7 +160,25 @@ export function TakeoffWorkbench() {
             className="ml-1 w-16 text-xs px-2 py-1 rounded border border-line-soft bg-surface font-mono"
           />
         </label>
+        {boqTargets.length > 0 && (
+          <label className="text-xs text-ink-secondary">
+            Save into BOQ
+            <select
+              value={targetSectionId}
+              onChange={(e) => setTargetSectionId(e.target.value)}
+              className="ml-1 text-xs px-2 py-1 rounded border border-line-soft bg-surface max-w-[220px]"
+            >
+              <option value="">Select section…</option>
+              {boqTargets.map((t) => (
+                <option key={t.sectionId} value={t.sectionId}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
+      {saveError && <p className="text-xs text-danger -mt-2">{saveError}</p>}
 
       {!imageUrl ? (
         <div className="rounded-lg border border-dashed border-line-soft bg-muted/20 px-6 py-12 text-center text-sm text-ink-tertiary">
@@ -167,6 +220,9 @@ export function TakeoffWorkbench() {
                 <th className="px-2 py-2 font-normal text-right">Quantity</th>
                 <th className="px-2 py-2 font-normal text-right">Unit rate</th>
                 <th className="px-4 py-2 font-normal text-right">Line cost</th>
+                {boqTargets.length > 0 && (
+                  <th className="px-2 py-2 font-normal text-right">Save</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -203,6 +259,34 @@ export function TakeoffWorkbench() {
                   <td className="px-4 py-2 text-right font-mono tabular-nums text-xs text-ink">
                     {r.cost != null ? money(r.cost) : "—"}
                   </td>
+                  {boqTargets.length > 0 && (
+                    <td className="px-2 py-2 text-right">
+                      {savedIds.has(r.stroke.id) ? (
+                        <span className="text-[11px] text-success">Saved ✓</span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={
+                            !targetSectionId ||
+                            (r.qty ?? 0) <= 0 ||
+                            r.rate <= 0 ||
+                            savingId === r.stroke.id
+                          }
+                          onClick={() =>
+                            saveRow(r.stroke.id, {
+                              qty: r.qty ?? 0,
+                              rate: r.rate,
+                              label: r.label,
+                              kind: r.stroke.kind,
+                            })
+                          }
+                          className="text-[11px] px-2 py-0.5 rounded border border-line-soft bg-surface hover:bg-muted/50 disabled:opacity-40"
+                        >
+                          {savingId === r.stroke.id ? "…" : "Save to BOQ"}
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
