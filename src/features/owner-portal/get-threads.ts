@@ -75,12 +75,31 @@ export async function listOwnerThreads(ownerId: string): Promise<OwnerThreadList
   }));
 }
 
+export interface OwnerThreadMessageAttachment {
+  documentId: string;
+  name: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+}
+
+export interface OwnerThreadMessageScheduling {
+  id: string;
+  kind: "accept_slot" | "propose_time";
+  label: string;
+  slotIso: string | null;
+}
+
 export interface OwnerThreadMessage {
   id: string;
   actorKind: string;
   actorName: string;
   body: string;
   sentAt: string;
+  /** Structured scheduling chips ("Accept · <time>" / "Propose different time"). */
+  scheduling: OwnerThreadMessageScheduling[];
+  /** True once the owner has acted on this message's scheduling chips. */
+  schedulingResolved: boolean;
+  attachments: OwnerThreadMessageAttachment[];
 }
 
 export interface OwnerThreadDetail {
@@ -123,13 +142,17 @@ export async function getOwnerThreadDetail(
     actor_name: string | null;
     body: string;
     sent_at: string;
+    inline_actions: unknown;
+    attachments: unknown;
   }>(
     await db.execute(sql`
       SELECT m.id::text         AS id,
              m.actor_kind        AS actor_kind,
              au.full_name         AS actor_name,
              m.body               AS body,
-             m.sent_at::text      AS sent_at
+             m.sent_at::text      AS sent_at,
+             m.inline_actions     AS inline_actions,
+             m.attachments        AS attachments
         FROM owner_messages m
         LEFT JOIN app_users au ON au.id = m.actor_id
        WHERE m.thread_id = ${threadId}::uuid
@@ -150,7 +173,59 @@ export async function getOwnerThreadDetail(
             : "Arconique"),
     body: r.body,
     sentAt: r.sent_at,
+    scheduling: parseScheduling(r.inline_actions),
+    schedulingResolved: parseSchedulingResolved(r.inline_actions),
+    attachments: parseAttachments(r.attachments),
   }));
 
   return { id: head.id, subject: head.subject, kind: head.kind, status: head.status, messages };
+}
+
+/** Parse owner_messages.inline_actions → scheduling chips (tolerant of nulls / legacy shapes). */
+function parseScheduling(raw: unknown): OwnerThreadMessageScheduling[] {
+  if (!raw || typeof raw !== "object") return [];
+  const list = (raw as { scheduling?: unknown }).scheduling;
+  if (!Array.isArray(list)) return [];
+  const out: OwnerThreadMessageScheduling[] = [];
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue;
+    const a = item as { id?: unknown; kind?: unknown; label?: unknown; slotIso?: unknown };
+    if (typeof a.id !== "string" || typeof a.label !== "string") continue;
+    const kind = a.kind === "accept_slot" ? "accept_slot" : "propose_time";
+    out.push({
+      id: a.id,
+      kind,
+      label: a.label,
+      slotIso: typeof a.slotIso === "string" ? a.slotIso : null,
+    });
+  }
+  return out;
+}
+
+function parseSchedulingResolved(raw: unknown): boolean {
+  if (!raw || typeof raw !== "object") return false;
+  return (raw as { resolved?: unknown }).resolved === true;
+}
+
+/** Parse owner_messages.attachments → document refs (tolerant of nulls / legacy shapes). */
+function parseAttachments(raw: unknown): OwnerThreadMessageAttachment[] {
+  if (!Array.isArray(raw)) return [];
+  const out: OwnerThreadMessageAttachment[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const a = item as {
+      documentId?: unknown;
+      name?: unknown;
+      mimeType?: unknown;
+      sizeBytes?: unknown;
+    };
+    if (typeof a.documentId !== "string") continue;
+    out.push({
+      documentId: a.documentId,
+      name: typeof a.name === "string" ? a.name : "Attachment",
+      mimeType: typeof a.mimeType === "string" ? a.mimeType : null,
+      sizeBytes: typeof a.sizeBytes === "number" ? a.sizeBytes : null,
+    });
+  }
+  return out;
 }

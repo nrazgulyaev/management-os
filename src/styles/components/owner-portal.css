@@ -1283,6 +1283,110 @@
 }
 
 /* ---------------------------------------------------------------
+ * OWNER-ENGAGEMENT (#168 follow-up) — inbox scheduling chips,
+ * message attachments, and the composer attach (paperclip) button.
+ * --------------------------------------------------------------- */
+
+[data-product="owner"] .msg-bubble .msg-scheduling {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+[data-product="owner"] .msg-bubble .msg-chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text);
+  cursor: pointer;
+}
+[data-product="owner"] .msg-bubble .msg-chip:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+[data-product="owner"] .msg-bubble .msg-chip-accept {
+  border-color: var(--terra);
+  color: var(--terra);
+}
+[data-product="owner"] .msg-bubble .msg-chip-accept:not(:disabled):hover {
+  background: color-mix(in oklab, var(--terra) 12%, transparent);
+}
+[data-product="owner"] .msg-bubble .msg-chip-done {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+}
+[data-product="owner"] .msg-bubble .msg-propose {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+}
+[data-product="owner"] .msg-bubble .msg-propose .input { flex: 1; }
+
+[data-product="owner"] .msg-bubble .msg-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+[data-product="owner"] .msg-bubble .msg-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  text-decoration: none;
+  color: inherit;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background: color-mix(in oklab, var(--c-surface) 70%, transparent);
+}
+[data-product="owner"] .msg-bubble.msg-owner .msg-attachment {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+[data-product="owner"] .msg-bubble .msg-attachment:hover { text-decoration: underline; }
+[data-product="owner"] .msg-bubble .msg-attachment-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+[data-product="owner"] .thread-view .tv-composer .tv-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+[data-product="owner"] .thread-view .tv-composer .tv-attach {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  align-self: stretch;
+}
+
+/* ---------------------------------------------------------------
+ * OWNER-ENGAGEMENT — quick-action cards rendered as <button>.
+ * --------------------------------------------------------------- */
+[data-product] .qa-card.qa-card-button {
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------
  * Phase 2.3 owner-06 — Owner documents primitives
  * --------------------------------------------------------------- */
 

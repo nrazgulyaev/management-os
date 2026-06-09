@@ -78,6 +78,13 @@ export default async function OwnerInboxPage({
         actorName: m.actorName,
         body: m.body,
         sentLabel: fmt(m.sentAt, true),
+        scheduling: m.scheduling,
+        schedulingResolved: m.schedulingResolved,
+        attachments: m.attachments.map((a) => ({
+          documentId: a.documentId,
+          name: a.name,
+          href: `/api/documents/${a.documentId}/download`,
+        })),
       }))
     : [];
 
