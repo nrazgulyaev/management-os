@@ -105,3 +105,18 @@ export * from "./owner-activity-log";
 export * from "./general-ledger";
 // Front-office check-in flow persistence (migration 0123).
 export * from "./checkin-flow";
+// Coordination cabinet — submittals + drawing pins + threads (migration 0126).
+export * from "./submittals";
+export * from "./coordination";
+// Site-supervisor field-capture frames (migration 0127).
+export * from "./site-capture";
+// Keystone first-run org setup wizard + role-access matrix (migration 0128).
+export * from "./keystone-setup";
+// Operator installments desk — per-buyer auto-remind prefs (migration 0130).
+export * from "./contract-remind-prefs";
+// Villa rental-pool state + cooling-off (migration 0131, owner-calendar-pool).
+export * from "./villa-pool-state";
+// Documents-app v1 — templates / versions / signature requests (migration 0132).
+export * from "./documents-app";
+// Warehouse receiving / QC-hold record (migration 0133).
+export * from "./material-receiving-holds";

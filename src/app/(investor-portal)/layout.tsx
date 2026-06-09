@@ -16,8 +16,17 @@ export default function InvestorPortalLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // data-product="management" activates the design-system token layer
+  // (tokens.css [data-product="management"] palette + the component CSS
+  // scoped to [data-product]). The investor portal is served on the
+  // management host, which never gets the html-level data-product stamp,
+  // so this nested scope is what makes --surface / --success / --ink and
+  // the cream/stone/ink utilities resolve for every portal page.
   return (
-    <div className="min-h-screen bg-[#F8F5F0] text-ink antialiased">
+    <div
+      data-product="management"
+      className="min-h-screen bg-canvas text-ink antialiased"
+    >
       {children}
     </div>
   );

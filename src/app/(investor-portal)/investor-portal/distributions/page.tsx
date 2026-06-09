@@ -5,6 +5,8 @@ import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getMyDistributions } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
 import {
   DISTRIBUTION_STATUS_LABEL,
   DISTRIBUTION_TYPE_LABEL,
@@ -28,25 +30,20 @@ export default async function PortalDistributionsPage() {
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
     >
-      <div>
-        <h1 className="font-display text-3xl text-stone-900">
-          {strings.navDistributions}
-        </h1>
-        <p className="text-sm text-stone-600 mt-1">
-          {list.length} distribution{list.length === 1 ? "" : "s"} where you
-          received an allocation
-        </p>
-      </div>
+      <PageHeader
+        title={strings.navDistributions}
+        description={`${list.length} distribution${list.length === 1 ? "" : "s"} where you received an allocation`}
+      />
 
       {list.length === 0 ? (
-        <div className="rounded-md border border-stone-200 bg-white p-6 text-sm text-stone-600">
+        <div className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
           No distributions yet. When Arconique declares one for a project you
           have a commitment in, it will appear here.
         </div>
       ) : (
-        <div className="rounded-lg border border-stone-200 bg-white overflow-hidden">
+        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-stone-50 text-[11px] uppercase tracking-wide text-stone-500">
+            <thead className="bg-muted text-[11px] uppercase tracking-wide text-ink-tertiary">
               <tr>
                 <th className="px-4 py-2 text-left">#</th>
                 <th className="px-4 py-2 text-left">{strings.project}</th>
@@ -56,9 +53,9 @@ export default async function PortalDistributionsPage() {
                 <th className="px-4 py-2 text-left">{strings.status}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-line-soft">
               {list.map((d) => (
-                <tr key={d.id} className="hover:bg-stone-50">
+                <tr key={d.id} className="hover:bg-muted">
                   <td className="px-4 py-3 font-mono text-xs">
                     <Link
                       href={`/investor-portal/distributions/${d.id}`}
@@ -69,7 +66,7 @@ export default async function PortalDistributionsPage() {
                   </td>
                   <td className="px-4 py-3">
                     {d.projectName ?? (
-                      <span className="text-stone-500">Company-wide</span>
+                      <span className="text-ink-tertiary">Company-wide</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs">
@@ -80,17 +77,17 @@ export default async function PortalDistributionsPage() {
                   </td>
                   <td className="px-4 py-3 text-xs">{d.effectiveDate}</td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`text-[11px] px-2 py-0.5 rounded-full ${
+                    <Badge
+                      tone={
                         d.status === "completed"
-                          ? "bg-emerald-100 text-emerald-800"
+                          ? "success"
                           : d.status === "declared"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-stone-100 text-stone-700"
-                      }`}
+                            ? "warning"
+                            : "neutral"
+                      }
                     >
                       {DISTRIBUTION_STATUS_LABEL[d.status]}
-                    </span>
+                    </Badge>
                   </td>
                 </tr>
               ))}

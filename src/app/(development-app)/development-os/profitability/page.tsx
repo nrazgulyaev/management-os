@@ -11,6 +11,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listCurrentAllocations } from "@/lib/development/server/profitability/profitability-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { RecomputeButton } from "./_recompute-button";
 
 export const metadata: Metadata = {
   title: "Unit profitability · Development OS",
@@ -63,19 +64,22 @@ export default async function ProfitabilityPage() {
         title="Unit profitability"
         description="Per-asset cost basis + expected margin. `total_cost_basis_minor` and `expected_margin_minor` are GENERATED STORED in Postgres, so the math is enforced at the storage layer. Recomputes are atomic — only one `is_current=true` row per asset, guarded by a partial unique index."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
+          <div className="flex items-center gap-3">
+            <RecomputeButton />
+            <Button asChild variant="secondary">
+              <Link href="/development-os">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Command center
+              </Link>
+            </Button>
+          </div>
         }
       />
 
       {rows.length === 0 ? (
         <EmptyState
           title="No allocations computed"
-          description="Use the recomputeUnitAllocation server action or seed via scripts/seed-dev-os.mjs."
+          description="Press Recompute to roll the dev budget + actuals into per-asset cost allocations, or seed via scripts/seed-dev-os.mjs."
         />
       ) : (
         <Section eyebrow="Current basis" title="Per-unit cost + margin">

@@ -11,6 +11,7 @@ import {
 import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
 import { appUsersOwners } from "@/lib/db/schema/access-grants";
 import { recordAuditEvent } from "@/features/audit/services";
+import { logger } from "@/lib/observability/logger";
 import { selectProvider } from "./providers";
 import type {
   DeliveryChannel,
@@ -602,6 +603,28 @@ export async function deliverNotification(
     entityId: n.id,
     after: { sent, failed, skipped, suppressed, deliveriesCreated },
   });
+
+  // OBSERVABILITY-SPINE-H — notification-failure alerting. When an envelope
+  // ends `failed` (provider rejected every recipient and retries are
+  // exhausted, or there was nobody to deliver to), emit a structured error
+  // log. The logger forwards warn/error to Sentry/Logtail when a DSN is set,
+  // so a silent delivery dead-letter now raises a visible alert instead of
+  // only landing in the audit trail. Note: queue rows that merely scheduled
+  // a retry stay `queued` and do NOT alert — only terminal failures do.
+  if (finalStatus === "failed") {
+    logger.error("Notification delivery failed", {
+      area: "notifications.delivery",
+      notificationId: n.id,
+      channel: n.channel,
+      templateKey: n.templateKey,
+      recipientType: n.recipientType,
+      sent,
+      failed,
+      skipped,
+      suppressed,
+      deliveriesCreated,
+    });
+  }
 
   return {
     notificationId: n.id,

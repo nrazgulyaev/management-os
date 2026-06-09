@@ -129,6 +129,7 @@ fails fatal if it is missing.  Do **not** set
 | `/api/cron/trial-status` | `trial_status` | `10 3 * * *` | `CRON_SECRET`, `DATABASE_URL` | Daily sweep flips `organizations.trial_status='active' AND trial_ends_at < now()` to `'expired'`. Idempotent. (Stage 10.I.6) | ✓ | ✓ |
 | `/api/cron/trial-expiry-reminder` | `trial_expiry_reminder` | `30 3 * * *` | `CRON_SECRET`, `DATABASE_URL`, `RESEND_API_KEY` | Daily reminder: orgs with `trial_status='active'` ending in next 0-3 days get an email to each super_admin via Resend. No-op when Resend unconfigured (logs to console). (Stage 10.L) | ✓ | ✓ |
 | `/api/cron/run-all` | `(dispatcher)` | manual / on-demand | `CRON_SECRET`, `DATABASE_URL` | Iterates the dispatch table; per-job locks apply | ✓ | not scheduled by default |
+| `/api/cron/health` | `(liveness probe — not a job)` | polled by an uptime monitor (e.g. every 1m) | `DATABASE_URL` (optional), `HEALTH_STALE_JOB_MINUTES` (optional) | Read-only; no writes. Returns 200 when healthy, 503 when the DB is unreachable or a job is stuck `running` past the stale threshold | ✓ | ✓ (anonymous — intentionally NOT behind `CRON_SECRET`) |
 
 ## Vercel setup
 

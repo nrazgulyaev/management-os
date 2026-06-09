@@ -4,12 +4,17 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { listOwners } from "@/features/owners/services";
+import { listOwnersForCrm } from "@/features/owners/services";
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
-import { OwnerAddButton } from "@/components/owners/owner-add-button";
+import { OnboardOwnerLauncher } from "@/components/owners/onboard-owner-launcher";
+import { listVillas } from "@/features/villas/services";
+import { TierRing } from "@/components/owners/tier-ring";
+import { RiskPill } from "@/components/owners/risk-pill";
+import { PortalStatusDot } from "@/components/owners/portal-dot";
 import { ListTableCard, NoItemsYet } from "@/components/ui/primitives";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { startImpersonatingOwner } from "@/features/owner-portal/impersonation-actions";
+import { formatMoneyMinor } from "@/lib/money";
 
 export const metadata = { title: "Owners & investors" };
 export const dynamic = "force-dynamic";
@@ -27,10 +32,27 @@ async function viewAsOwnerAction(formData: FormData) {
   await startImpersonatingOwner(ownerId);
 }
 
+/** Row tint that mirrors the retention-risk level — flag rows read warm,
+ *  watch rows read amber, ok rows stay neutral. Kept subtle so the table
+ *  still scans as a director CRM, not an alert board. */
+const riskRowClass: Record<string, string> = {
+  ok: "",
+  watch: "bg-warn-weak/30",
+  flag: "bg-danger-weak/30",
+};
+
 export default async function OwnersPage() {
-  const [owners, ctx] = await Promise.all([listOwners(), getCurrentUserContext()]);
+  const [owners, ctx, villas] = await Promise.all([
+    listOwnersForCrm(),
+    getCurrentUserContext(),
+    listVillas(),
+  ]);
   const source = owners[0]?.source ?? "mock";
   const canImpersonate = ctx.isSuperAdmin;
+  const availableVillas = villas.map((v) => ({
+    id: v.id,
+    label: v.name ? `${v.unitCode} · ${v.name}` : v.unitCode,
+  }));
 
   const activeCount = owners.filter((o) => o.status === "active").length;
   const onboardingCount = owners.filter((o) => o.status === "onboarding").length;
@@ -50,7 +72,7 @@ export default async function OwnersPage() {
         </div>
         <div className="actions">
           <SourceBadge source={source} />
-          <OwnerAddButton />
+          <OnboardOwnerLauncher availableVillas={availableVillas} />
         </div>
       </div>
 
@@ -96,16 +118,18 @@ export default async function OwnersPage() {
           <THead>
             <TR>
               <TH>Owner</TH>
-              <TH>Type</TH>
-              <TH>Nationality</TH>
-              <TH>Email</TH>
+              <TH>Tier</TH>
+              <TH className="text-right">YTD net</TH>
+              <TH>Retention</TH>
+              <TH>Portal</TH>
+              <TH>Last contact</TH>
               <TH>Status</TH>
               <TH />
             </TR>
           </THead>
           <TBody>
             {owners.map((o) => (
-              <TR key={o.id}>
+              <TR key={o.id} className={riskRowClass[o.riskLevel] ?? ""}>
                 <TD>
                   <Link
                     href={`/dashboard/owners/${o.id}`}
@@ -113,17 +137,42 @@ export default async function OwnersPage() {
                   >
                     {o.displayName}
                   </Link>
-                  {o.legalName && o.legalName !== o.displayName && (
-                    <div className="text-xs text-ink-tertiary mt-0.5">
-                      {o.legalName}
-                    </div>
-                  )}
+                  <div className="text-xs text-ink-tertiary mt-0.5">
+                    {o.legalName && o.legalName !== o.displayName
+                      ? o.legalName
+                      : o.type.replace("_", " ")}
+                    {o.villaCount > 0 && (
+                      <>
+                        {" · "}
+                        {o.villaCount} villa{o.villaCount === 1 ? "" : "s"}
+                      </>
+                    )}
+                  </div>
                 </TD>
                 <TD>
-                  <Badge tone="outline">{o.type.replace("_", " ")}</Badge>
+                  <TierRing tier={o.tier} verbose />
                 </TD>
-                <TD className="text-ink-secondary">{o.nationality ?? "—"}</TD>
-                <TD className="text-ink-secondary text-sm">{o.email ?? "—"}</TD>
+                <TD className="text-right font-mono text-sm text-ink">
+                  {o.ytdNetMinor > 0n
+                    ? formatMoneyMinor(o.ytdNetMinor, "USD", { compact: true })
+                    : "—"}
+                </TD>
+                <TD>
+                  <RiskPill
+                    level={o.riskLevel}
+                    reason={
+                      o.riskSignalCount > 0
+                        ? `${o.riskSignalCount} signal${o.riskSignalCount === 1 ? "" : "s"}`
+                        : undefined
+                    }
+                  />
+                </TD>
+                <TD>
+                  <PortalStatusDot status={o.portalStatus} verbose />
+                </TD>
+                <TD className="text-ink-secondary text-sm font-mono">
+                  {o.lastContact ?? "—"}
+                </TD>
                 <TD>
                   <Badge tone={statusTone[o.status] ?? "neutral"}>
                     {o.status}

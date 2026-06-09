@@ -9,6 +9,7 @@ import {
 } from "@/lib/investor-portal/actions";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
+import { Button } from "@/components/ui/button";
 import {
   CURRENCY_LABEL,
   INVESTOR_TYPE_LABEL,
@@ -75,15 +76,15 @@ export default async function PortalProfilePage({
       investorCode={session.investorCode}
     >
       <div>
-        <h1 className="font-display text-3xl text-stone-900">
+        <h1 className="font-display text-3xl text-ink">
           {strings.navProfile}
         </h1>
-        <p className="text-sm text-stone-600 mt-1">
+        <p className="text-sm text-ink-secondary mt-1">
           Read-only — contact your account manager to update legal details.
         </p>
       </div>
 
-      <div className="rounded-lg border border-stone-200 bg-white p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <div className="rounded-lg border border-line-soft bg-surface p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
         <Field label="Investor code" value={profile.investorCode} mono />
         <Field label="Legal name" value={profile.legalName} />
         <Field
@@ -125,25 +126,25 @@ export default async function PortalProfilePage({
       </div>
 
       {sp.error && (
-        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">
+        <div className="rounded-md border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-ink">
           {sp.error}
         </div>
       )}
       {sp.success && (
-        <div className="rounded-md border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div className="rounded-md border border-success/40 bg-success-weak px-4 py-3 text-sm text-success">
           {sp.success}
         </div>
       )}
 
-      <div className="rounded-lg border border-stone-200 bg-white p-6">
-        <h3 className="text-stone-900 font-medium mb-3 text-sm">
+      <div className="rounded-lg border border-line-soft bg-surface p-6">
+        <h3 className="text-ink font-medium mb-3 text-sm">
           Reporting language
         </h3>
         <form action={handleLanguage} className="flex items-center gap-2">
           <select
             name="language"
             defaultValue={profile.reportingLanguage}
-            className="rounded-md border border-stone-300 bg-white px-2 py-1 text-sm"
+            className="rounded-md border border-line-soft bg-surface px-2 py-1 text-sm text-ink"
           >
             {REPORTING_LANGUAGES.map((l) => (
               <option key={l} value={l}>
@@ -151,26 +152,23 @@ export default async function PortalProfilePage({
               </option>
             ))}
           </select>
-          <button
-            type="submit"
-            className="rounded-md bg-stone-900 px-3 py-1.5 text-xs text-white hover:bg-stone-700"
-          >
+          <Button type="submit" size="sm">
             Save
-          </button>
+          </Button>
         </form>
-        <p className="text-xs text-stone-500 mt-2">
+        <p className="text-xs text-ink-tertiary mt-2">
           The portal UI will re-render in the chosen language on next page load.
           Currency formatting follows your investor record.
         </p>
       </div>
 
-      <div className="rounded-lg border border-stone-200 bg-white p-6">
-        <h3 className="text-stone-900 font-medium mb-3 text-sm">
+      <div className="rounded-lg border border-line-soft bg-surface p-6">
+        <h3 className="text-ink font-medium mb-3 text-sm">
           Change password
         </h3>
         <form action={handlePassword} className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl">
           <label className="flex flex-col gap-1.5">
-            <span className="text-[11px] uppercase tracking-wide text-stone-500">
+            <span className="text-[11px] uppercase tracking-wide text-ink-tertiary">
               New password
             </span>
             <input
@@ -178,12 +176,12 @@ export default async function PortalProfilePage({
               name="newPassword"
               required
               minLength={12}
-              className="rounded-md border border-stone-300 bg-white px-2 py-1 text-sm"
+              className="rounded-md border border-line-soft bg-surface px-2 py-1 text-sm text-ink"
               placeholder="≥12 chars, mixed case + number"
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[11px] uppercase tracking-wide text-stone-500">
+            <span className="text-[11px] uppercase tracking-wide text-ink-tertiary">
               Confirm
             </span>
             <input
@@ -191,19 +189,16 @@ export default async function PortalProfilePage({
               name="confirm"
               required
               minLength={12}
-              className="rounded-md border border-stone-300 bg-white px-2 py-1 text-sm"
+              className="rounded-md border border-line-soft bg-surface px-2 py-1 text-sm text-ink"
             />
           </label>
           <div className="md:col-span-2">
-            <button
-              type="submit"
-              className="rounded-md bg-stone-900 px-3 py-1.5 text-xs text-white hover:bg-stone-700"
-            >
+            <Button type="submit" size="sm">
               Update password
-            </button>
+            </Button>
           </div>
         </form>
-        <p className="text-xs text-stone-500 mt-2">
+        <p className="text-xs text-ink-tertiary mt-2">
           Routed through Supabase Auth — your session must be valid. Other
           legal-detail changes (name, currency, contact info) require contact
           with your Arconique account manager.
@@ -224,11 +219,11 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[11px] uppercase tracking-wide text-stone-500">
+      <span className="text-[11px] uppercase tracking-wide text-ink-tertiary">
         {label}
       </span>
       <span
-        className={`text-stone-900 ${mono ? "font-mono text-xs" : ""}`}
+        className={`text-ink ${mono ? "font-mono text-xs" : ""}`}
       >
         {value}
       </span>

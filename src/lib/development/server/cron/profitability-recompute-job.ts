@@ -1,19 +1,17 @@
 import "server-only";
 
-import { sql } from "drizzle-orm";
-import { getDb, rowsOf } from "@/lib/db/client";
+import { getDb } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
+import { recomputeAllProfitability } from "@/lib/development/server/profitability/profitability-aggregation";
 
 /**
  * Stage 5.B.3 — Profitability recompute (Sunday 02:00).
  *
- * For each project, find all assets, then re-derive cost allocations.
- * The actual cost-pool inputs come from existing budget/transaction
- * tables — for this v1, we operate as a no-op skeleton when no project
- * pools are available, but log the count of assets that would be
- * recomputed in a real run.
- *
- * Idempotent — derived state recomputed from source-of-truth tables.
+ * For each non-archived project, the aggregation engine rolls the dev
+ * budget + transaction ledger into per-project land / soft / hard /
+ * marketing / financing / contingency cost pools, builds the saleable-asset
+ * list, and writes fresh `unit_cost_allocations` rows (one current per
+ * asset). Idempotent — derived state recomputed from source-of-truth tables.
  */
 export async function runDevOsProfitabilityRecompute(
   handle: JobRunHandle,
@@ -28,40 +26,31 @@ export async function runDevOsProfitabilityRecompute(
     };
   }
 
-  // Count assets that would be recomputed.
-  const result = await db.execute<{
-    project_id: string;
-    asset_count: string;
-  }>(sql`
-    SELECT
-      p.id::text AS project_id,
-      COUNT(v.id)::text AS asset_count
-    FROM projects p
-    LEFT JOIN villas v ON v.project_id = p.id
-    WHERE p.status NOT IN ('archived')
-    GROUP BY p.id
-    HAVING COUNT(v.id) > 0
-  `);
-  const rows =
-    rowsOf<{ project_id: string; asset_count: string }>(result);
-
-  let totalAssets = 0;
-  for (const row of rows) {
-    const assetCount = Number(row.asset_count);
-    totalAssets += assetCount;
-    await handle.event(
-      "info",
-      `would recompute ${assetCount} asset(s) for project ${row.project_id.slice(0, 8)}`,
-      { projectId: row.project_id, assetCount },
-    );
-  }
+  const run = await recomputeAllProfitability(async (result) => {
+    if (result.allocationsWritten > 0) {
+      await handle.event(
+        "info",
+        `recomputed ${result.allocationsWritten} allocation(s) for ${result.projectName} (${result.allocationMethod})`,
+        {
+          projectId: result.projectId,
+          allocationsWritten: result.allocationsWritten,
+          pools: result.pools,
+        },
+      );
+    } else if (result.skippedReason) {
+      await handle.event("debug", `skipped ${result.projectName}: ${result.skippedReason}`, {
+        projectId: result.projectId,
+      });
+    }
+  });
 
   return {
     status: "success",
-    summary: `Profitability recompute scan: ${rows.length} project(s), ${totalAssets} asset(s).`,
+    summary: `Profitability recompute: ${run.projectsRecomputed}/${run.projectsScanned} project(s), ${run.allocationsWritten} allocation(s) written.`,
     metrics: {
-      projects: rows.length,
-      totalAssets,
+      projectsScanned: run.projectsScanned,
+      projectsRecomputed: run.projectsRecomputed,
+      allocationsWritten: run.allocationsWritten,
     },
   };
 }

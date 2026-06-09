@@ -8,13 +8,20 @@ import { ArrowUpRight, KeyRound } from "lucide-react";
 import { getOwnerById, listOwnershipShares } from "@/features/owners/services";
 import { listAccessGrantsForOwner } from "@/features/access-grants/services";
 import { getOwnerRetentionRisk } from "@/features/owners/retention-risk-service";
+import { listVillas } from "@/features/villas/services";
+import { canManageEntity } from "@/features/auth/permissions";
 import { RiskPill } from "@/components/owners/risk-pill";
+import { VillaMini } from "@/components/owners/villa-mini";
+import { type OwnerInsight } from "@/components/owners/insight-card";
+import { getOwnerChurnView } from "@/features/owners/retention-churn-service";
+import { OwnerChurnPanel } from "./_churn-panel";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DetailPage } from "@/components/dashboard/detail/detail-page";
 import { DetailHeader } from "@/components/dashboard/detail/detail-header";
 import { DetailActivity, type ActivityEntry } from "@/components/dashboard/detail/detail-activity";
 import { DetailRelated, type RelatedItem } from "@/components/dashboard/detail/detail-related";
 import { OwnerDetailTabs } from "./_detail-client";
+import { OwnerHeaderActions, OwnerInsightPanel } from "./_owner-actions-client";
 
 /**
  * Phase 2.1 PR 2 — Owner detail uses bricks B1 + B2 + B3 + B5 + B6.
@@ -38,6 +45,7 @@ export default async function OwnerDetailPage({
   const shares = allShares.filter((s) => s.ownerId === id);
   const grants = await listAccessGrantsForOwner(id);
   const activeGrants = grants.filter((g) => g.status === "active");
+  const canManage = await canManageEntity("owner");
 
   // Retention-risk intelligence — run the (previously orphaned) engine over
   // this owner's real statements / anomalies / maintenance.
@@ -45,6 +53,53 @@ export default async function OwnerDetailPage({
     ...new Set(shares.map((s) => s.villaId).filter(Boolean)),
   ] as string[];
   const risk = await getOwnerRetentionRisk(id, villaIds).catch(() => null);
+
+  // Villa mini-cards — enrich the owner's villa shares with bedrooms +
+  // management model for the side panel chips.
+  const allVillas = villaIds.length ? await listVillas() : [];
+  const villaById = new Map(allVillas.map((v) => [v.id, v]));
+  const ownerVillas = villaIds
+    .map((vid) => {
+      const v = villaById.get(vid);
+      const share = shares.find((s) => s.villaId === vid);
+      if (!v) return null;
+      return {
+        id: vid,
+        href: `/dashboard/villas/${v.id}`,
+        code: v.unitCode,
+        name: v.name ?? undefined,
+        bedrooms: v.bedrooms,
+        managementModel: share?.model ?? v.managementModel,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+
+  // Lead commission % for the editor — surfaced from the owner's primary
+  // active share (display-only; the editor records an audited change).
+  const leadShare =
+    shares.find((s) => s.status === "active" && s.villaId) ?? shares[0];
+  const commissionPct = leadShare ? Math.round(leadShare.sharePercent) : 0;
+
+  // Promote the worst risk signal into the rich AI insight card.
+  const topSignal =
+    risk && risk.signals.length > 0
+      ? [...risk.signals].sort((a, b) =>
+          a.level === b.level ? 0 : a.level === "flag" ? -1 : b.level === "flag" ? 1 : a.level === "watch" ? -1 : 1,
+        )[0]
+      : null;
+  const insight: OwnerInsight | null = topSignal
+    ? {
+        id: `${id}:${topSignal.kind}`,
+        kind: topSignal.kind,
+        level: topSignal.level,
+        message: topSignal.reason,
+        firedAt: new Date().toISOString().slice(0, 10),
+      }
+    : null;
+
+  // Owner-CHURN drill-in — score breakdown, signals timeline, save-plan,
+  // intervention feed (all on top of the same retention engine).
+  const churn = await getOwnerChurnView(id, villaIds).catch(() => null);
 
   // PR 2 — synthetic activity timeline. The dedicated
   // `src/features/activity/get-activity.ts` resolver lands in 2.2;
@@ -75,6 +130,11 @@ export default async function OwnerDetailPage({
 
   const overviewPanel = (
     <div className="flex flex-col gap-8 px-7 py-6">
+      {/* Rich AI insight card — the worst retention signal with
+          Schedule-call / Dismiss CTAs (replaces the bare RiskPill). */}
+      {insight && (
+        <OwnerInsightPanel ownerId={id} insight={insight} canManage={canManage} />
+      )}
       {risk && (
         <Card style={{ padding: 20 }}>
           <div className="flex flex-wrap items-center gap-3 mb-3">
@@ -103,7 +163,31 @@ export default async function OwnerDetailPage({
             unread anomalies · maintenance open &gt;14d · occupancy YoY.
             Portal-disengagement signal pending a sign-in log.
           </p>
+          <p className="text-[11px] text-ink-tertiary mt-1">
+            Open the <strong>Churn</strong> tab for the score breakdown,
+            save-plan and intervention actions.
+          </p>
         </Card>
+      )}
+
+      {ownerVillas.length > 0 && (
+        <section>
+          <div className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium mb-3">
+            Villas ({ownerVillas.length})
+          </div>
+          <div className="flex flex-col gap-2 max-w-[420px]">
+            {ownerVillas.map((v) => (
+              <VillaMini
+                key={v.id}
+                href={v.href}
+                code={v.code}
+                name={v.name}
+                bedrooms={v.bedrooms}
+                managementModel={v.managementModel}
+              />
+            ))}
+          </div>
+        </section>
       )}
       <Card style={{ padding: 20 }}>
         <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -231,6 +315,14 @@ export default async function OwnerDetailPage({
     </div>
   );
 
+  const churnPanel = churn ? (
+    <OwnerChurnPanel ownerId={owner.id} view={churn} />
+  ) : (
+    <div className="flex flex-col gap-3 px-7 py-12 text-sm text-ink-tertiary">
+      <p>Churn intelligence is unavailable in demo mode (no database).</p>
+    </div>
+  );
+
   const placeholderPanel = (label: string) => (
     <div className="flex flex-col gap-3 px-7 py-12 text-sm text-ink-tertiary">
       <p>{label} lands in Phase 2.2.</p>
@@ -268,6 +360,17 @@ export default async function OwnerDetailPage({
             )}
           </>
         }
+        actions={
+          <OwnerHeaderActions
+            ctx={{
+              ownerId: owner.id,
+              ownerName: owner.displayName,
+              ownerEmail: owner.email,
+              commissionPct,
+              canManage,
+            }}
+          />
+        }
       />
 
       {/* B2 + B3 — tabs + active panel (activity-as-main per template) */}
@@ -276,6 +379,7 @@ export default async function OwnerDetailPage({
         tabs={[
           { id: "overview", label: "Overview" },
           { id: "shares", label: "Shares", count: shares.length },
+          { id: "churn", label: "Churn", count: churn?.breakdown.contributions.length },
           { id: "activity", label: "Activity", count: activity.length },
           { id: "statements", label: "Statements" },
           { id: "contacts", label: "Contacts" },
@@ -283,6 +387,7 @@ export default async function OwnerDetailPage({
         panels={{
           overview: overviewPanel,
           shares: sharesPanel,
+          churn: churnPanel,
           activity: activityPanel,
           statements: placeholderPanel("Statements list"),
           contacts: placeholderPanel("Contacts"),

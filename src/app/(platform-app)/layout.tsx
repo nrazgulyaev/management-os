@@ -4,6 +4,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 import { ServiceTemporarilyUnavailable } from "@/components/system/service-temporarily-unavailable";
 import { ImpersonationBanner } from "@/components/subscription-os/impersonation-banner";
+import { PlatformShell } from "@/components/layout/platform-shell";
 
 export const metadata: Metadata = {
   title: {
@@ -34,8 +35,11 @@ export const metadata: Metadata = {
  * bypass `enforceProductAccess()` entirely and gate purely on
  * super_admin role.
  *
- * For v1 the body is just the page content (no shell yet — the
- * /platform landing page carries its own header).
+ * The body is wrapped in a minimal `PlatformShell` whose only job is to
+ * stamp `data-product="management"` (the closest palette) so the
+ * platform-admin pages resolve the DS chrome instead of falling through to
+ * bare :root tokens. The /platform landing page still carries its own
+ * header; the shell adds no chrome of its own.
  */
 export default async function PlatformAppLayout({
   children,
@@ -49,10 +53,12 @@ export default async function PlatformAppLayout({
     // used by enforceProductAccess in Stage 10.H.
     if (ctx.mode === "demo") {
       return (
-        <main className="min-h-screen bg-canvas">
-          <ImpersonationBanner />
-          {children}
-        </main>
+        <PlatformShell>
+          <main className="min-h-screen bg-canvas">
+            <ImpersonationBanner />
+            {children}
+          </main>
+        </PlatformShell>
       );
     }
 
@@ -64,10 +70,12 @@ export default async function PlatformAppLayout({
     }
 
     return (
-      <main className="min-h-screen bg-canvas">
-        <ImpersonationBanner />
-        {children}
-      </main>
+      <PlatformShell>
+        <main className="min-h-screen bg-canvas">
+          <ImpersonationBanner />
+          {children}
+        </main>
+      </PlatformShell>
     );
   } catch (err) {
     if (isRedirectError(err)) throw err;

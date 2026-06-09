@@ -2,8 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import { getOwnerCalendar } from "@/features/owner-portal/get-calendar";
+import {
+  getOwnerPoolState,
+  getUpcomingOwnerStays,
+} from "@/features/owner-portal/get-pool-state";
+import { getOwnerStayQuota } from "@/features/owner-portal/owner-portal-queries";
 import { MonthCalendar } from "@/components/owner-portal/month-calendar";
 import { PipelineList } from "@/components/owner-portal/pipeline-list";
+import { PoolManager } from "@/components/owner-portal/pool-manager";
 
 /**
  * Sprint OWNER-PORTAL · redesign owner-04 — Calendar.
@@ -61,7 +67,12 @@ export default async function OwnerCalendarPage({
   if (!owner) redirect("/dashboard");
 
   const sp = await searchParams;
-  const data = await getOwnerCalendar(owner.ownerId, isYm(sp.month) ? sp.month : undefined);
+  const [data, pool, quota, upcomingStays] = await Promise.all([
+    getOwnerCalendar(owner.ownerId, isYm(sp.month) ? sp.month : undefined),
+    getOwnerPoolState(owner.ownerId).catch(() => ({ villas: [], coolingOffDays: 14 })),
+    getOwnerStayQuota(owner.ownerId).catch(() => null),
+    getUpcomingOwnerStays(owner.ownerId).catch(() => []),
+  ]);
 
   const ym = data.month;
   const prev = shiftMonth(ym, -1);
@@ -93,11 +104,37 @@ export default async function OwnerCalendarPage({
           <Link href={`/owner/calendar?month=${next}`} className="btn btn-ghost btn-sm">
             {monthShort(next)} →
           </Link>
-          <Link href="/owner/stays/new" className="btn btn-accent btn-sm">
-            + Request personal stay
+          <Link href="/owner/stays" className="btn btn-ghost btn-sm">
+            All my stays
           </Link>
         </div>
       </div>
+
+      {/* P1 owner-calendar-pool — interactive rental-pool manager. Replaces
+          the async request-form-only flow with an in-grid pool surface:
+          take-out / return toggle (14-day cooling-off), free-nights
+          allowance, Pay-&-book vs Book-free, and cancel-stay. */}
+      <section className="flex flex-col gap-3">
+        <h2 className="display" style={{ fontSize: 22, fontWeight: 400, margin: 0, color: "var(--ink)" }}>
+          Rental pool
+        </h2>
+        <PoolManager
+          villas={pool.villas}
+          quota={
+            quota
+              ? {
+                  policyName: quota.policyName,
+                  year: quota.year,
+                  usedNights: quota.usedNights,
+                  freeNightsPerYear: quota.freeNightsPerYear,
+                  remainingNights: quota.remainingNights,
+                }
+              : null
+          }
+          coolingOffDays={pool.coolingOffDays}
+          upcomingStays={upcomingStays}
+        />
+      </section>
 
       <MonthCalendar month={ym} events={data.events} />
 

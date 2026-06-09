@@ -245,11 +245,11 @@ export default async function DashboardPage() {
             Each card opens the commitment detail with capital-call history + distribution ledger.
           </p>
           {commitments.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-stone-300 bg-white px-6 py-10 text-center">
-              <p className="text-sm font-medium text-stone-700">
+            <div className="rounded-3xl border border-dashed border-line-soft bg-surface px-6 py-10 text-center">
+              <p className="text-sm font-medium text-ink-secondary">
                 {strings.dashNoCommitments}
               </p>
-              <p className="text-xs text-stone-500 mt-2 max-w-md mx-auto leading-relaxed">
+              <p className="text-xs text-ink-tertiary mt-2 max-w-md mx-auto leading-relaxed">
                 When Arconique creates a commitment under your account,
                 it will appear here with capital-call progress +
                 distribution history.

@@ -106,13 +106,13 @@ export default async function SiteReportsPage({
           <div className="flex items-center gap-2 text-xs">
             <Link
               href="/development-os/site-reports?view=calendar"
-              className={`rounded-md px-3 py-1.5 ${view === "calendar" ? "bg-stone-900 text-white" : "border border-line-soft hover:bg-muted/40"}`}
+              className={`rounded-md px-3 py-1.5 ${view === "calendar" ? "bg-ink text-ink-inverse" : "border border-line-soft hover:bg-muted/40"}`}
             >
               Calendar
             </Link>
             <Link
               href="/development-os/site-reports?view=list"
-              className={`rounded-md px-3 py-1.5 ${view === "list" ? "bg-stone-900 text-white" : "border border-line-soft hover:bg-muted/40"}`}
+              className={`rounded-md px-3 py-1.5 ${view === "list" ? "bg-ink text-ink-inverse" : "border border-line-soft hover:bg-muted/40"}`}
             >
               List
             </Link>

@@ -9,6 +9,7 @@ import {
 } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
+import { Button } from "@/components/ui/button";
 import {
   WALLET_TX_TYPE_LABEL,
   formatUsdMinor,
@@ -45,14 +46,14 @@ export default async function PortalWalletPage({
       <div>
         <Link
           href={`/investor-portal/commitments/${commitment.id}`}
-          className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-stone-900 mb-3"
+          className="inline-flex items-center gap-1 text-xs text-ink-tertiary hover:text-ink mb-3"
         >
           <ArrowLeft className="w-3 h-3" /> {commitment.commitmentCode}
         </Link>
-        <h1 className="font-display text-2xl text-stone-900">
+        <h1 className="font-display text-2xl text-ink">
           {strings.navWallet}
         </h1>
-        <p className="text-sm text-stone-600 mt-1">
+        <p className="text-sm text-ink-secondary mt-1">
           {commitment.projectName ?? "Multi-project commitment"} ·{" "}
           {commitment.commitmentCode}
         </p>
@@ -72,18 +73,18 @@ export default async function PortalWalletPage({
       </section>
 
       <section>
-        <h2 className="text-sm uppercase tracking-wide text-stone-500 mb-3">
+        <h2 className="text-sm uppercase tracking-wide text-ink-tertiary mb-3">
           Transaction ledger
         </h2>
         {walletBundle.recentTransactions.length === 0 ? (
-          <div className="rounded-md border border-stone-200 bg-white p-6 text-sm text-stone-600">
+          <div className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
             No transactions yet. The first entry will appear once a drawdown
             is confirmed or a distribution is executed.
           </div>
         ) : (
-          <div className="rounded-lg border border-stone-200 bg-white overflow-hidden">
+          <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-stone-50 text-[11px] uppercase tracking-wide text-stone-500">
+              <thead className="bg-muted text-[11px] uppercase tracking-wide text-ink-tertiary">
                 <tr>
                   <th className="px-4 py-2 text-left">When</th>
                   <th className="px-4 py-2 text-left">{strings.type}</th>
@@ -92,7 +93,7 @@ export default async function PortalWalletPage({
                   <th className="px-4 py-2 text-left">Note</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-line-soft">
                 {walletBundle.recentTransactions.map((t) => {
                   const amt = BigInt(t.amountUsdMinor);
                   return (
@@ -104,7 +105,7 @@ export default async function PortalWalletPage({
                         {WALLET_TX_TYPE_LABEL[t.transactionType]}
                       </td>
                       <td
-                        className={`px-4 py-3 text-right tabular-nums ${amt < 0n ? "text-red-700" : "text-emerald-700"}`}
+                        className={`px-4 py-3 text-right tabular-nums ${amt < 0n ? "text-danger" : "text-success"}`}
                       >
                         {formatUsdMinor(amt)}
                       </td>
@@ -113,7 +114,7 @@ export default async function PortalWalletPage({
                           BigInt(t.balanceAvailableAfterUsdMinor),
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-stone-600">
+                      <td className="px-4 py-3 text-xs text-ink-secondary">
                         {t.description ?? "—"}
                       </td>
                     </tr>
@@ -125,22 +126,16 @@ export default async function PortalWalletPage({
         )}
       </section>
 
-      <section className="rounded-md border border-stone-200 bg-stone-50 p-4 text-sm">
-        <h3 className="text-stone-900 font-medium mb-2">Want to withdraw or reinvest?</h3>
-        <p className="text-stone-600 mb-3">{strings.notYetEnabled}</p>
+      <section className="rounded-md border border-line-soft bg-muted p-4 text-sm">
+        <h3 className="text-ink font-medium mb-2">Want to withdraw or reinvest?</h3>
+        <p className="text-ink-secondary mb-3">{strings.notYetEnabled}</p>
         <div className="flex gap-2">
-          <button
-            disabled
-            className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-500 cursor-not-allowed"
-          >
+          <Button variant="secondary" size="sm" disabled>
             {strings.requestWithdrawal}
-          </button>
-          <button
-            disabled
-            className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-500 cursor-not-allowed"
-          >
+          </Button>
+          <Button variant="secondary" size="sm" disabled>
             {strings.requestReinvest}
-          </button>
+          </Button>
         </div>
       </section>
     </PortalShell>
@@ -149,11 +144,11 @@ export default async function PortalWalletPage({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-4">
-      <div className="text-[11px] uppercase tracking-wide text-stone-500">
+    <div className="rounded-lg border border-line-soft bg-surface p-4">
+      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
         {label}
       </div>
-      <div className="text-xl font-medium tabular-nums text-stone-900 mt-1">
+      <div className="text-xl font-medium tabular-nums text-ink mt-1">
         {value}
       </div>
     </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import { getOwnerDocuments, type OwnerDocument } from "@/features/owner-portal/get-documents";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { DocGroup } from "@/components/owner-portal/doc-group";
 import { DocRow } from "@/components/owner-portal/doc-row";
 
@@ -36,22 +37,15 @@ export default async function OwnerDocumentsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary mb-2">
-          Your archive
-        </div>
-        <h1
-          className="display"
-          style={{ fontSize: 36, fontWeight: 400, margin: 0, lineHeight: 1.05, letterSpacing: "-0.02em", color: "var(--ink)" }}
-        >
-          Documents
-        </h1>
-        <p className="text-[14px] text-ink-tertiary mt-2 max-w-[680px]">
-          {totalDocs === 0
+      <SectionHeading
+        eyebrow="Your archive"
+        title="Documents"
+        subtitle={
+          totalDocs === 0
             ? "Operator-shared documents for your villas appear here — management agreements, tax filings, statement archives, and insurance certificates."
-            : `${totalDocs} ${totalDocs === 1 ? "document" : "documents"} on file across your villas. Monthly statement PDFs also live on the Statements page.`}
-        </p>
-      </div>
+            : `${totalDocs} ${totalDocs === 1 ? "document" : "documents"} on file across your villas. Monthly statement PDFs also live on the Statements page.`
+        }
+      />
 
       {totalDocs === 0 ? (
         <div className="rounded-[14px] border border-dashed border-line-strong p-8 flex flex-col gap-2">

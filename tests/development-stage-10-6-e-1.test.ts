@@ -128,36 +128,34 @@ test("10.6.E.1.2 — /platform landing page ships (Sprint 2 rename from /subscri
   assert.ok(existsSync(resolve(ROOT, LANDING)));
 });
 
-test("10.6.E.1.2 — landing page renders CabinetGreetingBlock + PageHeaderHero (10.6.C tokens)", () => {
+// P1 (superadmin-plans-console) superseded the 10.6.E.1 roadmap
+// placeholder with the live Platform Console cockpit. The three tests
+// below now assert the cockpit reality instead of the planned-pages stub.
+test("P1 — landing page is the live Platform Console cockpit (PageHeader)", () => {
   const src = read(LANDING);
-  assert.match(src, /<CabinetGreetingBlock\b/);
-  assert.match(src, /<PageHeaderHero\b/);
+  assert.match(src, /<PageHeader\b/);
+  assert.match(src, /Platform Console/);
 });
 
-test("10.6.E.1.2 — landing page surfaces planned 6 admin pages", () => {
+test("P1 — cockpit surfaces customer-status summary + per-tier MRR rollup", () => {
   const src = read(LANDING);
-  for (const name of [
-    "Customer organizations",
-    "Revenue dashboard",
-    "Usage analytics",
-    "Customer support tools",
-    "Platform-admin audit log",
-    "Stripe billing collection",
-  ]) {
+  // Status summary pills.
+  for (const label of ["Active", "Trial", "Grace", "Cancelled"]) {
     assert.match(
       src,
-      new RegExp(`name:\\s*"${name.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}"`),
-      `missing planned page: ${name}`,
+      new RegExp(`label:\\s*"${label}"`),
+      `missing status pill: ${label}`,
     );
   }
+  // Reuses the revenue snapshot for the per-tier rollup.
+  assert.match(src, /getRevenueSnapshot/);
+  assert.match(src, /getPlatformConsoleSummary/);
+  assert.match(src, /MRR contribution/);
 });
 
-test("10.6.E.1.2 — landing 'foundation in place' callout uses gradient-emerald-soft", () => {
+test("P1 — cockpit links to the Plans & pricing editor", () => {
   const src = read(LANDING);
-  assert.match(
-    src,
-    /rounded-3xl border border-line-soft bg-gradient-emerald-soft shadow-soft-card/,
-  );
+  assert.match(src, /\/platform\/plans/);
 });
 
 // ============================================================================

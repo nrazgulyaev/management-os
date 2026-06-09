@@ -47,14 +47,14 @@ export default async function CapitalCallDetailPage({
       <div>
         <Link
           href="/investor-portal/capital-calls"
-          className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-stone-900 mb-3"
+          className="inline-flex items-center gap-1 text-xs text-ink-tertiary hover:text-ink mb-3"
         >
           <ArrowLeft className="w-3 h-3" /> Capital calls
         </Link>
-        <h1 className="font-display text-2xl text-stone-900">
+        <h1 className="font-display text-2xl text-ink">
           {call.projectName ?? "Capital call"}
         </h1>
-        <p className="text-sm text-stone-600 mt-1 font-mono">
+        <p className="text-sm text-ink-secondary mt-1 font-mono">
           {call.ref} · <span className="capitalize">{call.kind.replace(/_/g, " ")}</span>
         </p>
       </div>
@@ -85,12 +85,12 @@ export default async function CapitalCallDetailPage({
       </section>
 
       <section>
-        <h2 className="text-sm uppercase tracking-wide text-stone-500 mb-3">
+        <h2 className="text-sm uppercase tracking-wide text-ink-tertiary mb-3">
           Pro-rata breakdown
         </h2>
-        <div className="rounded-lg border border-stone-200 bg-white overflow-hidden">
+        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
           <table className="w-full text-sm">
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-line-soft">
               <Row
                 label="Total call"
                 value={
@@ -143,11 +143,11 @@ export default async function CapitalCallDetailPage({
       </section>
 
       <section>
-        <h2 className="text-sm uppercase tracking-wide text-stone-500 mb-3">
+        <h2 className="text-sm uppercase tracking-wide text-ink-tertiary mb-3">
           {call.isPaid ? "Wire" : "Confirm your wire"}
         </h2>
         {call.isPaid ? (
-          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <div className="rounded-md border border-success/40 bg-success-weak px-4 py-3 text-sm text-success">
             Your wire of {formatUsdMinor(allocated)} has been confirmed
             {call.wireRef ? (
               <>
@@ -158,7 +158,7 @@ export default async function CapitalCallDetailPage({
             . No further action is required.
           </div>
         ) : (
-          <div className="rounded-lg border border-stone-200 bg-white p-5">
+          <div className="rounded-lg border border-line-soft bg-surface p-5">
             <ConfirmWireForm
               allocationId={call.allocationId}
               allocatedLabel={formatUsdMinor(allocated)}
@@ -180,14 +180,14 @@ function Stat({
   hint?: string;
 }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-4">
-      <div className="text-[11px] uppercase tracking-wide text-stone-500">
+    <div className="rounded-lg border border-line-soft bg-surface p-4">
+      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
         {label}
       </div>
-      <div className="text-xl font-medium tabular-nums text-stone-900 mt-1">
+      <div className="text-xl font-medium tabular-nums text-ink mt-1">
         {value}
       </div>
-      {hint && <div className="text-[11px] text-stone-500 mt-1">{hint}</div>}
+      {hint && <div className="text-[11px] text-ink-tertiary mt-1">{hint}</div>}
     </div>
   );
 }
@@ -203,9 +203,9 @@ function Row({
 }) {
   return (
     <tr>
-      <td className="px-4 py-3 text-stone-600">{label}</td>
+      <td className="px-4 py-3 text-ink-secondary">{label}</td>
       <td
-        className={`px-4 py-3 text-right tabular-nums text-stone-900 ${mono ? "font-mono text-xs" : ""}`}
+        className={`px-4 py-3 text-right tabular-nums text-ink ${mono ? "font-mono text-xs" : ""}`}
       >
         {value}
       </td>

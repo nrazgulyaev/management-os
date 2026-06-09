@@ -52,6 +52,9 @@ export const documents = pgTable(
      *  cabinet query. True ⇔ visibility ∈ ('owner','public'). Backfill defaults
      *  via the migration. */
     visibleToOwner: boolean("visible_to_owner").notNull().default(false),
+    /** Documents-app v1 (migration 0132) — set when fed to the AI knowledge
+     *  base; null when not fed / removed. Drives the AI-knowledge tab. */
+    aiFedAt: timestamp("ai_fed_at", { withTimezone: true }),
   },
   (t) => [
     index("documents_entity_idx").on(t.entityType, t.entityId),

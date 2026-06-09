@@ -74,6 +74,13 @@ const serverSchema = z.object({
   GOOGLE_WORKSPACE_OAUTH_REDIRECT_URI: z.string().url().optional(),
   /** "1" = never call Google — selector returns DryRun. Default: "1" in tests/dev. */
   GOOGLE_WORKSPACE_DRY_RUN: z.string().optional(),
+  // Observability spine (Task H) — all optional; missing = local-stdout only.
+  /** Sentry DSN. When set, the logger forwards warn/error lines to Sentry. */
+  SENTRY_DSN: z.string().optional(),
+  /** Logtail (Better Stack) source token. When set, warn/error lines ship to Logtail. */
+  LOGTAIL_TOKEN: z.string().optional(),
+  /** Minutes a job_run may sit `running` before health reports it stale. Default 60. */
+  HEALTH_STALE_JOB_MINUTES: z.coerce.number().int().min(1).optional(),
 });
 
 const publicSchema = z.object({
@@ -120,6 +127,9 @@ const parsedServer = serverSchema.safeParse({
   GOOGLE_WORKSPACE_OAUTH_CLIENT_SECRET: process.env.GOOGLE_WORKSPACE_OAUTH_CLIENT_SECRET,
   GOOGLE_WORKSPACE_OAUTH_REDIRECT_URI: process.env.GOOGLE_WORKSPACE_OAUTH_REDIRECT_URI,
   GOOGLE_WORKSPACE_DRY_RUN: process.env.GOOGLE_WORKSPACE_DRY_RUN,
+  SENTRY_DSN: process.env.SENTRY_DSN,
+  LOGTAIL_TOKEN: process.env.LOGTAIL_TOKEN,
+  HEALTH_STALE_JOB_MINUTES: process.env.HEALTH_STALE_JOB_MINUTES,
 });
 
 const parsedPublic = publicSchema.safeParse({
@@ -333,4 +343,13 @@ export function isGoogleWorkspaceDryRun(): boolean {
   const flag = env.server.GOOGLE_WORKSPACE_DRY_RUN;
   if (flag === undefined) return !isGoogleWorkspaceConfigured();
   return flag === "1" || flag.toLowerCase() === "true";
+}
+
+// -----------------------------------------------------------------------------
+// Observability spine (Task H) — health-threshold helpers.
+// -----------------------------------------------------------------------------
+
+/** Minutes a job_run may sit `running` before /api/cron/health flags it stale. */
+export function healthStaleJobMinutes(): number {
+  return env.server.HEALTH_STALE_JOB_MINUTES ?? 60;
 }

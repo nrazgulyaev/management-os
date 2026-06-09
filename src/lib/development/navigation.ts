@@ -31,6 +31,7 @@ import {
   Library,
   LineChart,
   ListTree,
+  MapPin,
   Megaphone,
   MessageSquare,
   Package,
@@ -589,9 +590,19 @@ export const developmentAppNav: NavGroup[] = [
         icon: Layers,
       },
       {
+        href: `${DEVELOPMENT_APP_PATH}/coordination`,
+        label: "Coordination",
+        icon: MapPin,
+      },
+      {
         href: `${DEVELOPMENT_APP_PATH}/boq`,
         label: "BOQ",
         icon: ListTree,
+      },
+      {
+        href: `${DEVELOPMENT_APP_PATH}/boq/takeoff`,
+        label: "Takeoff workbench",
+        icon: Calculator,
       },
       {
         href: `${DEVELOPMENT_APP_PATH}/specifications`,

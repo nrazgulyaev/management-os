@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { markBuyerInstallmentPaid } from "@/lib/buyer-portal/payment-actions";
 
 /**
@@ -32,40 +33,43 @@ export function MarkPaidButton({ milestoneId }: { milestoneId: string }) {
 
   if (!confirming) {
     return (
-      <button
+      <Button
         type="button"
+        variant="secondary"
+        size="sm"
         onClick={() => setConfirming(true)}
-        className="text-xs px-3 py-1.5 rounded border border-stone-400 bg-white text-stone-800 hover:bg-stone-100"
       >
         Mark as paid
-      </button>
+      </Button>
     );
   }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs text-stone-600">Confirm payment made?</span>
-      <button
+      <span className="text-xs text-ink-secondary">Confirm payment made?</span>
+      <Button
         type="button"
+        variant="primary"
+        size="sm"
         onClick={submit}
         disabled={pending}
-        className="text-xs px-3 py-1.5 rounded border border-stone-700 bg-stone-800 text-white hover:bg-stone-900 disabled:opacity-50"
       >
         {pending ? "Saving…" : "Yes, mark paid"}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="secondary"
+        size="sm"
         onClick={() => {
           setConfirming(false);
           setError(null);
         }}
         disabled={pending}
-        className="text-xs px-3 py-1.5 rounded border border-stone-300 bg-white text-stone-600 hover:bg-stone-100 disabled:opacity-50"
       >
         Cancel
-      </button>
+      </Button>
       {error && (
-        <span className="text-xs text-red-700 w-full">{error}</span>
+        <span className="text-xs text-danger w-full">{error}</span>
       )}
     </div>
   );

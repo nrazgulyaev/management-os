@@ -215,6 +215,8 @@ export async function getBoqWpRollup(): Promise<WpRollupRow[]> {
 }
 
 export interface BoqLineRow {
+  /** boq_items.id — needed for inline delete on the QS desk. */
+  lineId: string;
   itemCode: string;
   sectionCode: string;
   description: string;
@@ -231,6 +233,7 @@ export async function getBoqTopLines(limit = 7): Promise<BoqLineRow[]> {
   if (!db) return [];
   const orgId = await requireOrgId();
   const rows = await db.execute<{
+    line_id: string;
     item_code: string;
     section_code: string;
     description: string;
@@ -240,7 +243,8 @@ export async function getBoqTopLines(limit = 7): Promise<BoqLineRow[]> {
     total_minor: string;
     currency: string;
   }>(sql`
-    SELECT i.item_code,
+    SELECT i.id::text                          AS line_id,
+           i.item_code,
            s.section_code,
            i.description,
            i.quantity::text,
@@ -256,6 +260,7 @@ export async function getBoqTopLines(limit = 7): Promise<BoqLineRow[]> {
   `);
   return (
     rowsOf<{
+      line_id: string;
       item_code: string;
       section_code: string;
       description: string;
@@ -266,6 +271,7 @@ export async function getBoqTopLines(limit = 7): Promise<BoqLineRow[]> {
       currency: string;
     }>(rows)
   ).map((r) => ({
+    lineId: r.line_id,
     itemCode: r.item_code,
     sectionCode: r.section_code,
     description: r.description,
@@ -341,4 +347,236 @@ export async function getRfqMatrix(): Promise<RfqMatrixRow[]> {
     deliveryEta: r.delivery_eta,
     status: r.status,
   }));
+}
+
+// =============================================================================
+// P1 — QS BOQ-desk CRUD support readers (inline add + Compare REV).
+//
+// `listQsBoqRevisions()` feeds both the inline "New estimate line" section
+// picker AND the "Compare REV" two-revision selector. `diffBoqRevisions()`
+// powers the Compare REV diff. All org-scoped via requireOrgId() (TENANT-1).
+// =============================================================================
+
+export interface QsBoqRevision {
+  documentId: string;
+  boqCode: string;
+  title: string;
+  versionLabel: string;
+  status: string;
+  currency: string;
+  projectId: string;
+  /** Section codes inside this document (for the inline-add picker). */
+  sectionCodes: string[];
+}
+
+/** Active (non-archived) BOQ documents for this org, newest first, with
+ *  their section codes inlined. A "revision" in the QS desk == one
+ *  boq_documents row (version_label distinguishes v1.0 / v1.1 / …). */
+export async function listQsBoqRevisions(): Promise<QsBoqRevision[]> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    document_id: string;
+    boq_code: string;
+    title: string;
+    version_label: string;
+    status: string;
+    currency: string;
+    project_id: string;
+    section_codes: string[] | null;
+  }>(sql`
+    SELECT d.id::text                                            AS document_id,
+           d.boq_code                                            AS boq_code,
+           d.title                                               AS title,
+           d.version_label                                       AS version_label,
+           d.status                                              AS status,
+           d.currency                                            AS currency,
+           d.project_id::text                                    AS project_id,
+           COALESCE(
+             ARRAY_AGG(s.section_code ORDER BY s.display_order, s.section_code)
+               FILTER (WHERE s.section_code IS NOT NULL),
+             '{}'
+           )                                                     AS section_codes
+      FROM boq_documents d
+      LEFT JOIN boq_sections s ON s.boq_document_id = d.id
+                               AND s.organization_id = ${orgId}
+     WHERE d.organization_id = ${orgId}
+       AND d.status NOT IN ('archived')
+     GROUP BY d.id, d.boq_code, d.title, d.version_label, d.status,
+              d.currency, d.project_id
+     ORDER BY d.created_at DESC
+     LIMIT 50
+  `);
+  return rowsOf<{
+    document_id: string;
+    boq_code: string;
+    title: string;
+    version_label: string;
+    status: string;
+    currency: string;
+    project_id: string;
+    section_codes: string[] | null;
+  }>(rows).map((r) => ({
+    documentId: r.document_id,
+    boqCode: r.boq_code,
+    title: r.title,
+    versionLabel: r.version_label,
+    status: r.status,
+    currency: r.currency,
+    projectId: r.project_id,
+    sectionCodes: Array.isArray(r.section_codes) ? r.section_codes : [],
+  }));
+}
+
+export interface BoqRevisionDiffRow {
+  /** "section_code.item_code" key shared across both revisions. */
+  lineKey: string;
+  description: string;
+  status: "added" | "removed" | "changed" | "unchanged";
+  /** Totals in minor units; null when the line is absent on that side. */
+  totalMinorA: number | null;
+  totalMinorB: number | null;
+  deltaMinor: number;
+  currency: string;
+}
+
+export interface BoqRevisionDiff {
+  rows: BoqRevisionDiffRow[];
+  addedCount: number;
+  removedCount: number;
+  changedCount: number;
+  totalMinorA: number;
+  totalMinorB: number;
+  deltaMinor: number;
+  currency: string;
+}
+
+/** Diff two BOQ revisions (documents) line-by-line, keyed on
+ *  section_code.item_code. Both must belong to the caller's org. */
+export async function diffBoqRevisions(
+  docAId: string,
+  docBId: string,
+): Promise<BoqRevisionDiff> {
+  const db = getDb();
+  if (!db) {
+    return {
+      rows: [],
+      addedCount: 0,
+      removedCount: 0,
+      changedCount: 0,
+      totalMinorA: 0,
+      totalMinorB: 0,
+      deltaMinor: 0,
+      currency: "IDR",
+    };
+  }
+  const orgId = await requireOrgId();
+  const sideRows = await db.execute<{
+    side: string;
+    line_key: string;
+    description: string;
+    total_minor: string;
+    currency: string;
+  }>(sql`
+    SELECT side, line_key, description, total_minor, currency
+      FROM (
+        SELECT 'A'::text AS side,
+               s.section_code || '.' || i.item_code AS line_key,
+               i.description                         AS description,
+               COALESCE(i.total_minor, 0)::text      AS total_minor,
+               i.rate_currency                       AS currency
+          FROM boq_items i
+          JOIN boq_sections s ON s.id = i.section_id
+         WHERE i.organization_id = ${orgId}
+           AND s.boq_document_id = ${docAId}::uuid
+        UNION ALL
+        SELECT 'B'::text AS side,
+               s.section_code || '.' || i.item_code AS line_key,
+               i.description                         AS description,
+               COALESCE(i.total_minor, 0)::text      AS total_minor,
+               i.rate_currency                       AS currency
+          FROM boq_items i
+          JOIN boq_sections s ON s.id = i.section_id
+         WHERE i.organization_id = ${orgId}
+           AND s.boq_document_id = ${docBId}::uuid
+      ) u
+     ORDER BY line_key
+  `);
+  const parsed = rowsOf<{
+    side: string;
+    line_key: string;
+    description: string;
+    total_minor: string;
+    currency: string;
+  }>(sideRows);
+
+  const byKey = new Map<
+    string,
+    { description: string; a: number | null; b: number | null; currency: string }
+  >();
+  for (const r of parsed) {
+    const entry =
+      byKey.get(r.line_key) ?? {
+        description: r.description,
+        a: null,
+        b: null,
+        currency: r.currency ?? "IDR",
+      };
+    if (r.side === "A") entry.a = Number(r.total_minor);
+    else entry.b = Number(r.total_minor);
+    if (r.description) entry.description = r.description;
+    byKey.set(r.line_key, entry);
+  }
+
+  const rowsOut: BoqRevisionDiffRow[] = [];
+  let addedCount = 0;
+  let removedCount = 0;
+  let changedCount = 0;
+  let totalMinorA = 0;
+  let totalMinorB = 0;
+  let currency = "IDR";
+
+  for (const [lineKey, v] of [...byKey.entries()].sort((x, y) =>
+    x[0].localeCompare(y[0]),
+  )) {
+    currency = v.currency;
+    const a = v.a;
+    const b = v.b;
+    if (a != null) totalMinorA += a;
+    if (b != null) totalMinorB += b;
+    let status: BoqRevisionDiffRow["status"];
+    if (a == null && b != null) {
+      status = "added";
+      addedCount++;
+    } else if (a != null && b == null) {
+      status = "removed";
+      removedCount++;
+    } else if (a != null && b != null && a !== b) {
+      status = "changed";
+      changedCount++;
+    } else {
+      status = "unchanged";
+    }
+    rowsOut.push({
+      lineKey,
+      description: v.description,
+      status,
+      totalMinorA: a,
+      totalMinorB: b,
+      deltaMinor: (b ?? 0) - (a ?? 0),
+      currency: v.currency,
+    });
+  }
+
+  return {
+    rows: rowsOut,
+    addedCount,
+    removedCount,
+    changedCount,
+    totalMinorA,
+    totalMinorB,
+    deltaMinor: totalMinorB - totalMinorA,
+    currency,
+  };
 }

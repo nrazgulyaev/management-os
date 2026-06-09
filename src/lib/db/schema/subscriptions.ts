@@ -88,6 +88,16 @@ export const featureFlags = pgTable(
     description: text("description"),
     isNumericLimit: boolean("is_numeric_limit").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
+    // Operational lifecycle (migration 0129) — drives the
+    // /platform/feature-flags super-admin cabinet. "kill" is derived from
+    // isActive=false, not a stored status, so a flag can be killed without
+    // losing its GA/beta/internal stage.
+    /** 'internal' | 'beta' | 'ga' | 'archived' */
+    lifecycleStatus: text("lifecycle_status").notNull().default("internal"),
+    /** Progressive-rollout dial 0..100. 100 = fully rolled out. */
+    rolloutPercent: integer("rollout_percent").notNull().default(0),
+    /** Free-text owner handle (team or person) for accountability. */
+    owner: text("owner"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -98,6 +108,7 @@ export const featureFlags = pgTable(
   (t) => [
     index("feature_flags_category_idx").on(t.category),
     index("feature_flags_active_idx").on(t.isActive),
+    index("feature_flags_lifecycle_status_idx").on(t.lifecycleStatus),
   ],
 );
 

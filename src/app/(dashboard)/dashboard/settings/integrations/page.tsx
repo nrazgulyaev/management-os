@@ -30,11 +30,13 @@ import {
   Workflow,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { Section } from "@/components/ui/section";
 import {
   IntegrationStatusCard,
   type IntegrationStatusCardProps,
 } from "@/components/ui/primitives";
 import { isDbConfigured, isSupabaseAuthConfigured } from "@/lib/env";
+import { ConnectedIntegrations } from "./_connected-integrations";
 
 export const metadata: Metadata = {
   title: "Integrations · Settings",
@@ -168,7 +170,8 @@ export default async function IntegrationsHubPage() {
       status: "configured",
       scope: "per-org",
       configureHref: "/development-os/marketing/connections",
-      detail: "AES-256-GCM credentials. Test-connection wiring ships soon.",
+      detail:
+        "AES-256-GCM credentials. Live connect / test / disconnect controls are in the Live connections panel above.",
     },
     {
       name: "Webhooks (outbound)",
@@ -257,11 +260,19 @@ export default async function IntegrationsHubPage() {
         description={`${integrations.length} external services. ${counts.configured} configured · ${counts.ready} ready · ${counts.needsConfig} need setup · ${counts.broken} need attention`}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {integrations.map((integration) => (
-          <IntegrationStatusCard key={integration.name} {...integration} />
-        ))}
-      </div>
+      <ConnectedIntegrations />
+
+      <Section
+        eyebrow="Catalog"
+        title="All external services"
+        description="Configuration state for every integration the platform talks to. Per-org sync connections above expose live connect / test / disconnect controls; the rest are configured via their own settings surfaces."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {integrations.map((integration) => (
+            <IntegrationStatusCard key={integration.name} {...integration} />
+          ))}
+        </div>
+      </Section>
     </div>
   );
 }

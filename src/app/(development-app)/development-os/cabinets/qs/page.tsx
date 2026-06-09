@@ -8,9 +8,11 @@ import {
   getBoqWpRollup,
   getBoqTopLines,
   getRfqMatrix,
+  listQsBoqRevisions,
   type WpRollupRow,
   type BoqLineRow,
   type RfqMatrixRow,
+  type QsBoqRevision,
 } from "@/lib/development/server/cabinets/qs-cabinet-queries";
 import {
   getQsVarianceLines,
@@ -19,6 +21,8 @@ import {
   type QsAnalystOutput,
 } from "@/lib/development/server/cabinets/qs-variance-queries";
 import { VarianceCard } from "@/components/boq/variance-card";
+import { QsToolbar } from "./_qs-toolbar";
+import { QsBoqLinesEditor } from "./_boq-lines-client";
 
 /**
  * Sprint TASK-7-DATA-PART-2 — Dev OS QS / Cost Analyst (BOQ desk) live wiring.
@@ -56,20 +60,22 @@ function fmtMinor(minor: number, currency: string): string {
   return `${currency} ${Math.round(minor / 100).toLocaleString()}`;
 }
 
-function fmtQuantity(q: number): string {
-  if (Number.isInteger(q)) return q.toLocaleString();
-  return q.toFixed(2);
-}
-
 export default async function QsPage() {
-  const [wpRollup, boqLines, rfqMatrix, varianceLines, qsAnalystOutputs] =
-    await Promise.all([
-      getBoqWpRollup().catch(() => [] as WpRollupRow[]),
-      getBoqTopLines(7).catch(() => [] as BoqLineRow[]),
-      getRfqMatrix().catch(() => [] as RfqMatrixRow[]),
-      getQsVarianceLines(12).catch(() => [] as QsVarianceLine[]),
-      getQsCostAnalystOutputs(3).catch(() => [] as QsAnalystOutput[]),
-    ]);
+  const [
+    wpRollup,
+    boqLines,
+    rfqMatrix,
+    varianceLines,
+    qsAnalystOutputs,
+    revisions,
+  ] = await Promise.all([
+    getBoqWpRollup().catch(() => [] as WpRollupRow[]),
+    getBoqTopLines(7).catch(() => [] as BoqLineRow[]),
+    getRfqMatrix().catch(() => [] as RfqMatrixRow[]),
+    getQsVarianceLines(12).catch(() => [] as QsVarianceLine[]),
+    getQsCostAnalystOutputs(3).catch(() => [] as QsAnalystOutput[]),
+    listQsBoqRevisions().catch(() => [] as QsBoqRevision[]),
+  ]);
 
   return (
     <>
@@ -93,27 +99,16 @@ export default async function QsPage() {
             <Link href="/development-os/boq/quick-entry" className="btn btn-dark btn-sm">
               Quick entry
             </Link>
-            <button
-              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Export XLSX ↓
-            </button>
-            <button
-              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Compare REV
-            </button>
-            <button
-              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              + Change order
-            </button>
+            <QsToolbar
+              revisions={revisions.map((r) => ({
+                documentId: r.documentId,
+                boqCode: r.boqCode,
+                title: r.title,
+                versionLabel: r.versionLabel,
+                projectId: r.projectId,
+                currency: r.currency,
+              }))}
+            />
           </>
         }
       />
@@ -274,55 +269,28 @@ export default async function QsPage() {
         )}
       </Card>
 
-      {/* BOQ top-7 table — live boq_items */}
+      {/* BOQ top-7 table — live boq_items, inline add + delete */}
       <Card id="boq" padding="none" overflowHidden className="mb-[18px]">
-        <div className="px-[22px] py-3.5 border-b border-line flex items-center">
-          <h2 className="display text-[18px] font-medium m-0">
-            BOQ · top {boqLines.length === 0 ? "7" : boqLines.length} lines by total
-          </h2>
-          <Link
-            href="/development-os/boq"
-            className="btn btn-dark btn-sm ml-auto"
-          >
-            Filter / full BOQ
-          </Link>
-        </div>
-        {boqLines.length === 0 ? (
-          <p className="p-5 text-[13px] text-ink-3 italic">
-            No BOQ items yet for this org. Import a BOQ XLSX to populate.
-          </p>
-        ) : (
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Description</th>
-                <th className="num">Qty</th>
-                <th>Unit</th>
-                <th className="num">Rate</th>
-                <th className="num">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {boqLines.map((r) => (
-                <tr key={`${r.sectionCode}.${r.itemCode}`}>
-                  <td className="mono text-[11px] text-ink-3">
-                    {r.sectionCode}.{r.itemCode}
-                  </td>
-                  <td className="text-[13px]">{r.description}</td>
-                  <td className="num">{fmtQuantity(r.quantity)}</td>
-                  <td className="mono text-[11px] text-ink-3">
-                    {r.unitOfMeasure}
-                  </td>
-                  <td className="num">{fmtMinor(r.unitRateMinor, r.currency)}</td>
-                  <td className="num text-ink font-medium">
-                    {fmtMinor(r.totalMinor, r.currency)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <QsBoqLinesEditor
+          lines={boqLines.map((r) => ({
+            lineId: r.lineId,
+            itemCode: r.itemCode,
+            sectionCode: r.sectionCode,
+            description: r.description,
+            quantity: r.quantity,
+            unitOfMeasure: r.unitOfMeasure,
+            unitRateMinor: r.unitRateMinor,
+            totalMinor: r.totalMinor,
+            currency: r.currency,
+          }))}
+          revisions={revisions.map((r) => ({
+            documentId: r.documentId,
+            boqCode: r.boqCode,
+            versionLabel: r.versionLabel,
+            currency: r.currency,
+            sectionCodes: r.sectionCodes,
+          }))}
+        />
       </Card>
 
       {/* RFQ matrix — live procurement_quotations */}

@@ -10,6 +10,12 @@ import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..");
 
+// OBSERVABILITY-SPINE-H — liveness probes under /api/cron/* that are
+// intentionally not scheduled jobs (no cron handler, no job key, no
+// CRON_SECRET). They appear in the checklist for path coverage only. Keep
+// this in sync with HEALTH_PROBE_ROUTES in scripts/check-cron-config.ts.
+const HEALTH_PROBE_ROUTES = new Set<string>(["health"]);
+
 // Helpers to push values into process.env per-test without leaking state.
 function withEnv<T>(
   overrides: Record<string, string | undefined>,
@@ -271,6 +277,8 @@ test("every cron route uses handleCronJobRequest or handleCronRunAllRequest", ()
   for (const dir of dirs) {
     const route = join(cronDir, dir, "route.ts");
     assert.ok(existsSync(route), `${dir}/route.ts missing`);
+    // Liveness probes are exempt — they are not scheduled jobs.
+    if (HEALTH_PROBE_ROUTES.has(dir)) continue;
     const body = readFileSync(route, "utf-8");
     const ok =
       body.includes("handleCronJobRequest") ||

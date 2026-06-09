@@ -11,6 +11,7 @@ import {
 } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
+import { Badge } from "@/components/ui/badge";
 import {
   DRAWDOWN_STATUS_LABEL,
   WALLET_TX_TYPE_LABEL,
@@ -51,14 +52,14 @@ export default async function CommitmentDetailPage({
       <div>
         <Link
           href="/investor-portal/commitments"
-          className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-stone-900 mb-3"
+          className="inline-flex items-center gap-1 text-xs text-ink-tertiary hover:text-ink mb-3"
         >
           <ArrowLeft className="w-3 h-3" /> {strings.navCommitments}
         </Link>
-        <h1 className="font-display text-2xl text-stone-900">
+        <h1 className="font-display text-2xl text-ink">
           {commitment.projectName ?? "Multi-project commitment"}
         </h1>
-        <p className="text-sm text-stone-600 mt-1 font-mono">
+        <p className="text-sm text-ink-secondary mt-1 font-mono">
           {commitment.commitmentCode}
         </p>
       </div>
@@ -94,17 +95,17 @@ export default async function CommitmentDetailPage({
       </section>
 
       <section>
-        <h2 className="text-sm uppercase tracking-wide text-stone-500 mb-3">
+        <h2 className="text-sm uppercase tracking-wide text-ink-tertiary mb-3">
           Drawdowns
         </h2>
         {drawdowns.length === 0 ? (
-          <div className="rounded-md border border-stone-200 bg-white p-6 text-sm text-stone-600">
+          <div className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
             No drawdowns recorded yet.
           </div>
         ) : (
-          <div className="rounded-lg border border-stone-200 bg-white overflow-hidden">
+          <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-stone-50 text-[11px] uppercase tracking-wide text-stone-500">
+              <thead className="bg-muted text-[11px] uppercase tracking-wide text-ink-tertiary">
                 <tr>
                   <th className="px-4 py-2 text-left">#</th>
                   <th className="px-4 py-2 text-right">{strings.amount}</th>
@@ -114,7 +115,7 @@ export default async function CommitmentDetailPage({
                   <th className="px-4 py-2 text-left">{strings.status}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-line-soft">
                 {drawdowns.map((d) => (
                   <tr key={d.id}>
                     <td className="px-4 py-3 font-mono text-xs">
@@ -133,17 +134,17 @@ export default async function CommitmentDetailPage({
                         : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`text-[11px] px-2 py-0.5 rounded-full ${
+                      <Badge
+                        tone={
                           d.status === "received"
-                            ? "bg-emerald-100 text-emerald-800"
+                            ? "success"
                             : d.status === "overdue"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-amber-100 text-amber-800"
-                        }`}
+                              ? "danger"
+                              : "warning"
+                        }
                       >
                         {DRAWDOWN_STATUS_LABEL[d.status]}
-                      </span>
+                      </Badge>
                     </td>
                   </tr>
                 ))}
@@ -155,26 +156,26 @@ export default async function CommitmentDetailPage({
 
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm uppercase tracking-wide text-stone-500">
+          <h2 className="text-sm uppercase tracking-wide text-ink-tertiary">
             Wallet activity
           </h2>
           <Link
             href={`/investor-portal/wallet/${commitment.id}`}
-            className="text-xs text-stone-700 hover:text-stone-900"
+            className="text-xs text-ink-secondary hover:text-ink"
           >
             View full ledger →
           </Link>
         </div>
         {!walletBundle.wallet ||
         walletBundle.recentTransactions.length === 0 ? (
-          <div className="rounded-md border border-stone-200 bg-white p-6 text-sm text-stone-600">
+          <div className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
             No wallet activity yet — funds will appear once your first
             drawdown is confirmed.
           </div>
         ) : (
-          <div className="rounded-lg border border-stone-200 bg-white overflow-hidden">
+          <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-stone-50 text-[11px] uppercase tracking-wide text-stone-500">
+              <thead className="bg-muted text-[11px] uppercase tracking-wide text-ink-tertiary">
                 <tr>
                   <th className="px-4 py-2 text-left">When</th>
                   <th className="px-4 py-2 text-left">{strings.type}</th>
@@ -182,7 +183,7 @@ export default async function CommitmentDetailPage({
                   <th className="px-4 py-2 text-right">After</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-line-soft">
                 {walletBundle.recentTransactions.map((t) => {
                   const amt = BigInt(t.amountUsdMinor);
                   return (
@@ -194,7 +195,7 @@ export default async function CommitmentDetailPage({
                         {WALLET_TX_TYPE_LABEL[t.transactionType]}
                       </td>
                       <td
-                        className={`px-4 py-3 text-right tabular-nums ${amt < 0n ? "text-red-700" : "text-emerald-700"}`}
+                        className={`px-4 py-3 text-right tabular-nums ${amt < 0n ? "text-danger" : "text-success"}`}
                       >
                         {formatUsdMinor(amt)}
                       </td>
@@ -225,14 +226,14 @@ function Stat({
   hint?: string;
 }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-4">
-      <div className="text-[11px] uppercase tracking-wide text-stone-500">
+    <div className="rounded-lg border border-line-soft bg-surface p-4">
+      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
         {label}
       </div>
-      <div className="text-xl font-medium tabular-nums text-stone-900 mt-1">
+      <div className="text-xl font-medium tabular-nums text-ink mt-1">
         {value}
       </div>
-      {hint && <div className="text-[11px] text-stone-500 mt-1">{hint}</div>}
+      {hint && <div className="text-[11px] text-ink-tertiary mt-1">{hint}</div>}
     </div>
   );
 }

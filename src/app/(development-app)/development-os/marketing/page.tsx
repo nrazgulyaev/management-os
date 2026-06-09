@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Kpi,
   SectionHeading,
@@ -6,38 +7,52 @@ import {
 } from "@/components/dashboard/primitives";
 import { safeQuery } from "@/lib/development/safe-query";
 import { loadMarketingCabinet } from "@/lib/development/server/cabinets/marketing-cabinet-queries";
+import {
+  loadActiveCampaigns,
+  loadSourceAttribution,
+} from "@/lib/development/server/marketing/marketing-summary-queries";
+import { formatMoneyMinor } from "@/lib/money";
+import { NewCampaignButton } from "./_campaign-modal";
 
 /**
- * Dev OS /marketing summary cabinet. KPI strip is live (active campaigns
- * count + leads-this-week + funnel from loadMarketingCabinet).
- * Per-source attribution + per-campaign detail tables are still mock —
- * those need new queries against attribution + p4-marketing schemas in
- * a follow-up sprint.
+ * Dev OS /marketing summary cabinet. KPI strip + lead funnel are live
+ * (loadMarketingCabinet). design-live gap plan · P1 wires the two
+ * remaining mock blocks to real data:
+ *   - Active campaigns table  → loadActiveCampaigns (campaigns + lead joins)
+ *   - Per-source attribution  → loadSourceAttribution (leads + lead-source
+ *     registry + campaign_costs)
+ * and replaces the two disabled header buttons with a working CSV export
+ * (./leads/export) + a create-campaign modal (createCampaign action).
  */
 
 export const metadata = { title: "Development OS · Marketing" };
 export const dynamic = "force-dynamic";
 
-const CAMPAIGNS = [
-  { name: "Eternal Phase 02 · launch", channel: "Meta + Google", spend: "$2,420", reach: "182K", leads: "38", status: "ok" as const, label: "Live" },
-  { name: "Ahau Gardens · sales", channel: "Google Search", spend: "$840", reach: "48K", leads: "12", status: "ok" as const, label: "Live" },
-  { name: "Investor outreach Q2", channel: "LinkedIn", spend: "$1,200", reach: "14K", leads: "8", status: "warn" as const, label: "Optimizing" },
-];
+const CAMPAIGN_STATUS_TONE: Record<string, "ok" | "warn"> = {
+  active: "ok",
+  in_preparation: "warn",
+  paused: "warn",
+};
 
 export default async function DevMarketingPage() {
-  const data = await safeQuery("devMarketingCabinet", loadMarketingCabinet(), {
-    contentByStatus: {},
-    contentApprovalQueueCount: 0,
-    scheduledThisWeekCount: 0,
-    recentlyPublishedCount: 0,
-    activeCampaignsCount: 0,
-    leadsThisWeek: 0,
-    hotLeadsCount: 0,
-    latestMarketingAssistantOutputCode: null,
-    publishesLast7Days: [],
-    funnelByLifecycle: [],
-    recentMarketingAssistantOutputs: [],
-  });
+  const [data, activeCampaigns, sourceAttribution] = await Promise.all([
+    safeQuery("devMarketingCabinet", loadMarketingCabinet(), {
+      contentByStatus: {},
+      contentApprovalQueueCount: 0,
+      scheduledThisWeekCount: 0,
+      recentlyPublishedCount: 0,
+      activeCampaignsCount: 0,
+      leadsThisWeek: 0,
+      hotLeadsCount: 0,
+      latestMarketingAssistantOutputCode: null,
+      publishesLast7Days: [],
+      funnelByLifecycle: [],
+      recentMarketingAssistantOutputs: [],
+    }),
+    safeQuery("devMarketingActiveCampaigns", loadActiveCampaigns(), []),
+    safeQuery("devMarketingSourceAttribution", loadSourceAttribution(), []),
+  ]);
+
   const totalFunnel = data.funnelByLifecycle.reduce(
     (s, r) => s + Number(r.count),
     0,
@@ -65,8 +80,14 @@ export default async function DevMarketingPage() {
         subtitle="Per-source attribution, content calendar, manager performance, conversation logs across WhatsApp + email."
         actions={
           <>
-            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Export leads ↓</button>
-            <button className="btn btn-amber btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>+ Campaign</button>
+            <Link
+              href="/development-os/marketing/leads/export"
+              prefetch={false}
+              className="btn btn-dark btn-sm"
+            >
+              Export leads ↓
+            </Link>
+            <NewCampaignButton />
           </>
         }
       />
@@ -143,6 +164,63 @@ export default async function DevMarketingPage() {
       </Card>
 
       <h2
+        id="attribution"
+        className="display"
+        style={{ fontSize: 22, marginBottom: 14, fontWeight: 500, marginTop: 24 }}
+      >
+        Attribution · by source
+      </h2>
+      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Channel</th>
+              <th className="num">Leads</th>
+              <th className="num">Qualified</th>
+              <th className="num">Reservations</th>
+              <th className="num">Spend</th>
+              <th className="num">CPL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sourceAttribution.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: "center", color: "var(--ink-3)", padding: "28px 0", fontStyle: "italic" }}>
+                  No attributed leads or booked spend yet.
+                </td>
+              </tr>
+            ) : (
+              sourceAttribution.map((s) => (
+                <tr key={s.sourceKey}>
+                  <td>
+                    {s.sourceLabel}
+                    {s.isPaid && (
+                      <span style={{ marginLeft: 6 }}>
+                        <HandoffBadge tone="warn">Paid</HandoffBadge>
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ color: "var(--ink-3)", textTransform: "capitalize" }}>
+                    {s.channelType.replace(/_/g, " ")}
+                  </td>
+                  <td className="num">{s.leads}</td>
+                  <td className="num">{s.qualified}</td>
+                  <td className="num">{s.reservations}</td>
+                  <td className="num">
+                    {s.spendMinor > 0 ? formatMoneyMinor(s.spendMinor, s.currency, { compact: true }) : "—"}
+                  </td>
+                  <td className="num">
+                    {s.cplMinor != null ? formatMoneyMinor(s.cplMinor, s.currency) : "—"}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </Card>
+
+      <h2
         id="campaigns"
         className="display"
         style={{ fontSize: 22, marginBottom: 14, fontWeight: 500, marginTop: 24 }}
@@ -155,25 +233,48 @@ export default async function DevMarketingPage() {
             <tr>
               <th>Campaign</th>
               <th>Channel</th>
-              <th className="num">Spend MTD</th>
-              <th className="num">Reach</th>
+              <th className="num">Spend / Budget</th>
               <th className="num">Leads</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
-            {CAMPAIGNS.map((c) => (
-              <tr key={c.name}>
-                <td>{c.name}</td>
-                <td style={{ color: "var(--ink-3)" }}>{c.channel}</td>
-                <td className="num">{c.spend}</td>
-                <td className="num">{c.reach}</td>
-                <td className="num">{c.leads}</td>
-                <td>
-                  <HandoffBadge tone={c.status === "warn" ? "warn" : "ok"}>{c.label}</HandoffBadge>
+            {activeCampaigns.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ textAlign: "center", color: "var(--ink-3)", padding: "28px 0", fontStyle: "italic" }}>
+                  No active campaigns. <Link href="/development-os/marketing/campaigns" style={{ color: "var(--amber)" }}>Manage campaigns →</Link>
                 </td>
               </tr>
-            ))}
+            ) : (
+              activeCampaigns.map((c) => (
+                <tr key={c.id}>
+                  <td>
+                    <Link
+                      href={`/development-os/marketing/campaigns/${c.campaignCode}`}
+                      style={{ color: "inherit" }}
+                    >
+                      {c.name}
+                    </Link>
+                  </td>
+                  <td style={{ color: "var(--ink-3)" }}>{c.channels}</td>
+                  <td className="num">
+                    {formatMoneyMinor(c.spentMinor, c.currency, { compact: true })}
+                    {c.budgetMinor > 0 && (
+                      <span style={{ color: "var(--ink-3)" }}>
+                        {" / "}
+                        {formatMoneyMinor(c.budgetMinor, c.currency, { compact: true })}
+                      </span>
+                    )}
+                  </td>
+                  <td className="num">{c.leadCount}</td>
+                  <td>
+                    <HandoffBadge tone={CAMPAIGN_STATUS_TONE[c.status] ?? "ok"}>
+                      {c.status.replace(/_/g, " ")}
+                    </HandoffBadge>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </Card>

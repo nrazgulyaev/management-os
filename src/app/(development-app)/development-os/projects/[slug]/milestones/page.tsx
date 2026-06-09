@@ -11,6 +11,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { milestones as milestonesTable, milestoneDependencies } from "@/lib/db/schema/milestones";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
+import { getProjectMilestones } from "@/lib/development/server/project-milestones";
 import { safeQuery } from "@/lib/development/safe-query";
 import { composeWeeklyReport } from "@/features/ai-agents/projects/weekly-report-data";
 import { WeeklyReportCard } from "@/components/projects/weekly-report-card";
@@ -105,11 +106,17 @@ export default async function MilestonesPage({
 
   const variance = await loadScheduleVariance(detail.project.realProjectId);
 
+  // 2.2 data-wiring — prefer the real authored `milestones` rows. When the
+  // project has none yet, fall back to the phase-synthesized proof-of-life
+  // roster below (the editor stays local-only in that mode).
+  const persistedMilestones = await getProjectMilestones(detail.project.realProjectId);
+  const hasPersisted = persistedMilestones.length > 0;
+
   const today = new Date();
   // PR 2.2 dev-01 proof-of-life — synthesize from existing project
-  // phases until the milestones schema lands. Each phase becomes a
+  // phases when no milestones are authored yet. Each phase becomes a
   // milestone keyed by `phaseType`.
-  const initial: MilestoneRowMilestone[] = detail.phases.map((p) => {
+  const synthesized: MilestoneRowMilestone[] = detail.phases.map((p) => {
     const target = p.plannedEndDate ?? p.plannedStartDate ?? "—";
     let slipDays = 0;
     if (p.plannedEndDate && !p.actualEndDate) {
@@ -137,6 +144,8 @@ export default async function MilestonesPage({
       dependencyCount: undefined,
     };
   });
+
+  const initial = hasPersisted ? persistedMilestones : synthesized;
 
   // W2 — weekly-report-composer surface. Deterministic assembly of the
   // past 7 days (milestones progressed, BOQ/cost movement, RFIs opened/
@@ -171,7 +180,11 @@ export default async function MilestonesPage({
         ]}
         eyebrow={`${initial.length} milestones · gantt-lite editor`}
         title="Milestones"
-        description="Flat list with status + dependency indicator. Click a row to edit; drag-to-reorder lands in 2.2 data-wiring. Don't build a real Gantt for <30 milestones per project."
+        description={
+          hasPersisted
+            ? "Flat list with status + dependency indicator. Add, re-status, and delete milestones — changes persist to the milestones table and feed the schedule-variance detector above. Don't build a real Gantt for <30 milestones per project."
+            : "No authored milestones yet — this preview is synthesized from project phases. Click “+ Add milestone” to author the first real milestone; once saved this list reads the milestones table. Don't build a real Gantt for <30 milestones per project."
+        }
         actions={
           <Button asChild variant="secondary">
             <Link href={`/development-os/projects/${slug}`}>
@@ -246,7 +259,12 @@ export default async function MilestonesPage({
         </Section>
       )}
 
-      <MilestonesEditor projectSlug={slug} initial={initial} />
+      <MilestonesEditor
+        projectSlug={slug}
+        projectId={detail.project.realProjectId}
+        persistent={hasPersisted}
+        initial={initial}
+      />
     </DevelopmentShell>
   );
 }
