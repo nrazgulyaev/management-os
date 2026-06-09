@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card, Kpi, HandoffBadge } from "@/components/dashboard/primitives";
+import { ArrowLeft } from "lucide-react";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -16,21 +17,22 @@ import { ExportButton } from "@/components/development/bulk-import/export-button
 export const metadata: Metadata = { title: "Materials · Development OS" };
 export const dynamic = "force-dynamic";
 
-type PoTone = "ok" | "warn" | "info" | "danger" | "ink";
+const STATUS_TONE: Record<
+  string,
+  "ok" | "warn" | "danger" | "gold" | "info" | "ink" | undefined
+> = {
+  fully_delivered: "ok",
+  partially_delivered: "info",
+  ordered: "warn",
+};
 
-function poTone(status: string): PoTone {
-  switch (status) {
-    case "fully_delivered":
-      return "ok";
-    case "partially_delivered":
-      return "info";
-    case "ordered":
-      return "warn";
-    case "cancelled":
-      return "ink";
-    default:
-      return "ink";
-  }
+/** Compact M-suffixed major-unit value for the KPI strip. */
+function fmtCompactUsd(minor: bigint): string {
+  const major = Number(minor) / 100;
+  if (major >= 1e9) return `$${(major / 1e9).toFixed(1)}B`;
+  if (major >= 1e6) return `$${(major / 1e6).toFixed(1)}M`;
+  if (major >= 1e3) return `$${(major / 1e3).toFixed(0)}k`;
+  return `$${Math.round(major)}`;
 }
 
 export default async function MaterialsPage() {
@@ -53,47 +55,35 @@ export default async function MaterialsPage() {
     legalName: v.legalName,
   }));
 
-  const openOrdered = list.filter(
-    (p) => p.status === "ordered" || p.status === "partially_delivered",
-  );
-  const openTotalUsd = openOrdered.reduce(
+  const totalUsd = list.reduce(
     (acc, p) => acc + BigInt(p.totalAmountUsdMinor),
     0n,
   );
-  const partial = list.filter(
-    (p) => p.status === "partially_delivered",
+  const openCount = list.filter(
+    (p) => p.status === "ordered" || p.status === "partially_delivered",
   ).length;
-
-  const today = new Date().toISOString().slice(0, 10);
-  const overEta = list.filter(
-    (p) =>
-      p.status !== "fully_delivered" &&
-      p.status !== "cancelled" &&
-      p.expectedDeliveryDate != null &&
-      p.expectedDeliveryDate < today,
+  const deliveredCount = list.filter(
+    (p) => p.status === "fully_delivered",
   ).length;
-
-  const deliveredUsd = list
-    .filter((p) => p.status === "fully_delivered")
-    .reduce((acc, p) => acc + BigInt(p.totalAmountUsdMinor), 0n);
+  const vendorCount = new Set(list.map((p) => p.vendorLegalName)).size;
 
   return (
     <DevelopmentShell>
-      <div className="flex items-end gap-[18px]">
-        <div className="flex-1 min-w-0">
-          <div className="label text-amber">
-            Procurement · POs · deliveries
-          </div>
-          <h1 className="display text-[42px] mt-1.5 mb-0 font-medium">
-            Material <em>purchase orders</em>.
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">Warehouse · receiving</div>
+          <h1>
+            Material POs <em>· {openCount} open</em>
           </h1>
-          <p className="mt-2.5 mb-0 text-[15px] leading-[1.55] text-ink-3 max-w-[680px]">
-            Vendor POs, deliveries, and on-site consumption. The reconciliation
-            gate keeps delivered quantity equal to the sum of received delivery
-            lines.
-          </p>
+          <div className="page-header-meta">
+            <span>{list.length} POs</span>
+            <span>·</span>
+            <span>{formatUsdMinor(totalUsd)} ordered</span>
+            <span>·</span>
+            <span>{vendorCount} vendors</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="actions">
           <MaterialPOModalForm projects={projectOptions} vendors={vendorOptions} />
           <Link
             href="/development-os/materials/new"
@@ -108,7 +98,39 @@ export default async function MaterialsPage() {
           >
             Deliveries
           </Link>
+          <Link href="/development-os" className="btn btn-dark btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
         </div>
+      </header>
+
+      <p className="text-ink-secondary text-sm max-w-3xl leading-relaxed">
+        Vendor POs, deliveries, and on-site consumption. The reconciliation gate
+        ensures po_lines.quantity_delivered always equals the sum of
+        delivery_lines.quantity_received.
+      </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi
+          label="Ordered · total"
+          value={list.length ? fmtCompactUsd(totalUsd) : "—"}
+          sub="across POs"
+          tone={list.length ? "accent" : undefined}
+        />
+        <Kpi
+          label="Open"
+          value={openCount || "—"}
+          sub="ordered + partial"
+          tone={openCount > 0 ? "warn" : undefined}
+        />
+        <Kpi
+          label="Delivered"
+          value={deliveredCount || "—"}
+          sub="fully received"
+          tone={deliveredCount > 0 ? "success" : undefined}
+        />
+        <Kpi label="Vendors" value={vendorCount || "—"} sub="sourcing" />
       </div>
 
       {!db ? (
@@ -119,106 +141,59 @@ export default async function MaterialsPage() {
           description="Add your first purchase order to start tracking materials and deliveries."
         />
       ) : (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Kpi
-              label="Open POs"
-              value={String(openOrdered.length)}
-              sub={`${formatUsdMinor(openTotalUsd)} ordered`}
-              tone="accent"
-            />
-            <Kpi
-              label="Partial delivery"
-              value={String(partial)}
-              sub="awaiting balance"
-              tone="warn"
-            />
-            <Kpi
-              label="Over ETA"
-              value={
-                overEta > 0 ? (
-                  <span className="text-danger">{overEta}</span>
-                ) : (
-                  "0"
-                )
-              }
-              sub="chase vendor"
-            />
-            <Kpi
-              label="Delivered · total"
-              value={formatUsdMinor(deliveredUsd)}
-              sub="reconciled"
-              tone="success"
-            />
+        <section>
+          <div className="flex items-baseline justify-between mb-3">
+            <span className="label">Receiving queue · all POs</span>
+            <span className="label">{formatUsdMinor(totalUsd)}</span>
           </div>
-
-          <Card padding="none" overflowHidden>
-            <div className="px-[22px] py-3.5 border-b border-line flex items-center">
-              <h3 className="display text-[19px] font-medium m-0">
-                All purchase orders
-              </h3>
-              <span className="mono ml-auto text-[11px] text-ink-3">
-                CHRONOLOGICAL
-              </span>
-            </div>
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Project</th>
-                  <th>Vendor</th>
-                  <th>Order date</th>
-                  <th>Expected</th>
-                  <th className="num">Total · USD</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((p) => {
-                  const late =
-                    p.status !== "fully_delivered" &&
-                    p.status !== "cancelled" &&
-                    p.expectedDeliveryDate != null &&
-                    p.expectedDeliveryDate < today;
-                  return (
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Project</th>
+                    <th>Vendor</th>
+                    <th>Order date</th>
+                    <th>Expected</th>
+                    <th className="num">Lines</th>
+                    <th className="num">Total (USD)</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map((p) => (
                     <tr key={p.id}>
-                      <td className="mono text-[11px]">
+                      <td className="font-mono text-xs">
                         <Link
                           href={`/development-os/materials/${p.poCode}`}
-                          className="no-underline text-inherit hover:underline"
+                          className="hover:underline"
                         >
                           {p.poCode}
                         </Link>
                       </td>
-                      <td>{p.projectName ?? "—"}</td>
-                      <td>{p.vendorLegalName}</td>
-                      <td className="mono text-[11px]">{p.orderDate}</td>
-                      <td
-                        className={
-                          "mono text-[11px]" +
-                          (late ? " text-danger" : " text-ink-3")
-                        }
-                      >
+                      <td className="text-sm">{p.projectName ?? "—"}</td>
+                      <td className="row-title">{p.vendorLegalName}</td>
+                      <td className="text-xs">{p.orderDate}</td>
+                      <td className="text-xs">
                         {p.expectedDeliveryDate ?? "—"}
-                        {late ? " · late" : ""}
                       </td>
+                      <td className="num">{p.lineCount}</td>
                       <td className="num">
                         {formatUsdMinor(BigInt(p.totalAmountUsdMinor))}
                       </td>
                       <td>
-                        <HandoffBadge
-                          tone={late ? "danger" : poTone(p.status)}
-                        >
-                          {late ? "Over ETA" : MATERIAL_PO_STATUS_LABEL[p.status]}
+                        <HandoffBadge tone={STATUS_TONE[p.status]}>
+                          {MATERIAL_PO_STATUS_LABEL[p.status]}
                         </HandoffBadge>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </Card>
-        </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       )}
     </DevelopmentShell>
   );

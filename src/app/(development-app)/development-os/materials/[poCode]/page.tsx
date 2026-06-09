@@ -2,13 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -24,6 +19,24 @@ import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 export const metadata: Metadata = { title: "PO · Development OS" };
 export const dynamic = "force-dynamic";
 
+const STATUS_TONE: Record<
+  string,
+  "ok" | "warn" | "danger" | "gold" | "info" | "ink" | undefined
+> = {
+  fully_delivered: "ok",
+  partially_delivered: "info",
+  ordered: "warn",
+};
+
+const QUALITY_TONE: Record<
+  string,
+  "ok" | "warn" | "danger" | "gold" | "info" | "ink" | undefined
+> = {
+  accepted: "ok",
+  partial_acceptance: "warn",
+  rejected: "danger",
+};
+
 export default async function MaterialPoDetailPage({
   params,
 }: {
@@ -34,7 +47,12 @@ export default async function MaterialPoDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Material PO" />
+        <header className="page-header">
+          <div className="left">
+            <div className="crumb">Warehouse · receiving</div>
+            <h1>Material PO</h1>
+          </div>
+        </header>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -45,149 +63,217 @@ export default async function MaterialPoDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Materials", href: "/development-os/materials" },
-          { label: po.poCode },
-        ]}
-        eyebrow={`${po.poCode} · ${po.vendorLegalName}`}
-        title="Material purchase order"
-        description={po.notes ?? undefined}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild>
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os/materials">Warehouse · receiving</Link>
+            <span>/</span>
+            <span>{po.poCode}</span>
+          </div>
+          <h1>
+            {po.poCode}{" "}
+            <em>· {MATERIAL_PO_STATUS_LABEL[po.status].toLowerCase()}</em>
+          </h1>
+          <div className="page-header-meta">
+            <span>vendor {po.vendorLegalName}</span>
+            <span>·</span>
+            <span>ordered {po.orderDate}</span>
+            <span>·</span>
+            <span>expected {po.expectedDeliveryDate ?? "—"}</span>
+            <span>·</span>
+            <span>total {formatUsdMinor(BigInt(po.totalAmountUsdMinor))}</span>
+          </div>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/materials/${po.poCode}/deliveries/new`}
+            className="btn btn-accent btn-sm"
+          >
+            + Record delivery
+          </Link>
+          <Link href="/development-os/materials" className="btn btn-dark btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All POs
+          </Link>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi
+          label="Total (USD)"
+          value={formatUsdMinor(BigInt(po.totalAmountUsdMinor))}
+          sub={`${po.totalAmountCurrency} ${po.totalAmountOriginalMinor}`}
+          tone="accent"
+        />
+        <Kpi
+          label="Lines"
+          value={String(util.totalLines)}
+          sub={`${util.totalQtyOrdered.toFixed(2)} ordered`}
+        />
+        <Kpi
+          label="Delivered"
+          value={util.totalQtyDelivered.toFixed(2)}
+          sub={`${util.outstandingQty.toFixed(2)} outstanding`}
+          tone={util.outstandingQty > 0 ? "warn" : "success"}
+        />
+        <Kpi label="Consumed" value={util.totalQtyConsumed.toFixed(2)} sub="on site" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
+        <section className="flex flex-col gap-6 min-w-0">
+          <div>
+            <div className="label mb-3">Line items · {po.lines.length} SKUs</div>
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Material</th>
+                      <th>UoM</th>
+                      <th className="num">Ordered</th>
+                      <th className="num">Recv</th>
+                      <th className="num">Diff</th>
+                      <th className="num">Consumed</th>
+                      <th className="num">Line total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {po.lines.map((l) => {
+                      const ordered = Number(l.quantityOrdered);
+                      const delivered = Number(l.quantityDelivered);
+                      const diff = delivered - ordered;
+                      return (
+                        <tr key={l.id}>
+                          <td className="font-mono text-xs">{l.lineNumber}</td>
+                          <td className="row-title">
+                            {l.materialName}
+                            {l.materialCategory ? (
+                              <span className="block text-xs text-ink-tertiary font-normal">
+                                {l.materialCategory}
+                              </span>
+                            ) : null}
+                          </td>
+                          <td className="text-xs">{l.unitOfMeasure}</td>
+                          <td className="num">{ordered.toFixed(2)}</td>
+                          <td className="num">{delivered.toFixed(2)}</td>
+                          <td className={diff < 0 ? "num text-danger" : "num"}>
+                            {diff > 0 ? "+" : ""}
+                            {diff.toFixed(2)}
+                          </td>
+                          <td className="num">
+                            {Number(l.quantityConsumed).toFixed(2)}
+                          </td>
+                          <td className="num">
+                            {l.lineTotalUsdMinor
+                              ? formatUsdMinor(BigInt(l.lineTotalUsdMinor))
+                              : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {po.deliveries.length > 0 && (
+            <div>
+              <div className="label mb-3">Receipt events · QC chain</div>
+              <div className="card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="data">
+                    <thead>
+                      <tr>
+                        <th>Code</th>
+                        <th>Date</th>
+                        <th>Quality check</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {po.deliveries.map((d) => (
+                        <tr key={d.id}>
+                          <td className="font-mono text-xs">{d.deliveryCode}</td>
+                          <td className="text-xs">{d.deliveryDate}</td>
+                          <td>
+                            <HandoffBadge tone={QUALITY_TONE[d.qualityCheckStatus]}>
+                              {MATERIAL_QUALITY_LABEL[d.qualityCheckStatus]}
+                            </HandoffBadge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <aside className="flex flex-col gap-6 min-w-0">
+          <div>
+            <div className="label mb-3">Vendor + order</div>
+            <div className="card px-[18px] py-[14px]">
+              <dl className="flex flex-col">
+                <div className="flex justify-between gap-4 py-2 border-b border-line-soft text-sm">
+                  <dt className="label">PO id</dt>
+                  <dd className="font-mono text-xs text-ink">{po.poCode}</dd>
+                </div>
+                <div className="flex justify-between gap-4 py-2 border-b border-line-soft text-sm">
+                  <dt className="label">Vendor</dt>
+                  <dd className="text-ink text-right">{po.vendorLegalName}</dd>
+                </div>
+                <div className="flex justify-between gap-4 py-2 border-b border-line-soft text-sm">
+                  <dt className="label">Ordered</dt>
+                  <dd className="font-mono text-xs text-ink">{po.orderDate}</dd>
+                </div>
+                <div className="flex justify-between gap-4 py-2 border-b border-line-soft text-sm">
+                  <dt className="label">Expected</dt>
+                  <dd className="font-mono text-xs text-ink">
+                    {po.expectedDeliveryDate ?? "—"}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 py-2 items-center text-sm">
+                  <dt className="label">Status</dt>
+                  <dd>
+                    <HandoffBadge tone={STATUS_TONE[po.status]}>
+                      {MATERIAL_PO_STATUS_LABEL[po.status]}
+                    </HandoffBadge>
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          {po.notes ? (
+            <div>
+              <div className="label mb-3">Notes</div>
+              <div className="card px-[18px] py-[14px] text-sm text-ink-secondary leading-relaxed">
+                {po.notes}
+              </div>
+            </div>
+          ) : null}
+
+          <div>
+            <div className="label mb-3">Actions</div>
+            <div className="flex flex-col gap-2">
               <Link
                 href={`/development-os/materials/${po.poCode}/deliveries/new`}
+                className="btn btn-accent justify-center w-full"
               >
-                + Record delivery
+                Record delivery
               </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/materials">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                All POs
+              <Link
+                href="/development-os/materials/deliveries"
+                className="btn btn-dark justify-center w-full"
+              >
+                All deliveries
               </Link>
-            </Button>
+            </div>
           </div>
-        }
-      />
-
-      <Section eyebrow="Snapshot" title="Order details + utilization">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
-            label="Total (USD)"
-            value={formatUsdMinor(BigInt(po.totalAmountUsdMinor))}
-            hint={`${po.totalAmountCurrency} ${po.totalAmountOriginalMinor}`}
-          />
-          <MetricCard
-            label="Lines"
-            value={String(util.totalLines)}
-            hint={`${util.totalQtyOrdered.toFixed(2)} ordered (sum)`}
-          />
-          <MetricCard
-            label="Delivered"
-            value={`${util.totalQtyDelivered.toFixed(2)}`}
-            hint={`${util.outstandingQty.toFixed(2)} outstanding`}
-          />
-          <MetricCard
-            label="Consumed"
-            value={`${util.totalQtyConsumed.toFixed(2)}`}
-          />
-        </div>
-        <div className="mt-3 flex items-center gap-3 text-xs">
-          <Badge
-            tone={
-              po.status === "fully_delivered"
-                ? "success"
-                : po.status === "partially_delivered"
-                  ? "info"
-                  : po.status === "ordered"
-                    ? "warning"
-                    : "neutral"
-            }
-          >
-            {MATERIAL_PO_STATUS_LABEL[po.status]}
-          </Badge>
-          <span className="text-ink-secondary">
-            Ordered {po.orderDate} · Expected {po.expectedDeliveryDate ?? "—"}
-          </span>
-        </div>
-      </Section>
-
-      <Section eyebrow="Lines" title="Per-material breakdown">
-        <Table>
-          <THead>
-            <TR>
-              <TH>#</TH>
-              <TH>Material</TH>
-              <TH>Category</TH>
-              <TH>UoM</TH>
-              <TH>Ordered</TH>
-              <TH>Delivered</TH>
-              <TH>Consumed</TH>
-              <TH>Line total (USD)</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {po.lines.map((l) => (
-              <TR key={l.id}>
-                <TD className="font-mono text-xs">{l.lineNumber}</TD>
-                <TD>{l.materialName}</TD>
-                <TD className="text-xs text-ink-secondary">
-                  {l.materialCategory ?? "—"}
-                </TD>
-                <TD className="text-xs">{l.unitOfMeasure}</TD>
-                <TDNum>{Number(l.quantityOrdered).toFixed(2)}</TDNum>
-                <TDNum>{Number(l.quantityDelivered).toFixed(2)}</TDNum>
-                <TDNum>{Number(l.quantityConsumed).toFixed(2)}</TDNum>
-                <TDNum>
-                  {l.lineTotalUsdMinor
-                    ? formatUsdMinor(BigInt(l.lineTotalUsdMinor))
-                    : "—"}
-                </TDNum>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      </Section>
-
-      {po.deliveries.length > 0 && (
-        <Section eyebrow="Deliveries" title="Receipt events">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Date</TH>
-                <TH>Quality</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {po.deliveries.map((d) => (
-                <TR key={d.id}>
-                  <TD className="font-mono text-xs">{d.deliveryCode}</TD>
-                  <TD className="text-xs">{d.deliveryDate}</TD>
-                  <TD>
-                    <Badge
-                      tone={
-                        d.qualityCheckStatus === "accepted"
-                          ? "success"
-                          : d.qualityCheckStatus === "partial_acceptance"
-                            ? "warning"
-                            : d.qualityCheckStatus === "rejected"
-                              ? "danger"
-                              : "neutral"
-                      }
-                    >
-                      {MATERIAL_QUALITY_LABEL[d.qualityCheckStatus]}
-                    </Badge>
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Section>
-      )}
+        </aside>
+      </div>
     </DevelopmentShell>
   );
 }

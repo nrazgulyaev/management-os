@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listInventoryItems } from "@/lib/development/server/inventory/inventory-queries";
@@ -24,43 +20,95 @@ export default async function InventoryItemsPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Inventory items" />
+        <header className="page-header">
+          <div className="left">
+            <div className="crumb">Warehouse · stock</div>
+            <h1>Inventory items</h1>
+          </div>
+        </header>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
   }
   const items = await safeQuery("listInventoryItems", listInventoryItems(), [], 4000);
 
+  // KPI strip — derived from the rows already fetched (no extra read).
+  const activeCount = items.filter((i) => i.isActive).length;
+  const categories = Array.from(
+    new Set(items.map((i) => i.category).filter(Boolean)),
+  );
+  const reorderTracked = items.filter((i) => i.reorderPoint != null).length;
+  const missingCost = items.filter(
+    (i) => i.lastPurchasePriceMinor == null,
+  ).length;
+
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Inventory", href: "/development-os/inventory/items" },
-          { label: "Items" },
-        ]}
-        eyebrow={`${items.length} active SKU${items.length === 1 ? "" : "s"}`}
-        title="Inventory items"
-        description="SKU catalog. Stock balances are tracked per (item × location). Reorder points trigger the daily low-stock alert cron."
-        actions={
-          <div className="flex gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/development-os/inventory/locations">Locations</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/inventory/movements">Movements</Link>
-            </Button>
-            <InventoryItemDevAddButton />
-            <ExportButton entity="inventory_items" />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">Warehouse · stock</div>
+          <h1>
+            Inventory <em>· {items.length} SKUs</em>
+          </h1>
+          <div className="page-header-meta">
+            <span>{activeCount} active</span>
+            <span>·</span>
+            <span>{categories.length} categories</span>
+            <span>·</span>
+            <span>{reorderTracked} with reorder point</span>
           </div>
-        }
-      />
+        </div>
+        <div className="actions">
+          <InventoryItemDevAddButton />
+          <ExportButton entity="inventory_items" />
+          <Link
+            href="/development-os/inventory/locations"
+            className="btn btn-dark btn-sm"
+          >
+            Locations
+          </Link>
+          <Link
+            href="/development-os/inventory/movements"
+            className="btn btn-dark btn-sm"
+          >
+            Movements
+          </Link>
+          <Link href="/development-os" className="btn btn-dark btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </header>
+
+      <p className="text-ink-secondary text-sm max-w-3xl leading-relaxed">
+        SKU catalog. Stock balances are tracked per (item × location). Reorder
+        points trigger the daily low-stock alert cron.
+      </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi
+          label="SKUs · total"
+          value={items.length || "—"}
+          sub="in catalog"
+          tone={items.length ? "accent" : undefined}
+        />
+        <Kpi label="Active" value={activeCount || "—"} sub="orderable" />
+        <Kpi
+          label="Reorder tracked"
+          value={reorderTracked || "—"}
+          sub={`${items.length - reorderTracked} untracked`}
+          tone={
+            reorderTracked < items.length && items.length > 0
+              ? "warn"
+              : undefined
+          }
+        />
+        <Kpi
+          label="Categories"
+          value={categories.length || "—"}
+          sub={categories.slice(0, 3).join(" · ") || "none yet"}
+        />
+      </div>
 
       {items.length === 0 ? (
         <EmptyState
@@ -68,55 +116,65 @@ export default async function InventoryItemsPage() {
           description="Use 'New SKU' to add the first inventory item."
         />
       ) : (
-        <Section eyebrow="Catalog" title="All SKUs">
-          <Table>
-            <THead>
-              <TR>
-                <TH>SKU</TH>
-                <TH>Name</TH>
-                <TH>Category</TH>
-                <TH>UoM</TH>
-                <TH>Reorder point</TH>
-                <TH>Last cost</TH>
-                <TH>Active</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {items.map((i) => (
-                <TR key={i.id}>
-                  <TD className="font-mono text-xs">
-                    <Link
-                      href={`/development-os/inventory/items/${encodeURIComponent(i.sku)}`}
-                      className="hover:underline"
-                    >
-                      {i.sku}
-                    </Link>
-                  </TD>
-                  <TD className="text-sm">{i.displayName}</TD>
-                  <TD className="text-xs">{i.category}</TD>
-                  <TD className="text-xs">{i.unitOfMeasure}</TD>
-                  <TDNum>
-                    {i.reorderPoint != null
-                      ? Number(i.reorderPoint).toFixed(2)
-                      : "—"}
-                  </TDNum>
-                  <TDNum>
-                    {i.lastPurchasePriceMinor != null
-                      ? `${(Number(i.lastPurchasePriceMinor) / 100).toLocaleString()} ${i.defaultCurrency}`
-                      : "—"}
-                  </TDNum>
-                  <TD>
-                    {i.isActive ? (
-                      <Badge tone="success">active</Badge>
-                    ) : (
-                      <Badge tone="neutral">inactive</Badge>
-                    )}
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Section>
+        <section>
+          <div className="flex items-baseline justify-between mb-3">
+            <span className="label">Catalog · all SKUs</span>
+            <span className="label">
+              {missingCost > 0 ? `${missingCost} missing cost` : "costed"}
+            </span>
+          </div>
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>UoM</th>
+                    <th className="num">Reorder point</th>
+                    <th className="num">Last cost</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((i) => (
+                    <tr key={i.id}>
+                      <td className="font-mono text-xs">
+                        <Link
+                          href={`/development-os/inventory/items/${encodeURIComponent(i.sku)}`}
+                          className="hover:underline"
+                        >
+                          {i.sku}
+                        </Link>
+                      </td>
+                      <td className="row-title">{i.displayName}</td>
+                      <td className="text-xs text-ink-tertiary">{i.category}</td>
+                      <td className="text-xs">{i.unitOfMeasure}</td>
+                      <td className="num">
+                        {i.reorderPoint != null
+                          ? Number(i.reorderPoint).toFixed(2)
+                          : "—"}
+                      </td>
+                      <td className="num">
+                        {i.lastPurchasePriceMinor != null
+                          ? `${(Number(i.lastPurchasePriceMinor) / 100).toLocaleString()} ${i.defaultCurrency}`
+                          : "—"}
+                      </td>
+                      <td>
+                        {i.isActive ? (
+                          <HandoffBadge tone="ok">active</HandoffBadge>
+                        ) : (
+                          <HandoffBadge>inactive</HandoffBadge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       )}
     </DevelopmentShell>
   );
