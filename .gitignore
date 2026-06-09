@@ -19,3 +19,6 @@ playwright-report/
 
 # Local workflow agent worktrees (never commit)
 .claude/worktrees/
+
+# Local design-handoff reference package (not app code)
+cc-functional-handoff/

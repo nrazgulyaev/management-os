@@ -254,6 +254,7 @@ async function seed(
     const [row] = await db
       .insert(projects)
       .values({
+        organizationId,
         slug,
         name: `[DEMO] ${p.name}`,
         location: "Bali",

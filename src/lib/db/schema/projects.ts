@@ -12,11 +12,18 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const projects = pgTable(
   "projects",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY KEYSTONE (migration 0134): the root org anchor for the whole
+    // Development tree — villas, ownership, contacts, land, bookings-via-villa
+    // all reach their organization THROUGH a project.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
     slug: text("slug").notNull().unique(),
     name: text("name").notNull(),
     concept: text("concept"),
@@ -34,7 +41,10 @@ export const projects = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("projects_status_idx").on(t.status)],
+  (t) => [
+    index("projects_status_idx").on(t.status),
+    index("projects_organization_idx").on(t.organizationId),
+  ],
 );
 
 export const villas = pgTable(
