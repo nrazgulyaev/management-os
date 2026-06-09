@@ -12,6 +12,7 @@ import {
   listConciergeMemoryNotes,
 } from "@/features/guest-ai-concierge/concierge-cabinet-queries";
 import { ConciergeWorkspace } from "./_concierge-workspace";
+import { ComingSoon } from "@/components/ui/state";
 
 /**
  * Sprint TASK-6-DATA-PART-2 — Mgmt OS Concierge cabinet live wiring.
@@ -63,13 +64,9 @@ export default async function ConciergePage() {
           </p>
         </div>
         <div className="actions">
-          <button
-            className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-            disabled
-            title="Reply templates — coming soon"
-          >
-            Templates · soon
-          </button>
+          <ComingSoon note="Reusable reply templates (per-language canned responses the AI and staff can insert) are coming soon.">
+            <span className="btn btn-secondary btn-sm">Templates</span>
+          </ComingSoon>
           <Link
             href="/dashboard/concierge#memory"
             className="btn btn-secondary btn-sm"
@@ -227,9 +224,9 @@ export default async function ConciergePage() {
               ))}
             </ul>
           )}
-          <button className="btn btn-secondary btn-sm" disabled>
-            Open memory editor
-          </button>
+          <ComingSoon note="Editing recalled per-guest facts (add / correct / forget) needs a write-back model — coming soon. Until then this list is read-only.">
+            <span className="btn btn-secondary btn-sm">Open memory editor</span>
+          </ComingSoon>
         </Card>
       </div>
     </>

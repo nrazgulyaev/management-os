@@ -30,7 +30,6 @@ import {
   getCurrentStatementNudge,
   getOperationalHealthTiles,
 } from "@/features/dashboard/dashboard-cabinet-queries";
-import { ComingSoon } from "@/components/ui/state";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Overview live wiring.
@@ -174,11 +173,13 @@ export default async function DashboardOverviewPage() {
         }
         actions={
           <>
-            <ComingSoon note="Exporting the daily brief as a shareable PDF is coming soon.">
-              <span className="btn btn-secondary btn-sm">
-                Export brief <DashboardIcon name="logo" width={13} height={13} />
-              </span>
-            </ComingSoon>
+            <a
+              href="/dashboard/export-brief"
+              className="btn btn-secondary btn-sm"
+              download
+            >
+              Export brief <DashboardIcon name="logo" width={13} height={13} />
+            </a>
             <Link href="/dashboard/bookings" className="btn btn-primary btn-sm">
               New booking +
             </Link>

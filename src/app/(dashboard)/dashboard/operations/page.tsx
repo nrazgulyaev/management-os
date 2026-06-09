@@ -14,7 +14,6 @@ import {
 } from "@/features/operations/operations-cabinet-queries";
 import { listArrivals, listDepartures } from "@/features/front-office/services";
 import { mapPoolAll } from "@/lib/db/map-pool";
-import { ComingSoon } from "@/components/ui/state";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Operations cabinet live wiring.
@@ -170,9 +169,13 @@ export default async function OperationsPage() {
           <Link href="/dashboard/operations/maintenance/new" className="btn btn-secondary btn-sm">
             + New ticket
           </Link>
-          <ComingSoon note="Sending the daily team brief to housekeeping & maintenance is coming soon.">
-            <span className="btn btn-accent btn-sm">Brief team →</span>
-          </ComingSoon>
+          <a
+            href="/dashboard/operations/brief"
+            className="btn btn-accent btn-sm"
+            download
+          >
+            Brief team →
+          </a>
         </div>
       </div>
 
@@ -214,7 +217,11 @@ export default async function OperationsPage() {
               <li className="opacity-60 px-2.5 py-1.5">A quiet day on the desk.</li>
             )}
           </ul>
-          <div className="ot-footer">Morning brief — coming soon.</div>
+          <div className="ot-footer">
+            <a href="/dashboard/operations/brief" className="hover:underline" download>
+              Download morning brief ↓
+            </a>
+          </div>
         </div>
 
         {/* SLA tile */}

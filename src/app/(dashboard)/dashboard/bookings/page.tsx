@@ -11,7 +11,6 @@ import { listVillas } from "@/features/villas/services";
 import { listBookingChannels } from "@/features/channels/services";
 import { listGuests } from "@/features/guests/services";
 import { parseFilters } from "@/lib/url-state";
-import { ComingSoon } from "@/components/ui/state";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Bookings cabinet live wiring.
@@ -116,9 +115,13 @@ export default async function BookingsPage({
           <h1>Bookings</h1>
         </div>
         <div className="actions">
-          <ComingSoon note="Booking export to CSV / Excel is coming soon.">
-            <span className="btn btn-ghost btn-sm">Export</span>
-          </ComingSoon>
+          <a
+            href="/dashboard/bookings/export"
+            className="btn btn-ghost btn-sm"
+            download
+          >
+            Export CSV
+          </a>
           <Link href="/dashboard/bookings/calendar" className="btn btn-secondary btn-sm">
             ↗ Calendar
           </Link>
