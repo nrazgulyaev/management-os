@@ -1,0 +1,310 @@
+/* =============================================================
+   src/styles/components/workspace.css
+
+   Mgmt OS · Workspace Overview (/dashboard) pixel patterns.
+   Source of truth: cabinets/new/mgmt-workspace.html.
+
+   Adds the workspace-overview vocabulary that has no existing
+   primitive: the urgency-edged attention card, the Today ops
+   snapshot tiles, the AI-agents activity rows, the quick-action
+   grid and the cabinet map. All values resolve from the Layer-B
+   [data-product="management"] tokens (tokens.css) — no raw hexes,
+   no inline styles. Scoped to management; mirrored under owner so
+   the same component renders correctly if reused there.
+   ============================================================= */
+
+/* ---------- Attention card (urgency-sorted feed) ---------- */
+[data-product="management"] .attn-card,
+[data-product="owner"] .attn-card {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 18px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--line-strong);
+  border-radius: var(--r-card, 18px);
+  transition: border-color 0.15s ease;
+}
+[data-product="management"] .attn-card:hover,
+[data-product="owner"] .attn-card:hover { border-color: var(--line-strong); }
+
+[data-product="management"] .attn-card.is-critical,
+[data-product="owner"] .attn-card.is-critical { border-left-color: var(--danger); }
+[data-product="management"] .attn-card.is-high,
+[data-product="owner"] .attn-card.is-high { border-left-color: var(--warn); }
+[data-product="management"] .attn-card.is-medium,
+[data-product="owner"] .attn-card.is-medium { border-left-color: var(--terra); }
+
+[data-product="management"] .attn-card .attn-ico,
+[data-product="owner"] .attn-card .attn-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm, 8px);
+  background: var(--cream-deep);
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 18px;
+}
+[data-product="management"] .attn-card.is-critical .attn-ico,
+[data-product="owner"] .attn-card.is-critical .attn-ico {
+  background: color-mix(in oklab, var(--danger) 16%, var(--paper));
+  color: var(--danger);
+}
+[data-product="management"] .attn-card.is-high .attn-ico,
+[data-product="owner"] .attn-card.is-high .attn-ico {
+  background: color-mix(in oklab, var(--warn) 16%, var(--paper));
+  color: var(--warn);
+}
+[data-product="management"] .attn-card.is-medium .attn-ico,
+[data-product="owner"] .attn-card.is-medium .attn-ico {
+  background: color-mix(in oklab, var(--terra) 14%, var(--paper));
+  color: var(--terra);
+}
+
+[data-product="management"] .attn-card .attn-body,
+[data-product="owner"] .attn-card .attn-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+[data-product="management"] .attn-card .attn-ti,
+[data-product="owner"] .attn-card .attn-ti {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.35;
+}
+[data-product="management"] .attn-card .attn-meta,
+[data-product="owner"] .attn-card .attn-meta {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+[data-product="management"] .attn-card .attn-meta .sep,
+[data-product="owner"] .attn-card .attn-meta .sep { color: var(--ink-4); }
+[data-product="management"] .attn-card .attn-tag,
+[data-product="owner"] .attn-card .attn-tag {
+  padding: 1px 6px;
+  border-radius: var(--r-xs, 4px);
+  background: var(--cream-deep);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+[data-product="management"] .attn-card.is-critical .attn-tag,
+[data-product="owner"] .attn-card.is-critical .attn-tag {
+  background: color-mix(in oklab, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+[data-product="management"] .attn-card .attn-arrow,
+[data-product="owner"] .attn-card .attn-arrow {
+  font-family: var(--mono-font), monospace;
+  font-size: 16px;
+  color: var(--ink-4);
+}
+
+/* ---------- Today · ops snapshot tiles ---------- */
+[data-product="management"] .today-grid,
+[data-product="owner"] .today-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+[data-product="management"] .today-tile,
+[data-product="owner"] .today-tile {
+  padding: 12px 14px;
+  background: var(--cream-warm);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm, 8px);
+}
+[data-product="management"] .today-tile .l,
+[data-product="owner"] .today-tile .l {
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product="management"] .today-tile .v,
+[data-product="owner"] .today-tile .v {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 26px;
+  color: var(--ink);
+  margin-top: 4px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+[data-product="management"] .today-tile .v.warn,
+[data-product="owner"] .today-tile .v.warn { color: var(--warn); }
+[data-product="management"] .today-tile .v.ok,
+[data-product="owner"] .today-tile .v.ok { color: var(--ok); }
+[data-product="management"] .today-tile .ctx,
+[data-product="owner"] .today-tile .ctx {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  color: var(--ink-4);
+  margin-top: 3px;
+}
+
+/* ---------- AI agents activity rows ---------- */
+[data-product="management"] .agent-row,
+[data-product="owner"] .agent-row {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-soft);
+  align-items: center;
+}
+[data-product="management"] .agent-row:last-child,
+[data-product="owner"] .agent-row:last-child { border-bottom: 0; }
+[data-product="management"] .agent-row .dot,
+[data-product="owner"] .agent-row .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ok);
+  justify-self: center;
+}
+[data-product="management"] .agent-row .dot.warn,
+[data-product="owner"] .agent-row .dot.warn { background: var(--warn); }
+[data-product="management"] .agent-row .dot.idle,
+[data-product="owner"] .agent-row .dot.idle { background: var(--ink-4); }
+[data-product="management"] .agent-row .nm,
+[data-product="owner"] .agent-row .nm {
+  font-family: var(--mono-font), monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+}
+[data-product="management"] .agent-row .agent-meta,
+[data-product="owner"] .agent-row .agent-meta {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+[data-product="management"] .agent-row .ct,
+[data-product="owner"] .agent-row .ct {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+/* ---------- Quick-action grid ---------- */
+[data-product="management"] .qa-grid,
+[data-product="owner"] .qa-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+[data-product="management"] .qa-btn,
+[data-product="owner"] .qa-btn {
+  padding: 12px 14px;
+  background: var(--cream-warm);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm, 8px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+  text-align: left;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+[data-product="management"] .qa-btn:hover,
+[data-product="owner"] .qa-btn:hover { background: var(--cream-deep); border-color: var(--line-strong); }
+[data-product="management"] .qa-btn .ic,
+[data-product="owner"] .qa-btn .ic {
+  color: var(--terra);
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ---------- Cabinet map ---------- */
+[data-product="management"] .cab-map,
+[data-product="owner"] .cab-map {
+  padding: 26px;
+  background: var(--cream-deep);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card, 18px);
+}
+[data-product="management"] .cm-grid,
+[data-product="owner"] .cm-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+[data-product="management"] .cm-card,
+[data-product="owner"] .cm-card {
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md, 12px);
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+[data-product="management"] .cm-card:hover,
+[data-product="owner"] .cm-card:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+[data-product="management"] .cm-card .grp,
+[data-product="owner"] .cm-card .grp {
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+[data-product="management"] .cm-card .nm,
+[data-product="owner"] .cm-card .nm {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+[data-product="management"] .cm-card .cm-ctx,
+[data-product="owner"] .cm-card .cm-ctx {
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+[data-product="management"] .cm-card.has-attn,
+[data-product="owner"] .cm-card.has-attn {
+  background: color-mix(in oklab, var(--warn) 8%, var(--paper));
+  border-color: color-mix(in oklab, var(--warn) 35%, var(--line));
+}
+[data-product="management"] .cm-card.has-attn .cm-ctx,
+[data-product="owner"] .cm-card.has-attn .cm-ctx { color: var(--warn); font-weight: 500; }
+
+/* ---------- Mobile collapse (matches mobile-pass-2.6) ---------- */
+@media (max-width: 900px) {
+  [data-product="management"] .today-grid,
+  [data-product="owner"] .today-grid,
+  [data-product="management"] .cm-grid,
+  [data-product="owner"] .cm-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  [data-product="management"] .qa-grid,
+  [data-product="owner"] .qa-grid,
+  [data-product="management"] .today-grid,
+  [data-product="owner"] .today-grid,
+  [data-product="management"] .cm-grid,
+  [data-product="owner"] .cm-grid { grid-template-columns: 1fr; }
+  [data-product="management"] .attn-card,
+  [data-product="owner"] .attn-card { grid-template-columns: 28px 1fr; }
+  [data-product="management"] .attn-card .attn-arrow,
+  [data-product="owner"] .attn-card .attn-arrow { display: none; }
+}

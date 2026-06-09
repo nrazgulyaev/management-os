@@ -1,4 +1,3 @@
-import { Card } from "@/components/dashboard/primitives";
 import { AttentionFeedCard } from "@/components/dashboard/attention-feed-card";
 import { getAttentionFeed } from "@/features/dashboard/attention-feed";
 
@@ -18,22 +17,28 @@ export async function AttentionFeedSection() {
   return <AttentionFeedCard feed={feed} />;
 }
 
-/** Skeleton shown while the feed streams (matches the card's outer shell). */
+/** Skeleton shown while the feed streams (matches the attn-card layout). */
 export function AttentionFeedSkeleton() {
   return (
-    <Card padding="none" overflowHidden>
-      <div className="px-5 py-4 flex items-center gap-3 border-b border-line-soft">
-        <h2 className="display-md">Needs your attention</h2>
-        <span className="mono ml-auto text-[11px] text-ink-3">LOADING…</span>
+    <section aria-label="Needs attention" aria-busy>
+      <div className="flex items-baseline gap-2.5 mb-3">
+        <h2 className="display-md">Needs attention</h2>
+        <span className="mono ml-auto text-[10.5px] text-ink-3">LOADING…</span>
       </div>
-      <div className="p-5 flex flex-col gap-3">
+      <div className="flex flex-col gap-2.5">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="flex items-center gap-3">
-            <span className="w-2 h-2 rounded-full bg-muted shrink-0" />
-            <div className="flex-1 h-3 rounded bg-muted animate-pulse" />
+          <div key={i} className="attn-card is-medium">
+            <span className="attn-ico bg-muted" aria-hidden />
+            <span className="attn-body">
+              <span className="h-3 w-2/3 rounded bg-muted animate-pulse" />
+              <span className="h-2.5 w-1/2 rounded bg-muted animate-pulse" />
+            </span>
+            <span className="attn-arrow" aria-hidden>
+              →
+            </span>
           </div>
         ))}
       </div>
-    </Card>
+    </section>
   );
 }

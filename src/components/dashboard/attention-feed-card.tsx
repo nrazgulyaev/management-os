@@ -1,21 +1,25 @@
 import Link from "next/link";
-import { Card } from "@/components/dashboard/primitives";
 import type {
   AttentionFeed,
   AttentionSeverity,
   AttentionSource,
 } from "@/features/dashboard/attention-feed";
 
-const SEV_DOT: Record<AttentionSeverity, string> = {
-  critical: "var(--terra)",
-  high: "var(--gold)",
-  medium: "var(--ink-3)",
+/** Maps severity → the `.attn-card` urgency edge class (workspace.css). */
+const SEV_CLASS: Record<AttentionSeverity, string> = {
+  critical: "is-critical",
+  high: "is-high",
+  medium: "is-medium",
 };
 
-const SEV_LABEL: Record<AttentionSeverity, string> = {
-  critical: "Critical",
-  high: "High",
-  medium: "Review",
+/** Glyph rendered in the card's icon tile — one per source, mirroring the
+ *  mockup's `!` / `$` / `⏱` / `⌕` / `★` cabinet symbols. */
+const SOURCE_GLYPH: Record<AttentionSource, string> = {
+  statement: "$",
+  sla_breach: "!",
+  owner_stay: "⌕",
+  channel_conflict: "⇄",
+  capital_call: "$",
 };
 
 const SOURCE_LABEL: Record<AttentionSource, string> = {
@@ -27,67 +31,73 @@ const SOURCE_LABEL: Record<AttentionSource, string> = {
 };
 
 /**
- * Overview "needs your attention" band — the cross-cabinet action queue
- * (phase-2a PR 2). Purely presentational; data from `getAttentionFeed()`.
+ * Overview "needs attention" feed — the cross-cabinet, urgency-sorted action
+ * queue (mgmt-workspace.html §02). Each item renders as an `.attn-card` with
+ * a severity-coloured left edge (critical → danger, high → warn, medium →
+ * terra), an icon tile, title + meta, source tag and a drill arrow.
+ * Purely presentational; data from `getAttentionFeed()`.
  */
 export function AttentionFeedCard({ feed }: { feed: AttentionFeed }) {
   return (
-    <Card padding="none" overflowHidden>
-      <div className="px-5 py-4 flex items-center gap-3 border-b border-line-soft">
-        <h2 className="display-md">Needs your attention</h2>
+    <section aria-label="Needs attention">
+      <div className="flex items-baseline gap-2.5 mb-3">
+        <h2 className="display-md">
+          {feed.total > 0 ? (
+            <>
+              <em>
+                {feed.total} {feed.total === 1 ? "item" : "items"}
+              </em>{" "}
+              need attention
+            </>
+          ) : (
+            "Needs attention"
+          )}
+        </h2>
         {feed.total > 0 ? (
-          <div className="flex items-center gap-2 ml-auto text-[11px]">
-            {feed.counts.critical > 0 && (
-              <span className="num" style={{ color: "var(--terra)" }}>
-                {feed.counts.critical} critical
-              </span>
-            )}
-            {feed.counts.high > 0 && (
-              <span className="num text-ink-3">{feed.counts.high} high</span>
-            )}
-            <span className="mono text-ink-4">{feed.total} total</span>
-          </div>
+          <span className="mono ml-auto text-[10.5px] text-ink-3">
+            {feed.counts.critical > 0
+              ? `${feed.counts.critical} critical`
+              : `${feed.total} open`}
+          </span>
         ) : (
-          <span className="mono ml-auto text-[11px] text-ink-3">ALL CLEAR</span>
+          <span className="mono ml-auto text-[10.5px] text-ink-3">
+            ALL CLEAR
+          </span>
         )}
       </div>
 
       {feed.items.length === 0 ? (
-        <p className="p-5 text-[13px] text-ink-3 italic m-0">
+        <p className="card px-5 py-4 text-[13px] text-ink-3 italic m-0">
           Nothing needs your attention right now — no disputes, SLA breaches,
           pending owner-stay requests, channel conflicts, or unpaid capital
           calls.
         </p>
       ) : (
-        <ul className="clean">
+        <div className="flex flex-col gap-2.5">
           {feed.items.map((item) => (
-            <li key={item.key} className="border-b border-line-soft last:border-0">
-              <Link
-                href={item.href}
-                className="flex items-center gap-3 px-5 py-3 hover:bg-muted transition-colors"
-              >
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ background: SEV_DOT[item.severity] }}
-                  title={SEV_LABEL[item.severity]}
-                  aria-label={SEV_LABEL[item.severity]}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-ink truncate">
-                    {item.title}
-                  </div>
-                  <div className="text-[11.5px] text-ink-3 truncate">
-                    {item.detail}
-                  </div>
-                </div>
-                <span className="badge text-[9px] shrink-0">
-                  {SOURCE_LABEL[item.source]}
+            <Link
+              key={item.key}
+              href={item.href}
+              className={`attn-card ${SEV_CLASS[item.severity]}`}
+            >
+              <span className="attn-ico" aria-hidden>
+                {SOURCE_GLYPH[item.source]}
+              </span>
+              <span className="attn-body">
+                <span className="attn-ti">{item.title}</span>
+                <span className="attn-meta">
+                  <span>{SOURCE_LABEL[item.source]}</span>
+                  <span className="sep">·</span>
+                  <span className="truncate">{item.detail}</span>
                 </span>
-              </Link>
-            </li>
+              </span>
+              <span className="attn-arrow" aria-hidden>
+                →
+              </span>
+            </Link>
           ))}
-        </ul>
+        </div>
       )}
-    </Card>
+    </section>
   );
 }
