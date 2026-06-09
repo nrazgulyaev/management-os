@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AuthShell, AuthHead } from "@/components/auth/auth-shell";
+import { AUTH_PLATFORMS, resolveTokenProduct } from "@/components/auth/auth-copy";
 import { SignupForm } from "@/components/signup/signup-form";
 
 export const metadata: Metadata = {
@@ -20,32 +22,41 @@ export default async function SignupPage({
   const defaultProduct: "mgmt" | "dev" | "both" =
     productParam === "mgmt" || productParam === "dev" ? productParam : "both";
 
+  // Public signup runs on the subscription identity (Mgmt + Dev together).
+  const plat = AUTH_PLATFORMS.subscription;
+  const tokenProduct = resolveTokenProduct(plat.dataProduct);
+
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-6 py-16 bg-canvas">
-      <div className="w-full max-w-lg">
-        <div className="text-center mb-10">
-          <span className="text-label">Get started</span>
-          <h1 className="mt-3 font-display text-[40px] md:text-[56px] leading-[1.0] tracking-[-0.02em] text-ink">
-            14-day free trial.
-          </h1>
-          <p className="mt-4 text-sm md:text-base text-ink-secondary leading-relaxed">
-            No credit card. Real workflows, real data. Cancel anytime — your
-            workspace becomes read-only after the trial unless you choose a
-            plan.
-          </p>
-        </div>
+    <AuthShell
+      dataProduct={tokenProduct}
+      wordmarkSub={plat.wordmarkSub}
+      tone={plat.tone}
+      panelKicker={plat.panelKicker}
+      testimonial={plat.testimonial}
+      footer={
+        <span>
+          © {new Date().getFullYear()} Arconique · {plat.domain}
+        </span>
+      }
+    >
+      <AuthHead eyebrow="Start free · 14 days">
+        Start your <em>trial.</em>
+      </AuthHead>
+      <p className="auth-sub">
+        Create your organization. No credit card required — your workspace
+        becomes read-only after the trial unless you choose a plan.
+      </p>
 
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-elevated-card p-8 md:p-10">
-          <SignupForm defaultProduct={defaultProduct} />
-        </div>
+      <SignupForm defaultProduct={defaultProduct} />
 
-        <p className="mt-6 text-center text-xs text-ink-tertiary">
+      <div className="auth-foot-row">
+        <span>
           Already have an account?{" "}
-          <Link href="/login" className="text-ink hover:underline">
+          <Link href="/login" className="auth-link">
             Sign in
           </Link>
-        </p>
+        </span>
       </div>
-    </div>
+    </AuthShell>
   );
 }

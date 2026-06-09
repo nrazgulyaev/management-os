@@ -1,0 +1,532 @@
+/* =============================================================
+   src/styles/components/auth.css
+
+   Auth Suite primitives — ported verbatim from the canonical
+   handoff mockup (cc-functional-handoff/auth/Auth Suite.html, the
+   `.auth-*` block) and auth-chrome.css. Token-only (no literals
+   except the photo-tone gradients, which are intentional decorative
+   art-direction values with no palette equivalent — see .auth-photo).
+
+   Scoped under [data-product] like every other primitive, so the
+   per-product palette (accent, surfaces, inverted band, display
+   typeface) resolves automatically from tokens.css Layer B.
+
+   Used by: src/app/(auth)/** + the shared <AuthShell> brick at
+   src/components/auth/auth-shell.tsx.
+   ============================================================= */
+
+/* ---------- Two-column shell ---------- */
+[data-product] .auth-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  background: var(--cream, var(--bg));
+}
+
+[data-product] .auth-form-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 30px clamp(28px, 5vw, 76px) 24px;
+  overflow-y: auto;
+  background: var(--cream, var(--bg));
+}
+[data-product] .auth-form-top { flex: 0 0 auto; }
+[data-product] .auth-form-mid {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 28px 0;
+}
+[data-product] .auth-form-box {
+  width: 100%;
+  max-width: 392px;
+  margin: 0 auto;
+  animation: auth-in 0.42s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+[data-product] .auth-form-foot {
+  flex: 0 0 auto;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-4);
+}
+@keyframes auth-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Logo lockup ---------- */
+[data-product] .auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+[data-product] .auth-logo-mark { color: var(--accent); }
+[data-product] .auth-logo-text { line-height: 1.1; }
+[data-product] .auth-logo-word {
+  font-family: var(--display-font);
+  font-size: 20px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+[data-product] .auth-logo-sub {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--ink-3);
+  margin-top: 1px;
+}
+
+/* ---------- Head (eyebrow + display headline) ---------- */
+[data-product] .auth-eyebrow {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+}
+[data-product] .auth-title {
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 46px;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin: 14px 0 0;
+}
+[data-product="development"] .auth-title { font-weight: 500; }
+[data-product="owner"] .auth-title { font-size: 52px; }
+[data-product] .auth-title em {
+  font-style: italic;
+  color: var(--accent);
+}
+[data-product] .auth-sub {
+  font-family: var(--sans-font);
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-3);
+  max-width: 400px;
+}
+
+/* ---------- Field stack ---------- */
+[data-product] .auth-stack {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+[data-product] .auth-stack-tight { gap: 14px; }
+[data-product] .auth-field-wrap { position: relative; }
+[data-product] .auth-field-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-4);
+  display: inline-flex;
+  pointer-events: none;
+}
+[data-product] .auth-input { padding-left: 40px; height: 46px; }
+[data-product] .auth-input-plain { height: 46px; }
+[data-product] .auth-pw-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 7px;
+}
+
+/* ---------- Primary submit ---------- */
+[data-product] .auth-submit {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+  height: 48px;
+}
+
+/* ---------- Footer row + text links ---------- */
+[data-product] .auth-foot-row {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+[data-product] .auth-foot-row .muted { color: var(--ink-4); }
+[data-product] .auth-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--sans-font);
+  font-size: inherit;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--line-strong);
+}
+[data-product] .auth-link:hover { color: var(--ink); }
+
+/* ---------- Two-column grid (name + email) ---------- */
+[data-product] .auth-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ---------- "or" divider ---------- */
+[data-product] .auth-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink-4);
+  font-size: 12px;
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+[data-product] .auth-or::before,
+[data-product] .auth-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ---------- Back link ---------- */
+[data-product] .auth-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 18px;
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink-3);
+  text-decoration: none;
+}
+[data-product] .auth-back:hover { color: var(--ink); }
+
+/* ---------- Workspace slug input ---------- */
+[data-product] .auth-slug {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper, var(--panel));
+  overflow: hidden;
+}
+[data-product] .auth-slug .auth-slug-input {
+  border: 0;
+  height: 44px;
+  border-radius: 0;
+  background: transparent;
+  flex: 1;
+}
+[data-product] .auth-slug .auth-slug-input:focus { box-shadow: none; }
+[data-product] .auth-slug-suffix {
+  padding: 0 14px;
+  font-family: var(--mono-font);
+  font-size: 12.5px;
+  color: var(--ink-4);
+  border-left: 1px solid var(--line);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  background: var(--cream-warm, var(--bg-2));
+}
+
+/* ---------- Password requirement list ---------- */
+[data-product] .auth-reqs {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+[data-product] .auth-req {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+[data-product] .auth-req-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, var(--ok) 16%, transparent);
+  color: var(--ok);
+  flex: 0 0 auto;
+}
+
+/* ---------- OTP cells ---------- */
+[data-product] .auth-otp {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 22px;
+}
+[data-product] .auth-otp-cell {
+  height: 58px;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper, var(--panel));
+  color: var(--ink);
+  font-family: var(--mono-font);
+  font-size: 26px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+[data-product] .auth-otp-cell:focus {
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+}
+[data-product] .auth-otp-links {
+  display: flex;
+  gap: 18px;
+  margin-top: 16px;
+  font-size: 13.5px;
+}
+
+/* ---------- Accent callout ---------- */
+[data-product] .auth-callout {
+  margin-top: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  background: color-mix(in oklab, var(--accent) 9%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent) 28%, transparent);
+}
+[data-product] .auth-callout-ic {
+  color: var(--accent);
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+/* ---------- Notice banners (success / warn / info / danger) ---------- */
+[data-product] .auth-notice {
+  margin-top: 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  background: var(--cream-warm, var(--bg-2));
+  border: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .auth-notice-ok {
+  background: color-mix(in oklab, var(--ok) 10%, transparent);
+  border-color: color-mix(in oklab, var(--ok) 32%, transparent);
+}
+[data-product] .auth-notice-warn {
+  background: color-mix(in oklab, var(--warn) 10%, transparent);
+  border-color: color-mix(in oklab, var(--warn) 32%, transparent);
+}
+[data-product] .auth-notice-info {
+  background: color-mix(in oklab, var(--info) 10%, transparent);
+  border-color: color-mix(in oklab, var(--info) 32%, transparent);
+}
+[data-product] .auth-notice-danger {
+  background: color-mix(in oklab, var(--danger) 10%, transparent);
+  border-color: color-mix(in oklab, var(--danger) 32%, transparent);
+}
+[data-product] .auth-notice-ic { flex: 0 0 auto; margin-top: 1px; }
+[data-product] .auth-notice-ok .auth-notice-ic { color: var(--ok); }
+[data-product] .auth-notice-warn .auth-notice-ic { color: var(--warn); }
+[data-product] .auth-notice-info .auth-notice-ic { color: var(--info); }
+[data-product] .auth-notice-danger .auth-notice-ic { color: var(--danger); }
+
+/* ---------- Right brand panel ---------- */
+[data-product] .auth-panel {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  border-left: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .auth-panel-warm {
+  background:
+    radial-gradient(
+      ellipse at top right,
+      color-mix(in oklab, var(--accent) 22%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(
+      180deg,
+      var(--cream-warm, var(--bg-2)),
+      var(--cream, var(--bg))
+    );
+}
+[data-product] .auth-panel-premium {
+  background: var(--inverted-bg);
+  color: var(--inverted-fg);
+}
+[data-product] .auth-panel-editorial {
+  background: var(--cream-deep, var(--bg-2));
+}
+[data-product] .auth-panel-inner {
+  position: relative;
+  z-index: 2;
+  padding: clamp(32px, 4vw, 56px);
+  max-width: 460px;
+}
+[data-product] .auth-panel-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    60% 55% at 100% 0%,
+    color-mix(in oklab, var(--accent) 55%, transparent),
+    transparent 65%
+  );
+}
+[data-product] .auth-panel-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(
+      color-mix(in oklab, var(--inverted-fg) 7%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--inverted-fg) 7%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 44px 44px;
+  mask-image: radial-gradient(80% 70% at 70% 20%, #000, transparent 80%);
+}
+
+/* Editorial photo tone — decorative art-direction gradient, no token
+   equivalent (it's a placeholder for a villa photo). Kept verbatim. */
+[data-product] .auth-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(70% 50% at 75% 22%, #f0c08a, transparent 60%),
+    radial-gradient(90% 70% at 20% 10%, #c98a5f, transparent 55%),
+    linear-gradient(170deg, #6b5240 0%, #3a3328 45%, #20211c 100%);
+}
+[data-product] .auth-photo-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.15) 45%,
+    transparent 75%
+  );
+}
+[data-product] .auth-photo-tag {
+  position: absolute;
+  left: 0;
+  bottom: -30px;
+  font-family: var(--mono-font);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Panel content — kicker / quote / attribution, tone-aware */
+[data-product] .auth-panel-kicker {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink-3);
+}
+[data-product] .auth-panel-premium .auth-panel-kicker,
+[data-product] .auth-panel-editorial .auth-panel-kicker {
+  color: color-mix(in oklab, var(--inverted-fg) 60%, transparent);
+}
+[data-product] .auth-panel-editorial .auth-panel-kicker {
+  color: rgba(255, 255, 255, 0.78);
+}
+[data-product] .auth-panel-quote {
+  font-family: var(--display-font);
+  font-size: 30px;
+  line-height: 1.22;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 18px 0 0;
+}
+[data-product] .auth-panel-premium .auth-panel-quote {
+  color: var(--inverted-fg);
+}
+[data-product] .auth-panel-editorial .auth-panel-quote {
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+}
+[data-product] .auth-panel-who {
+  margin-top: 18px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+}
+[data-product] .auth-panel-premium .auth-panel-who {
+  color: color-mix(in oklab, var(--inverted-fg) 72%, transparent);
+}
+[data-product] .auth-panel-editorial .auth-panel-who {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Platform stat block (operator console — no testimonial) */
+[data-product] .auth-panel-stats {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+[data-product] .auth-panel-stat-v {
+  font-family: var(--mono-font);
+  font-variant-numeric: tabular-nums;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--ink);
+}
+[data-product] .auth-panel-premium .auth-panel-stat-v {
+  color: var(--inverted-fg);
+}
+[data-product] .auth-panel-stat-k {
+  font-family: var(--mono-font);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  margin-top: 6px;
+  color: var(--ink-3);
+}
+[data-product] .auth-panel-premium .auth-panel-stat-k {
+  color: color-mix(in oklab, var(--inverted-fg) 65%, transparent);
+}
+
+/* ---------- Responsive: hide panel, single column ---------- */
+@media (max-width: 880px) {
+  [data-product] .auth-shell { grid-template-columns: 1fr; }
+  [data-product] .auth-panel { display: none; }
+}
+@media (max-width: 600px) {
+  [data-product] .auth-title { font-size: 38px; }
+  [data-product="owner"] .auth-title { font-size: 42px; }
+  [data-product] .auth-2col { grid-template-columns: 1fr; }
+  [data-product] .auth-form-col { padding: 24px 22px 20px; }
+}

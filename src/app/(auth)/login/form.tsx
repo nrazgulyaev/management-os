@@ -2,19 +2,11 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
-import { Mail, Lock, ArrowRight, ShieldCheck } from "lucide-react";
+import { Mail, Lock, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
 import { signInAction, type AuthResult } from "@/features/auth/actions";
 import { useFormStatus } from "react-dom";
 
 const initial: AuthResult | null = null;
-
-// Icon overlay sits inside the relative wrapper; the input itself uses the
-// shared `.input` primitive (terra focus-ring, radius 10, bg --paper) + inline
-// paddingLeft/height to mirror the prototype's auth-screens.jsx <Field>.
-const inputClass = "input disabled:opacity-60";
-const inputStyle = { paddingLeft: 40, height: 46 } as const;
-const iconClass =
-  "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-tertiary";
 
 function Submit({ disabled }: { disabled?: boolean }) {
   const { pending } = useFormStatus();
@@ -22,7 +14,7 @@ function Submit({ disabled }: { disabled?: boolean }) {
     <button
       type="submit"
       disabled={pending || disabled}
-      className="btn btn-accent btn-lg w-full justify-center mt-1 disabled:opacity-60"
+      className="btn btn-accent btn-lg auth-submit"
     >
       {pending ? (
         "Signing in…"
@@ -50,19 +42,20 @@ export function LoginForm({
   const [state, action] = useActionState(signInAction, initial);
 
   return (
-    <form action={action} className="mt-7 flex flex-col gap-4">
+    <form action={action} className="auth-stack">
       {product ? <input type="hidden" name="product" value={product} /> : null}
 
       {state && !state.ok && (
-        <div className="rounded-md border border-danger/30 bg-danger-weak/40 px-3 py-2 text-xs text-ink">
-          {state.error}
+        <div className="auth-notice auth-notice-danger">
+          <AlertCircle className="auth-notice-ic w-4 h-4" strokeWidth={1.7} />
+          <span>{state.error}</span>
         </div>
       )}
 
-      <label className="field" style={{ gap: 7 }}>
+      <label className="field">
         <span className="field-label">Work email</span>
-        <div className="relative">
-          <Mail className={iconClass} strokeWidth={1.7} aria-hidden />
+        <div className="auth-field-wrap">
+          <Mail className="auth-field-icon w-4 h-4" strokeWidth={1.7} aria-hidden />
           <input
             type="email"
             name="email"
@@ -70,24 +63,20 @@ export function LoginForm({
             required
             placeholder="you@company.com"
             disabled={!supabaseReady}
-            className={inputClass}
-            style={inputStyle}
+            className="input auth-input disabled:opacity-60"
           />
         </div>
       </label>
 
-      <label className="field" style={{ gap: 7 }}>
-        <div className="flex items-baseline justify-between">
+      <label className="field">
+        <div className="auth-pw-head">
           <span className="field-label">Password</span>
-          <Link
-            href="/forgot-password"
-            className="text-xs text-ink-secondary hover:text-ink underline underline-offset-2 decoration-line-strong"
-          >
+          <Link href="/forgot-password" className="auth-link text-xs">
             Forgot?
           </Link>
         </div>
-        <div className="relative">
-          <Lock className={iconClass} strokeWidth={1.7} aria-hidden />
+        <div className="auth-field-wrap">
+          <Lock className="auth-field-icon w-4 h-4" strokeWidth={1.7} aria-hidden />
           <input
             type="password"
             name="password"
@@ -95,13 +84,12 @@ export function LoginForm({
             required
             placeholder="••••••••"
             disabled={!supabaseReady}
-            className={inputClass}
-            style={inputStyle}
+            className="input auth-input disabled:opacity-60"
           />
         </div>
       </label>
 
-      <label className="check" style={{ fontSize: 13.5 }}>
+      <label className="check text-[13.5px]">
         <input type="checkbox" name="remember" defaultChecked />
         <span className="box" />
         Keep me signed in on this device
@@ -111,16 +99,12 @@ export function LoginForm({
 
       {sso && (
         <>
-          <div className="my-1 flex items-center gap-3">
-            <span className="h-px flex-1" style={{ background: "var(--line)" }} />
-            <span className="text-[11px] uppercase tracking-[0.18em] text-ink-tertiary">
-              or
-            </span>
-            <span className="h-px flex-1" style={{ background: "var(--line)" }} />
+          <div className="auth-or">
+            <span>or</span>
           </div>
           <button
             type="button"
-            className="btn btn-secondary btn-lg w-full justify-center"
+            className="btn btn-secondary btn-lg auth-submit"
           >
             <ShieldCheck className="w-4 h-4" strokeWidth={1.7} /> Continue with SSO
           </button>
@@ -128,7 +112,7 @@ export function LoginForm({
       )}
 
       {!supabaseReady && (
-        <p className="text-[11px] text-ink-tertiary leading-relaxed">
+        <p className="field-help leading-relaxed">
           Email + password sign-in becomes active once Supabase env vars are
           configured (see <code className="font-mono">.env.example</code>).
         </p>

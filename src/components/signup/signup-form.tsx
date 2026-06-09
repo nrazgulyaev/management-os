@@ -3,8 +3,7 @@
 import * as React from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { signupAction, type SignupResult } from "@/features/signup/actions";
 
 /**
@@ -13,6 +12,10 @@ import { signupAction, type SignupResult } from "@/features/signup/actions";
  * Single-page form, no multi-step wizard. Anti-bot via honeypot
  * (hidden `company` input). Client-side validation mirrors the
  * server-side Zod schema so users see errors before submit.
+ *
+ * RESKIN-AUTH-2 — restyled onto the design-system form primitives
+ * (`.field` / `.input` / `.check` / `.btn-accent`). Server action,
+ * honeypot, product radios and field-error wiring unchanged.
  */
 
 type ProductChoice = "mgmt" | "dev" | "both";
@@ -27,32 +30,28 @@ export function SignupForm({
   const fieldErrors = state && !state.ok ? state.fieldErrors ?? {} : {};
 
   return (
-    <form action={action} className="flex flex-col gap-5 max-w-md mx-auto">
-      <div className="flex flex-col gap-1">
-        <label htmlFor="email" className="text-sm font-medium text-ink">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="founder@your-company.com"
-          className="rounded-md border border-line-soft bg-surface px-3 py-2 text-sm focus:outline-none focus:border-ink"
-        />
+    <form action={action} className="auth-stack auth-stack-tight">
+      <label className="field">
+        <span className="field-label">Work email</span>
+        <div className="auth-field-wrap">
+          <Mail className="auth-field-icon w-4 h-4" strokeWidth={1.7} aria-hidden />
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="founder@your-company.com"
+            className="input auth-input"
+          />
+        </div>
         {fieldErrors.email && (
-          <p className="text-xs text-danger mt-1">{fieldErrors.email}</p>
+          <p className="field-error">{fieldErrors.email}</p>
         )}
-      </div>
+      </label>
 
-      <div className="flex flex-col gap-1">
-        <label
-          htmlFor="organizationName"
-          className="text-sm font-medium text-ink"
-        >
-          Workspace name
-        </label>
+      <label className="field">
+        <span className="field-label">Workspace name</span>
         <input
           id="organizationName"
           name="organizationName"
@@ -61,20 +60,18 @@ export function SignupForm({
           minLength={2}
           autoComplete="organization"
           placeholder="Acme Villas"
-          className="rounded-md border border-line-soft bg-surface px-3 py-2 text-sm focus:outline-none focus:border-ink"
+          className="input auth-input-plain"
         />
         {fieldErrors.organizationName && (
-          <p className="text-xs text-danger mt-1">
-            {fieldErrors.organizationName}
-          </p>
+          <p className="field-error">{fieldErrors.organizationName}</p>
         )}
-        <p className="text-[11px] text-ink-tertiary mt-1">
+        <p className="field-help">
           We&apos;ll generate a slug from this. You can rename later.
         </p>
-      </div>
+      </label>
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium text-ink mb-1">Product</legend>
+      <fieldset className="field">
+        <legend className="field-label mb-1.5">Product</legend>
         <div className="grid grid-cols-3 gap-2">
           <ProductRadio
             value="mgmt"
@@ -99,76 +96,69 @@ export function SignupForm({
           />
         </div>
         {fieldErrors.product && (
-          <p className="text-xs text-danger mt-1">{fieldErrors.product}</p>
+          <p className="field-error">{fieldErrors.product}</p>
         )}
       </fieldset>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="password" className="text-sm font-medium text-ink">
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          minLength={12}
-          autoComplete="new-password"
-          className="rounded-md border border-line-soft bg-surface px-3 py-2 text-sm font-mono focus:outline-none focus:border-ink"
-        />
+      <label className="field">
+        <span className="field-label">Password</span>
+        <div className="auth-field-wrap">
+          <Lock className="auth-field-icon w-4 h-4" strokeWidth={1.7} aria-hidden />
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minLength={12}
+            autoComplete="new-password"
+            placeholder="At least 12 characters"
+            className="input auth-input font-mono"
+          />
+        </div>
         {fieldErrors.password && (
-          <p className="text-xs text-danger mt-1">{fieldErrors.password}</p>
+          <p className="field-error">{fieldErrors.password}</p>
         )}
-        <p className="text-[11px] text-ink-tertiary mt-1">
+        <p className="field-help">
           Minimum 12 characters. Use a passphrase or a password manager.
         </p>
-      </div>
+      </label>
 
-      <div className="flex flex-col gap-1">
-        <label
-          htmlFor="confirmPassword"
-          className="text-sm font-medium text-ink"
-        >
-          Confirm password
-        </label>
-        <input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          required
-          minLength={12}
-          autoComplete="new-password"
-          className="rounded-md border border-line-soft bg-surface px-3 py-2 text-sm font-mono focus:outline-none focus:border-ink"
-        />
+      <label className="field">
+        <span className="field-label">Confirm password</span>
+        <div className="auth-field-wrap">
+          <Lock className="auth-field-icon w-4 h-4" strokeWidth={1.7} aria-hidden />
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            required
+            minLength={12}
+            autoComplete="new-password"
+            placeholder="••••••••••••"
+            className="input auth-input font-mono"
+          />
+        </div>
         {fieldErrors.confirmPassword && (
-          <p className="text-xs text-danger mt-1">
-            {fieldErrors.confirmPassword}
-          </p>
+          <p className="field-error">{fieldErrors.confirmPassword}</p>
         )}
-      </div>
+      </label>
 
-      <label className="flex items-start gap-2 text-xs text-ink-secondary">
-        <input
-          type="checkbox"
-          name="terms"
-          required
-          className="mt-0.5 accent-ink"
-        />
-        <span>
+      <label className="check items-start text-[13px]">
+        <input type="checkbox" name="terms" required />
+        <span className="box mt-px" />
+        <span className="text-ink-secondary">
           I agree to the{" "}
-          <Link href="/legal/terms" className="underline">
+          <Link href="/legal/terms" className="auth-link">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="/legal/privacy" className="underline">
+          <Link href="/legal/privacy" className="auth-link">
             Privacy Policy
           </Link>
           . The 14-day trial does not require a credit card.
         </span>
       </label>
-      {fieldErrors.terms && (
-        <p className="text-xs text-danger -mt-3">{fieldErrors.terms}</p>
-      )}
+      {fieldErrors.terms && <p className="field-error">{fieldErrors.terms}</p>}
 
       {/* Honeypot field — hidden from real users; bots fill every input. */}
       <input
@@ -177,13 +167,7 @@ export function SignupForm({
         tabIndex={-1}
         autoComplete="off"
         aria-hidden
-        style={{
-          position: "absolute",
-          left: "-10000px",
-          width: 0,
-          height: 0,
-          overflow: "hidden",
-        }}
+        className="absolute -left-[10000px] w-0 h-0 overflow-hidden"
       />
 
       <input type="hidden" name="product" value={product} />
@@ -191,7 +175,10 @@ export function SignupForm({
       <SubmitButton />
 
       {state && !state.ok && state.error && !state.fieldErrors && (
-        <p className="text-xs text-danger text-center">{state.error}</p>
+        <div className="auth-notice auth-notice-danger">
+          <AlertCircle className="auth-notice-ic w-4 h-4" strokeWidth={1.7} />
+          <span>{state.error}</span>
+        </div>
       )}
     </form>
   );
@@ -216,9 +203,9 @@ function ProductRadio({
       type="button"
       onClick={() => onChange(value)}
       className={
-        "rounded-md border px-3 py-3 text-left transition-colors " +
+        "rounded-[10px] border px-3 py-3 text-left transition-colors " +
         (active
-          ? "border-ink bg-muted/30"
+          ? "border-ink bg-muted/40"
           : "border-line-soft bg-surface hover:border-line-strong")
       }
       aria-pressed={active}
@@ -234,9 +221,20 @@ function ProductRadio({
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="lg" disabled={pending} className="w-full">
-      {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-      {pending ? "Provisioning workspace…" : "Get started free"}
-    </Button>
+    <button
+      type="submit"
+      disabled={pending}
+      className="btn btn-accent btn-lg auth-submit"
+    >
+      {pending ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" /> Provisioning workspace…
+        </>
+      ) : (
+        <>
+          Create workspace <ArrowRight className="w-4 h-4" strokeWidth={1.8} />
+        </>
+      )}
+    </button>
   );
 }

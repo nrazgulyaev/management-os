@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Logo } from "@/components/brand/logo";
+import { headers } from "next/headers";
+import { ArrowRight } from "lucide-react";
+import { AuthShell, AuthHead } from "@/components/auth/auth-shell";
+import { resolveAuthPlatform, resolveTokenProduct } from "@/components/auth/auth-copy";
 import { isSupabaseAuthConfigured } from "@/lib/env";
 import { getCurrentAuthUser } from "@/lib/supabase/server";
 import { ResetPasswordForm } from "./form";
@@ -14,49 +17,55 @@ export default async function ResetPasswordPage() {
   // forwarding here. If there's no session, the link was invalid/expired
   // or the page was opened directly.
   const user = supabaseReady ? await getCurrentAuthUser() : null;
+  const h = await headers();
+  const plat = resolveAuthPlatform(h.get("x-product"));
+  const tokenProduct = resolveTokenProduct(plat.dataProduct);
 
   return (
-    <div className="min-h-screen flex flex-col px-6 md:px-12 lg:px-16 py-10 bg-canvas">
-      <Logo />
-      <div className="flex-1 flex items-center">
-        <div className="max-w-sm w-full mx-auto">
-          <span className="text-label">Account recovery</span>
-          <h1 className="text-display text-[44px] md:text-[56px] leading-[1.0] font-medium mt-4 text-ink tracking-tight">
-            Set a new password.
-          </h1>
+    <AuthShell
+      dataProduct={tokenProduct}
+      wordmarkSub={plat.wordmarkSub}
+      tone={plat.tone}
+      panelKicker={plat.panelKicker}
+      testimonial={plat.testimonial}
+      stats={plat.stats}
+      footer={
+        <span>
+          © {new Date().getFullYear()} Arconique · {plat.domain}
+        </span>
+      }
+    >
+      <AuthHead eyebrow="Reset access">
+        Set a new <em>password.</em>
+      </AuthHead>
 
-          {!supabaseReady ? (
-            <p className="mt-3 text-ink-secondary">
-              Password recovery becomes active once Supabase auth is
-              configured.
-            </p>
-          ) : user ? (
-            <>
-              <p className="mt-3 text-ink-secondary">
-                Choose a new password for{" "}
-                <span className="text-ink">{user.email}</span>. Minimum 12
-                characters.
-              </p>
-              <ResetPasswordForm />
-            </>
-          ) : (
-            <>
-              <p className="mt-3 text-ink-secondary">
-                This reset link is invalid or has expired.
-              </p>
-              <Link
-                href="/forgot-password"
-                className="mt-8 inline-block text-ink hover:underline"
-              >
-                Request a new reset link →
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
-      <p className="text-xs text-ink-tertiary">
-        © {new Date().getFullYear()} Arconique
-      </p>
-    </div>
+      {!supabaseReady ? (
+        <p className="auth-sub">
+          Password recovery becomes active once Supabase auth is configured.
+        </p>
+      ) : user ? (
+        <>
+          <p className="auth-sub">
+            Choose a new password for{" "}
+            <span className="text-ink">{user.email}</span>. Minimum 12
+            characters.
+          </p>
+          <ResetPasswordForm />
+        </>
+      ) : (
+        <>
+          <p className="auth-sub">This reset link is invalid or has expired.</p>
+          <div className="auth-stack">
+            <Link
+              href="/forgot-password"
+              className="btn btn-accent btn-lg auth-submit"
+            >
+              Request a new reset link{" "}
+              <ArrowRight className="w-4 h-4" strokeWidth={1.8} />
+            </Link>
+          </div>
+        </>
+      )}
+    </AuthShell>
   );
 }
