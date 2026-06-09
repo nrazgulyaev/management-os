@@ -136,3 +136,5 @@ export * from "./crm-activities";
 export * from "./crm-saved-views";
 // CRM tasks / follow-ups / reminders (migration 0146).
 export * from "./crm-tasks";
+// Attio-style generic CRM tags + custom fields (migration 0147).
+export * from "./crm-custom-fields";

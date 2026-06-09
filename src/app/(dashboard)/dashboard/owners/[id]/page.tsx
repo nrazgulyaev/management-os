@@ -29,6 +29,7 @@ import {
   listTasksForSubject,
   listAssignableUsers,
 } from "@/features/crm-tasks/services";
+import { CrmAnnotationsPanel } from "@/components/crm/crm-annotations-panel";
 
 /**
  * Phase 2.1 PR 2 — Owner detail uses bricks B1 + B2 + B3 + B5 + B6.
@@ -223,6 +224,15 @@ export default async function OwnerDetailPage({
             hint={`${activeGrants.length} portal grant${activeGrants.length === 1 ? "" : "s"}`}
           />
         </div>
+      </Card>
+
+      {/* CRM-CUSTOM-FIELDS-TAGS — editable tags chip-row + custom-fields. */}
+      <Card style={{ padding: 20 }}>
+        <CrmAnnotationsPanel
+          subjectType="owner"
+          subjectId={owner.id}
+          canManage={canManage}
+        />
       </Card>
 
       <section>

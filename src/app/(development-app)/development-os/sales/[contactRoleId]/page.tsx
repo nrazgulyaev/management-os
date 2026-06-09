@@ -24,6 +24,8 @@ import { getContactById } from "@/lib/development/server/contacts";
 import { getLeadSalesSnapshot } from "@/lib/development/server/contact-sales";
 import { RecordTimeline } from "@/components/ui/primitives";
 import { listCrmActivities } from "@/features/crm-activity/services";
+import { CrmAnnotationsPanel } from "@/components/crm/crm-annotations-panel";
+import { getCurrentUserContext } from "@/features/auth/permissions";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Lead · Development OS" };
@@ -45,7 +47,7 @@ export default async function LeadDetailPage({
   const lead = await getLeadDetail(contactRoleId);
   if (!lead) notFound();
 
-  const [contact, interactions, pendingDrafts, salesSnapshot, crmContact, crmLead] =
+  const [contact, interactions, pendingDrafts, salesSnapshot, crmContact, crmLead, ctx] =
     await Promise.all([
       getContactById(lead.contactId),
       getContactInteractions(lead.contactId),
@@ -57,7 +59,9 @@ export default async function LeadDetailPage({
       // first, into one timeline.
       listCrmActivities("contact", lead.contactId).catch(() => []),
       listCrmActivities("lead", lead.roleId).catch(() => []),
+      getCurrentUserContext(),
     ]);
+  const canManageCrm = ctx.mode === "demo" || ctx.isInternal;
 
   const crmActivity = [...crmContact, ...crmLead].sort((a, b) =>
     a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0,
@@ -108,6 +112,15 @@ export default async function LeadDetailPage({
                 </p>
               </Section>
             )}
+
+            {/* CRM-CUSTOM-FIELDS-TAGS — editable tags + custom fields. */}
+            <Section eyebrow="CRM" title="Tags & custom fields">
+              <CrmAnnotationsPanel
+                subjectType="contact"
+                subjectId={lead.contactId}
+                canManage={canManageCrm}
+              />
+            </Section>
           </div>
 
           <aside className="flex flex-col gap-3">
