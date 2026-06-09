@@ -548,6 +548,12 @@
 [data-product="development"] {
   --display-font: var(--font-space);
   --mono-font: var(--font-plex);
+  /* Pixel-dev-procurement: the Tailwind `font-display` / `.text-display`
+     utility reads --font-display (Newsreader at :root). Remap it to
+     Space Grotesk under the dev surface so the engineering display type
+     used by PageHeader / Section / KPI headings matches the dev mockups
+     instead of falling back to the management serif. */
+  --font-display: var(--font-space);
 }
 :root[data-product="subscription"] {
   --display-font: var(--font-fraunces);

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Timeline, type TimelineStage } from "@/components/ui/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { DevOsPurchaseRequestActions } from "@/components/development/procurement/request-actions";
 import { getDb } from "@/lib/db/client";
@@ -38,6 +39,40 @@ const URGENCY_TONE: Record<string, "info" | "success" | "warning" | "danger" | "
   high: "warning",
   critical: "danger",
 };
+
+/**
+ * Mockup "request path" — map the PR status onto an ordered lifecycle so
+ * the detail page reads like the drawer timeline in the design. Rejected
+ * / cancelled collapse to a single blocked stage.
+ */
+const REQUEST_PATH: Array<{ key: string; label: string }> = [
+  { key: "submitted", label: "Submitted" },
+  { key: "approved", label: "Approved" },
+  { key: "quotations_in_progress", label: "Quoting" },
+  { key: "quotation_selected", label: "Vendor picked" },
+  { key: "po_created", label: "PO created" },
+];
+
+function requestPathStages(status: string): TimelineStage[] {
+  if (status === "rejected" || status === "cancelled") {
+    return [
+      { id: "submitted", label: "Submitted", status: "complete" },
+      {
+        id: status,
+        label: status === "rejected" ? "Rejected" : "Cancelled",
+        status: "blocked",
+      },
+    ];
+  }
+  const order = ["draft", ...REQUEST_PATH.map((s) => s.key)];
+  const currentIdx = order.indexOf(status);
+  return REQUEST_PATH.map((stage) => {
+    const idx = order.indexOf(stage.key);
+    const stageStatus: TimelineStage["status"] =
+      currentIdx > idx ? "complete" : currentIdx === idx ? "active" : "pending";
+    return { id: stage.key, label: stage.label, status: stageStatus };
+  });
+}
 
 export default async function PurchaseRequestDetailPage({
   params,
@@ -101,16 +136,25 @@ export default async function PurchaseRequestDetailPage({
       />
 
       <Section eyebrow="State" title="Status + urgency">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-5 flex-wrap">
           <Badge tone={STATUS_TONE[request.status] ?? "neutral"}>
             {request.status}
           </Badge>
           <Badge tone={URGENCY_TONE[request.urgency] ?? "neutral"}>
             {request.urgency}
           </Badge>
-          <span className="text-sm text-ink-secondary">
+          <span className="text-sm text-ink-3">
             Required by {request.requiredByDate}
           </span>
+        </div>
+        <div className="rounded-[14px] border border-line-2 bg-panel p-5 mb-5">
+          <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 mb-4">
+            Request path
+          </div>
+          <Timeline
+            orientation="vertical"
+            stages={requestPathStages(request.status)}
+          />
         </div>
         <DevOsPurchaseRequestActions
           requestId={request.id}
@@ -120,27 +164,29 @@ export default async function PurchaseRequestDetailPage({
       </Section>
 
       <Section eyebrow="What's needed" title="Material">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-          <Field label="Material" value={request.materialName} />
-          <Field label="Category" value={request.materialCategory} />
-          <Field label="Description" value={request.description ?? "—"} />
-          <Field
-            label="Quantity"
-            value={`${request.quantity} ${request.unitOfMeasure}`}
-          />
-          <Field
-            label="Estimated cost"
-            value={
-              request.estimatedCostMinor != null
-                ? `${request.estimatedCurrency ?? "IDR"} ${(Number(request.estimatedCostMinor) / 100).toLocaleString()}`
-                : "—"
-            }
-          />
-          <Field
-            label="Preferred supplier"
-            value={request.preferredSupplierId ?? "—"}
-            mono
-          />
+        <div className="rounded-[14px] border border-line-2 bg-panel p-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <Field label="Material" value={request.materialName} />
+            <Field label="Category" value={request.materialCategory} />
+            <Field label="Description" value={request.description ?? "—"} />
+            <Field
+              label="Quantity"
+              value={`${request.quantity} ${request.unitOfMeasure}`}
+            />
+            <Field
+              label="Estimated cost"
+              value={
+                request.estimatedCostMinor != null
+                  ? `${request.estimatedCurrency ?? "IDR"} ${(Number(request.estimatedCostMinor) / 100).toLocaleString()}`
+                  : "—"
+              }
+            />
+            <Field
+              label="Preferred supplier"
+              value={request.preferredSupplierId ?? "—"}
+              mono
+            />
+          </div>
         </div>
       </Section>
 
@@ -233,10 +279,12 @@ function Field({
 }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
+      <div className="text-[10.5px] font-mono uppercase tracking-[0.12em] text-ink-4">
         {label}
       </div>
-      <div className={`mt-0.5 ${mono ? "font-mono text-xs break-all" : "text-sm"}`}>
+      <div
+        className={`mt-0.5 text-ink ${mono ? "font-mono text-xs break-all" : "text-sm font-medium"}`}
+      >
         {value}
       </div>
     </div>

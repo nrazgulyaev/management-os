@@ -162,13 +162,16 @@ export function QuotationMatrixIsland({
         winnerStrategy="min"
       />
 
-      <section className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
+      <section className="rounded-[14px] border border-line-2 bg-panel shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
         <header className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h3 className="text-sm font-medium text-ink">
+            <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+              Award split
+            </div>
+            <h3 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink">
               Choose a supplier per row
             </h3>
-            <p className="text-xs text-ink-tertiary leading-relaxed mt-1">
+            <p className="text-xs text-ink-3 leading-relaxed mt-1">
               Defaults match the lowest-price highlight; override per
               row if vendor history or lead time matters more.
             </p>
@@ -177,14 +180,14 @@ export function QuotationMatrixIsland({
             type="button"
             onClick={handleSubmit}
             disabled={pending}
-            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-4 h-9 text-sm font-medium text-ink-inverse hover:bg-ink/90 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-full bg-amber px-[18px] h-9 text-sm font-medium text-carbon hover:bg-amber-deep disabled:opacity-60 transition-colors"
           >
             {pending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Create POs from choices
           </button>
         </header>
 
-        <ul className="divide-y divide-line-soft border border-line-soft rounded-md">
+        <ul className="divide-y divide-line-soft border border-line-2 rounded-[10px] overflow-hidden">
           {lines.map((l) => {
             const row = cellsByPrAndVendor[l.id] ?? {};
             const eligibleVendors = vendors.filter(
@@ -222,10 +225,10 @@ export function QuotationMatrixIsland({
                         <label
                           key={v.id}
                           className={cn(
-                            "inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs cursor-pointer transition-colors",
+                            "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs cursor-pointer transition-colors",
                             isPicked
-                              ? "border-ink bg-ink/5 text-ink"
-                              : "border-line-soft bg-canvas text-ink-secondary hover:border-line-strong",
+                              ? "border-amber bg-amber/10 text-ink"
+                              : "border-line-2 bg-bg-2 text-ink-2 hover:border-line-3",
                           )}
                         >
                           <input
@@ -239,7 +242,7 @@ export function QuotationMatrixIsland({
                                 [l.id]: v.id,
                               }))
                             }
-                            className="accent-ink"
+                            className="accent-[var(--amber)]"
                           />
                           <span className="font-medium">{v.name}</span>
                           {cellMajor !== null && (

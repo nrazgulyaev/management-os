@@ -160,7 +160,8 @@ export function RfqMatrix({
                     key={v.vendorId}
                     className={cn(
                       "p-3 text-right font-mono tabular-nums",
-                      isWinner && "bg-success-weak text-success font-medium",
+                      isWinner &&
+                        "bg-amber/15 text-amber-deep font-medium ring-1 ring-inset ring-amber/40",
                       typeof p !== "number" && "text-ink-tertiary",
                     )}
                   >
