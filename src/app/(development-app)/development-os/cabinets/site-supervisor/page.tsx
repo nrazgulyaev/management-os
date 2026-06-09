@@ -38,14 +38,6 @@ import { CaptureConsole } from "./_capture-console";
 export const metadata = { title: "Site Supervisor · Daily report" };
 export const dynamic = "force-dynamic";
 
-const PHOTO_GRADIENTS = [
-  "linear-gradient(135deg, #3a4250 0%, #1a1d22 100%)",
-  "linear-gradient(135deg, #463826 0%, #1c1812 100%)",
-  "linear-gradient(135deg, #5a6e7a 0%, #1c1812 100%)",
-  "linear-gradient(135deg, #2c3848 0%, #15191e 100%)",
-  "linear-gradient(135deg, #ddc4ab 0%, #806244 100%)",
-];
-
 function statusBadge(status: string) {
   const s = status.toLowerCase();
   if (s === "draft" || s === "in_progress" || s === "in-progress")
@@ -71,6 +63,7 @@ export default async function SiteSupervisorPage() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const todaysPhotoCount = photos.filter((p) => p.reportDate === todayIso).length;
   const todaysReportCount = reports.filter((r) => r.reportDate === todayIso).length;
+  const projectLabel = reports.find((r) => r.projectCode)?.projectCode ?? undefined;
 
   return (
     <>
@@ -81,7 +74,7 @@ export default async function SiteSupervisorPage() {
             Today&apos;s <span className="text-amber">jobsite log.</span>
           </>
         }
-        subtitle="Mobile field-capture: crew counter, active-zone chips, Photo / Incident / Voice / Note capture, and an AI daily summary to the director. Read-only diary, QA and safety panels follow below."
+        subtitle="Mobile field-capture: crew counter, active-zone chips, Photo / Incident / Voice capture, and an AI daily summary to the director. Read-only diary, QA and safety panels follow below."
         actions={
           <a href="#field-capture" className="btn btn-amber btn-sm">
             Open field capture
@@ -90,8 +83,12 @@ export default async function SiteSupervisorPage() {
       />
 
       {/* Field-capture WRITE workflow (migration 0127). Mobile-first. */}
-      <div id="field-capture" className="mb-[18px]">
-        <CaptureConsole zones={zones} frames={captureFrames} />
+      <div id="field-capture" className="mb-[22px]">
+        <CaptureConsole
+          zones={zones}
+          frames={captureFrames}
+          projectLabel={projectLabel}
+        />
       </div>
 
       <div className="grid grid-cols-5 gap-3 mb-[18px]">
@@ -177,11 +174,10 @@ export default async function SiteSupervisorPage() {
           </p>
         ) : (
           <div className="mt-3.5 grid grid-cols-5 gap-2.5">
-            {photos.map((p, i) => (
+            {photos.map((p) => (
               <div
                 key={p.id}
-                className="p-2.5 flex flex-col justify-between border border-line rounded-[10px] aspect-[4/3]"
-                style={{ background: PHOTO_GRADIENTS[i % PHOTO_GRADIENTS.length] }}
+                className="ss-photo-fill p-2.5 flex flex-col justify-between border border-line rounded-[10px] aspect-[4/3]"
               >
                 <span className="mono text-[9px] tracking-[0.08em] text-white/55">
                   {p.projectCode ?? p.reportDate}
@@ -227,7 +223,7 @@ export default async function SiteSupervisorPage() {
                     {new Date(n.createdAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" })}
                   </span>
                 </div>
-                <p className="m-0 font-[var(--font-space),sans-serif] italic text-[13px] text-ink">
+                <p className="display m-0 italic text-[13px] text-ink">
                   &quot;{n.transcriptText ?? "—"}&quot;
                 </p>
               </li>

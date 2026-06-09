@@ -313,3 +313,47 @@
   [data-product="development"] .weekly-report .wr-hero-grid { grid-template-columns: 1fr; }
   [data-product="development"] .weekly-report .wr-kpis { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---------------------------------------------------------------
+ * Site-supervisor capture-console spinner (pixel-dev-sitesup)
+ * Matches the mock's `.ss-spin` on the "Compile & send daily
+ * summary" button while the AI digest compiles.
+ * --------------------------------------------------------------- */
+[data-product="development"] .ss-spin {
+  width: 16px;
+  height: 16px;
+  border: 2px solid color-mix(in srgb, var(--carbon) 30%, transparent);
+  border-top-color: var(--amber);
+  border-radius: 999px;
+  animation: ss-spin-rot 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes ss-spin-rot {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------------------------------------------------------------
+ * Site-supervisor capture placeholders (pixel-dev-sitesup)
+ * Hatch fills standing in for camera frames in the today-feed
+ * thumbnail + the recent photo-evidence grid (matches the mock's
+ * `repeating-linear-gradient` photo placeholders).
+ * --------------------------------------------------------------- */
+[data-product="development"] .ss-thumb-fill {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bg-2),
+    var(--bg-2) 6px,
+    var(--bg-3) 6px,
+    var(--bg-3) 8px
+  );
+}
+[data-product="development"] .ss-photo-fill {
+  background-color: var(--carbon);
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--carbon) 92%, white) 0,
+    color-mix(in srgb, var(--carbon) 92%, white) 7px,
+    var(--carbon) 7px,
+    var(--carbon) 9px
+  );
+}
