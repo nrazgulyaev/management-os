@@ -12,6 +12,7 @@ import { ArrowUpRight } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
+  DashboardKpi,
   FilterPills,
   ListTableCard,
   type FilterPillItem,
@@ -114,16 +115,53 @@ export default async function OrganizationsListPage({
           { label: "Platform Admin OS", href: "/platform" },
           { label: "Organizations" },
         ]}
-        eyebrow={`${orgs.length} organization${orgs.length === 1 ? "" : "s"}`}
+        eyebrow="Platform · all tenants"
         title="Customer organizations"
-        description="Every customer org with current subscription state. Filter by status or search by name / code, then drill in."
+        description="Every customer org with its current subscription state. Filter by status or search by name / code, then drill into the per-org console."
       />
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <DashboardKpi
+          label="Total orgs"
+          value={String(counts.all)}
+          status="neutral"
+          hint="All customers"
+        />
+        <DashboardKpi
+          label="Active · paid"
+          value={String(counts.active)}
+          status="good"
+          hint="Recurring MRR"
+        />
+        <DashboardKpi
+          label="Trial"
+          value={String(counts.trial)}
+          status="neutral"
+          hint="Evaluating"
+        />
+        <DashboardKpi
+          label="Grace"
+          value={String(counts.grace)}
+          status={counts.grace > 0 ? "warn" : "neutral"}
+          hint="Payment retry"
+        />
+        <DashboardKpi
+          label="Cancelled"
+          value={String(counts.cancelled)}
+          status={counts.cancelled > 0 ? "bad" : "neutral"}
+          hint="Churned"
+        />
+      </div>
 
       <FilterPills items={pills} current={status} label="Status" />
 
       <ListTableCard
         eyebrow="Customers"
-        title={status ? `${status[0].toUpperCase()}${status.slice(1)} orgs` : "All orgs"}
+        title={
+          status
+            ? `${status[0].toUpperCase()}${status.slice(1)} organizations`
+            : "All organizations"
+        }
         count={orgs.length}
       >
         <Table>

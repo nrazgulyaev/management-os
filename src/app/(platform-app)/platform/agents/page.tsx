@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { sql } from "drizzle-orm";
-import { ArrowLeft, Bot, Plus } from "lucide-react";
-import { SectionHeading, Card, HandoffBadge } from "@/components/dashboard/primitives";
+import { Bot, Plus } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DashboardKpi, ListTableCard } from "@/components/ui/primitives";
+import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { getDb, rowsOf } from "@/lib/db/client";
 
 /**
@@ -12,9 +16,10 @@ import { getDb, rowsOf } from "@/lib/db/client";
  * from agent_runs. The parent `(platform-app)/layout.tsx` already gates
  * super_admin via getCurrentUserContext, so no extra auth here.
  *
- * This is the list-page scaffold. CRUD actions (new/edit/delete),
- * knowledge-base upload, subscriptions tab, test interface, and
- * telemetry runs sub-page ship in follow-up commits.
+ * pixel-platform-console: restyled to the dark operator console (matches
+ * cabinets/super-admin/Platform Console.html — AI agents screen). Uses the
+ * shared token-driven primitives so it renders dark via the platform
+ * surface remap; the SQL query + getDb() guard + rowsOf() are unchanged.
  */
 
 export const metadata = { title: "AI agents · Platform Admin" };
@@ -45,11 +50,15 @@ export default async function PlatformAgentsListPage() {
   const db = getDb();
   if (!db) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-12 flex flex-col gap-8">
-        <SectionHeading
-          eyebrow="Platform Admin · AI agents"
-          title="AI agents"
-          subtitle="Database not configured."
+      <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
+        <PageHeader
+          breadcrumbs={[
+            { label: "Platform Admin OS", href: "/platform" },
+            { label: "AI agents" },
+          ]}
+          eyebrow="Platform · centrally managed"
+          title="Agents, one registry"
+          description="Database not configured."
         />
       </div>
     );
@@ -84,108 +93,150 @@ export default async function PlatformAgentsListPage() {
     `),
   );
 
-  return (
-    <div className="mx-auto max-w-6xl px-6 py-12 flex flex-col gap-8">
-      <Link
-        href="/platform"
-        className="inline-flex items-center gap-1.5 text-xs text-ink-tertiary hover:text-ink"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.75} /> Platform Admin
-      </Link>
+  // Derived KPI rollups from the live registry (no extra query).
+  const activeCount = rows.filter((r) => r.is_active).length;
+  const subscriptions = rows.reduce(
+    (sum, r) => sum + Number(r.subscriber_count || 0),
+    0,
+  );
+  const cost30d = rows.reduce(
+    (sum, r) => sum + Number(r.cost_30d_usd_minor || 0),
+    0,
+  );
+  const missingKey = rows.filter((r) => !r.vault_secret_name).length;
 
-      <SectionHeading
-        eyebrow="Platform Admin · AI agents"
-        title="AI agents"
-        subtitle="Centrally defined agents. Each agent carries a provider/model/system prompt/knowledge base; customer orgs are subscribed to enabled agents to surface them in their cabinets."
+  return (
+    <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
+      <PageHeader
+        breadcrumbs={[
+          { label: "Platform Admin OS", href: "/platform" },
+          { label: "AI agents" },
+        ]}
+        eyebrow="Platform · centrally managed"
+        title="Agents, one registry"
+        description="Each agent carries a provider / model / system prompt / knowledge base, defined centrally. Customer orgs subscribe to enabled agents to surface them in their cabinets. API keys encrypted at rest via Vault."
         actions={
-          <Link
-            href="/platform/agents/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-sm text-ink-inverse hover:bg-ink/90"
-          >
-            <Plus className="w-4 h-4" strokeWidth={1.75} />
-            New agent
-          </Link>
+          <Button asChild variant="accent">
+            <Link href="/platform/agents/new">
+              <Plus className="w-4 h-4" strokeWidth={1.75} />
+              New agent
+            </Link>
+          </Button>
         }
       />
 
       {rows.length === 0 ? (
-        <Card style={{ padding: 40, textAlign: "center" }}>
-          <Bot
-            className="w-10 h-10 text-ink-tertiary mx-auto mb-3"
-            strokeWidth={1.5}
-          />
-          <h3 className="display" style={{ fontSize: 20, marginBottom: 8, fontWeight: 500 }}>
-            No agents configured yet
-          </h3>
-          <p className="text-sm text-ink-tertiary mb-4 max-w-md mx-auto">
-            Create your first platform agent — start with the Tax Assistant
-            (Indonesian villa tax context) using gpt-4o-mini or Claude Sonnet.
-          </p>
-          <Link
-            href="/platform/agents/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-ink px-4 py-2 text-sm text-ink-inverse hover:bg-ink/90"
-          >
-            <Plus className="w-4 h-4" strokeWidth={1.75} />
-            New agent
-          </Link>
-        </Card>
+        <ListTableCard flushBody={false}>
+          <div className="flex flex-col items-center text-center py-12">
+            <Bot
+              className="w-10 h-10 text-ink-tertiary mb-3"
+              strokeWidth={1.5}
+            />
+            <h3 className="text-display text-[20px] font-medium text-ink mb-2">
+              No agents configured yet
+            </h3>
+            <p className="text-sm text-ink-tertiary mb-4 max-w-md">
+              Create your first platform agent — start with the Tax Assistant
+              (Indonesian villa tax context) using gpt-4o-mini or Claude Sonnet.
+            </p>
+            <Button asChild variant="accent">
+              <Link href="/platform/agents/new">
+                <Plus className="w-4 h-4" strokeWidth={1.75} />
+                New agent
+              </Link>
+            </Button>
+          </div>
+        </ListTableCard>
       ) : (
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <table className="data w-full">
-            <thead>
-              <tr>
-                <th>Agent</th>
-                <th>Provider · model</th>
-                <th>Scope</th>
-                <th className="num">Subscribers</th>
-                <th className="num">30-day cost</th>
-                <th>Status</th>
-                <th>API key</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <Link
-                      href={`/platform/agents/${r.id}`}
-                      className="flex flex-col gap-0.5 hover:text-terra"
-                    >
-                      <span className="font-medium">{r.display_name}</span>
-                      <span className="text-[11px] font-mono text-ink-tertiary">
-                        {r.agent_code}
-                      </span>
-                    </Link>
-                  </td>
-                  <td className="text-sm">
-                    {r.provider} · {r.model}
-                  </td>
-                  <td>
-                    <HandoffBadge tone={r.scope === "global" ? "info" : "ink"}>
-                      {r.scope}
-                    </HandoffBadge>
-                  </td>
-                  <td className="num">{r.subscriber_count}</td>
-                  <td className="num">
-                    {fmtUsd(Number(r.cost_30d_usd_minor || 0))}
-                  </td>
-                  <td>
-                    <HandoffBadge tone={r.is_active ? "ok" : "ink"}>
-                      {r.is_active ? "Active" : "Inactive"}
-                    </HandoffBadge>
-                  </td>
-                  <td>
-                    {r.vault_secret_name ? (
-                      <HandoffBadge tone="ok">Configured</HandoffBadge>
-                    ) : (
-                      <HandoffBadge tone="warn">Missing</HandoffBadge>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <DashboardKpi
+              label="Active agents"
+              value={String(activeCount)}
+              status="good"
+              hint="Live"
+            />
+            <DashboardKpi
+              label="Subscriptions"
+              value={String(subscriptions)}
+              status="neutral"
+              hint="org × agent"
+            />
+            <DashboardKpi
+              label="Cost · 30d"
+              value={fmtUsd(cost30d)}
+              status="neutral"
+              hint="All agents"
+            />
+            <DashboardKpi
+              label="Missing key"
+              value={String(missingKey)}
+              status={missingKey > 0 ? "warn" : "good"}
+              hint="Vault unset"
+            />
+          </div>
+
+          <ListTableCard
+            eyebrow="platform_agent_configs"
+            title="Platform agents"
+            count={rows.length}
+          >
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Agent</TH>
+                  <TH>Provider · model</TH>
+                  <TH>Scope</TH>
+                  <TH className="text-right">Subs</TH>
+                  <TH className="text-right">30d cost</TH>
+                  <TH>Status</TH>
+                  <TH>API key</TH>
+                </TR>
+              </THead>
+              <TBody>
+                {rows.map((r) => (
+                  <TR key={r.id}>
+                    <TD>
+                      <Link
+                        href={`/platform/agents/${r.id}`}
+                        className="flex flex-col gap-0.5 hover:text-accent transition-colors"
+                      >
+                        <span className="text-ink font-medium">
+                          {r.display_name}
+                        </span>
+                        <span className="text-[11px] font-mono text-ink-tertiary">
+                          {r.agent_code}
+                        </span>
+                      </Link>
+                    </TD>
+                    <TD className="text-sm">
+                      {r.provider} · {r.model}
+                    </TD>
+                    <TD>
+                      <Badge tone={r.scope === "global" ? "info" : "neutral"}>
+                        {r.scope}
+                      </Badge>
+                    </TD>
+                    <TDNum>{r.subscriber_count}</TDNum>
+                    <TDNum>{fmtUsd(Number(r.cost_30d_usd_minor || 0))}</TDNum>
+                    <TD>
+                      <Badge tone={r.is_active ? "success" : "warning"}>
+                        {r.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </TD>
+                    <TD>
+                      {r.vault_secret_name ? (
+                        <Badge tone="success">Configured</Badge>
+                      ) : (
+                        <Badge tone="warning">Missing</Badge>
+                      )}
+                    </TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+          </ListTableCard>
+        </>
       )}
 
       <p className="text-[11px] text-ink-tertiary leading-relaxed">

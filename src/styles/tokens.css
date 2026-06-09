@@ -240,12 +240,15 @@
   --color-panel:           var(--panel, #FFFFFF);
 
   /* Ink scale — aliased to Layer B per-product where applicable.
-     --color-ink-deep / --color-ink-warm have no Layer B equivalent. */
+     --color-ink-deep / --color-ink-warm fall back to their warm OKLCH
+     literal off-product; the Platform Admin OS dark console overrides
+     --ink-warm so its `tone="ink-warm"` hero KPI reads as a deep carbon
+     band rather than the warm brown. */
   --color-ink-2:           var(--ink-2, oklch(0.420 0.015 72));
   --color-ink-3:           var(--ink-3, oklch(0.620 0.013 75));
   --color-ink-4:           var(--ink-4, oklch(0.780 0.010 78));
   --color-ink-deep:        oklch(0.180 0.012 65);
-  --color-ink-warm:        oklch(0.260 0.018 65);
+  --color-ink-warm:        var(--ink-warm, oklch(0.260 0.018 65));
 
   /* Lines — `border-line` has 1.9k callers; aliased so each
      [data-product] surface picks up its own --line value. */
@@ -529,6 +532,142 @@
   --amber-soft:   #FFD3BC;
   --steel:        #3D5A7A;
   --ok:           #4F7A5D;
+}
+
+/* ============================================================
+   Platform Admin OS — dark operator console (cool-blue).
+
+   pixel-platform-console: the /platform route group is the dark
+   super-admin console. It is the ONLY dark product surface, so its
+   palette inverts the warm-light handoff scale to carbon surfaces +
+   a cool-blue (#5B9DFF) accent (matches cabinets/super-admin/Platform
+   Console.html). Stamped both at `:root[data-product="platform"]`
+   (canonical) and as a nested `[data-product="platform"]` so the
+   PlatformShell can scope it on any product host the super_admin
+   signed in on. Mirrors the dev-os palette + alias-remap pattern.
+   ============================================================ */
+:root[data-product="platform"],
+[data-product="platform"] {
+  /* Surfaces — carbon, layered (panel lighter than canvas) */
+  --bg:           #0E1116;
+  --bg-2:         #141922;
+  --bg-3:         #1A212C;
+  --panel:        #141922;
+  --paper:        #141922;
+  --cream:        #0E1116;
+  --cream-warm:   #141922;
+  --cream-deep:   #1A212C;
+
+  /* Ink — light on dark */
+  --ink:          #E7ECF2;
+  --ink-2:        #B7C0CC;
+  --ink-3:        #8591A0;
+  --ink-4:        #5E6A78;
+  --carbon:       #E7ECF2;
+
+  /* Lines — cool slate */
+  --line:         #26303C;
+  --line-2:       #2C3744;
+  --line-soft:    #1E2731;
+  --line-strong:  #37434F;
+
+  /* Brand — cool blue. terra/amber aliases point at the accent so the
+     shared chrome classes (.badge-warn → --terra, .display em → --terra)
+     resolve to the console's blue instead of a warm hue. */
+  --accent:       #5B9DFF;
+  --accent-deep:  #3E83EE;
+  --accent-soft:  #9CC2FF;
+  --on-accent:    #08111F;
+  --terra:        #5B9DFF;
+  --terra-soft:   #9CC2FF;
+  --amber:        #5B9DFF;
+  --amber-soft:   #9CC2FF;
+  --gold:         #E0B341;
+  --gold-soft:    #9CC2FF;
+
+  --inverted-bg:      #080B10;
+  --inverted-bg-deep: #05080C;
+  --inverted-fg:      #E7ECF2;
+
+  /* Semantic */
+  --ok:           #4FB477;
+  --warn:         #D6A23A;
+  --danger:       #E0575F;
+  --info:         #5B9DFF;
+
+  /* Accent fills — dark, tinted */
+  --mint:         #16302A;
+  --peach:        #33241C;
+  --butter:       #332E18;
+  --sky:          #16263A;
+
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.03) inset, 0 10px 26px -16px rgba(0,0,0,0.6);
+  --shadow-soft:  0 18px 38px -22px rgba(0,0,0,0.7);
+
+  --r-card:       14px;
+  --r-card-lg:    18px;
+  --r-hero:       22px;
+
+  --display-font: var(--font-space);
+  --mono-font:    var(--font-plex);
+}
+
+/* Platform Admin OS — map the cross-product generic aliases (--canvas /
+   --surface / --muted / ink scale / lines / semantics / accent) onto the
+   dark console palette so the many shared primitives that write
+   `bg-canvas` / `bg-surface` / `bg-muted` / `text-ink-secondary` /
+   `border-line-soft` / `bg-accent-weak` / `text-accent` / the
+   gradient + soft-fill badge utilities all resolve to the dark cool-blue
+   surfaces. Scoped to the `data-surface="platform-os"` marker stamped by
+   PlatformShell. Mirrors the dev-os remap above. */
+:root[data-product="platform"][data-surface="platform-os"],
+[data-product="platform"][data-surface="platform-os"],
+[data-product="platform"] [data-surface="platform-os"] {
+  --canvas:          #0E1116;
+  --surface:         #141922;
+  --muted:           #1A212C;
+  --inset:           #1A212C;
+  --line-soft:       #1E2731;
+  --line-strong:     #37434F;
+  --ink:             #E7ECF2;
+  --ink-secondary:   #B7C0CC;
+  --ink-tertiary:    #8591A0;
+  --ink-inverse:     #08111F;
+
+  --accent:          #5B9DFF;
+  --accent-weak:     color-mix(in srgb, #5B9DFF 16%, transparent);
+  --accent-contrast: #08111F;
+  --gold:            #E0B341;
+  --gold-weak:       color-mix(in srgb, #E0B341 16%, transparent);
+
+  --success:         #4FB477;
+  --warning:         #D6A23A;
+  --danger:          #E0575F;
+  --info:            #5B9DFF;
+  --success-weak:    color-mix(in srgb, #4FB477 16%, transparent);
+  --warning-weak:    color-mix(in srgb, #D6A23A 18%, transparent);
+  --danger-weak:     color-mix(in srgb, #E0575F 16%, transparent);
+  --info-weak:       color-mix(in srgb, #5B9DFF 16%, transparent);
+
+  /* Hero-KPI gradients — recolour the warm cream/gold/ink fills used by
+     DashboardKpi `tone="emerald-soft" / "gold-soft" / "ink-warm"` to the
+     cool-blue console band so the primary KPI reads as the mockup's
+     accent-tinted hero tile. */
+  --gradient-emerald-soft: linear-gradient(135deg, color-mix(in oklab, #5B9DFF 22%, #141922) 0%, #141922 100%);
+  --gradient-gold-soft:    linear-gradient(135deg, color-mix(in oklab, #5B9DFF 18%, #141922) 0%, #141922 100%);
+  --gradient-coral-soft:   linear-gradient(135deg, color-mix(in oklab, #E0575F 18%, #141922) 0%, #141922 100%);
+  --gradient-ink-deep:     linear-gradient(135deg, #0B0E13 0%, #080B10 100%);
+  --ink-warm:              #080B10;
+
+  --shadow-soft-card:    0 2px 12px -4px rgba(0,0,0,0.55), 0 0 0 1px var(--line-soft);
+  --shadow-elevated-card: 0 8px 32px -12px rgba(0,0,0,0.7), 0 0 0 1px var(--line-soft);
+
+  /* Engineering typefaces — Space Grotesk headings + IBM Plex Mono
+     figures, matching the dark-console mock. */
+  --font-display:    var(--font-space);
+  --font-mono:       var(--font-plex);
+  --display-font:    var(--font-space);
+  --mono-font:       var(--font-plex);
 }
 
 /* Nested-scope Development palette fallback — applies the Dev OS

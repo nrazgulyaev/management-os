@@ -48,9 +48,9 @@ export default async function UsageDashboardPage() {
           { label: "Platform Admin OS", href: "/platform" },
           { label: "Usage" },
         ]}
-        eyebrow="Platform metrics"
-        title="Usage analytics"
-        description="Aggregate per-org usage. AI cost / token rollups live in the existing AI-usage analytics page (deep-link below). Per-org storage + active-user metrics ship in a follow-up."
+        eyebrow="Platform · metrics"
+        title="Aggregate usage"
+        description="Per-org product mix and adoption. AI cost / token rollups live in the Dev OS AI-usage page; per-org storage + active-user metrics ship in a follow-up."
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -60,10 +60,21 @@ export default async function UsageDashboardPage() {
           label="Total orgs"
           value={String(orgs.length)}
           status="neutral"
+          hint="Across both products"
           className="sm:col-span-2 lg:col-span-2"
         />
-        <DashboardKpi label="Mgmt OS only" value={String(mgmtOnlyCount)} status="neutral" />
-        <DashboardKpi label="Dev OS only" value={String(devOnlyCount)} status="neutral" />
+        <DashboardKpi
+          label="Mgmt OS only"
+          value={String(mgmtOnlyCount)}
+          status="neutral"
+          hint="Villa ops"
+        />
+        <DashboardKpi
+          label="Dev OS only"
+          value={String(devOnlyCount)}
+          status="neutral"
+          hint="Construction"
+        />
       </div>
 
       <div className="rounded-3xl border border-line-soft bg-gradient-gold-soft shadow-soft-card p-6 flex items-center justify-between gap-4">
