@@ -114,3 +114,5 @@ export * from "./site-capture";
 export * from "./keystone-setup";
 // Operator installments desk — per-buyer auto-remind prefs (migration 0130).
 export * from "./contract-remind-prefs";
+// Villa rental-pool state + cooling-off (migration 0131, owner-calendar-pool).
+export * from "./villa-pool-state";
