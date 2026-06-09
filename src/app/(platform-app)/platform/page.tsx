@@ -1,208 +1,325 @@
 /**
- * Stage 10.6.E.1 — SubscriptionOS landing page (placeholder).
+ * P1 (superadmin-plans-console) — Platform Console cockpit.
  *
- * The architecture phase ships this minimal landing so the workspace
- * switcher has somewhere to land + super_admin gating is exercised
- * end-to-end. The 6 admin pages (organizations, per-org detail,
- * revenue, usage, support tools, audit) ship in 10.6.E.2.
+ * Replaces the 10.6.E.1 roadmap placeholder with the live operator
+ * cockpit: a customer-status summary (All / Active / Trial / Grace /
+ * Cancelled), an all-orgs table (plan / status / MRR / period), and a
+ * per-tier MRR rollup (reuses the /platform/revenue snapshot).
  *
- * Carries its own header per 10.6.C tokens since the layout doesn't
- * mount a shell yet.
+ * Read-only snapshot — every figure comes from org_subscriptions +
+ * subscription_plans. The Plans & pricing editor lives at /platform/plans.
+ *
+ * Gated to super_admin by the (platform-app) layout. Carries its own
+ * header per 10.6.C tokens since the layout doesn't mount a shell.
  */
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowUpRight, CreditCard, ScrollText } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DashboardKpi, ListTableCard } from "@/components/ui/primitives";
+import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import {
-  ArrowUpRight,
-  Bot,
-  Building2,
-  CreditCard,
-  Flag,
-  LineChart,
-  LifeBuoy,
-  ScrollText,
-  Layers,
-  Users,
-} from "lucide-react";
-import {
-  CabinetGreetingBlock,
-  PageHeaderHero,
-  IntegrationStatusCard,
-  type IntegrationStatusCardProps,
-} from "@/components/ui/primitives";
-import { getCurrentAppUser } from "@/features/auth/current-user";
+  getPlatformConsoleSummary,
+  getRevenueSnapshot,
+  listSubscriptionOsOrgs,
+  type PlatformConsoleSummary,
+  type RevenueSnapshot,
+  type SubscriptionOsOrgRow,
+} from "@/lib/subscription-os/queries";
+import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = {
-  title: "Platform Admin OS",
+  title: "Platform Console",
 };
 export const dynamic = "force-dynamic";
 
-interface PageCard {
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  href: string;
-  status: IntegrationStatusCardProps["status"];
-  detail: string;
+const STATUS_TONE: Record<
+  string,
+  "success" | "info" | "warning" | "danger" | "neutral"
+> = {
+  active: "success",
+  trial: "info",
+  grace: "warning",
+  cancelled: "danger",
+  cancelling: "warning",
+  archived: "neutral",
+  purged: "neutral",
+  "no-subscription": "neutral",
+};
+
+function fmtMoney(minor: bigint | null, currency: string | null): string {
+  if (minor == null) return "—";
+  const n = Number(minor) / 100;
+  return `${currency ?? "USD"} ${n.toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
 }
 
-const PLANNED_PAGES: PageCard[] = [
-  {
-    name: "Customer organizations",
-    description:
-      "All customer orgs at a glance. Filter by status (trial / paid / cancelled), search by name/email, drill into any org for subscription state + actions.",
-    icon: <Building2 className="w-5 h-5" />,
-    href: "/platform/organizations",
-    status: "needs-config",
-    detail: "Ships in 10.6.E.2.1",
-  },
-  {
-    name: "Cross-org user directory",
-    description:
-      "Every user across every customer org. Filter by security posture (missing MFA / dormant 30d+) or admin role, search by name / email / org, sort by last sign-in, then drill into a user for auth/MFA state, org memberships, and admin actions (view dashboard / send password reset / reset MFA).",
-    icon: <Users className="w-5 h-5" />,
-    href: "/platform/users",
-    status: "configured",
-    detail: "Live — reads app_users across orgs",
-  },
-  {
-    name: "Revenue dashboard",
-    description:
-      "MRR, ARR, customer count by tier, trial → paid conversion rate, churn rate. Read from existing orgSubscriptions + subscriptionPlans tables.",
-    icon: <LineChart className="w-5 h-5" />,
-    href: "/platform/revenue",
-    status: "needs-config",
-    detail: "Ships in 10.6.E.2.3",
-  },
-  {
-    name: "Usage analytics",
-    description:
-      "Per-org AI token consumption, storage usage, active users, cost estimates. Read from usageMetrics table.",
-    icon: <LineChart className="w-5 h-5" />,
-    href: "/platform/usage",
-    status: "needs-config",
-    detail: "Ships in 10.6.E.2.4",
-  },
-  {
-    name: "Customer support tools",
-    description:
-      "View as customer (read-only impersonation), audit trail per customer org, common issue templates. Tickets stay external (Plain / Linear / Intercom) per CHECKPOINT 5 default.",
-    icon: <LifeBuoy className="w-5 h-5" />,
-    href: "/platform/support",
-    status: "needs-config",
-    detail: "Ships in 10.6.E.2.5",
-  },
-  {
-    name: "Platform-admin audit log",
-    description:
-      "Every platform-admin action logged: who, when, what, before/after. Searchable + exportable. Read-only.",
-    icon: <ScrollText className="w-5 h-5" />,
-    href: "/platform/audit",
-    status: "needs-config",
-    detail: "Ships in 10.6.E.2.6",
-  },
-  {
-    name: "Stripe billing collection",
-    description:
-      "Per-org subscription management via Stripe Customer Portal. Required wiring lives in 10.6.D.2.2 — this page surfaces the per-org portal links once that ships.",
-    icon: <CreditCard className="w-5 h-5" />,
-    href: "/platform/billing",
-    status: "needs-config",
-    detail: "Ships after 10.6.D.2.2 (Stripe Connect) lands",
-  },
-  {
-    name: "AI agents",
-    description:
-      "Platform-managed AI agents. Define provider/model/system prompt/budget centrally, upload a knowledge base per agent, then subscribe customer orgs to enabled agents.",
-    icon: <Bot className="w-5 h-5" />,
-    href: "/platform/agents",
-    status: "needs-config",
-    detail: "P5 AGENT-FOUNDATION — schema + Vault shipped, admin UI in progress",
-  },
-  {
-    name: "Feature flags",
-    description:
-      "Every flag in the catalog with its owner, lifecycle stage (GA / beta / internal / archived), and rollout %. Kill a flag to disable it everywhere, bump rollout to widen exposure, or register a new flag. Every change is audit-logged.",
-    icon: <Flag className="w-5 h-5" />,
-    href: "/platform/feature-flags",
-    status: "configured",
-    detail: "Live — index + kill switch + rollout + new-flag form",
-  },
-];
+function fmtDate(d: Date | null): string {
+  if (!d) return "—";
+  return d.toISOString().slice(0, 10);
+}
 
-export default async function SubscriptionsLandingPage() {
-  const me = await getCurrentAppUser();
-  const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
+export default async function PlatformConsolePage() {
+  const emptySummary: PlatformConsoleSummary = {
+    total: 0,
+    active: 0,
+    trial: 0,
+    grace: 0,
+    cancelled: 0,
+  };
+  const emptyRevenue: RevenueSnapshot = {
+    mrrMinor: 0n,
+    arrMinor: 0n,
+    customerCount: 0,
+    activeCount: 0,
+    trialCount: 0,
+    cancelledLast30dCount: 0,
+    trialToPaidLast30dCount: 0,
+    perTier: [],
+    currency: "USD",
+  };
+
+  const [summary, revenue, orgs] = await Promise.all([
+    safeQuery(
+      "platform-console.summary",
+      getPlatformConsoleSummary(),
+      emptySummary,
+      4000,
+    ),
+    safeQuery(
+      "platform-console.revenue",
+      getRevenueSnapshot(),
+      emptyRevenue,
+      4000,
+    ),
+    safeQuery(
+      "platform-console.orgs",
+      listSubscriptionOsOrgs({}),
+      [] as SubscriptionOsOrgRow[],
+      4000,
+    ),
+  ]);
+
+  // Status pills with live counts — link into the filtered orgs list.
+  const statusPills: Array<{ label: string; count: number; href: string }> = [
+    { label: "All", count: summary.total, href: "/platform/organizations" },
+    { label: "Active", count: summary.active, href: "/platform/organizations?status=active" },
+    { label: "Trial", count: summary.trial, href: "/platform/organizations?status=trial" },
+    { label: "Grace", count: summary.grace, href: "/platform/organizations?status=grace" },
+    { label: "Cancelled", count: summary.cancelled, href: "/platform/organizations?status=cancelled" },
+  ];
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <CabinetGreetingBlock
-        firstName={firstName}
+      <PageHeader
         eyebrow="Platform Admin OS"
-        subline="Manage customer organizations, billing, and platform-admin tooling. v1 architecture phase shipped — admin pages land in 10.6.E.2."
-      />
-
-      <PageHeaderHero
-        eyebrow="Welcome to Platform Admin OS"
-        title="Run the business of the platform."
-        description="Customer org overview, subscription state, revenue rollups, customer support, and platform-admin audit log — gated to super_admin and separate from per-tenant Mgmt OS / Dev OS."
+        title="Platform Console"
+        description="Run the business of the platform — customer-status summary, every customer org, and per-tier MRR. Read-only snapshot from org_subscriptions + subscription_plans."
         actions={
-          <Link
-            href="/dashboard/settings/integrations"
-            className="inline-flex items-center gap-1 text-sm font-medium text-ink hover:text-accent transition-colors"
-          >
-            Integrations command center
-            <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
-          </Link>
+          <>
+            <Button asChild variant="secondary">
+              <Link href="/platform/plans">
+                <CreditCard className="w-4 h-4" strokeWidth={1.75} />
+                Plans &amp; pricing
+              </Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/platform/audit">
+                <ScrollText className="w-4 h-4" strokeWidth={1.75} />
+                Audit log
+              </Link>
+            </Button>
+          </>
         }
       />
 
-      <section className="rounded-3xl border border-line-soft bg-gradient-emerald-soft shadow-soft-card p-7 md:p-8">
-        <div className="flex items-start gap-4">
-          <span className="w-12 h-12 rounded-2xl bg-ink text-ink-inverse flex items-center justify-center shrink-0">
-            <Layers className="w-6 h-6" strokeWidth={1.75} />
-          </span>
-          <div className="flex flex-col gap-2 min-w-0">
-            <h2 className="text-display text-[24px] md:text-[28px] leading-tight font-medium text-ink">
-              Foundation already in place
-            </h2>
-            <p className="text-sm md:text-base text-ink-secondary leading-relaxed max-w-3xl">
-              The Platform Admin OS schema (orgSubscriptions FSM, subscriptionPlans,
-              featureFlags, planFeatures, lifecycle audit) shipped in Stage 7.D.
-              Stripe webhooks + trial-status cron + workspace switcher all
-              exist. 10.6.E is the operator-facing layer on top — no new
-              backend or migrations required for the v1 MVP.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <div>
-        <header className="mb-5 flex items-end justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
-              Roadmap
-            </span>
-            <h2 className="text-display text-[24px] md:text-[28px] leading-tight font-medium text-ink">
-              6 admin pages incoming
-            </h2>
-          </div>
-        </header>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {PLANNED_PAGES.map((p) => (
-            <IntegrationStatusCard
-              key={p.name}
-              name={p.name}
-              description={p.description}
-              icon={p.icon}
-              status={p.status}
-              configureHref={p.href}
-              detail={p.detail}
-              scope="platform"
+      {/* ── Customer-status summary ─────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {statusPills.map((p, i) => (
+          <Link key={p.label} href={p.href} className="block">
+            <DashboardKpi
+              variant={i === 0 ? "hero" : "default"}
+              tone={i === 0 ? "emerald-soft" : "surface"}
+              label={p.label}
+              value={String(p.count)}
+              status="neutral"
+              hint={i === 0 ? "Total customer orgs" : "View filtered list"}
             />
-          ))}
-        </div>
+          </Link>
+        ))}
       </div>
+
+      {/* ── MRR / ARR ───────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <DashboardKpi
+          variant="hero"
+          tone="ink-warm"
+          label="MRR"
+          value={fmtMoney(revenue.mrrMinor, revenue.currency)}
+          status="neutral"
+          hint="Sum of monthly price across active subs"
+          className="sm:col-span-2 lg:col-span-2"
+        />
+        <DashboardKpi
+          label="ARR"
+          value={fmtMoney(revenue.arrMinor, revenue.currency)}
+          status="neutral"
+          hint="MRR × 12"
+        />
+        <DashboardKpi
+          label="Trial → paid (30d)"
+          value={String(revenue.trialToPaidLast30dCount)}
+          status={revenue.trialToPaidLast30dCount > 0 ? "good" : "neutral"}
+          hint={`${revenue.cancelledLast30dCount} cancelled (30d)`}
+          drillHref="/platform/revenue"
+        />
+      </div>
+
+      {/* ── All-orgs table ──────────────────────────────────────────── */}
+      <ListTableCard
+        eyebrow="Customers"
+        title="All organizations"
+        count={orgs.length}
+        actions={
+          <Link
+            href="/platform/organizations"
+            className="inline-flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-accent transition-colors"
+          >
+            Full list + filters
+            <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
+          </Link>
+        }
+      >
+        <Table>
+          <THead>
+            <TR>
+              <TH>Org</TH>
+              <TH>Plan</TH>
+              <TH>Status</TH>
+              <TH className="text-right">MRR</TH>
+              <TH>Period / trial ends</TH>
+              <TH className="text-right">Open</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {orgs.length === 0 ? (
+              <TR>
+                <TD colSpan={6} className="text-ink-tertiary text-center py-10">
+                  No customer organizations yet.
+                </TD>
+              </TR>
+            ) : (
+              orgs.slice(0, 50).map((o) => (
+                <TR key={o.id}>
+                  <TD>
+                    <Link
+                      href={`/platform/${o.organizationCode}`}
+                      className="flex flex-col gap-0.5 hover:text-accent transition-colors"
+                    >
+                      <span className="text-ink font-medium truncate">{o.name}</span>
+                      <span className="text-xs text-ink-tertiary font-mono">
+                        {o.organizationCode}
+                      </span>
+                    </Link>
+                  </TD>
+                  <TD className="text-ink-secondary">
+                    {o.planDisplayName ?? (
+                      <span className="text-ink-tertiary">—</span>
+                    )}
+                  </TD>
+                  <TD>
+                    <Badge tone={STATUS_TONE[o.status] ?? "neutral"}>
+                      {o.status}
+                    </Badge>
+                    {o.isInternalComp && (
+                      <Badge tone="gold" className="ml-1.5">
+                        comp
+                      </Badge>
+                    )}
+                  </TD>
+                  <TDNum>
+                    {o.status === "active"
+                      ? fmtMoney(o.monthlyPriceMinor, o.currency)
+                      : "—"}
+                  </TDNum>
+                  <TD className="text-sm">
+                    {o.status === "trial"
+                      ? fmtDate(o.trialEndsAt)
+                      : o.status === "active"
+                        ? fmtDate(o.currentPeriodEndsAt)
+                        : o.status === "cancelled"
+                          ? fmtDate(o.cancelledAt)
+                          : "—"}
+                  </TD>
+                  <TD className="text-right">
+                    <Link
+                      href={`/platform/${o.organizationCode}`}
+                      className="inline-flex items-center text-ink-tertiary hover:text-ink"
+                    >
+                      <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
+                    </Link>
+                  </TD>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </Table>
+      </ListTableCard>
+
+      {/* ── Per-tier MRR rollup (reuses revenue snapshot) ───────────── */}
+      <ListTableCard
+        eyebrow="Per-tier breakdown"
+        title="Customers + MRR by plan"
+        count={revenue.perTier.length}
+        actions={
+          <Link
+            href="/platform/plans"
+            className="inline-flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-accent transition-colors"
+          >
+            Edit plans
+            <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
+          </Link>
+        }
+      >
+        <Table>
+          <THead>
+            <TR>
+              <TH>Plan</TH>
+              <TH>Plan code</TH>
+              <TH className="text-right">Active</TH>
+              <TH className="text-right">Trial</TH>
+              <TH className="text-right">Monthly price</TH>
+              <TH className="text-right">MRR contribution</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {revenue.perTier.length === 0 ? (
+              <TR>
+                <TD colSpan={6} className="text-ink-tertiary text-center py-10">
+                  No plans with subscribers yet.
+                </TD>
+              </TR>
+            ) : (
+              revenue.perTier.map((t) => (
+                <TR key={t.planCode}>
+                  <TD className="text-ink font-medium">{t.planDisplayName}</TD>
+                  <TD className="font-mono text-xs text-ink-tertiary">
+                    {t.planCode}
+                  </TD>
+                  <TDNum>{t.activeCount}</TDNum>
+                  <TDNum>{t.trialCount}</TDNum>
+                  <TDNum>{fmtMoney(t.monthlyPriceMinor, revenue.currency)}</TDNum>
+                  <TDNum>
+                    {fmtMoney(t.mrrContributionMinor, revenue.currency)}
+                  </TDNum>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </Table>
+      </ListTableCard>
     </div>
   );
 }

@@ -18,6 +18,8 @@ import {
   orgSubscriptions,
   subscriptionPlans,
   subscriptionLifecycleEvents,
+  planFeatures,
+  featureFlags,
 } from "@/lib/db/schema/subscriptions";
 import { auditEvents } from "@/lib/db/schema/audit";
 import { appUsers } from "@/lib/db/schema/identity";
@@ -391,4 +393,170 @@ export async function listPlatformAuditEntries(
     metadata: r.metadata as Record<string, unknown> | null,
     createdAt: r.createdAt,
   }));
+}
+
+// ============================================================================
+// Platform Console — customer-status summary (P1)
+// ============================================================================
+
+export interface PlatformConsoleSummary {
+  /** Total customer orgs (any non-archived/purged status). */
+  total: number;
+  active: number;
+  trial: number;
+  grace: number;
+  cancelled: number;
+}
+
+/**
+ * Status-count rollup for the /platform cockpit. Counts org_subscriptions
+ * grouped by status; `total` excludes archived + purged (matches the
+ * RevenueSnapshot.customerCount convention).
+ */
+export async function getPlatformConsoleSummary(): Promise<PlatformConsoleSummary> {
+  const empty: PlatformConsoleSummary = {
+    total: 0,
+    active: 0,
+    trial: 0,
+    grace: 0,
+    cancelled: 0,
+  };
+  const db = getDb();
+  if (!db) return empty;
+
+  const rows = await db
+    .select({ status: orgSubscriptions.status })
+    .from(orgSubscriptions);
+
+  const out: PlatformConsoleSummary = { ...empty };
+  for (const r of rows) {
+    if (r.status !== "archived" && r.status !== "purged") out.total += 1;
+    if (r.status === "active") out.active += 1;
+    if (r.status === "trial") out.trial += 1;
+    if (r.status === "grace") out.grace += 1;
+    if (r.status === "cancelled" || r.status === "cancelling") out.cancelled += 1;
+  }
+  return out;
+}
+
+// ============================================================================
+// Plans & pricing editor — grid of plans + limits + live org counts (P1)
+// ============================================================================
+
+export interface PlanLimitRow {
+  flagCode: string;
+  flagDisplayName: string;
+  category: string;
+  isEnabled: boolean;
+  limitValue: bigint | null;
+  isNumericLimit: boolean;
+}
+
+export interface PlanWithCounts {
+  id: string;
+  planCode: string;
+  displayName: string;
+  description: string | null;
+  tierRank: number;
+  monthlyPriceMinor: bigint;
+  annualPriceMinor: bigint | null;
+  currency: string;
+  trialPeriodDays: number;
+  isActive: boolean;
+  isInternal: boolean;
+  isPublic: boolean;
+  sortOrder: number;
+  /** Orgs currently on this plan (any non-archived/purged status). */
+  orgCount: number;
+  /** Orgs on this plan with status='active'. */
+  activeOrgCount: number;
+  /** Feature limits / flags mapped to this plan. */
+  limits: PlanLimitRow[];
+}
+
+/**
+ * Drives the Plans & pricing editor grid. Returns every plan with its
+ * feature-limit rows + a live count of orgs subscribed to it. Plans are
+ * sorted by sortOrder then tierRank.
+ */
+export async function listPlansWithCounts(): Promise<PlanWithCounts[]> {
+  const db = getDb();
+  if (!db) return [];
+
+  const plans = await db
+    .select()
+    .from(subscriptionPlans)
+    .orderBy(subscriptionPlans.sortOrder, subscriptionPlans.tierRank);
+
+  if (plans.length === 0) return [];
+
+  // Org counts grouped by plan_code (single pass over subscriptions).
+  const subRows = await db
+    .select({
+      planCode: orgSubscriptions.planCode,
+      status: orgSubscriptions.status,
+    })
+    .from(orgSubscriptions);
+
+  const countByPlan = new Map<string, { total: number; active: number }>();
+  for (const r of subRows) {
+    if (r.status === "archived" || r.status === "purged") continue;
+    const cur = countByPlan.get(r.planCode) ?? { total: 0, active: 0 };
+    cur.total += 1;
+    if (r.status === "active") cur.active += 1;
+    countByPlan.set(r.planCode, cur);
+  }
+
+  // Feature limits per plan (join plan_features -> feature_flags).
+  const featureRows = await db
+    .select({
+      planCode: planFeatures.planCode,
+      flagCode: planFeatures.flagCode,
+      isEnabled: planFeatures.isEnabled,
+      limitValue: planFeatures.limitValue,
+      flagDisplayName: featureFlags.displayName,
+      category: featureFlags.category,
+      isNumericLimit: featureFlags.isNumericLimit,
+    })
+    .from(planFeatures)
+    .leftJoin(featureFlags, eq(featureFlags.flagCode, planFeatures.flagCode));
+
+  const limitsByPlan = new Map<string, PlanLimitRow[]>();
+  for (const f of featureRows) {
+    const arr = limitsByPlan.get(f.planCode) ?? [];
+    arr.push({
+      flagCode: f.flagCode,
+      flagDisplayName: f.flagDisplayName ?? f.flagCode,
+      category: f.category ?? "general",
+      isEnabled: f.isEnabled,
+      limitValue: f.limitValue,
+      isNumericLimit: f.isNumericLimit ?? false,
+    });
+    limitsByPlan.set(f.planCode, arr);
+  }
+
+  return plans.map((p) => {
+    const c = countByPlan.get(p.planCode) ?? { total: 0, active: 0 };
+    return {
+      id: p.id,
+      planCode: p.planCode,
+      displayName: p.displayName,
+      description: p.description,
+      tierRank: p.tierRank,
+      monthlyPriceMinor: p.monthlyPriceMinor,
+      annualPriceMinor: p.annualPriceMinor,
+      currency: p.currency,
+      trialPeriodDays: p.trialPeriodDays,
+      isActive: p.isActive,
+      isInternal: p.isInternal,
+      isPublic: p.isPublic,
+      sortOrder: p.sortOrder,
+      orgCount: c.total,
+      activeOrgCount: c.active,
+      limits: (limitsByPlan.get(p.planCode) ?? []).sort((a, b) =>
+        a.category.localeCompare(b.category) ||
+        a.flagDisplayName.localeCompare(b.flagDisplayName),
+      ),
+    };
+  });
 }
