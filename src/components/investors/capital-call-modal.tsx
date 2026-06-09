@@ -24,10 +24,13 @@ export interface CapitalCallModalProps {
 }
 
 function fmt(amount: number): string {
-  return new Intl.NumberFormat("id-ID").format(amount);
+  return new Intl.NumberFormat("en-US").format(amount);
 }
 
 export function CapitalCallModal({ open, onOpenChange, fundId, fundName, number, lps, onIssue }: CapitalCallModalProps) {
+  // Funds are USD-denominated. `totalIdr` is a legacy field name — the value
+  // is whole USD dollars (the issue action stores it as USD minor units). Do
+  // NOT apply any IDR conversion here; the label below reads "USD".
   const [totalIdr, setTotalIdr] = React.useState(0);
   const [purpose, setPurpose] = React.useState("");
   const [noticeAt, setNoticeAt] = React.useState(() => new Date().toISOString().slice(0, 10));
@@ -84,7 +87,7 @@ export function CapitalCallModal({ open, onOpenChange, fundId, fundName, number,
       <ModalBody>
         <div className="field-row">
           <div className="field">
-            <label className="field-label">Total (IDR)</label>
+            <label className="field-label">Total (USD)</label>
             <input
               className="input"
               type="number"
@@ -117,7 +120,7 @@ export function CapitalCallModal({ open, onOpenChange, fundId, fundName, number,
           <header className="ccm-prev-head">
             <span className="ccm-prev-label mono">Pro-rata allocations</span>
             <span className={`ccm-prev-sum mono${sumOk ? " is-ok" : " is-bad"}`}>
-              {fmt(draft.allocatedTotal)} / {fmt(totalIdr)} IDR
+              {fmt(draft.allocatedTotal)} / {fmt(totalIdr)} USD
             </span>
           </header>
           <ul className="ccm-prev-list">

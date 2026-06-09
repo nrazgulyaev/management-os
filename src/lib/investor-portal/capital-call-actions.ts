@@ -94,6 +94,30 @@ export async function confirmCapitalCallWireReceived(
       ),
     );
 
+  // Advance the PARENT call status now that an allocation settled. Without
+  // this the call stays `issued` forever even when every LP has wired, so the
+  // CFO list + attention feed misreport (split-brain: allocation says paid,
+  // call says issued). Recompute from the live allocation rows (this SELECT
+  // runs after the UPDATE above, so it sees the row we just stamped).
+  const siblings = await db
+    .select({ receivedAt: capitalCallAllocations.receivedAt })
+    .from(capitalCallAllocations)
+    .where(eq(capitalCallAllocations.callId, row.callId));
+  const totalAllocs = siblings.length;
+  const settledAllocs = siblings.filter((s) => s.receivedAt).length;
+  const nextStatus =
+    settledAllocs === 0
+      ? "issued"
+      : settledAllocs >= totalAllocs
+        ? "received"
+        : "partial";
+  if (nextStatus !== row.callStatus) {
+    await db
+      .update(capitalCalls)
+      .set({ status: nextStatus })
+      .where(eq(capitalCalls.id, row.callId));
+  }
+
   await recordAuditEvent({
     actorUserId: session.appUserId,
     action: "capital_call_allocation.wire_confirmed",
