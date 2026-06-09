@@ -1,22 +1,38 @@
 /**
- * Phase 2.2 dev-01 — schedule-variance-detector agent (stub).
+ * Phase 2.2 dev-01 — schedule-variance-detector agent.
  *
- * Daily 05:30 cron. Walks all in-flight milestones for each
- * project, computes slip vs target, and surfaces:
- *   - >21d slip      → red flag → notifies PM + Director
- *   - 7–21d slip     → amber flag → goes into PM's daily digest
- *   - schedule drift → quiet log entry in agent_invocation_log
+ * Daily 05:30 cron. Walks all in-flight milestones for each project,
+ * computes slip vs target (and slip propagated through finish-to-start
+ * dependency edges), and surfaces:
+ *   - ≥21d slip   → red flag   → notifies PM + Director
+ *   - 7–20d slip  → amber flag → goes into PM's daily digest
  *
- * Real run logic + the cron wiring land in 2.2 data-wiring. This
- * stub exports the canonical `run` signature so the registry has
- * something to import.
+ * The deterministic rule logic lives in the server-only-free module
+ * `schedule-variance-rules.ts` so it is unit-testable and reused by the
+ * project milestones page to render its read-only "Schedule variance" band.
+ *
+ * This run() is read-only: it queries `milestones` + `milestone_dependencies`
+ * and returns the flags. Persisting flags to `agent_outputs` /
+ * `agent_invocation_log` and dispatching PM/Director notifications is the
+ * documented data-wiring follow-up (see followups); doing it here would
+ * couple this unit to the notifications dispatch.
  */
+
+import { getDb } from "@/lib/db/client";
+import { eq, inArray } from "drizzle-orm";
+import { milestones, milestoneDependencies } from "@/lib/db/schema/milestones";
+import {
+  detectScheduleVariance,
+  type ScheduleVarianceSeverity,
+} from "./schedule-variance-rules";
 
 export interface ScheduleVarianceInput {
   /** Org scope. Mirrors the existing agent invocation pattern. */
   organizationId: string;
   /** Optional project filter; omit for org-wide. */
   projectId?: string;
+  /** Override "now" for deterministic replay; defaults to the wall clock. */
+  asOf?: Date;
 }
 
 export interface ScheduleVarianceFlag {
@@ -24,7 +40,7 @@ export interface ScheduleVarianceFlag {
   milestoneId: string;
   milestoneName: string;
   slipDays: number;
-  severity: "amber" | "red";
+  severity: ScheduleVarianceSeverity;
 }
 
 export interface ScheduleVarianceOutput {
@@ -33,12 +49,51 @@ export interface ScheduleVarianceOutput {
   scanned: number;
 }
 
-export async function run(_input: ScheduleVarianceInput): Promise<ScheduleVarianceOutput> {
-  // PR 2.2 dev-01 — stub. Real implementation queries milestones +
-  // milestone_dependencies + projects; emits agent_invocation_log
-  // entries + agent_outputs rows; sends notifications via the
-  // existing operations dispatch.
-  return { flags: [], scanned: 0 };
+export async function run(input: ScheduleVarianceInput): Promise<ScheduleVarianceOutput> {
+  const db = getDb();
+  if (!db) return { flags: [], scanned: 0 };
+
+  const milestoneRows = input.projectId
+    ? await db.select().from(milestones).where(eq(milestones.projectId, input.projectId))
+    : await db.select().from(milestones);
+
+  if (milestoneRows.length === 0) return { flags: [], scanned: 0 };
+
+  // Only need edges whose endpoints are in scope; when filtering by project
+  // both endpoints are same-project (dependencies are intra-project).
+  const ids = milestoneRows.map((m) => m.id);
+  const edges = await db
+    .select()
+    .from(milestoneDependencies)
+    .where(inArray(milestoneDependencies.toMilestoneId, ids));
+
+  const { flags, scanned } = detectScheduleVariance(
+    milestoneRows.map((m) => ({
+      id: m.id,
+      projectId: m.projectId,
+      name: m.name,
+      targetDate: m.targetDate,
+      actualDate: m.actualDate,
+      status: m.status,
+    })),
+    edges.map((e) => ({
+      fromMilestoneId: e.fromMilestoneId,
+      toMilestoneId: e.toMilestoneId,
+      kind: e.kind,
+    })),
+    input.asOf ?? new Date(),
+  );
+
+  return {
+    flags: flags.map((f) => ({
+      projectId: f.projectId,
+      milestoneId: f.milestoneId,
+      milestoneName: f.milestoneName,
+      slipDays: f.slipDays,
+      severity: f.severity,
+    })),
+    scanned,
+  };
 }
 
 export const SCHEDULE_VARIANCE_AGENT = {
