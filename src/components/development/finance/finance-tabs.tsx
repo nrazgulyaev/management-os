@@ -46,6 +46,11 @@ const TABS = [
     href: "/development-os/finance/general-ledger",
     label: "General ledger",
   },
+  {
+    key: "accounting",
+    href: "/development-os/finance/accounting",
+    label: "Accounting",
+  },
 ] as const;
 
 export function FinanceTabs() {

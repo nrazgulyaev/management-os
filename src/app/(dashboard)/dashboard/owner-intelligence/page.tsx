@@ -7,6 +7,8 @@ import { listOwnerVillaHealthSnapshots } from "@/features/owner-intelligence/hea
 import { listAdminReviews } from "@/features/owner-intelligence/reviews-services";
 import { listVillas } from "@/features/villas/services";
 import type { VillaHealthSnapshot } from "@/lib/db/schema/owner-intelligence";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Owner intelligence" };
 export const dynamic = "force-dynamic";
@@ -55,6 +57,8 @@ function fmtDate(d: Date | string): string {
 }
 
 export default async function OwnerIntelligenceHub() {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
   const [snapshots, reviews, villas] = await Promise.all([
     listOwnerVillaHealthSnapshots(),
     listAdminReviews({ limit: 100 }),

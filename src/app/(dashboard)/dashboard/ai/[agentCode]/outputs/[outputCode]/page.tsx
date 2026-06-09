@@ -1,24 +1,19 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MGMT_AGENT_CODES } from "@/features/ai-agents/registry";
+import { getRunPayload } from "@/features/ai-agents/agent-detail-queries";
 import { AgentOutputCard } from "@/components/ai-agents/agent-output-card";
 import { DetailPage } from "@/components/dashboard/detail/detail-page";
 import { DetailHeader } from "@/components/dashboard/detail/detail-header";
 
 /**
- * Phase 2.1 PR 4 — Agent output sub-route.
+ * AI Cabinet depth pass — agent output sub-route.
  *
- * Direct-link surface for a specific run's structured output.
- * Renders the AgentOutputCard full-width with download buttons +
- * a back-link to the parent agent detail.
- *
- * Note (spec): Statement = special-case output that ALSO lives at
- * `finance/statements/[id]`. Both URLs resolve to the same row; the
- * statement route renders the detail-page treatment (template 05),
- * this route renders the runtime view + download.
- *
- * Today the output payload is mocked — 2.2 wires the real
- * `agent_outputs` table read.
+ * `outputCode` is the ai_assistant_runs row id. We load the real run
+ * payload and render it; the JSON / PDF buttons are now live download
+ * links to /api/ai/output/[runId]/{json,pdf}. When the id doesn't
+ * resolve (legacy mock links like "r1"), we fall back to the
+ * wire-through proof-of-life card.
  */
 
 export const metadata = { title: "Agent output" };
@@ -34,20 +29,27 @@ export default async function AgentOutputPage({
     notFound();
   }
 
+  // outputCode is a run id; resolve the real payload when possible.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    outputCode,
+  );
+  const payload = isUuid ? await getRunPayload(outputCode).catch(() => null) : null;
+  const hasRealPayload = payload !== null;
+
   return (
     <DetailPage>
       <DetailHeader
         breadcrumb={[
           { label: "AI agents", href: "/dashboard/ai" },
           { label: agentCode.replace(/-/g, " "), href: `/dashboard/ai/${agentCode}` },
-          { label: outputCode },
+          { label: outputCode.slice(0, 8) },
         ]}
-        title={`Run ${outputCode}`}
+        title={`Run ${outputCode.slice(0, 8)}`}
         meta={
           <>
-            <span>AGENT: {agentCode}</span>
+            <span>AGENT: {payload?.assistantKey ?? agentCode}</span>
             <span>·</span>
-            <span>OUTPUT CODE: {outputCode}</span>
+            <span>RUN: {outputCode.slice(0, 8)}</span>
           </>
         }
         actions={
@@ -58,32 +60,77 @@ export default async function AgentOutputPage({
             >
               ← Back to agent
             </Link>
-            <button className="btn btn-secondary btn-sm" disabled>↓ JSON</button>
-            <button className="btn btn-primary btn-sm" disabled>↓ PDF</button>
+            {hasRealPayload ? (
+              <>
+                <a
+                  href={`/api/ai/output/${outputCode}/json`}
+                  className="btn btn-secondary btn-sm"
+                >
+                  ↓ JSON
+                </a>
+                <a
+                  href={`/api/ai/output/${outputCode}/pdf`}
+                  className="btn btn-primary btn-sm"
+                >
+                  ↓ PDF
+                </a>
+              </>
+            ) : (
+              <>
+                <button className="btn btn-secondary btn-sm" disabled title="No payload for this run">
+                  ↓ JSON
+                </button>
+                <button className="btn btn-primary btn-sm" disabled title="No payload for this run">
+                  ↓ PDF
+                </button>
+              </>
+            )}
           </>
         }
       />
 
       <main style={{ padding: "24px 28px", maxWidth: 720 }}>
         <AgentOutputCard
-          eyebrow={`OUTPUT · ${outputCode}`}
-          title="Structured output payload"
-          rows={[
-            { key: "Status", value: <span className="badge badge-warn">Routed</span> },
-            { key: "Confidence", value: "68%" },
-            { key: "Tool calls", value: "2" },
-            { key: "Tokens (in/out)", value: "1,420 / 340" },
-            { key: "Cost", value: "$0.0084" },
-            { key: "Latency", value: "8.4s" },
-            { key: "Run id", value: outputCode },
-          ]}
+          eyebrow={`OUTPUT · ${outputCode.slice(0, 8)}`}
+          title={hasRealPayload ? "Structured output payload" : "Output not found"}
+          rows={
+            hasRealPayload && payload
+              ? [
+                  {
+                    key: "Status",
+                    value: <span className="badge badge-ok">{payload.status}</span>,
+                  },
+                  { key: "Model", value: payload.model ?? "—" },
+                  {
+                    key: "Tokens (in/out)",
+                    value: `${payload.promptTokens ?? 0} / ${payload.completionTokens ?? 0}`,
+                  },
+                  {
+                    key: "Cost",
+                    value: payload.totalCostUsd != null ? `$${payload.totalCostUsd}` : "—",
+                  },
+                  {
+                    key: "Latency",
+                    value: payload.latencyMs != null ? `${payload.latencyMs} ms` : "—",
+                  },
+                  { key: "Run id", value: payload.id.slice(0, 8) },
+                ]
+              : [{ key: "Run id", value: outputCode }]
+          }
         >
-          <p style={{ marginTop: 12, fontSize: 13, color: "var(--ink-3)", lineHeight: 1.55 }}>
-            Real output payload (transcript, attached tool results, suggested
-            actions) loads from the <code>agent_outputs</code> table in Phase 2.2.
-            This page is the wire-through proof-of-life — direct links from
-            inbox rows and recent-runs panels resolve here.
-          </p>
+          {hasRealPayload && payload ? (
+            <p style={{ marginTop: 12, fontSize: 13, color: "var(--ink-3)", lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
+              {payload.outputSummary ?? payload.errorMessage ?? "(no output text)"}
+            </p>
+          ) : (
+            <p style={{ marginTop: 12, fontSize: 13, color: "var(--ink-3)", lineHeight: 1.55 }}>
+              No persisted run matched this id. Trigger a{" "}
+              <Link href={`/dashboard/ai/${agentCode}`} className="underline underline-offset-2">
+                test run
+              </Link>{" "}
+              to generate a downloadable output.
+            </p>
+          )}
         </AgentOutputCard>
       </main>
     </DetailPage>

@@ -9,6 +9,8 @@ import { VillaPicker } from "./_villa-picker";
 import { RateCurve } from "./_rate-curve";
 import { CompTable, type CompRow } from "@/components/pricing/comp-table";
 import { buildPricingRecommendations } from "@/features/dynamic-pricing/recommendations";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 /**
  * Dynamic pricing — per-villa "production view" (prototype mgmt-p2).
@@ -68,6 +70,8 @@ export default async function PricingProductionView({
 }: {
   searchParams?: Promise<Record<string, string | undefined>>;
 }) {
+  const { allowed } = await requireCabinetAccess("pricing");
+  if (!allowed) return <CabinetGate cabinet="Dynamic pricing" />;
   const sp = (await searchParams) ?? {};
   const villas = await listVillas().catch(() => []);
   const selectedVillaId =

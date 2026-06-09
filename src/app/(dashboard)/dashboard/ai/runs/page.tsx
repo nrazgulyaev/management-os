@@ -17,8 +17,14 @@ const STATUS_TONES: Record<
   running: "info",
 };
 
-export default async function AIRunsPage() {
-  const runs = await listAssistantRuns({ limit: 50 });
+export default async function AIRunsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ agent?: string }>;
+}) {
+  const { agent } = await searchParams;
+  const assistantKey = agent && agent.trim().length > 0 ? agent.trim() : undefined;
+  const runs = await listAssistantRuns({ limit: 50, assistantKey });
 
   return (
     <div className="flex flex-col gap-10">
@@ -27,9 +33,18 @@ export default async function AIRunsPage() {
           { label: "AI assistants", href: "/dashboard/ai" },
           { label: "Runs" },
         ]}
-        title="AI assistant runs"
+        title={assistantKey ? `Runs · ${assistantKey.replace(/_/g, " ")}` : "AI assistant runs"}
         description="Every Co-pilot invocation is logged with status, model, latency, token usage, and the tool calls it issued. Useful for diagnosing fallback drops and reviewing prompt cost."
       />
+
+      {assistantKey && (
+        <p className="-mt-6 text-sm text-ink-tertiary">
+          Filtered to <span className="font-medium text-ink">{assistantKey}</span>.{" "}
+          <Link href="/dashboard/ai/runs" className="underline underline-offset-4">
+            Show all runs
+          </Link>
+        </p>
+      )}
 
       <Section eyebrow="Runs" title="Most recent">
         {runs.length === 0 ? (

@@ -18,6 +18,8 @@ import {
   markStatementSent,
   generateAllForPeriod,
 } from "@/features/finance/statement-actions";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 /**
  * STATEMENT-1 — Mgmt OS Finance cabinet upgraded to the real engine.
@@ -189,6 +191,8 @@ interface FinancePageProps {
 }
 
 export default async function FinancePage({ searchParams }: FinancePageProps) {
+  const { allowed } = await requireCabinetAccess("finance");
+  if (!allowed) return <CabinetGate cabinet="Finance" />;
   const sp = await searchParams;
   const allStatements = await listOwnerStatementsLive({ limit: 20 }).catch(() => []);
   const selectedId = sp.id ?? allStatements[0]?.id ?? null;

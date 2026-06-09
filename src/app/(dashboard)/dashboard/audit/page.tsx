@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listAuditEvents } from "@/features/audit/services";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Audit log" };
 export const dynamic = "force-dynamic";
@@ -27,6 +29,8 @@ function classify(
 }
 
 export default async function AuditPage() {
+  const { allowed } = await requireCabinetAccess("audit");
+  if (!allowed) return <CabinetGate cabinet="Audit log" />;
   const events = await listAuditEvents({ limit: 200 });
   const source = events[0]?.source ?? "mock";
 

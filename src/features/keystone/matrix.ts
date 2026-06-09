@@ -73,6 +73,51 @@ export function defaultAccess(cabinetKey: string, role: RoleKey): boolean {
   return Array.isArray(allowed) && allowed.includes(role);
 }
 
+/**
+ * Maps a dashboard nav href to the matrix cabinet key that gates it.
+ * Only the principal cabinets are gated; rows that don't map to a matrix
+ * cabinet return `null` (always visible). Order matters — the FIRST
+ * prefix that matches wins, so list deeper prefixes before shallower ones.
+ */
+const NAV_HREF_CABINET: { prefix: string; cabinet: string }[] = [
+  { prefix: "/dashboard/owner-statements", cabinet: "owner_statement" },
+  { prefix: "/dashboard/finance/statements", cabinet: "owner_statement" },
+  { prefix: "/dashboard/finance/disputes", cabinet: "owner_statement" },
+  { prefix: "/dashboard/finance/transparency", cabinet: "owner_statement" },
+  { prefix: "/dashboard/finance", cabinet: "finance" },
+  { prefix: "/dashboard/payments", cabinet: "finance" },
+  { prefix: "/dashboard/owners", cabinet: "owners" },
+  { prefix: "/dashboard/shares", cabinet: "owners" },
+  { prefix: "/dashboard/owner-intelligence", cabinet: "owners" },
+  { prefix: "/dashboard/projects", cabinet: "projects" },
+  { prefix: "/dashboard/villas", cabinet: "villas" },
+  { prefix: "/dashboard/bookings", cabinet: "bookings" },
+  { prefix: "/dashboard/channels", cabinet: "channels" },
+  { prefix: "/dashboard/guests", cabinet: "guests" },
+  { prefix: "/dashboard/availability", cabinet: "availability" },
+  { prefix: "/dashboard/front-office", cabinet: "front_office" },
+  { prefix: "/dashboard/operations/housekeeping", cabinet: "housekeeping" },
+  { prefix: "/dashboard/operations/maintenance", cabinet: "maintenance" },
+  { prefix: "/dashboard/operations", cabinet: "operations" },
+  { prefix: "/dashboard/inventory", cabinet: "inventory" },
+  { prefix: "/dashboard/procurement", cabinet: "procurement" },
+  { prefix: "/dashboard/pricing", cabinet: "pricing" },
+  { prefix: "/dashboard/documents", cabinet: "documents" },
+  { prefix: "/dashboard/integrations", cabinet: "integrations" },
+  { prefix: "/dashboard/audit", cabinet: "audit" },
+  { prefix: "/dashboard/settings", cabinet: "users" },
+];
+
+/** Cabinet key that gates a nav href, or null when the row is ungated. */
+export function cabinetForNavHref(href: string): string | null {
+  for (const { prefix, cabinet } of NAV_HREF_CABINET) {
+    if (href === prefix || href.startsWith(prefix + "/") || href.startsWith(prefix + "?")) {
+      return cabinet;
+    }
+  }
+  return null;
+}
+
 export type OverrideMap = Map<string, boolean>;
 
 /** Stable map key for an override cell. */

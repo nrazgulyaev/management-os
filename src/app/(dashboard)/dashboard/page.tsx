@@ -15,6 +15,11 @@ import { RecentDigestsTile } from "@/components/digests/recent-digests-tile";
 import { getLiveDashboardCounts } from "@/features/dashboard/live-counts";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { mapPoolAll } from "@/lib/db/map-pool";
+import { getSetupCounts } from "@/features/keystone/services";
+import {
+  CabinetZeroState,
+  isEmptySystem,
+} from "@/components/keystone/cabinet-zero-state";
 import {
   getPortfolioMetrics,
   getRevenueByChannel,
@@ -25,6 +30,7 @@ import {
   getCurrentStatementNudge,
   getOperationalHealthTiles,
 } from "@/features/dashboard/dashboard-cabinet-queries";
+import { ComingSoon } from "@/components/ui/state";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Overview live wiring.
@@ -98,7 +104,7 @@ export default async function DashboardOverviewPage() {
   // transaction pooler. Each task keeps its own .catch() fallback, so a
   // failing/timed-out query degrades to empty data instead of stalling
   // the page to the 300s function timeout.
-  const [live, currentUser, metrics, channels, monthly, owners, portfolio, schedule, nudge, opsHealth] =
+  const [live, currentUser, metrics, channels, monthly, owners, portfolio, schedule, nudge, opsHealth, setupCounts] =
     await mapPoolAll(
       [
         () => getLiveDashboardCounts().catch(() => null),
@@ -111,11 +117,36 @@ export default async function DashboardOverviewPage() {
         () => getTodaySchedule().catch(() => []),
         () => getCurrentStatementNudge().catch(() => null),
         () => getOperationalHealthTiles().catch(() => null),
+        () => getSetupCounts().catch(() => null),
       ] as const,
       4,
     );
 
   const firstName = currentUser?.fullName?.split(/\s+/)[0] ?? "operator";
+
+  // Block 08 zero-state — a freshly-created org (no villas / projects /
+  // team) shows a guided empty state pointing at the setup wizard instead
+  // of a wall of blank KPI tiles. `setupCounts` is null only when the DB
+  // isn't configured, in which case we fall through to the demo render.
+  if (setupCounts && isEmptySystem(setupCounts)) {
+    return (
+      <>
+        <SectionHeading
+          eyebrow={`${todayBrief()} · GMT+8`}
+          title={
+            <>
+              {timeOfDayGreeting()}, <em>{firstName}.</em>
+            </>
+          }
+          subtitle="Your workspace is brand new. Let's set it up."
+        />
+        <CabinetZeroState
+          cabinet="Your portfolio overview"
+          body="Add your first villas, group them into projects, and invite your team. The dashboard fills in with live occupancy, revenue, and operations the moment there's data."
+        />
+      </>
+    );
+  }
   const villaCount = live?.villas ?? 0;
   const projectCount = portfolio.length;
   const upcomingCheckIns = live?.upcomingCheckIns ?? 0;
@@ -143,13 +174,11 @@ export default async function DashboardOverviewPage() {
         }
         actions={
           <>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Export brief <DashboardIcon name="logo" width={13} height={13} />
-            </button>
+            <ComingSoon note="Exporting the daily brief as a shareable PDF is coming soon.">
+              <span className="btn btn-secondary btn-sm">
+                Export brief <DashboardIcon name="logo" width={13} height={13} />
+              </span>
+            </ComingSoon>
             <Link href="/dashboard/bookings" className="btn btn-primary btn-sm">
               New booking +
             </Link>

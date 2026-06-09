@@ -14,6 +14,7 @@ import {
 } from "@/features/operations/operations-cabinet-queries";
 import { listArrivals, listDepartures } from "@/features/front-office/services";
 import { mapPoolAll } from "@/lib/db/map-pool";
+import { ComingSoon } from "@/components/ui/state";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Operations cabinet live wiring.
@@ -169,13 +170,9 @@ export default async function OperationsPage() {
           <Link href="/dashboard/operations/maintenance/new" className="btn btn-secondary btn-sm">
             + New ticket
           </Link>
-          <button
-            className="btn btn-accent btn-sm opacity-55 cursor-not-allowed"
-            disabled
-            title="Coming soon"
-          >
-            Brief team →
-          </button>
+          <ComingSoon note="Sending the daily team brief to housekeeping & maintenance is coming soon.">
+            <span className="btn btn-accent btn-sm">Brief team →</span>
+          </ComingSoon>
         </div>
       </div>
 

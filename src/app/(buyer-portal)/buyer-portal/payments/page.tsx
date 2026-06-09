@@ -8,6 +8,11 @@ import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { contractGroups, contractMilestones } from "@/lib/db/schema/sales";
 import { villas } from "@/lib/db/schema/projects";
 import { formatMoneyMinor } from "@/lib/money";
+import {
+  getBuyerInvoices,
+  type BuyerInvoice,
+  type BuyerInvoiceState,
+} from "@/lib/buyer-portal/invoices";
 import { MarkPaidButton } from "./_mark-paid-button";
 
 export const metadata: Metadata = { title: "Payments · Buyer Portal" };
@@ -49,6 +54,20 @@ const PAYABLE_STATUSES = new Set([
   "partially_paid",
   "overdue",
 ]);
+
+const INVOICE_PILL: Record<BuyerInvoiceState, string> = {
+  paid: "bg-success-weak text-success border-success/40",
+  due: "bg-warning-weak text-warning border-warning/40",
+  overdue: "bg-danger-weak text-danger border-danger/40",
+  void: "bg-muted text-ink-tertiary border-line-soft line-through",
+};
+
+const INVOICE_LABEL: Record<BuyerInvoiceState, string> = {
+  paid: "paid",
+  due: "due",
+  overdue: "overdue",
+  void: "void",
+};
 
 export default async function BuyerPaymentsPage() {
   const session = await getBuyerSession();
@@ -147,6 +166,17 @@ export default async function BuyerPaymentsPage() {
   const ladders = [...ladderByVilla.values()];
   const hasAnyMilestones = ladders.some((l) => l.milestones.length > 0);
 
+  // Issued invoices (operator-issued, read-only here). Map by milestone so each
+  // ladder row can surface its invoice number + due/paid state.
+  const buyerInvoices = await getBuyerInvoices(buyer.buyerId);
+  const invoiceByMilestone = new Map<string, BuyerInvoice>();
+  for (const inv of buyerInvoices) {
+    // Newest first from the query; keep the first (latest) per milestone.
+    if (!invoiceByMilestone.has(inv.contractMilestoneId)) {
+      invoiceByMilestone.set(inv.contractMilestoneId, inv);
+    }
+  }
+
   return (
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>
       <section>
@@ -213,6 +243,7 @@ export default async function BuyerPaymentsPage() {
                       const pill =
                         STATUS_PILL[m.status] ?? STATUS_PILL.pending;
                       const payable = PAYABLE_STATUSES.has(m.status);
+                      const invoice = invoiceByMilestone.get(m.id);
                       return (
                         <li
                           key={m.id}
@@ -254,6 +285,21 @@ export default async function BuyerPaymentsPage() {
                                 </>
                               )}
                             </div>
+                            {invoice && (
+                              <div className="mt-1.5 flex items-center gap-2">
+                                <span className="font-mono text-[11px] text-ink-secondary">
+                                  Invoice {invoice.invoiceNumber}
+                                </span>
+                                <span
+                                  className={`text-[11px] px-2 py-0.5 rounded-full border capitalize ${INVOICE_PILL[invoice.state]}`}
+                                >
+                                  {INVOICE_LABEL[invoice.state]}
+                                </span>
+                                <span className="text-[11px] text-ink-tertiary">
+                                  due {invoice.dueDate}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-4">
                             <div className="text-right">

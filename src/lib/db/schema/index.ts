@@ -103,6 +103,8 @@ export * from "./villa-photos";
 export * from "./owner-activity-log";
 // Double-entry GL foundation (migration 0122).
 export * from "./general-ledger";
+// GL bank-reconciliation matches (migration 0136).
+export * from "./gl-reconciliation";
 // Front-office check-in flow persistence (migration 0123).
 export * from "./checkin-flow";
 // Coordination cabinet — submittals + drawing pins + threads (migration 0126).
@@ -120,3 +122,5 @@ export * from "./villa-pool-state";
 export * from "./documents-app";
 // Warehouse receiving / QC-hold record (migration 0133).
 export * from "./material-receiving-holds";
+// Buyer-portal e-signature capture on contract groups (migration 0137).
+export * from "./contract-signatures";
