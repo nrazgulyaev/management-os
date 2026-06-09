@@ -13,6 +13,7 @@ import {
 import { AgentCatalog, type AgentCatalogItem, type AgentCategory } from "@/components/ai-agents/agent-catalog";
 import type { AgentTone } from "@/components/ai-agents/agent-card";
 import { toHyphenated } from "@/features/ai-agents/registry";
+import { HubHeaderActions, type HubAgentOption } from "./_hub-header-actions";
 
 /**
  * Phase 2.1 PR 4 — Mgmt AI Hub catalog refactor.
@@ -87,6 +88,13 @@ export default async function AiHubPage() {
     listRecentRuns(8).catch(() => []),
   ]);
 
+  // Runnable agents for the "New conversation" picker — prefer the
+  // configurable/runnable set so the chat actually fires a real run.
+  const chatAgents: HubAgentOption[] = agents.map((a) => ({
+    code: toHyphenated(a.agentKey),
+    name: a.displayName,
+  }));
+
   const items: AgentCatalogItem[] = agents.map((a) => ({
     code: toHyphenated(a.agentKey),
     name: a.displayName,
@@ -114,31 +122,7 @@ export default async function AiHubPage() {
           </>
         }
         subtitle="Every agent reads the same data, writes to the same audit, hits the same per-tenant budget. Read-only allowlists, refusal on closed periods, escalation paths declared up front."
-        actions={
-          <>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Token usage
-            </button>
-            <button
-              className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Memory editor
-            </button>
-            <button
-              className="btn btn-primary btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              New conversation +
-            </button>
-          </>
-        }
+        actions={<HubHeaderActions agents={chatAgents} />}
       />
 
       <div className="grid grid-cols-5 gap-3 mb-[18px]">

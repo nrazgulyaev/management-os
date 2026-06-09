@@ -7,7 +7,25 @@ import { AgentRunsList } from "@/components/ai-agents/agent-runs-list";
 import { AgentConfigCard } from "@/components/ai-agents/agent-config-card";
 import { DetailPage } from "@/components/dashboard/detail/detail-page";
 import { DetailHeader } from "@/components/dashboard/detail/detail-header";
+import {
+  getAgentEnabledState,
+  listRunsForAgent,
+} from "@/features/ai-agents/agent-detail-queries";
 import { AgentDetailClient } from "./_detail-client";
+import { AgentHeaderActions } from "./_header-actions";
+
+function fmtRunTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function runResult(status: string): "auto" | "routed" | "error" {
+  if (status === "completed" || status === "succeeded" || status === "success") return "auto";
+  if (status === "failed" || status === "blocked" || status === "refused") return "error";
+  return "routed";
+}
 
 /**
  * Phase 2.1 PR 4 — Mgmt AI agent detail (template 07).
@@ -96,7 +114,11 @@ export default async function AgentDetailPage({
     notFound();
   }
 
-  const agents = await listAgentsForCabinet().catch(() => []);
+  const [agents, enabledState, runHistory] = await Promise.all([
+    listAgentsForCabinet().catch(() => []),
+    getAgentEnabledState(agentCode).catch(() => null),
+    listRunsForAgent(agentCode, 6).catch(() => ({ runs: [], total: 0 })),
+  ]);
   const underscored = toUnderscored(agentCode);
   const agent = agents.find((a) => a.agentKey === underscored);
   // When the DB isn't seeded the agent may not exist in the cabinet
@@ -105,6 +127,16 @@ export default async function AgentDetailPage({
 
   const initialMessages: AgentTranscriptMessage[] =
     agentCode === "concierge-auto-reply" ? MOCK_CONCIERGE_MESSAGES : [];
+
+  // Real recent runs from ai_assistant_runs (falls back to mock concierge
+  // rows only when the agent has never run, to keep the demo legible).
+  const realRunRows = runHistory.runs.map((r) => ({
+    id: r.id,
+    result: runResult(r.status),
+    summary: <>{r.outputSummary?.slice(0, 60) ?? r.status}</>,
+    when: fmtRunTime(r.createdAt),
+    href: `/dashboard/ai/runs/${r.id}`,
+  }));
 
   return (
     <DetailPage>
@@ -129,11 +161,13 @@ export default async function AgentDetailPage({
           </>
         }
         actions={
-          <>
-            <button className="btn btn-ghost btn-sm" disabled>Logs</button>
-            <button className="btn btn-secondary btn-sm" disabled>Pause agent</button>
-            <button className="btn btn-primary btn-sm" disabled>▶ Test run</button>
-          </>
+          <AgentHeaderActions
+            agentCode={agentCode}
+            assistantKey={enabledState?.assistantKey ?? underscored}
+            configurable={enabledState?.configurable ?? false}
+            initialEnabled={enabledState?.enabled ?? false}
+            logsHref={`/dashboard/ai/runs?agent=${underscored}`}
+          />
         }
       />
 
@@ -159,30 +193,34 @@ export default async function AgentDetailPage({
             ]}
           />
           <AgentRunsList
-            runs={[
-              {
-                id: "r1",
-                result: "routed",
-                summary: <>Whitmore · extend +2n</>,
-                when: "14:38",
-                href: `/dashboard/ai/${agentCode}/outputs/r1`,
-              },
-              {
-                id: "r2",
-                result: "auto",
-                summary: <>Whitmore · breakfast time</>,
-                when: "14:33",
-                href: `/dashboard/ai/${agentCode}/outputs/r2`,
-              },
-              {
-                id: "r3",
-                result: "auto",
-                summary: <>Chen · check-in time</>,
-                when: "13:51",
-              },
-            ]}
-            total={142}
-            seeAllHref="/dashboard/ai/runs"
+            runs={
+              realRunRows.length > 0
+                ? realRunRows
+                : agentCode === "concierge-auto-reply"
+                  ? [
+                      {
+                        id: "r1",
+                        result: "routed",
+                        summary: <>Whitmore · extend +2n</>,
+                        when: "14:38",
+                      },
+                      {
+                        id: "r2",
+                        result: "auto",
+                        summary: <>Whitmore · breakfast time</>,
+                        when: "14:33",
+                      },
+                      {
+                        id: "r3",
+                        result: "auto",
+                        summary: <>Chen · check-in time</>,
+                        when: "13:51",
+                      },
+                    ]
+                  : []
+            }
+            total={runHistory.total > 0 ? runHistory.total : undefined}
+            seeAllHref={`/dashboard/ai/runs?agent=${underscored}`}
           />
           <AgentConfigCard
             rows={[

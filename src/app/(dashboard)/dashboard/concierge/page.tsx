@@ -66,24 +66,22 @@ export default async function ConciergePage() {
           <button
             className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
             disabled
-            title="Coming soon"
+            title="Reply templates — coming soon"
           >
-            Templates
+            Templates · soon
           </button>
-          <button
-            className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-            disabled
-            title="Coming soon"
+          <Link
+            href="/dashboard/concierge#memory"
+            className="btn btn-secondary btn-sm"
           >
             Memory
-          </button>
-          <button
-            className="btn btn-primary btn-sm opacity-55 cursor-not-allowed"
-            disabled
-            title="Coming soon"
+          </Link>
+          <Link
+            href="/dashboard/guest-ai/handoffs"
+            className="btn btn-primary btn-sm"
           >
             Review handoffs · {kpis?.handoffsOpen ?? 0}
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -211,7 +209,7 @@ export default async function ConciergePage() {
           )}
         </Card>
 
-        <Card className="p-5 bg-cream-warm border border-dashed border-line-strong">
+        <Card id="memory" className="p-5 bg-cream-warm border border-dashed border-line-strong scroll-mt-24">
           <div className="label label-amber">AI Memory · written by AI</div>
           <h3 className="display-sm mt-1 mb-2">Recalled per-guest facts</h3>
           {memory.length === 0 ? (

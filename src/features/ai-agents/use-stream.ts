@@ -1,36 +1,38 @@
 "use client";
 
 /**
- * Phase 2.1 PR 4 — useAgentStream hook (stub).
+ * useAgentStream — agent test-run / chat hook.
  *
- * The transcript component reads `streaming` to show the typing
- * indicator and `latestDelta` to append tokens as they arrive. The
- * runtime that talks to the model lands in 2.2; until then this
- * hook simulates a stream so callers can wire to the same shape.
+ * AI Cabinet depth pass: this now calls the real `runMgmtAgentAction`
+ * server action (which runs through aiExecute → persists to
+ * ai_assistant_runs + bumps org usage), then reveals the returned reply
+ * with a word-by-word typing effect so the transcript still feels live.
  *
- * Caller pattern:
+ * Caller pattern (unchanged surface):
  *
- *   const { send, streaming, status } = useAgentStream({ agentCode });
- *   send("test message");      // returns a promise that resolves
- *                              // when the agent finishes streaming
+ *   const { send, streaming, status, lastRunId } = useAgentStream({ agentCode });
+ *   const reply = await send("test message");
  *
- * In 2.2 this module swaps to fetch-stream against
- * `/api/agents/{agentCode}/runs/{runId}/stream` and emits SSE
- * deltas via `EventSource`. The public surface stays the same.
+ * `send` resolves with the agent's reply text. On error it resolves with
+ * a short error string and sets `status = "error"` + `error`.
  */
 
 import * as React from "react";
+import {
+  runMgmtAgentAction,
+  type MgmtAgentRunResult,
+} from "./mgmt-agent-run-action";
 
 export type StreamStatus = "idle" | "streaming" | "completed" | "error";
 
 export interface AgentStreamOptions {
   /** Agent code (e.g. "concierge-auto-reply"). */
   agentCode: string;
-  /** Override the simulated delay between deltas (ms). */
+  /** "test" probe vs "chat" turn — forwarded to the action. */
+  mode?: "test" | "chat";
+  /** Override the reveal delay between words (ms). */
   tickMs?: number;
-  /** Called once per delta — useful for appending to a transcript. */
   onDelta?: (token: string) => void;
-  /** Called when the stream completes (full message). */
   onComplete?: (fullText: string) => void;
 }
 
@@ -38,34 +40,60 @@ export interface UseAgentStreamResult {
   status: StreamStatus;
   streaming: boolean;
   latestDelta: string | null;
-  /** Sends a prompt; returns when the simulated stream finishes. */
+  error: string | null;
+  /** Run id of the last successful invocation (links to /dashboard/ai/runs/[id]). */
+  lastRunId: string | null;
+  /** Sends a prompt; resolves with the reply (or error string). */
   send: (prompt: string) => Promise<string>;
   abort: () => void;
 }
 
-const PR_4_STUB_REPLY =
-  "Stub reply — wire `/api/agents/{code}/run` in Phase 2.2 to stream real tokens.";
-
 export function useAgentStream({
   agentCode,
-  tickMs = 60,
+  mode = "test",
+  tickMs = 24,
   onDelta,
   onComplete,
 }: AgentStreamOptions): UseAgentStreamResult {
   const [status, setStatus] = React.useState<StreamStatus>("idle");
   const [latestDelta, setLatestDelta] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [lastRunId, setLastRunId] = React.useState<string | null>(null);
   const abortRef = React.useRef<{ cancelled: boolean } | null>(null);
 
-  void agentCode; // referenced for naming + future fetch wiring
-
   const send = React.useCallback(
-    async (_prompt: string): Promise<string> => {
-      void _prompt;
+    async (prompt: string): Promise<string> => {
       const handle = { cancelled: false };
       abortRef.current = handle;
       setStatus("streaming");
+      setError(null);
       setLatestDelta("");
-      const words = PR_4_STUB_REPLY.split(" ");
+
+      let result: MgmtAgentRunResult;
+      try {
+        result = await runMgmtAgentAction({ agentCode, prompt, mode });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Run failed.";
+        setError(message);
+        setStatus("error");
+        return message;
+      }
+
+      if (handle.cancelled) {
+        setStatus("idle");
+        return "";
+      }
+
+      if (!result.ok) {
+        setError(result.error);
+        setStatus("error");
+        return result.error;
+      }
+
+      setLastRunId(result.runId);
+
+      // Reveal the persisted reply word-by-word for a live feel.
+      const words = result.reply.split(/(\s+)/);
       let acc = "";
       for (const word of words) {
         if (handle.cancelled) {
@@ -73,15 +101,15 @@ export function useAgentStream({
           return acc;
         }
         await new Promise((r) => setTimeout(r, tickMs));
-        acc += (acc ? " " : "") + word;
+        acc += word;
         setLatestDelta(acc);
-        onDelta?.(word);
+        if (word.trim()) onDelta?.(word);
       }
       setStatus("completed");
-      onComplete?.(acc);
-      return acc;
+      onComplete?.(result.reply);
+      return result.reply;
     },
-    [tickMs, onDelta, onComplete],
+    [agentCode, mode, tickMs, onDelta, onComplete],
   );
 
   const abort = React.useCallback(() => {
@@ -92,6 +120,8 @@ export function useAgentStream({
     status,
     streaming: status === "streaming",
     latestDelta,
+    error,
+    lastRunId,
     send,
     abort,
   };
