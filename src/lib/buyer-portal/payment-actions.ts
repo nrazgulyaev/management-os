@@ -25,10 +25,16 @@ import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
 import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { contractGroups, contractMilestones } from "@/lib/db/schema/sales";
+import { villas } from "@/lib/db/schema/projects";
 import { documents } from "@/lib/db/schema/documents";
 import { formatMoneyMinor } from "@/lib/money";
 import { recordAuditEvent } from "@/features/audit/services";
 import { receiptStoragePath } from "@/lib/buyer-portal/receipts";
+import {
+  renderReceiptPdf,
+  uploadBuyerDocumentBytes,
+  BUYER_DOC_BUCKET,
+} from "@/lib/buyer-portal/document-pdf";
 
 const markPaidSchema = z.object({ milestoneId: z.string().uuid() });
 
@@ -108,17 +114,44 @@ export async function markBuyerInstallmentPaid(input: {
     })
     .where(eq(contractMilestones.id, milestone.id));
 
-  // Generate a RECEIPT into the buyer's document vault. We index a metadata-only
-  // `documents` row (no byte upload — same deferred-bytes pattern Dev OS invoices
-  // use) scoped to the villa and marked owner-visible so it lands in the buyer
-  // doc-vault "Payment receipts" group. Receipt generation must not fail the
-  // payment, so it is best-effort.
+  // Generate a RECEIPT into the buyer's document vault. We render real PDF bytes
+  // and upload them to the canonical documents bucket at a deterministic
+  // per-milestone key (which is also the milestone → receipt join), then index a
+  // `documents` row scoped to the villa and marked owner-visible so it lands in
+  // the buyer doc-vault "Payment receipts" group AND is downloadable. Receipt
+  // generation must not fail the payment, so it is best-effort: if storage is
+  // not configured the row is still written byte-less (download simply absent).
   const villaId = villaIdByGroupId.get(milestone.contractGroupId) ?? null;
   let receiptDocumentId: string | null = null;
   if (villaId) {
     try {
       const receiptNumber = `RCP-${now.getUTCFullYear()}-${milestone.id.slice(0, 8).toUpperCase()}`;
       const amountLabel = formatMoneyMinor(newPaid, "USD");
+      const storagePath = receiptStoragePath(milestone.id);
+
+      // Villa label for the printed receipt (best-effort).
+      const [villa] = await db
+        .select({ unitCode: villas.unitCode, name: villas.name })
+        .from(villas)
+        .where(eq(villas.id, villaId))
+        .limit(1);
+      const villaLabel =
+        villa?.name ?? villa?.unitCode ?? `Villa ${villaId.slice(0, 8)}`;
+
+      // Render + upload the PDF bytes. Upload is best-effort; on failure the row
+      // is written without storage columns and the doc vault shows no download.
+      const bytes = await renderReceiptPdf({
+        receiptNumber,
+        buyerName: session.displayName,
+        buyerCode: session.buyerCode,
+        villaLabel,
+        milestoneName: milestone.name,
+        amountMinor: newPaid,
+        currency: "USD",
+        paidAt: now,
+      });
+      const upload = await uploadBuyerDocumentBytes(storagePath, bytes);
+
       const [doc] = await db
         .insert(documents)
         .values({
@@ -126,16 +159,18 @@ export async function markBuyerInstallmentPaid(input: {
           documentType: "receipt",
           entityType: "villa",
           entityId: villaId,
-          // Owner-visible so the buyer doc vault surfaces it; no bytes attached.
+          // Owner-visible so the buyer doc vault surfaces it.
           visibility: "owner",
           visibleToOwner: true,
           status: "active",
-          // No byte upload yet — but we stash a stable per-milestone sentinel in
-          // `storage_path` (bucket stays null, so the doc vault still shows "no
-          // file attached" rather than a dead download link). This is the
-          // milestone → receipt join the payments/contract surfaces read back
-          // via getBuyerReceiptsByMilestone, without needing a new column.
-          storagePath: receiptStoragePath(milestone.id),
+          // `storage_path` doubles as the milestone → receipt join sentinel AND
+          // the real Supabase object key. `storage_bucket` is set only when the
+          // upload succeeded, which is what the doc vault keys "downloadable" off.
+          storagePath,
+          storageBucket: upload.ok ? upload.bucket ?? BUYER_DOC_BUCKET : null,
+          fileName: upload.ok ? `${receiptNumber}.pdf` : null,
+          mimeType: upload.ok ? "application/pdf" : null,
+          sizeBytes: upload.ok ? upload.sizeBytes ?? null : null,
           createdAt: now,
           updatedAt: now,
         })

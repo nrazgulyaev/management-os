@@ -15,12 +15,20 @@
 import type { CommandAction, CommandNavigation, CommandSources } from "./types";
 import { MGMT_DASHBOARD_NAV } from "@/config/navigation/management";
 import { DEV_DASHBOARD_NAV } from "@/config/navigation/development";
+import { cabinetForNavHref, canSeeFromAccess } from "@/features/keystone/matrix";
+import type { VisibleCabinetAccess } from "@/features/keystone/matrix";
 
 interface ResolveSourcesInput {
   /** Current pathname. */
   pathname: string;
   /** "management" | "development" — drives which nav tree to use. */
   product: "management" | "development" | "owner" | null;
+  /**
+   * Keystone cabinet-access snapshot (mgmt nav only). When provided, gated
+   * "jump to cabinet" entries the user can't see are dropped, mirroring the
+   * sidebar + mobile tabbar. `null`/`undefined` ⇒ show everything (fail-open).
+   */
+  access?: VisibleCabinetAccess | null;
 }
 
 const DYNAMIC_IMPORTERS: Record<string, () => Promise<{ commandActions?: CommandAction[] }>> = {
@@ -33,21 +41,34 @@ function routeKeyFromPath(pathname: string): string {
   return segs.join(".") || "root";
 }
 
-function navigationFromProduct(product: ResolveSourcesInput["product"]): CommandNavigation[] {
+function navigationFromProduct(
+  product: ResolveSourcesInput["product"],
+  access: VisibleCabinetAccess | null,
+): CommandNavigation[] {
   // Owner Portal isn't wired in 2.1 — fall through to Mgmt for now.
+  const isMgmt = product !== "development";
   const tree = product === "development" ? DEV_DASHBOARD_NAV : MGMT_DASHBOARD_NAV;
   const out: CommandNavigation[] = [];
   for (const group of tree) {
-    // Use the first item of each group as the "jump to cabinet"
+    // Keystone gating (mgmt only — the dev nav has no matrix mapping). Drop
+    // items whose cabinet the role was un-ticked for; the group disappears
+    // only when every item is gated, mirroring the sidebar.
+    const visibleItems = isMgmt
+      ? group.items.filter((item) => {
+          const cabinet = cabinetForNavHref(item.href);
+          return cabinet === null || canSeeFromAccess(access, cabinet);
+        })
+      : group.items;
+    // Use the first VISIBLE item of each group as the "jump to cabinet"
     // entry; the rest are detail-level routes that already match
     // record search.
-    const first = group.items[0];
+    const first = visibleItems[0];
     if (!first) continue;
     out.push({
       id: `nav-${first.href}`,
       label: `${capitalize(group.title.toLowerCase())} · ${first.label}`,
       href: first.href,
-      meta: group.items.length > 1 ? `${group.items.length} cabinets` : undefined,
+      meta: visibleItems.length > 1 ? `${visibleItems.length} cabinets` : undefined,
     });
   }
   return out;
@@ -73,6 +94,6 @@ export async function getCommandSources(
   }
   return {
     actions,
-    navigation: navigationFromProduct(ctx.product),
+    navigation: navigationFromProduct(ctx.product, ctx.access ?? null),
   };
 }

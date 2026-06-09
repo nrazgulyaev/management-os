@@ -26,6 +26,26 @@ import {
  * to the authenticated buyer through their assigned villas.
  */
 
+const CONTRACT_PATH_PREFIX = "contract/group/";
+
+/**
+ * Deterministic Supabase object key for a buyer's signed-contract PDF. One per
+ * (group, buyer) so a co-buyer's signed copy never overwrites another's. Real
+ * object key (ends `.pdf`) so the rendered bytes upload here and the doc vault
+ * hands back a signed download URL.
+ */
+export function contractStoragePath(
+  contractGroupId: string,
+  buyerId: string,
+): string {
+  return `${CONTRACT_PATH_PREFIX}${contractGroupId}/buyer/${buyerId}.pdf`;
+}
+
+/** Human contract reference printed on the PDF + title. */
+export function contractReference(contractGroupId: string): string {
+  return `CTR-${contractGroupId.slice(0, 8).toUpperCase()}`;
+}
+
 export type BuyerContractSignState =
   | "awaiting_signature"
   | "signed_by_you"
