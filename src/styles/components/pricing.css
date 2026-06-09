@@ -91,3 +91,16 @@
   border-top: 1px solid var(--accent);
   border-bottom: 1px solid var(--accent);
 }
+
+/* PricingCurve legend swatches — bind a palette token to the .pc-head .legend
+   .ln `--c` variable so the live curve's legend matches the mock without an
+   inline style. Active = terra (push line), base = ink-3 (dashed), stop = danger. */
+[data-product="management"] .pc-head .legend .ln.pc-ln-active { --c: var(--terra); }
+[data-product="management"] .pc-head .legend .ln.pc-ln-base   { --c: var(--ink-3); }
+[data-product="management"] .pc-head .legend .ln.pc-ln-stop {
+  --c: var(--danger);
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--danger);
+}

@@ -243,14 +243,13 @@ export default async function PricingProductionView({
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header !mb-0 !pb-[18px]">
         <div className="left">
           <div className="crumb">
-            <Link href="/dashboard">Dashboard</Link> /{" "}
-            <span className="text-ink-4">Revenue</span> / <span>Dynamic pricing</span>
+            <Link href="/dashboard">Revenue</Link> / <span>Dynamic pricing</span>
           </div>
           <h1>Dynamic pricing</h1>
-          <p className="text-[13px] text-ink-3 mt-2 max-w-[720px]">
+          <p className="text-[13.5px] text-ink-3 mt-2 max-w-[720px]">
             Algo + manual rules drive what Channels pushes.{" "}
             {ruleSet
               ? `${overrideCount} active block${overrideCount === 1 ? "" : "s"} · base ${money(baseMinor, currency)} · ${available.length}/${cells.length} nights bookable.`
@@ -274,7 +273,7 @@ export default async function PricingProductionView({
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 mt-[18px] mb-[18px]">
         <Kpi label="Base · nightly" value={ruleSet ? money(baseMinor, currency) : "—"} sub="rule-set base" />
         <Kpi
           label="Active · 30d ADR"
@@ -297,29 +296,29 @@ export default async function PricingProductionView({
         />
       </div>
 
-      {/* Rate curve */}
-      <div className="rounded-lg border border-line-soft bg-surface overflow-hidden mb-[18px]">
-        <div className="px-5 py-3.5 border-b border-line-soft flex items-center justify-between flex-wrap gap-2">
-          <span className="text-label">
-            Rate curve{" "}
-            <span className="text-ink-tertiary">
-              · {selectedVilla?.unitCode ?? "—"} · next {cells.length || DAYS} nights ({currency})
+      {/* Rate curve — PricingCurve (.pc-*) primitive shell around the live, drag-editable curve */}
+      <div className="pc-wrap mb-[18px]">
+        <div className="pc-head">
+          <div className="min-w-0 flex-1">
+            <div className="label text-[9.5px] mb-1">
+              {selectedVilla?.unitCode ?? "—"} · next {cells.length || DAYS} nights forward
+            </div>
+            <div className="title">Rate curve — {currency} · base + active + overrides</div>
+          </div>
+          <div className="legend">
+            <span className="it">
+              <span className="ln pc-ln-active" /> active (push)
             </span>
-          </span>
-          <div className="flex items-center gap-4 text-[11px] text-ink-3">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-4 h-[2px]" style={{ background: "var(--terra)" }} /> Active (push)
+            <span className="it">
+              <span className="ln dash pc-ln-base" /> base
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-4 h-[2px] border-t border-dashed" style={{ borderColor: "var(--ink-3)" }} /> Base
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ background: "var(--danger)" }} /> Stop-sell
+            <span className="it">
+              <span className="ln pc-ln-stop" /> stop-sell
             </span>
           </div>
         </div>
         {cells.length === 0 ? (
-          <p className="p-6 text-[13px] text-ink-3 italic m-0">
+          <p className="py-6 text-[13px] text-ink-3 italic m-0">
             {ruleSet
               ? "No nightly quotes for this window."
               : "No active rule set for this villa — nothing to chart yet."}
@@ -332,18 +331,26 @@ export default async function PricingProductionView({
             cells={curveCells}
           />
         )}
+        {cells.length > 0 && (
+          <div className="pc-controls">
+            <span className="font-mono text-[10.5px] text-ink-4">
+              {overrideCount} active block{overrideCount === 1 ? "" : "s"} · drag a point to pin a nightly
+              override · click the ✕ on a pin to clear
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Pricing assistant — recommendations over the live curve */}
       {pricingRecs.length > 0 && (
-        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden mb-[18px]">
-          <div className="px-5 py-3.5 border-b border-line-soft flex items-center gap-2">
-            <span className="text-label">Pricing assistant</span>
-            <span className="text-[11px] text-ink-tertiary">
+        <div className="card card-pad mb-[18px]">
+          <div className="flex items-baseline gap-2 mb-3.5">
+            <span className="label text-[9.5px]">Pricing assistant</span>
+            <span className="font-mono text-[11px] text-ink-4">
               {pricingRecs.length} recommendation{pricingRecs.length === 1 ? "" : "s"} · next {DAYS} nights
             </span>
           </div>
-          <ul className="p-3.5 flex flex-col gap-2">
+          <ul className="flex flex-col gap-2 m-0 p-0 list-none">
             {pricingRecs.map((r) => (
               <li
                 key={r.kind}
@@ -359,21 +366,21 @@ export default async function PricingProductionView({
 
       {/* Rule stack + comp set */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-3.5 mb-[18px]">
-        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-line-soft flex items-center justify-between">
-            <span className="text-label">
-              Active rules <span className="text-ink-tertiary">· {ruleRows.length}</span>
+        <div className="card card-pad">
+          <div className="flex items-baseline justify-between mb-3.5">
+            <span className="label text-[9.5px]">
+              Active rules · {ruleRows.length}
             </span>
             {ruleSet && (
               <Link
                 href={`/dashboard/pricing/rule-sets/${ruleSet.id}`}
-                className="font-mono text-[11px] text-ink-3 hover:text-ink"
+                className="font-mono text-[11px] text-ink-3 no-underline hover:text-ink"
               >
                 manage all rules →
               </Link>
             )}
           </div>
-          <div className="p-3.5 flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             {ruleRows.length === 0 ? (
               <p className="text-[13px] text-ink-3 italic m-0 px-1 py-2">
                 {ruleSet ? "No rules configured — base rate applies." : "No rule set assigned to this villa."}
@@ -396,26 +403,34 @@ export default async function PricingProductionView({
           </div>
         </div>
 
-        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-line-soft flex items-center justify-between">
-            <span className="text-label">
-              Comp set <span className="text-ink-tertiary">· portfolio peers</span>
-            </span>
+        <div className="card card-pad">
+          <div className="flex items-baseline justify-between mb-3.5">
+            <span className="label text-[9.5px]">Comp set · portfolio peers</span>
             <span className="font-mono text-[11px] text-ink-4">
               {Math.max(0, compRows.length - 1)} peer
               {compRows.length - 1 === 1 ? "" : "s"}
             </span>
           </div>
           {compRows.length <= 1 ? (
-            <div className="p-6 text-[13px] text-ink-3 italic leading-relaxed">
+            <div className="text-[13px] text-ink-3 italic leading-relaxed">
               No comparable villas — peers are sibling villas in the same project or
               with the same bedroom count. (External-channel competitor rates would
               need a comp feed, which isn&rsquo;t integrated.)
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <CompTable rows={compRows} />
-            </div>
+            <>
+              <div className="overflow-x-auto -mx-5">
+                <CompTable rows={compRows} />
+              </div>
+              {peerMedian > 0 && compIndex != null && (
+                <div className="mt-3.5 px-3 py-2.5 bg-cream-warm rounded-md font-mono text-[10.5px] text-ink-3 leading-relaxed">
+                  median ${peerMedian} · we{" "}
+                  {compIndex >= 100 ? "sit above" : "sit below"} median by{" "}
+                  {Math.abs(compIndex - 100)}% · pricing power{" "}
+                  {compIndex >= 100 ? "↑" : "↓"}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

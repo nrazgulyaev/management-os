@@ -123,18 +123,14 @@ export function RateCurve({ villaId, currency, baseRate, cells }: RateCurveProps
   }
 
   return (
-    <div className="overflow-x-auto px-2 py-3">
-      <div className="flex items-center justify-between px-3 pb-1.5 text-[11px] text-ink-4">
-        <span>
-          Drag a point to set a manual nightly override · click the ✕ on a pin to clear
-        </span>
+    <div className="overflow-x-auto py-2">
+      <div className="flex items-center justify-end px-1 pb-1.5 h-4 font-mono text-[10.5px] text-ink-4">
         {pending && <span className="text-terra">saving…</span>}
       </div>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full min-w-[680px] select-none"
-        style={{ height: 280, touchAction: "none" }}
+        className="w-full min-w-[680px] h-[280px] touch-none select-none"
         onPointerMove={onPointerMove}
         onPointerUp={commit}
         onPointerCancel={commit}
@@ -186,7 +182,7 @@ export function RateCurve({ villaId, currency, baseRate, cells }: RateCurveProps
                 cy={cy}
                 r="10"
                 fill="transparent"
-                style={{ cursor: pending ? "wait" : "ns-resize" }}
+                className={pending ? "cursor-wait" : "cursor-ns-resize"}
                 onPointerDown={(e) => onPointerDownPoint(e, i, c.date)}
               />
               <circle
@@ -211,7 +207,7 @@ export function RateCurve({ villaId, currency, baseRate, cells }: RateCurveProps
                   fontFamily="var(--mono-font)"
                   fontSize="11"
                   fill="var(--ink-3)"
-                  style={{ cursor: "pointer" }}
+                  className="cursor-pointer"
                   onClick={() => clearOverride(c.date)}
                 >
                   ✕

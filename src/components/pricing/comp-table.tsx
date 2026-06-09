@@ -66,7 +66,7 @@ export function CompTable({ rows, className }: CompTableProps) {
               <th
                 key={h.key}
                 onClick={() => isSortable && setSort(h.key as CompSort)}
-                style={isSortable ? { cursor: "pointer" } : undefined}
+                className={isSortable ? "cursor-pointer" : undefined}
               >
                 {h.label}
                 {isSortable && sort === h.key ? " ↓" : ""}

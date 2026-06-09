@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import {
   getPricingRuleSetById,
@@ -9,6 +8,17 @@ import {
 
 export const metadata = { title: "Rule set detail" };
 export const dynamic = "force-dynamic";
+
+type RuleStackRow = {
+  prio: string;
+  when: string;
+  desc: string;
+  meta: string;
+  delta: string;
+  kindClass?: string;
+  disabled?: boolean;
+  pinned?: boolean;
+};
 
 export default async function RuleSetDetailPage({
   params,
@@ -19,9 +29,76 @@ export default async function RuleSetDetailPage({
   const set = await getPricingRuleSetById(id);
   if (!set) notFound();
   const rules = await listPricingRulesForSet(id);
+  const cur = set.currency;
+
+  /* ---- flatten every rule family into one ordered stack (mock §03) ---- */
+  const stack: RuleStackRow[] = [];
+  for (const r of rules.dayOfWeek)
+    stack.push({
+      prio: "DOW",
+      when: "day-of-week",
+      desc: weekdayLabel(r.weekday),
+      meta: r.minLos != null ? `min LOS ${r.minLos}` : "weekday rate",
+      delta: formatModifier(r.modifierType, r.modifierValueNumeric, r.modifierAmountMinor),
+      disabled: r.status !== "active",
+    });
+  for (const r of rules.occupancy)
+    stack.push({
+      prio: "OCC",
+      when: "occupancy tier",
+      desc: `${pct(r.occupancyMin)} – ${pct(r.occupancyMax)} forward occupancy`,
+      meta: "demand multiplier",
+      delta: formatModifier(r.modifierType, r.modifierValueNumeric, r.modifierAmountMinor),
+      disabled: r.status !== "active",
+    });
+  for (const r of rules.closeOut)
+    stack.push({
+      prio: "LEAD",
+      when: r.modifierType === "stop_sell" ? "close-out" : "lead time",
+      desc: `${r.daysBeforeCheckinMin}–${r.daysBeforeCheckinMax} days before check-in`,
+      meta: r.minLos != null ? `min LOS ${r.minLos}` : "days-until-checkin",
+      delta:
+        r.modifierType === "stop_sell"
+          ? "stop-sell"
+          : formatModifier(r.modifierType, r.modifierValueNumeric, r.modifierAmountMinor),
+      kindClass: r.modifierType === "stop_sell" ? "rr-kind-floor" : undefined,
+      disabled: r.status !== "active",
+    });
+  for (const r of rules.channels)
+    stack.push({
+      prio: "CHAN",
+      when: "channel",
+      desc: r.channelKey,
+      meta: r.commissionModel ?? "channel rate",
+      delta: formatModifier(r.modifierType, r.modifierValueNumeric, r.modifierAmountMinor),
+      disabled: r.status !== "active",
+    });
+  for (const r of rules.minStay)
+    stack.push({
+      prio: "LOS",
+      when: "min-stay",
+      desc: r.name,
+      meta:
+        [r.startsOn, r.endsOn].filter(Boolean).join(" → ") +
+        (r.weekdayMask?.length ? ` · weekdays ${r.weekdayMask.join(",")}` : ""),
+      delta: `min ${r.minLos}n`,
+      disabled: r.status !== "active",
+    });
+  for (const r of rules.stopSell)
+    stack.push({
+      prio: "BLOCK",
+      when: "stop-sell",
+      desc: r.name,
+      meta: `${r.startsOn} → ${r.endsOn}${r.channelKey ? ` · ${r.channelKey}` : ""}`,
+      delta: r.reason.replace(/_/g, " "),
+      kindClass: "rr-kind-floor",
+      disabled: r.status !== "active",
+      pinned: true,
+    });
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header !mb-0">
         <div className="left">
           <div className="crumb">
             <Link href="/dashboard/pricing">Dynamic pricing</Link> /{" "}
@@ -42,137 +119,62 @@ export default async function RuleSetDetailPage({
         </div>
       </div>
 
-      <Section eyebrow="Base" title="Base rate / clamps">
-        <dl className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <Field label="Base" value={`${formatMoney(set.baseRateMinor)} ${set.currency}`} mono />
-          <Field
-            label="Min clamp"
-            value={set.minRateMinor != null ? `${formatMoney(set.minRateMinor)} ${set.currency}` : "—"}
-            mono
-          />
-          <Field
-            label="Max clamp"
-            value={set.maxRateMinor != null ? `${formatMoney(set.maxRateMinor)} ${set.currency}` : "—"}
-            mono
-          />
-          <Field label="Project" value={set.projectId ?? "—"} mono />
-          <Field label="Villa" value={set.villaId ?? "—"} mono />
-        </dl>
-      </Section>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
+        {/* Rule stack — every family, in priority order */}
+        <div>
+          <div className="label text-[9.5px] mb-2.5">
+            Rules · {stack.length} · order matters (top wins)
+          </div>
+          {stack.length === 0 ? (
+            <p className="rounded-card border border-dashed border-line-soft bg-cream-warm/40 px-5 py-6 text-sm text-ink-3">
+              No rules configured — base rate applies.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {stack.map((d, i) => (
+                <div
+                  key={i}
+                  className={`rule-row${d.disabled ? " is-disabled" : ""}${d.pinned ? " is-pinned" : ""}`}
+                >
+                  <span className="rr-prio">{d.prio}</span>
+                  <span className={`rr-kind${d.kindClass ? ` ${d.kindClass}` : ""}`}>{d.when}</span>
+                  <span className="rr-cond">{d.desc}</span>
+                  <span className="rr-effect">{d.meta}</span>
+                  <span className="rr-delta">{d.delta}</span>
+                  <span className="rr-actions" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-      <Section eyebrow="Day of week" title={`${rules.dayOfWeek.length} rules`}>
-        <RuleTable
-          rows={rules.dayOfWeek.map((r) => ({
-            label: weekdayLabel(r.weekday),
-            modifier: formatModifier(r.modifierType, r.modifierValueNumeric, r.modifierAmountMinor),
-            extra: r.minLos != null ? `min LOS ${r.minLos}` : "",
-            status: r.status,
-          }))}
-        />
-      </Section>
-
-      <Section eyebrow="Occupancy" title={`${rules.occupancy.length} rules`}>
-        <RuleTable
-          rows={rules.occupancy.map((r) => ({
-            label: `${pct(r.occupancyMin)} – ${pct(r.occupancyMax)}`,
-            modifier: formatModifier(r.modifierType, r.modifierValueNumeric, r.modifierAmountMinor),
-            extra: "",
-            status: r.status,
-          }))}
-        />
-      </Section>
-
-      <Section eyebrow="Close-out" title={`${rules.closeOut.length} rules`}>
-        <RuleTable
-          rows={rules.closeOut.map((r) => ({
-            label: `${r.daysBeforeCheckinMin}–${r.daysBeforeCheckinMax} days before`,
-            modifier:
-              r.modifierType === "stop_sell"
-                ? "stop sell"
-                : formatModifier(r.modifierType, r.modifierValueNumeric, r.modifierAmountMinor),
-            extra: r.minLos != null ? `min LOS ${r.minLos}` : "",
-            status: r.status,
-          }))}
-        />
-      </Section>
-
-      <Section eyebrow="Channels" title={`${rules.channels.length} rules`}>
-        <RuleTable
-          rows={rules.channels.map((r) => ({
-            label: r.channelKey,
-            modifier: formatModifier(r.modifierType, r.modifierValueNumeric, r.modifierAmountMinor),
-            extra: r.commissionModel ?? "",
-            status: r.status,
-          }))}
-        />
-      </Section>
-
-      <Section eyebrow="Min stay" title={`${rules.minStay.length} rules`}>
-        <RuleTable
-          rows={rules.minStay.map((r) => ({
-            label: r.name,
-            modifier: `${r.minLos} nights`,
-            extra:
-              [r.startsOn, r.endsOn].filter(Boolean).join(" → ") +
-              (r.weekdayMask?.length ? ` · weekdays ${r.weekdayMask.join(",")}` : ""),
-            status: r.status,
-          }))}
-        />
-      </Section>
-
-      <Section eyebrow="Stop sell" title={`${rules.stopSell.length} rules`}>
-        <RuleTable
-          rows={rules.stopSell.map((r) => ({
-            label: r.name,
-            modifier: r.reason,
-            extra: `${r.startsOn} → ${r.endsOn}${r.channelKey ? ` · ${r.channelKey}` : ""}`,
-            status: r.status,
-          }))}
-        />
-      </Section>
+        {/* Base / clamps card */}
+        <div className="card card-pad">
+          <div className="label text-[9.5px] mb-3.5">Base rate / clamps</div>
+          <dl className="flex flex-col gap-3 m-0">
+            <Field label="Base" value={`${formatMoney(set.baseRateMinor)} ${cur}`} />
+            <Field
+              label="Min clamp"
+              value={set.minRateMinor != null ? `${formatMoney(set.minRateMinor)} ${cur}` : "—"}
+            />
+            <Field
+              label="Max clamp"
+              value={set.maxRateMinor != null ? `${formatMoney(set.maxRateMinor)} ${cur}` : "—"}
+            />
+            <Field label="Project" value={set.projectId ?? "—"} />
+            <Field label="Villa" value={set.villaId ?? "—"} />
+          </dl>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-line-soft bg-surface p-4">
-      <dt className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</dt>
-      <dd className={`mt-1 text-ink ${mono ? "font-mono text-xs" : "text-sm"}`}>{value}</dd>
-    </div>
-  );
-}
-
-function RuleTable({
-  rows,
-}: {
-  rows: { label: string; modifier: string; extra: string; status: string }[];
-}) {
-  if (rows.length === 0) {
-    return (
-      <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-        None configured.
-      </p>
-    );
-  }
-  return (
-    <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-      <table className="w-full text-sm">
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} className="border-t border-line-soft first:border-t-0">
-              <td className="px-4 py-3 text-ink">{r.label}</td>
-              <td className="px-4 py-3 font-mono text-xs">{r.modifier}</td>
-              <td className="px-4 py-3 text-xs text-ink-tertiary">{r.extra}</td>
-              <td className="px-4 py-3">
-                <Badge tone={r.status === "active" ? "success" : r.status === "paused" ? "warning" : "neutral"}>
-                  {r.status}
-                </Badge>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="flex items-baseline justify-between gap-3 pb-3 border-b border-line-soft last:border-b-0 last:pb-0">
+      <dt className="field-label">{label}</dt>
+      <dd className="m-0 font-mono text-[12px] text-ink tabular-nums text-right break-all">{value}</dd>
     </div>
   );
 }
