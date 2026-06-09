@@ -77,6 +77,15 @@
 [data-product="management"] .card { background: var(--paper); border: 1px solid var(--line-soft); border-radius: 18px; }
 [data-product="management"] .card-tight { border-radius: 14px; }
 [data-product="management"] .ring { border: 1px solid var(--line); }
+/* Dev OS `.card` recipe — the `<Card>` primitive renders `.card`, but only
+   the mgmt + subscription surfaces defined it, so every Dev OS cabinet card
+   (Overview AI band, digests tile, attention feed, projects/team panels)
+   fell back to browser defaults (no surface, border or radius). Per the dev
+   pixel mocks: --panel + --line + --r-card-lg(18). Scoped to development so
+   mgmt/subscription `.card` is untouched. */
+[data-product="development"] .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-card-lg, 18px); }
+[data-product="development"] .card-tight { border-radius: var(--r-card, 14px); }
+[data-product="development"] .ring { border: 1px solid var(--line); }
 [data-product="development"] .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; }
 [data-product="development"] .panel-2 { background: var(--bg-3); border: 1px solid var(--line); border-radius: 18px; }
 [data-product="subscription"] .card { background: var(--paper-3); border: 1px solid var(--line-soft); border-radius: 22px; }
@@ -104,6 +113,7 @@
 [data-product="development"] .badge-warn  { color: var(--warn); border-color: rgba(230,162,60,0.4); background: rgba(230,162,60,0.10); }
 [data-product="development"] .badge-danger{ color: var(--danger); border-color: rgba(215,70,77,0.4); background: rgba(215,70,77,0.10); }
 [data-product="development"] .badge-steel { color: var(--steel-soft); border-color: rgba(125,157,191,0.4); background: rgba(125,157,191,0.10); }
+[data-product="development"] .badge-info  { color: var(--steel); border-color: rgba(61,90,122,0.4); background: rgba(61,90,122,0.10); }
 [data-product="development"] .badge-soft  { color: var(--ink-2); border-color: var(--line-2); background: var(--bg-3); }
 
 /* Chips */

@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -21,19 +17,25 @@ import { MovementDevAddButton } from "@/components/development/inventory/movemen
 export const metadata: Metadata = { title: "Movements · Development OS" };
 export const dynamic = "force-dynamic";
 
-const MOVEMENT_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  received: "success",
+const MOVEMENT_TONE: Record<
+  string,
+  "ok" | "warn" | "danger" | "gold" | "info" | "ink" | undefined
+> = {
+  received: "ok",
   reserved: "info",
-  unreserved: "neutral",
+  unreserved: undefined,
   issued_to_site: "info",
-  used: "neutral",
+  used: undefined,
   returned: "info",
   damaged: "danger",
   lost: "danger",
   transferred: "info",
   written_off: "danger",
-  adjusted: "warning",
+  adjusted: "warn",
 };
+
+const INBOUND = new Set(["received", "returned", "unreserved"]);
+const OUTBOUND = new Set(["issued_to_site", "used", "damaged", "lost", "written_off"]);
 
 export default async function InventoryMovementsPage({
   searchParams,
@@ -45,7 +47,12 @@ export default async function InventoryMovementsPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Movements" />
+        <header className="page-header">
+          <div className="left">
+            <div className="crumb">Warehouse · stock</div>
+            <h1>Movements</h1>
+          </div>
+        </header>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -77,33 +84,75 @@ export default async function InventoryMovementsPage({
     ),
   ]);
 
+  const inCount = movements.filter((m) => INBOUND.has(m.movementType)).length;
+  const outCount = movements.filter((m) => OUTBOUND.has(m.movementType)).length;
+  const adjCount = movements.filter(
+    (m) => m.movementType === "adjusted" || m.movementType === "transferred",
+  ).length;
+
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Inventory", href: "/development-os/inventory/items" },
-          { label: "Movements" },
-        ]}
-        eyebrow={`${movements.length} movement${movements.length === 1 ? "" : "s"}`}
-        title="Inventory movements"
-        description="Append-only stock movement log. Every received, reserved, issued, transferred, used, damaged, etc. event is recorded here. Stock balances are derived (atomic writes via inventory-actions.ts)."
-        actions={
-          <div className="flex gap-2">
-            <MovementDevAddButton
-              items={items}
-              locations={locations}
-              projects={projectRows}
-            />
-            <Button asChild variant="secondary">
-              <Link href="/development-os/inventory/items">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Items
-              </Link>
-            </Button>
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">Warehouse · stock</div>
+          <h1>
+            Movements <em>· {movements.length} logged</em>
+          </h1>
+          <div className="page-header-meta">
+            <span>{inCount} in</span>
+            <span>·</span>
+            <span>{outCount} out</span>
+            <span>·</span>
+            <span>{adjCount} adj / transfer</span>
           </div>
-        }
-      />
+        </div>
+        <div className="actions">
+          <MovementDevAddButton
+            items={items}
+            locations={locations}
+            projects={projectRows}
+          />
+          <Link
+            href="/development-os/inventory/items"
+            className="btn btn-dark btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Items
+          </Link>
+        </div>
+      </header>
+
+      <p className="text-ink-secondary text-sm max-w-3xl leading-relaxed">
+        Append-only stock movement log. Every received, reserved, issued,
+        transferred, used, damaged, etc. event is recorded here. Stock balances
+        are derived (atomic writes via inventory-actions.ts).
+      </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi
+          label="Movements"
+          value={movements.length || "—"}
+          sub="last 200"
+          tone={movements.length ? "accent" : undefined}
+        />
+        <Kpi
+          label="In"
+          value={inCount || "—"}
+          sub="received + returned"
+          tone={inCount > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Out"
+          value={outCount || "—"}
+          sub="issued + used"
+        />
+        <Kpi
+          label="Adjust / transfer"
+          value={adjCount || "—"}
+          sub="reconciliation"
+          tone={adjCount > 0 ? "warn" : undefined}
+        />
+      </div>
 
       {movements.length === 0 ? (
         <EmptyState
@@ -111,43 +160,52 @@ export default async function InventoryMovementsPage({
           description="Use 'Record movement' above to log the first stock event."
         />
       ) : (
-        <Section eyebrow="Log" title="Most recent first">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Date</TH>
-                <TH>Type</TH>
-                <TH>Item</TH>
-                <TH>Quantity</TH>
-                <TH>From → To</TH>
-                <TH>Project</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {movements.map((m) => (
-                <TR key={m.id}>
-                  <TD className="font-mono text-xs">{m.movementCode}</TD>
-                  <TD className="text-xs">{m.movementDate}</TD>
-                  <TD>
-                    <Badge tone={MOVEMENT_TONE[m.movementType] ?? "neutral"}>
-                      {m.movementType}
-                    </Badge>
-                  </TD>
-                  <TD className="font-mono text-xs">{m.itemId.slice(0, 8)}</TD>
-                  <TDNum>{Number(m.quantity).toFixed(2)}</TDNum>
-                  <TD className="font-mono text-xs">
-                    {m.fromLocationId?.slice(0, 8) ?? "·"} →{" "}
-                    {m.toLocationId?.slice(0, 8) ?? "·"}
-                  </TD>
-                  <TD className="font-mono text-xs">
-                    {m.projectId?.slice(0, 8) ?? "—"}
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Section>
+        <section>
+          <div className="flex items-baseline justify-between mb-3">
+            <span className="label">Log · most recent first</span>
+          </div>
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Item</th>
+                    <th className="num">Quantity</th>
+                    <th>From → To</th>
+                    <th>Project</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {movements.map((m) => (
+                    <tr key={m.id}>
+                      <td className="font-mono text-xs">{m.movementCode}</td>
+                      <td className="text-xs">{m.movementDate}</td>
+                      <td>
+                        <HandoffBadge tone={MOVEMENT_TONE[m.movementType]}>
+                          {m.movementType}
+                        </HandoffBadge>
+                      </td>
+                      <td className="font-mono text-xs">
+                        {m.itemId.slice(0, 8)}
+                      </td>
+                      <td className="num">{Number(m.quantity).toFixed(2)}</td>
+                      <td className="font-mono text-xs">
+                        {m.fromLocationId?.slice(0, 8) ?? "·"} →{" "}
+                        {m.toLocationId?.slice(0, 8) ?? "·"}
+                      </td>
+                      <td className="font-mono text-xs">
+                        {m.projectId?.slice(0, 8) ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       )}
     </DevelopmentShell>
   );
