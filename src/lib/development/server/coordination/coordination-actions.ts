@@ -1,10 +1,11 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireDb } from "@/lib/db/client";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { recordAuditEvent } from "@/features/audit/services";
 import { rfis } from "@/lib/db/schema/rfis";
 import { submittals } from "@/lib/db/schema/submittals";
@@ -19,9 +20,18 @@ import {
 import { SUBMITTAL_TYPES, SUBMITTAL_STATUSES } from "@/lib/db/schema/submittals";
 import {
   canTransitionSubmittal,
+  canTransitionRfi,
+  isSubmittalApproved,
   makeSubmittalRef,
   type CoordinationItemKind,
+  type RfiFsmStatus,
 } from "@/features/development/coordination/coordination-model";
+import { devOsPurchaseRequests } from "@/lib/db/schema/procurement";
+import {
+  coordinationAnnotations,
+  ANNOTATION_STROKE_KINDS,
+  type AnnotationStroke,
+} from "@/lib/db/schema/coordination-annotations";
 import {
   listThreadMessages as loadThreadMessages,
 } from "./coordination-queries";
@@ -31,6 +41,7 @@ export type { CoordinationThreadMessage };
 import {
   RFI_DISCIPLINES,
   makeRfiRef,
+  rfiStatus,
 } from "@/features/development/rfi/rfi-routing";
 import type { SubmittalStatus } from "@/lib/db/schema/submittals";
 
@@ -382,12 +393,18 @@ export async function transitionCoordinationItem(
       .where(eq(rfis.id, parsed.itemId))
       .limit(1);
     if (!current) throw new Error("RFI not found");
-    if (current.resolvedAt) throw new Error("RFI already closed");
+
+    // Guard via the RFI FSM (open → answered → closed; no skipping/re-opening).
+    const from = rfiStatus(current);
+    const to = parsed.to as RfiFsmStatus;
+    if (!canTransitionRfi(from, to)) {
+      throw new Error(`Illegal RFI transition ${from} → ${to}`);
+    }
 
     const updates: Partial<typeof rfis.$inferInsert> = {
       respondedAt: current.respondedAt ?? now,
     };
-    if (parsed.to === "closed") updates.resolvedAt = now;
+    if (to === "closed") updates.resolvedAt = now;
 
     const [row] = await db
       .update(rfis)
@@ -400,7 +417,7 @@ export async function transitionCoordinationItem(
       action: "rfi.transition",
       entityType: "rfi",
       entityId: parsed.itemId,
-      metadata: { to: parsed.to, via: "coordination" },
+      metadata: { from, to, via: "coordination" },
     });
     revalidatePath(COORDINATION);
     return row;
@@ -447,6 +464,287 @@ export async function transitionCoordinationItem(
     entityId: parsed.itemId,
     metadata: { from, to, via: "coordination" },
   });
+
+  // ── SUBMITTAL → PROCUREMENT gate effect ──────────────────────────────
+  // Crossing into an approved state unblocks any purchase request gated on
+  // this submittal. The PR transition action (transitionPurchaseRequest)
+  // enforces the gate on writes; here we record the unblock for audit and
+  // refresh the procurement view so the now-allowed PO action appears.
+  if (isSubmittalApproved(to) && !isSubmittalApproved(from)) {
+    const gated = await db
+      .select({ id: devOsPurchaseRequests.id, code: devOsPurchaseRequests.requestCode })
+      .from(devOsPurchaseRequests)
+      .where(eq(devOsPurchaseRequests.gatingSubmittalId, parsed.itemId));
+    if (gated.length > 0) {
+      await recordAuditEvent({
+        actorUserId: ctx.appUser?.id ?? null,
+        action: "submittal.gate.unblock",
+        entityType: "submittal",
+        entityId: parsed.itemId,
+        metadata: {
+          to,
+          unblockedRequests: gated.map((g) => g.code),
+          count: gated.length,
+        },
+      });
+      revalidatePath("/development-os/procurement");
+    }
+  }
+
   revalidatePath(COORDINATION);
   return row;
+}
+
+// ── Drawing markup persistence (annotations) ──────────────────────────
+const annotationPointSchema = z.object({
+  x: z.number().finite(),
+  y: z.number().finite(),
+});
+
+const annotationStrokeSchema = z.object({
+  id: z.string().min(1).max(64),
+  kind: z.enum(ANNOTATION_STROKE_KINDS as unknown as [string, ...string[]]),
+  points: z.array(annotationPointSchema).min(1).max(500),
+  label: z.string().max(200).optional(),
+  color: z.string().max(32).optional(),
+});
+
+const saveAnnotationsSchema = z.object({
+  revisionId: z.string().uuid(),
+  strokes: z.array(annotationStrokeSchema).max(1000),
+  scalePixels: z.number().positive().nullable().optional(),
+  scaleMeters: z.number().positive().nullable().optional(),
+});
+
+/**
+ * Upserts the full markup stroke set for a drawing revision (one row per
+ * revision). Replaces the stored strokes wholesale — the client owns the
+ * canonical set and saves on change. Permission-gated, project-scoped via the
+ * revision, audit-logged.
+ */
+export async function saveCoordinationAnnotations(
+  input: z.input<typeof saveAnnotationsSchema>,
+) {
+  const ctx = await requireInternalUser();
+  const parsed = saveAnnotationsSchema.parse(input);
+  const db = requireDb();
+
+  const projectId = await projectIdForRevision(db, parsed.revisionId);
+  if (!projectId) throw new Error("Drawing revision not found");
+
+  const strokes = parsed.strokes as AnnotationStroke[];
+  const scalePixels = parsed.scalePixels ?? null;
+  const scaleMeters = parsed.scaleMeters ?? null;
+  const now = new Date();
+
+  const [row] = await db
+    .insert(coordinationAnnotations)
+    .values({
+      projectId,
+      revisionId: parsed.revisionId,
+      strokes,
+      scalePixels,
+      scaleMeters,
+      updatedBy: ctx.appUser?.id ?? null,
+    })
+    .onConflictDoUpdate({
+      target: coordinationAnnotations.revisionId,
+      set: {
+        strokes,
+        scalePixels,
+        scaleMeters,
+        updatedBy: ctx.appUser?.id ?? null,
+        updatedAt: now,
+      },
+    })
+    .returning({ id: coordinationAnnotations.id });
+
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "coordination.annotations.save",
+    entityType: "coordination_annotation",
+    entityId: row?.id ?? null,
+    after: { strokeCount: strokes.length, hasScale: scalePixels != null },
+    metadata: { projectId, revisionId: parsed.revisionId },
+  });
+
+  revalidateRevision(parsed.revisionId);
+  return row;
+}
+
+export interface CoordinationAnnotationState {
+  strokes: AnnotationStroke[];
+  scalePixels: number | null;
+  scaleMeters: number | null;
+}
+
+/** Client-callable loader for the saved markup of a revision. */
+export async function fetchCoordinationAnnotations(input: {
+  revisionId: string;
+}): Promise<CoordinationAnnotationState> {
+  await requireInternalUser();
+  const parsed = z.object({ revisionId: z.string().uuid() }).parse(input);
+  const db = requireDb();
+  const [row] = await db
+    .select({
+      strokes: coordinationAnnotations.strokes,
+      scalePixels: coordinationAnnotations.scalePixels,
+      scaleMeters: coordinationAnnotations.scaleMeters,
+    })
+    .from(coordinationAnnotations)
+    .where(eq(coordinationAnnotations.revisionId, parsed.revisionId))
+    .limit(1);
+  return {
+    strokes: (row?.strokes as AnnotationStroke[] | undefined) ?? [],
+    scalePixels: row?.scalePixels ?? null,
+    scaleMeters: row?.scaleMeters ?? null,
+  };
+}
+
+// ── Submittal → Procurement gate wiring ───────────────────────────────
+export interface GatedRequestSummary {
+  id: string;
+  requestCode: string;
+  materialName: string;
+  status: string;
+  /** True once the linked submittal is approved (the gate is open). */
+  unblocked: boolean;
+}
+
+/**
+ * Lists the purchase requests gated on a submittal, with whether each is
+ * currently unblocked (gate open). Drives the "what this approval releases"
+ * panel in the coordination drawer.
+ */
+export async function fetchGatedRequests(input: {
+  submittalId: string;
+}): Promise<GatedRequestSummary[]> {
+  await requireInternalUser();
+  const parsed = z.object({ submittalId: z.string().uuid() }).parse(input);
+  const db = requireDb();
+
+  const [sub] = await db
+    .select({ status: submittals.status })
+    .from(submittals)
+    .where(eq(submittals.id, parsed.submittalId))
+    .limit(1);
+  const open = sub ? isSubmittalApproved(sub.status as SubmittalStatus) : false;
+
+  const rows = await db
+    .select({
+      id: devOsPurchaseRequests.id,
+      requestCode: devOsPurchaseRequests.requestCode,
+      materialName: devOsPurchaseRequests.materialName,
+      status: devOsPurchaseRequests.status,
+    })
+    .from(devOsPurchaseRequests)
+    .where(eq(devOsPurchaseRequests.gatingSubmittalId, parsed.submittalId));
+
+  return rows.map((r) => ({ ...r, unblocked: open }));
+}
+
+const linkGateSchema = z.object({
+  submittalId: z.string().uuid(),
+  requestId: z.string().uuid(),
+});
+
+/**
+ * Links a purchase request to a gating submittal (org-scoped on the PR side).
+ * The PR then cannot reach the procurement-commit states until the submittal
+ * is approved (enforced in transitionPurchaseRequest).
+ */
+export async function linkSubmittalGate(
+  input: z.input<typeof linkGateSchema>,
+) {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = linkGateSchema.parse(input);
+  const db = requireDb();
+
+  // Verify both belong to the same project (cross-cabinet integrity).
+  const [sub] = await db
+    .select({ projectId: submittals.projectId, ref: submittals.ref })
+    .from(submittals)
+    .where(eq(submittals.id, parsed.submittalId))
+    .limit(1);
+  if (!sub) throw new Error("Submittal not found");
+  const [pr] = await db
+    .select({ projectId: devOsPurchaseRequests.projectId })
+    .from(devOsPurchaseRequests)
+    .where(
+      and(
+        eq(devOsPurchaseRequests.id, parsed.requestId),
+        eq(devOsPurchaseRequests.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!pr) throw new Error("Purchase request not found");
+  if (pr.projectId !== sub.projectId) {
+    throw new Error("Purchase request and submittal belong to different projects");
+  }
+
+  await db
+    .update(devOsPurchaseRequests)
+    .set({ gatingSubmittalId: parsed.submittalId, updatedAt: new Date() })
+    .where(
+      and(
+        eq(devOsPurchaseRequests.id, parsed.requestId),
+        eq(devOsPurchaseRequests.organizationId, organizationId),
+      ),
+    );
+
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "submittal.gate.link",
+    entityType: "submittal",
+    entityId: parsed.submittalId,
+    metadata: { requestId: parsed.requestId, submittalRef: sub.ref },
+  });
+
+  revalidatePath(COORDINATION);
+  revalidatePath("/development-os/procurement");
+  return { ok: true as const };
+}
+
+/** Lists project purchase requests available to gate on a submittal. */
+export interface LinkableRequest {
+  id: string;
+  requestCode: string;
+  materialName: string;
+  status: string;
+  gatedBySubmittalId: string | null;
+}
+
+export async function fetchLinkableRequests(input: {
+  submittalId: string;
+}): Promise<LinkableRequest[]> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = z.object({ submittalId: z.string().uuid() }).parse(input);
+  const db = requireDb();
+
+  const [sub] = await db
+    .select({ projectId: submittals.projectId })
+    .from(submittals)
+    .where(eq(submittals.id, parsed.submittalId))
+    .limit(1);
+  if (!sub) return [];
+
+  const rows = await db
+    .select({
+      id: devOsPurchaseRequests.id,
+      requestCode: devOsPurchaseRequests.requestCode,
+      materialName: devOsPurchaseRequests.materialName,
+      status: devOsPurchaseRequests.status,
+      gatedBySubmittalId: devOsPurchaseRequests.gatingSubmittalId,
+    })
+    .from(devOsPurchaseRequests)
+    .where(
+      and(
+        eq(devOsPurchaseRequests.projectId, sub.projectId),
+        eq(devOsPurchaseRequests.organizationId, organizationId),
+      ),
+    )
+    .orderBy(desc(devOsPurchaseRequests.createdAt));
+  return rows;
 }

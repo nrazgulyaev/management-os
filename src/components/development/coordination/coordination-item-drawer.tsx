@@ -14,21 +14,30 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Link2, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
 import {
   KIND_LABEL,
   nextSubmittalStatuses,
+  isSubmittalApproved,
   type CoordinationItemSummary,
+  type SubmittalStatus,
 } from "@/features/development/coordination/coordination-model";
 import {
   postCoordinationReply,
   transitionCoordinationItem,
   fetchCoordinationThread,
+  fetchGatedRequests,
+  fetchLinkableRequests,
+  linkSubmittalGate,
 } from "@/lib/development/server/coordination/coordination-actions";
-import type { CoordinationThreadMessage } from "@/lib/development/server/coordination/coordination-actions";
+import type {
+  CoordinationThreadMessage,
+  GatedRequestSummary,
+  LinkableRequest,
+} from "@/lib/development/server/coordination/coordination-actions";
 
 const SUBMITTAL_ACTION_LABEL: Record<string, string> = {
   under_review: "Send to review",
@@ -206,6 +215,13 @@ export function CoordinationItemDrawer({
             </Button>
           </div>
 
+          {item.kind === "submittal" && (
+            <SubmittalGatePanel
+              submittalId={item.id}
+              status={item.status as SubmittalStatus}
+            />
+          )}
+
           {item.kind === "defect" && (
             <p className="text-xs text-ink-tertiary">
               Defect lifecycle (open → accepted → closed) is managed in the
@@ -236,5 +252,180 @@ export function CoordinationItemDrawer({
         )}
       </ModalFooter>
     </Modal>
+  );
+}
+
+/**
+ * SUBMITTAL → PROCUREMENT gate panel. Shows the purchase requests gated on
+ * this submittal (and whether the gate is currently open), and lets an
+ * operator link another PR to gate on it. The gate's authoritative enforcement
+ * lives in transitionPurchaseRequest; this panel is the cross-cabinet surface.
+ */
+function SubmittalGatePanel({
+  submittalId,
+  status,
+}: {
+  submittalId: string;
+  status: SubmittalStatus;
+}) {
+  const [gated, setGated] = useState<GatedRequestSummary[] | null>(null);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkable, setLinkable] = useState<LinkableRequest[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const approved = isSubmittalApproved(status);
+
+  function reload() {
+    fetchGatedRequests({ submittalId })
+      .then(setGated)
+      .catch(() => setGated([]));
+  }
+
+  useEffect(() => {
+    let active = true;
+    fetchGatedRequests({ submittalId })
+      .then((rows) => active && setGated(rows))
+      .catch(() => active && setGated([]));
+    return () => {
+      active = false;
+    };
+  }, [submittalId]);
+
+  function openLink() {
+    setError(null);
+    setLinkOpen(true);
+    setLinkable(null);
+    fetchLinkableRequests({ submittalId })
+      .then(setLinkable)
+      .catch(() => setLinkable([]));
+  }
+
+  function link(requestId: string) {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await linkSubmittalGate({ submittalId, requestId });
+        setLinkOpen(false);
+        reload();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to link request");
+      }
+    });
+  }
+
+  return (
+    <div className="rounded-lg border border-line-soft bg-surface p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {approved ? (
+            <Unlock className="w-4 h-4 text-success" strokeWidth={1.75} />
+          ) : (
+            <Lock className="w-4 h-4 text-ink-tertiary" strokeWidth={1.75} />
+          )}
+          <span className="text-[11px] uppercase tracking-wide text-ink-tertiary">
+            Procurement gate
+          </span>
+        </div>
+        <Button variant="ghost" size="sm" onClick={openLink} disabled={pending}>
+          <Link2 className="w-3.5 h-3.5" strokeWidth={1.75} />
+          Gate a request
+        </Button>
+      </div>
+
+      <p className="mt-1 text-xs text-ink-tertiary">
+        {approved
+          ? "Approved — gated purchase requests below are released to proceed to PO."
+          : "Until this submittal is approved, gated purchase requests are blocked from selecting a quote or creating a PO."}
+      </p>
+
+      {gated === null ? (
+        <div className="mt-2 flex items-center gap-2 text-xs text-ink-tertiary">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+        </div>
+      ) : gated.length === 0 ? (
+        <p className="mt-2 text-xs text-ink-tertiary">
+          No purchase requests are gated on this submittal yet.
+        </p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-1.5">
+          {gated.map((r) => (
+            <li
+              key={r.id}
+              className="flex items-center gap-2 rounded border border-line-soft px-2 py-1.5"
+            >
+              <span className="font-mono text-[11px] text-ink-tertiary">
+                {r.requestCode}
+              </span>
+              <span className="text-sm text-ink truncate">{r.materialName}</span>
+              <Badge tone={r.unblocked ? "success" : "warning"}>
+                {r.unblocked ? "released" : "blocked"}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <p className="mt-2 text-xs text-danger">{error}</p>}
+
+      <Modal
+        open={linkOpen}
+        onOpenChange={(o) => !o && setLinkOpen(false)}
+        size="md"
+        ariaLabel="Gate a purchase request"
+      >
+        <ModalHeader
+          title="Gate a purchase request"
+          description="Link a purchase request so it cannot proceed to PO until this submittal is approved."
+          onClose={() => setLinkOpen(false)}
+        />
+        <ModalBody>
+          {linkable === null ? (
+            <div className="flex items-center gap-2 text-sm text-ink-tertiary">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading requests…
+            </div>
+          ) : linkable.length === 0 ? (
+            <p className="text-sm text-ink-tertiary">
+              No purchase requests on this project yet. Create one in the
+              Procurement cabinet first.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1">
+              {linkable.map((r) => {
+                const alreadyHere = r.gatedBySubmittalId === submittalId;
+                return (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onClick={() => !alreadyHere && link(r.id)}
+                      disabled={pending || alreadyHere}
+                      className="w-full text-left rounded-lg border border-line-soft bg-surface hover:bg-muted disabled:opacity-60 transition-colors px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[11px] text-ink-tertiary">
+                          {r.requestCode}
+                        </span>
+                        <Badge tone="outline">{r.status.replace(/_/g, " ")}</Badge>
+                        {alreadyHere && <Badge tone="success">gated here</Badge>}
+                        {r.gatedBySubmittalId && !alreadyHere && (
+                          <Badge tone="warning">gated elsewhere</Badge>
+                        )}
+                      </div>
+                      <div className="mt-1 text-sm text-ink truncate">
+                        {r.materialName}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {error && <p className="mt-2 text-xs text-danger">{error}</p>}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setLinkOpen(false)}>
+            Done
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </div>
   );
 }

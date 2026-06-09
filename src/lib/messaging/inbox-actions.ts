@@ -104,7 +104,7 @@ export async function sendReplyAction(formData: FormData): Promise<void> {
   }
 }
 
-function envKeyForChannel(c: MessagingChannel): string | null {
+export function envKeyForChannel(c: MessagingChannel): string | null {
   switch (c) {
     case "whatsapp":
       return "MESSAGING_WHATSAPP_CREDENTIALS";

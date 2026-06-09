@@ -1,7 +1,7 @@
 import "server-only";
 
 import { and, eq, lt, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, type DB } from "@/lib/db/client";
 import { jobRuns } from "@/lib/db/schema/jobs";
 import { healthStaleJobMinutes } from "@/lib/env";
 
@@ -42,9 +42,19 @@ export interface HealthReport {
   };
 }
 
-export async function evaluateHealth(): Promise<HealthReport> {
+/**
+ * `evaluateHealth` accepts an optional db override so the test suite can
+ * drive the DB-DOWN path — a db whose `execute` rejects (mimicking an
+ * unreachable Postgres) — and assert the probe returns `healthy:false`
+ * (which the /api/cron/health route turns into a 503) WITHOUT needing a
+ * live database. Production callers pass nothing and we fall back to
+ * `getDb()`. Passing `null` explicitly exercises the no-DB (demo) branch.
+ */
+export async function evaluateHealth(
+  dbOverride?: DB | null,
+): Promise<HealthReport> {
   const checkedAt = new Date().toISOString();
-  const db = getDb();
+  const db: DB | null = dbOverride !== undefined ? dbOverride : getDb();
 
   if (!db) {
     // No backend wired (demo / marketing). Nothing can be "down".

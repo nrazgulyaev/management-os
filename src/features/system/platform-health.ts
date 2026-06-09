@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { healthStaleJobMinutes } from "@/lib/env";
 
 /**
  * P1 SUPERADMIN-SYSTEM-HEALTH — platform-scoped system-health reads.
@@ -65,6 +66,51 @@ export interface PlatformHealthSnapshot {
   activeLocks: number;
   recentAgentRuns: AgentRunRow[];
   agentRunFailures24h: number;
+}
+
+/**
+ * One dead-letter row: a job run that finished `failed` and has not been
+ * re-run successfully since. This is the platform's "dead-letter queue" view
+ * — the job runner has no separate DLQ table, so the canonical signal is a
+ * failed `job_runs` row with no later success for the same `job_key`.
+ */
+export interface DeadLetterRow {
+  jobKey: string;
+  runId: string;
+  failedAt: string;
+  errorMessage: string | null;
+  resultSummary: string | null;
+}
+
+export interface JobHealthPanel {
+  dbConfigured: boolean;
+  /** Jobs whose status is still `running` (in-flight queue depth). */
+  runningCount: number;
+  /** Jobs `running` past the stale threshold — a stuck worker / leaked lock. */
+  stuckCount: number;
+  staleJobMinutes: number;
+  /** Failed runs (24h) with no later success — the dead-letter set. */
+  deadLetters: DeadLetterRow[];
+  deadLetterCount: number;
+  /** Overall verdict for the panel header. */
+  status: ServiceStatus;
+  /**
+   * What the underlying job runner ACTUALLY exposes as a control surface.
+   * These drive whether we render a real wired button or an honest
+   * "not exposed" note — never a fake button.
+   */
+  capabilities: {
+    /** `runJobManuallyAction` exists → Dispatch-job is wireable. */
+    dispatch: boolean;
+    /** `forceReleaseJobLockAction` / `expireStaleJobLocksAction` exist. */
+    clearLocks: boolean;
+    /**
+     * There is NO pause-all-workers primitive in the runner — crons fire via
+     * Vercel scheduled GETs, there is no long-lived worker pool to pause.
+     * Always false; the UI shows an honest "not exposed" note instead.
+     */
+    pauseWorkers: boolean;
+  };
 }
 
 const EMPTY_SNAPSHOT: PlatformHealthSnapshot = {
@@ -436,6 +482,143 @@ async function readAgentRuns(exec: Exec): Promise<{
     };
   } catch {
     return { recentAgentRuns: [], agentRunFailures24h: 0 };
+  }
+}
+
+/**
+ * Cron / job-health panel — the queue-depth + dead-letter view that backs
+ * the platform System Health page's job control panel.
+ *
+ * Honest by construction:
+ *   - `runningCount` / `stuckCount` come from real `job_runs` rows; a stuck
+ *     run (running past `healthStaleJobMinutes`) is the same signal the
+ *     /api/cron/health 503 probe uses, so this panel and the probe agree.
+ *   - `deadLetters` are failed runs (24h) with no LATER success for the same
+ *     job key — there is no separate DLQ table, so this IS the dead-letter
+ *     queue. "Replay" = dispatch the same job again (the runner's only
+ *     re-run primitive); we never pretend a replay-in-place exists.
+ *   - `capabilities.pauseWorkers` is hard-false: the runner has no worker
+ *     pool to pause (crons are stateless Vercel GETs). The UI renders an
+ *     honest "not exposed" note rather than a dead button.
+ */
+export async function getJobHealthPanel(): Promise<JobHealthPanel> {
+  const staleJobMinutes = healthStaleJobMinutes();
+  const capabilities = {
+    dispatch: true,
+    clearLocks: true,
+    pauseWorkers: false,
+  };
+
+  const db = getDb();
+  if (!db) {
+    return {
+      dbConfigured: false,
+      runningCount: 0,
+      stuckCount: 0,
+      staleJobMinutes,
+      deadLetters: [],
+      deadLetterCount: 0,
+      status: "unknown",
+      capabilities,
+    };
+  }
+
+  const exec: Exec = (q) => db.execute(q);
+
+  if (!(await tableExists(exec, "job_runs"))) {
+    return {
+      dbConfigured: true,
+      runningCount: 0,
+      stuckCount: 0,
+      staleJobMinutes,
+      deadLetters: [],
+      deadLetterCount: 0,
+      status: "unknown",
+      capabilities,
+    };
+  }
+
+  try {
+    const counts = rowsOf<{ running: string; stuck: string }>(
+      await exec(sql`
+        SELECT
+          count(*) FILTER (WHERE status = 'running')::text AS running,
+          count(*) FILTER (
+            WHERE status = 'running'
+              AND started_at < now() - (${staleJobMinutes} * INTERVAL '1 minute')
+          )::text AS stuck
+        FROM job_runs
+      `),
+    );
+    const runningCount = Number(counts[0]?.running ?? 0);
+    const stuckCount = Number(counts[0]?.stuck ?? 0);
+
+    // Dead-letter = a failed run (24h) for which no SUCCESS exists for the
+    // same job_key at-or-after that failure. Those still need attention.
+    const dlRows = rowsOf<{
+      job_key: string;
+      run_id: string;
+      failed_at: string;
+      error_message: string | null;
+      result_summary: string | null;
+    }>(
+      await exec(sql`
+        SELECT
+          f.job_key                  AS job_key,
+          f.id::text                 AS run_id,
+          f.started_at::text         AS failed_at,
+          f.error_message            AS error_message,
+          f.result_summary           AS result_summary
+        FROM job_runs f
+        WHERE f.status = 'failed'
+          AND f.started_at >= now() - INTERVAL '24 hours'
+          AND NOT EXISTS (
+            SELECT 1 FROM job_runs s
+             WHERE s.job_key = f.job_key
+               AND s.status = 'success'
+               AND s.started_at >= f.started_at
+          )
+        ORDER BY f.started_at DESC
+        LIMIT 25
+      `),
+    );
+
+    const deadLetters: DeadLetterRow[] = dlRows.map((r) => ({
+      jobKey: r.job_key,
+      runId: r.run_id,
+      failedAt: r.failed_at,
+      errorMessage: r.error_message,
+      resultSummary: r.result_summary,
+    }));
+
+    const status: ServiceStatus =
+      stuckCount > 0 || deadLetters.length >= 5
+        ? "down"
+        : deadLetters.length > 0
+          ? "degraded"
+          : "operational";
+
+    return {
+      dbConfigured: true,
+      runningCount,
+      stuckCount,
+      staleJobMinutes,
+      deadLetters,
+      deadLetterCount: deadLetters.length,
+      status,
+      capabilities,
+    };
+  } catch {
+    return {
+      dbConfigured: true,
+      runningCount: 0,
+      stuckCount: 0,
+      staleJobMinutes,
+      deadLetters: [],
+      deadLetterCount: 0,
+      status: "unknown",
+      capabilities,
+    };
   }
 }
 

@@ -33,11 +33,19 @@ import { Badge } from "@/components/ui/badge";
 import { JobStatusPill } from "@/components/jobs/job-status-pill";
 import {
   getPlatformHealthSnapshot,
+  getJobHealthPanel,
   type ServiceStatus,
 } from "@/features/system/platform-health";
 import { listJobRuns } from "@/features/jobs/services";
 import { getProductionGateReport } from "@/lib/deployment/production-gates";
 import { getEnvReadinessReport } from "@/lib/env/validation";
+import { getCurrentUserContext } from "@/features/auth/permissions";
+import { hasPermission } from "@/features/auth/permission-matrix";
+import {
+  DispatchJobButton,
+  ClearLockButton,
+  PauseWorkersControl,
+} from "@/components/platform/job-control-panel";
 
 export const metadata: Metadata = {
   title: "System health · Platform Admin OS",
@@ -88,12 +96,23 @@ function fmtDuration(ms: number | null): string {
 }
 
 export default async function PlatformSystemHealthPage() {
-  const [snapshot, recentRuns] = await Promise.all([
+  const [snapshot, recentRuns, jobHealth, userCtx] = await Promise.all([
     getPlatformHealthSnapshot(),
     listJobRuns({ limit: 15 }).catch(() => []),
+    getJobHealthPanel().catch(() => null),
+    getCurrentUserContext().catch(() => null),
   ]);
   const gates = getProductionGateReport();
   const envReport = getEnvReadinessReport();
+
+  // Only render a wired action button if the caller actually holds the
+  // permission the underlying server action requires; otherwise the row is
+  // read-only (the action still re-checks server-side — this is the visual
+  // gate, not the security gate).
+  const canDispatch = userCtx ? hasPermission(userCtx, "jobs.run") : false;
+  const canClearLocks = userCtx ? hasPermission(userCtx, "job_lock.manage") : false;
+
+  const jobPanelTone: ServiceStatus = jobHealth?.status ?? "unknown";
 
   const downCount = snapshot.services.filter((s) => s.status === "down").length;
   const degradedCount = snapshot.services.filter(
@@ -122,7 +141,7 @@ export default async function PlatformSystemHealthPage() {
         ]}
         eyebrow="Platform operations"
         title="System health"
-        description="Cross-tenant platform health: service status grid (DB, queue, cron, email, sign-in), deployment-gate readiness, the background-job queue and the AI agent-run telemetry. Reuses the existing job / health infra at platform scope. Read-only v1 — job + lock actions live in the Mgmt OS jobs cabinet."
+        description="Cross-tenant platform health: a live service status grid (DB, queue, cron, email, sign-in), deployment-gate readiness, a cron / job-health control panel (dispatch, replay dead-letters, clear leaked locks — wired to the real job runner), and AI agent-run telemetry. Reuses the existing job / health infra at platform scope."
       />
 
       {!snapshot.dbConfigured && (
@@ -228,19 +247,167 @@ export default async function PlatformSystemHealthPage() {
                     <Badge tone="danger">{fmtDateTime(l.expiresAt)}</Badge>
                   </TD>
                   <TD className="text-right">
-                    <Link
-                      href="/dashboard/jobs/locks"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-ink hover:text-accent"
-                    >
-                      Clear in jobs cabinet
-                      <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
-                    </Link>
+                    {canClearLocks ? (
+                      <ClearLockButton jobKey={l.jobKey} />
+                    ) : (
+                      <Link
+                        href="/dashboard/jobs/locks"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-ink hover:text-accent"
+                      >
+                        Clear in jobs cabinet
+                        <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      </Link>
+                    )}
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
         )}
+      </ListTableCard>
+
+      {/* Cron / job-health control panel — real wired actions where the
+          runner exposes them, honest read-only where it does not. */}
+      <ListTableCard
+        eyebrow="Cron / workers"
+        title="Job-health controls"
+        count={jobHealth?.deadLetterCount ?? 0}
+        actions={
+          <Badge tone={serviceTone(jobPanelTone)}>{jobPanelTone}</Badge>
+        }
+      >
+        <div className="flex flex-col gap-5 px-6 py-5">
+          {/* Live queue-depth signals */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-md border border-line-soft bg-surface px-4 py-3">
+              <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
+                In-flight runs
+              </div>
+              <div className="mt-1 font-mono text-lg tabular-nums text-ink">
+                {jobHealth?.runningCount ?? "—"}
+              </div>
+              <div className="text-[11px] text-ink-tertiary">
+                jobs currently <code>running</code>
+              </div>
+            </div>
+            <div className="rounded-md border border-line-soft bg-surface px-4 py-3">
+              <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
+                Stuck runs
+              </div>
+              <div
+                className={`mt-1 font-mono text-lg tabular-nums ${
+                  (jobHealth?.stuckCount ?? 0) > 0 ? "text-danger" : "text-ink"
+                }`}
+              >
+                {jobHealth?.stuckCount ?? "—"}
+              </div>
+              <div className="text-[11px] text-ink-tertiary">
+                running &gt; {jobHealth?.staleJobMinutes ?? "—"}m (drives 503)
+              </div>
+            </div>
+            <div className="rounded-md border border-line-soft bg-surface px-4 py-3">
+              <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
+                Dead-letter
+              </div>
+              <div
+                className={`mt-1 font-mono text-lg tabular-nums ${
+                  (jobHealth?.deadLetterCount ?? 0) > 0
+                    ? "text-warning"
+                    : "text-ink"
+                }`}
+              >
+                {jobHealth?.deadLetterCount ?? "—"}
+              </div>
+              <div className="text-[11px] text-ink-tertiary">
+                failed (24h), no later success
+              </div>
+            </div>
+          </div>
+
+          {/* Pause-workers — honest read-only (no runner pause primitive) */}
+          <PauseWorkersControl />
+
+          {/* Dead-letter list with a real Replay (= dispatch the same job) */}
+          {jobHealth && jobHealth.deadLetters.length > 0 ? (
+            <div className="rounded-md border border-line-soft overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-line-soft">
+                <span className="text-xs font-medium text-ink">
+                  Dead-letter queue
+                </span>
+                <span className="text-[11px] text-ink-tertiary">
+                  {canDispatch
+                    ? "Replay re-runs the job from scratch (no in-place replay)."
+                    : "Read-only — jobs.run permission required to replay."}
+                </span>
+              </div>
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Job</TH>
+                    <TH>Failed</TH>
+                    <TH>Error</TH>
+                    <TH className="text-right">Action</TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {jobHealth.deadLetters.map((d) => (
+                    <TR key={d.runId}>
+                      <TD className="font-mono text-xs">
+                        <Link
+                          href={`/dashboard/jobs/runs/${d.runId}`}
+                          className="hover:text-accent"
+                        >
+                          {d.jobKey}
+                        </Link>
+                      </TD>
+                      <TD className="text-xs text-ink-tertiary tabular-nums whitespace-nowrap">
+                        {fmtDateTime(d.failedAt)}
+                      </TD>
+                      <TD className="text-xs text-danger truncate max-w-[320px]">
+                        {d.errorMessage ?? d.resultSummary ?? "—"}
+                      </TD>
+                      <TD className="text-right">
+                        {canDispatch ? (
+                          <DispatchJobButton
+                            jobKey={d.jobKey}
+                            label="Replay"
+                            replay
+                          />
+                        ) : (
+                          <Link
+                            href="/dashboard/jobs"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-ink hover:text-accent justify-end"
+                          >
+                            Replay in jobs cabinet
+                            <ArrowUpRight
+                              className="w-3.5 h-3.5"
+                              strokeWidth={1.75}
+                            />
+                          </Link>
+                        )}
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="rounded-md border border-line-soft px-4 py-6 text-center text-xs text-ink-tertiary">
+              {jobHealth?.dbConfigured === false
+                ? "Database not configured — job-health controls are unavailable in demo mode."
+                : "No dead-letter jobs in the last 24h. Failed runs with no subsequent success would appear here with a Replay control."}
+            </div>
+          )}
+
+          <p className="text-[11px] text-ink-tertiary leading-relaxed">
+            Dispatch / replay is gated by <code>jobs.run</code>; lock release by{" "}
+            <code>job_lock.manage</code>. Both server actions re-check the
+            permission and audit-log the run — the buttons above only appear
+            when you hold the grant. Pause-workers is intentionally read-only
+            (no runner primitive). Queue / dead-letter figures read live{" "}
+            <code>job_runs</code>.
+          </p>
+        </div>
       </ListTableCard>
 
       {/* Background job queue */}
@@ -392,12 +559,13 @@ export default async function PlatformSystemHealthPage() {
       </ListTableCard>
 
       <p className="text-[11px] text-ink-tertiary leading-relaxed">
-        Read-only v1. Live actions (dispatch a job, clear a stale lock) run in
-        the Mgmt OS jobs cabinet (<code>/dashboard/jobs</code>) where they are
-        gated by the <code>jobs.run</code> / <code>jobs.manage</code>{" "}
-        permissions and audit-logged. A platform-scoped pause-workers /
-        dead-letter-replay control will land if the job runner grows a
-        platform-level primitive. Metrics reuse <code>job_runs</code>,{" "}
+        Live actions (dispatch a job, replay a dead-letter, force-release a
+        leaked lock) run against the existing job runner and are gated by the{" "}
+        <code>jobs.run</code> / <code>job_lock.manage</code> permissions and
+        audit-logged. Pause-workers is honestly read-only — the runner has no
+        worker pool to pause (crons are stateless scheduled GETs). The fuller
+        run history + retry-policy editing live in the Mgmt OS jobs cabinet (
+        <code>/dashboard/jobs</code>). Metrics reuse <code>job_runs</code>,{" "}
         <code>job_locks</code>, <code>notification_deliveries</code>,{" "}
         <code>auth_login_attempts</code> and <code>agent_runs</code>.
       </p>

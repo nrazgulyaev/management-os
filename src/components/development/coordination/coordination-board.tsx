@@ -15,7 +15,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, MapPin, Plus, X } from "lucide-react";
+import { Loader2, MapPin, Plus, X, PencilRuler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -42,6 +42,7 @@ import {
   createCoordinationRfi,
 } from "@/lib/development/server/coordination/coordination-actions";
 import { CoordinationItemDrawer } from "./coordination-item-drawer";
+import { CoordinationMarkup } from "./coordination-markup";
 
 export interface CoordinationBoardProps {
   projectId: string;
@@ -75,6 +76,8 @@ export function CoordinationBoard({
   const [placeMode, setPlaceMode] = useState(false);
   const [pendingPin, setPendingPin] = useState<PendingPin | null>(null);
   const [kindFilter, setKindFilter] = useState<CoordinationItemKind | "all">("all");
+  // "pins" = item pins canvas; "markup" = persistent drawing annotations.
+  const [paneMode, setPaneMode] = useState<"pins" | "markup">("pins");
 
   // Open item drawer.
   const [openItem, setOpenItem] = useState<CoordinationItemSummary | null>(null);
@@ -150,21 +153,52 @@ export function CoordinationBoard({
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <Button
-            variant={placeMode ? "primary" : "secondary"}
+            variant={paneMode === "pins" ? "primary" : "secondary"}
+            onClick={() => setPaneMode("pins")}
+          >
+            <MapPin className="w-4 h-4" strokeWidth={1.75} />
+            Pins
+          </Button>
+          <Button
+            variant={paneMode === "markup" ? "primary" : "secondary"}
             onClick={() => {
-              setPlaceMode((v) => !v);
+              setPaneMode("markup");
+              setPlaceMode(false);
               setPendingPin(null);
             }}
             disabled={!imageUrl}
           >
-            <MapPin className="w-4 h-4" strokeWidth={1.75} />
-            {placeMode ? "Placing — click the plan" : "Place pin on plan"}
+            <PencilRuler className="w-4 h-4" strokeWidth={1.75} />
+            Markup
           </Button>
-          <span className="text-xs text-ink-tertiary">
-            {pinnedItems.length} pinned · {unpinnedItems.length} unpinned
-          </span>
+          {paneMode === "pins" && (
+            <>
+              <span className="mx-1 h-5 w-px bg-line-soft" />
+              <Button
+                variant={placeMode ? "primary" : "secondary"}
+                onClick={() => {
+                  setPlaceMode((v) => !v);
+                  setPendingPin(null);
+                }}
+                disabled={!imageUrl}
+              >
+                <MapPin className="w-4 h-4" strokeWidth={1.75} />
+                {placeMode ? "Placing — click the plan" : "Place pin on plan"}
+              </Button>
+              <span className="text-xs text-ink-tertiary">
+                {pinnedItems.length} pinned · {unpinnedItems.length} unpinned
+              </span>
+            </>
+          )}
         </div>
 
+        {paneMode === "markup" && imageUrl ? (
+          <CoordinationMarkup
+            revisionId={revisionId}
+            imageUrl={imageUrl}
+            imageAlt={imageAlt}
+          />
+        ) : (
         <div
           onClick={onPlanClick}
           className={cn(
@@ -217,6 +251,7 @@ export function CoordinationBoard({
             </div>
           )}
         </div>
+        )}
         {error && <p className="text-xs text-danger">{error}</p>}
       </div>
 

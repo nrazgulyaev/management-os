@@ -10,8 +10,11 @@ import {
   approvalThresholds,
 } from "@/lib/db/schema/procurement";
 import { materialPurchaseOrders, materialPoLines } from "@/lib/db/schema/site-operations";
+import { submittals } from "@/lib/db/schema/submittals";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
+import { isSubmittalApproved } from "@/features/development/coordination/coordination-model";
+import type { SubmittalStatus } from "@/lib/db/schema/submittals";
 import {
   lookupRequiredApproval,
   isRoleSufficient,
@@ -110,6 +113,25 @@ export async function transitionPurchaseRequest(
       .where(eq(devOsPurchaseRequests.id, parsed.requestId))
       .limit(1);
     if (!pr) throw new Error("Purchase request not found");
+
+    // ── SUBMITTAL → PROCUREMENT gate ───────────────────────────────────
+    // A PR gated by a material/shop-drawing submittal cannot reach the
+    // procurement-commit states (quotation_selected / po_created) until that
+    // submittal is approved. This is the authoritative cross-cabinet guard;
+    // the coordination cabinet only records the unblock for audit.
+    const GATED_TARGETS: readonly string[] = ["quotation_selected", "po_created"];
+    if (pr.gatingSubmittalId && GATED_TARGETS.includes(parsed.newStatus)) {
+      const [sub] = await tx
+        .select({ status: submittals.status, ref: submittals.ref })
+        .from(submittals)
+        .where(eq(submittals.id, pr.gatingSubmittalId))
+        .limit(1);
+      if (!sub || !isSubmittalApproved(sub.status as SubmittalStatus)) {
+        throw new Error(
+          `Blocked: submittal ${sub?.ref ?? "(linked)"} must be approved before this purchase request can proceed to ${parsed.newStatus.replace(/_/g, " ")}.`,
+        );
+      }
+    }
 
     // Defense-in-depth approval check.
     if (parsed.newStatus === "approved") {

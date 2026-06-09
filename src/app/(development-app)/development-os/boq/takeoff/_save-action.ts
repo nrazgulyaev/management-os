@@ -1,36 +1,59 @@
 "use server";
 
 /**
- * Persist a takeoff measurement as a BOQ line. Wraps the existing addBoqItem
- * action (which is permission-gated, transactional, and recomputes section/
- * document totals). This closes the takeoff loop: draw → measure → cost →
- * save into the BOQ, tagged in the notes as drawing-takeoff sourced.
+ * Block 09 ESTIMATOR — client→server bridge for the takeoff round-trip.
+ *
+ * Thin re-exports of the persisted-measurement actions so the workbench client
+ * component can dynamic-import them. The actions themselves live in
+ * `@/lib/development/server/boq/takeoff-actions` (permission-gated, org-scoped,
+ * audit-logged, money in bigint MINOR) and `…/takeoff-queries` for the reader.
  */
 
-import { addBoqItem } from "@/lib/development/server/boq/boq-actions";
+import {
+  saveTakeoffMeasurement,
+  editTakeoffMeasurement,
+  deleteTakeoffMeasurement,
+  pushTakeoffToBoq,
+} from "@/lib/development/server/boq/takeoff-actions";
+import {
+  listTakeoffsForRevision,
+  type PersistedTakeoff,
+} from "@/lib/development/server/boq/takeoff-queries";
+import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
-export async function addTakeoffLineToBoqAction(input: {
-  sectionId: string;
-  description: string;
-  quantity: number;
-  unitOfMeasure: string;
-  /** unit rate in MINOR units, as a string */
+export {
+  saveTakeoffMeasurement,
+  editTakeoffMeasurement,
+  deleteTakeoffMeasurement,
+  pushTakeoffToBoq,
+};
+
+/** Persisted-takeoff rows are returned with bigint money as strings so they
+ * cross the server→client boundary cleanly. */
+export interface PersistedTakeoffWire
+  extends Omit<PersistedTakeoff, "unitRateMinor" | "lineCostMinor"> {
   unitRateMinor: string;
-  currency: string;
-}): Promise<{ ok: boolean; error?: string }> {
+  lineCostMinor: string;
+}
+
+/** Load persisted takeoffs for a revision (org-scoped via the action layer). */
+export async function loadTakeoffsAction(
+  revisionId: string,
+): Promise<{ ok: true; rows: PersistedTakeoffWire[] } | { ok: false; error: string }> {
   try {
-    await addBoqItem({
-      sectionId: input.sectionId,
-      itemCode: `TO-${Date.now().toString(36).toUpperCase()}`,
-      description: input.description || "Takeoff line",
-      quantity: input.quantity,
-      unitOfMeasure: input.unitOfMeasure,
-      unitRateMinor: BigInt(input.unitRateMinor),
-      rateCurrency: input.currency,
-      notes: "Source: drawing takeoff",
-    });
-    return { ok: true };
+    await requireInternalUser();
+    const orgId = await requireOrgId();
+    const rows = await listTakeoffsForRevision(orgId, revisionId);
+    return {
+      ok: true,
+      rows: rows.map((r) => ({
+        ...r,
+        unitRateMinor: r.unitRateMinor.toString(),
+        lineCostMinor: r.lineCostMinor.toString(),
+      })),
+    };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not save to BOQ." };
+    return { ok: false, error: e instanceof Error ? e.message : "load_failed" };
   }
 }

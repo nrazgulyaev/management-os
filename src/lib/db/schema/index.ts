@@ -110,6 +110,8 @@ export * from "./checkin-flow";
 // Coordination cabinet — submittals + drawing pins + threads (migration 0126).
 export * from "./submittals";
 export * from "./coordination";
+// Coordination depth — drawing markup persistence (migration 0139).
+export * from "./coordination-annotations";
 // Site-supervisor field-capture frames (migration 0127).
 export * from "./site-capture";
 // Keystone first-run org setup wizard + role-access matrix (migration 0128).
@@ -124,3 +126,5 @@ export * from "./documents-app";
 export * from "./material-receiving-holds";
 // Buyer-portal e-signature capture on contract groups (migration 0137).
 export * from "./contract-signatures";
+// Estimator drawing-takeoff persistence + BOQ round-trip (migration 0140).
+export * from "./takeoff-measurements";

@@ -49,6 +49,25 @@ export const orgAiAgentConfig = pgTable(
     /** Optional override for the canonical RUN_NOW_AGENTS kickoff prompt. */
     customPrompt: text("custom_prompt"),
     notes: text("notes"),
+    /**
+     * Block 03 — no-code autonomy mode for this agent:
+     *   'auto' — AI may send replies without a human (still audit-logged).
+     *   'semi' — AI drafts; a human reviews + sends (HITL). DEFAULT.
+     *   'off'  — no AI drafting at all for this agent.
+     * Migration 0141 adds the column + CHECK; default 'semi'.
+     */
+    agentMode: text("agent_mode").notNull().default("semi"),
+    /**
+     * Block 03 — optional free-text tone directive ("warm and concise",
+     * "formal"…) folded into the draft system prompt. NULL = default tone.
+     */
+    tone: text("tone"),
+    /**
+     * Block 03 — optional flag-set toggling which grounding sources the
+     * drafter may read: { conversation, project_memory, templates }.
+     * NULL = all defaults on.
+     */
+    knowledgeSources: jsonb("knowledge_sources"),
     /** Stage 10.5.B — per-agent provider override (anthropic | openai | gemini). */
     provider: text("provider"),
     /** Stage 10.5.B — provider-specific model override. */
