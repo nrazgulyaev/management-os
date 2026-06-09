@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { createProjectSchema } from "./schema";
 
 export type ActionResult =
@@ -56,12 +57,14 @@ export async function createProjectAction(
 
   const data = emptyToNull(parsed.data);
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   let createdId: string;
   try {
     const [row] = await db
       .insert(projects)
       .values({
+        organizationId,
         slug: data.slug as string,
         name: data.name as string,
         concept: (data.concept as string | null) ?? null,
@@ -121,7 +124,12 @@ export async function updateProjectAction(
 
   const data = emptyToNull(parsed.data);
   const me = await getCurrentAppUser();
-  const [before] = await db.select().from(projects).where(eq(projects.id, id.data)).limit(1);
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, id.data), eq(projects.organizationId, organizationId)))
+    .limit(1);
   if (!before) return { ok: false, error: "Project not found." };
 
   try {
@@ -140,7 +148,7 @@ export async function updateProjectAction(
         targetHandoverDate: (data.targetHandoverDate as string | null) ?? null,
         leaseholdUntil: (data.leaseholdUntil as string | null) ?? null,
       })
-      .where(eq(projects.id, id.data));
+      .where(and(eq(projects.id, id.data), eq(projects.organizationId, organizationId)));
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Update failed";
     return { ok: false, error: msg.includes("unique") ? "Slug already in use." : msg };
@@ -174,10 +182,18 @@ async function transition(
   if (!db) return { ok: false, error: "Database is not configured." };
 
   const me = await getCurrentAppUser();
-  const [before] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.organizationId, organizationId)))
+    .limit(1);
   if (!before) return { ok: false, error: "Project not found." };
 
-  await db.update(projects).set({ status: next }).where(eq(projects.id, id));
+  await db
+    .update(projects)
+    .set({ status: next })
+    .where(and(eq(projects.id, id), eq(projects.organizationId, organizationId)));
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action,

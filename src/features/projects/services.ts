@@ -1,7 +1,8 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { projects } from "@/lib/db/schema/projects";
 import { mockProjects } from "@/lib/mock/projects";
 import type { ProjectDetail, ProjectListItem } from "./types";
@@ -32,7 +33,12 @@ export async function listProjects(): Promise<WithSource<ProjectListItem>[]> {
   const db = getDb();
   if (!db) return fromMock();
 
-  const rows = await db.select().from(projects).orderBy(projects.name);
+  const organizationId = await requireOrgId();
+  const rows = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.organizationId, organizationId))
+    .orderBy(projects.name);
   return rows.map((r) => ({
     source: "db",
     id: r.id,
@@ -80,7 +86,12 @@ export async function getProjectBySlug(
     };
   }
 
-  const [r] = await db.select().from(projects).where(eq(projects.slug, slug)).limit(1);
+  const organizationId = await requireOrgId();
+  const [r] = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.slug, slug), eq(projects.organizationId, organizationId)))
+    .limit(1);
   if (!r) return null;
 
   return {
@@ -109,7 +120,12 @@ export async function getProjectById(
   const db = getDb();
   if (!db) return getProjectBySlug(id);
 
-  const [r] = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+  const organizationId = await requireOrgId();
+  const [r] = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.organizationId, organizationId)))
+    .limit(1);
   if (!r) return null;
   return {
     source: "db",

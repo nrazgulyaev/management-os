@@ -8,6 +8,7 @@ import { projects, villas } from "@/lib/db/schema/projects";
 import { assetTypes } from "@/lib/db/schema/asset-types";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { requireOrgId } from "@/features/auth/require-org";
 import { canManageEntity } from "@/features/auth/permissions";
 import type { ActionResult } from "@/features/projects/actions";
 
@@ -87,6 +88,7 @@ export async function createComplexAction(
 
   const d = parsed.data;
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const stamp = Date.now().toString(36).slice(-5);
   const projectSlug = `${slugify(d.name)}-${stamp}`;
   const prefix = codeAbbr(d.name);
@@ -96,7 +98,7 @@ export async function createComplexAction(
   try {
     const [proj] = await db
       .insert(projects)
-      .values({ slug: projectSlug, name: d.name, location: d.location })
+      .values({ organizationId, slug: projectSlug, name: d.name, location: d.location })
       .returning({ id: projects.id });
     projectId = proj.id;
 

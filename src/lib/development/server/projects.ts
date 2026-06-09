@@ -2,6 +2,7 @@ import "server-only";
 
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { projects, villas } from "@/lib/db/schema/projects";
 import {
   developmentProjectMeta,
@@ -105,6 +106,10 @@ export async function getDevelopmentProjects(): Promise<DevelopmentProjectListIt
     }));
   }
 
+  // TENANCY KEYSTONE — scope the list to the caller's org (every downstream
+  // project read derives from this list, so this anchors them all).
+  const organizationId = await requireOrgId();
+
   // P116A — swallow missing-relation errors so the page renders mock data
   // when the development OS schema hasn't been applied to this DB.
   let rows;
@@ -123,6 +128,7 @@ export async function getDevelopmentProjects(): Promise<DevelopmentProjectListIt
         developmentProjectMeta,
         eq(developmentProjectMeta.projectId, projects.id),
       )
+      .where(eq(projects.organizationId, organizationId))
       .orderBy(projects.createdAt);
   } catch {
     return mockDevelopmentProjects.map((p) => ({

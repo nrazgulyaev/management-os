@@ -80,6 +80,7 @@ export async function createDevelopmentProject(
     const inserted = await db
       .insert(projects)
       .values({
+        organizationId,
         slug,
         name: parsed.data.name,
         location: parsed.data.location,
