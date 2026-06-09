@@ -15,11 +15,16 @@ import {
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
+import { organizations } from "./saas";
 
 export const assetTypes = pgTable(
   "asset_types",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     typeKey: text("type_key").notNull().unique(),
     displayName: text("display_name").notNull(),
     description: text("description"),
@@ -46,6 +51,7 @@ export const assetTypes = pgTable(
   (t) => ({
     categoryIdx: index("asset_types_category_idx").on(t.assetCategory),
     activeIdx: index("asset_types_active_idx").on(t.isActive),
+    orgIdx: index("asset_types_org_idx").on(t.organizationId),
   }),
 );
 

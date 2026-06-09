@@ -18,6 +18,7 @@ import {
   directBookingRequests,
 } from "./direct-booking";
 import { directBookingDeposits } from "./payments";
+import { organizations } from "./saas";
 
 /**
  * Prompt 109 — Guest Booking Notifications + Guest Status Center.
@@ -34,6 +35,10 @@ export const directBookingGuestNotifications = pgTable(
   "direct_booking_guest_notifications",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     holdId: uuid("hold_id").references(() => directBookingHolds.id, {
       onDelete: "set null",
     }),
@@ -86,6 +91,7 @@ export const directBookingGuestNotifications = pgTable(
     uniqueIndex("direct_booking_guest_notifications_dedupe_unique").on(
       t.dedupeKey,
     ),
+    index("direct_booking_guest_notifications_org_idx").on(t.organizationId),
   ],
 );
 
@@ -93,6 +99,10 @@ export const directBookingGuestStatusSnapshots = pgTable(
   "direct_booking_guest_status_snapshots",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     holdId: uuid("hold_id")
       .notNull()
       .references(() => directBookingHolds.id, { onDelete: "cascade" }),
@@ -138,6 +148,7 @@ export const directBookingGuestStatusSnapshots = pgTable(
     index("direct_booking_guest_status_snapshots_deposit_idx").on(t.depositId),
     index("direct_booking_guest_status_snapshots_booking_idx").on(t.bookingId),
     index("direct_booking_guest_status_snapshots_stage_idx").on(t.publicStage),
+    index("direct_booking_guest_status_snapshots_org_idx").on(t.organizationId),
   ],
 );
 
@@ -145,6 +156,10 @@ export const directBookingGuestMessageThreads = pgTable(
   "direct_booking_guest_message_threads",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     holdId: uuid("hold_id").references(() => directBookingHolds.id, {
       onDelete: "set null",
     }),
@@ -182,6 +197,7 @@ export const directBookingGuestMessageThreads = pgTable(
     uniqueIndex("direct_booking_guest_message_threads_request_unique")
       .on(t.requestId)
       .where(sql`${t.requestId} IS NOT NULL`),
+    index("direct_booking_guest_message_threads_org_idx").on(t.organizationId),
   ],
 );
 
@@ -189,6 +205,10 @@ export const directBookingGuestMessages = pgTable(
   "direct_booking_guest_messages",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     threadId: uuid("thread_id")
       .notNull()
       .references(() => directBookingGuestMessageThreads.id, {
@@ -216,6 +236,7 @@ export const directBookingGuestMessages = pgTable(
     ),
     index("direct_booking_guest_messages_author_idx").on(t.authorType),
     index("direct_booking_guest_messages_visibility_idx").on(t.visibility),
+    index("direct_booking_guest_messages_org_idx").on(t.organizationId),
   ],
 );
 

@@ -16,6 +16,7 @@ import { appUsers } from "./identity";
 import { projects, villas } from "./projects";
 import { bookings, guests } from "./bookings";
 import { pricingQuoteLogs } from "./dynamic-pricing";
+import { organizations } from "./saas";
 
 /**
  * Prompt 105 — Direct Booking Hold & Checkout Stub.
@@ -30,6 +31,10 @@ export const directBookingHolds = pgTable(
   "direct_booking_holds",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     holdCode: text("hold_code").notNull().unique(),
     holdTokenHash: text("hold_token_hash").notNull().unique(),
     tokenPrefix: text("token_prefix").notNull(),
@@ -76,6 +81,7 @@ export const directBookingHolds = pgTable(
     ),
     index("direct_booking_holds_status_expires_idx").on(t.status, t.expiresAt),
     index("direct_booking_holds_token_prefix_idx").on(t.tokenPrefix),
+    index("direct_booking_holds_org_idx").on(t.organizationId),
   ],
 );
 
@@ -83,6 +89,10 @@ export const directBookingRequests = pgTable(
   "direct_booking_requests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     requestCode: text("request_code").notNull().unique(),
     holdId: uuid("hold_id")
       .notNull()
@@ -142,6 +152,7 @@ export const directBookingRequests = pgTable(
     index("direct_booking_requests_finance_bridge_idx").on(
       t.financeBridgeStatus,
     ),
+    index("direct_booking_requests_org_idx").on(t.organizationId),
   ],
 );
 
@@ -149,6 +160,10 @@ export const directBookingRequestEvents = pgTable(
   "direct_booking_request_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     requestId: uuid("request_id")
       .notNull()
       .references(() => directBookingRequests.id, { onDelete: "cascade" }),
@@ -169,6 +184,7 @@ export const directBookingRequestEvents = pgTable(
       sql`${t.createdAt} DESC`,
     ),
     index("direct_booking_request_events_type_idx").on(t.eventType),
+    index("direct_booking_request_events_org_idx").on(t.organizationId),
   ],
 );
 
@@ -176,6 +192,10 @@ export const directBookingHoldRateLimits = pgTable(
   "direct_booking_hold_rate_limits",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ipHash: text("ip_hash").notNull(),
     windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
     holdCount: integer("hold_count").notNull().default(0),
@@ -193,6 +213,7 @@ export const directBookingHoldRateLimits = pgTable(
       t.windowStart,
     ),
     index("direct_booking_hold_rate_limits_blocked_idx").on(t.blockedUntil),
+    index("direct_booking_hold_rate_limits_org_idx").on(t.organizationId),
   ],
 );
 
@@ -200,6 +221,10 @@ export const directBookingExpiryRuns = pgTable(
   "direct_booking_expiry_runs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     runCode: text("run_code").notNull().unique(),
     expiredHoldsCount: integer("expired_holds_count").notNull().default(0),
     expiredRequestsCount: integer("expired_requests_count")
@@ -218,6 +243,7 @@ export const directBookingExpiryRuns = pgTable(
       t.status,
       sql`${t.startedAt} DESC`,
     ),
+    index("direct_booking_expiry_runs_org_idx").on(t.organizationId),
   ],
 );
 

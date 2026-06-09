@@ -11,11 +11,16 @@
 
 import { index, integer, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 import { maintenanceTickets } from "./operations";
+import { organizations } from "./saas";
 
 export const slaBreaches = pgTable(
   "sla_breaches",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ticketId: uuid("ticket_id")
       .notNull()
       .references(() => maintenanceTickets.id, { onDelete: "cascade" }),
@@ -27,6 +32,7 @@ export const slaBreaches = pgTable(
   (t) => [
     index("sla_breaches_ticket_idx").on(t.ticketId),
     index("sla_breaches_breached_at_idx").on(t.breachedAt),
+    index("sla_breaches_org_idx").on(t.organizationId),
   ],
 );
 

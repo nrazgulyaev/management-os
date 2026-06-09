@@ -8,6 +8,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { contractGroups } from "./sales";
+import { organizations } from "./saas";
 
 /**
  * contract_signatures (migration 0137) — Block 02 BUYER MONEY.
@@ -26,6 +27,10 @@ export const contractSignatures = pgTable(
   "contract_signatures",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     contractGroupId: uuid("contract_group_id")
       .notNull()
       .references(() => contractGroups.id, { onDelete: "cascade" }),
@@ -58,6 +63,7 @@ export const contractSignatures = pgTable(
       t.contractGroupId,
       t.buyerId,
     ),
+    index("contract_signatures_org_idx").on(t.organizationId),
   ],
 );
 

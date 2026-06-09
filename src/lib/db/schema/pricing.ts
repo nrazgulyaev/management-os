@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { projects, villas } from "./projects";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 /**
  * V9B — basic rate-plan primitive. Used by `quoteForRange` (pure) and by
@@ -24,6 +25,10 @@ export const ratePlans = pgTable(
   "rate_plans",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "cascade",
     }),
@@ -49,6 +54,7 @@ export const ratePlans = pgTable(
     index("rate_plans_villa_idx").on(t.villaId),
     index("rate_plans_project_idx").on(t.projectId),
     index("rate_plans_status_idx").on(t.status),
+    index("rate_plans_org_idx").on(t.organizationId),
   ],
 );
 
@@ -56,6 +62,10 @@ export const ratePlanSeasons = pgTable(
   "rate_plan_seasons",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ratePlanId: uuid("rate_plan_id")
       .notNull()
       .references(() => ratePlans.id, { onDelete: "cascade" }),
@@ -78,6 +88,7 @@ export const ratePlanSeasons = pgTable(
   (t) => [
     index("rate_plan_seasons_plan_idx").on(t.ratePlanId, t.startsOn),
     index("rate_plan_seasons_status_idx").on(t.status),
+    index("rate_plan_seasons_org_idx").on(t.organizationId),
   ],
 );
 
@@ -85,6 +96,10 @@ export const ratePlanOverrides = pgTable(
   "rate_plan_overrides",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ratePlanId: uuid("rate_plan_id")
       .notNull()
       .references(() => ratePlans.id, { onDelete: "cascade" }),
@@ -101,7 +116,10 @@ export const ratePlanOverrides = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [uniqueIndex("rate_plan_overrides_unique").on(t.ratePlanId, t.stayDate)],
+  (t) => [
+    uniqueIndex("rate_plan_overrides_unique").on(t.ratePlanId, t.stayDate),
+    index("rate_plan_overrides_org_idx").on(t.organizationId),
+  ],
 );
 
 export type RatePlan = typeof ratePlans.$inferSelect;
