@@ -11,6 +11,7 @@ import {
 import { sql } from "drizzle-orm";
 import { guestStayTokens } from "./guest-stays";
 import { bookings } from "./bookings";
+import { organizations } from "./saas";
 
 /**
  * V9G — guest stay security primitives.
@@ -82,6 +83,8 @@ export const guestStaySecurityEvents = pgTable(
     bookingId: uuid("booking_id").references(() => bookings.id, {
       onDelete: "set null",
     }),
+    // TENANCY (migration 0149): nullable org anchor via booking.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     eventType: text("event_type").notNull(),
     severity: text("severity").notNull().default("low"),
     ipHash: text("ip_hash"),
@@ -99,6 +102,7 @@ export const guestStaySecurityEvents = pgTable(
     index("guest_stay_security_events_created_idx").on(
       sql`${t.createdAt} DESC`,
     ),
+    index("guest_stay_security_events_organization_idx").on(t.organizationId),
   ],
 );
 

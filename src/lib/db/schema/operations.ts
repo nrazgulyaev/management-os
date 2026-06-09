@@ -17,6 +17,7 @@ import { projects, villas } from "./projects";
 import { bookings } from "./bookings";
 import { guests } from "./bookings";
 import { documents } from "./documents";
+import { organizations } from "./saas";
 
 /**
  * Operations Runtime — tasks, checklists, maintenance tickets, preventive
@@ -54,6 +55,9 @@ export const operationTasks = pgTable(
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
     bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
     guestId: uuid("guest_id").references(() => guests.id, { onDelete: "set null" }),
+    // TENANCY (migration 0149): nullable org anchor via villa -> project
+    // (falling back to project_id directly, else ARCONIQUE_DEFAULT).
+    organizationId: uuid("organization_id").references(() => organizations.id),
     title: text("title").notNull(),
     description: text("description"),
     category: text("category").notNull(),
@@ -86,6 +90,7 @@ export const operationTasks = pgTable(
     index("operation_tasks_scheduled_idx").on(t.scheduledFor),
     index("operation_tasks_due_idx").on(t.dueAt),
     index("operation_tasks_priority_idx").on(t.priority),
+    index("operation_tasks_organization_idx").on(t.organizationId),
   ],
 );
 

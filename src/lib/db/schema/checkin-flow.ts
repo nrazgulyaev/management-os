@@ -9,28 +9,38 @@ import {
   text,
   jsonb,
   timestamp,
+  index,
 } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
-export const bookingCheckinFlow = pgTable("booking_checkin_flow", {
-  bookingId: uuid("booking_id")
-    .primaryKey()
-    .references(() => bookings.id, { onDelete: "cascade" }),
-  currentStep: text("current_step").notNull().default("identity"),
-  stepsJson: jsonb("steps_json").notNull().default({}),
-  doorCode: text("door_code"),
-  completedAt: timestamp("completed_at", { withTimezone: true }),
-  completedBy: uuid("completed_by").references(() => appUsers.id, {
-    onDelete: "set null",
-  }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const bookingCheckinFlow = pgTable(
+  "booking_checkin_flow",
+  {
+    bookingId: uuid("booking_id")
+      .primaryKey()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    // TENANCY (migration 0149): nullable org anchor via booking.
+    organizationId: uuid("organization_id").references(() => organizations.id),
+    currentStep: text("current_step").notNull().default("identity"),
+    stepsJson: jsonb("steps_json").notNull().default({}),
+    doorCode: text("door_code"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    completedBy: uuid("completed_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("booking_checkin_flow_organization_idx").on(t.organizationId),
+  ],
+);
 
 export type BookingCheckinFlow = typeof bookingCheckinFlow.$inferSelect;
 export type NewBookingCheckinFlow = typeof bookingCheckinFlow.$inferInsert;
