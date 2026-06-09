@@ -14,6 +14,7 @@ import { sql } from "drizzle-orm";
 import { projects, villas } from "./projects";
 import { owners } from "./ownership";
 import { ownerStatements, statementLines } from "./finance";
+import { organizations } from "./saas";
 
 /**
  * Prompt 110 — Finance & Statement Transparency Final Polish.
@@ -29,6 +30,11 @@ export const statementSourceGroups = pgTable(
   "statement_source_groups",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via owner_statements.organization_id. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ownerStatementId: uuid("owner_statement_id")
       .notNull()
       .references(() => ownerStatements.id, { onDelete: "cascade" }),
@@ -78,6 +84,7 @@ export const statementSourceGroups = pgTable(
       t.groupKey,
       t.currency,
     ),
+    index("statement_source_groups_org_idx").on(t.organizationId),
   ],
 );
 
@@ -85,6 +92,11 @@ export const statementSourceGroupLines = pgTable(
   "statement_source_group_lines",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via owner_statements.organization_id. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     statementSourceGroupId: uuid("statement_source_group_id")
       .notNull()
       .references(() => statementSourceGroups.id, { onDelete: "cascade" }),
@@ -121,6 +133,7 @@ export const statementSourceGroupLines = pgTable(
       t.ownerStatementId,
       t.statementLineId,
     ),
+    index("statement_source_group_lines_org_idx").on(t.organizationId),
   ],
 );
 
@@ -128,6 +141,13 @@ export const statementReconciliationWarnings = pgTable(
   "statement_reconciliation_warnings",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via owner_statements.organization_id; rows with a null
+    // statement (system-wide warnings) fall back to ARCONIQUE_DEFAULT.
+    // Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ownerStatementId: uuid("owner_statement_id").references(
       () => ownerStatements.id,
       { onDelete: "cascade" },
@@ -178,6 +198,7 @@ export const statementReconciliationWarnings = pgTable(
     uniqueIndex("statement_reconciliation_warnings_open_unique")
       .on(t.warningType, t.sourceTable, t.sourceId)
       .where(sql`${t.status} = 'open' AND ${t.sourceId} IS NOT NULL`),
+    index("statement_reconciliation_warnings_org_idx").on(t.organizationId),
   ],
 );
 
@@ -185,6 +206,11 @@ export const statementExplanationSnapshots = pgTable(
   "statement_explanation_snapshots",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via owner_statements.organization_id. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ownerStatementId: uuid("owner_statement_id")
       .notNull()
       .references(() => ownerStatements.id, { onDelete: "cascade" }),
@@ -227,6 +253,7 @@ export const statementExplanationSnapshots = pgTable(
     uniqueIndex("statement_explanation_snapshots_unique").on(
       t.ownerStatementId,
     ),
+    index("statement_explanation_snapshots_org_idx").on(t.organizationId),
   ],
 );
 

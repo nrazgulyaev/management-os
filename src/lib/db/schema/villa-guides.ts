@@ -12,6 +12,7 @@ import {
 import { sql } from "drizzle-orm";
 import { projects, villas } from "./projects";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 /**
  * V9E — editable guest-facing villa / project content. Resolution is
@@ -28,6 +29,12 @@ export const villaGuideSections = pgTable(
     }),
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "cascade",
+    }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  villa → project.organization_id (else project, else default org). Not
+     *  threaded into queries yet; kept NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
     sectionKey: text("section_key").notNull(),
     title: text("title").notNull(),
@@ -56,6 +63,7 @@ export const villaGuideSections = pgTable(
         sql`${t.villaId} IS NULL AND ${t.projectId} IS NOT NULL`,
       ),
     index("villa_guide_sections_status_idx").on(t.status),
+    index("villa_guide_sections_organization_idx").on(t.organizationId),
   ],
 );
 

@@ -8,6 +8,7 @@ import {
   boolean,
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 /**
  * Lightweight document metadata. Real bytes live in Supabase Storage at
@@ -18,6 +19,13 @@ export const documents = pgTable(
   "documents",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor.
+    // Backfilled via the polymorphic entity (project/villa/booking ->
+    // project -> org); owner/other entities fall back to ARCONIQUE_DEFAULT.
+    // Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     title: text("title").notNull(),
     // document_type: contract | invoice | receipt | photo | statement | kyc | certificate | guide | policy | other
     documentType: text("document_type").notNull(),
@@ -61,6 +69,7 @@ export const documents = pgTable(
     index("documents_type_idx").on(t.documentType),
     index("documents_status_idx").on(t.status),
     index("documents_owner_kind_created_idx").on(t.entityType, t.entityId, t.documentType, t.createdAt),
+    index("documents_org_idx").on(t.organizationId),
   ],
 );
 

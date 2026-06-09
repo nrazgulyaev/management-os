@@ -9,6 +9,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { villas } from "./projects";
+import { organizations } from "./saas";
 
 export const bookingChannels = pgTable("booking_channels", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -52,6 +53,9 @@ export const bookings = pgTable(
     villaId: uuid("villa_id")
       .notNull()
       .references(() => villas.id, { onDelete: "restrict" }),
+    // TENANCY (migration 0149): nullable org anchor backfilled via
+    // villa -> project.organization_id. NOT threaded into queries yet.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     guestId: uuid("guest_id").references(() => guests.id, { onDelete: "set null" }),
     channelId: uuid("channel_id").references(() => bookingChannels.id, {
       onDelete: "set null",
@@ -85,6 +89,7 @@ export const bookings = pgTable(
     index("bookings_villa_idx").on(t.villaId, t.checkIn),
     index("bookings_status_idx").on(t.status),
     index("bookings_channel_idx").on(t.channelId),
+    index("bookings_organization_idx").on(t.organizationId),
   ],
 );
 

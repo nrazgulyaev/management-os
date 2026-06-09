@@ -16,6 +16,7 @@ import { bookings, guests } from "./bookings";
 import { guestStayTokens } from "./guest-stays";
 import { guestServices } from "./guest-services";
 import { notificationQueue } from "./notifications";
+import { organizations } from "./saas";
 
 /**
  * Prompt 102 — Guest Journey Automation.
@@ -52,6 +53,12 @@ export const guestJourneyRules = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  villa → project.organization_id (else project, else default org). Not
+     *  threaded into queries yet; kept NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     appliesToChannel: text("applies_to_channel"),
     conditionsJson: jsonb("conditions_json"),
     payloadJson: jsonb("payload_json"),
@@ -73,6 +80,7 @@ export const guestJourneyRules = pgTable(
     index("guest_journey_rules_anchor_idx").on(t.triggerAnchor),
     index("guest_journey_rules_villa_idx").on(t.villaId),
     index("guest_journey_rules_project_idx").on(t.projectId),
+    index("guest_journey_rules_organization_idx").on(t.organizationId),
   ],
 );
 

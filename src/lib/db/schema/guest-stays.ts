@@ -15,6 +15,7 @@ import { bookings, guests } from "./bookings";
 import { appUsers } from "./identity";
 import { villas } from "./projects";
 import { documents } from "./documents";
+import { organizations } from "./saas";
 
 /**
  * V9E — production guest stay primitives.
@@ -32,6 +33,12 @@ export const guestStayTokens = pgTable(
     bookingId: uuid("booking_id")
       .notNull()
       .references(() => bookings.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  booking → villa → project.organization_id. Not threaded into queries
+     *  yet; kept NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     tokenHash: text("token_hash").notNull().unique(),
     tokenPrefix: text("token_prefix").notNull(),
     status: text("status").notNull().default("active"),
@@ -56,6 +63,7 @@ export const guestStayTokens = pgTable(
     index("guest_stay_tokens_booking_idx").on(t.bookingId),
     index("guest_stay_tokens_status_idx").on(t.status),
     index("guest_stay_tokens_expires_idx").on(t.expiresAt),
+    index("guest_stay_tokens_organization_idx").on(t.organizationId),
   ],
 );
 

@@ -16,6 +16,7 @@ import { index, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-c
 import { projects } from "./projects";
 import { appUsers } from "./identity";
 import { investors } from "./investor-capital";
+import { organizations } from "./saas";
 
 export type CapitalCallKind =
   | "initial"
@@ -34,6 +35,12 @@ export const capitalCalls = pgTable(
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "restrict" }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  project.organization_id. Not threaded into queries yet; kept NULLABLE
+     *  until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** e.g. CC-EV02-0004. */
     ref: text("ref").notNull().unique(),
     /** Enum: initial | construction_milestone | overrun | bridge | final. */
@@ -53,6 +60,7 @@ export const capitalCalls = pgTable(
   (t) => [
     index("capital_calls_project_issued_idx").on(t.projectId, t.issuedAt),
     index("capital_calls_status_due_idx").on(t.status, t.dueAt),
+    index("capital_calls_organization_idx").on(t.organizationId),
   ],
 );
 

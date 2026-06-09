@@ -16,11 +16,20 @@ import { index, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-c
 import { boqItems } from "./boq";
 import { purchaseOrders } from "./inventory";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const boqActuals = pgTable(
   "boq_actuals",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
+     * line_id -> boq_items.organization_id (boq_items carries org from 0072).
+     * Not yet threaded into queries and not DB-enforced NOT NULL.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     lineId: uuid("line_id")
       .notNull()
       .references(() => boqItems.id, { onDelete: "cascade" }),
@@ -38,6 +47,7 @@ export const boqActuals = pgTable(
   (t) => [
     index("boq_actuals_line_recorded_idx").on(t.lineId, t.recordedAt),
     index("boq_actuals_source_po_idx").on(t.sourcePoId),
+    index("boq_actuals_organization_idx").on(t.organizationId),
   ],
 );
 

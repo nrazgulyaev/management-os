@@ -14,6 +14,7 @@ import { projects } from "./projects";
 import { appUsers } from "./identity";
 import { bookings } from "./bookings";
 import { operationTasks } from "./operations";
+import { organizations } from "./saas";
 
 /**
  * V9A — master availability primitive. Every reason a villa is "not for
@@ -34,6 +35,8 @@ export const villaCalendarBlocks = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
+    // TENANCY (migration 0149): nullable org anchor via villa -> project.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     blockType: text("block_type").notNull(),
     sourceType: text("source_type"),
     sourceId: uuid("source_id"),
@@ -59,6 +62,7 @@ export const villaCalendarBlocks = pgTable(
     index("villa_calendar_blocks_status_idx").on(t.status),
     index("villa_calendar_blocks_block_type_idx").on(t.blockType),
     index("villa_calendar_blocks_source_idx").on(t.sourceType, t.sourceId),
+    index("villa_calendar_blocks_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -75,6 +79,8 @@ export const villaReadinessStates = pgTable(
     villaId: uuid("villa_id")
       .notNull()
       .references(() => villas.id, { onDelete: "cascade" }),
+    // TENANCY (migration 0149): nullable org anchor via villa -> project.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     readinessStatus: text("readiness_status").notNull().default("unknown"),
     effectiveFrom: timestamp("effective_from", { withTimezone: true })
       .notNull()
@@ -100,6 +106,7 @@ export const villaReadinessStates = pgTable(
       sql`${t.effectiveFrom} DESC`,
     ),
     index("villa_readiness_states_status_idx").on(t.readinessStatus),
+    index("villa_readiness_states_organization_idx").on(t.organizationId),
     uniqueIndex("villa_readiness_states_open_unique")
       .on(t.villaId)
       .where(sql`${t.effectiveTo} IS NULL`),
@@ -119,6 +126,8 @@ export const bookingStayEvents = pgTable(
     bookingId: uuid("booking_id")
       .notNull()
       .references(() => bookings.id, { onDelete: "cascade" }),
+    // TENANCY (migration 0149): nullable org anchor via booking.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     eventType: text("event_type").notNull(),
     eventAt: timestamp("event_at", { withTimezone: true })
       .notNull()
@@ -137,6 +146,7 @@ export const bookingStayEvents = pgTable(
       sql`${t.eventAt} DESC`,
     ),
     index("booking_stay_events_type_idx").on(t.eventType),
+    index("booking_stay_events_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -156,6 +166,8 @@ export const checkinCheckoutRequests = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "set null",
     }),
+    // TENANCY (migration 0149): nullable org anchor via booking.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     requestType: text("request_type").notNull(),
     requestedTime: timestamp("requested_time", { withTimezone: true }),
     status: text("status").notNull().default("requested"),
@@ -180,6 +192,7 @@ export const checkinCheckoutRequests = pgTable(
   (t) => [
     index("checkin_checkout_requests_booking_idx").on(t.bookingId),
     index("checkin_checkout_requests_status_idx").on(t.status),
+    index("checkin_checkout_requests_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -202,6 +215,8 @@ export const userResponsibilityScopes = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "cascade",
     }),
+    // TENANCY (migration 0149): nullable org anchor via project / villa / user.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     taskCategory: text("task_category"),
     scopeType: text("scope_type").notNull().default("operations"),
     status: text("status").notNull().default("active"),
@@ -220,6 +235,7 @@ export const userResponsibilityScopes = pgTable(
     index("user_responsibility_scopes_villa_idx").on(t.villaId),
     index("user_responsibility_scopes_project_idx").on(t.projectId),
     index("user_responsibility_scopes_scope_idx").on(t.scopeType, t.status),
+    index("user_responsibility_scopes_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -240,6 +256,8 @@ export const securityCameraDevices = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "set null",
     }),
+    // TENANCY (migration 0149): nullable org anchor via villa/project.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     name: text("name").notNull(),
     locationLabel: text("location_label").notNull(),
     provider: text("provider"),
@@ -260,6 +278,7 @@ export const securityCameraDevices = pgTable(
     index("security_camera_devices_villa_idx").on(t.villaId),
     index("security_camera_devices_project_idx").on(t.projectId),
     index("security_camera_devices_status_idx").on(t.status),
+    index("security_camera_devices_organization_idx").on(t.organizationId),
   ],
 );
 

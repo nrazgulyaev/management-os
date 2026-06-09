@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 import {
   directBookingHolds,
   directBookingRequests,
@@ -38,6 +39,12 @@ export const paymentProviderAccounts = pgTable(
   "payment_provider_accounts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled to ARCONIQUE_DEFAULT (no natural parent FK). Not
+    // threaded into queries yet; column stays NULLABLE for now.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     providerKey: text("provider_key").notNull(),
     displayName: text("display_name").notNull(),
     status: text("status").notNull().default("active"),
@@ -55,6 +62,7 @@ export const paymentProviderAccounts = pgTable(
   (t) => [
     index("payment_provider_accounts_status_idx").on(t.status),
     index("payment_provider_accounts_provider_key_idx").on(t.providerKey),
+    index("payment_provider_accounts_org_idx").on(t.organizationId),
   ],
 );
 
@@ -62,6 +70,11 @@ export const directBookingDeposits = pgTable(
   "direct_booking_deposits",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled to ARCONIQUE_DEFAULT. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     holdId: uuid("hold_id").references(() => directBookingHolds.id, {
       onDelete: "cascade",
     }),
@@ -106,6 +119,7 @@ export const directBookingDeposits = pgTable(
     index("direct_booking_deposits_request_idx").on(t.requestId),
     index("direct_booking_deposits_hold_idx").on(t.holdId),
     index("direct_booking_deposits_status_idx").on(t.status),
+    index("direct_booking_deposits_org_idx").on(t.organizationId),
   ],
 );
 
@@ -113,6 +127,11 @@ export const directBookingDepositEvents = pgTable(
   "direct_booking_deposit_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via the parent deposit. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     depositId: uuid("deposit_id")
       .notNull()
       .references(() => directBookingDeposits.id, { onDelete: "cascade" }),
@@ -133,6 +152,7 @@ export const directBookingDepositEvents = pgTable(
       sql`${t.createdAt} DESC`,
     ),
     index("direct_booking_deposit_events_type_idx").on(t.eventType),
+    index("direct_booking_deposit_events_org_idx").on(t.organizationId),
   ],
 );
 
@@ -140,6 +160,12 @@ export const paymentWebhookEvents = pgTable(
   "payment_webhook_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled to ARCONIQUE_DEFAULT (provider webhooks land before
+    // any org resolution). Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     providerKey: text("provider_key").notNull(),
     externalEventId: text("external_event_id"),
     eventType: text("event_type").notNull(),
@@ -157,6 +183,7 @@ export const paymentWebhookEvents = pgTable(
       .where(sql`${t.externalEventId} IS NOT NULL`),
     index("payment_webhook_events_provider_idx").on(t.providerKey),
     index("payment_webhook_events_status_idx").on(t.status),
+    index("payment_webhook_events_org_idx").on(t.organizationId),
   ],
 );
 

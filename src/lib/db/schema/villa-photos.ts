@@ -10,6 +10,7 @@
 import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { villas } from "./projects";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export type VillaPhotoKind = "hero" | "gallery" | "floorplan" | "aerial" | "room" | "outside";
 
@@ -20,6 +21,12 @@ export const villaPhotos = pgTable(
     villaId: uuid("villa_id")
       .notNull()
       .references(() => villas.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  villa → project.organization_id. Not threaded into queries yet; kept
+     *  NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** Storage URL (signed or public). */
     url: text("url").notNull(),
     caption: text("caption"),
@@ -39,6 +46,7 @@ export const villaPhotos = pgTable(
   (t) => [
     index("villa_photos_villa_kind_position_idx").on(t.villaId, t.kind, t.position),
     index("villa_photos_villa_created_idx").on(t.villaId, t.createdAt),
+    index("villa_photos_organization_idx").on(t.organizationId),
   ],
 );
 

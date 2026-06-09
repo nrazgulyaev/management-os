@@ -18,6 +18,7 @@ import {
   directBookingHolds,
   directBookingRequests,
 } from "./direct-booking";
+import { organizations } from "./saas";
 
 /**
  * Prompt 108 — Direct Booking Owner Portal Surface + Owner Revenue
@@ -40,6 +41,9 @@ export const ownerBookingSummaries = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
+    // TENANCY (migration 0149): nullable org anchor via villa -> project
+    // (else booking, else ARCONIQUE_DEFAULT).
+    organizationId: uuid("organization_id").references(() => organizations.id),
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "set null",
     }),
@@ -102,6 +106,7 @@ export const ownerBookingSummaries = pgTable(
     index("owner_booking_summaries_statement_idx").on(t.statementId),
     index("owner_booking_summaries_source_idx").on(t.sourceType),
     index("owner_booking_summaries_status_idx").on(t.publicStatus),
+    index("owner_booking_summaries_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -115,6 +120,8 @@ export const ownerBookingRevenueBreakdowns = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
+    // TENANCY (migration 0149): nullable org anchor via parent summary.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "set null",
     }),
@@ -147,6 +154,9 @@ export const ownerBookingRevenueBreakdowns = pgTable(
     index("owner_booking_revenue_breakdowns_request_idx").on(
       t.directBookingRequestId,
     ),
+    index("owner_booking_revenue_breakdowns_organization_idx").on(
+      t.organizationId,
+    ),
   ],
 );
 
@@ -157,6 +167,9 @@ export const ownerRevenueSourceMonthly = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
+    // TENANCY (migration 0149): nullable org anchor via villa -> project
+    // (else ARCONIQUE_DEFAULT).
+    organizationId: uuid("organization_id").references(() => organizations.id),
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "set null",
     }),
@@ -194,6 +207,7 @@ export const ownerRevenueSourceMonthly = pgTable(
       sql`${t.periodMonth} DESC`,
     ),
     index("owner_revenue_source_monthly_source_idx").on(t.sourceType),
+    index("owner_revenue_source_monthly_organization_idx").on(t.organizationId),
   ],
 );
 

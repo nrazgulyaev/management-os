@@ -20,6 +20,7 @@ import {
 import { projects } from "./projects";
 import { vendors } from "./site-operations";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const SUBMITTAL_TYPES = [
   "shop_drawing",
@@ -57,6 +58,14 @@ export const submittals = pgTable(
   "submittals",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
+     * project_id -> projects.organization_id. Not yet threaded into queries
+     * and not DB-enforced NOT NULL; the app still org-scopes via project_id.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
@@ -93,6 +102,7 @@ export const submittals = pgTable(
     index("submittals_status_idx").on(t.status),
     index("submittals_discipline_idx").on(t.discipline),
     index("submittals_created_idx").on(t.createdAt),
+    index("submittals_organization_idx").on(t.organizationId),
   ],
 );
 

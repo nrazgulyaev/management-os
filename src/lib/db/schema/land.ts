@@ -23,11 +23,20 @@ import { sql } from "drizzle-orm";
 import { projects } from "./projects";
 import { vendors } from "./site-operations";
 import { devTransactions } from "./dev-finance";
+import { organizations } from "./saas";
 
 export const landProfiles = pgTable(
   "land_profiles",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
+     * project_id -> projects.organization_id. Not yet threaded into queries
+     * and not DB-enforced NOT NULL; the app still org-scopes via project_id.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     projectId: uuid("project_id")
       .notNull()
       .unique()
@@ -111,6 +120,7 @@ export const landProfiles = pgTable(
   },
   (t) => [
     index("land_profiles_project_idx").on(t.projectId),
+    index("land_profiles_organization_idx").on(t.organizationId),
     index("land_profiles_lease_expiry_idx")
       .on(t.leaseExpiryDate)
       .where(sql`${t.leaseExpiryDate} IS NOT NULL`),

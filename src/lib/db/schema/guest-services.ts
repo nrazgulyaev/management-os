@@ -18,6 +18,7 @@ import { appUsers } from "./identity";
 import { guestStayTokens } from "./guest-stays";
 import { serviceRequests, operationTasks } from "./operations";
 import { revenueLines, expenseLines } from "./finance";
+import { organizations } from "./saas";
 
 /**
  * V9F — guest services catalog, upsell orders, concierge fulfilment, and the
@@ -65,6 +66,12 @@ export const guestServices = pgTable(
     }),
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "cascade",
+    }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  villa → project.organization_id (else project, else default org). Not
+     *  threaded into queries yet; kept NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
     serviceKey: text("service_key").notNull(),
     name: text("name").notNull(),
@@ -114,6 +121,7 @@ export const guestServices = pgTable(
     index("guest_services_project_idx").on(t.projectId),
     index("guest_services_villa_idx").on(t.villaId),
     index("guest_services_status_idx").on(t.status),
+    index("guest_services_organization_idx").on(t.organizationId),
   ],
 );
 

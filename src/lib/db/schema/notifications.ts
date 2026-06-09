@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
 import { owners } from "./ownership";
+import { organizations } from "./saas";
 
 /**
  * Notifications domain.
@@ -28,6 +29,12 @@ export const notificationQueue = pgTable(
   "notification_queue",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled to ARCONIQUE_DEFAULT (recipient is polymorphic; no
+    // reliable parent FK). Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** internal_user | owner | guest | role — when "role" the recipient_id is null. */
     recipientType: text("recipient_type").notNull(),
     recipientId: uuid("recipient_id"),
@@ -60,6 +67,7 @@ export const notificationQueue = pgTable(
     index("nq_channel_idx").on(t.channel),
     index("nq_recipient_idx").on(t.recipientType, t.recipientId),
     index("nq_next_attempt_idx").on(t.status, t.nextAttemptAt),
+    index("nq_org_idx").on(t.organizationId),
   ],
 );
 
@@ -67,6 +75,11 @@ export const notificationDeliveries = pgTable(
   "notification_deliveries",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via notification_queue.organization_id. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     notificationId: uuid("notification_id")
       .notNull()
       .references(() => notificationQueue.id, { onDelete: "cascade" }),
@@ -88,6 +101,7 @@ export const notificationDeliveries = pgTable(
     index("nd_channel_idx").on(t.channel),
     index("nd_status_idx").on(t.status),
     index("nd_attempted_idx").on(t.attemptedAt),
+    index("nd_org_idx").on(t.organizationId),
   ],
 );
 
@@ -95,6 +109,12 @@ export const inAppNotifications = pgTable(
   "in_app_notifications",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via notification_queue.organization_id; rows without a
+    // queue link fall back to ARCONIQUE_DEFAULT. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     notificationId: uuid("notification_id").references(() => notificationQueue.id, {
       onDelete: "set null",
     }),
@@ -117,6 +137,7 @@ export const inAppNotifications = pgTable(
     index("ian_role_idx").on(t.roleKey),
     index("ian_status_idx").on(t.status),
     index("ian_created_idx").on(t.createdAt),
+    index("ian_org_idx").on(t.organizationId),
   ],
 );
 
@@ -124,6 +145,12 @@ export const notificationPreferences = pgTable(
   "notification_preferences",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled to ARCONIQUE_DEFAULT (preferences are per-user, not
+    // per-org today). Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     appUserId: uuid("app_user_id").references(() => appUsers.id, { onDelete: "cascade" }),
     ownerId: uuid("owner_id").references(() => owners.id, { onDelete: "cascade" }),
     roleKey: text("role_key"),
@@ -141,6 +168,7 @@ export const notificationPreferences = pgTable(
     index("np_owner_idx").on(t.ownerId),
     index("np_role_idx").on(t.roleKey),
     index("np_template_idx").on(t.templateKey),
+    index("np_org_idx").on(t.organizationId),
   ],
 );
 
@@ -148,6 +176,12 @@ export const notificationTemplates = pgTable(
   "notification_templates",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled to ARCONIQUE_DEFAULT (templates are org-global today).
+    // Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     templateKey: text("template_key").notNull(),
     channel: text("channel").notNull(),
     subjectTemplate: text("subject_template"),
@@ -160,6 +194,7 @@ export const notificationTemplates = pgTable(
   (t) => [
     index("notification_templates_key_idx").on(t.templateKey),
     index("notification_templates_channel_idx").on(t.channel),
+    index("notification_templates_org_idx").on(t.organizationId),
   ],
 );
 

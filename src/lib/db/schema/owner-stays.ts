@@ -17,6 +17,7 @@ import { owners } from "./ownership";
 import { appUsers } from "./identity";
 import { bookings } from "./bookings";
 import { villaCalendarBlocks } from "./availability";
+import { organizations } from "./saas";
 
 /**
  * V9B — owner-stay primitive. Policies + requests + relocation candidates
@@ -92,6 +93,12 @@ export const ownerStayRequests = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  villa → project.organization_id. Not threaded into queries yet; kept
+     *  NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     requestedStart: date("requested_start").notNull(),
     requestedEnd: date("requested_end").notNull(),
     guestsCount: integer("guests_count"),
@@ -164,6 +171,7 @@ export const ownerStayRequests = pgTable(
     index("owner_stay_requests_status_idx").on(t.status),
     index("owner_stay_requests_year_idx").on(t.ownerId, t.allowanceYear),
     index("owner_stay_requests_finance_bridge_idx").on(t.financeBridgeStatus),
+    index("owner_stay_requests_organization_idx").on(t.organizationId),
   ],
 );
 

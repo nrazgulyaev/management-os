@@ -8,6 +8,7 @@
 
 import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { owners } from "./ownership";
+import { organizations } from "./saas";
 
 export type OwnerActivityKind =
   | "statement_issued"
@@ -28,6 +29,12 @@ export const ownerActivityLog = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  owner → ownership_shares → project.organization_id. Not threaded into
+     *  queries yet; kept NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** Enum: see OwnerActivityKind above. */
     kind: text("kind").notNull(),
     /** Soft reference. */
@@ -45,6 +52,7 @@ export const ownerActivityLog = pgTable(
   (t) => [
     index("owner_activity_log_owner_occurred_idx").on(t.ownerId, t.occurredAt),
     index("owner_activity_log_owner_read_idx").on(t.ownerId, t.readByOwnerAt),
+    index("owner_activity_log_organization_idx").on(t.organizationId),
   ],
 );
 

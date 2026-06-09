@@ -17,6 +17,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { capitalCommitments } from "./investor-capital";
+import { organizations } from "./saas";
 
 export const waterfallRules = pgTable(
   "waterfall_rules",
@@ -27,6 +28,14 @@ export const waterfallRules = pgTable(
     scope: text("scope").notNull(),
     projectId: uuid("project_id").references(() => projects.id),
     commitmentId: uuid("commitment_id").references(() => capitalCommitments.id),
+
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  project.organization_id (commitment-scoped rows fall back to the
+     *  default org). Not threaded into queries yet; kept NULLABLE until
+     *  app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
 
     ruleLabel: text("rule_label").notNull(),
     /**
@@ -61,6 +70,9 @@ export const waterfallRules = pgTable(
     commitmentIdx: index("waterfall_rules_commitment_idx").on(t.commitmentId),
     activeIdx: index("waterfall_rules_active_idx").on(t.isActive),
     typeIdx: index("waterfall_rules_type_idx").on(t.ruleType),
+    organizationIdx: index("waterfall_rules_organization_idx").on(
+      t.organizationId,
+    ),
   }),
 );
 

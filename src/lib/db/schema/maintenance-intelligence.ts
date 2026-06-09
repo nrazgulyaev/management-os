@@ -18,6 +18,7 @@ import { projects, villas } from "./projects";
 import { appUsers } from "./identity";
 import { checklistTemplates, operationTasks } from "./operations";
 import { expenseLines } from "./finance";
+import { organizations } from "./saas";
 
 /**
  * V9D — preventive maintenance intelligence + utilities. Builds on V9A
@@ -78,6 +79,8 @@ export const villaMaintenancePlans = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
+    // TENANCY (migration 0149): nullable org anchor via villa -> project.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     templateId: uuid("template_id")
       .notNull()
       .references(() => maintenanceTemplates.id, { onDelete: "restrict" }),
@@ -120,6 +123,7 @@ export const villaMaintenancePlans = pgTable(
     index("villa_maintenance_plans_template_idx").on(t.templateId),
     index("villa_maintenance_plans_status_idx").on(t.status),
     index("villa_maintenance_plans_next_due_idx").on(t.nextDueAt),
+    index("villa_maintenance_plans_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -133,6 +137,8 @@ export const maintenanceWindowSuggestions = pgTable(
     villaId: uuid("villa_id")
       .notNull()
       .references(() => villas.id, { onDelete: "cascade" }),
+    // TENANCY (migration 0149): nullable org anchor via villa -> project.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     suggestedStart: timestamp("suggested_start", {
       withTimezone: true,
     }).notNull(),
@@ -155,6 +161,7 @@ export const maintenanceWindowSuggestions = pgTable(
       t.suggestedStart,
     ),
     index("maintenance_window_suggestions_status_idx").on(t.status),
+    index("maintenance_window_suggestions_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -168,6 +175,9 @@ export const utilityAccounts = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "cascade",
     }),
+    // TENANCY (migration 0149): nullable org anchor via villa/project
+    // (else ARCONIQUE_DEFAULT).
+    organizationId: uuid("organization_id").references(() => organizations.id),
     utilityType: text("utility_type").notNull(),
     providerName: text("provider_name"),
     accountNumber: text("account_number"),
@@ -197,6 +207,7 @@ export const utilityAccounts = pgTable(
     index("utility_accounts_project_idx").on(t.projectId),
     index("utility_accounts_type_idx").on(t.utilityType),
     index("utility_accounts_status_idx").on(t.status),
+    index("utility_accounts_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -210,6 +221,8 @@ export const utilityReadings = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "cascade",
     }),
+    // TENANCY (migration 0149): nullable org anchor via utility_account.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     readingType: text("reading_type").notNull(),
     readingValue: numeric("reading_value"),
     balanceMinor: bigint("balance_minor", { mode: "number" }),
@@ -233,6 +246,7 @@ export const utilityReadings = pgTable(
     ),
     index("utility_readings_villa_idx").on(t.villaId),
     index("utility_readings_type_idx").on(t.readingType),
+    index("utility_readings_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -246,6 +260,8 @@ export const utilityPaymentReminders = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "cascade",
     }),
+    // TENANCY (migration 0149): nullable org anchor via utility_account.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     dueDate: date("due_date").notNull(),
     amountMinor: bigint("amount_minor", { mode: "number" }),
     currency: text("currency").notNull().default("IDR"),
@@ -270,6 +286,7 @@ export const utilityPaymentReminders = pgTable(
     index("utility_payment_reminders_account_idx").on(t.utilityAccountId),
     index("utility_payment_reminders_due_idx").on(t.dueDate),
     index("utility_payment_reminders_status_idx").on(t.status),
+    index("utility_payment_reminders_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -283,6 +300,9 @@ export const maintenanceRiskEvents = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "cascade",
     }),
+    // TENANCY (migration 0149): nullable org anchor via villa/project
+    // (else ARCONIQUE_DEFAULT).
+    organizationId: uuid("organization_id").references(() => organizations.id),
     riskType: text("risk_type").notNull(),
     severity: text("severity").notNull().default("medium"),
     title: text("title").notNull(),
@@ -305,6 +325,7 @@ export const maintenanceRiskEvents = pgTable(
     index("maintenance_risk_events_project_idx").on(t.projectId),
     index("maintenance_risk_events_status_idx").on(t.status),
     index("maintenance_risk_events_severity_idx").on(t.severity),
+    index("maintenance_risk_events_organization_idx").on(t.organizationId),
   ],
 );
 
