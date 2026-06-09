@@ -71,15 +71,20 @@ export default async function ProcurementHomePage() {
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header mb-0">
         <div className="left">
           <div className="crumb">
             <Link href="/dashboard/inventory">Inventory</Link> / <span>Procurement</span>
           </div>
-          <h1>Procurement</h1>
-          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
-            PR → RFQ → PO → receive. Auto-PR from low stock, vendor comparison,
-            per-line receipts, approval thresholds enforced per role.
+          <h1>
+            Procurement{" "}
+            <em className="text-terra italic">· {openOrders.length} open PO{openOrders.length === 1 ? "" : "s"}</em>
+          </h1>
+          <p className="page-header-meta">
+            <span>{openRequests.length} open PR{openRequests.length === 1 ? "" : "s"}</span>
+            <span>{pending} pending approval</span>
+            <span>{spendLabel} spend MTD</span>
+            <span>{suppliers.length} vendors</span>
           </p>
         </div>
         <div className="actions">

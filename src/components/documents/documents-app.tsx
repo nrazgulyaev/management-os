@@ -1,9 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Section } from "@/components/ui/section";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import type { DocAppRow, TemplateRow } from "@/features/documents/app-services";
@@ -15,6 +12,23 @@ type Counts = {
   byType: Record<string, number>;
   expiringSoon: number;
   aiKnowledge: number;
+};
+
+/** Display metadata per document type — drives the category cards + icons. */
+const CATEGORY_META: Record<
+  string,
+  { label: string; glyph: string; meta: string }
+> = {
+  contract: { label: "Contracts", glyph: "§", meta: "owner + vendor agreements" },
+  invoice: { label: "Invoices", glyph: "$", meta: "vendor + service billing" },
+  receipt: { label: "Receipts", glyph: "⊕", meta: "expenses + reimbursements" },
+  statement: { label: "Statements archive", glyph: "∷", meta: "historical owner statements" },
+  kyc: { label: "KYC", glyph: "⊠", meta: "identity + verification" },
+  certificate: { label: "Permits & licences", glyph: "⌂", meta: "villa + zoning + tourism" },
+  guide: { label: "Guides", glyph: "⌬", meta: "reusable boilerplate" },
+  policy: { label: "Insurance & policy", glyph: "⚭", meta: "property + liability" },
+  photo: { label: "Property records", glyph: "⊡", meta: "surveys · photos · plans" },
+  other: { label: "Other documents", glyph: "○", meta: "uncategorised" },
 };
 
 const CATEGORY_ORDER = [
@@ -32,13 +46,33 @@ const CATEGORY_ORDER = [
 
 type Tab = string; // "all" | "expiring" | "ai" | documentType
 
+function metaFor(type: string) {
+  return (
+    CATEGORY_META[type] ?? {
+      label: type.charAt(0).toUpperCase() + type.slice(1),
+      glyph: "○",
+      meta: "documents",
+    }
+  );
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
-    year: "numeric",
   });
+}
+
+/** Days-until-expiry suffix (e.g. "14d", "9 mo") for the expires column. */
+function untilSuffix(iso: string | null): string | null {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return "expired";
+  const days = Math.round(ms / (24 * 60 * 60 * 1000));
+  if (days < 60) return `${days}d`;
+  const months = Math.round(days / 30);
+  return `${months} mo`;
 }
 
 export function DocumentsApp({
@@ -51,84 +85,152 @@ export function DocumentsApp({
   counts: Counts;
 }) {
   const [tab, setTab] = React.useState<Tab>("all");
+  const [query, setQuery] = React.useState("");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   const categories = CATEGORY_ORDER.filter((c) => (counts.byType[c] ?? 0) > 0);
 
   const filtered = React.useMemo(() => {
-    const active = docs.filter((d) => d.status === "active");
-    if (tab === "all") return active;
-    if (tab === "expiring") return active.filter((d) => d.expiringSoon || d.expired);
-    if (tab === "ai") return active.filter((d) => !!d.aiFedAt);
-    return active.filter((d) => d.documentType === tab);
-  }, [docs, tab]);
+    const q = query.trim().toLowerCase();
+    let active = docs.filter((d) => d.status === "active");
+    if (tab === "expiring")
+      active = active.filter((d) => d.expiringSoon || d.expired);
+    else if (tab === "ai") active = active.filter((d) => !!d.aiFedAt);
+    else if (tab !== "all") active = active.filter((d) => d.documentType === tab);
+    if (q) {
+      active = active.filter((d) =>
+        [d.title, d.documentType, d.entityType, d.fileName ?? ""]
+          .join(" ")
+          .toLowerCase()
+          .includes(q),
+      );
+    }
+    return active;
+  }, [docs, tab, query]);
+
+  // Priority sort — expired/expiring first, then by created date (newest).
+  const sorted = React.useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const ap = a.expired ? 0 : a.expiringSoon ? 1 : 2;
+      const bp = b.expired ? 0 : b.expiringSoon ? 1 : 2;
+      if (ap !== bp) return ap - bp;
+      return (
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    });
+  }, [filtered]);
 
   const selected = React.useMemo(
     () => docs.find((d) => d.id === selectedId) ?? null,
     [docs, selectedId],
   );
 
-  const tabs: { id: Tab; label: string; count: number; tone?: "warn" }[] = [
-    { id: "all", label: "All", count: counts.all },
+  const chips: { id: Tab; label: string; count: number; tone?: "warn" }[] = [
+    { id: "all", label: "all", count: counts.all },
     ...categories.map((c) => ({
       id: c,
-      label: c.charAt(0).toUpperCase() + c.slice(1),
+      label: metaFor(c).label.toLowerCase(),
       count: counts.byType[c] ?? 0,
     })),
-    { id: "expiring", label: "Expiring soon", count: counts.expiringSoon, tone: "warn" as const },
-    { id: "ai", label: "AI knowledge", count: counts.aiKnowledge },
+    {
+      id: "expiring",
+      label: "expiring",
+      count: counts.expiringSoon,
+      tone: "warn" as const,
+    },
+    { id: "ai", label: "ai knowledge", count: counts.aiKnowledge },
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Category tabs */}
-      <div
-        role="tablist"
-        aria-label="Document categories"
-        className="flex flex-wrap items-center gap-2 border-b border-line-soft pb-3"
-      >
-        {tabs.map((t) => {
-          const isActive = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              role="tab"
-              aria-selected={isActive}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                isActive
-                  ? "border-ink bg-ink text-ink-inverse"
-                  : "border-line-soft bg-surface text-ink-secondary hover:bg-muted/50",
-                t.tone === "warn" && !isActive && t.count > 0 && "text-warning",
-              )}
-            >
-              <span>{t.label}</span>
-              <span
+      {/* Filter bar — search + chips */}
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-cream-warm px-3 py-3">
+        <div className="flex flex-[0_1_320px] items-center gap-2 rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink-tertiary">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name, type, entity, file…"
+            aria-label="Search documents"
+            className="w-full bg-transparent text-sm text-ink placeholder:text-ink-tertiary focus:outline-none"
+          />
+        </div>
+        <div
+          role="tablist"
+          aria-label="Document categories"
+          className="flex flex-wrap items-center gap-2"
+        >
+          {chips.map((t) => {
+            const isActive = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={isActive}
+                type="button"
+                onClick={() => setTab(t.id)}
                 className={cn(
-                  "rounded-full px-1.5 text-[10px] tabular-nums",
-                  isActive ? "bg-ink-inverse/20" : "bg-muted text-ink-tertiary",
+                  "mono inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] uppercase tracking-wide transition-colors",
+                  isActive
+                    ? "border-ink bg-ink text-ink-inverse"
+                    : "border-line bg-surface text-ink-tertiary hover:bg-muted/60",
+                  t.tone === "warn" && !isActive && t.count > 0 && "text-warning",
                 )}
               >
-                {t.count}
-              </span>
-            </button>
-          );
-        })}
+                <span>{t.label}</span>
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 text-[10px] tabular-nums",
+                    isActive
+                      ? "bg-ink-inverse/20 text-ink-inverse"
+                      : "bg-cream-deep text-ink-tertiary",
+                  )}
+                >
+                  {t.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
         <div className="ml-auto">
           <GenerateFromTemplateButton templates={templates} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Table */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
+        {/* Priority list */}
         <div className="min-w-0">
-          {filtered.length === 0 ? (
+          <h3 className="mb-3 flex items-baseline gap-2.5 text-display text-[22px] font-normal text-ink">
+            Priority
+            <span className="italic font-normal text-terra">
+              · expiring + recent
+            </span>
+            <span className="ml-auto mono text-[10px] uppercase tracking-wide text-ink-tertiary">
+              {sorted.length}
+            </span>
+          </h3>
+
+          {sorted.length === 0 ? (
             <div className="rounded-md border border-line-soft p-10">
               <EmptyState
-                variant={tab === "all" ? "first-run" : "no-results"}
-                title={tab === "all" ? "No documents yet" : "Nothing in this view"}
+                variant={tab === "all" && !query ? "first-run" : "no-results"}
+                title={
+                  tab === "all" && !query
+                    ? "No documents yet"
+                    : "Nothing in this view"
+                }
                 body={
                   tab === "expiring"
                     ? "No active documents are expiring in the next 30 days."
@@ -139,110 +241,207 @@ export function DocumentsApp({
               />
             </div>
           ) : (
-            <Table>
-              <THead>
-                <TR>
-                  <TH>Title</TH>
-                  <TH>Type</TH>
-                  <TH>Visibility</TH>
-                  <TH>Sign</TH>
-                  <TH>Expiry</TH>
-                  <TH>AI</TH>
-                </TR>
-              </THead>
-              <TBody>
-                {filtered.map((d) => {
-                  const isSel = d.id === selectedId;
-                  return (
-                    <TR
-                      key={d.id}
-                      data-state={isSel ? "selected" : undefined}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedId(d.id)}
-                    >
-                      <TD className="text-ink font-medium">
-                        <div className="flex items-center gap-2">
-                          {d.title}
-                          {d.versionCount > 1 && (
-                            <Badge tone="outline">v{d.versionCount}</Badge>
-                          )}
-                        </div>
-                      </TD>
-                      <TD>
-                        <Badge tone="outline">{d.documentType}</Badge>
-                      </TD>
-                      <TD>
-                        <Badge tone={d.visibility === "internal" ? "neutral" : "gold"}>
-                          {d.visibility}
-                        </Badge>
-                      </TD>
-                      <TD>
-                        {d.signatureStatus ? (
-                          <Badge
-                            tone={
-                              d.signatureStatus === "countersigned" ||
-                              d.signatureStatus === "signed"
-                                ? "success"
-                                : "warning"
-                            }
-                          >
-                            {d.signatureStatus}
-                          </Badge>
-                        ) : d.signedAt ? (
-                          <Badge tone="success">signed</Badge>
-                        ) : (
-                          <span className="text-xs text-ink-tertiary">unsigned</span>
-                        )}
-                      </TD>
-                      <TD className="text-xs">
-                        {d.expiresAt ? (
-                          <span
-                            className={cn(
-                              d.expired
-                                ? "text-danger font-medium"
-                                : d.expiringSoon
-                                  ? "text-warning font-medium"
-                                  : "text-ink-tertiary",
-                            )}
-                          >
-                            {formatDate(d.expiresAt)}
-                          </span>
-                        ) : (
-                          <span className="text-ink-tertiary">—</span>
-                        )}
-                      </TD>
-                      <TD>
-                        {d.aiFedAt ? (
-                          <Badge tone="accent">fed</Badge>
-                        ) : (
-                          <span className="text-xs text-ink-tertiary">—</span>
-                        )}
-                      </TD>
-                    </TR>
-                  );
-                })}
-              </TBody>
-            </Table>
+            <div className="overflow-hidden rounded-md border border-line bg-surface">
+              <div className="grid grid-cols-[36px_1fr_76px_72px] sm:grid-cols-[36px_1fr_104px_92px_84px] items-center gap-3 border-b border-line-soft bg-cream-warm px-4 py-2.5 mono text-[9.5px] uppercase tracking-wide text-ink-tertiary">
+                <div aria-hidden />
+                <div>document</div>
+                <div className="hidden sm:block">linked to</div>
+                <div className="text-right">expires</div>
+                <div className="text-center">status</div>
+              </div>
+              {sorted.map((d) => (
+                <DocRow
+                  key={d.id}
+                  doc={d}
+                  selected={d.id === selectedId}
+                  onSelect={() => setSelectedId(d.id)}
+                />
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Preview pane */}
-        <div className="lg:sticky lg:top-6 lg:self-start">
-          {selected ? (
-            <DocumentPreviewPane
-              doc={selected}
-              onClose={() => setSelectedId(null)}
-            />
-          ) : (
-            <Section variant="panel" className="text-center">
-              <p className="text-sm text-ink-tertiary py-8">
-                Select a document to preview it, manage signatures, versions, and
-                AI knowledge.
-              </p>
-            </Section>
-          )}
+        {/* Right column — categories then preview */}
+        <div className="flex flex-col gap-6">
+          <div>
+            <h3 className="mb-3 flex items-baseline gap-2.5 text-display text-[22px] font-normal text-ink">
+              Categories
+              <span className="ml-auto mono text-[10px] uppercase tracking-wide text-ink-tertiary">
+                {categories.length}
+              </span>
+            </h3>
+            <div className="flex flex-col gap-2">
+              {categories.length === 0 ? (
+                <p className="rounded-md border border-line-soft px-4 py-6 text-center text-sm text-ink-tertiary">
+                  No categories yet.
+                </p>
+              ) : (
+                categories.map((c) => {
+                  const m = metaFor(c);
+                  const isActive = tab === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setTab(isActive ? "all" : c)}
+                      aria-pressed={isActive}
+                      className={cn(
+                        "grid grid-cols-[32px_1fr_auto] items-center gap-3 rounded-md border bg-surface px-3.5 py-3 text-left transition-colors",
+                        isActive
+                          ? "border-terra"
+                          : "border-line hover:bg-muted/50",
+                      )}
+                    >
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-accent-weak text-base text-terra text-display">
+                        {m.glyph}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-medium text-ink">
+                          {m.label}
+                        </span>
+                        <span className="mono mt-0.5 block truncate text-[10.5px] text-ink-tertiary">
+                          {m.meta}
+                        </span>
+                      </span>
+                      <span className="mono text-xs tabular-nums text-ink">
+                        {counts.byType[c] ?? 0}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Preview pane */}
+          <div className="lg:sticky lg:top-6 lg:self-start">
+            {selected ? (
+              <DocumentPreviewPane
+                doc={selected}
+                onClose={() => setSelectedId(null)}
+              />
+            ) : (
+              <div className="rounded-md border border-line-soft bg-surface px-4 py-10 text-center">
+                <p className="text-sm text-ink-tertiary">
+                  Select a document to preview it, manage signatures, versions,
+                  and AI knowledge.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function DocRow({
+  doc,
+  selected,
+  onSelect,
+}: {
+  doc: DocAppRow;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const tone = doc.expired ? "danger" : doc.expiringSoon ? "warn" : null;
+  const suffix = untilSuffix(doc.expiresAt);
+  const isPdf = (doc.mimeType ?? "").includes("pdf");
+  const m = metaFor(doc.documentType);
+
+  const sigStatus = doc.signatureStatus;
+  const signed = doc.signedAt || sigStatus === "signed" || sigStatus === "countersigned";
+  const awaiting =
+    sigStatus &&
+    sigStatus !== "signed" &&
+    sigStatus !== "countersigned" &&
+    sigStatus !== "declined" &&
+    sigStatus !== "cancelled";
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        "grid w-full grid-cols-[36px_1fr_76px_72px] sm:grid-cols-[36px_1fr_104px_92px_84px] items-center gap-3 border-b border-line-soft px-4 py-3 text-left transition-colors last:border-0",
+        selected
+          ? "bg-muted"
+          : tone === "danger"
+            ? "border-l-[3px] border-l-danger bg-danger-weak/40 pl-[13px] hover:bg-danger-weak/60"
+            : tone === "warn"
+              ? "border-l-[3px] border-l-warning bg-warning-weak/30 pl-[13px] hover:bg-warning-weak/50"
+              : "hover:bg-muted/40",
+      )}
+    >
+      <span
+        className={cn(
+          "inline-flex h-11 w-9 items-center justify-center rounded-sm border border-line bg-cream-warm text-display text-[11px] font-medium",
+          isPdf ? "text-danger" : "text-terra",
+        )}
+      >
+        {isPdf ? "PDF" : "DOC"}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-[13px] font-medium text-ink">
+          {doc.title}
+        </span>
+        <span className="mono mt-0.5 block truncate text-[10.5px] text-ink-tertiary">
+          {doc.fileName ?? m.label}
+          {doc.versionCount > 1 ? ` · v${doc.versionCount}` : ""}
+        </span>
+      </span>
+      <span className="mono hidden text-[10.5px] leading-tight text-ink-tertiary sm:block">
+        {doc.entityType}
+        <span className="block text-ink-secondary">
+          {doc.entityId.slice(0, 6)}
+        </span>
+      </span>
+      <span
+        className={cn(
+          "mono text-right text-[11px] leading-tight",
+          tone === "danger"
+            ? "text-danger"
+            : tone === "warn"
+              ? "text-warning"
+              : "text-ink-tertiary",
+        )}
+      >
+        {doc.expiresAt ? (
+          <>
+            {formatDate(doc.expiresAt)}
+            {suffix && (
+              <span className="mt-0.5 block text-[9.5px] text-ink-tertiary">
+                {suffix}
+              </span>
+            )}
+          </>
+        ) : (
+          "—"
+        )}
+      </span>
+      <span className="flex justify-center">
+        <span
+          className={cn(
+            "mono rounded-sm px-1.5 py-0.5 text-center text-[9.5px] uppercase tracking-wide",
+            signed
+              ? "bg-success-weak text-success"
+              : awaiting
+                ? "bg-warning-weak text-warning"
+                : doc.expired
+                  ? "bg-danger-weak text-danger"
+                  : "bg-cream-deep text-ink-tertiary",
+          )}
+        >
+          {signed
+            ? "signed"
+            : awaiting
+              ? "awaiting"
+              : doc.expired
+                ? "expired"
+                : "active"}
+        </span>
+      </span>
+    </button>
   );
 }

@@ -265,6 +265,10 @@
   --color-paper:           var(--paper, #FFFCF7);
   --color-cream:           var(--cream, #F4EFE6);
   --color-cream-warm:      var(--cream-warm, #FAF7F1);
+  /* Inventory hero (mgmt) — reorder-progress bar track + SKU-master
+     panel insets use the deeper cream surface; bridge it so the
+     `bg-cream-deep` utility resolves to the Layer B value per product. */
+  --color-cream-deep:      var(--cream-deep, #ECE5D5);
   --color-forest:          var(--forest, #1F3A33);
   --color-amber:           var(--amber, #FF6B35);
   --color-amber-soft:      var(--amber-soft, #FFB088);
@@ -330,6 +334,7 @@
   --line-strong:  #C2B89E;
   --ok:           #4F7A5D;
   --warn:         #C58A2E;
+  --danger:       #B14132;
 
   --mint:         #D8E8D6;
   --mint-deep:    #B6D3B2;
