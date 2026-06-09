@@ -10,16 +10,17 @@ import { MaintenanceLog } from "@/components/owner-portal/maintenance-log";
 /**
  * Sprint OWNER-PORTAL · redesign owner-03 — Villa detail.
  *
- * Visual port of cc-handoff-bundle/cabinets/owner-p1/03-villas.html (the
- * detail view). Wires the Phase 2.3 owner-03 primitives (VillaHero /
+ * Pixel port of cc-functional-handoff/cabinets/owner-p1/03-villas.html
+ * (detail view). Wires the Phase 2.3 owner-03 primitives (VillaHero /
  * PhotoGrid / OccupancyBars / MaintenanceLog) to `getVillaForOwner`.
  *
  * This index page (/owner/villas/[id]) did not exist — only the
  * sub-routes (calendar / health / revenue / timeline) did — so the
  * VillaCard links from the home + villas list 404'd. This fills it.
  *
- * Layout: eyebrow → hero (photo + amenities + KPI strip) → gallery →
- * occupancy bars + maintenance log → contact strip.
+ * Layout: header band (eyebrow + 42px serif name) → hero (photo +
+ * amenities + KPI strip) → gallery → occupancy bars + maintenance log
+ * → contact strip.
  */
 
 export const metadata = { title: "Villa" };
@@ -46,20 +47,21 @@ export default async function OwnerVillaDetailPage({
   const { villa, photos, ytdStats, monthlyStats, recentMaintenance } = data;
 
   const kpis: VillaKpi[] = [
-    { label: "Occupancy", value: `${ytdStats.occupancyPct}%` },
-    { label: "ADR", value: fmtUsd(ytdStats.adrUsd) },
-    { label: "Net · MTD", value: fmtUsd(ytdStats.netUsd) },
+    { label: "YTD occupancy", value: `${ytdStats.occupancyPct}%`, tone: "ok" },
+    { label: "YTD ADR", value: fmtUsd(ytdStats.adrUsd) },
+    { label: "Net · MTD", value: fmtUsd(ytdStats.netUsd), tone: "terra" },
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-baseline gap-3">
+      <div className="villa-detail-head">
         <Link
           href="/owner/villas"
-          className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary no-underline hover:text-terra"
+          className="vd-eyebrow no-underline hover:text-terra"
         >
           ← Your villas
         </Link>
+        <h1 className="vd-title">{villa.name}</h1>
       </div>
 
       <VillaHero
@@ -67,18 +69,24 @@ export default async function OwnerVillaDetailPage({
         code={villa.code}
         name={villa.name}
         location={villa.location}
+        feat={
+          villa.bedrooms > 0
+            ? `A ${villa.bedrooms}-bedroom retreat with ${villa.amenities
+                .slice(0, 3)
+                .join(", ")
+                .toLowerCase()}.`
+            : undefined
+        }
         amenities={villa.amenities}
         kpis={kpis}
       />
 
       {photos.length > 0 && (
         <section className="flex flex-col gap-3">
-          <div className="flex items-baseline gap-3">
-            <h2 className="display" style={{ fontSize: 24, fontWeight: 400, margin: 0, color: "var(--ink)" }}>
-              Gallery
-            </h2>
-            <span className="ml-auto font-mono text-[11px] uppercase tracking-[0.08em] text-ink-tertiary">
-              {photos.length} photo{photos.length === 1 ? "" : "s"}
+          <div className="villa-gallery-head">
+            <h2 className="vg-title">Gallery</h2>
+            <span className="vg-link">
+              {photos.length} photo{photos.length === 1 ? "" : "s"} · open all →
             </span>
           </div>
           <PhotoGrid
@@ -87,25 +95,21 @@ export default async function OwnerVillaDetailPage({
         </section>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
-        <section className="rounded-[14px] border border-line-soft bg-surface p-6 flex flex-col gap-4">
-          <div className="flex items-baseline gap-3">
-            <h2 className="display" style={{ fontSize: 20, fontWeight: 400, margin: 0, color: "var(--ink)" }}>
-              Occupancy · last 6 months
-            </h2>
+      <div className="villa-perf-row">
+        <section className="villa-panel">
+          <div className="villa-panel-head">
+            <h2 className="vp-title">Occupancy · last 6 months</h2>
             {ytdStats.occupancyPct > 0 && (
-              <span className="ml-auto font-mono text-[10.5px] tracking-[0.08em] text-ink-tertiary">
-                {ytdStats.occupancyPct}% MTD
-              </span>
+              <span className="vp-meta">{ytdStats.occupancyPct}% AVG</span>
             )}
           </div>
           <OccupancyBars bars={monthlyStats.map((m) => ({ label: m.monthLabel, pct: m.occupancyPct }))} />
         </section>
 
-        <section className="rounded-[14px] border border-line-soft bg-surface p-6 flex flex-col gap-4">
-          <h2 className="display" style={{ fontSize: 20, fontWeight: 400, margin: 0, color: "var(--ink)" }}>
-            Recent maintenance
-          </h2>
+        <section className="villa-panel">
+          <div className="villa-panel-head">
+            <h2 className="vp-title">Recent maintenance</h2>
+          </div>
           <MaintenanceLog
             entries={recentMaintenance.map((m) => ({
               id: m.id,
@@ -119,15 +123,10 @@ export default async function OwnerVillaDetailPage({
         </section>
       </div>
 
-      <section
-        className="rounded-[14px] border border-line-soft p-6 flex flex-wrap items-center gap-4"
-        style={{ background: "linear-gradient(160deg, var(--cream-warm), transparent)" }}
-      >
-        <div className="flex-1 min-w-[240px]">
-          <div className="display" style={{ fontSize: 18, color: "var(--ink)", fontWeight: 400 }}>
-            Want to change something about {villa.code}?
-          </div>
-          <p className="text-[13px] text-ink-tertiary mt-1">
+      <section className="villa-contact">
+        <div className="vc-copy">
+          <div className="vc-headline">Want to change something about {villa.code}?</div>
+          <p className="vc-sub">
             Photos, listing copy, pricing, amenities — reach the team and they&rsquo;ll handle it.
           </p>
         </div>

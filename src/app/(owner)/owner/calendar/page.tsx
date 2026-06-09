@@ -15,9 +15,16 @@ import { PoolStatusLegend } from "@/components/owner-portal/pool-status-legend";
 /**
  * Sprint OWNER-PORTAL · redesign owner-04 — Calendar.
  *
- * Visual port of cc-handoff-bundle/cabinets/owner-p1/04-calendar.html.
- * Wires the Phase 2.3 owner-04 primitives (MonthCalendar / PipelineList)
- * to `getOwnerCalendar(ownerId, ?month)`. Month view + ?month=YYYY-MM.
+ * Pixel port of cc-functional-handoff/cabinets/owner-p1/04-calendar.html:
+ * a calm investor-narrative surface — terra eyebrow + Newsreader title +
+ * lede, a status bar reading the villa's rental participation, then the
+ * month grid alongside the free-night quota / personal stays / "how it
+ * works" rail. Density is owner-narrative (bigger type, airier rhythm),
+ * not an operator console.
+ *
+ * Wires the owner-04 primitives (MonthCalendar / PipelineList) +
+ * the P1 rental-pool manager (PoolManager / PoolStatusLegend) to
+ * `getOwnerCalendar(ownerId, ?month)`. Month view + ?month=YYYY-MM.
  *
  * Privacy: guest names are masked to initials in `getOwnerCalendar`
  * (owners see "Guest JW", never the full name; emails / phones / access
@@ -93,45 +100,27 @@ export default async function OwnerCalendarPage({
   );
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="flex-1 min-w-[200px]">
-          <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary mb-2">
-            Your calendar{villaLabel}
-          </div>
-          <h1
-            className="display"
-            style={{ fontSize: 42, fontWeight: 400, margin: 0, lineHeight: 1.05, letterSpacing: "-0.02em", color: "var(--ink)" }}
-          >
-            {monthName(ym)}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link href={`/owner/calendar?month=${prev}`} className="btn btn-ghost btn-sm">
-            ← {monthShort(prev)}
-          </Link>
-          <Link href="/owner/calendar" className="btn btn-ghost btn-sm">
-            Today
-          </Link>
-          <Link href={`/owner/calendar?month=${next}`} className="btn btn-ghost btn-sm">
-            {monthShort(next)} →
-          </Link>
-          <Link href="/owner/stays" className="btn btn-ghost btn-sm">
-            All my stays
-          </Link>
-        </div>
-      </div>
+    <div className="flex flex-col gap-8">
+      {/* Narrative intro — terra eyebrow + Newsreader title + lede
+          (04-calendar.html .ow-eyebrow / .ow-h1 / .ow-sub). */}
+      <header className="flex flex-col">
+        <p className="owner-eyebrow">Calendar · pool &amp; personal nights</p>
+        <h1 className="owner-h1">Your time at the villa</h1>
+        <p className="owner-cal-sub">
+          Book personal stays, manage the villa&apos;s rental participation, and
+          track your free-night quota{villaLabel}.
+        </p>
+      </header>
 
-      {/* P1 owner-calendar-pool — interactive rental-pool manager. Replaces
-          the async request-form-only flow with an in-grid pool surface:
+      {/* P1 owner-calendar-pool — interactive rental-pool manager. The
           take-out / return toggle (14-day cooling-off), free-nights
-          allowance, Pay-&-book vs Book-free, and cancel-stay. */}
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="display" style={{ fontSize: 22, fontWeight: 400, margin: 0, color: "var(--ink)" }}>
-            Rental pool
-          </h2>
-          <PoolStatusLegend counts={poolCounts} />
+          allowance, Pay-&-book vs Book-free, and cancel-stay live here. */}
+      <section className="flex flex-col gap-4">
+        <div className="owner-sec-head flex-wrap gap-y-2">
+          <h2 className="owner-sec-title">Rental pool</h2>
+          <div className="ml-auto">
+            <PoolStatusLegend counts={poolCounts} />
+          </div>
         </div>
         <PoolManager
           villas={pool.villas}
@@ -151,22 +140,56 @@ export default async function OwnerCalendarPage({
         />
       </section>
 
-      <MonthCalendar month={ym} events={data.events} />
-
-      <section className="flex flex-col gap-3">
-        <h2 className="display" style={{ fontSize: 22, fontWeight: 400, margin: 0, color: "var(--ink)" }}>
-          Upcoming stays
-        </h2>
-        <PipelineList bookings={pipelineItems} emptyLabel="No upcoming stays in the next 30 days." />
+      {/* Month grid — the calendar card. Month name is the card heading;
+          prev / today / next are calm ghost controls (04-calendar.html). */}
+      <section className="flex flex-col gap-4">
+        <div className="owner-sec-head flex-wrap gap-y-2">
+          <h2 className="owner-sec-title">{monthName(ym)}</h2>
+          <div className="ml-auto flex items-center gap-2 flex-wrap">
+            <Link href={`/owner/calendar?month=${prev}`} className="btn btn-ghost btn-sm">
+              ← {monthShort(prev)}
+            </Link>
+            <Link href="/owner/calendar" className="btn btn-ghost btn-sm">
+              Today
+            </Link>
+            <Link href={`/owner/calendar?month=${next}`} className="btn btn-ghost btn-sm">
+              {monthShort(next)} →
+            </Link>
+            <Link href="/owner/stays" className="btn btn-secondary btn-sm">
+              All my stays
+            </Link>
+          </div>
+        </div>
+        <MonthCalendar month={ym} events={data.events} />
+        <p className="owner-cal-legend">
+          Terra = guest · Gold = your request (pending) · Green = your confirmed
+          stay · Grey = villa blocked · Guest names masked
+        </p>
       </section>
 
-      <p
-        className="font-mono text-[10.5px] tracking-[0.08em] text-center"
-        style={{ color: "var(--ink-4)" }}
-      >
-        LEGEND · TERRA = GUEST · GOLD = YOUR REQUEST (PENDING) · GREEN = YOUR{" "}
-        CONFIRMED STAY · GREY = VILLA BLOCKED · GUEST NAMES MASKED
-      </p>
+      {/* Upcoming stays + the "how it works" note, side by side on wide
+          viewports (04-calendar.html sidebar rail). */}
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="flex flex-col gap-4">
+          <div className="owner-sec-head">
+            <h2 className="owner-sec-title">Upcoming stays</h2>
+          </div>
+          <PipelineList
+            bookings={pipelineItems}
+            emptyLabel="No upcoming stays in the next 30 days."
+          />
+        </div>
+        <aside className="owner-note">
+          <h3 className="owner-note-title">How it works</h3>
+          <p className="owner-note-body">
+            Personal dates take the villa out of rental for that time. After
+            returning to the pool there&apos;s a{" "}
+            <strong>{pool.coolingOffDays}-day cooling-off period</strong> before
+            it earns again. Beyond your free-night quota, nights are billed at
+            your owner rate.
+          </p>
+        </aside>
+      </section>
     </div>
   );
 }

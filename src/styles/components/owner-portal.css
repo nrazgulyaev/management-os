@@ -460,6 +460,7 @@
   color: var(--ink);
   line-height: 1;
   letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
 }
 [data-product] .net-hero .lhs .sub {
   font-family: var(--sans-font);
@@ -737,6 +738,34 @@
   margin-top: 2px;
 }
 
+/* ---------- Dispute modal reason picker (owner-02 sign-off) ----------
+   Mirrors cabinets/owner-p1/02-statement.html dispute modal: a stacked
+   radio list where the selected card gets a terra border + faint accent
+   wash. Replaces the previous per-card inline styles. */
+[data-product] .dispute-reasons {
+  display: flex; flex-direction: column; gap: 6px;
+}
+[data-product] .dispute-reason {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm, 8px);
+  border: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+[data-product] .dispute-reason input { margin-top: 2px; }
+[data-product] .dispute-reason.is-selected {
+  border-color: var(--terra);
+  background: color-mix(in oklab, var(--accent) 4%, transparent);
+}
+[data-product] .dispute-reason .dr-title {
+  font-size: 13px; color: var(--ink); font-weight: 500;
+}
+[data-product] .dispute-reason .dr-hint {
+  font-size: 12px; color: var(--ink-3); margin-top: 2px;
+}
+
 /* ---------- WhyLink + WhyDrawer ---------- */
 [data-product] .why-link {
   background: transparent;
@@ -808,78 +837,124 @@
 
 /* ---------------------------------------------------------------
  * Phase 2.3 owner-03 — Owner villas primitives
+ * Pixel-ported from cabinets/owner-p1/03-villas.html (detail view):
+ * full-bleed gradient hero photo with floating amenity badges, serif
+ * name + italic terra accent, dashed-top 3-up KPI strip, terra-fill
+ * occupancy bars, cream-warm maintenance cards.
  * --------------------------------------------------------------- */
+
+/* Page header band — "YOUR VILLAS" eyebrow + 42px serif title. */
+[data-product="owner"] .villa-detail-head .vd-eyebrow {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 10px;
+}
+[data-product="owner"] .villa-detail-head .vd-title {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 42px;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
 
 [data-product="owner"] .villa-hero {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 32px;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 0;
   align-items: stretch;
-  padding: 24px;
-  border: 1px solid var(--c-border);
-  border-radius: 16px;
-  background: var(--c-surface);
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+  background: var(--paper);
 }
 [data-product="owner"] .villa-hero .vh-photo {
   position: relative;
-  aspect-ratio: 4 / 3;
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--c-bg-muted);
-}
-[data-product="owner"] .villa-hero .vh-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  min-height: 320px;
+  display: flex;
+  align-items: flex-end;
+  padding: 20px;
+  background: linear-gradient(135deg, var(--mint), var(--ok));
+  background-size: cover;
+  background-position: center;
 }
 [data-product="owner"] .villa-hero .vh-fallback {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #c08456 0%, #6b4423 100%);
-}
-[data-product="owner"] .villa-hero .vh-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  justify-content: center;
-}
-[data-product="owner"] .villa-hero .vh-code {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  color: var(--c-text-muted);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-}
-[data-product="owner"] .villa-hero .vh-name {
-  font-size: 36px;
-  line-height: 1.1;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  color: var(--c-text);
-}
-[data-product="owner"] .villa-hero .vh-loc {
-  color: var(--c-text-muted);
-  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
 }
 [data-product="owner"] .villa-hero .vh-amenities {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 [data-product="owner"] .villa-hero .vh-amenity {
-  font-size: 12px;
   padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--c-bg-muted);
-  color: var(--c-text);
-  border: 1px solid var(--c-border);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.92);
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+}
+[data-product="owner"] .villa-hero .vh-body {
+  display: flex;
+  flex-direction: column;
+  padding: 32px 36px;
+}
+[data-product="owner"] .villa-hero .vh-code {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product="owner"] .villa-hero .vh-name {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+[data-product="owner"] .villa-hero .vh-name em {
+  font-style: italic;
+  color: var(--terra);
+}
+[data-product="owner"] .villa-hero .vh-loc {
+  margin-top: 10px;
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product="owner"] .villa-hero .vh-feat {
+  margin-top: 14px;
+  font-family: var(--sans-font);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
 }
 [data-product="owner"] .villa-hero .vh-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-top: 4px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
 }
 [data-product="owner"] .villa-hero .vh-kpi {
   display: flex;
@@ -887,43 +962,68 @@
   gap: 2px;
 }
 [data-product="owner"] .villa-hero .vh-kpi-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--c-text-muted);
+  color: var(--ink-3);
 }
 [data-product="owner"] .villa-hero .vh-kpi-value {
-  font-size: 18px;
-  font-weight: 500;
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
+[data-product="owner"] .villa-hero .vh-kpi-value.is-ok { color: var(--ok); }
+[data-product="owner"] .villa-hero .vh-kpi-value.is-terra { color: var(--terra); }
 @media (max-width: 900px) {
   [data-product="owner"] .villa-hero { grid-template-columns: 1fr; }
+  [data-product="owner"] .villa-hero .vh-photo { min-height: 220px; }
+  [data-product="owner"] .villa-hero .vh-body { padding: 24px; }
+}
+
+/* Gallery section header — serif title + terra mono "open all" link. */
+[data-product="owner"] .villa-gallery-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+[data-product="owner"] .villa-gallery-head .vg-title {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--ink);
+}
+[data-product="owner"] .villa-gallery-head .vg-link {
+  margin-left: auto;
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--terra);
+  text-decoration: none;
 }
 
 [data-product="owner"] .photo-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: 12px;
 }
 [data-product="owner"] .photo-grid .pg-cell {
   position: relative;
-  aspect-ratio: 1 / 1;
-  border-radius: 8px;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--r-md);
   overflow: hidden;
-  background: var(--c-bg-muted);
+  background: linear-gradient(135deg, var(--cream-deep), var(--mint)) center / cover no-repeat;
   cursor: zoom-in;
   border: 0;
   padding: 0;
+  transition: transform 0.18s ease;
 }
-[data-product="owner"] .photo-grid .pg-cell img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 200ms ease;
-}
-[data-product="owner"] .photo-grid .pg-cell:hover img { transform: scale(1.04); }
+[data-product="owner"] .photo-grid .pg-cell:hover { transform: translateY(-2px); }
 @media (max-width: 700px) {
   [data-product="owner"] .photo-grid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -975,100 +1075,170 @@
   text-align: center;
 }
 
+/* Performance + maintenance row — two cards side by side (1.4fr 1fr). */
+[data-product="owner"] .villa-perf-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  [data-product="owner"] .villa-perf-row { grid-template-columns: 1fr; }
+}
+
+/* Occupancy / maintenance card shell — serif 20px title + soft border. */
+[data-product="owner"] .villa-panel {
+  padding: 22px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: var(--paper);
+}
+[data-product="owner"] .villa-panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+[data-product="owner"] .villa-panel-head .vp-title {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ink);
+}
+[data-product="owner"] .villa-panel-head .vp-meta {
+  margin-left: auto;
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+[data-product="owner"] .villa-panel .vp-note {
+  margin-top: 36px;
+  font-family: var(--sans-font);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
 [data-product="owner"] .occupancy-bars {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--c-border);
-  border-radius: 12px;
-  background: var(--c-surface);
-  min-height: 200px;
+  gap: 10px;
+  height: 140px;
+}
+[data-product="owner"] .occupancy-bars.empty {
+  height: auto;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-3);
 }
 [data-product="owner"] .occupancy-bars .ob-col {
   flex: 1;
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  height: 100%;
+  background: var(--cream-deep);
+  border-radius: 6px 6px 0 0;
 }
 [data-product="owner"] .occupancy-bars .ob-track {
-  width: 100%;
-  height: 140px;
-  background: var(--c-bg-muted);
-  border-radius: 6px;
-  overflow: hidden;
   display: flex;
   align-items: flex-end;
+  height: 100%;
 }
 [data-product="owner"] .occupancy-bars .ob-fill {
   width: 100%;
-  background: linear-gradient(180deg, #c08456 0%, #8b5a30 100%);
-  border-radius: 0 0 6px 6px;
+  background: linear-gradient(180deg, var(--terra), var(--terra-soft));
+  border-radius: 6px 6px 0 0;
   transition: height 240ms ease;
 }
 [data-product="owner"] .occupancy-bars .ob-label {
-  font-family: var(--font-mono);
+  position: absolute;
+  bottom: -22px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--mono-font), monospace;
   font-size: 10px;
   letter-spacing: 0.08em;
-  color: var(--c-text-muted);
   text-transform: uppercase;
+  color: var(--ink-3);
 }
 [data-product="owner"] .occupancy-bars .ob-pct {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--c-text);
+  position: absolute;
+  top: -18px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  color: var(--ink-3);
 }
 
 [data-product="owner"] .maintenance-log {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--c-border);
-  border-radius: 12px;
-  background: var(--c-surface);
-  overflow: hidden;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
-[data-product="owner"] .maintenance-log .ml-row {
-  display: grid;
-  grid-template-columns: 120px 1fr 100px 80px;
-  gap: 12px;
-  padding: 12px 16px;
-  align-items: center;
-  border-bottom: 1px solid var(--c-border);
+[data-product="owner"] .maintenance-log.empty {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--ink-3);
   font-size: 13px;
 }
-[data-product="owner"] .maintenance-log .ml-row:last-child { border-bottom: 0; }
-[data-product="owner"] .maintenance-log .ml-date {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--c-text-muted);
+[data-product="owner"] .maintenance-log li {
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--cream-warm);
 }
-[data-product="owner"] .maintenance-log .ml-summary { color: var(--c-text); }
-[data-product="owner"] .maintenance-log .ml-status {
-  font-family: var(--font-mono);
-  font-size: 10px;
+[data-product="owner"] .maintenance-log .ml-summary {
+  display: block;
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+[data-product="owner"] .maintenance-log .ml-meta {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--c-text-muted);
+  color: var(--ink-3);
 }
-[data-product="owner"] .maintenance-log .ml-cost {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--c-text);
-  text-align: right;
+
+/* Contact strip — "want to change something" CTA band. */
+[data-product="owner"] .villa-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 26px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: linear-gradient(160deg, var(--cream-warm), transparent);
 }
-[data-product="owner"] .maintenance-log .ml-empty {
-  padding: 24px 16px;
-  text-align: center;
-  color: var(--c-text-muted);
+[data-product="owner"] .villa-contact .vc-copy {
+  flex: 1;
+  min-width: 240px;
+}
+[data-product="owner"] .villa-contact .vc-headline {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--ink);
+}
+[data-product="owner"] .villa-contact .vc-sub {
+  margin: 4px 0 0;
+  font-family: var(--sans-font);
   font-size: 13px;
-}
-@media (max-width: 700px) {
-  [data-product="owner"] .maintenance-log .ml-row {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
+  color: var(--ink-3);
 }
 
 /* ---------------------------------------------------------------
@@ -1079,7 +1249,7 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--c-border);
-  border-radius: 12px;
+  border-radius: var(--r-card-lg, 22px);
   background: var(--c-surface);
   overflow: hidden;
 }
@@ -1090,11 +1260,13 @@
   background: var(--c-bg-muted);
 }
 [data-product="owner"] .month-calendar .mc-weekday {
-  padding: 8px 10px;
+  padding: 10px 12px;
+  font-family: var(--mono-font), monospace;
   font-size: 10px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--c-text-muted);
+  color: var(--ink-4);
+  text-align: center;
 }
 [data-product="owner"] .month-calendar .mc-grid {
   display: grid;
@@ -1197,6 +1369,54 @@
 }
 [data-product="owner"] .pipeline-list .pl-state-confirmed { color: #4a7c59; border-color: rgba(74,124,89,0.4); background: rgba(74,124,89,0.08); }
 [data-product="owner"] .pipeline-list .pl-state-requested { color: #c79633; border-color: rgba(199,150,51,0.4); background: rgba(199,150,51,0.08); }
+
+/* Calendar lede — sans 16px ink-3, matching 04-calendar.html .ow-sub
+   (the narrative subtitle under the page title). */
+[data-product="owner"] .owner-cal-sub {
+  margin: 14px 0 0;
+  font-family: var(--sans-font);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink-3);
+  max-width: 680px;
+}
+
+/* Masked-names legend line under the month grid (04-calendar.html footer
+   key). Calm mono caption, centred, ink-3. */
+[data-product="owner"] .owner-cal-legend {
+  margin: 0;
+  text-align: center;
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  line-height: 1.6;
+}
+
+/* "How it works" rail note — the cream explainer card from the
+   04-calendar.html sidebar (.ow-card on var(--cream)). */
+[data-product="owner"] .owner-note {
+  background: var(--cream);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card-lg, 22px);
+  padding: 20px 22px;
+}
+[data-product="owner"] .owner-note-title {
+  margin: 0 0 8px;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+[data-product="owner"] .owner-note-body {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+[data-product="owner"] .owner-note-body strong { color: var(--ink); font-weight: 500; }
 
 /* ---------------------------------------------------------------
  * Phase 2.3 owner-05 — Owner inbox primitives

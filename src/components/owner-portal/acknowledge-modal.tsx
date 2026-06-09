@@ -36,7 +36,7 @@ export function AcknowledgeModal({
       body={
         <>
           You're saying this statement looks correct. The number{" "}
-          <b style={{ color: "var(--ink)" }}>
+          <b className="text-ink">
             {currency} {netAmount.toLocaleString()}
           </b>{" "}
           is what we'll wire on the next payout cycle.
