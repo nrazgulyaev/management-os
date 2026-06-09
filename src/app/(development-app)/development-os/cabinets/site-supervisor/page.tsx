@@ -12,6 +12,11 @@ import {
   listQaInspections,
   listSafetyIncidents,
 } from "@/lib/development/server/cabinets/site-supervisor-cabinet-queries";
+import {
+  listTodaysCaptureFrames,
+  listActiveZones,
+} from "@/lib/development/server/cabinets/site-supervisor-capture-actions";
+import { CaptureConsole } from "./_capture-console";
 
 /**
  * Sprint TASK-7-DATA-PART-2 — Dev OS Site Supervisor cabinet live wiring.
@@ -52,13 +57,16 @@ function statusBadge(status: string) {
 }
 
 export default async function SiteSupervisorPage() {
-  const [reports, photos, voiceNotes, inspections, incidents] = await Promise.all([
-    listRecentSiteReports(5).catch(() => []),
-    listRecentSitePhotos(10).catch(() => []),
-    listVoiceNotes(6).catch(() => []),
-    listQaInspections(6).catch(() => []),
-    listSafetyIncidents(5).catch(() => []),
-  ]);
+  const [reports, photos, voiceNotes, inspections, incidents, zones, captureFrames] =
+    await Promise.all([
+      listRecentSiteReports(5).catch(() => []),
+      listRecentSitePhotos(10).catch(() => []),
+      listVoiceNotes(6).catch(() => []),
+      listQaInspections(6).catch(() => []),
+      listSafetyIncidents(5).catch(() => []),
+      listActiveZones().catch(() => []),
+      listTodaysCaptureFrames(50).catch(() => []),
+    ]);
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const todaysPhotoCount = photos.filter((p) => p.reportDate === todayIso).length;
@@ -73,26 +81,18 @@ export default async function SiteSupervisorPage() {
             Today&apos;s <span className="text-amber">jobsite log.</span>
           </>
         }
-        subtitle="Daily report timeline, photo-evidence trail, geo-tagged completion stamps. Voice notes and offline-first PWA support coming soon."
+        subtitle="Mobile field-capture: crew counter, active-zone chips, Photo / Incident / Voice / Note capture, and an AI daily summary to the director. Read-only diary, QA and safety panels follow below."
         actions={
-          <>
-            <button
-              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Submit for sign-off
-            </button>
-            <button
-              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              + Photo
-            </button>
-          </>
+          <a href="#field-capture" className="btn btn-amber btn-sm">
+            Open field capture
+          </a>
         }
       />
+
+      {/* Field-capture WRITE workflow (migration 0127). Mobile-first. */}
+      <div id="field-capture" className="mb-[18px]">
+        <CaptureConsole zones={zones} frames={captureFrames} />
+      </div>
 
       <div className="grid grid-cols-5 gap-3 mb-[18px]">
         <Kpi

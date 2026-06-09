@@ -108,3 +108,5 @@ export * from "./checkin-flow";
 // Coordination cabinet — submittals + drawing pins + threads (migration 0126).
 export * from "./submittals";
 export * from "./coordination";
+// Site-supervisor field-capture frames (migration 0127).
+export * from "./site-capture";
