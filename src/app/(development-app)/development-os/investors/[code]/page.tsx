@@ -7,8 +7,7 @@ import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Kpi } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getInvestor } from "@/lib/development/server/investors";
@@ -133,27 +132,27 @@ export default async function InvestorDetailPage({
 
       <Section eyebrow="Capital" title="At a glance">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
+          <Kpi
             label="Committed"
             value={formatUsdMinor(BigInt(investor.totalCommittedUsdMinor))}
-            hint={`${investor.commitmentCount} commitments`}
+            sub={`${investor.commitmentCount} commitments`}
+            tone="accent"
           />
-          <MetricCard
+          <Kpi
             label="Drawn"
             value={formatUsdMinor(BigInt(investor.totalDrawnUsdMinor))}
-            hint="Capital received"
+            sub="Capital received"
           />
-          <MetricCard
+          <Kpi
             label="Distributed"
             value={formatUsdMinor(BigInt(investor.totalDistributedUsdMinor))}
-            hint="Capital + profit"
+            sub="Capital + profit"
+            tone="success"
           />
-          <MetricCard
+          <Kpi
             label="In wallet"
-            value={formatUsdMinor(
-              BigInt(investor.walletAvailableTotalUsdMinor),
-            )}
-            hint="Available to withdraw"
+            value={formatUsdMinor(BigInt(investor.walletAvailableTotalUsdMinor))}
+            sub="Available to withdraw"
           />
         </div>
       </Section>
@@ -165,80 +164,88 @@ export default async function InvestorDetailPage({
             description="Use the API or seed script to add commitments for this investor."
           />
         ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Project</TH>
-                <TH>Committed</TH>
-                <TH>Profit %</TH>
-                <TH>Priority</TH>
-                <TH>Drawn</TH>
-                <TH>Drawn %</TH>
-                <TH>In wallet</TH>
-                <TH>Status</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {investor.commitments.map((c) => (
-                <TR key={c.id}>
-                  <TD className="font-mono text-xs">
-                    <Link
-                      href={`/development-os/commitments/${c.id}`}
-                      className="hover:underline"
-                    >
-                      {c.commitmentCode}
-                    </Link>
-                  </TD>
-                  <TD>
-                    {c.projectName ? (
-                      <Link
-                        href={`/development-os/projects/${c.projectSlug}`}
-                        className="hover:underline text-xs"
-                      >
-                        {c.projectName}
-                      </Link>
-                    ) : (
-                      <span className="text-xs text-ink-tertiary">
-                        Multi-project
-                      </span>
-                    )}
-                  </TD>
-                  <TDNum>
-                    {formatCurrencyMinor(
-                      BigInt(c.committedAmountMinor),
-                      c.committedCurrency,
-                    )}
-                    <div className="text-[10px] text-ink-tertiary">
-                      ≈ {formatUsdMinor(BigInt(c.committedAmountUsdMinor))}
-                    </div>
-                  </TDNum>
-                  <TDNum>{Number(c.profitSharePercent).toFixed(1)}%</TDNum>
-                  <TDNum>{c.capitalReturnPriority}</TDNum>
-                  <TDNum>{formatUsdMinor(BigInt(c.drawnUsdMinor))}</TDNum>
-                  <TDNum>{c.drawnPercent.toFixed(1)}%</TDNum>
-                  <TDNum>
-                    {formatUsdMinor(BigInt(c.walletAvailableUsdMinor))}
-                  </TDNum>
-                  <TD>
-                    <Badge
-                      tone={
-                        c.status === "active"
-                          ? "success"
-                          : c.status === "fully_called"
-                            ? "info"
-                            : c.status === "closed"
-                              ? "neutral"
-                              : "warning"
-                      }
-                    >
-                      {COMMITMENT_STATUS_LABEL[c.status]}
-                    </Badge>
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="data w-full">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Project</th>
+                    <th className="num">Committed</th>
+                    <th className="num">Profit %</th>
+                    <th className="num">Priority</th>
+                    <th className="num">Drawn</th>
+                    <th className="num">Drawn %</th>
+                    <th className="num">In wallet</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {investor.commitments.map((c) => (
+                    <tr key={c.id}>
+                      <td className="font-mono text-xs">
+                        <Link
+                          href={`/development-os/commitments/${c.id}`}
+                          className="hover:underline"
+                        >
+                          {c.commitmentCode}
+                        </Link>
+                      </td>
+                      <td>
+                        {c.projectName ? (
+                          <Link
+                            href={`/development-os/projects/${c.projectSlug}`}
+                            className="hover:underline text-xs"
+                          >
+                            {c.projectName}
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-ink-3">
+                            Multi-project
+                          </span>
+                        )}
+                      </td>
+                      <td className="num">
+                        {formatCurrencyMinor(
+                          BigInt(c.committedAmountMinor),
+                          c.committedCurrency,
+                        )}
+                        <div className="text-[10px] text-ink-4">
+                          ≈ {formatUsdMinor(BigInt(c.committedAmountUsdMinor))}
+                        </div>
+                      </td>
+                      <td className="num">
+                        {Number(c.profitSharePercent).toFixed(1)}%
+                      </td>
+                      <td className="num">{c.capitalReturnPriority}</td>
+                      <td className="num">
+                        {formatUsdMinor(BigInt(c.drawnUsdMinor))}
+                      </td>
+                      <td className="num">{c.drawnPercent.toFixed(1)}%</td>
+                      <td className="num">
+                        {formatUsdMinor(BigInt(c.walletAvailableUsdMinor))}
+                      </td>
+                      <td>
+                        <Badge
+                          tone={
+                            c.status === "active"
+                              ? "success"
+                              : c.status === "fully_called"
+                                ? "info"
+                                : c.status === "closed"
+                                  ? "neutral"
+                                  : "warning"
+                          }
+                        >
+                          {COMMITMENT_STATUS_LABEL[c.status]}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </Section>
 
