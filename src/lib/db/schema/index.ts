@@ -132,3 +132,5 @@ export * from "./contract-signatures";
 export * from "./takeoff-measurements";
 // Unified CRM activity / timeline stream — owner|contact|lead|buyer (migration 0144).
 export * from "./crm-activities";
+// CRM saved views + advanced filters (migration 0145, crm-saved-views-bulk).
+export * from "./crm-saved-views";
