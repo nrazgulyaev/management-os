@@ -11,6 +11,7 @@
 import { index, integer, jsonb, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const onboardingDrafts = pgTable(
   "onboarding_drafts",
@@ -19,6 +20,11 @@ export const onboardingDrafts = pgTable(
     directorUserId: uuid("director_user_id")
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  director_user → app_users.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** 1, 2, or 3 — the modal's current step. */
     step: integer("step").notNull().default(1),
     /** Accumulating step data (owner details, villa picks, doc refs). */
@@ -32,6 +38,7 @@ export const onboardingDrafts = pgTable(
   (t) => [
     index("onboarding_drafts_director_updated_idx").on(t.directorUserId, t.updatedAt),
     index("onboarding_drafts_expires_idx").on(t.expiresAt),
+    index("onboarding_drafts_organization_idx").on(t.organizationId),
   ],
 );
 

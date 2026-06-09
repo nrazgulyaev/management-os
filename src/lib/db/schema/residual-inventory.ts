@@ -25,11 +25,17 @@ import { villas } from "./projects";
 import { projects } from "./projects";
 import { investors } from "./investor-capital";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const residualInventoryUnits = pgTable(
   "residual_inventory_units",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
 
     unitId: uuid("unit_id")
       .notNull()
@@ -99,6 +105,7 @@ export const residualInventoryUnits = pgTable(
   (t) => ({
     projectIdx: index("residual_inventory_units_project_idx").on(t.projectId),
     statusIdx: index("residual_inventory_units_status_idx").on(t.status),
+    orgIdx: index("residual_inventory_units_org_idx").on(t.organizationId),
   }),
 );
 
@@ -106,6 +113,11 @@ export const residualUnitOwnershipShares = pgTable(
   "residual_unit_ownership_shares",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
 
     residualUnitId: uuid("residual_unit_id")
       .notNull()
@@ -151,6 +163,9 @@ export const residualUnitOwnershipShares = pgTable(
     ),
     investorIdx: index("residual_unit_ownership_shares_investor_idx").on(
       t.investorId,
+    ),
+    orgIdx: index("residual_unit_ownership_shares_org_idx").on(
+      t.organizationId,
     ),
   }),
 );

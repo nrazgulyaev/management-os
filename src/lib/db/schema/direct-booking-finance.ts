@@ -16,6 +16,7 @@ import {
   directBookingRequests,
 } from "./direct-booking";
 import { directBookingDeposits } from "./payments";
+import { organizations } from "./saas";
 
 /**
  * Prompt 107 — Direct Booking Finance Reconciliation.
@@ -31,6 +32,10 @@ export const directBookingFinanceLinks = pgTable(
   "direct_booking_finance_links",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     requestId: uuid("request_id").references(() => directBookingRequests.id, {
       onDelete: "cascade",
     }),
@@ -89,6 +94,7 @@ export const directBookingFinanceLinks = pgTable(
     index("direct_booking_finance_links_posted_idx").on(
       sql`${t.postedAt} DESC`,
     ),
+    index("direct_booking_finance_links_org_idx").on(t.organizationId),
   ],
 );
 

@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
 import { projects, villas } from "./projects";
+import { organizations } from "./saas";
 
 /**
  * Prompt 104 — Dynamic Pricing & Availability Rules.
@@ -28,6 +29,10 @@ export const pricingRuleSets = pgTable(
   "pricing_rule_sets",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ruleSetCode: text("rule_set_code").notNull().unique(),
     name: text("name").notNull(),
     scopeType: text("scope_type").notNull(),
@@ -61,6 +66,7 @@ export const pricingRuleSets = pgTable(
     index("pricing_rule_sets_villa_idx").on(t.villaId),
     index("pricing_rule_sets_status_idx").on(t.status),
     index("pricing_rule_sets_priority_idx").on(t.priority),
+    index("pricing_rule_sets_org_idx").on(t.organizationId),
   ],
 );
 
@@ -68,6 +74,10 @@ export const pricingDayOfWeekRules = pgTable(
   "pricing_day_of_week_rules",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ruleSetId: uuid("rule_set_id")
       .notNull()
       .references(() => pricingRuleSets.id, { onDelete: "cascade" }),
@@ -91,6 +101,7 @@ export const pricingDayOfWeekRules = pgTable(
   },
   (t) => [
     uniqueIndex("pricing_dow_rules_unique").on(t.ruleSetId, t.weekday),
+    index("pricing_dow_rules_org_idx").on(t.organizationId),
   ],
 );
 
@@ -98,6 +109,10 @@ export const pricingOccupancyRules = pgTable(
   "pricing_occupancy_rules",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ruleSetId: uuid("rule_set_id")
       .notNull()
       .references(() => pricingRuleSets.id, { onDelete: "cascade" }),
@@ -121,13 +136,20 @@ export const pricingOccupancyRules = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("pricing_occupancy_rules_set_idx").on(t.ruleSetId)],
+  (t) => [
+    index("pricing_occupancy_rules_set_idx").on(t.ruleSetId),
+    index("pricing_occupancy_rules_org_idx").on(t.organizationId),
+  ],
 );
 
 export const pricingCloseOutRules = pgTable(
   "pricing_close_out_rules",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ruleSetId: uuid("rule_set_id")
       .notNull()
       .references(() => pricingRuleSets.id, { onDelete: "cascade" }),
@@ -150,13 +172,20 @@ export const pricingCloseOutRules = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("pricing_close_out_rules_set_idx").on(t.ruleSetId)],
+  (t) => [
+    index("pricing_close_out_rules_set_idx").on(t.ruleSetId),
+    index("pricing_close_out_rules_org_idx").on(t.organizationId),
+  ],
 );
 
 export const pricingChannelRules = pgTable(
   "pricing_channel_rules",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ruleSetId: uuid("rule_set_id")
       .notNull()
       .references(() => pricingRuleSets.id, { onDelete: "cascade" }),
@@ -183,6 +212,7 @@ export const pricingChannelRules = pgTable(
       t.ruleSetId,
       t.channelKey,
     ),
+    index("pricing_channel_rules_org_idx").on(t.organizationId),
   ],
 );
 
@@ -190,6 +220,10 @@ export const pricingMinStayRules = pgTable(
   "pricing_min_stay_rules",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ruleSetId: uuid("rule_set_id")
       .notNull()
       .references(() => pricingRuleSets.id, { onDelete: "cascade" }),
@@ -211,6 +245,7 @@ export const pricingMinStayRules = pgTable(
   (t) => [
     index("pricing_min_stay_rules_set_idx").on(t.ruleSetId),
     index("pricing_min_stay_rules_priority_idx").on(t.priority),
+    index("pricing_min_stay_rules_org_idx").on(t.organizationId),
   ],
 );
 
@@ -218,6 +253,10 @@ export const pricingStopSellRules = pgTable(
   "pricing_stop_sell_rules",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ruleSetId: uuid("rule_set_id")
       .notNull()
       .references(() => pricingRuleSets.id, { onDelete: "cascade" }),
@@ -240,6 +279,7 @@ export const pricingStopSellRules = pgTable(
   (t) => [
     index("pricing_stop_sell_rules_set_idx").on(t.ruleSetId),
     index("pricing_stop_sell_rules_dates_idx").on(t.startsOn, t.endsOn),
+    index("pricing_stop_sell_rules_org_idx").on(t.organizationId),
   ],
 );
 
@@ -247,6 +287,10 @@ export const pricingQuoteLogs = pgTable(
   "pricing_quote_logs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "set null",
     }),
@@ -277,6 +321,7 @@ export const pricingQuoteLogs = pgTable(
     index("pricing_quote_logs_villa_idx").on(t.villaId, t.createdAt),
     index("pricing_quote_logs_channel_idx").on(t.channelKey),
     index("pricing_quote_logs_public_idx").on(t.publicQuote),
+    index("pricing_quote_logs_org_idx").on(t.organizationId),
   ],
 );
 
@@ -284,6 +329,10 @@ export const channelPushEvents = pgTable(
   "channel_push_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     eventCode: text("event_code").notNull().unique(),
     eventType: text("event_type").notNull(),
     channelKey: text("channel_key").notNull(),
@@ -313,6 +362,7 @@ export const channelPushEvents = pgTable(
     index("channel_push_events_villa_idx").on(t.villaId),
     index("channel_push_events_status_idx").on(t.status),
     index("channel_push_events_dates_idx").on(t.dateStart, t.dateEnd),
+    index("channel_push_events_org_idx").on(t.organizationId),
   ],
 );
 
@@ -344,6 +394,10 @@ export const villaRateOverrides = pgTable(
   "villa_rate_overrides",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     villaId: uuid("villa_id")
       .notNull()
       .references(() => villas.id, { onDelete: "cascade" }),
@@ -363,6 +417,7 @@ export const villaRateOverrides = pgTable(
   },
   (t) => [
     uniqueIndex("villa_rate_overrides_villa_date_uq").on(t.villaId, t.stayDate),
+    index("villa_rate_overrides_org_idx").on(t.organizationId),
   ],
 );
 

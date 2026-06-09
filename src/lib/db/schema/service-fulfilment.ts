@@ -22,6 +22,7 @@ import {
 } from "./guest-services";
 import { documents } from "./documents";
 import { revenueLines, expenseLines } from "./finance";
+import { organizations } from "./saas";
 
 /**
  * Prompt 103 — Service Fulfilment & Vendor Ops.
@@ -36,6 +37,10 @@ export const serviceVendors = pgTable(
   "service_vendors",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     vendorCode: text("vendor_code").notNull().unique(),
     displayName: text("display_name").notNull(),
     legalName: text("legal_name"),
@@ -65,6 +70,7 @@ export const serviceVendors = pgTable(
     index("service_vendors_status_idx").on(t.status),
     index("service_vendors_type_idx").on(t.vendorType),
     index("service_vendors_display_name_idx").on(t.displayName),
+    index("service_vendors_org_idx").on(t.organizationId),
   ],
 );
 
@@ -72,6 +78,10 @@ export const serviceVendorServices = pgTable(
   "service_vendor_services",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     vendorId: uuid("vendor_id")
       .notNull()
       .references(() => serviceVendors.id, { onDelete: "cascade" }),
@@ -99,6 +109,7 @@ export const serviceVendorServices = pgTable(
     ),
     index("service_vendor_services_service_idx").on(t.serviceId),
     index("service_vendor_services_status_idx").on(t.status),
+    index("service_vendor_services_org_idx").on(t.organizationId),
   ],
 );
 
@@ -106,6 +117,10 @@ export const guestServiceFulfilments = pgTable(
   "guest_service_fulfilments",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     orderId: uuid("order_id")
       .notNull()
       .references(() => guestServiceOrders.id, { onDelete: "cascade" }),
@@ -160,6 +175,7 @@ export const guestServiceFulfilments = pgTable(
     index("guest_service_fulfilments_vendor_idx").on(t.vendorId),
     index("guest_service_fulfilments_scheduled_idx").on(t.scheduledFor),
     index("guest_service_fulfilments_assigned_idx").on(t.assignedToAppUserId),
+    index("guest_service_fulfilments_org_idx").on(t.organizationId),
   ],
 );
 
@@ -167,6 +183,10 @@ export const serviceFulfilmentEvents = pgTable(
   "service_fulfilment_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     fulfilmentId: uuid("fulfilment_id")
       .notNull()
       .references(() => guestServiceFulfilments.id, { onDelete: "cascade" }),
@@ -192,6 +212,7 @@ export const serviceFulfilmentEvents = pgTable(
       sql`${t.createdAt} DESC`,
     ),
     index("service_fulfilment_events_type_idx").on(t.eventType),
+    index("service_fulfilment_events_org_idx").on(t.organizationId),
   ],
 );
 
@@ -199,6 +220,10 @@ export const serviceVendorTokens = pgTable(
   "service_vendor_tokens",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     fulfilmentId: uuid("fulfilment_id")
       .notNull()
       .references(() => guestServiceFulfilments.id, { onDelete: "cascade" }),
@@ -226,6 +251,7 @@ export const serviceVendorTokens = pgTable(
     index("service_vendor_tokens_fulfilment_idx").on(t.fulfilmentId),
     index("service_vendor_tokens_status_idx").on(t.status),
     index("service_vendor_tokens_expires_idx").on(t.expiresAt),
+    index("service_vendor_tokens_org_idx").on(t.organizationId),
   ],
 );
 
@@ -233,6 +259,10 @@ export const serviceVendorInvoices = pgTable(
   "service_vendor_invoices",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     fulfilmentId: uuid("fulfilment_id")
       .notNull()
       .references(() => guestServiceFulfilments.id, { onDelete: "cascade" }),
@@ -266,6 +296,7 @@ export const serviceVendorInvoices = pgTable(
     index("service_vendor_invoices_fulfilment_idx").on(t.fulfilmentId),
     index("service_vendor_invoices_status_idx").on(t.invoiceStatus),
     index("service_vendor_invoices_due_idx").on(t.dueDate),
+    index("service_vendor_invoices_org_idx").on(t.organizationId),
   ],
 );
 
@@ -273,6 +304,10 @@ export const guestServiceRatings = pgTable(
   "guest_service_ratings",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     orderId: uuid("order_id").references(() => guestServiceOrders.id, {
       onDelete: "set null",
     }),
@@ -306,6 +341,7 @@ export const guestServiceRatings = pgTable(
     ),
     index("guest_service_ratings_vendor_idx").on(t.vendorId),
     index("guest_service_ratings_status_idx").on(t.status),
+    index("guest_service_ratings_org_idx").on(t.organizationId),
   ],
 );
 
@@ -313,6 +349,10 @@ export const serviceFulfilmentFinanceLinks = pgTable(
   "service_fulfilment_finance_links",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     fulfilmentId: uuid("fulfilment_id")
       .notNull()
       .references(() => guestServiceFulfilments.id, { onDelete: "cascade" }),
@@ -350,6 +390,7 @@ export const serviceFulfilmentFinanceLinks = pgTable(
       t.fulfilmentId,
     ),
     index("service_fulfilment_finance_links_status_idx").on(t.status),
+    index("service_fulfilment_finance_links_org_idx").on(t.organizationId),
   ],
 );
 

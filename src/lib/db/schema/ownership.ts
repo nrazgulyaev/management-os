@@ -9,6 +9,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { projects, villas } from "./projects";
+import { organizations } from "./saas";
 
 export const owners = pgTable(
   "owners",
@@ -37,6 +38,12 @@ export const ownershipShares = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "restrict" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  villa → project.organization_id (else the share's project_id).
+     *  Not threaded into queries yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     villaId: uuid("villa_id").references(() => villas.id, { onDelete: "restrict" }),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "restrict" }),
     // share_percent stored as 0-100 with up to 6 decimals
@@ -54,6 +61,7 @@ export const ownershipShares = pgTable(
     index("ownership_shares_owner_idx").on(t.ownerId),
     index("ownership_shares_villa_idx").on(t.villaId),
     index("ownership_shares_project_idx").on(t.projectId),
+    index("ownership_shares_organization_idx").on(t.organizationId),
   ],
 );
 

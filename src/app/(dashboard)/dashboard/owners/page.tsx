@@ -13,6 +13,7 @@ import { startImpersonatingOwner } from "@/features/owner-portal/impersonation-a
 import { formatMoneyMinor } from "@/lib/money";
 import { listSavedViews } from "@/features/crm/saved-views/services";
 import { listAppUsers } from "@/features/auth/users-service";
+import { listTagsForSubjects, listOrgTags } from "@/features/crm-custom-fields/services";
 import { OwnersListClient, type OwnerRowVM } from "./_owners-list-client";
 import type { FilterFieldDef } from "@/features/crm/saved-views/filter-types";
 
@@ -96,14 +97,23 @@ const OWNER_FILTER_FIELDS: FilterFieldDef[] = [
 export default async function OwnersPage() {
   const { allowed } = await requireCabinetAccess("owners");
   if (!allowed) return <CabinetGate cabinet="Owners" />;
-  const [owners, ctx, villas, savedViews, appUsers, canManage] = await Promise.all([
-    listOwnersForCrm(),
-    getCurrentUserContext(),
-    listVillas(),
-    listSavedViews("owners"),
-    listAppUsers(),
-    canManageEntity("owner"),
-  ]);
+  const [owners, ctx, villas, savedViews, appUsers, canManage, orgTags] =
+    await Promise.all([
+      listOwnersForCrm(),
+      getCurrentUserContext(),
+      listVillas(),
+      listSavedViews("owners"),
+      listAppUsers(),
+      canManageEntity("owner"),
+      listOrgTags(),
+    ]);
+
+  // CRM-CUSTOM-FIELDS-TAGS — tags-per-owner in one round-trip for the
+  // list column + filter (the merge-deferred follow-on from #172).
+  const tagsBySubject = await listTagsForSubjects(
+    "owner",
+    owners.map((o) => o.id),
+  );
   const source = owners[0]?.source ?? "mock";
   const canImpersonate = ctx.isSuperAdmin;
   const availableVillas = villas.map((v) => ({
@@ -139,7 +149,24 @@ export default async function OwnersPage() {
     nationality: o.nationality,
     taxResidency: o.taxResidency,
     riskRowClass: riskRowClass[o.riskLevel] ?? "",
+    tags: (tagsBySubject.get(o.id) ?? []).map((t) => ({
+      id: t.id,
+      label: t.label,
+      color: t.color,
+    })),
   }));
+
+  // The tags filter field offers the org's tag vocabulary as select options;
+  // `is`/`is_not` match against an owner's assigned tag ids (OR semantics).
+  const filterFields: FilterFieldDef[] = [
+    ...OWNER_FILTER_FIELDS,
+    {
+      key: "tags",
+      label: "Tag",
+      type: "select",
+      options: orgTags.map((t) => ({ value: t.id, label: t.label })),
+    },
+  ];
 
   return (
     <>
@@ -194,7 +221,7 @@ export default async function OwnersPage() {
       ) : (
         <OwnersListClient
           rows={rows}
-          fields={OWNER_FILTER_FIELDS}
+          fields={filterFields}
           savedViews={savedViews}
           assignOptions={assignOptions}
           canManage={canManage}

@@ -24,6 +24,7 @@ import { getContactById } from "@/lib/development/server/contacts";
 import { getLeadSalesSnapshot } from "@/lib/development/server/contact-sales";
 import { RecordTimeline } from "@/components/ui/primitives";
 import { listCrmActivities } from "@/features/crm-activity/services";
+import { LogActivityComposer } from "@/components/crm/log-activity-composer";
 import { CrmAnnotationsPanel } from "@/components/crm/crm-annotations-panel";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { formatDate } from "@/lib/utils";
@@ -157,10 +158,17 @@ export default async function LeadDetailPage({
         <Section
           eyebrow="CRM"
           title="Activity timeline"
+          action={
+            <LogActivityComposer
+              subjectType="contact"
+              subjectId={lead.contactId}
+              canManage={canManageCrm}
+            />
+          }
         >
           <RecordTimeline
             activities={crmActivity}
-            emptyLabel="No CRM activity yet — status changes and notes will appear here."
+            emptyLabel="No CRM activity yet — log a note, call, or email to start the timeline."
           />
         </Section>
       ),

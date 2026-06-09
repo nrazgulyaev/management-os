@@ -19,6 +19,7 @@ import { guests } from "./bookings";
 import { owners } from "./ownership";
 import { documents } from "./documents";
 import { aiAssistantRuns } from "./ai";
+import { organizations } from "./saas";
 
 /**
  * Development OS — Stage 2.2.A schema (contacts foundation).
@@ -40,6 +41,12 @@ export const contacts = pgTable(
   "contacts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via a
+     *  project-scoped contact_role → projects.organization_id (else default).
+     *  Not threaded into queries yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     fullName: text("full_name").notNull(),
     displayName: text("display_name"),
     email: text("email"),
@@ -86,6 +93,7 @@ export const contacts = pgTable(
     index("contacts_acquisition_source_idx")
       .on(t.acquisitionSource)
       .where(sql`${t.isArchived} = false`),
+    index("contacts_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -97,6 +105,11 @@ export const agents = pgTable(
       .notNull()
       .unique()
       .references(() => contacts.id, { onDelete: "restrict" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  contact → contacts.organization_id. Not threaded into queries yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     agencyName: text("agency_name"),
     agreementSignedAt: date("agreement_signed_at"),
     agreementDocumentId: uuid("agreement_document_id").references(
@@ -126,6 +139,7 @@ export const agents = pgTable(
     index("agents_status_active_idx")
       .on(t.agreementStatus)
       .where(sql`${t.agreementStatus} = 'active'`),
+    index("agents_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -133,6 +147,11 @@ export const leadSources = pgTable(
   "lead_sources",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** TENANCY (migration 0154): nullable org anchor. lead_sources have no
+     *  tenant parent — backfilled to ARCONIQUE_DEFAULT. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     sourceCode: text("source_code").notNull().unique(),
     /** 'website' | 'paid_ads' | 'organic_social' | 'agent' | 'referral' | 'event' | 'cold' | 'other' */
     sourceCategory: text("source_category").notNull().default("other"),
@@ -150,6 +169,7 @@ export const leadSources = pgTable(
     index("lead_sources_category_active_idx")
       .on(t.sourceCategory)
       .where(sql`${t.isActive} = true`),
+    index("lead_sources_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -160,6 +180,12 @@ export const contactRoles = pgTable(
     contactId: uuid("contact_id")
       .notNull()
       .references(() => contacts.id, { onDelete: "restrict" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  scope_project → projects.organization_id (else the contact's org).
+     *  Not threaded into queries yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** 'lead' | 'buyer' | 'investor' | 'owner' | 'agent' | 'tenant' | 'landowner' | 'vendor' | 'employee' */
     role: text("role").notNull(),
     /** 'global' | 'project' | 'unit' */
@@ -201,6 +227,7 @@ export const contactRoles = pgTable(
   },
   (t) => [
     index("contact_roles_contact_idx").on(t.contactId),
+    index("contact_roles_organization_idx").on(t.organizationId),
     index("contact_roles_role_status_idx").on(t.role, t.status),
     index("contact_roles_project_idx").on(t.scopeProjectId),
     index("contact_roles_assigned_active_idx")
@@ -220,6 +247,12 @@ export const contactInteractions = pgTable(
     contactId: uuid("contact_id")
       .notNull()
       .references(() => contacts.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  project → projects.organization_id (else the contact's org).
+     *  Not threaded into queries yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
@@ -291,6 +324,7 @@ export const contactInteractions = pgTable(
     index("contact_interactions_review_pending_idx")
       .on(t.reviewStatus)
       .where(sql`${t.reviewStatus} = 'pending'`),
+    index("contact_interactions_organization_idx").on(t.organizationId),
   ],
 );
 

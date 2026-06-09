@@ -14,11 +14,16 @@
 
 import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { vendors } from "./site-operations";
+import { organizations } from "./saas";
 
 export const vendorScores = pgTable(
   "vendor_scores",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     vendorId: uuid("vendor_id")
       .notNull()
       .references(() => vendors.id, { onDelete: "cascade" }),
@@ -35,6 +40,7 @@ export const vendorScores = pgTable(
   (t) => [
     index("vendor_scores_vendor_computed_desc_idx").on(t.vendorId, t.computedAt),
     index("vendor_scores_computed_at_idx").on(t.computedAt),
+    index("vendor_scores_org_idx").on(t.organizationId),
   ],
 );
 

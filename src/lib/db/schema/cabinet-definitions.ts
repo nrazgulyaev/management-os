@@ -8,6 +8,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { organizations } from "./saas";
 
 /**
  * Stage 7.A — Cabinet definitions metadata.
@@ -22,6 +23,13 @@ export const cabinetDefinitions = pgTable(
   "cabinet_definitions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** TENANCY (migration 0154): nullable column added for schema uniformity.
+     *  This is a PLATFORM-WIDE catalog (every org sees the same cabinet set —
+     *  visibility is by role/plan, not tenant), so it is only backfilled to
+     *  ARCONIQUE_DEFAULT and must NOT be threaded into reads. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     slug: text("slug").notNull().unique(),
     displayName: text("display_name").notNull(),
     description: text("description"),
@@ -52,6 +60,7 @@ export const cabinetDefinitions = pgTable(
   (t) => [
     index("cabinet_definitions_active_idx").on(t.isActive),
     index("cabinet_definitions_sort_idx").on(t.sortOrder),
+    index("cabinet_definitions_organization_idx").on(t.organizationId),
   ],
 );
 

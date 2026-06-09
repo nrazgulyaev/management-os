@@ -7,6 +7,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
 import { owners } from "./ownership";
+import { organizations } from "./saas";
 
 /**
  * Explicit grant linking a Supabase Auth user (via `app_users`) to an
@@ -26,6 +27,11 @@ export const appUsersOwners = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  app_user → app_users.organization_id. Not threaded into queries yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     grantType: text("grant_type").notNull().default("owner_portal"),
     status: text("status").notNull().default("active"),
     grantedBy: uuid("granted_by").references(() => appUsers.id, {
@@ -44,6 +50,7 @@ export const appUsersOwners = pgTable(
     index("app_users_owners_app_user_idx").on(t.appUserId),
     index("app_users_owners_owner_idx").on(t.ownerId),
     index("app_users_owners_status_idx").on(t.status),
+    index("app_users_owners_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -66,6 +73,11 @@ export const appUsersInvestors = pgTable(
     investorId: uuid("investor_id")
       .notNull()
       .references(() => investors.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  investor → investors.organization_id. Not threaded into queries yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     grantType: text("grant_type").notNull().default("investor_portal"),
     status: text("status").notNull().default("active"),
     grantedBy: uuid("granted_by").references(() => appUsers.id, {
@@ -84,6 +96,7 @@ export const appUsersInvestors = pgTable(
     index("app_users_investors_app_user_idx").on(t.appUserId),
     index("app_users_investors_investor_idx").on(t.investorId),
     index("app_users_investors_status_idx").on(t.status),
+    index("app_users_investors_organization_idx").on(t.organizationId),
   ],
 );
 

@@ -14,6 +14,7 @@ import { guestStayTokens } from "./guest-stays";
 import { bookings } from "./bookings";
 import { serviceRequests } from "./operations";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 /**
  * V9H — guest AI concierge v0 (token-scoped, read-only).
@@ -38,6 +39,11 @@ export const guestAiConciergeSessions = pgTable(
     bookingId: uuid("booking_id").references(() => bookings.id, {
       onDelete: "set null",
     }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  guest_stay_token → guest_stay_tokens.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     status: text("status").notNull().default("active"),
     title: text("title"),
     startedAt: timestamp("started_at", { withTimezone: true })
@@ -61,6 +67,7 @@ export const guestAiConciergeSessions = pgTable(
     index("guest_ai_concierge_sessions_last_message_idx").on(
       sql`${t.lastMessageAt} DESC`,
     ),
+    index("guest_ai_concierge_sessions_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -73,6 +80,11 @@ export const guestAiConciergeMessages = pgTable(
       .references(() => guestAiConciergeSessions.id, {
         onDelete: "cascade",
       }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  session → guest_ai_concierge_sessions.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     role: text("role").notNull(),
     content: text("content").notNull(),
     safetyStatus: text("safety_status").notNull().default("ok"),
@@ -92,6 +104,7 @@ export const guestAiConciergeMessages = pgTable(
       t.createdAt,
     ),
     index("guest_ai_concierge_messages_safety_idx").on(t.safetyStatus),
+    index("guest_ai_concierge_messages_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -104,6 +117,11 @@ export const guestAiConciergeRuns = pgTable(
       .references(() => guestAiConciergeSessions.id, {
         onDelete: "cascade",
       }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  session → guest_ai_concierge_sessions.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     status: text("status").notNull().default("running"),
     model: text("model"),
     promptHash: text("prompt_hash"),
@@ -124,6 +142,7 @@ export const guestAiConciergeRuns = pgTable(
     index("guest_ai_concierge_runs_started_idx").on(
       sql`${t.startedAt} DESC`,
     ),
+    index("guest_ai_concierge_runs_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -163,6 +182,11 @@ export const guestAiHandoffs = pgTable(
       .references(() => guestStayTokens.id, { onDelete: "cascade" }),
     bookingId: uuid("booking_id").references(() => bookings.id, {
       onDelete: "set null",
+    }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  guest_stay_token → guest_stay_tokens.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
     serviceRequestId: uuid("service_request_id").references(
       () => serviceRequests.id,
@@ -206,6 +230,7 @@ export const guestAiHandoffs = pgTable(
     index("guest_ai_handoffs_created_at_idx").on(
       sql`${t.createdAt} DESC`,
     ),
+    index("guest_ai_handoffs_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -228,6 +253,11 @@ export const guestAiHandoffReplies = pgTable(
     handoffId: uuid("handoff_id")
       .notNull()
       .references(() => guestAiHandoffs.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  handoff → guest_ai_handoffs.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     serviceRequestId: uuid("service_request_id").references(
       () => serviceRequests.id,
       { onDelete: "set null" },
@@ -260,6 +290,7 @@ export const guestAiHandoffReplies = pgTable(
       sql`${t.createdAt} DESC`,
     ),
     index("guest_ai_handoff_replies_visibility_idx").on(t.visibility),
+    index("guest_ai_handoff_replies_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -284,6 +315,11 @@ export const guestAiHandoffReplyReads = pgTable(
     handoffId: uuid("handoff_id")
       .notNull()
       .references(() => guestAiHandoffs.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  handoff → guest_ai_handoffs.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     readerType: text("reader_type").notNull(),
     readerAppUserId: uuid("reader_app_user_id").references(
       () => appUsers.id,
@@ -316,6 +352,7 @@ export const guestAiHandoffReplyReads = pgTable(
     index("guest_ai_handoff_reply_reads_read_at_idx").on(
       sql`${t.readAt} DESC`,
     ),
+    index("guest_ai_handoff_reply_reads_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -341,6 +378,11 @@ export const guestAiHandoffReplyAttachments = pgTable(
     handoffId: uuid("handoff_id")
       .notNull()
       .references(() => guestAiHandoffs.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  handoff → guest_ai_handoffs.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     serviceRequestId: uuid("service_request_id").references(
       () => serviceRequests.id,
       { onDelete: "set null" },
@@ -405,6 +447,9 @@ export const guestAiHandoffReplyAttachments = pgTable(
       .on(t.cleanupEligibleAt)
       .where(sql`${t.cleanupEligibleAt} IS NOT NULL`),
     index("attachment_security_scan_status_idx").on(t.securityScanStatus),
+    index("guest_ai_handoff_reply_attachments_organization_idx").on(
+      t.organizationId,
+    ),
   ],
 );
 

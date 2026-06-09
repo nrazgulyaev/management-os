@@ -22,6 +22,7 @@ import { DetailActivity, type ActivityEntry } from "@/components/dashboard/detai
 import { DetailRelated, type RelatedItem } from "@/components/dashboard/detail/detail-related";
 import { RecordTimeline } from "@/components/ui/primitives";
 import { listCrmActivities } from "@/features/crm-activity/services";
+import { LogActivityComposer } from "@/components/crm/log-activity-composer";
 import { OwnerDetailTabs } from "./_detail-client";
 import { OwnerHeaderActions, OwnerInsightPanel } from "./_owner-actions-client";
 import { RecordTasks } from "@/components/crm-tasks/record-tasks";
@@ -332,12 +333,25 @@ export default async function OwnerDetailPage({
 
   const activityPanel = (
     <div className="flex flex-col gap-3 px-7 py-6">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
+          Activity timeline
+        </span>
+        <LogActivityComposer
+          subjectType="owner"
+          subjectId={owner.id}
+          canManage={canManage}
+        />
+      </div>
       {crmActivity.length > 0 ? (
         <Card style={{ padding: 20 }}>
           <RecordTimeline activities={crmActivity} />
         </Card>
       ) : activity.length === 0 ? (
-        <p className="text-sm text-ink-tertiary">No recent activity.</p>
+        <p className="text-sm text-ink-tertiary">
+          No recent activity. Use <em>Log activity</em> to record a note, call,
+          or email.
+        </p>
       ) : (
         <Card style={{ padding: 20 }}>
           <DetailActivity entries={activity} />

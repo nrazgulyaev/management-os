@@ -7,6 +7,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 /**
  * Append-only audit log. Writes only — never updated.
@@ -18,6 +19,13 @@ export const auditEvents = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     actorUserId: uuid("actor_user_id").references(() => appUsers.id, {
       onDelete: "set null",
+    }),
+    /** TENANCY (migration 0154): nullable org anchor. The audit log is mostly
+     *  platform-global (actor + entity span every tenant); the column is added
+     *  and backfilled from the actor's org so future per-tenant audit filtering
+     *  has a local anchor. NOT threaded into writes/reads here. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
     // dotted action: e.g. project.create, villa.update, booking.create
     action: text("action").notNull(),
@@ -34,6 +42,7 @@ export const auditEvents = pgTable(
     index("audit_events_entity_idx").on(t.entityType, t.entityId),
     index("audit_events_actor_idx").on(t.actorUserId, t.createdAt),
     index("audit_events_action_idx").on(t.action),
+    index("audit_events_organization_idx").on(t.organizationId),
   ],
 );
 

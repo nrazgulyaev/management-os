@@ -15,6 +15,7 @@ import { appUsers } from "./identity";
 import { projects, villas } from "./projects";
 import { operationTasks, taskChecklistItems, damageReports } from "./operations";
 import { expenseLines } from "./finance";
+import { organizations } from "./saas";
 
 /**
  * Inventory + Procurement + Attachments — see migration
@@ -30,6 +31,10 @@ export const suppliers = pgTable(
   "suppliers",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     name: text("name").notNull(),
     supplierType: text("supplier_type").notNull().default("general"),
     contactName: text("contact_name"),
@@ -50,6 +55,7 @@ export const suppliers = pgTable(
   (t) => [
     index("suppliers_status_idx").on(t.status),
     index("suppliers_type_idx").on(t.supplierType),
+    index("suppliers_org_idx").on(t.organizationId),
   ],
 );
 
@@ -57,6 +63,10 @@ export const inventoryLocations = pgTable(
   "inventory_locations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
     villaId: uuid("villa_id").references(() => villas.id, { onDelete: "set null" }),
     name: text("name").notNull(),
@@ -70,6 +80,7 @@ export const inventoryLocations = pgTable(
     index("inv_locations_project_idx").on(t.projectId),
     index("inv_locations_villa_idx").on(t.villaId),
     index("inv_locations_type_idx").on(t.locationType),
+    index("inv_locations_org_idx").on(t.organizationId),
   ],
 );
 
@@ -77,6 +88,10 @@ export const inventoryCategories = pgTable(
   "inventory_categories",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     key: text("key").notNull().unique(),
     name: text("name").notNull(),
     parentId: uuid("parent_id").references((): AnyPgColumn => inventoryCategories.id, {
@@ -88,13 +103,20 @@ export const inventoryCategories = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("inv_categories_parent_idx").on(t.parentId)],
+  (t) => [
+    index("inv_categories_parent_idx").on(t.parentId),
+    index("inv_categories_org_idx").on(t.organizationId),
+  ],
 );
 
 export const inventoryItems = pgTable(
   "inventory_items",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     sku: text("sku").unique(),
     name: text("name").notNull(),
     categoryId: uuid("category_id").references(() => inventoryCategories.id, {
@@ -124,6 +146,7 @@ export const inventoryItems = pgTable(
     index("inv_items_category_idx").on(t.categoryId),
     index("inv_items_supplier_idx").on(t.defaultSupplierId),
     index("inv_items_type_idx").on(t.itemType),
+    index("inv_items_org_idx").on(t.organizationId),
   ],
 );
 
@@ -131,6 +154,10 @@ export const inventoryStockLevels = pgTable(
   "inventory_stock_levels",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     itemId: uuid("item_id")
       .notNull()
       .references(() => inventoryItems.id, { onDelete: "cascade" }),
@@ -145,6 +172,7 @@ export const inventoryStockLevels = pgTable(
     uniqueIndex("inv_stock_unique").on(t.itemId, t.locationId),
     index("inv_stock_item_idx").on(t.itemId),
     index("inv_stock_location_idx").on(t.locationId),
+    index("inv_stock_org_idx").on(t.organizationId),
   ],
 );
 
@@ -152,6 +180,10 @@ export const inventoryMovements = pgTable(
   "inventory_movements",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     movementCode: text("movement_code").notNull().unique(),
     itemId: uuid("item_id")
       .notNull()
@@ -187,6 +219,7 @@ export const inventoryMovements = pgTable(
     index("inv_movements_from_idx").on(t.fromLocationId),
     index("inv_movements_to_idx").on(t.toLocationId),
     index("inv_movements_date_idx").on(t.createdAt),
+    index("inv_movements_org_idx").on(t.organizationId),
   ],
 );
 
@@ -194,6 +227,10 @@ export const taskMaterialUsage = pgTable(
   "task_material_usage",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     taskId: uuid("task_id")
       .notNull()
       .references(() => operationTasks.id, { onDelete: "cascade" }),
@@ -225,6 +262,7 @@ export const taskMaterialUsage = pgTable(
     index("tmu_task_idx").on(t.taskId),
     index("tmu_item_idx").on(t.itemId),
     index("tmu_bridge_status_idx").on(t.financeBridgeStatus),
+    index("tmu_org_idx").on(t.organizationId),
   ],
 );
 
@@ -232,6 +270,10 @@ export const purchaseRequests = pgTable(
   "purchase_requests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     requestCode: text("request_code").notNull().unique(),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
     villaId: uuid("villa_id").references(() => villas.id, { onDelete: "set null" }),
@@ -251,6 +293,7 @@ export const purchaseRequests = pgTable(
     index("pr_status_idx").on(t.status),
     index("pr_project_idx").on(t.projectId),
     index("pr_supplier_idx").on(t.supplierId),
+    index("pr_org_idx").on(t.organizationId),
   ],
 );
 
@@ -258,6 +301,10 @@ export const purchaseRequestLines = pgTable(
   "purchase_request_lines",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     requestId: uuid("request_id")
       .notNull()
       .references(() => purchaseRequests.id, { onDelete: "cascade" }),
@@ -270,13 +317,20 @@ export const purchaseRequestLines = pgTable(
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("pr_lines_request_idx").on(t.requestId)],
+  (t) => [
+    index("pr_lines_request_idx").on(t.requestId),
+    index("pr_lines_org_idx").on(t.organizationId),
+  ],
 );
 
 export const purchaseOrders = pgTable(
   "purchase_orders",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     poCode: text("po_code").notNull().unique(),
     requestId: uuid("request_id").references(() => purchaseRequests.id, { onDelete: "set null" }),
     supplierId: uuid("supplier_id").references(() => suppliers.id, { onDelete: "set null" }),
@@ -297,6 +351,7 @@ export const purchaseOrders = pgTable(
     index("po_status_idx").on(t.status),
     index("po_supplier_idx").on(t.supplierId),
     index("po_request_idx").on(t.requestId),
+    index("po_org_idx").on(t.organizationId),
   ],
 );
 
@@ -304,6 +359,10 @@ export const purchaseOrderLines = pgTable(
   "purchase_order_lines",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     purchaseOrderId: uuid("purchase_order_id")
       .notNull()
       .references(() => purchaseOrders.id, { onDelete: "cascade" }),
@@ -317,13 +376,20 @@ export const purchaseOrderLines = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("po_lines_po_idx").on(t.purchaseOrderId)],
+  (t) => [
+    index("po_lines_po_idx").on(t.purchaseOrderId),
+    index("po_lines_org_idx").on(t.organizationId),
+  ],
 );
 
 export const inventoryCounts = pgTable(
   "inventory_counts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     countCode: text("count_code").notNull().unique(),
     locationId: uuid("location_id")
       .notNull()
@@ -340,6 +406,7 @@ export const inventoryCounts = pgTable(
   (t) => [
     index("inv_counts_location_idx").on(t.locationId),
     index("inv_counts_status_idx").on(t.status),
+    index("inv_counts_org_idx").on(t.organizationId),
   ],
 );
 
@@ -347,6 +414,10 @@ export const inventoryCountLines = pgTable(
   "inventory_count_lines",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (0153): nullable org anchor + backfill. No threading yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     countId: uuid("count_id")
       .notNull()
       .references(() => inventoryCounts.id, { onDelete: "cascade" }),
@@ -359,7 +430,10 @@ export const inventoryCountLines = pgTable(
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("inv_count_lines_count_idx").on(t.countId)],
+  (t) => [
+    index("inv_count_lines_count_idx").on(t.countId),
+    index("inv_count_lines_org_idx").on(t.organizationId),
+  ],
 );
 
 export type Supplier = typeof suppliers.$inferSelect;
