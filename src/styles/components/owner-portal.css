@@ -1200,20 +1200,79 @@
 
 /* ---------------------------------------------------------------
  * Phase 2.3 owner-05 — Owner inbox primitives
+ *
+ * Pixel target: cabinets/owner-p1/05-inbox.html. Two-pane shell
+ * wrapped in a single bordered .inbox-grid card (340px list · 1fr
+ * view). Thread rows lead with a serif "from" name + mono "when";
+ * unread rows carry a terra left-border + a terra dot. All values
+ * map to the Layer-B [data-product="owner"] palette — no raw hex.
  * --------------------------------------------------------------- */
+
+/* Banded page header (mock: cream-warm strip · mono eyebrow · 36px
+   Newsreader title · terra "New message" action). */
+[data-product="owner"] .inbox-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 28px 32px 22px;
+  background: var(--cream-warm);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+}
+[data-product="owner"] .inbox-head .ih-text { flex: 1; min-width: 0; }
+[data-product="owner"] .inbox-head .ih-eyebrow {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+}
+[data-product="owner"] .inbox-head .ih-title {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+[data-product="owner"] .inbox-head .ih-sub {
+  margin: 8px 0 0;
+  font-family: var(--sans-font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-3);
+  max-width: 640px;
+}
+
+/* Two-pane shell — one card, list left / view right. */
+[data-product="owner"] .inbox-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 540px;
+}
+@media (max-width: 900px) {
+  [data-product="owner"] .inbox-grid { grid-template-columns: 1fr; }
+}
 
 [data-product="owner"] .thread-list {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--c-border);
-  background: var(--c-surface);
+  border-right: 1px solid var(--line-soft);
+  background: var(--cream-warm);
   overflow-y: auto;
   max-height: 100%;
 }
 [data-product="owner"] .thread-list.tl-empty {
   padding: 32px 16px;
   text-align: center;
-  color: var(--c-text-muted);
+  color: var(--ink-3);
   font-size: 13px;
   border-right: 0;
 }
@@ -1221,42 +1280,62 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--c-border);
-  border-left: 3px solid transparent;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft);
+  border-left: 2px solid transparent;
   text-align: left;
   background: transparent;
   cursor: pointer;
   width: 100%;
 }
 [data-product="owner"] .thread-list .tl-row.is-unread {
-  border-left-color: #c08456;
-  background: rgba(192,132,86,0.04);
+  background: color-mix(in oklab, var(--accent) 4%, transparent);
 }
 [data-product="owner"] .thread-list .tl-row.is-active {
-  background: var(--c-bg-muted);
+  background: var(--paper);
+  border-left-color: var(--terra);
 }
-[data-product="owner"] .thread-list .tl-row:hover { background: var(--c-bg-muted); }
+[data-product="owner"] .thread-list .tl-row:hover { background: var(--paper); }
 [data-product="owner"] .thread-list .tl-meta {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
-[data-product="owner"] .thread-list .tl-kind,
+[data-product="owner"] .thread-list .tl-from {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--ink);
+}
+[data-product="owner"] .thread-list .tl-row.is-unread .tl-from { font-weight: 500; }
 [data-product="owner"] .thread-list .tl-when {
+  margin-left: auto;
+  font-family: var(--mono-font), monospace;
   font-size: 10px;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--c-text-muted);
+  color: var(--ink-3);
+}
+[data-product="owner"] .thread-list .tl-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--terra);
+  flex-shrink: 0;
 }
 [data-product="owner"] .thread-list .tl-subject {
-  font-size: 14px;
-  color: var(--c-text);
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 [data-product="owner"] .thread-list .tl-row.is-unread .tl-subject { font-weight: 500; }
 [data-product="owner"] .thread-list .tl-preview {
+  font-family: var(--sans-font);
   font-size: 12px;
-  color: var(--c-text-muted);
+  line-height: 1.4;
+  color: var(--ink-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1265,14 +1344,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-family: var(--mono-font), monospace;
   font-size: 10px;
-  color: var(--c-text-muted);
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
   margin-top: 4px;
 }
 [data-product="owner"] .thread-list .tl-badge {
-  background: #c08456;
-  color: #fff;
-  font-family: var(--font-mono);
+  background: var(--terra);
+  color: var(--on-accent);
+  font-family: var(--mono-font), monospace;
   font-size: 10px;
   border-radius: 999px;
   padding: 1px 7px;
@@ -1284,107 +1365,150 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--c-surface);
+  background: var(--paper);
 }
 [data-product="owner"] .thread-view .tv-head {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--c-border);
-}
-[data-product="owner"] .thread-view .tv-subject {
-  font-size: 18px;
-  font-weight: 500;
-  color: var(--c-text);
+  gap: 6px;
+  padding: 22px 28px 16px;
+  border-bottom: 1px solid var(--line-soft);
 }
 [data-product="owner"] .thread-view .tv-counterpart {
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  color: var(--c-text-muted);
+  order: -1;
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: var(--ink-3);
+}
+[data-product="owner"] .thread-view .tv-subject {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 [data-product="owner"] .thread-view .tv-stream {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: 22px 28px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 }
 [data-product="owner"] .thread-view .tv-composer {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--c-border);
-  background: var(--c-surface);
+  align-items: center;
+  gap: 10px;
+  padding: 16px 28px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--cream-warm);
 }
-[data-product="owner"] .thread-view .tv-composer .textarea { flex: 1; }
+[data-product="owner"] .thread-view .tv-composer .textarea {
+  flex: 1;
+  min-height: 0;
+  padding: 9px 16px;
+  border-radius: var(--r-pill, 999px);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  font-family: var(--sans-font);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink);
+  resize: none;
+}
+[data-product="owner"] .thread-view .tv-composer .textarea:focus {
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+}
 
+/* Mock desktop treatment: avatar plate + meta + text column (not a
+   side-aligned chat bubble). The owner ("You") carries an ink avatar;
+   mgmt + agent get the mint→ok gradient. Agent copy stays italic to
+   read as an auto-reply. */
 [data-product="owner"] .msg-row {
   display: flex;
+  gap: 12px;
 }
-[data-product="owner"] .msg-row.msg-row-owner { justify-content: flex-end; }
-[data-product="owner"] .msg-row.msg-row-mgmt_user,
-[data-product="owner"] .msg-row.msg-row-agent { justify-content: flex-start; }
 [data-product="owner"] .msg-bubble {
-  max-width: 70%;
-  padding: 8px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--c-border);
-  background: var(--c-bg-muted);
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
-[data-product="owner"] .msg-bubble.msg-owner {
-  background: #c08456;
-  color: #fff;
-  border-color: #a06940;
+[data-product="owner"] .msg-bubble .msg-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--paper);
+  background: linear-gradient(135deg, var(--mint), var(--ok));
 }
-[data-product="owner"] .msg-bubble.msg-mgmt_user {
-  background: var(--c-surface);
+[data-product="owner"] .msg-bubble.msg-agent .msg-avatar {
+  background: linear-gradient(135deg, var(--terra-soft), var(--terra));
 }
-[data-product="owner"] .msg-bubble.msg-agent {
-  background: var(--c-surface);
-  border-style: dashed;
-  font-style: italic;
+[data-product="owner"] .msg-bubble.msg-owner .msg-avatar {
+  background: var(--ink);
+  color: var(--cream-warm);
 }
+[data-product="owner"] .msg-bubble .msg-text { flex: 1; min-width: 0; }
 [data-product="owner"] .msg-bubble .msg-head {
   display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  opacity: 0.7;
+  align-items: center;
   gap: 8px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+[data-product="owner"] .msg-bubble .msg-actor {
+  font-family: var(--sans-font);
+  font-weight: 500;
+  color: var(--ink-2);
+  text-transform: none;
+  letter-spacing: 0;
 }
 [data-product="owner"] .msg-bubble .msg-body {
-  font-size: 13px;
-  line-height: 1.5;
+  font-family: var(--sans-font);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
   white-space: pre-wrap;
-  font-style: normal;
 }
-[data-product="owner"] .msg-bubble.msg-agent .msg-body { font-style: italic; }
+[data-product="owner"] .msg-bubble.msg-agent .msg-body {
+  font-style: italic;
+  color: var(--ink-2);
+}
 [data-product="owner"] .msg-bubble .msg-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 4px;
+  margin-top: 10px;
 }
 [data-product="owner"] .msg-bubble .msg-action-chip {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--c-border);
-  background: var(--c-surface);
-  color: var(--c-text);
+  font-family: var(--sans-font);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: var(--r-pill, 999px);
+  border: 1px solid var(--line);
+  background: var(--cream-warm);
+  color: var(--ink);
   text-decoration: none;
   cursor: pointer;
+}
+[data-product="owner"] .msg-bubble .msg-action-chip:hover {
+  background: var(--paper);
+  border-color: var(--ink-2);
 }
 
 /* ---------------------------------------------------------------
@@ -1397,42 +1521,48 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 10px;
 }
 [data-product="owner"] .msg-bubble .msg-chip {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 5px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--c-border);
-  background: var(--c-surface);
-  color: var(--c-text);
+  font-family: var(--sans-font);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: var(--r-pill, 999px);
+  border: 1px solid var(--line);
+  background: var(--cream-warm);
+  color: var(--ink);
   cursor: pointer;
+}
+[data-product="owner"] .msg-bubble .msg-chip:not(:disabled):hover {
+  background: var(--paper);
+  border-color: var(--ink-2);
 }
 [data-product="owner"] .msg-bubble .msg-chip:disabled {
   opacity: 0.55;
   cursor: default;
 }
 [data-product="owner"] .msg-bubble .msg-chip-accept {
-  border-color: var(--terra);
-  color: var(--terra);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
 }
 [data-product="owner"] .msg-bubble .msg-chip-accept:not(:disabled):hover {
-  background: color-mix(in oklab, var(--terra) 12%, transparent);
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
 }
 [data-product="owner"] .msg-bubble .msg-chip-done {
+  font-family: var(--mono-font), monospace;
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--c-text-muted);
+  color: var(--ink-3);
 }
 [data-product="owner"] .msg-bubble .msg-propose {
   display: flex;
   gap: 6px;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 [data-product="owner"] .msg-bubble .msg-propose .input { flex: 1; }
 
@@ -1440,25 +1570,25 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 [data-product="owner"] .msg-bubble .msg-attachment {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-family: var(--sans-font);
   font-size: 12px;
   text-decoration: none;
-  color: inherit;
-  padding: 4px 8px;
+  color: var(--ink-2);
+  padding: 5px 10px;
   border-radius: 8px;
-  border: 1px solid var(--c-border);
-  background: color-mix(in oklab, var(--c-surface) 70%, transparent);
+  border: 1px solid var(--line-soft);
+  background: var(--cream-warm);
 }
-[data-product="owner"] .msg-bubble.msg-owner .msg-attachment {
-  border-color: rgba(255, 255, 255, 0.4);
-  color: #fff;
+[data-product="owner"] .msg-bubble .msg-attachment:hover {
+  text-decoration: underline;
+  border-color: var(--line);
 }
-[data-product="owner"] .msg-bubble .msg-attachment:hover { text-decoration: underline; }
 [data-product="owner"] .msg-bubble .msg-attachment-name {
   white-space: nowrap;
   overflow: hidden;
@@ -1467,18 +1597,33 @@
 }
 
 [data-product="owner"] .thread-view .tv-composer .tv-file-input {
-  position: absolute;
+  position: fixed;
   width: 1px;
   height: 1px;
   opacity: 0;
   pointer-events: none;
+  left: -9999px;
 }
 [data-product="owner"] .thread-view .tv-composer .tv-attach {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 10px;
-  align-self: stretch;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: var(--r-pill, 999px);
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+[data-product="owner"] .thread-view .tv-composer .tv-attach:not(:disabled):hover {
+  background: var(--cream-deep);
+  color: var(--ink);
+}
+[data-product="owner"] .thread-view .tv-composer .tv-send {
+  flex-shrink: 0;
 }
 
 /* ---------------------------------------------------------------

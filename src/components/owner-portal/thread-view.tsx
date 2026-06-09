@@ -168,10 +168,10 @@ export function ThreadView({
         )}
         <textarea
           className="textarea"
-          rows={2}
+          rows={1}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Reply…"
+          placeholder={`Reply to ${counterpart}…`}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
@@ -179,7 +179,7 @@ export function ThreadView({
             }
           }}
         />
-        <button type="submit" className="btn btn-primary btn-sm" disabled={!draft.trim() || sending}>
+        <button type="submit" className="tv-send btn btn-accent btn-sm" disabled={!draft.trim() || sending}>
           {sending ? "Sending…" : "Send"}
         </button>
       </form>
