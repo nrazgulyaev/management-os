@@ -1,6 +1,6 @@
 import "server-only";
 
-import { desc, eq, inArray, gte } from "drizzle-orm";
+import { and, desc, eq, inArray, gte, ne, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { riskRadarAlerts } from "@/lib/db/schema/executive";
 
@@ -58,6 +58,41 @@ export async function listOpenDedupeKeys(): Promise<Set<string>> {
     if (r.detectionMethod) keys.add(`${r.detectionMethod}`);
   }
   return keys;
+}
+
+/**
+ * Similar-risks history panel — other alerts that share the same
+ * category OR detection method as the given one, excluding the alert
+ * itself. Most-recent first. Used by the exec drill-in to show how the
+ * org has handled this class of risk before.
+ */
+export async function listSimilarAlerts(args: {
+  alertId: string;
+  alertCategory: string;
+  detectionMethod: string | null;
+  limit?: number;
+}) {
+  const db = getDb();
+  if (!db) return [];
+  const matchers = [eq(riskRadarAlerts.alertCategory, args.alertCategory)];
+  if (args.detectionMethod) {
+    matchers.push(eq(riskRadarAlerts.detectionMethod, args.detectionMethod));
+  }
+  return db
+    .select({
+      id: riskRadarAlerts.id,
+      alertCode: riskRadarAlerts.alertCode,
+      title: riskRadarAlerts.title,
+      severity: riskRadarAlerts.severity,
+      status: riskRadarAlerts.status,
+      detectedAt: riskRadarAlerts.detectedAt,
+      resolvedAt: riskRadarAlerts.resolvedAt,
+      resolutionNotes: riskRadarAlerts.resolutionNotes,
+    })
+    .from(riskRadarAlerts)
+    .where(and(ne(riskRadarAlerts.id, args.alertId), or(...matchers)))
+    .orderBy(desc(riskRadarAlerts.detectedAt))
+    .limit(args.limit ?? 8);
 }
 
 export async function listRecurringPatternHistory(daysBack = 90) {
