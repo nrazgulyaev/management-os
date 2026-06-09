@@ -18,11 +18,18 @@ import {
 } from "drizzle-orm/pg-core";
 import { villas, projects } from "./projects";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const revenueStreams = pgTable(
   "revenue_streams",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via projects.organization_id (project_id is NOT NULL).
+    // Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** References villas (the multi-asset table) — see arch doc. */
     assetId: uuid("asset_id")
       .notNull()
@@ -68,6 +75,7 @@ export const revenueStreams = pgTable(
     projectIdx: index("revenue_streams_project_idx").on(t.projectId),
     periodIdx: index("revenue_streams_period_idx").on(t.periodStart, t.periodEnd),
     typeIdx: index("revenue_streams_type_idx").on(t.streamType),
+    orgIdx: index("revenue_streams_org_idx").on(t.organizationId),
   }),
 );
 

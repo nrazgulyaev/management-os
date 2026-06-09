@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
 import { documents } from "./documents";
+import { organizations } from "./saas";
 
 /**
  * Documents-app v1 (migration 0132).
@@ -25,6 +26,12 @@ export const documentTemplates = pgTable(
   "document_templates",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled to ARCONIQUE_DEFAULT (templates are org-global today).
+    // Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     name: text("name").notNull(),
     documentType: text("document_type").notNull().default("contract"),
     description: text("description"),
@@ -42,6 +49,7 @@ export const documentTemplates = pgTable(
   (t) => [
     index("document_templates_active_idx").on(t.isActive),
     index("document_templates_type_idx").on(t.documentType),
+    index("document_templates_org_idx").on(t.organizationId),
   ],
 );
 
@@ -49,6 +57,11 @@ export const documentVersions = pgTable(
   "document_versions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via documents.organization_id. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     documentId: uuid("document_id")
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
@@ -69,6 +82,7 @@ export const documentVersions = pgTable(
   (t) => [
     index("document_versions_doc_idx").on(t.documentId, t.versionNo),
     index("document_versions_current_idx").on(t.documentId, t.isCurrent),
+    index("document_versions_org_idx").on(t.organizationId),
   ],
 );
 
@@ -76,6 +90,11 @@ export const documentSignatureRequests = pgTable(
   "document_signature_requests",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via documents.organization_id. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     documentId: uuid("document_id")
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
@@ -99,6 +118,7 @@ export const documentSignatureRequests = pgTable(
   (t) => [
     index("document_signature_requests_doc_idx").on(t.documentId),
     index("document_signature_requests_status_idx").on(t.status),
+    index("document_signature_requests_org_idx").on(t.organizationId),
   ],
 );
 

@@ -25,11 +25,18 @@ import {
 } from "drizzle-orm/pg-core";
 import { villas, projects } from "./projects";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const unitCostAllocations = pgTable(
   "unit_cost_allocations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via projects.organization_id (project_id is NOT NULL).
+    // Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** References the multi-asset table (villas). */
     assetId: uuid("asset_id")
       .notNull()
@@ -103,6 +110,7 @@ export const unitCostAllocations = pgTable(
   (t) => ({
     assetIdx: index("unit_cost_allocations_asset_idx").on(t.assetId),
     projectIdx: index("unit_cost_allocations_project_idx").on(t.projectId),
+    orgIdx: index("unit_cost_allocations_org_idx").on(t.organizationId),
   }),
 );
 
@@ -110,6 +118,12 @@ export const cashflowForecasts = pgTable(
   "cashflow_forecasts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via projects.organization_id; company_wide forecasts
+    // (null project_id) fall back to ARCONIQUE_DEFAULT. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     forecastLabel: text("forecast_label").notNull(),
     /** 'project' | 'company_wide' */
     scope: text("scope").notNull(),
@@ -149,6 +163,7 @@ export const cashflowForecasts = pgTable(
     projectIdx: index("cashflow_forecasts_project_idx").on(t.projectId),
     statusIdx: index("cashflow_forecasts_status_idx").on(t.status),
     startIdx: index("cashflow_forecasts_start_idx").on(t.forecastStartMonth),
+    orgIdx: index("cashflow_forecasts_org_idx").on(t.organizationId),
   }),
 );
 

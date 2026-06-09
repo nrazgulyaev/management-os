@@ -12,6 +12,7 @@
 
 import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { ownerStatements } from "./finance";
+import { organizations } from "./saas";
 import { appUsers } from "./identity";
 
 export type StatementAnomalyKind =
@@ -28,6 +29,11 @@ export const statementAnomalies = pgTable(
   "statement_anomalies",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
+    // backfilled via owner_statements.organization_id. Not query-threaded yet.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     statementId: uuid("statement_id")
       .notNull()
       .references(() => ownerStatements.id, { onDelete: "cascade" }),
@@ -47,6 +53,7 @@ export const statementAnomalies = pgTable(
   (t) => [
     index("statement_anomalies_statement_fired_idx").on(t.statementId, t.firedAt),
     index("statement_anomalies_kind_severity_fired_idx").on(t.kind, t.severity, t.firedAt),
+    index("statement_anomalies_org_idx").on(t.organizationId),
   ],
 );
 
