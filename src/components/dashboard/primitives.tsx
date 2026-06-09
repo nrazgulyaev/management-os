@@ -20,8 +20,8 @@ interface KpiProps {
   label: string;
   value: React.ReactNode;
   sub?: React.ReactNode;
-  /** Tints the value via CSS class — `accent`/`success`/`gold`. */
-  tone?: "accent" | "success" | "gold";
+  /** Tints the value via CSS class — `accent`/`success`/`warn`/`gold`. */
+  tone?: "accent" | "success" | "warn" | "gold";
 }
 export function Kpi({ label, value, sub, tone }: KpiProps) {
   return (

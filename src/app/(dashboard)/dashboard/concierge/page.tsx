@@ -51,10 +51,10 @@ export default async function ConciergePage() {
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header">
         <div className="left">
           <div className="crumb">
-            <Link href="/dashboard">Dashboard</Link> / <span>Concierge AI</span>
+            <Link href="/dashboard">Dashboard</Link> / <span>Concierge · inbox</span>
           </div>
           <h1>Concierge AI</h1>
           <p className="text-[13px] text-ink-3 mt-2 max-w-[720px]">
@@ -82,7 +82,7 @@ export default async function ConciergePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-[18px]">
         <Kpi
           label="Active sessions"
           value={kpis && kpis.activeSessions > 0 ? String(kpis.activeSessions) : "—"}
@@ -137,11 +137,7 @@ export default async function ConciergePage() {
               {handoffs.map((h) => (
                 <tr
                   key={h.id}
-                  className={
-                    h.priority === "urgent"
-                      ? "bg-[rgba(196,88,60,0.04)]"
-                      : ""
-                  }
+                  className={h.priority === "urgent" ? "handoff-urgent" : ""}
                 >
                   <td className="mono text-[11px] text-ink-3">
                     {h.sessionId ? h.sessionId.slice(0, 8) : "—"}
@@ -184,16 +180,15 @@ export default async function ConciergePage() {
               disclosures, lock-attempt patterns) surface here in real time.
             </p>
           ) : (
-            <ul className="clean p-0">
+            <ul className="safety-list">
               {safety.map((e) => (
-                <li key={e.id} className="px-[18px] py-3">
+                <li key={e.id} className="safety-row">
                   <span
                     className={
-                      "w-2 h-2 rounded-full " +
-                      (e.riskLevel === "warn" ? "bg-[var(--warn)]" : "bg-ink-3")
+                      "safety-dot" + (e.riskLevel === "warn" ? " is-warn" : "")
                     }
                   />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="text-[13px] font-medium">{e.eventLabel}</div>
                     <div className="mono text-[10.5px] text-ink-4">
                       {e.villaCode ?? "—"} · {fmtTime(e.occurredAt)}
@@ -207,7 +202,7 @@ export default async function ConciergePage() {
         </Card>
 
         <Card id="memory" className="p-5 bg-cream-warm border border-dashed border-line-strong scroll-mt-24">
-          <div className="label label-amber">AI Memory · written by AI</div>
+          <div className="label text-terra">AI Memory · written by AI</div>
           <h3 className="display-sm mt-1 mb-2">Recalled per-guest facts</h3>
           {memory.length === 0 ? (
             <p className="text-[13px] text-ink-3 italic m-0 mb-3.5">

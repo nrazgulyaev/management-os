@@ -54,7 +54,7 @@ function fmtIdrFromUsd(usdMinor: bigint): string {
 
 // Calendar bar colours by kind (prototype legend).
 const CAL_BAR: Record<string, { bg: string; fg: string }> = {
-  confirmed: { bg: "#1f3a33", fg: "var(--cream-warm)" },
+  confirmed: { bg: "var(--forest)", fg: "var(--cream-warm)" },
   hold: { bg: "var(--terra)", fg: "var(--cream-warm)" },
   owner: { bg: "var(--gold)", fg: "var(--ink)" },
 };
@@ -107,10 +107,10 @@ export default async function BookingsPage({
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header mb-0">
         <div className="left">
           <div className="crumb">
-            <Link href="/dashboard">Dashboard</Link> / <span>Bookings</span>
+            <Link href="/dashboard">Guests</Link> · <span>Bookings</span>
           </div>
           <h1>Bookings</h1>
         </div>
@@ -151,6 +151,7 @@ export default async function BookingsPage({
           label="In-stay tonight"
           value={kpis ? String(kpis.inStayTonight) : "—"}
           sub="across your villas"
+          tone="success"
         />
         <Kpi
           label="7d gross"

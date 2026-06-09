@@ -16,6 +16,7 @@ import {
   type QuickActionResult,
 } from "@/features/guest-ai-concierge/quickactions-actions";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/modal";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 
 export interface SessionRow {
   id: string;
@@ -63,6 +64,7 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState("");
+  const [draftIsAi, setDraftIsAi] = React.useState(false);
   const [sending, setSending] = React.useState(false);
   const [generating, setGenerating] = React.useState(false);
   // Quick-actions ("spawn work" from the conversation).
@@ -78,8 +80,10 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
     setGenerating(true);
     setError(null);
     const res = await generateConciergeDraftAction(activeId);
-    if (res.ok) setDraft(res.draft);
-    else setError(res.error);
+    if (res.ok) {
+      setDraft(res.draft);
+      setDraftIsAi(true);
+    } else setError(res.error);
     setGenerating(false);
   }
 
@@ -105,6 +109,9 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
 
   // Load the first / selected session's transcript.
   React.useEffect(() => {
+    setDraft("");
+    setDraftIsAi(false);
+    setNotice(null);
     if (activeId) void load(activeId);
     else setMessages([]);
   }, [activeId, load]);
@@ -125,6 +132,7 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
     if (res.ok) {
       setMessages(res.messages);
       setDraft("");
+      setDraftIsAi(false);
     } else {
       setError(res.error);
     }
@@ -232,13 +240,24 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
                     </span>
                     <span>{fmtTime(s.lastMessageAt)}</span>
                   </div>
-                  <div className="ri-name">{s.guestName ?? "Guest"}</div>
+                  <div className="ri-name">
+                    <span
+                      className={`ri-dot${
+                        s.status === "active"
+                          ? " is-live"
+                          : urgent
+                            ? " is-handoff"
+                            : ""
+                      }`}
+                    />
+                    {s.guestName ?? "Guest"}
+                  </div>
                   <div className="ri-preview">
                     {s.messageCount} message{s.messageCount === 1 ? "" : "s"} · {s.status}
                   </div>
                   <div className="ri-foot">
                     <span className="ri-channel">concierge</span>
-                    <span className="ri-tag">
+                    <span className={`ri-tag${urgent ? " is-handoff" : ""}`}>
                       {s.status === "active" ? "Live" : s.status}
                     </span>
                   </div>
@@ -251,22 +270,25 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
 
       {/* Transcript */}
       <div className="concierge-thread">
-        <div className="px-[18px] py-3 border-b border-line flex items-center gap-3 bg-cream-warm">
-          <div className="min-w-0">
-            <div className="text-[14px] font-medium truncate">
+        <div className="ct-head">
+          <div className="min-w-0 flex-1">
+            <div className="ct-head-name truncate">
               {active ? (active.guestName ?? "Guest") : "No session selected"}
             </div>
-            <div className="mono text-[11px] text-ink-3 truncate">
+            <div className="ct-head-sub truncate">
               {active
-                ? `${active.villaCode ?? "—"}${active.language ? ` · ${active.language.toUpperCase()}` : ""} · ${active.status}`
+                ? `Villa ${active.villaCode ?? "—"}${active.language ? ` · ${active.language.toUpperCase()}` : ""} · ${active.status}`
                 : "Pick a session on the left to view its transcript"}
             </div>
           </div>
-          {active && (
-            <span className="ml-auto mono text-[10px] text-ink-4 whitespace-nowrap">
-              {messages.length} message{messages.length === 1 ? "" : "s"}
-            </span>
-          )}
+          {active &&
+            (active.status === "handoff" ? (
+              <HandoffBadge tone="danger">Escalated</HandoffBadge>
+            ) : active.status === "active" ? (
+              <HandoffBadge tone="ok">Live</HandoffBadge>
+            ) : (
+              <HandoffBadge>{active.status}</HandoffBadge>
+            ))}
         </div>
 
         <div className="ct-stream" ref={streamRef}>
@@ -286,10 +308,7 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
           ) : (
             messages.map((m) =>
               m.author === "system" ? (
-                <div
-                  key={m.id}
-                  className="self-center text-[10px] uppercase tracking-[0.08em] text-ink-4"
-                >
+                <div key={m.id} className="ct-system">
                   {m.content}
                 </div>
               ) : (
@@ -312,10 +331,8 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
         </div>
 
         {/* Spawn-work quick actions — contextual to the active session. */}
-        <div className="px-[18px] pt-3 pb-1 border-t border-line flex flex-wrap items-center gap-2 bg-cream-warm/60">
-          <span className="mono text-[10px] uppercase tracking-[0.08em] text-ink-4 mr-1">
-            Quick actions
-          </span>
+        <div className="ct-quick">
+          <span className="ct-quick-label">Quick actions</span>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -392,46 +409,90 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
           >
             {actionBusy === "escalate" ? "Escalating…" : "Escalate to operator"}
           </button>
-          {notice && (
-            <span className="mono text-[11px] text-success ml-auto">
-              {notice}
-            </span>
-          )}
+          {notice && <span className="ct-quick-note">{notice}</span>}
         </div>
 
-        <form className="ct-composer" onSubmit={send}>
-          <textarea
-            className="textarea"
-            rows={2}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={
-              active
-                ? "Reply as concierge — the guest sees this…"
-                : "Select a session to reply"
-            }
-            disabled={!active || sending}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void send(e);
-            }}
-          />
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={generateDraft}
-            disabled={!active || generating || sending}
-            title="Generate an AI draft for you to review and edit before sending"
-          >
-            {generating ? "Drafting…" : "✨ AI draft"}
-          </button>
-          <button
-            type="submit"
-            className="btn btn-primary btn-sm"
-            disabled={!active || sending || !draft.trim()}
-          >
-            {sending ? "Sending…" : "Send"}
-          </button>
-        </form>
+        {draftIsAi && draft ? (
+          <form className="ct-composer" onSubmit={send}>
+            <div className="ci-draft">
+              <div className="ci-draft-head">
+                <span aria-hidden>✦</span>AI draft · review &amp; send
+              </div>
+              <textarea
+                className="ci-draft-text"
+                rows={2}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                disabled={!active || sending}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void send(e);
+                }}
+              />
+              <div className="flex flex-wrap gap-2 mt-2.5">
+                <button
+                  type="submit"
+                  className="btn btn-accent btn-sm"
+                  disabled={!active || sending || !draft.trim()}
+                >
+                  {sending ? "Sending…" : "Send as concierge"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={generateDraft}
+                  disabled={!active || generating || sending}
+                >
+                  {generating ? "Drafting…" : "Regenerate"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => {
+                    setDraft("");
+                    setDraftIsAi(false);
+                  }}
+                  disabled={sending}
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <form className="ct-composer" onSubmit={send}>
+            <textarea
+              className="textarea"
+              rows={2}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={
+                active
+                  ? "Reply as concierge — the guest sees this…"
+                  : "Select a session to reply"
+              }
+              disabled={!active || sending}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void send(e);
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={generateDraft}
+              disabled={!active || generating || sending}
+              title="Generate an AI draft for you to review and edit before sending"
+            >
+              {generating ? "Drafting…" : "✦ AI draft"}
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary btn-sm"
+              disabled={!active || sending || !draft.trim()}
+            >
+              {sending ? "Sending…" : "Send"}
+            </button>
+          </form>
+        )}
       </div>
 
       {/* Add-extra-service to the linked booking. */}

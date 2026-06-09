@@ -18,6 +18,8 @@ import { runStatementAnomalyScanAction } from "@/features/finance/statement-anom
 import { DetailPage } from "@/components/dashboard/detail/detail-page";
 import { DetailHeader } from "@/components/dashboard/detail/detail-header";
 import { DetailActionBar } from "@/components/dashboard/detail/detail-actionbar";
+import { HandoffBadge } from "@/components/dashboard/primitives";
+import { ownerStateMgmtLabel } from "@/features/owner-statements/state-machine";
 
 /**
  * Phase 2.1 PR 2 — Statement detail uses bricks B1 + B3 + B8 only.
@@ -89,6 +91,31 @@ export default async function StatementDetailPage({
   const periodLocked = period?.status === "closed" || period?.status === "locked";
   const needsSignoff = statement.status === "draft" || statement.status === "issued";
 
+  // Mock state machine: draft → approved → settled. Each state changes
+  // only the header badge + sealed-hash treatment + action-bar copy.
+  const STATE_BADGE: Record<
+    string,
+    { tone: "ok" | "warn" | "danger" | "gold" | "info" | "ink"; label: string }
+  > = {
+    draft: { tone: "warn", label: "Draft · awaiting director" },
+    issued: { tone: "gold", label: "Issued · awaiting approval" },
+    approved: { tone: "info", label: "Approved · awaiting send" },
+    paid: { tone: "ok", label: "Settled" },
+    voided: { tone: "ink", label: "Voided" },
+  };
+  const stateBadge = STATE_BADGE[statement.status] ?? {
+    tone: "ink" as const,
+    label: statement.status,
+  };
+  const sealed = statement.status === "approved" || statement.status === "paid";
+  const hashShort = (statement.statementCode || statement.id).slice(0, 12);
+  const actionLabel =
+    statement.status === "draft"
+      ? "Issue from draft required"
+      : statement.status === "issued"
+        ? "Director sign-off required"
+        : "Ready to send";
+
   return (
     <DetailPage>
       {/* B1 — Header */}
@@ -98,17 +125,21 @@ export default async function StatementDetailPage({
           { label: "Statements", href: "/dashboard/finance/statements" },
           { label: statement.statementCode },
         ]}
-        title={`${statement.ownerName} · ${statement.villaCode ?? statement.projectName ?? "—"}`}
+        title={`${statement.ownerName} · ${statement.villaCode ?? statement.projectName ?? "—"} · ${statement.periodLabel}`}
         meta={
-          <>
-            <span>{statement.periodLabel}</span>
+          <div className="status-line">
+            <HandoffBadge tone={stateBadge.tone}>{stateBadge.label}</HandoffBadge>
+            <span>{lines.length} lines</span>
+            <span>·</span>
+            <span>
+              HASH <span className="hash">{hashShort}</span>
+              {sealed && <span className="sealed"> ✓ sealed</span>}
+            </span>
             <span>·</span>
             <span>{statement.managementModel} model</span>
             <span>·</span>
-            <span>STATUS: {statement.status}</span>
-            <span>·</span>
-            <span>OWNER: {statement.ownerState}</span>
-          </>
+            <span>OWNER: {ownerStateMgmtLabel(statement.ownerState)}</span>
+          </div>
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
@@ -217,15 +248,9 @@ export default async function StatementDetailPage({
 
       {/* B8 — Sticky action bar. Visible when statement awaits a
           status transition; the actual transition forms live in the
-          header to preserve the existing server-action wiring. */}
-      <DetailActionBar
-        requiresApproval={needsSignoff}
-        approvalLabel={
-          statement.status === "draft"
-            ? "Issue from draft required"
-            : "Director sign-off required"
-        }
-      />
+          header to preserve the existing server-action wiring. Terminal
+          states (paid / voided) render no bar — settlement is final. */}
+      <DetailActionBar requiresApproval={needsSignoff} approvalLabel={actionLabel} />
     </DetailPage>
   );
 }

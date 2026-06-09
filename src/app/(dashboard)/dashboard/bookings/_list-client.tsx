@@ -262,8 +262,11 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
               return (
                 <tr
                   key={b.id}
-                  className={`${badge.rowClass ?? ""} cursor-pointer`.trim() || undefined}
-                  style={isSelected ? { background: "color-mix(in oklab, var(--terra) 6%, transparent)" } : undefined}
+                  className={
+                    [badge.rowClass, isSelected && "row-selected", "cursor-pointer"]
+                      .filter(Boolean)
+                      .join(" ")
+                  }
                   onClick={() => router.push(`/dashboard/bookings/${b.id}`)}
                   title={`Open ${b.bookingCode}`}
                 >
@@ -287,9 +290,7 @@ export function BookingsListClient({ rows, initialActive }: BookingsListClientPr
                   <td className="row-title">{b.villaCode}</td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <span className="w-[24px] h-[24px] rounded-full bg-muted border border-line flex items-center justify-center text-[10px]">
-                        {initials(b.guestName)}
-                      </span>
+                      <span className="avatar avatar-sm">{initials(b.guestName)}</span>
                       <span>{b.guestName ?? "Guest"}</span>
                     </div>
                   </td>

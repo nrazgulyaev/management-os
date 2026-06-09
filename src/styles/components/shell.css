@@ -197,6 +197,7 @@
 [data-product="management"] .kpi.accent .v { color: var(--terra); }
 [data-product="development"] .kpi.accent .v { color: var(--amber); }
 [data-product] .kpi.success .v { color: var(--ok); }
+[data-product] .kpi.warn .v { color: var(--warn); }
 [data-product="management"] .kpi.gold .v { color: var(--gold); }
 
 /* Mobile — hide desktop sidebar (HF-12 MobileTabbar takes over).

@@ -35,15 +35,15 @@ import { mapPoolAll } from "@/lib/db/map-pool";
 export const metadata = { title: "Operations · Command center" };
 export const dynamic = "force-dynamic";
 
-const STATE_TILES: Array<{ key: VillaState; label: string; color: string }> = [
-  { key: "ready", label: "Ready", color: "var(--ok)" },
-  { key: "occupied", label: "Occupied", color: "var(--forest)" },
-  { key: "cleaning", label: "Cleaning", color: "var(--terra)" },
-  { key: "inspection", label: "Inspection", color: "var(--info)" },
-  { key: "checkout_pending", label: "Checkout", color: "var(--warn)" },
-  { key: "maintenance", label: "Maintenance", color: "var(--danger)" },
-  { key: "owner_stay", label: "Owner stay", color: "var(--gold)" },
-  { key: "ooo", label: "OOO", color: "var(--line-strong)" },
+const STATE_TILES: Array<{ key: VillaState; label: string; dot: string }> = [
+  { key: "ready", label: "Ready", dot: "state-dot-ready" },
+  { key: "occupied", label: "Occupied", dot: "state-dot-occupied" },
+  { key: "cleaning", label: "Cleaning", dot: "state-dot-cleaning" },
+  { key: "inspection", label: "Inspection", dot: "state-dot-inspection" },
+  { key: "checkout_pending", label: "Checkout", dot: "state-dot-checkout" },
+  { key: "maintenance", label: "Maintenance", dot: "state-dot-maintenance" },
+  { key: "owner_stay", label: "Owner stay", dot: "state-dot-owner" },
+  { key: "ooo", label: "OOO", dot: "state-dot-ooo" },
 ];
 
 const STATUS_LABEL: Record<string, { tone?: "ok" | "info" | "gold" | "warn"; text: string }> = {
@@ -152,7 +152,7 @@ export default async function OperationsPage() {
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header ops-header-flush">
         <div className="left">
           <div className="crumb">
             <span>Operations</span> <span className="text-ink-4">·</span>{" "}
@@ -184,7 +184,7 @@ export default async function OperationsPage() {
         {/* Dark arrivals tile — the urgent action */}
         <div className="ops-tile ot-dark">
           <div className="ot-label">
-            <span className="pulse-dot" style={{ background: "var(--ok)" }} /> Today ·{" "}
+            <span className="pulse-dot" /> Today ·{" "}
             {arrivals.length} {arrivals.length === 1 ? "arrival" : "arrivals"}
           </div>
           <h3 className="font-display text-[20px] leading-snug mt-0.5 mb-1.5">
@@ -264,9 +264,7 @@ export default async function OperationsPage() {
             <span>
               {cleanedDone}/{turnoversToday || 0} cleaned
             </span>
-            <span className="ml-auto" style={{ color: "var(--ok)" }}>
-              on track
-            </span>
+            <span className="ml-auto text-ok">on track</span>
           </div>
         </div>
       </div>
@@ -307,7 +305,7 @@ export default async function OperationsPage() {
           Sorted by SLA risk → priority
         </span>
         <span className="mono text-[10.5px] uppercase tracking-[0.1em] text-ink-3 ml-auto inline-flex items-center gap-2">
-          <span className="pulse-dot" style={{ background: "var(--terra)" }} /> Triage agent
+          <span className="pulse-dot accent" /> Triage agent
         </span>
       </div>
       {sortedTickets.length === 0 ? (
@@ -420,7 +418,7 @@ export default async function OperationsPage() {
                   key={s.key}
                   className="px-3 py-2.5 border border-line-soft rounded-[10px] bg-cream-warm flex items-center gap-2"
                 >
-                  <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
+                  <span className={`state-dot ${s.dot}`} />
                   <span className="text-[13px] flex-1">{s.label}</span>
                   <span className="num text-[14px] font-medium">
                     {tileCounts.get(s.key) ?? 0}

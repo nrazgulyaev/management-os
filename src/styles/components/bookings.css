@@ -50,6 +50,10 @@
   opacity: 0.55;
   text-decoration: line-through;
 }
+[data-product] table.data tbody tr.row-selected,
+[data-product] table.data tbody tr.row-selected:hover {
+  background: color-mix(in oklab, var(--accent) 6%, transparent);
+}
 
 /* ---------- ArrivalCalendar ---------- */
 [data-product] .arrival-cal {

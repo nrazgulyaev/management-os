@@ -5,7 +5,7 @@
 [data-product="management"] .request-inbox {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-soft, var(--line));
   border-radius: var(--r-card);
   background: var(--paper);
   overflow: hidden;
@@ -13,16 +13,16 @@
   height: 100%;
 }
 [data-product="management"] .request-inbox .ri-head {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--line);
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
   background: var(--cream-warm, var(--bg-2));
 }
 [data-product="management"] .request-inbox .ri-title {
   font-family: var(--display-font);
-  font-size: 16px;
-  font-weight: 400;
+  font-size: 18px;
+  font-weight: 600;
   color: var(--ink);
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 [data-product="management"] .request-inbox .ri-filters {
   display: flex;
@@ -32,10 +32,11 @@
 [data-product="management"] .request-inbox .ri-chip {
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 3px 10px;
-  font-size: 11px;
+  padding: 4px 11px;
+  font-family: var(--sans-font);
+  font-size: 12px;
   background: var(--paper);
-  color: var(--ink-2);
+  color: var(--ink-3);
   cursor: pointer;
 }
 [data-product="management"] .request-inbox .ri-chip.is-on {
@@ -48,41 +49,62 @@
   overflow-y: auto;
 }
 [data-product="management"] .request-inbox .ri-empty {
-  padding: 24px 16px;
+  padding: 24px 18px;
   text-align: center;
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.5;
   color: var(--ink-3);
 }
 [data-product="management"] .request-inbox .ri-row {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px 16px;
+  padding: 13px 18px;
   border-bottom: 1px solid var(--line-soft, var(--line));
-  border-left: 3px solid transparent;
+  box-shadow: inset 3px 0 0 transparent;
   cursor: pointer;
   background: transparent;
   text-align: left;
   width: 100%;
+  transition: background 0.12s ease;
 }
 [data-product="management"] .request-inbox .ri-row:hover { background: var(--cream-warm, var(--bg-2)); }
-[data-product="management"] .request-inbox .ri-row.is-active { background: var(--cream-warm, var(--bg-2)); }
-[data-product="management"] .request-inbox .ri-row.is-unread { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 4%, var(--paper)); }
-[data-product="management"] .request-inbox .ri-row.is-urgent { border-left-color: var(--danger); }
+[data-product="management"] .request-inbox .ri-row.is-active {
+  background: var(--cream-warm, var(--bg-2));
+  box-shadow: inset 3px 0 0 var(--terra);
+}
+[data-product="management"] .request-inbox .ri-row.is-unread { background: color-mix(in srgb, var(--accent) 4%, var(--paper)); }
+[data-product="management"] .request-inbox .ri-row.is-urgent { box-shadow: inset 3px 0 0 var(--danger); }
+[data-product="management"] .request-inbox .ri-row.is-active.is-urgent { box-shadow: inset 3px 0 0 var(--danger); }
 [data-product="management"] .request-inbox .ri-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: var(--ink-3);
+  font-family: var(--mono-font);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--ink-4);
 }
 [data-product="management"] .request-inbox .ri-name {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--display-font);
+  font-size: 16px;
+  font-weight: 600;
   color: var(--ink);
 }
-[data-product="management"] .request-inbox .ri-row.is-unread .ri-name { font-weight: 500; }
+[data-product="management"] .request-inbox .ri-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex: none;
+  background: var(--ink-4);
+}
+[data-product="management"] .request-inbox .ri-dot.is-live { background: var(--ok); }
+[data-product="management"] .request-inbox .ri-dot.is-handoff { background: var(--danger); }
+[data-product="management"] .request-inbox .ri-row.is-unread .ri-name { font-weight: 600; }
 [data-product="management"] .request-inbox .ri-preview {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--ink-3);
   white-space: nowrap;
   overflow: hidden;
@@ -90,19 +112,30 @@
 }
 [data-product="management"] .request-inbox .ri-foot {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  font-family: var(--mono-font);
   font-size: 10px;
-  color: var(--ink-3);
+  color: var(--ink-4);
+  margin-top: 2px;
 }
-[data-product="management"] .request-inbox .ri-channel { color: var(--ink-2); }
+[data-product="management"] .request-inbox .ri-channel {
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
 [data-product="management"] .request-inbox .ri-tag {
   background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent);
-  padding: 1px 6px;
+  padding: 1px 7px;
   border-radius: 999px;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+[data-product="management"] .request-inbox .ri-tag.is-handoff {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
 }
 [data-product="management"] .request-inbox .ri-badge {
   background: var(--accent);
@@ -117,50 +150,87 @@
   flex-direction: column;
   height: 100%;
   background: var(--paper);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-soft, var(--line));
   border-radius: var(--r-card);
   overflow: hidden;
 }
 [data-product="management"] .concierge-thread .ct-stream {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 [data-product="management"] .concierge-thread .ct-composer {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--line);
-  background: var(--paper);
+  padding: 14px 18px 16px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
 }
 [data-product="management"] .concierge-thread .ct-composer .textarea { flex: 1; }
+
+/* System note — centred dashed mono pill (mock .ci-msg.system) */
+[data-product="management"] .ct-system {
+  align-self: center;
+  max-width: 90%;
+  background: transparent;
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-3);
+  font-family: var(--mono-font);
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  text-align: center;
+}
 
 [data-product="management"] .ct-msg {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-width: 80%;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--paper);
+  max-width: 76%;
+  padding: 11px 15px;
+  border-radius: 15px;
+  border: 1px solid transparent;
+  line-height: 1.5;
 }
-[data-product="management"] .ct-msg.ct-guest { align-self: flex-start; background: var(--cream-warm, var(--bg-2)); }
-[data-product="management"] .ct-msg.ct-staff { align-self: flex-end; background: var(--ink); color: var(--inverted-fg); border-color: var(--ink); }
-[data-product="management"] .ct-msg.ct-agent { align-self: flex-end; background: color-mix(in srgb, var(--accent) 10%, var(--paper)); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+/* Guest bubble — paper, anchored left, clipped bottom-left corner */
+[data-product="management"] .ct-msg.ct-guest {
+  align-self: flex-start;
+  background: var(--paper);
+  border-color: var(--line-soft, var(--line));
+  color: var(--ink);
+  border-bottom-left-radius: 5px;
+}
+/* Staff reply — forest band, anchored right, clipped bottom-right */
+[data-product="management"] .ct-msg.ct-staff {
+  align-self: flex-end;
+  background: var(--forest);
+  color: var(--cream-warm);
+  border-color: var(--forest);
+  border-bottom-right-radius: 5px;
+}
+/* AI draft / agent reply — terra-tinted, anchored right */
+[data-product="management"] .ct-msg.ct-agent {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--terra) 8%, var(--paper));
+  border-color: color-mix(in srgb, var(--terra) 35%, var(--line));
+  color: var(--ink);
+  border-bottom-right-radius: 5px;
+}
 [data-product="management"] .ct-msg .ct-msg-head {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 10px;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  opacity: 0.75;
+  opacity: 0.7;
 }
+[data-product="management"] .ct-msg.ct-staff .ct-msg-head { opacity: 0.65; }
 [data-product="management"] .ct-msg .ct-msg-tag {
   background: var(--accent);
   color: var(--on-accent);
@@ -168,14 +238,16 @@
   border-radius: 999px;
   font-size: 9px;
 }
-[data-product="management"] .ct-msg .ct-msg-body { font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
+[data-product="management"] .ct-msg .ct-msg-body { font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
 [data-product="management"] .ct-msg .ct-msg-action {
+  font-family: var(--mono-font);
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-3);
   margin-top: 4px;
 }
+[data-product="management"] .ct-msg.ct-staff .ct-msg-action { color: var(--cream-warm); opacity: 0.8; }
 [data-product="management"] .ct-msg .ct-msg-action-kind { color: var(--accent); }
 [data-product="management"] .ct-msg .ct-msg-attach {
   display: flex;
@@ -183,6 +255,117 @@
   margin-top: 4px;
   font-size: 11px;
 }
+
+/* Conversation header strip (mock .ci-chead) */
+[data-product="management"] .concierge-thread .ct-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 22px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  background: var(--cream-warm, var(--bg-2));
+}
+[data-product="management"] .concierge-thread .ct-head .ct-head-name {
+  font-family: var(--display-font);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.1;
+}
+[data-product="management"] .concierge-thread .ct-head .ct-head-sub {
+  font-family: var(--mono-font);
+  font-size: 11.5px;
+  color: var(--ink-4);
+  margin-top: 1px;
+}
+
+/* Quick-actions bar above the composer (mock .ci-ctx quick actions) */
+[data-product="management"] .concierge-thread .ct-quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px 6px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  background: color-mix(in srgb, var(--cream-warm, var(--bg-2)) 60%, transparent);
+}
+[data-product="management"] .concierge-thread .ct-quick-label {
+  font-family: var(--mono-font);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-4);
+  margin-right: 2px;
+}
+[data-product="management"] .concierge-thread .ct-quick-note {
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ok);
+  margin-left: auto;
+}
+
+/* AI-draft surface (mock .ci-draft) — terra-tinted review card */
+[data-product="management"] .ci-draft {
+  flex: 1;
+  background: color-mix(in srgb, var(--terra) 6%, var(--paper));
+  border: 1px solid color-mix(in srgb, var(--terra) 30%, transparent);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+[data-product="management"] .ci-draft .ci-draft-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--terra);
+  margin-bottom: 8px;
+}
+[data-product="management"] .ci-draft .ci-draft-text {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  resize: none;
+  outline: none;
+  padding: 0;
+  font-family: var(--sans-font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  min-height: 58px;
+}
+[data-product="management"] .ci-draft .ci-draft-text:focus { box-shadow: none; border: 0; }
+
+/* Handoff table — urgent row tint (replaces inline rgba) */
+[data-product="management"] table.data tr.handoff-urgent {
+  background: color-mix(in srgb, var(--terra) 4%, transparent);
+}
+
+/* Safety-events list rows (mock context list) */
+[data-product="management"] .safety-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+[data-product="management"] .safety-list .safety-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product="management"] .safety-list .safety-row:last-child { border-bottom: 0; }
+[data-product="management"] .safety-list .safety-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: none;
+  margin-top: 5px;
+  background: var(--ink-3);
+}
+[data-product="management"] .safety-list .safety-dot.is-warn { background: var(--warn); }
 
 [data-product="management"] .journey-timeline {
   list-style: none;

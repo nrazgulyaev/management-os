@@ -1,6 +1,6 @@
-import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
-import { StatementStatusPill } from "@/components/finance/period-pill";
+import { SectionPill, type StatementSection } from "@/components/finance/section-pill";
+import { Card } from "@/components/dashboard/primitives";
 import { formatMoneyMinor } from "@/lib/money";
 import { generateStatementExplanation } from "@/features/finance/explanation";
 import { groupStatementLinesBySource } from "@/features/owner-bookings/statement-source-groups";
@@ -9,18 +9,20 @@ import type {
   StatementLineRow,
 } from "@/features/finance/services";
 
-const sectionLabels: Record<string, string> = {
-  revenue: "Revenue",
-  fee: "Fees",
-  expense: "Operating expenses",
-  tax: "Taxes",
-  reserve: "Reserves",
-  management_fee: "Management fee",
-  payout: "Payout",
-  adjustment: "Adjustments",
+/** Map a ledger `line_type` onto the mockup's 7 section-pill tones. */
+const LINE_SECTION: Record<string, StatementSection> = {
+  revenue: "revenue",
+  fee: "fees",
+  tax: "taxes",
+  expense: "expenses",
+  reserve: "reserves",
+  management_fee: "mgmt",
+  payout: "expenses",
+  adjustment: "shared",
 };
 
-const sectionOrder = [
+/** Canonical render order — revenue first, then deductions, mockup order. */
+const SECTION_ORDER: StatementLineRow["lineType"][] = [
   "revenue",
   "fee",
   "tax",
@@ -28,6 +30,7 @@ const sectionOrder = [
   "reserve",
   "management_fee",
   "adjustment",
+  "payout",
 ];
 
 export function StatementDetail({
@@ -40,51 +43,74 @@ export function StatementDetail({
   audience?: "internal" | "owner";
 }) {
   const visibleLines = audience === "owner" ? lines.filter((l) => l.ownerVisible) : lines;
-  const grouped = sectionOrder
-    .map((s) => ({
-      section: s,
-      lines: visibleLines.filter((l) => l.lineType === s),
-    }))
-    .filter((g) => g.lines.length > 0);
-
-  const subtotal = (rows: StatementLineRow[]) =>
-    rows.reduce<bigint>((acc, r) => acc + r.amountMinor, 0n);
+  const ordered = SECTION_ORDER.flatMap((t) =>
+    visibleLines.filter((l) => l.lineType === t),
+  );
 
   return (
-    <article className="rounded-lg border border-line-soft bg-surface">
-      <header className="px-6 md:px-10 pt-10 pb-8 border-b border-line-soft flex flex-wrap items-start justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-label">Owner statement</span>
-            <StatementStatusPill status={statement.status} />
-            <Badge tone="outline">{statement.managementModel}</Badge>
-          </div>
-          <h2 className="text-display text-[28px] md:text-[36px] font-medium leading-[1.05] text-ink">
-            {statement.villaCode ?? statement.projectName ?? statement.ownerName}
-          </h2>
-          <p className="text-ink-secondary mt-2">
-            {statement.periodLabel} · {statement.ownerName}
+    <div className="flex flex-col gap-8">
+      {/* Mock: the line table IS the screen — flat table.data, one
+          section-pill per line, terra net-to-owner footer row. */}
+      <Card padding="none" overflowHidden>
+        {ordered.length === 0 ? (
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
+            No allocated lines for this statement. Try regenerating from the
+            source ledger.
           </p>
-          <p className="text-xs text-ink-tertiary mt-1 font-mono tabular-nums">
-            {statement.statementCode}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="text-label">Net owner payout</div>
-          <div className="text-display text-[32px] md:text-[44px] font-medium tabular-nums mt-1 text-accent">
-            {formatMoneyMinor(statement.netPayoutMinor, statement.currency)}
-          </div>
-          <div className="text-xs text-ink-tertiary mt-1">
-            {statement.periodStart} → {statement.periodEnd}
-          </div>
-        </div>
-      </header>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col" className="w-[130px]">Section</th>
+                <th scope="col">Line item</th>
+                <th scope="col">Notes</th>
+                <th scope="col" className="num">Amount ({statement.currency})</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ordered.map((line) => {
+                const positive = line.amountMinor >= 0n;
+                return (
+                  <tr key={line.id}>
+                    <td>
+                      <SectionPill kind={LINE_SECTION[line.lineType] ?? "shared"} />
+                    </td>
+                    <td className="font-medium">{line.description}</td>
+                    <td className="mono text-[11px] text-ink-3">{line.category}</td>
+                    <td className={"num " + (positive ? "text-ok" : "text-ink-2")}>
+                      {formatMoneyMinor(line.amountMinor, line.currency)}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="stmt-foot">
+                <td colSpan={2}>
+                  <span className="stmt-foot-label">
+                    Net to owner · {statement.periodLabel}
+                  </span>
+                </td>
+                <td className="mono text-[11px] text-ink-3">
+                  {statement.periodStart} → {statement.periodEnd}
+                </td>
+                <td className="num">
+                  <span className="stmt-foot-value">
+                    {formatMoneyMinor(statement.netPayoutMinor, statement.currency)}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        )}
+      </Card>
 
       {(statement.occupancyRate !== null ||
         statement.adrMinor !== null ||
         statement.revparMinor !== null) && (
-        <div className="px-6 md:px-10 py-5 border-b border-line-soft grid grid-cols-3 gap-4">
-          <Stat label="Occupancy" value={statement.occupancyRate !== null ? `${(statement.occupancyRate * 100).toFixed(1)}%` : "—"} />
+        <div className="grid grid-cols-3 gap-4">
+          <Stat
+            label="Occupancy"
+            value={statement.occupancyRate !== null ? `${(statement.occupancyRate * 100).toFixed(1)}%` : "—"}
+          />
           <Stat
             label="ADR"
             value={statement.adrMinor !== null ? formatMoneyMinor(statement.adrMinor, statement.currency) : "—"}
@@ -96,116 +122,76 @@ export function StatementDetail({
         </div>
       )}
 
-      <div className="px-6 md:px-10 pb-10 pt-6 flex flex-col gap-8">
-        {grouped.length === 0 && (
-          <p className="text-sm text-ink-tertiary">
-            No allocated lines for this statement. Try regenerating from the source ledger.
-          </p>
-        )}
-        {grouped.map((group) => (
-          <section key={group.section} className="flex flex-col gap-3">
-            <div className="flex items-baseline justify-between border-b border-line-soft pb-2">
-              <span className="text-label">{sectionLabels[group.section] ?? group.section}</span>
-              <span className="font-mono tabular-nums text-sm text-ink">
-                {formatMoneyMinor(subtotal(group.lines), statement.currency)}
-              </span>
-            </div>
-            {group.lines.map((line) => (
-              <div key={line.id} className="grid grid-cols-[1fr_auto] gap-6 py-1.5">
-                <div>
-                  <div className="text-sm text-ink">{line.description}</div>
-                  <div className="text-[11px] text-ink-tertiary mt-0.5">{line.category}</div>
-                </div>
-                <div
-                  className={`font-mono tabular-nums text-sm text-right whitespace-nowrap ${line.amountMinor < 0n ? "text-ink-secondary" : "text-ink"}`}
-                >
-                  {formatMoneyMinor(line.amountMinor, line.currency)}
-                </div>
-              </div>
-            ))}
-          </section>
-        ))}
-
-        <div className="border-t border-ink pt-5 flex items-baseline justify-between">
-          <span className="text-display text-[20px] font-medium text-ink">Net owner payout</span>
-          <span className="text-display text-[28px] font-medium tabular-nums text-accent">
-            {formatMoneyMinor(statement.netPayoutMinor, statement.currency)}
-          </span>
-        </div>
-
-        <Section
-          eyebrow="By source"
-          title="Revenue source explanation"
-          description="Each booking on your statement is attributed to a source — direct booking, OTA platform, guest service, or owner stay. Source IDs are intentionally hidden."
-        >
-          {(() => {
-            const buckets = groupStatementLinesBySource(visibleLines);
-            if (buckets.length === 0) {
-              return (
-                <p className="text-sm text-ink-tertiary">
-                  No source-bucketed lines on this statement.
-                </p>
-              );
-            }
+      <Section
+        eyebrow="By source"
+        title="Revenue source explanation"
+        description="Each booking on your statement is attributed to a source — direct booking, OTA platform, guest service, or owner stay. Source IDs are intentionally hidden."
+      >
+        {(() => {
+          const buckets = groupStatementLinesBySource(visibleLines);
+          if (buckets.length === 0) {
             return (
-              <div className="rounded-md border border-line-soft bg-surface p-5 flex flex-col gap-4">
-                {buckets.map((b) => (
-                  <SourceBucket key={b.key} bucket={b} />
+              <p className="text-sm text-ink-3">
+                No source-bucketed lines on this statement.
+              </p>
+            );
+          }
+          return (
+            <Card padding="default" className="flex flex-col gap-4">
+              {buckets.map((b) => (
+                <SourceBucket key={b.key} bucket={b} />
+              ))}
+            </Card>
+          );
+        })()}
+      </Section>
+
+      <Section eyebrow="Why this number" title="Plain-language explanation">
+        {(() => {
+          const expl = generateStatementExplanation(statement, lines);
+          return (
+            <Card padding="default" className="bg-cream-warm flex flex-col gap-3">
+              <p className="text-sm font-medium text-ink">{expl.headline}</p>
+              <ul className="flex flex-col gap-1.5">
+                {expl.bullets.map((b, i) => (
+                  <li
+                    key={i}
+                    className="text-sm text-ink-2 leading-relaxed flex items-start gap-2"
+                  >
+                    <span className="w-1 h-1 rounded-full bg-ink-4 mt-2 shrink-0" />
+                    {b}
+                  </li>
                 ))}
-              </div>
-            );
-          })()}
-        </Section>
+              </ul>
+              <p className="text-[11px] text-ink-3 border-t border-line-soft pt-2">
+                Deterministic explanation — no AI inference. {expl.footer}
+              </p>
+            </Card>
+          );
+        })()}
+      </Section>
 
-        <Section eyebrow="Why this number" title="Plain-language explanation">
-          {(() => {
-            const expl = generateStatementExplanation(statement, lines);
-            return (
-              <div className="rounded-md border border-line-soft bg-muted/30 p-5 flex flex-col gap-3">
-                <p className="text-sm font-medium text-ink">{expl.headline}</p>
-                <ul className="flex flex-col gap-1.5">
-                  {expl.bullets.map((b, i) => (
-                    <li
-                      key={i}
-                      className="text-sm text-ink-secondary leading-relaxed flex items-start gap-2"
-                    >
-                      <span className="w-1 h-1 rounded-full bg-ink-tertiary mt-2 shrink-0" />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-[11px] text-ink-tertiary border-t border-line-soft pt-2">
-                  Deterministic explanation — no AI inference. {expl.footer}
-                </p>
-              </div>
-            );
-          })()}
-        </Section>
-
-        <Section
-          eyebrow="Source traceability"
-          title="Every line maps back to a posted ledger row"
-        >
-          <p className="text-sm text-ink-secondary leading-relaxed">
-            Each row above carries an internal reference to the posted source —
-            revenue lines, fee lines, expense allocations, tax lines, reserve
-            movements, or a management-fee rule. Regenerating a draft replays
-            the source rows and restates the lines. Issued statements are
-            immutable; corrections produce a new statement.
-          </p>
-        </Section>
-      </div>
-    </article>
+      <Section
+        eyebrow="Source traceability"
+        title="Every line maps back to a posted ledger row"
+      >
+        <p className="text-sm text-ink-2 leading-relaxed">
+          Each row above carries an internal reference to the posted source —
+          revenue lines, fee lines, expense allocations, tax lines, reserve
+          movements, or a management-fee rule. Regenerating a draft replays the
+          source rows and restates the lines. Issued statements are immutable;
+          corrections produce a new statement.
+        </p>
+      </Section>
+    </div>
   );
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
-        {label}
-      </div>
-      <div className="font-mono tabular-nums text-base text-ink mt-1">{value}</div>
+      <div className="label">{label}</div>
+      <div className="mono tabular-nums text-base text-ink mt-1">{value}</div>
     </div>
   );
 }
@@ -220,12 +206,10 @@ function SourceBucket({
       <div className="flex items-baseline justify-between">
         <div>
           <div className="text-sm text-ink font-medium">{bucket.label}</div>
-          <div className="text-[11px] text-ink-tertiary">
-            {bucket.description}
-          </div>
+          <div className="text-[11px] text-ink-3">{bucket.description}</div>
         </div>
         {bucket.currency && (
-          <div className="font-mono tabular-nums text-sm text-ink">
+          <div className="mono tabular-nums text-sm text-ink">
             {formatMoneyMinor(bucket.totalMinor, bucket.currency)}
           </div>
         )}
