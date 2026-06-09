@@ -19,6 +19,7 @@ import { requireDb } from "@/lib/db/client";
 import { conversationThreads, type MessagingChannel } from "@/lib/db/schema/messaging";
 import { eq } from "drizzle-orm";
 import { requireOrgId } from "@/features/auth/require-org";
+import { envKeyForChannel } from "./channel-env";
 
 /**
  * Stage 6.P2.F — Server actions wired to the inbox UI.
@@ -104,24 +105,8 @@ export async function sendReplyAction(formData: FormData): Promise<void> {
   }
 }
 
-export function envKeyForChannel(c: MessagingChannel): string | null {
-  switch (c) {
-    case "whatsapp":
-      return "MESSAGING_WHATSAPP_CREDENTIALS";
-    case "telegram":
-      return "MESSAGING_TELEGRAM_CREDENTIALS";
-    case "instagram":
-      return "MESSAGING_INSTAGRAM_CREDENTIALS";
-    case "facebook_messenger":
-      return "MESSAGING_MESSENGER_CREDENTIALS";
-    case "email":
-      return "MESSAGING_EMAIL_CREDENTIALS";
-    case "sms":
-      return "MESSAGING_SMS_CREDENTIALS";
-    default:
-      return null;
-  }
-}
+// `envKeyForChannel` moved to ./channel-env (a Server Action file may only
+// export async functions). It is imported above for internal use.
 
 // Re-export template + rule actions under the inbox namespace so the
 // /development-os/inbox/* pages can import a single module.

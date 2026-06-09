@@ -43,7 +43,7 @@ import {
 } from "@/lib/messaging/queries";
 import { sendOutboundMessage } from "@/lib/messaging/service";
 import { decryptMessagingCredentials } from "@/lib/messaging/credentials-store";
-import { envKeyForChannel } from "@/lib/messaging/inbox-actions";
+import { envKeyForChannel } from "@/lib/messaging/channel-env";
 import type { MessagingChannel } from "@/lib/db/schema/messaging";
 import {
   getAgentEligibility,
