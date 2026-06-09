@@ -21,7 +21,7 @@
  */
 
 import { useRef, useState } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Bot } from "lucide-react";
 
 interface LiveMessage {
   id: string;
@@ -101,49 +101,43 @@ export function AgentTestChat({ agentId }: { agentId: string }) {
   }
 
   return (
-    <div className="flex flex-col h-[600px] bg-surface rounded-md border border-line-soft overflow-hidden">
-      <div className="px-4 py-2 border-b border-line-soft flex items-center justify-between text-[11px] text-ink-tertiary">
-        <span>
-          Test mode · subscription + budget gates bypassed · runs still recorded
+    <div className="card overflow-hidden flex flex-col h-[600px]">
+      <div className="ag-chat-h">
+        <span className="ag-ava">
+          <Bot className="w-4 h-4" strokeWidth={1.7} />
         </span>
-        <div className="flex items-center gap-3">
+        <div className="mono text-[11px] text-[var(--ink-4)] leading-snug">
+          Test mode · subscription + budget gates bypassed · runs still recorded
+        </div>
+        <div className="ml-auto flex items-center gap-3 text-[11px] text-[var(--ink-4)]">
           {lastRunId && (
-            <span className="font-mono">run {lastRunId.slice(0, 8)}</span>
+            <span className="mono">run {lastRunId.slice(0, 8)}</span>
           )}
           <button
             type="button"
             onClick={reset}
-            className="text-ink-tertiary hover:text-ink underline"
+            className="btn btn-ghost btn-sm"
           >
             Clear
           </button>
         </div>
       </div>
 
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-4"
-      >
+      <div ref={scrollRef} className="ag-chat-body">
         {messages.length === 0 ? (
-          <div className="m-auto text-center text-sm text-ink-tertiary max-w-md">
-            Type a question to test this agent. RAG retrieval + provider
-            call run exactly as they would for a subscribed user.
+          <div className="ag-chat-empty">
+            <p className="ag-muted">
+              Type a question to test this agent. RAG retrieval + provider call run
+              exactly as they would for a subscribed user.
+            </p>
           </div>
         ) : (
           messages.map((m) => (
             <div
               key={m.id}
-              className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+              className={`ag-bubble ${m.role === "user" ? "user" : "bot"}`}
             >
-              <div
-                className={`max-w-[80%] rounded-md px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed ${
-                  m.role === "user"
-                    ? "bg-ink text-ink-inverse"
-                    : "bg-canvas border border-line-soft text-ink"
-                }`}
-              >
-                {m.content || (m.isStreaming ? "…" : "")}
-              </div>
+              {m.content || (m.isStreaming ? "…" : "")}
             </div>
           ))
         )}
@@ -152,16 +146,13 @@ export function AgentTestChat({ agentId }: { agentId: string }) {
       {error && (
         <div
           role="alert"
-          className="border-t border-danger/30 bg-danger/5 px-6 py-2 text-sm text-danger"
+          className="border-t border-[color-mix(in_srgb,var(--danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--danger)_6%,transparent)] px-6 py-2 text-sm text-[var(--danger)]"
         >
           {error}
         </div>
       )}
 
-      <form
-        onSubmit={send}
-        className="border-t border-line-soft px-4 py-3 flex items-end gap-2"
-      >
+      <form onSubmit={send} className="ag-chat-input">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -172,14 +163,14 @@ export function AgentTestChat({ agentId }: { agentId: string }) {
             }
           }}
           rows={2}
-          placeholder="Test prompt…"
+          placeholder="Write as a guest / user…"
           disabled={busy}
-          className="flex-1 resize-none rounded-md border border-line-soft bg-canvas px-3 py-2 text-sm focus:outline-none focus:border-ink/30"
+          className="textarea"
         />
         <button
           type="submit"
           disabled={busy || !input.trim()}
-          className="rounded-md bg-ink px-4 py-2 text-sm text-ink-inverse hover:bg-ink/90 disabled:opacity-40 inline-flex items-center gap-2"
+          className="btn btn-accent"
         >
           {busy ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.75} />
