@@ -96,6 +96,14 @@ export async function addBookingGuestAction(
   }
   const d = parsed.data;
 
+  // Child row inherits the parent booking's org (tenancy).
+  const [parent] = await db
+    .select({ organizationId: bookings.organizationId })
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+  if (!parent) return { ok: false, error: "Booking not found." };
+
   const existing = await db
     .select({ so: bookingGuests.sortOrder })
     .from(bookingGuests)
@@ -104,6 +112,7 @@ export async function addBookingGuestAction(
   const role = d.kind === "child" ? "child" : d.role;
 
   await db.insert(bookingGuests).values({
+    organizationId: parent.organizationId,
     bookingId,
     fullName: d.fullName,
     role,
@@ -163,6 +172,14 @@ export async function addBookingChargeAction(
   const d = parsed.data;
   const signed = d.direction === "deduction" ? -Math.abs(d.amount) : Math.abs(d.amount);
 
+  // Child row inherits the parent booking's org (tenancy).
+  const [parent] = await db
+    .select({ organizationId: bookings.organizationId })
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+  if (!parent) return { ok: false, error: "Booking not found." };
+
   const existing = await db
     .select({ so: bookingCharges.sortOrder })
     .from(bookingCharges)
@@ -171,6 +188,7 @@ export async function addBookingChargeAction(
   const today = new Date().toISOString().slice(0, 10);
 
   await db.insert(bookingCharges).values({
+    organizationId: parent.organizationId,
     bookingId,
     chargeType: d.chargeType,
     description: d.description,

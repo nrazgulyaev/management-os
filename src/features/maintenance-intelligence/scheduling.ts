@@ -166,6 +166,7 @@ export async function suggestMaintenanceWindows(
   if (top.length > 0) {
     await db.insert(maintenanceWindowSuggestions).values(
       top.map((s) => ({
+        organizationId: plan.p.organizationId,
         villaMaintenancePlanId: planId,
         villaId: plan.p.villaId,
         suggestedStart: new Date(s.start),

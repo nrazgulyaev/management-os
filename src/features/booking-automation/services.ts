@@ -342,6 +342,7 @@ async function materialiseRule(
   const [task] = await db
     .insert(operationTasks)
     .values({
+      organizationId: booking.organizationId,
       taskCode,
       title,
       category: rule.taskCategory,

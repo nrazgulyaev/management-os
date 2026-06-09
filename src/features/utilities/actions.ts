@@ -14,6 +14,7 @@ import { villas } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   classifyUtilityBalance,
   balanceLevelToRiskType,
@@ -67,6 +68,7 @@ export async function createUtilityAccountAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   // If villa supplied, infer project_id.
   let projectId = parsed.data.projectId ?? null;
@@ -82,6 +84,7 @@ export async function createUtilityAccountAction(
   const [row] = await db
     .insert(utilityAccounts)
     .values({
+      organizationId,
       villaId: parsed.data.villaId ?? null,
       projectId,
       utilityType: parsed.data.utilityType,
@@ -153,6 +156,7 @@ export async function recordUtilityReadingAction(
   const [reading] = await db
     .insert(utilityReadings)
     .values({
+      organizationId: account.organizationId,
       utilityAccountId: parsed.data.utilityAccountId,
       villaId: account.villaId,
       readingType: parsed.data.readingType,
@@ -186,6 +190,7 @@ export async function recordUtilityReadingAction(
     await db
       .insert(maintenanceRiskEvents)
       .values({
+        organizationId: account.organizationId,
         villaId: account.villaId,
         projectId: account.projectId,
         riskType,
@@ -245,7 +250,10 @@ export async function createUtilityPaymentReminderAction(
   const me = await getCurrentAppUser();
 
   const [account] = await db
-    .select({ villaId: utilityAccounts.villaId })
+    .select({
+      villaId: utilityAccounts.villaId,
+      organizationId: utilityAccounts.organizationId,
+    })
     .from(utilityAccounts)
     .where(eq(utilityAccounts.id, parsed.data.utilityAccountId))
     .limit(1);
@@ -254,6 +262,7 @@ export async function createUtilityPaymentReminderAction(
   const [row] = await db
     .insert(utilityPaymentReminders)
     .values({
+      organizationId: account.organizationId,
       utilityAccountId: parsed.data.utilityAccountId,
       villaId: account.villaId,
       dueDate: parsed.data.dueDate,

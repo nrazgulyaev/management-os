@@ -15,6 +15,7 @@ import { appUsersOwners } from "@/lib/db/schema/access-grants";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   addEquivalenceMemberSchema,
   archiveOwnerStayPolicySchema,
@@ -459,11 +460,13 @@ export async function approveOwnerStayRequestAction(
   }
 
   // Materialise the calendar block.
+  const organizationId = await requireOrgId();
   const startsAt = new Date(`${req.requestedStart as unknown as string}T00:00:00.000Z`);
   const endsAt = new Date(`${req.requestedEnd as unknown as string}T00:00:00.000Z`);
   const [block] = await db
     .insert(villaCalendarBlocks)
     .values({
+      organizationId,
       villaId: req.villaId,
       projectId: req.projectId,
       blockType: "owner_stay",

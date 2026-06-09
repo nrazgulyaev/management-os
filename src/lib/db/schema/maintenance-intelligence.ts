@@ -79,8 +79,11 @@ export const villaMaintenancePlans = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
-    // TENANCY (migration 0149): nullable org anchor via villa -> project.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via villa -> project; 0155 NOT NULL
+    // cutover). Inserts use requireOrgId().
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     templateId: uuid("template_id")
       .notNull()
       .references(() => maintenanceTemplates.id, { onDelete: "restrict" }),
@@ -137,8 +140,11 @@ export const maintenanceWindowSuggestions = pgTable(
     villaId: uuid("villa_id")
       .notNull()
       .references(() => villas.id, { onDelete: "cascade" }),
-    // TENANCY (migration 0149): nullable org anchor via villa -> project.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via plan; 0155 NOT NULL cutover).
+    // Inserts copy the parent plan's org.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     suggestedStart: timestamp("suggested_start", {
       withTimezone: true,
     }).notNull(),
@@ -175,9 +181,11 @@ export const utilityAccounts = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "cascade",
     }),
-    // TENANCY (migration 0149): nullable org anchor via villa/project
-    // (else ARCONIQUE_DEFAULT).
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via villa/project; 0155 NOT NULL cutover).
+    // Inserts use requireOrgId().
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     utilityType: text("utility_type").notNull(),
     providerName: text("provider_name"),
     accountNumber: text("account_number"),
@@ -221,8 +229,11 @@ export const utilityReadings = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "cascade",
     }),
-    // TENANCY (migration 0149): nullable org anchor via utility_account.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via utility_account; 0155 NOT NULL
+    // cutover). Inserts copy the parent account's org.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     readingType: text("reading_type").notNull(),
     readingValue: numeric("reading_value"),
     balanceMinor: bigint("balance_minor", { mode: "number" }),
@@ -260,8 +271,11 @@ export const utilityPaymentReminders = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "cascade",
     }),
-    // TENANCY (migration 0149): nullable org anchor via utility_account.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via utility_account; 0155 NOT NULL
+    // cutover). Inserts copy the parent account's org.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     dueDate: date("due_date").notNull(),
     amountMinor: bigint("amount_minor", { mode: "number" }),
     currency: text("currency").notNull().default("IDR"),

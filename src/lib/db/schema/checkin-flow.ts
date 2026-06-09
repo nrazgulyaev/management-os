@@ -21,8 +21,10 @@ export const bookingCheckinFlow = pgTable(
     bookingId: uuid("booking_id")
       .primaryKey()
       .references(() => bookings.id, { onDelete: "cascade" }),
-    // TENANCY (migration 0149): nullable org anchor via booking.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via booking; 0155 NOT NULL cutover).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     currentStep: text("current_step").notNull().default("identity"),
     stepsJson: jsonb("steps_json").notNull().default({}),
     doorCode: text("door_code"),

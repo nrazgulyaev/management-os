@@ -157,7 +157,20 @@ export async function setVillaReadiness(input: {
         .where(eq(villaReadinessStates.id, current.id));
     }
 
+    // Org: reuse the prior open row's org, else resolve via villa -> project.
+    let organizationId = current?.organizationId ?? null;
+    if (!organizationId) {
+      const [v] = await tx
+        .select({ organizationId: projectsTable.organizationId })
+        .from(villas)
+        .leftJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+        .where(eq(villas.id, input.villaId))
+        .limit(1);
+      organizationId = v?.organizationId ?? null;
+    }
+
     const insertRow: NewVillaReadinessState = {
+      organizationId,
       villaId: input.villaId,
       readinessStatus: input.readinessStatus,
       effectiveFrom: now,

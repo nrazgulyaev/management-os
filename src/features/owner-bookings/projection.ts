@@ -17,7 +17,7 @@ import {
   guests,
 } from "@/lib/db/schema/bookings";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
-import { villas } from "@/lib/db/schema/projects";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { ownershipShares } from "@/lib/db/schema/ownership";
 import {
   directBookingHolds,
@@ -145,6 +145,17 @@ export async function rebuildOwnerBookingSummariesForOwner(
   );
   if (villaIds.length === 0) return EMPTY;
 
+  // Org for this owner's derived projection rows. Owners belong to a
+  // single org; resolve it from any owned villa's project. The projection
+  // is a derived view, so child rows copy this org.
+  const [orgRow] = await db
+    .select({ organizationId: projects.organizationId })
+    .from(villas)
+    .leftJoin(projects, eq(projects.id, villas.projectId))
+    .where(inArray(villas.id, villaIds))
+    .limit(1);
+  const organizationId = orgRow?.organizationId ?? null;
+
   // Always wipe + reinsert the projection rows that fall in the window
   // for these villas.  Idempotent by design: the projection is a
   // derived view, never a system of record.
@@ -179,7 +190,7 @@ export async function rebuildOwnerBookingSummariesForOwner(
     });
     const ownerLabel = buildOwnerLabel(sourceType, status, row.channelLabel);
     const visible = isOwnerVisibleBookingStatus(status, true);
-    const summary = await insertSummary(ownerId, {
+    const summary = await insertSummary(ownerId, organizationId, {
       villaId: row.villaId,
       projectId: row.projectId,
       bookingId: row.bookingId,
@@ -209,6 +220,7 @@ export async function rebuildOwnerBookingSummariesForOwner(
     breakdownsUpserted += await insertBreakdowns(
       summary.id,
       ownerId,
+      organizationId,
       row.villaId,
       row.bookingId,
       row.directBookingRequestId,
@@ -229,7 +241,7 @@ export async function rebuildOwnerBookingSummariesForOwner(
       continue;
     }
     const ownerLabel = buildOwnerLabel("direct_booking", status, "Direct");
-    const summary = await insertSummary(ownerId, {
+    const summary = await insertSummary(ownerId, organizationId, {
       villaId: r.villaId,
       projectId: r.projectId,
       bookingId: null,
@@ -260,6 +272,7 @@ export async function rebuildOwnerBookingSummariesForOwner(
       breakdownsUpserted += await insertBreakdowns(
         summary.id,
         ownerId,
+        organizationId,
         r.villaId,
         null,
         r.requestId,
@@ -281,7 +294,7 @@ export async function rebuildOwnerBookingSummariesForOwner(
   // 3) Owner stays.
   const stayRows = await readOwnerStayRows(ownerId, villaIds, window);
   for (const s of stayRows) {
-    const summary = await insertSummary(ownerId, {
+    const summary = await insertSummary(ownerId, organizationId, {
       villaId: s.villaId,
       projectId: s.projectId,
       bookingId: null,
@@ -313,6 +326,7 @@ export async function rebuildOwnerBookingSummariesForOwner(
       breakdownsUpserted += await insertBreakdowns(
         summary.id,
         ownerId,
+        organizationId,
         s.villaId,
         null,
         null,
@@ -346,7 +360,7 @@ export async function rebuildOwnerBookingSummariesForOwner(
       sourceType === "maintenance_block"
         ? "Maintenance block"
         : "Internal hold";
-    await insertSummary(ownerId, {
+    await insertSummary(ownerId, organizationId, {
       villaId: b.villaId,
       projectId: b.projectId,
       bookingId: null,
@@ -491,6 +505,7 @@ export async function rebuildOwnerRevenueSourceMonthlyForOwner(
   const rows = await db
     .select({
       ownerId: ownerBookingSummaries.ownerId,
+      organizationId: ownerBookingSummaries.organizationId,
       villaId: ownerBookingSummaries.villaId,
       projectId: ownerBookingSummaries.projectId,
       checkIn: ownerBookingSummaries.checkIn,
@@ -550,10 +565,13 @@ export async function rebuildOwnerRevenueSourceMonthlyForOwner(
       ),
     );
 
+  // Org is constant per owner; take it from any summary row in the window.
+  const organizationId = rows.find((r) => r.organizationId)?.organizationId ?? null;
   const buckets = buildRevenueSourceMonthlyBuckets(inputs);
   if (buckets.length === 0) return { upserted: 0 };
   await db.insert(ownerRevenueSourceMonthly).values(
     buckets.map((b) => ({
+      organizationId,
       ownerId: b.ownerId,
       villaId: b.villaId,
       projectId: b.projectId,
@@ -1045,6 +1063,7 @@ type SummaryPayload = Omit<
 
 async function insertSummary(
   ownerId: string,
+  organizationId: string | null,
   payload: SummaryPayload,
 ): Promise<{ id: string }> {
   const db = getDb();
@@ -1053,6 +1072,7 @@ async function insertSummary(
   const [row] = await db
     .insert(ownerBookingSummaries)
     .values({
+      organizationId,
       ownerId,
       ...rest,
       sourceUpdatedAt: sourceUpdatedAt ? new Date(sourceUpdatedAt) : null,
@@ -1064,6 +1084,7 @@ async function insertSummary(
 async function insertBreakdowns(
   summaryId: string,
   ownerId: string,
+  organizationId: string | null,
   villaId: string | null,
   bookingId: string | null,
   directBookingRequestId: string | null,
@@ -1072,6 +1093,7 @@ async function insertBreakdowns(
   const db = getDb();
   if (!db || inputs.length === 0) return 0;
   const values: NewOwnerBookingRevenueBreakdown[] = inputs.map((i) => ({
+    organizationId,
     ownerBookingSummaryId: summaryId,
     ownerId,
     villaId,

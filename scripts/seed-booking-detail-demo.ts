@@ -36,8 +36,12 @@ async function main() {
   const db = getDb();
 
   // --- base refs (reuse existing) ---
-  const [proj] = await db.select({ id: projects.id }).from(projects).limit(1);
+  const [proj] = await db
+    .select({ id: projects.id, organizationId: projects.organizationId })
+    .from(projects)
+    .limit(1);
   if (!proj) throw new Error("No project found — run a base demo seed first.");
+  const organizationId = proj.organizationId;
   const [asset] = await db.select({ id: assetTypes.id }).from(assetTypes).limit(1);
   if (!asset) throw new Error("No asset_type found — run a base demo seed first.");
 
@@ -140,6 +144,7 @@ async function main() {
 
   // --- booking BK-2148 (upsert) ---
   const bkVals = {
+    organizationId,
     villaId,
     channelId: chan!.id,
     guestId,
@@ -175,6 +180,7 @@ async function main() {
   await db.delete(bookingGuests).where(eq(bookingGuests.bookingId, bookingId));
   await db.insert(bookingGuests).values([
     {
+      organizationId,
       bookingId,
       fullName: "Emma Whitmore",
       role: "primary",
@@ -190,6 +196,7 @@ async function main() {
       sortOrder: 0,
     },
     {
+      organizationId,
       bookingId,
       fullName: "James Whitmore",
       role: "accompanying",
@@ -200,17 +207,17 @@ async function main() {
       idVerified: true,
       sortOrder: 1,
     },
-    { bookingId, fullName: "Lily Whitmore", role: "child", kind: "child", ageYears: 8, sortOrder: 2 },
-    { bookingId, fullName: "Noah Whitmore", role: "child", kind: "child", ageYears: 5, sortOrder: 3 },
+    { organizationId, bookingId, fullName: "Lily Whitmore", role: "child", kind: "child", ageYears: 8, sortOrder: 2 },
+    { organizationId, bookingId, fullName: "Noah Whitmore", role: "child", kind: "child", ageYears: 5, sortOrder: 3 },
   ]);
 
   // --- charge ledger (reset + insert) ---
   await db.delete(bookingCharges).where(eq(bookingCharges.bookingId, bookingId));
   await db.insert(bookingCharges).values([
-    { bookingId, chargeType: "nightly", description: "3 nights × IDR 1.4M", amount: "4200000", currency: "IDR", note: "BASE", occurredOn: "2026-05-12", sortOrder: 0 },
-    { bookingId, chargeType: "service", description: "Standard turnover cleaning", amount: "350000", currency: "IDR", note: "Refund", occurredOn: "2026-05-12", sortOrder: 1 },
-    { bookingId, chargeType: "fee", description: "Airbnb host service · 3%", amount: "-150000", currency: "IDR", occurredOn: "2026-05-12", sortOrder: 2 },
-    { bookingId, chargeType: "fee", description: "Stripe processing · 2.9% + IDR 30k", amount: "-90000", currency: "IDR", occurredOn: "2026-05-12", sortOrder: 3 },
+    { organizationId, bookingId, chargeType: "nightly", description: "3 nights × IDR 1.4M", amount: "4200000", currency: "IDR", note: "BASE", occurredOn: "2026-05-12", sortOrder: 0 },
+    { organizationId, bookingId, chargeType: "service", description: "Standard turnover cleaning", amount: "350000", currency: "IDR", note: "Refund", occurredOn: "2026-05-12", sortOrder: 1 },
+    { organizationId, bookingId, chargeType: "fee", description: "Airbnb host service · 3%", amount: "-150000", currency: "IDR", occurredOn: "2026-05-12", sortOrder: 2 },
+    { organizationId, bookingId, chargeType: "fee", description: "Stripe processing · 2.9% + IDR 30k", amount: "-90000", currency: "IDR", occurredOn: "2026-05-12", sortOrder: 3 },
   ]);
 
   // --- settlement (reset + insert) ---

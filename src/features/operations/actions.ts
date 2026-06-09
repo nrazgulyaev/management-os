@@ -17,6 +17,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   approveChecklistSchema,
   approveTaskSchema,
@@ -80,6 +81,7 @@ export async function createOperationTaskAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const counter = await nextDailyCounter("OPS");
@@ -88,6 +90,7 @@ export async function createOperationTaskAction(
   const [task] = await db
     .insert(operationTasks)
     .values({
+      organizationId,
       taskCode,
       title: d.title,
       description: d.description && d.description !== "" ? d.description : null,
@@ -694,6 +697,7 @@ export async function generateDuePreventiveTasksAction(): Promise<
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const today = todayYmd();
 
   const due = await db
@@ -712,6 +716,7 @@ export async function generateDuePreventiveTasksAction(): Promise<
     const [task] = await db
       .insert(operationTasks)
       .values({
+        organizationId,
         taskCode,
         title: s.name,
         category: s.category,
@@ -1350,9 +1355,11 @@ export async function assignMaintenanceTicketAction(
   } else {
     const counter = await nextDailyCounter("OPS");
     const taskCode = buildTaskCode(counter);
+    const organizationId = await requireOrgId();
     const [newTask] = await db
       .insert(operationTasks)
       .values({
+        organizationId,
         taskCode,
         title: ticket.title,
         description: ticket.description ?? null,

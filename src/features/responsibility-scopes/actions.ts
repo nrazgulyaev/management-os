@@ -7,6 +7,7 @@ import { userResponsibilityScopes } from "@/lib/db/schema/availability";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   archiveResponsibilityScopeSchema,
   createResponsibilityScopeSchema,
@@ -31,10 +32,12 @@ export async function createResponsibilityScopeAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [row] = await db
     .insert(userResponsibilityScopes)
     .values({
+      organizationId,
       userId: parsed.data.userId,
       roleKey: parsed.data.roleKey ?? null,
       projectId: parsed.data.projectId ?? null,

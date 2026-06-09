@@ -29,6 +29,14 @@ export async function completeCheckinAction(input: {
   const me = await getCurrentAppUser();
   const now = new Date();
 
+  // Child row inherits the parent booking's org (tenancy).
+  const [parent] = await db
+    .select({ organizationId: bookings.organizationId })
+    .from(bookings)
+    .where(eq(bookings.id, input.bookingId))
+    .limit(1);
+  if (!parent) return { ok: false, error: "Booking not found." };
+
   const row = {
     currentStep: "handover" as const,
     stepsJson: input.steps,
@@ -40,7 +48,11 @@ export async function completeCheckinAction(input: {
 
   await db
     .insert(bookingCheckinFlow)
-    .values({ bookingId: input.bookingId, ...row })
+    .values({
+      organizationId: parent.organizationId,
+      bookingId: input.bookingId,
+      ...row,
+    })
     .onConflictDoUpdate({ target: bookingCheckinFlow.bookingId, set: row });
 
   await db

@@ -7,6 +7,7 @@ import { securityCameraDevices } from "@/lib/db/schema/availability";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   createCameraDeviceSchema,
   updateCameraDeviceSchema,
@@ -32,6 +33,7 @@ export async function createSecurityCameraDeviceAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const externalAppUrl =
     parsed.data.externalAppUrl && parsed.data.externalAppUrl !== ""
@@ -41,6 +43,7 @@ export async function createSecurityCameraDeviceAction(
   const [row] = await db
     .insert(securityCameraDevices)
     .values({
+      organizationId,
       projectId: parsed.data.projectId ?? null,
       villaId: parsed.data.villaId ?? null,
       name: parsed.data.name,

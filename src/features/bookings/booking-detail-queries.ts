@@ -10,6 +10,7 @@ import {
   bookingMeta,
 } from "@/lib/db/schema/booking-detail";
 import { villas, projects } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import { owners, ownershipShares } from "@/lib/db/schema/ownership";
 import { ownerBookingSummaries } from "@/lib/db/schema/owner-bookings";
 import { ownerStatements } from "@/lib/db/schema/finance";
@@ -76,6 +77,7 @@ export interface BookingDetail {
 export async function getBookingDetail(id: string): Promise<BookingDetail | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
 
   const [row] = await db
     .select({
@@ -97,7 +99,7 @@ export async function getBookingDetail(id: string): Promise<BookingDetail | null
     .leftJoin(projects, eq(projects.id, villas.projectId))
     .leftJoin(bookingChannels, eq(bookingChannels.id, bookings.channelId))
     .leftJoin(guests, eq(guests.id, bookings.guestId))
-    .where(eq(bookings.id, id))
+    .where(and(eq(bookings.id, id), eq(bookings.organizationId, organizationId)))
     .limit(1);
 
   if (!row) return null;

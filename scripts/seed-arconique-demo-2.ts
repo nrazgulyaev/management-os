@@ -680,6 +680,7 @@ async function seed(
     if (existing[0]) continue;
 
     await db.insert(bookings).values({
+      organizationId,
       villaId,
       channelId: channelId ?? null,
       bookingCode: code,

@@ -11,6 +11,7 @@ import {
   type VillaMaintenancePlan,
 } from "@/lib/db/schema/maintenance-intelligence";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export interface MaintenanceTemplateRow {
   id: string;
@@ -157,7 +158,8 @@ export async function listVillaMaintenancePlans(opts?: {
 }): Promise<VillaMaintenancePlanRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(villaMaintenancePlans.organizationId, organizationId)];
   if (opts?.villaId) filters.push(eq(villaMaintenancePlans.villaId, opts.villaId));
   if (opts?.projectId)
     filters.push(eq(villaMaintenancePlans.projectId, opts.projectId));
@@ -198,6 +200,7 @@ export async function getVillaMaintenancePlanById(
 ): Promise<VillaMaintenancePlanRow | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [r] = await db
     .select({
       p: villaMaintenancePlans,
@@ -213,7 +216,12 @@ export async function getVillaMaintenancePlanById(
     )
     .leftJoin(villas, eq(villas.id, villaMaintenancePlans.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, villaMaintenancePlans.projectId))
-    .where(eq(villaMaintenancePlans.id, id))
+    .where(
+      and(
+        eq(villaMaintenancePlans.id, id),
+        eq(villaMaintenancePlans.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return r
     ? mapPlan(
@@ -303,7 +311,8 @@ export async function listMaintenanceRiskEvents(opts?: {
 }) {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(maintenanceRiskEvents.organizationId, organizationId)];
   if (opts?.status) {
     if (Array.isArray(opts.status))
       filters.push(inArray(maintenanceRiskEvents.status, opts.status));

@@ -10,6 +10,7 @@ import { bookings } from "@/lib/db/schema/bookings";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { bookingStatusEnum, createBookingSchema } from "./schema";
 import { assertHoldDatesStillAvailable } from "@/features/direct-booking/availability";
 import type { ActionResult } from "@/features/projects/actions";
@@ -61,6 +62,7 @@ export async function createBookingAction(
   }
 
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const netExpected =
     d.grossAmount + d.cleaningFeeAmount - d.channelFeeAmount - d.paymentFeeAmount;
 
@@ -69,6 +71,7 @@ export async function createBookingAction(
     const [row] = await db
       .insert(bookings)
       .values({
+        organizationId,
         villaId: d.villaId,
         channelId: d.channelId && d.channelId !== "" ? d.channelId : null,
         guestId: d.guestId && d.guestId !== "" ? d.guestId : null,

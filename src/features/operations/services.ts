@@ -17,6 +17,7 @@ import {
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
 import { appUsers } from "@/lib/db/schema/identity";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { WithSource } from "@/features/types";
 import { todayYmd } from "./scheduling";
 
@@ -186,7 +187,11 @@ export async function listOperationTasks(
 ): Promise<WithSource<OperationTaskRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const where = buildTaskFilter(filters);
+  const organizationId = await requireOrgId();
+  const built = buildTaskFilter(filters);
+  const where = built
+    ? and(eq(operationTasks.organizationId, organizationId), built)
+    : eq(operationTasks.organizationId, organizationId);
 
   const rows = await db
     .select({
@@ -209,6 +214,7 @@ export async function listOperationTasks(
 export async function getOperationTaskById(id: string): Promise<WithSource<OperationTaskRow> | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [r] = await db
     .select({
       t: operationTasks,
@@ -220,7 +226,12 @@ export async function getOperationTaskById(id: string): Promise<WithSource<Opera
     .leftJoin(villas, eq(villas.id, operationTasks.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, operationTasks.projectId))
     .leftJoin(appUsers, eq(appUsers.id, operationTasks.assignedTo))
-    .where(eq(operationTasks.id, id))
+    .where(
+      and(
+        eq(operationTasks.id, id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!r) return null;
   return { source: "db" as const, ...mapTaskRow(r) };

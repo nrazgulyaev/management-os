@@ -171,6 +171,7 @@ export async function handleIncomingReservation(
       reservation,
       villaId,
       channelKey: channel,
+      organizationId: orgId,
     });
 
     const [insertedChannelRes] = await db
@@ -407,6 +408,7 @@ export async function resolveConflictByConfirmingNew(
     reservation: reservationData,
     villaId: await villaIdFromConnection(row.channelConnectionId),
     channelKey: await channelFromConnection(row.channelConnectionId),
+    organizationId: row.organizationId,
   });
 
   await db
@@ -499,6 +501,7 @@ async function projectIntoInternalBooking(input: {
   reservation: ChannelReservationData;
   villaId: string;
   channelKey: string;
+  organizationId: string;
 }): Promise<BookingProjection | null> {
   const db = requireDb();
   // 1. Find or create guest by email (fallback to first+last name match).
@@ -517,6 +520,7 @@ async function projectIntoInternalBooking(input: {
   const [row] = await db
     .insert(bookings)
     .values({
+      organizationId: input.organizationId,
       villaId: draft.villaId,
       guestId: draft.guestId,
       channelId: draft.channelId,

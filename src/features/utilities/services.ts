@@ -8,6 +8,7 @@ import {
   utilityPaymentReminders,
 } from "@/lib/db/schema/maintenance-intelligence";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export interface UtilityAccountRow {
   id: string;
@@ -36,7 +37,8 @@ export async function listUtilityAccounts(opts?: {
 }): Promise<UtilityAccountRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(utilityAccounts.organizationId, organizationId)];
   if (opts?.villaId) filters.push(eq(utilityAccounts.villaId, opts.villaId));
   if (opts?.utilityType)
     filters.push(eq(utilityAccounts.utilityType, opts.utilityType));
@@ -50,7 +52,7 @@ export async function listUtilityAccounts(opts?: {
     .from(utilityAccounts)
     .leftJoin(villas, eq(villas.id, utilityAccounts.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, utilityAccounts.projectId))
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(asc(utilityAccounts.utilityType), asc(villas.unitCode));
   return rows.map((r) => ({
     id: r.a.id,
@@ -78,6 +80,7 @@ export async function getUtilityAccountById(
 ): Promise<UtilityAccountRow | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [r] = await db
     .select({
       a: utilityAccounts,
@@ -87,7 +90,12 @@ export async function getUtilityAccountById(
     .from(utilityAccounts)
     .leftJoin(villas, eq(villas.id, utilityAccounts.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, utilityAccounts.projectId))
-    .where(eq(utilityAccounts.id, id))
+    .where(
+      and(
+        eq(utilityAccounts.id, id),
+        eq(utilityAccounts.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!r) return null;
   return {
