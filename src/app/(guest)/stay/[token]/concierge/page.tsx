@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import { GuestShell } from "@/components/layout/guest-shell";
+import { StayShell } from "@/components/layout/stay-shell";
+import { StayHeader } from "@/components/stay/stay-ui";
 import { Badge } from "@/components/ui/badge";
 import { getStayByToken } from "@/features/guest-stays/services";
 import { canAccessStayWithoutVerification } from "@/features/guest-stays/verification";
@@ -80,22 +80,15 @@ export default async function ConciergePage({
   const offline = !isAiConfigured() || isAiDryRun();
 
   return (
-    <GuestShell villaName={villaLabel} dates={dateRange}>
+    <StayShell villaName={villaLabel} dates={dateRange} basePath={`/stay/${token}`}>
       <div className="flex flex-col gap-6">
-        <Link
-          href={`/stay/${token}`}
-          className="inline-flex items-center gap-1.5 text-xs text-ink-tertiary hover:text-ink"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Stay home
-        </Link>
+        <StayHeader title="Concierge" backHref={`/stay/${token}`} />
 
         <header className="flex flex-col gap-2">
-          <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-ink-tertiary">
-            <Sparkles className="w-3.5 h-3.5" /> Concierge AI
-          </span>
-          <h1 className="text-display text-2xl md:text-3xl font-medium text-ink">
-            Ask the {villaLabel} concierge
-          </h1>
+          <div className="flex items-center gap-1.5 text-[12px] text-success">
+            <span className="w-[7px] h-[7px] rounded-full bg-success inline-block" />
+            We usually reply within a couple of minutes
+          </div>
           {offline && (
             <Badge tone="warning">
               Offline mode · using configured villa info only
@@ -111,27 +104,27 @@ export default async function ConciergePage({
           suggestedPrompts={SUGGESTED_PROMPTS}
         />
 
-        <div className="rounded-xl border border-line-soft bg-canvas/40 p-4 grid grid-cols-2 gap-3">
+        <div className="rounded-[var(--r-card)] border border-line-soft bg-muted/40 p-4 grid grid-cols-2 gap-3">
           <Link
             href={`/stay/${token}/services`}
-            className="text-sm rounded-md border border-line-soft bg-surface p-3 hover:border-line-strong"
+            className="text-sm rounded-[var(--r-md)] border border-line-soft bg-surface p-3 hover:border-line-strong"
           >
-            <div className="text-ink font-medium">Concierge & services</div>
+            <div className="text-ink font-semibold">Services & orders</div>
             <div className="text-[11px] text-ink-tertiary mt-1">
               Book a real service through staff
             </div>
           </Link>
           <Link
             href={`/stay/${token}/emergency`}
-            className="text-sm rounded-md border border-line-soft bg-surface p-3 hover:border-line-strong"
+            className="text-sm rounded-[var(--r-md)] border border-line-soft bg-surface p-3 hover:border-line-strong"
           >
-            <div className="text-ink font-medium">Emergency</div>
+            <div className="text-ink font-semibold">Emergency</div>
             <div className="text-[11px] text-ink-tertiary mt-1">
               Safety contacts and urgent help
             </div>
           </Link>
         </div>
       </div>
-    </GuestShell>
+    </StayShell>
   );
 }

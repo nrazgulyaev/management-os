@@ -401,6 +401,112 @@
   --r-hero:       22px;
 }
 
+/* Guest Stay Portal — lightened-hospitality theme. Reuses the
+   management *hues* but airier (sand app bg, lighter cream, lighter
+   ink) with generous luxury radii. Token-gated public surface served
+   on the management host (/stay), scoped here so it never pollutes the
+   dashboard Layer-B palette. Values mirror the `Guest Stay Portal.html`
+   pixel mockup :root. Both `:root[data-product="guest"]` and the nested
+   `[data-product="guest"]` selector are defined so the GuestShell can
+   stamp the attribute on its route-group root (it is not the html
+   element). */
+:root[data-product="guest"],
+[data-product="guest"] {
+  --paper:        #FFFCF7;
+  --cream:        #F7F2E9;
+  --cream-deep:   #EFE8D8;
+  --cream-warm:   #FAF6EE;
+  --sand:         #FAF6EE;
+  --ink:          #1B2A25;
+  --ink-2:        #3A4D47;
+  --ink-3:        #6B7B75;
+  --ink-4:        #9AA7A1;
+  --forest:       #1F3A33;
+  --forest-deep:  #132621;
+  --forest-fade:  #2E4F47;
+  --terra:        #C4583C;
+  --terra-soft:   #E08D72;
+  --gold:         #BC9A5C;
+  --gold-soft:    #DCC691;
+  --sage:         #88A89A;
+  --line:         #E7DECB;
+  --line-soft:    #F0E9D9;
+  --line-strong:  #D7CAB0;
+  --ok:           #4F7A5D;
+  --warn:         #C58A2E;
+  --danger:       #B14132;
+  --info:         #3D5A7A;
+
+  --mint:         #D8E8D6;
+  --peach:        #F6D9CB;
+  --butter:       #F5E9B8;
+  --sky:          #D4E2EC;
+
+  /* brand accent (terra) — same contract as mgmt */
+  --accent:       var(--terra);
+  --accent-deep:  #A44627;
+  --accent-soft:  var(--terra-soft);
+  --on-accent:    #F4EFE6;
+
+  /* generous, luxury radii (mockup) */
+  --r-sm:         10px;
+  --r-md:         16px;
+  --r-card:       22px;
+  --r-card-lg:    28px;
+  --r-hero:       32px;
+
+  /* softer hospitality shadows */
+  --shadow-card:  0 1px 2px rgba(27,42,37,0.04), 0 8px 28px rgba(27,42,37,0.06);
+  --shadow-soft:  0 8px 40px rgba(27,42,37,0.10);
+
+  --display-font: var(--font-newsreader);
+  --mono-font:    var(--font-jetbrains);
+}
+
+/* Guest Stay surface — map the cross-product generic aliases
+   (--canvas / --surface / ink scale / lines / semantics / radii) onto
+   the lightened-hospitality palette so the guest pages' many
+   `bg-canvas` / `bg-surface` / `text-ink-secondary` / `border-line-soft`
+   / `rounded-*` utilities resolve to the airy guest surfaces. Scoped to
+   the `data-surface="guest-stay"` marker the GuestShell stamps so the
+   token block above can stay purely palette-level. */
+[data-product="guest"][data-surface="guest-stay"],
+[data-product="guest"] [data-surface="guest-stay"] {
+  --canvas:        #FAF6EE;
+  --surface:       #FFFCF7;
+  --muted:         #F7F2E9;
+  --inset:         #EFE8D8;
+  --line-soft:     #F0E9D9;
+  --line-strong:   #D7CAB0;
+  --ink:           #1B2A25;
+  --ink-secondary: #3A4D47;
+  --ink-tertiary:  #6B7B75;
+  --ink-inverse:   #F4EFE6;
+  --accent:        var(--terra);
+  --accent-weak:   color-mix(in srgb, var(--terra) 12%, transparent);
+  --accent-contrast: #F4EFE6;
+  --gold:          #BC9A5C;
+  --gold-weak:     color-mix(in srgb, var(--gold) 16%, transparent);
+  --success:       #4F7A5D;
+  --warning:       #C58A2E;
+  --danger:        #B14132;
+  --info:          #3D5A7A;
+  --success-weak:  color-mix(in srgb, var(--ok) 12%, transparent);
+  --warning-weak:  color-mix(in srgb, var(--warn) 16%, transparent);
+  --danger-weak:   color-mix(in srgb, var(--danger) 10%, transparent);
+  --info-weak:     color-mix(in srgb, var(--info) 12%, transparent);
+  /* generous radii bridged onto the rounded-* Tailwind scale */
+  --r-sm:          10px;
+  --r-md:          16px;
+  --r-lg:          22px;
+  --r-xl:          28px;
+  --r-2xl:         22px;
+  --r-3xl:         28px;
+  --r-4xl:         32px;
+  --display-font:  var(--font-newsreader);
+  --mono-font:     var(--font-jetbrains);
+}
+
 :root[data-product="subscription"] {
   --paper:        #F5F0E2;
   --paper-2:      #FBF7EC;

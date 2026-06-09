@@ -1,8 +1,9 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { GuestShell } from "@/components/layout/guest-shell";
+import { Clock, Plus } from "lucide-react";
+import { StayShell } from "@/components/layout/stay-shell";
+import { StayHeader, SectionTitle } from "@/components/stay/stay-ui";
 import { Badge } from "@/components/ui/badge";
 import { getStayByToken } from "@/features/guest-stays/services";
 import { canAccessStayWithoutVerification } from "@/features/guest-stays/verification";
@@ -65,136 +66,122 @@ export default async function RequestsPage({
     stay.bookingId,
   );
   const villaLabel = stay.villaName ?? stay.villaCode ?? "your villa";
+  const basePath = `/stay/${token}`;
+
+  const DONE = new Set(["completed", "closed", "cancelled"]);
+  const active = rows.filter((r) => !DONE.has(r.status));
+  const done = rows.filter((r) => DONE.has(r.status));
+
+  const renderCard = (r: (typeof rows)[number]) => (
+    <li key={r.id}>
+      <Link
+        href={`${basePath}/requests/${r.requestCode}`}
+        className="block rounded-[var(--r-card)] border border-line-soft bg-surface shadow-[var(--shadow-card)] p-5 flex flex-col gap-2"
+      >
+        <div className="flex items-center justify-between gap-2.5">
+          <p className="flex-1 text-[15px] font-semibold text-ink">{r.title}</p>
+          <Badge tone={STATUS_TONES[r.status] ?? "neutral"}>
+            {r.status.replace("_", " ")}
+          </Badge>
+        </div>
+        <div className="flex items-center gap-1.5 text-[12.5px] text-ink-tertiary">
+          <Clock className="w-3.5 h-3.5 text-ink-4" strokeWidth={2} />
+          <span className="font-mono text-ink-tertiary">{r.requestCode}</span>
+          {r.unreadCount > 0 && (
+            <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-accent text-ink-inverse text-[10px] font-medium">
+              {r.unreadCount} new
+            </span>
+          )}
+          <Badge tone={PRIORITY_TONES[r.priority] ?? "neutral"}>
+            {r.priority}
+          </Badge>
+        </div>
+        {r.latestVisibleReply && (
+          <p className="text-xs text-ink-secondary line-clamp-2">
+            {r.latestVisibleReply}
+          </p>
+        )}
+        <div className="flex items-center justify-between text-[10px] text-ink-tertiary tabular-nums">
+          <span>
+            Sent{" "}
+            {new Date(r.createdAt).toISOString().slice(0, 16).replace("T", " ")}
+          </span>
+          {r.lastUpdateAt && r.lastUpdateAt !== r.createdAt && (
+            <span>
+              Updated{" "}
+              {new Date(r.lastUpdateAt)
+                .toISOString()
+                .slice(0, 16)
+                .replace("T", " ")}
+            </span>
+          )}
+        </div>
+        {r.handoffType && (
+          <p className="text-[10px] text-ink-tertiary">
+            via{" "}
+            {r.handoffType === "emergency_concern"
+              ? "🚨 emergency handoff"
+              : "concierge handoff"}
+          </p>
+        )}
+      </Link>
+    </li>
+  );
 
   return (
-    <GuestShell
+    <StayShell
       villaName={villaLabel}
       dates={`${stay.checkIn} → ${stay.checkOut}`}
+      basePath={basePath}
     >
       <div className="flex flex-col gap-6">
+        <StayHeader title="Requests" backHref={basePath} />
+
         <Link
-          href={`/stay/${token}`}
-          className="inline-flex items-center gap-1.5 text-xs text-ink-tertiary hover:text-ink"
+          href={`${basePath}/concierge`}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-terra text-[#fff] text-[15px] font-semibold px-[22px] py-[15px] shadow-[0_6px_18px_rgba(196,88,60,0.28)]"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Stay home
+          <Plus className="w-[18px] h-[18px]" strokeWidth={2.4} />
+          New request
         </Link>
-        <header className="flex flex-col gap-1">
-          <span className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-            Requests
-          </span>
-          <h1 className="text-display text-2xl md:text-3xl font-medium text-ink">
-            Your requests
-          </h1>
-          <p className="text-sm text-ink-secondary">
-            Everything you've asked our team to help with — concierge
-            handoffs, free-text concierge requests, and any service
-            order updates that flow through requests.
-          </p>
-        </header>
 
         {rows.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-line-soft bg-muted/20 p-6 text-sm text-ink-tertiary">
+          <div className="rounded-[var(--r-card)] border border-dashed border-line-soft bg-muted/40 p-6 text-sm text-ink-tertiary">
             No requests yet. Use the{" "}
             <Link
-              href={`/stay/${token}/concierge`}
+              href={`${basePath}/concierge`}
               className="text-ink hover:underline underline-offset-4"
             >
-              Concierge AI
+              Concierge
             </Link>{" "}
             or the{" "}
             <Link
-              href={`/stay/${token}/services`}
+              href={`${basePath}/services`}
               className="text-ink hover:underline underline-offset-4"
             >
-              Concierge & services
+              Services
             </Link>{" "}
             page to send one.
           </div>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {rows.map((r) => (
-              <li key={r.id}>
-                <Link
-                  href={`/stay/${token}/requests/${r.requestCode}`}
-                  className="rounded-xl border border-line-soft bg-surface p-5 flex flex-col gap-2 hover:border-line-strong transition-colors block"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-mono text-xs text-ink-tertiary flex items-center gap-2">
-                      {r.requestCode}
-                      {r.unreadCount > 0 && (
-                        <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-accent text-ink-inverse text-[10px] font-medium">
-                          {r.unreadCount} new
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Badge tone={STATUS_TONES[r.status] ?? "neutral"}>
-                        {r.status.replace("_", " ")}
-                      </Badge>
-                      <Badge tone={PRIORITY_TONES[r.priority] ?? "neutral"}>
-                        {r.priority}
-                      </Badge>
-                    </span>
-                  </div>
-                  <p className="text-sm text-ink font-medium">{r.title}</p>
-                  {r.latestVisibleReply && (
-                    <p className="text-xs text-ink-secondary line-clamp-2">
-                      {r.latestVisibleReply}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between text-[10px] text-ink-tertiary tabular-nums">
-                    <span>
-                      Sent{" "}
-                      {new Date(r.createdAt)
-                        .toISOString()
-                        .slice(0, 16)
-                        .replace("T", " ")}
-                    </span>
-                    {r.lastUpdateAt && r.lastUpdateAt !== r.createdAt && (
-                      <span>
-                        Updated{" "}
-                        {new Date(r.lastUpdateAt)
-                          .toISOString()
-                          .slice(0, 16)
-                          .replace("T", " ")}
-                      </span>
-                    )}
-                  </div>
-                  {r.handoffType && (
-                    <p className="text-[10px] text-ink-tertiary">
-                      via{" "}
-                      {r.handoffType === "emergency_concern"
-                        ? "🚨 emergency handoff"
-                        : "concierge handoff"}
-                    </p>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <>
+            {active.length > 0 && (
+              <section>
+                <SectionTitle title="Active" />
+                <ul className="flex flex-col gap-3">{active.map(renderCard)}</ul>
+              </section>
+            )}
+            {done.length > 0 && (
+              <section>
+                <SectionTitle title="Done" />
+                <ul className="flex flex-col gap-3 opacity-75">
+                  {done.map(renderCard)}
+                </ul>
+              </section>
+            )}
+          </>
         )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <Link
-            href={`/stay/${token}/concierge`}
-            className="text-sm rounded-md border border-line-soft bg-surface p-3 hover:border-line-strong"
-          >
-            <div className="text-ink font-medium">Concierge AI</div>
-            <div className="text-[11px] text-ink-tertiary mt-1">
-              Ask a quick question
-            </div>
-          </Link>
-          <Link
-            href={`/stay/${token}/services`}
-            className="text-sm rounded-md border border-line-soft bg-surface p-3 hover:border-line-strong"
-          >
-            <div className="text-ink font-medium">Concierge & services</div>
-            <div className="text-[11px] text-ink-tertiary mt-1">
-              Book or request a service
-            </div>
-          </Link>
-        </div>
       </div>
-    </GuestShell>
+    </StayShell>
   );
 }

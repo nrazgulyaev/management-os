@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { GuestShell } from "@/components/layout/guest-shell";
-import { ArrowLeft } from "lucide-react";
+import { StayShell } from "@/components/layout/stay-shell";
+import { StayHeader } from "@/components/stay/stay-ui";
 import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
 import { MarkdownBlock } from "@/components/stay/markdown-block";
 
@@ -24,31 +23,31 @@ export default async function GuidePage({
     GUIDE_KEYS.includes(s.sectionKey as (typeof GUIDE_KEYS)[number]),
   );
   return (
-    <GuestShell villaName={villaLabel} dates={`${summary.base.checkIn} → ${summary.base.checkOut}`}>
+    <StayShell
+      villaName={villaLabel}
+      dates={`${summary.base.checkIn} → ${summary.base.checkOut}`}
+      basePath={`/stay/${token}`}
+    >
       <div className="flex flex-col gap-6">
-        <Link
-          href={`/stay/${token}`}
-          className="inline-flex items-center gap-1.5 text-xs text-ink-tertiary hover:text-ink"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Stay home
-        </Link>
-        <h1 className="text-2xl font-medium text-ink">Villa guide</h1>
+        <StayHeader title="Villa guide" backHref={`/stay/${token}`} />
         {sections.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
+          <p className="rounded-[var(--r-md)] border border-dashed border-line-soft bg-muted/40 px-5 py-6 text-sm text-ink-tertiary">
             Guide content is being prepared.
           </p>
         ) : (
           sections.map((s) => (
             <section
               key={s.id}
-              className="rounded-xl border border-line-soft bg-surface p-6"
+              className="rounded-[var(--r-card)] border border-line-soft bg-surface shadow-[var(--shadow-card)] p-5"
             >
-              <h2 className="text-lg font-medium text-ink mb-3">{s.title}</h2>
+              <h2 className="text-display text-[19px] font-normal text-ink mb-3">
+                {s.title}
+              </h2>
               <MarkdownBlock source={s.bodyMd} />
             </section>
           ))
         )}
       </div>
-    </GuestShell>
+    </StayShell>
   );
 }
