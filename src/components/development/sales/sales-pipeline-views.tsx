@@ -34,7 +34,7 @@ export function SalesPipelineViews({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-1 self-start rounded-sm border border-line-soft bg-surface p-0.5">
+      <div className="flex items-center gap-1 self-start rounded-full border border-line-soft bg-muted p-1">
         <ViewTab
           active={view === "list"}
           onClick={() => setView("list")}
@@ -78,9 +78,9 @@ function ViewTab({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex items-center gap-1.5 h-8 px-3 rounded-sm text-xs font-medium transition-colors",
+        "inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-xs font-medium transition-colors",
         active
-          ? "bg-muted text-ink"
+          ? "bg-accent text-accent-contrast"
           : "text-ink-tertiary hover:text-ink-secondary",
       )}
     >

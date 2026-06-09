@@ -483,6 +483,48 @@
   --info:          #3D5A7A;
 }
 
+/* Development OS cabinets — map the cross-product generic aliases onto the
+   engineering palette so the cabinet's many `bg-surface` / `bg-muted` /
+   `border-line-soft` / `text-ink-tertiary` / `bg-accent-weak` utilities
+   resolve to the exact Dev OS surfaces + amber accent (matches the
+   cabinet pixel mocks). Scoped to the `data-surface="development-os"`
+   marker the Dev OS app shell stamps, so non-cabinet dev surfaces (the
+   investor portal, which carries its own remap above) are untouched. */
+[data-product="development"][data-surface="development-os"],
+[data-product="development"] [data-surface="development-os"] {
+  --canvas:         #F1ECE0;
+  --surface:        #FFFFFF;
+  --muted:          #F8F4EA;
+  --inset:          #ECE6D5;
+  --line-soft:      #ECE6D5;
+  --line-strong:    #BAAF92;
+  --ink-secondary:  #3D3B33;
+  --ink-tertiary:   #6E6B5E;
+  --ink-inverse:    #F4EFE6;
+  --success:        #4F8A5D;
+  --warning:        #C58A2E;
+  --danger:         #C2474E;
+  --info:           #3D5A7A;
+  /* Soft fills aligned to the amber/semantic accents so badges + chips
+     read as Dev OS (amber) rather than the mgmt mint/gold defaults. */
+  --accent:         var(--amber);
+  --accent-weak:    color-mix(in srgb, var(--amber) 14%, transparent);
+  --accent-contrast: var(--carbon);
+  --gold-weak:      color-mix(in srgb, var(--steel) 14%, transparent);
+  --gold:           var(--steel);
+  --success-weak:   color-mix(in srgb, var(--ok) 14%, transparent);
+  --warning-weak:   color-mix(in srgb, var(--warn) 16%, transparent);
+  --danger-weak:    color-mix(in srgb, var(--danger) 14%, transparent);
+  --info-weak:      color-mix(in srgb, var(--steel) 14%, transparent);
+  /* Typeface — the cabinet mocks render headings in Space Grotesk and
+     numbers in IBM Plex Mono. The global `.text-display` / `font-mono`
+     utilities resolve `--font-display` / `--font-mono`, which are
+     Newsreader / JetBrains at the root; remap them here so every Dev OS
+     cabinet heading + figure picks up the engineering typefaces. */
+  --font-display:   var(--font-space);
+  --font-mono:      var(--font-plex);
+}
+
 /* ============================================================
    _handoff/ Task 1 — utility classes from the prototypes.
 
