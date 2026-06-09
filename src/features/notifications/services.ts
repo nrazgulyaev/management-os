@@ -89,6 +89,8 @@ export async function queueNotification(
   const [row] = await db
     .insert(notificationQueue)
     .values({
+      // TENANCY-FINANCE-DOCS — optional org anchor (nullable column).
+      organizationId: input.organizationId ?? null,
       recipientType: input.recipientType,
       recipientId: input.recipientId ?? null,
       channel: input.channel,

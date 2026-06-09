@@ -85,6 +85,8 @@ export async function expireDeposit(
     })
     .where(eq(directBookingDeposits.id, depositId));
   await db.insert(directBookingDepositEvents).values({
+    // TENANCY-FINANCE-DOCS — child event copies the parent deposit's org.
+    organizationId: deposit.organizationId,
     depositId,
     eventType: "expired",
     actorType: actorUserId ? "internal" : "system",

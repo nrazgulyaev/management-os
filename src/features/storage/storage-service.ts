@@ -140,6 +140,8 @@ export async function uploadDocument(input: UploadDocumentInput): Promise<Upload
   const [docRow] = await db
     .insert(documents)
     .values({
+      // TENANCY-FINANCE-DOCS — caller supplies the org explicitly.
+      organizationId: input.organizationId,
       title: input.title,
       documentType: input.documentType,
       entityType: input.entityType,

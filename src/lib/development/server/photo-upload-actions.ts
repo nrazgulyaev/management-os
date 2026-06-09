@@ -177,6 +177,8 @@ export async function uploadSiteReportPhoto(
     const [doc] = await tx
       .insert(documents)
       .values({
+        // TENANCY-FINANCE-DOCS — operator context; org from the session.
+        organizationId,
         title: parsed.caption ?? parsed.fileName,
         documentType: "photo",
         entityType: "site_report",

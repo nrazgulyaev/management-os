@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { cashflowForecasts } from "@/lib/db/schema/profitability-cashflow";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   computeMonthlyCashflowProjection,
   type MonthlyCashflowInput,
@@ -69,6 +70,9 @@ export async function generateCashflowForecast(
   input: z.input<typeof generateSchema>,
 ) {
   const ctx = await requireInternalUser();
+  // TENANCY-FINANCE-DOCS — operator context; org from the session
+  // (company_wide forecasts have no project parent to derive from).
+  const organizationId = await requireOrgId();
   const parsed = generateSchema.parse(input);
   const db = requireDb();
 
@@ -91,6 +95,7 @@ export async function generateCashflowForecast(
   const [row] = await db
     .insert(cashflowForecasts)
     .values({
+      organizationId,
       forecastLabel: parsed.forecastLabel,
       scope: parsed.scope,
       projectId: parsed.projectId ?? null,

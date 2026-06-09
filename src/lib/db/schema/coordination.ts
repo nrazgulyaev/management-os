@@ -39,13 +39,15 @@ export const coordinationPins = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     /**
-     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
-     * project_id -> projects.organization_id. Not yet threaded into queries
-     * and not DB-enforced NOT NULL; the app still org-scopes via project_id.
+     * TENANCY (migration 0150 add + backfill; 0156 NOT NULL cutover) —
+     * org column, threaded into the insert (coordination-actions.placeCoordinationPin)
+     * and DB-enforced NOT NULL.
      */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
@@ -87,14 +89,17 @@ export const coordinationMessages = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     /**
-     * TENANCY (migration 0150) — NULLABLE org column. This table has no
-     * project_id; it is polymorphic over rfi/submittal/defect, so the
-     * backfill derives org from the linked item. Not yet threaded into
-     * queries and not DB-enforced NOT NULL.
+     * TENANCY (migration 0150 add + backfill; 0156 NOT NULL cutover) — org
+     * column. This table has no project_id; it is polymorphic over
+     * rfi/submittal/defect. Threaded into the insert
+     * (coordination-actions.postCoordinationReply, sourced from requireOrgId)
+     * and DB-enforced NOT NULL.
      */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     /** Enum: COORDINATION_ITEM_KINDS. */
     itemKind: text("item_kind").notNull(),
     rfiId: uuid("rfi_id").references(() => rfis.id, { onDelete: "cascade" }),

@@ -30,7 +30,7 @@ import { getBuyerSession } from "@/lib/buyer-portal/session";
 import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { contractGroups, contracts } from "@/lib/db/schema/sales";
 import { contractSignatures } from "@/lib/db/schema/contract-signatures";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { documents } from "@/lib/db/schema/documents";
 import { recordAuditEvent } from "@/features/audit/services";
 import { contractStoragePath, contractReference } from "@/lib/buyer-portal/contracts";
@@ -209,8 +209,13 @@ export async function signBuyerContract(input: {
   let contractDocumentId: string | null = null;
   try {
     const [villa] = await db
-      .select({ unitCode: villas.unitCode, name: villas.name })
+      .select({
+        unitCode: villas.unitCode,
+        name: villas.name,
+        organizationId: projects.organizationId,
+      })
       .from(villas)
+      .leftJoin(projects, eq(projects.id, villas.projectId))
       .where(eq(villas.id, group.villaId))
       .limit(1);
     const villaLabel =
@@ -249,6 +254,8 @@ export async function signBuyerContract(input: {
       .limit(1);
 
     const docValues = {
+      // TENANCY-FINANCE-DOCS — org via villa -> project (buyer portal).
+      organizationId: villa?.organizationId ?? null,
       title: `Signed contract ${reference} — ${villaLabel}`,
       documentType: "contract",
       entityType: "villa",

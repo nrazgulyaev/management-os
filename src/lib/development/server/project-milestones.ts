@@ -9,8 +9,9 @@ import "server-only";
  * proof-of-life rows.
  */
 
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { milestones, milestoneDependencies } from "@/lib/db/schema/milestones";
 import { dbStatusToUi } from "@/lib/development/milestone-status";
 import type { MilestoneRowMilestone } from "@/components/projects/milestone-row";
@@ -21,10 +22,18 @@ export async function getProjectMilestones(
   const db = getDb();
   if (!db) return [];
 
+  // TENANCY — scope to the caller's org (in addition to project_id).
+  // Single-tenant today, so this hides nothing; it is the multi-tenant guard.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(milestones)
-    .where(eq(milestones.projectId, projectId))
+    .where(
+      and(
+        eq(milestones.organizationId, organizationId),
+        eq(milestones.projectId, projectId),
+      ),
+    )
     .orderBy(asc(milestones.targetDate));
   if (rows.length === 0) return [];
 

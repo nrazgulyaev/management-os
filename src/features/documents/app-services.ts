@@ -8,6 +8,7 @@ import {
   documentVersions,
   documentSignatureRequests,
 } from "@/lib/db/schema/documents-app";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Documents-app v1 read layer (migration 0132). Powers the interactive
@@ -62,7 +63,13 @@ export async function listDocsForApp(): Promise<DocAppRow[]> {
   const db = getDb();
   if (!db) return [];
 
-  const rows = await db.select().from(documents).orderBy(desc(documents.createdAt));
+  // TENANCY-FINANCE-DOCS — scope the documents-app cabinet to the org.
+  const organizationId = await requireOrgId();
+  const rows = await db
+    .select()
+    .from(documents)
+    .where(eq(documents.organizationId, organizationId))
+    .orderBy(desc(documents.createdAt));
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.id);
@@ -130,9 +137,12 @@ export interface TemplateRow {
 export async function listTemplates(): Promise<TemplateRow[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE-DOCS — scope the template list to the caller's org.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(documentTemplates)
+    .where(eq(documentTemplates.organizationId, organizationId))
     .orderBy(desc(documentTemplates.createdAt));
   return rows.map((r) => ({
     id: r.id,

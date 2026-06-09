@@ -59,13 +59,15 @@ export const submittals = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     /**
-     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
-     * project_id -> projects.organization_id. Not yet threaded into queries
-     * and not DB-enforced NOT NULL; the app still org-scopes via project_id.
+     * TENANCY (migration 0150 add + backfill; 0156 NOT NULL cutover) —
+     * org column, threaded into the insert (coordination-actions.createSubmittal)
+     * and DB-enforced NOT NULL.
      */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),

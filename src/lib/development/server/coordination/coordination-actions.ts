@@ -107,6 +107,7 @@ export async function createSubmittal(
   input: z.input<typeof createSubmittalSchema>,
 ): Promise<CreatedItem> {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createSubmittalSchema.parse(input);
   const db = requireDb();
 
@@ -123,6 +124,7 @@ export async function createSubmittal(
       [row] = await db
         .insert(submittals)
         .values({
+          organizationId,
           projectId: parsed.projectId,
           ref,
           title: parsed.title,
@@ -174,6 +176,7 @@ export async function createCoordinationRfi(
   input: z.input<typeof createRfiSchema>,
 ): Promise<CreatedItem> {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createRfiSchema.parse(input);
   const db = requireDb();
 
@@ -190,6 +193,7 @@ export async function createCoordinationRfi(
       [row] = await db
         .insert(rfis)
         .values({
+          organizationId,
           projectId: parsed.projectId,
           ref,
           question: parsed.question,
@@ -230,6 +234,7 @@ export async function placeCoordinationPin(
   input: z.input<typeof placePinSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = placePinSchema.parse(input);
   const db = requireDb();
 
@@ -268,6 +273,7 @@ export async function placeCoordinationPin(
   const [row] = await db
     .insert(coordinationPins)
     .values({
+      organizationId,
       projectId,
       revisionId: parsed.revisionId,
       xPct: parsed.xPct,
@@ -328,6 +334,7 @@ export async function postCoordinationReply(
   input: z.input<typeof replySchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = replySchema.parse(input);
   const db = requireDb();
   const kind = parsed.itemKind as (typeof COORDINATION_ITEM_KINDS)[number];
@@ -336,6 +343,7 @@ export async function postCoordinationReply(
   const [row] = await db
     .insert(coordinationMessages)
     .values({
+      organizationId,
       itemKind: kind,
       ...link,
       body: parsed.body.trim(),
@@ -526,6 +534,7 @@ export async function saveCoordinationAnnotations(
   input: z.input<typeof saveAnnotationsSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = saveAnnotationsSchema.parse(input);
   const db = requireDb();
 
@@ -540,6 +549,7 @@ export async function saveCoordinationAnnotations(
   const [row] = await db
     .insert(coordinationAnnotations)
     .values({
+      organizationId,
       projectId,
       revisionId: parsed.revisionId,
       strokes,

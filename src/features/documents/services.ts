@@ -3,6 +3,7 @@ import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { documents } from "@/lib/db/schema/documents";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { WithSource } from "@/features/types";
 
 export interface DocumentRow {
@@ -28,18 +29,21 @@ export async function listDocuments(opts?: {
   const db = getDb();
   if (!db) return [];
 
+  // TENANCY-FINANCE-DOCS — scope the Documents cabinet to the caller's org.
+  const organizationId = await requireOrgId();
   const where =
     opts?.entityType && opts.entityId
       ? and(
+          eq(documents.organizationId, organizationId),
           eq(documents.entityType, opts.entityType),
           eq(documents.entityId, opts.entityId),
         )
-      : undefined;
+      : eq(documents.organizationId, organizationId);
 
   const rows = await db
     .select()
     .from(documents)
-    .where(where ?? undefined)
+    .where(where)
     .orderBy(desc(documents.createdAt));
 
   return rows.map((r) => ({

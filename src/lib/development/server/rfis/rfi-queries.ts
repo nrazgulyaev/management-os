@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { rfis, type RfiDiscipline } from "@/lib/db/schema/rfis";
 import { contacts } from "@/lib/db/schema/contacts";
 import {
@@ -47,7 +48,13 @@ export async function listProjectRfis(filters: {
   status?: string;
 }): Promise<RfiListRow[]> {
   const db = requireDb();
-  const conditions = [eq(rfis.projectId, filters.projectId)];
+  // TENANCY — scope to the caller's org in addition to the project filter.
+  // Single-tenant today, so this hides nothing; it is the multi-tenant guard.
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(rfis.organizationId, organizationId),
+    eq(rfis.projectId, filters.projectId),
+  ];
   if (filters.discipline && isRfiDiscipline(filters.discipline)) {
     conditions.push(eq(rfis.discipline, filters.discipline));
   }
@@ -97,6 +104,7 @@ export async function listProjectRfis(filters: {
 /** Loads a single RFI by id, joined to the routed contact. Null when absent. */
 export async function getRfiById(id: string): Promise<RfiDetailRow | null> {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [r] = await db
     .select({
       id: rfis.id,
@@ -116,7 +124,7 @@ export async function getRfiById(id: string): Promise<RfiDetailRow | null> {
     })
     .from(rfis)
     .leftJoin(contacts, eq(rfis.routedToContactId, contacts.id))
-    .where(eq(rfis.id, id))
+    .where(and(eq(rfis.organizationId, organizationId), eq(rfis.id, id)))
     .limit(1);
 
   if (!r) return null;

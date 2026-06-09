@@ -23,7 +23,7 @@ import "server-only";
 
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { statementLines } from "@/lib/db/schema/finance";
+import { ownerStatements, statementLines } from "@/lib/db/schema/finance";
 import { statementAnomalies } from "@/lib/db/schema/statement-anomalies";
 import {
   detectStatementAnomalies,
@@ -80,8 +80,16 @@ export async function scanStatementAnomalies(
     );
 
   if (findings.length > 0) {
+    // TENANCY-FINANCE-DOCS — copy the parent statement's org onto each anomaly.
+    const [parent] = await db
+      .select({ organizationId: ownerStatements.organizationId })
+      .from(ownerStatements)
+      .where(eq(ownerStatements.id, statementId))
+      .limit(1);
+    const organizationId = parent?.organizationId ?? null;
     await db.insert(statementAnomalies).values(
       findings.map((f) => ({
+        organizationId,
         statementId,
         kind: f.kind,
         severity: f.severity,

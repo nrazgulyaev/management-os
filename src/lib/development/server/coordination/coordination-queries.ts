@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { drawings, drawingRevisions } from "@/lib/db/schema/drawings";
 import { rfis } from "@/lib/db/schema/rfis";
 import { submittals } from "@/lib/db/schema/submittals";
@@ -127,6 +128,9 @@ export async function listCoordinationItems(input: {
   defects: CoordinationItemSummary[];
 }> {
   const db = requireDb();
+  // TENANCY — scope the RFI/submittal registry reads to the caller's org
+  // (in addition to project_id). Single-tenant today, so this hides nothing.
+  const organizationId = await requireOrgId();
 
   // Pins on this revision → id maps per kind.
   const pins = await db
@@ -144,11 +148,25 @@ export async function listCoordinationItems(input: {
   }
 
   const [rfiRows, submittalRows, defectRows] = await Promise.all([
-    db.select().from(rfis).where(eq(rfis.projectId, input.projectId)).orderBy(desc(rfis.openedAt)),
+    db
+      .select()
+      .from(rfis)
+      .where(
+        and(
+          eq(rfis.organizationId, organizationId),
+          eq(rfis.projectId, input.projectId),
+        ),
+      )
+      .orderBy(desc(rfis.openedAt)),
     db
       .select()
       .from(submittals)
-      .where(eq(submittals.projectId, input.projectId))
+      .where(
+        and(
+          eq(submittals.organizationId, organizationId),
+          eq(submittals.projectId, input.projectId),
+        ),
+      )
       .orderBy(desc(submittals.createdAt)),
     db
       .select()

@@ -146,6 +146,7 @@ export async function run(
     // VarianceCard display path) keeps its true value.
     const storedPct = Math.max(-999.999, Math.min(999.999, f.magnitudePct));
     await db.insert(varianceReviews).values({
+      organizationId: input.organizationId,
       lineId: f.lineId,
       kind: f.kind,
       magnitudePct: storedPct.toFixed(3),

@@ -19,6 +19,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getDb } from "@/lib/db/client";
 import {
@@ -81,6 +82,7 @@ export async function createMilestone(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
   const ctx = await requirePermission("projects.write");
+  const organizationId = await requireOrgId();
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
@@ -89,6 +91,7 @@ export async function createMilestone(
   const [row] = await db
     .insert(milestones)
     .values({
+      organizationId,
       projectId: data.projectId,
       name: data.name,
       kind: data.kind,
@@ -118,6 +121,7 @@ export async function createMilestone(
         .insert(milestoneDependencies)
         .values(
           validIds.map((from) => ({
+            organizationId,
             fromMilestoneId: from,
             toMilestoneId: row.id,
             kind: "fs",
