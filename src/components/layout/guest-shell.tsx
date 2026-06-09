@@ -1,6 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
 
 export function GuestShell({
@@ -13,7 +14,13 @@ export function GuestShell({
   dates?: string;
 }) {
   return (
-    <div className="min-h-screen bg-canvas">
+    // data-product="management" scopes the guest/concierge component CSS
+    // (concierge.css + table.guests live under [data-product="management"]
+    // and the cream/stone/ink token palette). The guest stay surface is
+    // served on the management host (/stay is a management allowed-prefix in
+    // middleware.ts), so this nested scope mirrors the owner-shell pattern
+    // and activates the DS chrome the guest pages render against.
+    <div data-product="management" className="min-h-screen bg-canvas">
       <header className="sticky top-0 z-30 border-b border-line-soft bg-canvas/90 backdrop-blur">
         <div className="max-w-[720px] mx-auto flex items-center justify-between px-5 md:px-6 h-14">
           <Logo />
@@ -31,13 +38,17 @@ export function GuestShell({
         {children}
       </main>
       <div className="fixed bottom-5 inset-x-0 flex justify-center z-30 pointer-events-none px-5">
-        <Link
-          href="#concierge"
-          className="pointer-events-auto inline-flex items-center gap-2 px-5 h-12 rounded-full bg-ink text-ink-inverse text-sm shadow-[var(--shadow-floating)] hover:bg-ink/90 transition-colors"
+        <Button
+          asChild
+          variant="primary"
+          size="lg"
+          className="pointer-events-auto rounded-full shadow-[var(--shadow-floating)]"
         >
-          <MessageCircle className="w-4 h-4" strokeWidth={1.75} />
-          Concierge
-        </Link>
+          <Link href="#concierge">
+            <MessageCircle className="w-4 h-4" strokeWidth={1.75} />
+            Concierge
+          </Link>
+        </Button>
       </div>
     </div>
   );
