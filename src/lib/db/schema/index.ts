@@ -110,3 +110,5 @@ export * from "./submittals";
 export * from "./coordination";
 // Site-supervisor field-capture frames (migration 0127).
 export * from "./site-capture";
+// Keystone first-run org setup wizard + role-access matrix (migration 0128).
+export * from "./keystone-setup";

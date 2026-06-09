@@ -13,6 +13,7 @@ import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
+import { Button } from "@/components/ui/button";
 import { appUsers } from "@/lib/db/schema/identity";
 import { appUserRoles } from "@/lib/db/schema/role-cabinets";
 import { teamInvitations } from "@/lib/db/schema/team-invitations";
@@ -92,6 +93,16 @@ export default async function TeamSettingsPage() {
         ]}
         title="Team"
         description="Invite teammates, assign roles, and revoke access. Invitations expire 7 days after they're sent."
+        actions={
+          <>
+            <Button asChild variant="ghost">
+              <Link href="/dashboard/setup">Run setup</Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/dashboard/settings/roles/matrix">Access matrix</Link>
+            </Button>
+          </>
+        }
       />
 
       <Section
