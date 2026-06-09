@@ -118,3 +118,5 @@ export * from "./contract-remind-prefs";
 export * from "./villa-pool-state";
 // Documents-app v1 — templates / versions / signature requests (migration 0132).
 export * from "./documents-app";
+// Warehouse receiving / QC-hold record (migration 0133).
+export * from "./material-receiving-holds";
