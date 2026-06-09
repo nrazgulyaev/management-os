@@ -112,3 +112,5 @@ export * from "./coordination";
 export * from "./site-capture";
 // Keystone first-run org setup wizard + role-access matrix (migration 0128).
 export * from "./keystone-setup";
+// Operator installments desk — per-buyer auto-remind prefs (migration 0130).
+export * from "./contract-remind-prefs";

@@ -109,6 +109,7 @@ export const DEV_DASHBOARD_NAV: DashboardNavGroup[] = [
       { href: `${DEV}/sales`, label: "Sales & buyers" },
       { href: `${DEV}/reservations`, label: "Reservations" },
       { href: `${DEV}/contracts`, label: "Contracts" },
+      { href: `${DEV}/installments`, label: "Installments" },
       { href: `${DEV}/invoices`, label: "Invoices" },
       { href: `${DEV}/discounts`, label: "Discounts" },
     ],
