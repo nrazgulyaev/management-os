@@ -1,7 +1,5 @@
-import _Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listPayoutBatches, listPayoutLines } from "@/features/finance/services";
 import { PayoutBatchAddButton } from "@/components/finance/payout-batch-add-button";
@@ -10,100 +8,133 @@ import { formatMoneyMinor } from "@/lib/money";
 export const metadata = { title: "Payouts" };
 export const dynamic = "force-dynamic";
 
+const BATCH_TONE: Record<string, "ok" | "info" | "warn" | undefined> = {
+  paid: "ok",
+  approved: "info",
+  draft: "warn",
+  cancelled: undefined,
+};
+
+const LINE_TONE: Record<string, "ok" | "warn" | "danger" | undefined> = {
+  paid: "ok",
+  pending: "warn",
+  approved: "warn",
+  failed: "danger",
+  cancelled: undefined,
+};
+
+const LINE_LABEL: Record<string, string> = {
+  paid: "Settled",
+  pending: "Queued",
+  approved: "Queued",
+  failed: "Failed",
+  cancelled: "Cancelled",
+};
+
 export default async function PayoutsPage() {
   const batches = await listPayoutBatches();
   const lines = await listPayoutLines();
   const ungrouped = lines.filter((l) => !l.payoutBatchId);
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[{ label: "Finance", href: "/dashboard/finance" }, { label: "Payouts" }]}
-        title="Payouts"
-        description="Owner payouts grouped into batches. No real payment processing in v3 — wires up in v8."
-        actions={
-          <div className="flex gap-2">
-            <PayoutBatchAddButton />
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> /{" "}
+            <Link href="/dashboard/finance">Finance</Link> / <span>Payouts</span>
           </div>
-        }
-      />
+          <h1>Payouts</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Post-approval cashflow. Owner payouts schedule from approved
+            statements and group into batches. Wire status updates from bank
+            confirmations.
+          </p>
+        </div>
+        <div className="actions">
+          <PayoutBatchAddButton />
+        </div>
+      </div>
+
       <DbStatusNotice />
 
-      <section>
-        <h3 className="text-label mb-3">Batches</h3>
-        <Table>
-          <THead>
-            <TR>
-              <TH>Code</TH>
-              <TH>Period</TH>
-              <TH>Status</TH>
-              <TH className="text-right">Lines</TH>
-              <TH className="text-right">Total</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {batches.length === 0 ? (
-              <TR>
-                <TD colSpan={5} className="text-center py-8 text-ink-tertiary">
-                  No payout batches yet.
-                </TD>
-              </TR>
-            ) : (
-              batches.map((b) => (
-                <TR key={b.id}>
-                  <TD className="font-mono text-xs text-ink">{b.batchCode}</TD>
-                  <TD className="text-sm text-ink-tertiary tabular-nums">
+      <h2 className="display text-[30px] mt-[18px] mb-3.5 font-normal">Batches</h2>
+      <Card padding="none" overflowHidden className="mb-[18px]">
+        {batches.length === 0 ? (
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
+            No payout batches yet.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Period</th>
+                <th scope="col">Status</th>
+                <th scope="col" className="num">Lines</th>
+                <th scope="col" className="num">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {batches.map((b) => (
+                <tr key={b.id}>
+                  <td className="mono text-[12px] text-ink">{b.batchCode}</td>
+                  <td className="num text-[12px] text-ink-3">
                     {b.periodStart} → {b.periodEnd}
-                  </TD>
-                  <TD>
-                    <Badge tone={b.status === "paid" ? "success" : b.status === "approved" ? "info" : "neutral"}>
-                      {b.status}
-                    </Badge>
-                  </TD>
-                  <TDNum>{b.lineCount}</TDNum>
-                  <TDNum>{formatMoneyMinor(b.totalAmountMinor, b.currency)}</TDNum>
-                </TR>
-              ))
-            )}
-          </TBody>
-        </Table>
-      </section>
+                  </td>
+                  <td>
+                    <HandoffBadge tone={BATCH_TONE[b.status]}>{b.status}</HandoffBadge>
+                  </td>
+                  <td className="num">{b.lineCount}</td>
+                  <td className="num text-terra font-medium">
+                    {formatMoneyMinor(b.totalAmountMinor, b.currency)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
 
-      <section>
-        <h3 className="text-label mb-3">Unbatched payout lines</h3>
-        <Table>
-          <THead>
-            <TR>
-              <TH>Owner</TH>
-              <TH>Reference</TH>
-              <TH>Status</TH>
-              <TH className="text-right">Amount</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {ungrouped.length === 0 ? (
-              <TR>
-                <TD colSpan={4} className="text-center py-8 text-ink-tertiary">
-                  No unbatched lines.
-                </TD>
-              </TR>
-            ) : (
-              ungrouped.map((l) => (
-                <TR key={l.id}>
-                  <TD className="text-ink">{l.ownerName}</TD>
-                  <TD className="text-xs text-ink-tertiary">{l.reference ?? "—"}</TD>
-                  <TD>
-                    <Badge tone={l.status === "paid" ? "success" : l.status === "pending" ? "warning" : "neutral"}>
-                      {l.status}
-                    </Badge>
-                  </TD>
-                  <TDNum>{formatMoneyMinor(l.amountMinor, l.currency)}</TDNum>
-                </TR>
-              ))
-            )}
-          </TBody>
-        </Table>
-      </section>
-    </div>
+      <h2 className="display text-[30px] mt-8 mb-3.5 font-normal">
+        Unbatched payout <em>lines</em>
+      </h2>
+      <Card padding="none" overflowHidden className="mb-[18px]">
+        {ungrouped.length === 0 ? (
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
+            No unbatched lines.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Owner</th>
+                <th scope="col">Reference</th>
+                <th scope="col">Wire date</th>
+                <th scope="col">Status</th>
+                <th scope="col" className="num">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ungrouped.map((l) => (
+                <tr key={l.id}>
+                  <td className="text-ink">{l.ownerName}</td>
+                  <td className="mono text-[12px] text-ink-3">{l.reference ?? "—"}</td>
+                  <td className="mono text-[12px] text-ink-3">{l.scheduledFor ?? "—"}</td>
+                  <td>
+                    <HandoffBadge tone={LINE_TONE[l.status]}>
+                      {LINE_LABEL[l.status] ?? l.status}
+                    </HandoffBadge>
+                  </td>
+                  <td className="num text-terra font-medium">
+                    {formatMoneyMinor(l.amountMinor, l.currency)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+    </>
   );
 }

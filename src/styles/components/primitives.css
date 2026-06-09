@@ -270,6 +270,12 @@ table.data th.num {
   font-family: var(--mono-font), monospace;
   font-variant-numeric: tabular-nums;
 }
+/* Serif primary cell — the handoff's `.row-title` (Newsreader, 14.5px). */
+table.data td.row-title {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 14.5px;
+  color: var(--ink);
+}
 
 /* `ul.clean` — bullet-less list with flex-row li, divider lines */
 ul.clean {

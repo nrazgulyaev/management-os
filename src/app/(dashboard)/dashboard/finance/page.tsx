@@ -222,7 +222,7 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header mb-0">
         <div className="left">
           <div className="crumb">
             <Link href="/dashboard">Dashboard</Link> / <span>Finance</span>

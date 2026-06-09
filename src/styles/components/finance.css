@@ -56,9 +56,56 @@
 [data-product] table.data tbody tr.row-anomaly {
   background: color-mix(in oklab, var(--warn) 8%, transparent);
 }
-[data-product] table.data tbody tr.row-anomaly::after {
-  content: "⚠";
-  margin-left: 4px;
+[data-product] table.data tbody tr.row-anomaly td.row-anomaly-flag {
+  text-align: right;
   color: var(--warn);
 }
+
+/* ---------- Net-to-owner footer row (statement detail) ----------
+ * Mockup `.stmt-foot`: heavy ink top-rule, cream-warm fill, display-font
+ * label + mono terra value. Closes the line table as the statement's
+ * single most important number. */
+[data-product] table.data tbody tr.stmt-foot {
+  border-top: 2px solid var(--ink);
+  background: var(--cream-warm, var(--bg-2));
+}
+[data-product] table.data tbody tr.stmt-foot td {
+  padding: 16px 14px;
+}
+[data-product] table.data tbody tr.stmt-foot .stmt-foot-label {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--ink);
+}
+[data-product] table.data tbody tr.stmt-foot .stmt-foot-value {
+  font-family: var(--mono-font), monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 24px;
+  color: var(--terra, var(--amber));
+}
+
+/* ---------- Status line (statement detail header meta) ----------
+ * Mono caps run beneath the title: state badge · line count · hash ·
+ * actor + timestamp. The sealed hash chip turns ok-green when approved. */
+[data-product] .status-line {
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+  margin-top: 8px;
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+[data-product] .status-line .hash {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  color: var(--ink-4);
+  background: var(--cream-deep, var(--bg-3));
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+[data-product] .status-line .sealed { color: var(--ok); }
 
