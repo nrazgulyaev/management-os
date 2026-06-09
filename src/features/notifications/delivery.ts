@@ -436,6 +436,8 @@ export async function deliverNotification(
     // No one to deliver to — record a single skipped delivery row so the
     // operator sees the reason in the admin log.
     await db.insert(notificationDeliveries).values({
+      // TENANCY-FINANCE-DOCS — copy the parent queue row's org.
+      organizationId: n.organizationId,
       notificationId: n.id,
       channel,
       provider: provider.key,
@@ -457,6 +459,8 @@ export async function deliverNotification(
       const decision = shouldSuppressByPreference(pref, now, r.timezone);
       if (decision.suppress) {
         await db.insert(notificationDeliveries).values({
+          // TENANCY-FINANCE-DOCS — copy the parent queue row's org.
+          organizationId: n.organizationId,
           notificationId: n.id,
           channel,
           provider: provider.key,
@@ -481,6 +485,7 @@ export async function deliverNotification(
       );
       const input: DeliveryInput = {
         notificationId: n.id,
+        organizationId: n.organizationId,
         channel,
         recipientType: n.recipientType as RecipientType,
         recipientId: r.appUserId ?? r.ownerId ?? null,
@@ -507,6 +512,8 @@ export async function deliverNotification(
       }
 
       await db.insert(notificationDeliveries).values({
+        // TENANCY-FINANCE-DOCS — copy the parent queue row's org.
+        organizationId: n.organizationId,
         notificationId: n.id,
         channel,
         provider: provider.key,

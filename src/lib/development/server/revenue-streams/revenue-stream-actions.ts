@@ -7,6 +7,7 @@ import { revenueStreams } from "@/lib/db/schema/revenue-streams";
 import { villas } from "@/lib/db/schema/projects";
 import { assetTypes } from "@/lib/db/schema/asset-types";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const STREAM_TYPES = [
   "hotel_room_revenue",
@@ -39,6 +40,8 @@ export async function createRevenueStream(
   input: z.input<typeof createSchema>,
 ) {
   const ctx = await requireInternalUser();
+  // TENANCY-FINANCE-DOCS — operator context; org from the session.
+  const organizationId = await requireOrgId();
   const parsed = createSchema.parse(input);
   const db = requireDb();
 
@@ -67,6 +70,7 @@ export async function createRevenueStream(
   const [row] = await db
     .insert(revenueStreams)
     .values({
+      organizationId,
       assetId: parsed.assetId,
       projectId: parsed.projectId,
       streamType: parsed.streamType,

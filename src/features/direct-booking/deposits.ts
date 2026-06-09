@@ -174,10 +174,19 @@ export async function appendDepositEvent(args: {
   actorUserId?: string | null;
   message?: string | null;
   metadataJson?: Record<string, unknown> | null;
+  /** Org of the parent deposit; resolved from the deposit row when omitted. */
+  organizationId?: string | null;
 }): Promise<void> {
   const db = getDb();
   if (!db) return;
+  // TENANCY-FINANCE-DOCS — child event copies the parent deposit's org.
+  let organizationId = args.organizationId ?? null;
+  if (!organizationId) {
+    const parent = await getDepositById(args.depositId);
+    organizationId = parent?.organizationId ?? null;
+  }
   await db.insert(directBookingDepositEvents).values({
+    organizationId,
     depositId: args.depositId,
     eventType: args.eventType,
     actorType: args.actorType,
@@ -242,10 +251,20 @@ export async function ensureDepositForRequest(
   const providerAccount = await getActiveProviderAccount(providerKey);
   const code = await pickUniqueDepositCode(db);
 
+  // TENANCY-FINANCE-DOCS — copy the parent request's org onto the deposit
+  // (guest/public flow has no operator session; the request row is the anchor).
+  const [parentRequest] = await db
+    .select({ organizationId: directBookingRequests.organizationId })
+    .from(directBookingRequests)
+    .where(eq(directBookingRequests.id, input.requestId))
+    .limit(1);
+  const organizationId = parentRequest?.organizationId ?? null;
+
   // Create the deposit row first so the provider has a stable id.
   const [inserted] = await db
     .insert(directBookingDeposits)
     .values({
+      organizationId,
       holdId: input.holdId,
       requestId: input.requestId,
       providerAccountId: providerAccount?.id ?? null,

@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { unitCostAllocations } from "@/lib/db/schema/profitability-cashflow";
+import { projects } from "@/lib/db/schema/projects";
 import { requireInternalUser } from "@/features/auth/permissions";
 import {
   computeUnitCostBasis,
@@ -71,6 +72,21 @@ export async function writeUnitAllocation(
   const parsed = allocateSchema.parse(input);
   const db = requireDb();
 
+  // TENANCY-FINANCE-DOCS — no auth session on the cron/system path, so we
+  // copy the org from the parent project (project_id is NOT NULL here and
+  // projects.organization_id is NOT NULL, so this is always resolvable).
+  const [parentProject] = await db
+    .select({ organizationId: projects.organizationId })
+    .from(projects)
+    .where(eq(projects.id, parsed.projectId))
+    .limit(1);
+  if (!parentProject) {
+    throw new Error(
+      `unit-cost-allocation: project ${parsed.projectId} not found`,
+    );
+  }
+  const organizationId = parentProject.organizationId;
+
   const computed = computeUnitCostBasis({
     assetId: parsed.assetId,
     projectTotalLandCost: parsed.projectTotalLandCost,
@@ -108,6 +124,7 @@ export async function writeUnitAllocation(
     const [row] = await tx
       .insert(unitCostAllocations)
       .values({
+        organizationId,
         assetId: parsed.assetId,
         projectId: parsed.projectId,
         computedForDate: new Date().toISOString().slice(0, 10),

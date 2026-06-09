@@ -24,12 +24,14 @@ export const revenueStreams = pgTable(
   "revenue_streams",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
-    // backfilled via projects.organization_id (project_id is NOT NULL).
-    // Not query-threaded yet.
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    // TENANCY-FINANCE-DOCS (migration 0151 add + 0157 cutover) — org anchor.
+    // Backfilled via projects.organization_id; every insert now sets it from
+    // the operator session (requireOrgId), so the column is NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     /** References villas (the multi-asset table) — see arch doc. */
     assetId: uuid("asset_id")
       .notNull()

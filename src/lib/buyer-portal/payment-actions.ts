@@ -25,7 +25,7 @@ import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
 import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { contractGroups, contractMilestones } from "@/lib/db/schema/sales";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { documents } from "@/lib/db/schema/documents";
 import { formatMoneyMinor } from "@/lib/money";
 import { recordAuditEvent } from "@/features/audit/services";
@@ -129,10 +129,16 @@ export async function markBuyerInstallmentPaid(input: {
       const amountLabel = formatMoneyMinor(newPaid, "USD");
       const storagePath = receiptStoragePath(milestone.id);
 
-      // Villa label for the printed receipt (best-effort).
+      // Villa label for the printed receipt (best-effort). We also pull
+      // the org via villa -> project so the receipt document is scoped.
       const [villa] = await db
-        .select({ unitCode: villas.unitCode, name: villas.name })
+        .select({
+          unitCode: villas.unitCode,
+          name: villas.name,
+          organizationId: projects.organizationId,
+        })
         .from(villas)
+        .leftJoin(projects, eq(projects.id, villas.projectId))
         .where(eq(villas.id, villaId))
         .limit(1);
       const villaLabel =
@@ -155,6 +161,8 @@ export async function markBuyerInstallmentPaid(input: {
       const [doc] = await db
         .insert(documents)
         .values({
+          // TENANCY-FINANCE-DOCS — org via villa -> project (buyer portal).
+          organizationId: villa?.organizationId ?? null,
           title: `Receipt ${receiptNumber} — ${milestone.name} (${amountLabel})`,
           documentType: "receipt",
           entityType: "villa",

@@ -13,6 +13,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Documents-app v1 write layer (migration 0132). Every action is
@@ -30,13 +31,16 @@ const PATH = "/dashboard/documents";
 const uuid = z.string().uuid();
 
 async function guard(): Promise<
-  { ok: true; userId: string | null } | { ok: false; error: string }
+  | { ok: true; userId: string | null; organizationId: string }
+  | { ok: false; error: string }
 > {
   if (!(await canManageEntity("document"))) {
     return { ok: false, error: "Not authorised." };
   }
   const me = await getCurrentAppUser();
-  return { ok: true, userId: me?.id ?? null };
+  // TENANCY-FINANCE-DOCS — operator context; org from the session.
+  const organizationId = await requireOrgId();
+  return { ok: true, userId: me?.id ?? null, organizationId };
 }
 
 // ---------- Feed-to-AI / Remove-from-AI ----------
@@ -160,7 +164,7 @@ export async function createSignatureRequestAction(
   const d = parsed.data;
 
   const [doc] = await db
-    .select({ id: documents.id })
+    .select({ id: documents.id, organizationId: documents.organizationId })
     .from(documents)
     .where(eq(documents.id, d.documentId))
     .limit(1);
@@ -170,6 +174,8 @@ export async function createSignatureRequestAction(
   const [row] = await db
     .insert(documentSignatureRequests)
     .values({
+      // TENANCY-FINANCE-DOCS — child copies the parent document's org.
+      organizationId: doc.organizationId ?? g.organizationId,
       documentId: d.documentId,
       signerName: d.signerName,
       signerEmail: d.signerEmail || null,
@@ -319,6 +325,8 @@ export async function addDocumentVersionAction(
     .where(eq(documentVersions.documentId, d.documentId));
 
   await db.insert(documentVersions).values({
+    // TENANCY-FINANCE-DOCS — child copies the parent document's org.
+    organizationId: doc.organizationId ?? g.organizationId,
     documentId: d.documentId,
     versionNo: nextNo,
     title: d.title,
@@ -376,6 +384,8 @@ export async function createTemplateAction(
   const [row] = await db
     .insert(documentTemplates)
     .values({
+      // TENANCY-FINANCE-DOCS — operator context; org from the session.
+      organizationId: g.organizationId,
       name: d.name,
       documentType: d.documentType,
       description: d.description || null,
@@ -433,9 +443,13 @@ export async function generateFromTemplateAction(
     | "owner"
     | "guest"
     | "public";
+  // TENANCY-FINANCE-DOCS — generated doc inherits the template's org
+  // (falls back to the operator's session org).
+  const organizationId = tpl.organizationId ?? g.organizationId;
   const [row] = await db
     .insert(documents)
     .values({
+      organizationId,
       title: d.title,
       documentType: tpl.documentType,
       entityType: d.entityType,
@@ -451,6 +465,7 @@ export async function generateFromTemplateAction(
 
   // Seed v1 from the rendered template body.
   await db.insert(documentVersions).values({
+    organizationId,
     documentId: row.id,
     versionNo: 1,
     title: d.title,

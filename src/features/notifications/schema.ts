@@ -15,6 +15,10 @@ export const statusEnum = z.enum(["queued", "suppressed", "sent", "failed", "can
 export const queueNotificationSchema = z.object({
   recipientType: recipientTypeEnum,
   recipientId: optionalUuid,
+  // TENANCY-FINANCE-DOCS — optional org anchor. queueNotification is
+  // called from ~22 scattered sites (crons / system / portal), so the
+  // column stays NULLABLE; callers that have a session may pass it.
+  organizationId: optionalUuid,
   channel: channelEnum.default("in_app"),
   templateKey: z.string().min(2).max(80),
   title: z.string().min(1).max(200),

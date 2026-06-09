@@ -3,6 +3,7 @@ import "server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { requireDb, rowsOf } from "@/lib/db/client";
 import { revenueStreams } from "@/lib/db/schema/revenue-streams";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export async function listRevenueStreams(filters?: {
   assetId?: string;
@@ -10,7 +11,9 @@ export async function listRevenueStreams(filters?: {
   streamType?: string;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  // TENANCY-FINANCE-DOCS — scope the primary list to the caller's org.
+  const organizationId = await requireOrgId();
+  const conditions = [eq(revenueStreams.organizationId, organizationId)];
   if (filters?.assetId) {
     conditions.push(eq(revenueStreams.assetId, filters.assetId));
   }
@@ -23,16 +26,23 @@ export async function listRevenueStreams(filters?: {
   return db
     .select()
     .from(revenueStreams)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(revenueStreams.periodStart));
 }
 
 export async function getRevenueStream(id: string) {
   const db = requireDb();
+  // TENANCY-FINANCE-DOCS — scope the detail read to the caller's org.
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(revenueStreams)
-    .where(eq(revenueStreams.id, id))
+    .where(
+      and(
+        eq(revenueStreams.id, id),
+        eq(revenueStreams.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

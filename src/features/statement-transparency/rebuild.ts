@@ -134,6 +134,8 @@ export async function rebuildStatementTransparency(
     const [row] = await db
       .insert(statementSourceGroups)
       .values({
+        // TENANCY-FINANCE-DOCS — copy the parent statement's org.
+        organizationId: statement.organizationId,
         ownerStatementId: statementId,
         ownerId: statement.ownerId,
         villaId: statement.villaId,
@@ -164,6 +166,8 @@ export async function rebuildStatementTransparency(
     const groupId = groupIdByKey.get(`${bridge.groupKey}|${cur}`);
     if (!groupId) continue;
     await db.insert(statementSourceGroupLines).values({
+      // TENANCY-FINANCE-DOCS — copy the parent statement's org.
+      organizationId: statement.organizationId,
       statementSourceGroupId: groupId,
       ownerStatementId: statementId,
       statementLineId: bridge.statementLineId,
@@ -236,6 +240,8 @@ export async function rebuildStatementTransparency(
     warningCounts,
   });
   await db.insert(statementExplanationSnapshots).values({
+    // TENANCY-FINANCE-DOCS — copy the parent statement's org.
+    organizationId: statement.organizationId,
     ownerStatementId: statementId,
     ownerId: statement.ownerId,
     headline: snapshot.headline,
@@ -572,6 +578,8 @@ async function upsertOpenWarnings(
   for (const c of candidates) {
     try {
       await db.insert(statementReconciliationWarnings).values({
+        // TENANCY-FINANCE-DOCS — copy the parent statement's org.
+        organizationId: statement.organizationId,
         ownerStatementId: statementId,
         ownerId: statement.ownerId,
         villaId: statement.villaId,

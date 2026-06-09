@@ -5,6 +5,7 @@ import { getDb, rowsOf } from "@/lib/db/client";
 import type { JobOutcome, JobRunHandle } from "@/features/jobs/runner";
 import { computeMonthlyCashflowProjection } from "../cashflow/cashflow-helpers";
 import { cashflowForecasts } from "@/lib/db/schema/profitability-cashflow";
+import { getOrganizationByCode } from "../organizations/organization-queries";
 
 /**
  * Stage 5.B.4 — Cashflow auto-generate (1st of month 03:00).
@@ -70,7 +71,20 @@ export async function runDevOsCashflowAutoGenerate(
     expectedLandPaymentsByMonth: [],
   });
 
+  // TENANCY-FINANCE-DOCS — company-wide cron with no session/project;
+  // anchor to the platform default org (mirrors migration 0151 backfill).
+  const defaultOrg = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  if (!defaultOrg) {
+    return {
+      status: "failed",
+      summary: "No ARCONIQUE_DEFAULT org — cannot scope the forecast.",
+      metrics: { generated: 0 },
+      error: "default org missing",
+    };
+  }
+
   await db.insert(cashflowForecasts).values({
+    organizationId: defaultOrg.id,
     forecastLabel: `Auto ${now.toISOString().slice(0, 7)} — 12 months`,
     scope: "company_wide",
     projectId: null,

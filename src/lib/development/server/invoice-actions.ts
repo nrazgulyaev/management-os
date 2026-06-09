@@ -10,6 +10,7 @@ import {
   invoices,
 } from "@/lib/db/schema/sales";
 import { documents } from "@/lib/db/schema/documents";
+import { requireOrgId } from "@/features/auth/require-org";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
 import { renderInvoicePdfFromInvoice } from "@/lib/development/pdf/render-invoice-pdf";
 import { sendDevOsEmail } from "./email";
@@ -181,9 +182,12 @@ export async function generateInvoicePDF(
   // Store metadata only (Checkpoint 2 — byte upload follows the same
   // Supabase Storage / R2 path Management OS uses; the buffer can be
   // streamed back via a download endpoint later in this checkpoint).
+  // TENANCY-FINANCE-DOCS — operator context; org from the session.
+  const organizationId = await requireOrgId();
   const [doc] = await db
     .insert(documents)
     .values({
+      organizationId,
       title: `Invoice ${invoiceRow.invoiceNumber}`,
       documentType: "invoice",
       entityType: "project",

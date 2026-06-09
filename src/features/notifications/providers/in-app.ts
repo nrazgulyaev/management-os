@@ -36,6 +36,8 @@ export const inAppProvider: NotificationProvider = {
     const [row] = await db
       .insert(inAppNotifications)
       .values({
+        // TENANCY-FINANCE-DOCS — copy the parent queue row's org.
+        organizationId: input.organizationId ?? null,
         notificationId: input.notificationId,
         appUserId: input.appUserId ?? null,
         ownerId: input.ownerId ?? null,

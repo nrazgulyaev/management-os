@@ -309,6 +309,7 @@ export async function capturePhoto(
     title: parsed.data.caption ?? parsed.data.fileName,
     entityId: frameId,
     uploadedBy: me?.id ?? null,
+    organizationId: orgId,
   });
 
   await db.insert(siteCaptureFrames).values({
@@ -376,6 +377,7 @@ export async function captureVoiceNote(
     title: parsed.data.fileName,
     entityId: frameId,
     uploadedBy: me?.id ?? null,
+    organizationId: orgId,
   });
 
   await db.insert(siteCaptureFrames).values({
@@ -575,6 +577,8 @@ async function persistBlob(args: {
   title: string;
   entityId: string;
   uploadedBy: string | null;
+  /** TENANCY-FINANCE-DOCS — supplied by the caller's session org. */
+  organizationId: string;
 }): Promise<{ documentId: string; dryRun: boolean }> {
   const db = requireDb();
   const admin = getSupabaseAdmin();
@@ -599,6 +603,7 @@ async function persistBlob(args: {
   const [doc] = await db
     .insert(documents)
     .values({
+      organizationId: args.organizationId,
       title: args.title,
       documentType: args.documentType,
       entityType: "site_capture",

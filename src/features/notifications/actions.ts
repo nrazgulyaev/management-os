@@ -12,6 +12,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   notificationIdSchema,
   updateNotificationPreferenceSchema,
@@ -140,9 +141,12 @@ export async function updateNotificationPreferenceAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY-FINANCE-DOCS — operator context; org from the session.
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const values: typeof notificationPreferences.$inferInsert = {
+    organizationId,
     appUserId: d.appUserId ?? null,
     ownerId: d.ownerId ?? null,
     roleKey: d.roleKey && d.roleKey !== "" ? d.roleKey : null,
@@ -373,6 +377,8 @@ export async function updateCurrentUserNotificationPreferenceAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
   if (!me) return { ok: false, error: "Not signed in." };
+  // TENANCY-FINANCE-DOCS — operator context; org from the session.
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const existing = await db
@@ -388,6 +394,7 @@ export async function updateCurrentUserNotificationPreferenceAction(
     .limit(1);
 
   const values: typeof notificationPreferences.$inferInsert = {
+    organizationId,
     appUserId: me.id,
     channel: d.channel,
     templateKey: d.templateKey,

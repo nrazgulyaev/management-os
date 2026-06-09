@@ -9,6 +9,7 @@ import { documents } from "@/lib/db/schema/documents";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { createDocumentSchema } from "./schema";
 import type { ActionResult } from "@/features/projects/actions";
 
@@ -32,10 +33,13 @@ export async function createDocumentAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const d = parsed.data;
   const me = await getCurrentAppUser();
+  // TENANCY-FINANCE-DOCS — operator context; org from the session.
+  const organizationId = await requireOrgId();
 
   const [row] = await db
     .insert(documents)
     .values({
+      organizationId,
       title: d.title,
       documentType: d.documentType,
       entityType: d.entityType,

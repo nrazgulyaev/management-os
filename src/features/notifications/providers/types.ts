@@ -13,6 +13,8 @@ export type RecipientType = "internal_user" | "owner" | "guest" | "role";
 
 export interface DeliveryInput {
   notificationId: string;
+  /** TENANCY-FINANCE-DOCS — parent queue row's org (nullable). */
+  organizationId?: string | null;
   channel: DeliveryChannel;
   recipientType: RecipientType;
   /** app_users.id or owners.id when recipientType is internal_user / owner;

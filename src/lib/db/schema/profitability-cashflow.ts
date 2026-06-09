@@ -31,12 +31,14 @@ export const unitCostAllocations = pgTable(
   "unit_cost_allocations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
-    // backfilled via projects.organization_id (project_id is NOT NULL).
-    // Not query-threaded yet.
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    // TENANCY-FINANCE-DOCS (migration 0151 add + 0157 cutover) — org anchor.
+    // Backfilled via projects.organization_id (project_id is NOT NULL); the
+    // single insert now copies the parent project's org, so this is NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     /** References the multi-asset table (villas). */
     assetId: uuid("asset_id")
       .notNull()
@@ -118,12 +120,15 @@ export const cashflowForecasts = pgTable(
   "cashflow_forecasts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    // TENANCY-FINANCE-DOCS (migration 0151) — nullable org anchor,
-    // backfilled via projects.organization_id; company_wide forecasts
-    // (null project_id) fall back to ARCONIQUE_DEFAULT. Not query-threaded yet.
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    // TENANCY-FINANCE-DOCS (migration 0151 add + 0157 cutover) — org anchor.
+    // Backfilled via projects.organization_id; company_wide forecasts
+    // (null project_id) anchor to ARCONIQUE_DEFAULT. Both insert paths
+    // (operator action + cron) now set it, so the column is NOT NULL.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     forecastLabel: text("forecast_label").notNull(),
     /** 'project' | 'company_wide' */
     scope: text("scope").notNull(),

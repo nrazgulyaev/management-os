@@ -5,6 +5,7 @@ import { requireDb } from "@/lib/db/client";
 import { unitCostAllocations } from "@/lib/db/schema/profitability-cashflow";
 import { villas } from "@/lib/db/schema/projects";
 import { assetTypes } from "@/lib/db/schema/asset-types";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export async function getCurrentAllocationForAsset(assetId: string) {
   const db = requireDb();
@@ -32,6 +33,8 @@ export async function listAllocationsForAsset(assetId: string) {
 
 export async function listCurrentAllocations(limit = 100) {
   const db = requireDb();
+  // TENANCY-FINANCE-DOCS — scope the profitability dashboard to the org.
+  const organizationId = await requireOrgId();
   return db
     .select({
       id: unitCostAllocations.id,
@@ -49,13 +52,20 @@ export async function listCurrentAllocations(limit = 100) {
     .from(unitCostAllocations)
     .innerJoin(villas, eq(villas.id, unitCostAllocations.assetId))
     .innerJoin(assetTypes, eq(assetTypes.id, villas.assetTypeId))
-    .where(eq(unitCostAllocations.isCurrent, true))
+    .where(
+      and(
+        eq(unitCostAllocations.isCurrent, true),
+        eq(unitCostAllocations.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(unitCostAllocations.computedAt))
     .limit(limit);
 }
 
 export async function listProjectAllocations(projectId: string) {
   const db = requireDb();
+  // TENANCY-FINANCE-DOCS — scope the project allocations list to the org.
+  const organizationId = await requireOrgId();
   return db
     .select({
       id: unitCostAllocations.id,
@@ -76,6 +86,7 @@ export async function listProjectAllocations(projectId: string) {
       and(
         eq(unitCostAllocations.projectId, projectId),
         eq(unitCostAllocations.isCurrent, true),
+        eq(unitCostAllocations.organizationId, organizationId),
       ),
     )
     .orderBy(villas.unitCode);
