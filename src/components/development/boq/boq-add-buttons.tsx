@@ -32,7 +32,7 @@ const CURRENCY_OPTIONS = [
 interface AddBoqButtonProps {
   projects: Array<{ id: string; name: string }>;
   label?: string;
-  variant?: "primary" | "secondary";
+  variant?: "primary" | "secondary" | "accent";
 }
 
 export function AddBoqButton({

@@ -180,9 +180,9 @@ export function NewProjectModal({ open, onOpenChange, onSubmit }: NewProjectModa
                 placeholder="pm@arconique.com"
               />
             </div>
-            <fieldset className="field" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <fieldset className="field flex flex-col gap-2">
               <legend className="field-label">Enable AI agents</legend>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <label className="check">
                 <input
                   type="checkbox"
                   checked={values.agents.scheduleVariance}
@@ -190,9 +190,10 @@ export function NewProjectModal({ open, onOpenChange, onSubmit }: NewProjectModa
                     update("agents", { ...values.agents, scheduleVariance: e.target.checked })
                   }
                 />
+                <span className="box" aria-hidden />
                 Schedule variance detector
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <label className="check">
                 <input
                   type="checkbox"
                   checked={values.agents.rfiRouter}
@@ -200,9 +201,10 @@ export function NewProjectModal({ open, onOpenChange, onSubmit }: NewProjectModa
                     update("agents", { ...values.agents, rfiRouter: e.target.checked })
                   }
                 />
+                <span className="box" aria-hidden />
                 RFI router
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <label className="check">
                 <input
                   type="checkbox"
                   checked={values.agents.weeklyComposer}
@@ -210,6 +212,7 @@ export function NewProjectModal({ open, onOpenChange, onSubmit }: NewProjectModa
                     update("agents", { ...values.agents, weeklyComposer: e.target.checked })
                   }
                 />
+                <span className="box" aria-hidden />
                 Weekly investor report composer
               </label>
             </fieldset>

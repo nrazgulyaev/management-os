@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   Kpi,
-  SectionHeading,
   Card,
 } from "@/components/dashboard/primitives";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -20,6 +19,10 @@ import { WaterfallChart } from "@/components/cfo/waterfall-chart";
  * (getCfoKpis / getPnlByProject / getCashStrip6Week / getActiveTaxTypes /
  * getSharedCostsBreakdown). The capital-waterfall viz is illustrative
  * (no single aggregate query backs it yet).
+ *
+ * Pixel-redesign (cabinets/dev-p1/cfo.html "Transactions & profit"):
+ * page-header brick + 5-up KPI strip + 2-col console grid (P&L ledger /
+ * expense-breakdown bars) restyled onto the live data — wiring preserved.
  */
 
 export const metadata = { title: "Development OS · CFO" };
@@ -54,31 +57,42 @@ export default async function DevCfoPage() {
   );
   const cashMaxAbs = Math.max(1, ...cash.map((c) => Math.abs(c.netMinor)));
 
+  // Expense-breakdown bars (mockup "Expense breakdown") sourced from
+  // the live shared-cost MTD rows.
+  const sharedMax = Math.max(1, ...sharedCosts.map((s) => s.mtdMinor));
+
   return (
     <>
-      <SectionHeading
-        eyebrow="CFO · books, cash, taxes"
-        title={
-          <>
-            P&L · cash · AR/AP.{" "}
-            <span style={{ color: "var(--amber)" }}>One source of truth.</span>
-          </>
-        }
-        subtitle="Tax assistant categorises every transaction, splits VAT, drafts journal entries. Closed periods locked. Per-project + roll-up views."
-        actions={
-          <>
-            <button className="btn btn-dark btn-sm" disabled title="Coming soon" style={{ opacity: 0.55, cursor: "not-allowed" }}>Tax pack PDF ↓</button>
-            <Link
-              href="/development-os/finance/transactions/quick-entry"
-              className="btn btn-amber btn-sm"
-            >
-              + Journal entry
-            </Link>
-          </>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">Finance · P&amp;L and ledger</div>
+          <h1>
+            P&amp;L · cash · AR/AP.{" "}
+            <span className="text-[var(--amber)]">One source of truth.</span>
+          </h1>
+          <p className="mt-2 mb-0 text-[15px] text-[var(--ink-3)] max-w-[680px]">
+            Tax assistant categorises every transaction, splits VAT, drafts
+            journal entries. Closed periods locked. Per-project + roll-up views.
+          </p>
+        </div>
+        <div className="actions">
+          <button
+            className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
+            disabled
+            title="Coming soon"
+          >
+            Tax pack PDF ↓
+          </button>
+          <Link
+            href="/development-os/finance/transactions/quick-entry"
+            className="btn btn-amber btn-sm"
+          >
+            + Journal entry
+          </Link>
+        </div>
+      </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 18 }}>
+      <div className="cfo-kpis">
         <Kpi
           label="Cash on hand"
           value={kpis ? fmtUsd(kpis.cashOnHandMinor) : "—"}
@@ -110,13 +124,11 @@ export default async function DevCfoPage() {
       </div>
 
       {/* PR 2.2 dev-02 — consolidated console: waterfall + sub-route nav */}
-      <Card style={{ padding: 20, marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 14 }}>
-          <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
-            Capital waterfall · YTD
-          </h3>
+      <Card padding="default" className="mb-[18px]">
+        <div className="cfo-card-head">
+          <h3 className="cfo-card-title">Capital waterfall · YTD</h3>
           <span className="label">USD · illustrative</span>
-          <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          <span className="actions">
             <Link href="/development-os/cfo/cashflow" className="btn btn-secondary btn-sm">
               Cashflow forecast →
             </Link>
@@ -143,13 +155,11 @@ export default async function DevCfoPage() {
         />
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14, marginBottom: 18 }}>
-        <Card style={{ padding: 20 }}>
-          <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
-            P&L · YTD by project
-          </h3>
-          <div className="label" style={{ marginTop: 4 }}>USD · cost basis</div>
-          <table className="data" style={{ marginTop: 14 }}>
+      <div className="cfo-grid">
+        <Card padding="default">
+          <h3 className="cfo-card-title">P&amp;L · YTD by project</h3>
+          <div className="label">USD · cost basis</div>
+          <table className="data mt-[14px]">
             <thead>
               <tr>
                 <th>Project</th>
@@ -162,7 +172,7 @@ export default async function DevCfoPage() {
             <tbody>
               {pnl.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", color: "var(--ink-3)", padding: "28px 0", fontStyle: "italic" }}>
+                  <td colSpan={5} className="cfo-table-empty">
                     No project transactions yet.
                   </td>
                 </tr>
@@ -174,17 +184,15 @@ export default async function DevCfoPage() {
                       <td className="num">{fmtUsd(r.hardCostMinor)}</td>
                       <td className="num">{fmtUsd(r.softCostMinor)}</td>
                       <td className="num">{fmtUsd(r.financingMinor)}</td>
-                      <td className="num" style={{ color: "var(--ink)", fontWeight: 500 }}>
-                        {fmtUsd(r.totalMinor)}
-                      </td>
+                      <td className="num cfo-amt-out">{fmtUsd(r.totalMinor)}</td>
                     </tr>
                   ))}
-                  <tr style={{ background: "var(--bg-2)", fontWeight: 500 }}>
+                  <tr className="cfo-row-total">
                     <td>Portfolio</td>
                     <td className="num">{fmtUsd(pnlTotal.hard)}</td>
                     <td className="num">{fmtUsd(pnlTotal.soft)}</td>
                     <td className="num">{fmtUsd(pnlTotal.fin)}</td>
-                    <td className="num" style={{ color: "var(--amber)" }}>{fmtUsd(pnlTotal.total)}</td>
+                    <td className="num cfo-total-accent">{fmtUsd(pnlTotal.total)}</td>
                   </tr>
                 </>
               )}
@@ -192,48 +200,61 @@ export default async function DevCfoPage() {
           </table>
         </Card>
 
-        <Card style={{ padding: 20 }}>
-          <h3 className="display" style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
-            Net cash flow · 6 weeks
-          </h3>
-          <div className="label" style={{ marginTop: 4 }}>USD · weekly inflow − outflow</div>
+        <Card padding="default">
+          <h3 className="cfo-card-title">Net cash flow · 6 weeks</h3>
+          <div className="label">USD · weekly inflow − outflow</div>
           {cash.length === 0 ? (
-            <p style={{ marginTop: 14, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
+            <p className="mt-[14px] text-[13px] text-[var(--ink-3)] italic">
               No transactions in the window yet.
             </p>
           ) : (
-            <div style={{ marginTop: 14, display: "flex", alignItems: "flex-end", gap: 6, height: 140 }}>
+            <div className="cfo-cashstrip">
               {cash.map((c) => (
-                <div
-                  key={c.weekIso}
-                  style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}
-                >
-                  <span className="num" style={{ fontSize: 9, color: "var(--ink-3)" }}>
-                    {fmtUsd(c.netMinor)}
-                  </span>
+                <div key={c.weekIso} className="col">
+                  <span className="net">{fmtUsd(c.netMinor)}</span>
                   <div
-                    style={{
-                      width: "100%",
-                      height: `${(Math.abs(c.netMinor) / cashMaxAbs) * 110}px`,
-                      background: c.isFuture ? "var(--amber)" : c.netMinor < 0 ? "var(--steel)" : "var(--ok)",
-                      borderRadius: "3px 3px 0 0",
-                      opacity: c.isFuture ? 0.7 : 1,
-                    }}
+                    className={
+                      "bar " +
+                      (c.isFuture
+                        ? "future"
+                        : c.netMinor < 0
+                        ? "past-neg"
+                        : "past-pos")
+                    }
+                    style={{ height: `${(Math.abs(c.netMinor) / cashMaxAbs) * 110}px` }}
                   />
-                  <span className="mono" style={{ fontSize: 8, color: "var(--ink-4)" }}>
-                    {c.weekLabel}
-                  </span>
+                  <span className="wk">{c.weekLabel}</span>
                 </div>
               ))}
             </div>
           )}
+
+          <div className="cfo-bar-summary">
+            <div className="cfo-card-sub mb-[10px]">Expense breakdown · MTD</div>
+            {sharedCosts.length === 0 ? (
+              <p className="cfo-card-sub">No shared-cost categories yet.</p>
+            ) : (
+              sharedCosts.map((s) => (
+                <div className="cfo-bar" key={s.categoryId}>
+                  <span className="cfo-bar-label">{s.displayName}</span>
+                  <div className="track">
+                    <div
+                      className="fill"
+                      style={{ width: `${(s.mtdMinor / sharedMax) * 100}%` }}
+                    />
+                  </div>
+                  <span className="val">{fmtUsd(s.mtdMinor)}</span>
+                </div>
+              ))
+            )}
+          </div>
         </Card>
       </div>
 
-      <h2 id="tax" className="display" style={{ fontSize: 24, marginBottom: 14, fontWeight: 500 }}>
+      <h2 id="tax" className="display text-[24px] mb-[14px] font-medium">
         Tax types · auto-categorised by AI
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 18 }}>
+      <Card padding="none" overflowHidden className="mb-[18px]">
         <table className="data">
           <thead>
             <tr>
@@ -246,7 +267,7 @@ export default async function DevCfoPage() {
           <tbody>
             {taxTypes.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: "center", color: "var(--ink-3)", padding: "28px 0", fontStyle: "italic" }}>
+                <td colSpan={4} className="cfo-table-empty">
                   No tax types configured.
                 </td>
               </tr>
@@ -255,7 +276,7 @@ export default async function DevCfoPage() {
                 <tr key={t.typeKey}>
                   <td>{t.displayName}</td>
                   <td className="mono">{t.ratePercentage}%</td>
-                  <td style={{ color: "var(--ink-3)" }}>{t.reportingPeriod}</td>
+                  <td className="text-[var(--ink-3)]">{t.reportingPeriod}</td>
                   <td className="mono">{t.countryCode ?? "—"}</td>
                 </tr>
               ))
@@ -264,14 +285,10 @@ export default async function DevCfoPage() {
         </table>
       </Card>
 
-      <h2
-        id="shared"
-        className="display"
-        style={{ fontSize: 24, marginBottom: 14, fontWeight: 500, marginTop: 24 }}
-      >
+      <h2 id="shared" className="display text-[24px] mb-[14px] mt-6 font-medium">
         Shared costs · MTD by category
       </h2>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
+      <Card padding="none" overflowHidden>
         <table className="data">
           <thead>
             <tr>
@@ -283,7 +300,7 @@ export default async function DevCfoPage() {
           <tbody>
             {sharedCosts.length === 0 ? (
               <tr>
-                <td colSpan={3} style={{ textAlign: "center", color: "var(--ink-3)", padding: "28px 0", fontStyle: "italic" }}>
+                <td colSpan={3} className="cfo-table-empty">
                   No shared-cost categories yet.
                 </td>
               </tr>
@@ -291,7 +308,7 @@ export default async function DevCfoPage() {
               sharedCosts.map((s) => (
                 <tr key={s.categoryId}>
                   <td>{s.displayName}</td>
-                  <td className="mono" style={{ color: "var(--ink-3)" }}>{s.categoryCode}</td>
+                  <td className="mono text-[var(--ink-3)]">{s.categoryCode}</td>
                   <td className="num">{fmtUsd(s.mtdMinor)}</td>
                 </tr>
               ))

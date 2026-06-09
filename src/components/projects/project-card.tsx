@@ -6,36 +6,45 @@ import { ProgressBar } from "./progress-bar";
 /**
  * Phase 2.2 dev-01 — ProjectCard.
  *
- * Grid-layout list row (not a table cell). Each project occupies a
- * card with: code badge + name + lifecycle phase + schedule
- * progress bar + budget burn bar + health pill + meta row (PM,
- * units, open RFIs).
- *
- * Compose into a 2- or 3-up grid via `.projects-grid` CSS.
+ * Horizontal list row card (not a table cell). Pixel target =
+ * `cabinets/dev-p1/projects.html` `.proj-card`: an engineering-grade
+ * row of [thumb · name + sub · progress bar · stat num-kpis · health
+ * pill · Open →]. Projects deserve more horizontal real estate than a
+ * tabular row, so each occupies a full-width card stacked in a single
+ * column via `.projects-grid`.
  */
+
+export interface ProjectCardStat {
+  label: React.ReactNode;
+  value: React.ReactNode;
+  /** Tints the value (variance over/under plan). */
+  tone?: "ink" | "ok" | "warn" | "danger";
+}
 
 export interface ProjectCardProps {
   id: string;
   href: string;
   code: string;
   name: string;
-  /** Lifecycle phase label (e.g. "Under construction · Phase 2 / 4"). */
+  /** Lifecycle phase label (e.g. "UBUD · 8 VILLAS · BUILDING · WK 36/64"). */
   phaseLabel: string;
   /** 0..100 — schedule progress. */
   schedulePct: number;
-  /** Right-aligned schedule label (e.g. "Day 142 of 540"). */
+  /** Right-aligned schedule label (e.g. "est. Dec 2026"). */
   scheduleLabel?: React.ReactNode;
-  /** 0..100 — budget burn. */
-  budgetPct: number;
-  /** Right-aligned budget label (e.g. "$1.42M of $2.45M"). */
-  budgetLabel?: React.ReactNode;
   health: HealthLevel;
+  /** Verbose health reason rendered inside the pill ("Amber · BOQ alert"). */
   healthReason?: string;
-  /** Pill or chip strip beneath the meta row. */
-  metaPills?: React.ReactNode;
-  /** Lower-right inline stats — keep to 2-3 short items. */
-  stats?: { label: string; value: React.ReactNode }[];
+  /** Inline number+label stats shown between the bar and the health pill. */
+  stats?: ProjectCardStat[];
 }
+
+const STAT_TONE: Record<NonNullable<ProjectCardStat["tone"]>, string> = {
+  ink: "",
+  ok: "tone-ok",
+  warn: "tone-warn",
+  danger: "tone-danger",
+};
 
 export function ProjectCard({
   href,
@@ -44,43 +53,35 @@ export function ProjectCard({
   phaseLabel,
   schedulePct,
   scheduleLabel,
-  budgetPct,
-  budgetLabel,
   health,
   healthReason,
-  metaPills,
   stats,
 }: ProjectCardProps) {
   return (
     <Link className="project-card" href={href}>
-      <div className="head">
-        <span className="code">{code}</span>
-        <HealthPill level={health} reason={healthReason} />
+      <span className="proj-thumb">{code}</span>
+      <div className="proj-meta">
+        <h3 className="proj-name">{name}</h3>
+        <div className="proj-sub">{phaseLabel}</div>
       </div>
-      <h3 className="name">{name}</h3>
-      <div className="phase">{phaseLabel}</div>
       <ProgressBar
-        caption="Schedule"
+        className="proj-progress"
         pct={schedulePct}
         label={scheduleLabel}
+        caption={`${Math.round(schedulePct)}%`}
       />
-      <ProgressBar
-        caption="Budget"
-        pct={budgetPct}
-        label={budgetLabel}
-        tone={budgetPct > 95 ? "warn" : budgetPct > 105 ? "danger" : "accent"}
-      />
-      {metaPills && <div className="meta-pills">{metaPills}</div>}
       {stats && stats.length > 0 && (
-        <div className="stats">
+        <div className="proj-stats">
           {stats.map((s, i) => (
-            <div className="stat" key={i}>
-              <span className="value">{s.value}</span>
+            <span className={`num-kpi ${STAT_TONE[s.tone ?? "ink"]}`} key={i}>
               <span className="label">{s.label}</span>
-            </div>
+              <span className="value">{s.value}</span>
+            </span>
           ))}
         </div>
       )}
+      <HealthPill level={health} reason={healthReason} verbose verboseLabel={healthReason} />
+      <span className="proj-open btn btn-dark btn-sm">Open →</span>
     </Link>
   );
 }

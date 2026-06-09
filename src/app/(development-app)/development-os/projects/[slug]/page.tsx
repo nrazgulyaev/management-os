@@ -17,6 +17,7 @@ import {
   ProjectDetailTabs,
   type ProjectTab,
 } from "@/components/development/project-detail-tabs";
+import { HealthPill } from "@/components/projects/health-pill";
 import { formatDate, formatUSD } from "@/lib/utils";
 import { mapPoolAll } from "@/lib/db/map-pool";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
@@ -298,77 +299,183 @@ export default async function ProjectDetailPage({
 
   const activePhases = phases.filter((p) => p.status === "in_progress");
 
+  // Upcoming-milestones panel (Overview) — synthesize from the phase roster
+  // (same proof-of-life source the standalone milestones editor uses when no
+  // milestones are authored). Earliest target first, only what's still ahead.
+  const today = new Date();
+  const upcomingPhases = phases
+    .filter((p) => p.status !== "completed")
+    .map((p) => {
+      const target = p.plannedEndDate ?? p.plannedStartDate ?? null;
+      const targetDate = target ? new Date(target) : null;
+      const daysAway = targetDate
+        ? Math.round((targetDate.getTime() - today.getTime()) / 86_400_000)
+        : null;
+      const slipping = daysAway !== null && daysAway < 0;
+      return { phase: p, target, daysAway, slipping };
+    })
+    .sort((a, b) => {
+      if (!a.target) return 1;
+      if (!b.target) return -1;
+      return a.target.localeCompare(b.target);
+    })
+    .slice(0, 4);
+
   const tabs: ProjectTab[] = [
     {
       value: "overview",
       label: "Overview",
       content: (
-        <div className="flex flex-col gap-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {overviewMetrics.map((m) => (
-              <DevelopmentMetricCard key={m.id} metric={m} />
-            ))}
-          </div>
+        <div className="project-overview">
+          <div className="po-main">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {overviewMetrics.map((m) => (
+                <DevelopmentMetricCard key={m.id} metric={m} />
+              ))}
+            </div>
 
-          <Section
-            eyebrow="Active phases"
-            title={`In progress · ${activePhases.length}`}
-            description="Phases currently running on this project. The full timeline is on the next tab."
-          >
-            {activePhases.length === 0 ? (
-              <EmptyState
-                title="No phases in progress"
-                description="Either everything is completed or nothing has started yet."
-              />
-            ) : (
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {activePhases.map((p) => (
-                  <li
-                    key={p.id}
-                    className="rounded-md border border-line-soft bg-surface px-4 py-3 flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-2 h-2 rounded-full bg-accent" aria-hidden />
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-medium text-ink truncate">
-                          {p.phaseType.replace(/_/g, " ")}
-                        </span>
-                        <span className="text-xs text-ink-tertiary">
-                          since{" "}
-                          {p.actualStartDate
-                            ? formatDate(p.actualStartDate, "short")
-                            : "—"}
+            <div className="panel po-panel">
+              <div className="po-panel-head">
+                <h3 className="display">Upcoming milestones</h3>
+                <span className="po-panel-tag mono">
+                  {upcomingPhases.length} next · next 90d
+                </span>
+              </div>
+              {upcomingPhases.length === 0 ? (
+                <EmptyState
+                  title="No upcoming milestones"
+                  description="Every authored phase is complete, or none are dated yet."
+                />
+              ) : (
+                <div className="po-panel-body">
+                  {upcomingPhases.map((u) => (
+                    <div key={u.phase.id} className="milestone-row next">
+                      <span className="when mono">
+                        {u.target ? formatDate(u.target, "short") : "—"}
+                      </span>
+                      <div className="ms-body">
+                        <span className="name">
+                          {u.phase.phaseType.replace(/_/g, " ")}
                         </span>
                       </div>
-                    </div>
-                    {p.notes && (
-                      <span className="text-xs text-ink-secondary text-right truncate max-w-[50%]">
-                        {p.notes}
+                      <span className="po-away mono">
+                        {u.daysAway === null
+                          ? "—"
+                          : u.daysAway < 0
+                            ? `${-u.daysAway}d late`
+                            : `${u.daysAway}d away`}
                       </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
+                      <HealthPill
+                        level={u.slipping ? "amber" : "green"}
+                        verbose
+                        verboseLabel={u.slipping ? "Slipping" : "On plan"}
+                      />
+                      <span className="ms-check next" aria-hidden>
+                        ✓
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <Section eyebrow="Quick stats" title="Project facts">
-            <dl className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <Stat label="Acquisition" value={acquisitionLabel[meta.acquisitionMode] ?? meta.acquisitionMode} />
-              <Stat label="Land area" value={meta.landAreaSqm ? `${meta.landAreaSqm.toLocaleString()} m²` : "—"} />
-              <Stat label="Gross / net" value={meta.grossSquareMeters && meta.netSquareMeters
-                ? `${meta.grossSquareMeters.toLocaleString()} / ${meta.netSquareMeters.toLocaleString()} m²`
-                : "—"} />
-              <Stat label="Project currency" value={meta.projectCurrency} />
-              <Stat label="Operational currency" value={meta.operationalCurrency} />
-              <Stat label="Acquisition date" value={meta.acquisitionDate ? formatDate(meta.acquisitionDate, "long") : "—"} />
-            </dl>
-            {meta.notes && (
-              <p className="mt-4 text-sm text-ink-secondary leading-relaxed">
-                {meta.notes}
-              </p>
-            )}
-          </Section>
+            <Section
+              eyebrow="Active phases"
+              title={`In progress · ${activePhases.length}`}
+              description="Phases currently running on this project. The full timeline is on the next tab."
+            >
+              {activePhases.length === 0 ? (
+                <EmptyState
+                  title="No phases in progress"
+                  description="Either everything is completed or nothing has started yet."
+                />
+              ) : (
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {activePhases.map((p) => (
+                    <li
+                      key={p.id}
+                      className="rounded-md border border-line-soft bg-surface px-4 py-3 flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-2 h-2 rounded-full bg-accent" aria-hidden />
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-medium text-ink truncate">
+                            {p.phaseType.replace(/_/g, " ")}
+                          </span>
+                          <span className="text-xs text-ink-tertiary">
+                            since{" "}
+                            {p.actualStartDate
+                              ? formatDate(p.actualStartDate, "short")
+                              : "—"}
+                          </span>
+                        </div>
+                      </div>
+                      {p.notes && (
+                        <span className="text-xs text-ink-secondary text-right truncate max-w-[50%]">
+                          {p.notes}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+
+            <Section eyebrow="Quick stats" title="Project facts">
+              <dl className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Stat label="Acquisition" value={acquisitionLabel[meta.acquisitionMode] ?? meta.acquisitionMode} />
+                <Stat label="Land area" value={meta.landAreaSqm ? `${meta.landAreaSqm.toLocaleString()} m²` : "—"} />
+                <Stat label="Gross / net" value={meta.grossSquareMeters && meta.netSquareMeters
+                  ? `${meta.grossSquareMeters.toLocaleString()} / ${meta.netSquareMeters.toLocaleString()} m²`
+                  : "—"} />
+                <Stat label="Project currency" value={meta.projectCurrency} />
+                <Stat label="Operational currency" value={meta.operationalCurrency} />
+                <Stat label="Acquisition date" value={meta.acquisitionDate ? formatDate(meta.acquisitionDate, "long") : "—"} />
+              </dl>
+              {meta.notes && (
+                <p className="mt-4 text-sm text-ink-secondary leading-relaxed">
+                  {meta.notes}
+                </p>
+              )}
+            </Section>
+          </div>
+
+          <aside className="po-rail">
+            <div className="po-rail-card">
+              <div className="po-rail-label mono">Site</div>
+              <h4 className="display">{project.location}</h4>
+              <div className="po-rail-sub">
+                {acquisitionLabel[meta.acquisitionMode] ?? meta.acquisitionMode}
+                {meta.landAreaSqm ? ` · ${meta.landAreaSqm.toLocaleString()} m²` : ""}
+              </div>
+            </div>
+            <div className="po-rail-card">
+              <div className="po-rail-label mono">Units · {project.units}</div>
+              <div className="po-rail-sub">
+                {project.unitsSold} of {project.units} contracted ·{" "}
+                {project.constructionProgressPct}% built
+              </div>
+            </div>
+            <div className="po-rail-card">
+              <div className="po-rail-label mono">
+                Investors · {projectCommitments.length}
+              </div>
+              <div className="po-rail-sub">
+                {formatUsdMinor(
+                  projectCommitments.reduce(
+                    (a, c) => a + BigInt(c.committedAmountUsdMinor),
+                    0n,
+                  ),
+                )}{" "}
+                committed
+              </div>
+              <Button asChild variant="secondary" className="w-full mt-2">
+                <Link href={`/development-os/projects/${slug}/milestones`}>
+                  Compose update
+                </Link>
+              </Button>
+            </div>
+          </aside>
         </div>
       ),
     },

@@ -211,7 +211,7 @@ export function MilestonesEditor({
         milestones={milestones.map((m) => ({ id: m.id, name: m.name }))}
         onSubmit={handleAdd}
       />
-      <p className="mono mt-4 text-[10px] text-ink-3" style={{ letterSpacing: "0.12em" }}>
+      <p className="mono mt-4 text-[10px] text-ink-3 tracking-[0.12em]">
         PROJECT: {projectSlug.toUpperCase()}
       </p>
     </>

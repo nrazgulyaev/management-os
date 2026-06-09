@@ -184,3 +184,180 @@
   [data-product] .cfo-detail-kpis { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* =============================================================
+   CFO console layout (dev-p1/cfo.html "Transactions & profit")
+   — translated 1:1 from the mockup's inline `cf-*` styles into
+   product-scoped, tokenised classes. Pixel target: page-header +
+   5-up KPI strip + 2-col grid (ledger table / expense breakdown).
+   ============================================================= */
+
+/* KPI strip — mockup's `.cf-kpis` (4-up; live cabinet ships 5). */
+[data-product] .cfo-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+/* Section title inside a card — mockup `.cf-h3`. */
+[data-product] .cfo-card-title {
+  font-family: var(--display-font), sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--ink);
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+}
+[data-product] .cfo-card-sub {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+/* Card header row (title + meta + sub-route buttons). */
+[data-product] .cfo-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+[data-product] .cfo-card-head .cfo-card-title { margin-bottom: 0; }
+[data-product] .cfo-card-head .actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Two-column console grid — mockup `.cf-grid` (1fr / 320px). */
+[data-product] .cfo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 1fr;
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+/* Type chip on ledger rows — mockup `.cf-typchip`. */
+[data-product] .cfo-typchip {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+[data-product] .cfo-typchip.in {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+}
+[data-product] .cfo-typchip.out {
+  background: var(--bg-2);
+  color: var(--ink-3);
+}
+
+/* Inflow / outflow amount tint — mockup `.cf-amt-in` / `.cf-amt-out`. */
+[data-product] .cfo-amt-in { color: var(--ok); font-weight: 600; }
+[data-product] .cfo-amt-out { color: var(--ink); }
+
+/* Expense-breakdown bars — mockup `.cf-bar`. */
+[data-product] .cfo-bar {
+  display: grid;
+  grid-template-columns: 96px 1fr 84px;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 0;
+  font-size: 12.5px;
+}
+[data-product] .cfo-bar .cfo-bar-label {
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-product] .cfo-bar .track {
+  height: 9px;
+  background: var(--bg-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+[data-product] .cfo-bar .fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--amber);
+}
+[data-product] .cfo-bar .fill.ok { background: var(--ok); }
+[data-product] .cfo-bar .fill.ink { background: var(--ink-3); }
+[data-product] .cfo-bar .fill.danger { background: var(--danger); }
+[data-product] .cfo-bar .val {
+  font-family: var(--mono-font), monospace;
+  font-size: 11.5px;
+  text-align: right;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] .cfo-bar.is-total { font-weight: 600; }
+[data-product] .cfo-bar.is-total .cfo-bar-label { color: var(--ink); }
+
+/* Summary block divider under the category bars. */
+[data-product] .cfo-bar-summary {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-2);
+}
+
+/* 6-week net cash strip — mockup-adjacent; dynamic bar heights stay
+   inline (computed geometry), the chrome is tokenised here. */
+[data-product] .cfo-cashstrip {
+  margin-top: 14px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 140px;
+}
+[data-product] .cfo-cashstrip .col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+[data-product] .cfo-cashstrip .col .net {
+  font-family: var(--mono-font), monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 9px;
+  color: var(--ink-3);
+}
+[data-product] .cfo-cashstrip .col .bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+}
+[data-product] .cfo-cashstrip .col .bar.past-pos { background: var(--ok); }
+[data-product] .cfo-cashstrip .col .bar.past-neg { background: var(--steel); }
+[data-product] .cfo-cashstrip .col .bar.future { background: var(--amber); opacity: 0.7; }
+[data-product] .cfo-cashstrip .col .wk {
+  font-family: var(--mono-font), monospace;
+  font-size: 8px;
+  color: var(--ink-4);
+}
+
+/* Empty-cell copy inside ledger / breakdown tables. */
+[data-product] .cfo-table-empty {
+  text-align: center;
+  color: var(--ink-3);
+  padding: 28px 0;
+  font-style: italic;
+}
+
+/* Portfolio total row in the P&L table. */
+[data-product] table.data tbody tr.cfo-row-total {
+  background: var(--bg-2);
+  font-weight: 500;
+}
+[data-product] table.data tbody tr.cfo-row-total td.cfo-total-accent { color: var(--amber); }
+
+@media (max-width: 1000px) {
+  [data-product] .cfo-kpis { grid-template-columns: repeat(2, 1fr); }
+  [data-product] .cfo-grid { grid-template-columns: 1fr; }
+}
+
