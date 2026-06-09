@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { FinanceTabs } from "@/components/development/finance/finance-tabs";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { FinanceTabs } from "@/components/development/finance/finance-tabs";
 import { getDb } from "@/lib/db/client";
 import {
   getBankAccounts,
@@ -36,17 +30,18 @@ export default async function FinancePage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Finance" },
-          ]}
-          title="Finance"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> / Finance
+            </div>
+            <h1>Finance.</h1>
+          </div>
+        </div>
         <EmptyState
           title="Finance dashboard runs against the database"
           description="Database connection not configured. Contact support."
-          action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+          action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
         />
       </DevelopmentShell>
     );
@@ -130,254 +125,283 @@ export default async function FinancePage() {
     0n,
   );
   const overallBudgetPct =
-    totalBudget > 0n
-      ? Number((totalActual * 10000n) / totalBudget) / 100
-      : 0;
+    totalBudget > 0n ? Number((totalActual * 10000n) / totalBudget) / 100 : 0;
+  const remaining = totalBudget - totalActual;
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance" },
-        ]}
-        eyebrow={`${bankAccounts.length} active accounts · ${formatUsdMinor(companyTotal)} on hand`}
-        title="Finance"
-        description="Three-state cost ledger (budget vs committed vs actual) + bank balances + self-sustaining status. Use the tabs below to drill into transactions, invoices, vendors, cost categories, or bank accounts."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> / Finance
+          </div>
+          <h1>
+            Three-state cost ledger.{" "}
+            <span className="text-[var(--amber)]">One source of truth.</span>
+          </h1>
+          <p className="mt-2 mb-0 text-[15px] text-[var(--ink-3)] max-w-[680px]">
+            Budget vs committed vs actual + bank balances + self-sustaining
+            status. {bankAccounts.length} active accounts ·{" "}
+            {formatUsdMinor(companyTotal)} on hand. Use the tabs to drill into
+            transactions, invoices, vendors, cost categories, or bank accounts.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/cfo"
+            className="btn btn-secondary btn-sm"
+          >
+            CFO console →
+          </Link>
+          <Link
+            href="/development-os/finance/transactions/quick-entry"
+            className="btn btn-amber btn-sm"
+          >
+            + Journal entry
+          </Link>
+        </div>
+      </div>
 
       <FinanceTabs />
 
-      <Section eyebrow="Snapshot" title="At a glance">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
-            label="Total budget"
-            value={formatUsdMinor(totalBudget)}
-            hint={`${projectSummaries.length} projects`}
-          />
-          <MetricCard
-            label="Committed"
-            value={formatUsdMinor(totalCommitted)}
-            hint="Open POs"
-          />
-          <MetricCard
-            label="Actual spent"
-            value={formatUsdMinor(totalActual)}
-            hint={`${overallBudgetPct.toFixed(1)}% of budget`}
-          />
-          <MetricCard
-            label="Cash on hand"
-            value={formatUsdMinor(companyTotal)}
-            hint={`Across ${bankAccounts.length} accounts`}
-          />
-        </div>
-      </Section>
+      <div className="cfo-kpis">
+        <Kpi
+          label="Total budget"
+          value={formatUsdMinor(totalBudget)}
+          sub={`${projectSummaries.length} projects`}
+        />
+        <Kpi
+          label="Committed"
+          value={formatUsdMinor(totalCommitted)}
+          sub="open POs"
+          tone="accent"
+        />
+        <Kpi
+          label="Actual spent"
+          value={formatUsdMinor(totalActual)}
+          sub={`${overallBudgetPct.toFixed(1)}% of budget`}
+        />
+        <Kpi
+          label="Remaining"
+          value={formatUsdMinor(remaining)}
+          sub="budget left"
+        />
+        <Kpi
+          label="Cash on hand"
+          value={formatUsdMinor(companyTotal)}
+          sub={`across ${bankAccounts.length} accounts`}
+          tone="success"
+        />
+      </div>
 
-      <Section
-        eyebrow="Self-sustaining"
-        title="90-day net cash flow per project"
-        description="A project is 'self-sustaining' once net cash flow over the rolling 90-day window is positive. Excludes drawdown receipts and corporate-event flows."
-      >
+      <Card padding="default" className="mb-[18px]">
+        <div className="cfo-card-head">
+          <h3 className="cfo-card-title">90-day net cash flow per project</h3>
+          <span className="label">USD · self-sustaining</span>
+        </div>
+        <p className="cfo-card-sub mb-[14px] max-w-[680px]">
+          A project is &quot;self-sustaining&quot; once net cash flow over the
+          rolling 90-day window is positive. Excludes drawdown receipts and
+          corporate-event flows.
+        </p>
         {projectSummaries.length === 0 ? (
           <EmptyState
             title="No development projects yet"
             description="Add your first development project to start tracking budget vs. actuals."
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {projectSummaries.map((p) => (
-              <div
-                key={p.id}
-                className="rounded-lg border border-line-soft bg-surface p-4 flex flex-col gap-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{p.name}</span>
-                  <Badge
-                    tone={
-                      p.sustainCheck.isThresholdMet
-                        ? "success"
-                        : BigInt(p.sustainCheck.netCashFlowUsdMinor) >=
-                            -50_000_00n
-                          ? "warning"
-                          : "danger"
-                    }
-                  >
-                    {p.sustainCheck.isThresholdMet ? "Self-sustaining" : "Below"}
-                  </Badge>
+          <div className="fin-cards">
+            {projectSummaries.map((p) => {
+              const net = BigInt(p.sustainCheck.netCashFlowUsdMinor);
+              const tone = p.sustainCheck.isThresholdMet
+                ? "ok"
+                : net >= -50_000_00n
+                  ? "warn"
+                  : "danger";
+              return (
+                <div key={p.id} className="fin-card">
+                  <div className="fin-card-head">
+                    <span className="fin-card-name">{p.name}</span>
+                    <HandoffBadge tone={tone}>
+                      {p.sustainCheck.isThresholdMet
+                        ? "Self-sustaining"
+                        : "Below"}
+                    </HandoffBadge>
+                  </div>
+                  <div className="label">90-day net cash flow</div>
+                  <div className="fin-card-v mono">{formatUsdMinor(net)}</div>
+                  <div className="cfo-card-sub">
+                    Budget{" "}
+                    {formatUsdMinor(BigInt(p.summary.totalBudgetUsdMinor))} ·
+                    Spent {formatUsdMinor(BigInt(p.summary.totalActualUsdMinor))}{" "}
+                    ({p.summary.budgetConsumedPercent.toFixed(1)}%)
+                  </div>
                 </div>
-                <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-                  90-day net cash flow
-                </div>
-                <div className="text-2xl font-medium tabular-nums">
-                  {formatUsdMinor(BigInt(p.sustainCheck.netCashFlowUsdMinor))}
-                </div>
-                <div className="text-xs text-ink-tertiary">
-                  Budget {formatUsdMinor(BigInt(p.summary.totalBudgetUsdMinor))}{" "}
-                  · Spent{" "}
-                  {formatUsdMinor(BigInt(p.summary.totalActualUsdMinor))} (
-                  {p.summary.budgetConsumedPercent.toFixed(1)}%)
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
-      </Section>
+      </Card>
 
-      <Section eyebrow="Bank accounts" title="Active accounts">
-        {bankAccounts.length === 0 ? (
-          <EmptyState
-            title="No bank accounts yet"
-            description="Add your first bank account to start reconciling statements."
-          />
-        ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Name</TH>
-                <TH>Type</TH>
-                <TH>Currency</TH>
-                <TH>Balance</TH>
-                <TH>USD</TH>
-                <TH>Threshold</TH>
-                <TH>Status</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {bankAccounts.map((a) => (
-                <TR key={a.id}>
-                  <TD className="font-mono text-xs">{a.accountCode}</TD>
-                  <TD className="text-sm">{a.accountName}</TD>
-                  <TD className="text-xs text-ink-secondary">{a.accountType}</TD>
-                  <TD className="text-xs">{a.currency}</TD>
-                  <TDNum>
-                    {formatCurrencyMinor(
-                      BigInt(a.currentBalanceMinor),
-                      a.currency,
-                    )}
-                  </TDNum>
-                  <TDNum>
-                    {formatUsdMinor(BigInt(a.currentBalanceUsdMinor))}
-                  </TDNum>
-                  <TDNum className="text-xs text-ink-tertiary">
-                    {a.minimumBalanceThresholdMinor
-                      ? formatCurrencyMinor(
-                          BigInt(a.minimumBalanceThresholdMinor),
-                          a.currency,
-                        )
-                      : "—"}
-                  </TDNum>
-                  <TD>
-                    <Badge tone={a.belowThreshold ? "danger" : "success"}>
-                      {a.belowThreshold ? "Below threshold" : "OK"}
-                    </Badge>
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        )}
-      </Section>
+      <div className="cfo-grid">
+        <Card padding="default">
+          <div className="cfo-card-head">
+            <h3 className="cfo-card-title">Bank accounts</h3>
+            <span className="label">
+              {bankAccounts.length} · USD-normalised
+            </span>
+          </div>
+          {bankAccounts.length === 0 ? (
+            <EmptyState
+              title="No bank accounts yet"
+              description="Add your first bank account to start reconciling statements."
+            />
+          ) : (
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Name</th>
+                  <th>Cur</th>
+                  <th className="num">Balance</th>
+                  <th className="num">USD</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bankAccounts.map((a) => (
+                  <tr key={a.id}>
+                    <td className="mono">{a.accountCode}</td>
+                    <td>{a.accountName}</td>
+                    <td className="mono text-[var(--ink-3)]">{a.currency}</td>
+                    <td className="num">
+                      {formatCurrencyMinor(
+                        BigInt(a.currentBalanceMinor),
+                        a.currency,
+                      )}
+                    </td>
+                    <td className="num">
+                      {formatUsdMinor(BigInt(a.currentBalanceUsdMinor))}
+                    </td>
+                    <td>
+                      <HandoffBadge tone={a.belowThreshold ? "danger" : "ok"}>
+                        {a.belowThreshold ? "Below" : "OK"}
+                      </HandoffBadge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
 
-      <Section eyebrow="Activity" title="Recent transactions">
+        <Card padding="default">
+          <div className="cfo-card-head">
+            <h3 className="cfo-card-title">FX snapshot</h3>
+            {latestFx && (
+              <span className="label">
+                {String(latestFx.snapshotDate)} · {latestFx.source}
+              </span>
+            )}
+          </div>
+          {latestFx ? (
+            <div className="fin-fx">
+              <FxRow label="USD → IDR" rate={String(latestFx.rateIdr)} />
+              {latestFx.rateRub && (
+                <FxRow label="USD → RUB" rate={String(latestFx.rateRub)} />
+              )}
+              {latestFx.rateEur && (
+                <FxRow label="USD → EUR" rate={String(latestFx.rateEur)} />
+              )}
+              <FxRow label="USD → USDT" rate={String(latestFx.rateUsdt)} />
+              {latestFx.rateCny && (
+                <FxRow label="USD → CNY" rate={String(latestFx.rateCny)} />
+              )}
+            </div>
+          ) : (
+            <p className="cfo-card-sub mt-[14px]">No FX snapshot yet.</p>
+          )}
+        </Card>
+      </div>
+
+      <Card padding="default">
+        <div className="cfo-card-head">
+          <h3 className="cfo-card-title">Recent transactions</h3>
+          <span className="label">latest 10</span>
+        </div>
         {recentTx.length === 0 ? (
           <EmptyState
             title="No transactions yet"
             description="Use the recordTransaction action to add the first one, or run the seed."
-          
-          action={
-            <Link href="/dashboard/jobs" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View jobs</Link>
-          }
-        />
+            action={
+              <Link
+                href="/dashboard/jobs"
+                className="btn btn-secondary btn-sm"
+              >
+                View jobs
+              </Link>
+            }
+          />
         ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Date</TH>
-                <TH>Direction</TH>
-                <TH>Description</TH>
-                <TH>Amount</TH>
-                <TH>USD</TH>
-                <TH>Reconciled</TH>
-              </TR>
-            </THead>
-            <TBody>
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Date</th>
+                <th>Direction</th>
+                <th>Description</th>
+                <th className="num">Amount</th>
+                <th className="num">USD</th>
+                <th>Reconciled</th>
+              </tr>
+            </thead>
+            <tbody>
               {recentTx.map((t) => (
-                <TR key={t.id}>
-                  <TD className="font-mono text-[11px]">{t.transactionCode}</TD>
-                  <TD className="text-xs">{t.transactionDate}</TD>
-                  <TD>
-                    <Badge
+                <tr key={t.id}>
+                  <td className="mono">{t.transactionCode}</td>
+                  <td className="text-[var(--ink-3)]">{t.transactionDate}</td>
+                  <td>
+                    <HandoffBadge
                       tone={
                         t.direction === "inflow"
-                          ? "success"
+                          ? "ok"
                           : t.direction === "outflow"
                             ? "danger"
-                            : "neutral"
+                            : "info"
                       }
                     >
                       {t.direction}
-                    </Badge>
-                  </TD>
-                  <TD className="text-xs">{t.description}</TD>
-                  <TDNum>
+                    </HandoffBadge>
+                  </td>
+                  <td>{t.description}</td>
+                  <td className="num">
                     {formatCurrencyMinor(BigInt(t.amountMinor), t.currency)}
-                  </TDNum>
-                  <TDNum>{formatUsdMinor(BigInt(t.amountUsdMinor))}</TDNum>
-                  <TD>
+                  </td>
+                  <td className="num">
+                    {formatUsdMinor(BigInt(t.amountUsdMinor))}
+                  </td>
+                  <td>
                     {t.reconciledAt ? (
-                      <Badge tone="success">Yes</Badge>
+                      <HandoffBadge tone="ok">Yes</HandoffBadge>
                     ) : (
-                      <Badge tone="warning">No</Badge>
+                      <HandoffBadge tone="warn">No</HandoffBadge>
                     )}
-                  </TD>
-                </TR>
+                  </td>
+                </tr>
               ))}
-            </TBody>
-          </Table>
+            </tbody>
+          </table>
         )}
-      </Section>
-
-      {latestFx && (
-        <Section
-          eyebrow="FX"
-          title={`Latest snapshot — ${String(latestFx.snapshotDate)} (${latestFx.source})`}
-        >
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-            <FxRow label="USD → IDR" rate={String(latestFx.rateIdr)} />
-            {latestFx.rateRub && (
-              <FxRow label="USD → RUB" rate={String(latestFx.rateRub)} />
-            )}
-            {latestFx.rateEur && (
-              <FxRow label="USD → EUR" rate={String(latestFx.rateEur)} />
-            )}
-            <FxRow label="USD → USDT" rate={String(latestFx.rateUsdt)} />
-            {latestFx.rateCny && (
-              <FxRow label="USD → CNY" rate={String(latestFx.rateCny)} />
-            )}
-          </div>
-        </Section>
-      )}
+      </Card>
     </DevelopmentShell>
   );
 }
 
 function FxRow({ label, rate }: { label: string; rate: string }) {
   return (
-    <div className="rounded-md border border-line-soft bg-surface px-3 py-2">
-      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-        {label}
-      </div>
-      <div className="font-mono text-sm">{rate}</div>
+    <div className="fin-fx-row">
+      <div className="label">{label}</div>
+      <div className="mono text-[14px] text-[var(--ink)]">{rate}</div>
     </div>
   );
 }

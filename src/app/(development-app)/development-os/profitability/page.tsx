@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listCurrentAllocations } from "@/lib/development/server/profitability/profitability-queries";
@@ -26,13 +21,13 @@ function formatMoney(minor: bigint | null | undefined, currency: string) {
 
 function marginTone(
   pct: string | null | undefined,
-): "success" | "info" | "warning" | "danger" | "neutral" {
-  if (!pct) return "neutral";
+): "ok" | "info" | "warn" | "danger" {
+  if (!pct) return "info";
   const v = Number(pct);
-  if (Number.isNaN(v)) return "neutral";
-  if (v >= 25) return "success";
+  if (Number.isNaN(v)) return "info";
+  if (v >= 25) return "ok";
   if (v >= 10) return "info";
-  if (v >= 0) return "warning";
+  if (v >= 0) return "warn";
   return "danger";
 }
 
@@ -41,8 +36,19 @@ export default async function ProfitabilityPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Unit profitability" />
-        <EmptyState title="Database not configured" description="Set DATABASE_URL." />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> / Unit
+              profitability
+            </div>
+            <h1>Unit profitability.</h1>
+          </div>
+        </div>
+        <EmptyState
+          title="Database not configured"
+          description="Set DATABASE_URL."
+        />
       </DevelopmentShell>
     );
   }
@@ -53,28 +59,78 @@ export default async function ProfitabilityPage() {
     4000,
   );
 
+  // KPI strip derived from the live allocation rows (margin math is
+  // GENERATED STORED in Postgres — read-only here, no recompute).
+  const margins = rows
+    .map((r) => Number(r.marginPercentage))
+    .filter((n) => !Number.isNaN(n));
+  const avgMargin =
+    margins.length > 0
+      ? margins.reduce((a, b) => a + b, 0) / margins.length
+      : null;
+  const best = rows.reduce<(typeof rows)[number] | null>((hi, r) => {
+    const v = Number(r.marginPercentage);
+    if (Number.isNaN(v)) return hi;
+    if (hi === null || v > Number(hi.marginPercentage)) return r;
+    return hi;
+  }, null);
+  const belowTen = margins.filter((n) => n < 10).length;
+
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Unit profitability" },
-        ]}
-        eyebrow={`${rows.length} current allocations`}
-        title="Unit profitability"
-        description="Per-asset cost basis + expected margin. `total_cost_basis_minor` and `expected_margin_minor` are GENERATED STORED in Postgres, so the math is enforced at the storage layer. Recomputes are atomic — only one `is_current=true` row per asset, guarded by a partial unique index."
-        actions={
-          <div className="flex items-center gap-3">
-            <RecomputeButton />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> / Unit
+            profitability
           </div>
-        }
-      />
+          <h1>
+            Unit <em>profitability</em>.
+          </h1>
+          <p className="mt-2 mb-0 text-[15px] text-[var(--ink-3)] max-w-[680px]">
+            Per-asset cost basis + expected margin. Cost basis and margin are
+            GENERATED STORED in Postgres — the math is enforced at the storage
+            layer. One current row per asset, guarded by a partial unique index.
+          </p>
+        </div>
+        <div className="actions">
+          <span className="chip">GENERATED STORED · enforced at DB</span>
+          <RecomputeButton />
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            Command center
+          </Link>
+        </div>
+      </div>
+
+      <div className="cfo-kpis cfo-kpis-4">
+        <Kpi
+          label="Units tracked"
+          value={rows.length}
+          sub="current allocations"
+        />
+        <Kpi
+          label="Avg margin"
+          value={avgMargin === null ? "—" : `${avgMargin.toFixed(1)}%`}
+          sub="expected"
+          tone="success"
+        />
+        <Kpi
+          label="Best unit"
+          value={
+            best?.marginPercentage
+              ? `${Number(best.marginPercentage).toFixed(0)}%`
+              : "—"
+          }
+          sub={best?.unitCode ?? "—"}
+          tone="accent"
+        />
+        <Kpi
+          label="Below 10%"
+          value={belowTen}
+          sub="review pricing"
+          tone="warn"
+        />
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -82,50 +138,64 @@ export default async function ProfitabilityPage() {
           description="Press Recompute to roll the dev budget + actuals into per-asset cost allocations, or seed via scripts/seed-dev-os.mjs."
         />
       ) : (
-        <Section eyebrow="Current basis" title="Per-unit cost + margin">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Unit</TH>
-                <TH>Type</TH>
-                <TH className="text-right">Cost basis</TH>
-                <TH className="text-right">Expected sale</TH>
-                <TH className="text-right">Margin</TH>
-                <TH>Margin %</TH>
-                <TH>Computed</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {rows.map((r) => (
-                <TR key={r.id}>
-                  <TD className="font-mono text-xs">{r.unitCode}</TD>
-                  <TD className="text-xs">{r.assetTypeKey}</TD>
-                  <TD className="text-right font-mono text-xs">
-                    {formatMoney(r.totalCostBasisMinor, r.currency)}
-                  </TD>
-                  <TD className="text-right font-mono text-xs">
-                    {formatMoney(r.expectedSalePriceMinor, r.currency)}
-                  </TD>
-                  <TD className="text-right font-mono text-xs">
-                    {formatMoney(r.expectedMarginMinor, r.currency)}
-                  </TD>
-                  <TD>
-                    {r.marginPercentage ? (
-                      <Badge tone={marginTone(r.marginPercentage)}>
-                        {Number(r.marginPercentage).toFixed(1)}%
-                      </Badge>
-                    ) : (
-                      "—"
-                    )}
-                  </TD>
-                  <TD className="text-xs">
-                    {new Date(r.computedAt).toISOString().slice(0, 10)}
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Section>
+        <Card padding="default">
+          <div className="cfo-card-head">
+            <h3 className="cfo-card-title">Per-unit cost + margin</h3>
+            <span className="label">{rows.length} allocations</span>
+          </div>
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Unit</th>
+                <th>Type</th>
+                <th className="num">Cost basis</th>
+                <th className="num">Expected sale</th>
+                <th className="num">Margin</th>
+                <th>Margin %</th>
+                <th>Computed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const marginNeg =
+                  r.expectedMarginMinor !== null &&
+                  r.expectedMarginMinor !== undefined &&
+                  Number(r.expectedMarginMinor) < 0;
+                return (
+                  <tr key={r.id}>
+                    <td className="mono">{r.unitCode}</td>
+                    <td className="text-[var(--ink-3)]">{r.assetTypeKey}</td>
+                    <td className="num">
+                      {formatMoney(r.totalCostBasisMinor, r.currency)}
+                    </td>
+                    <td className="num">
+                      {formatMoney(r.expectedSalePriceMinor, r.currency)}
+                    </td>
+                    <td
+                      className={
+                        "num" + (marginNeg ? " text-[var(--danger)]" : "")
+                      }
+                    >
+                      {formatMoney(r.expectedMarginMinor, r.currency)}
+                    </td>
+                    <td>
+                      {r.marginPercentage ? (
+                        <HandoffBadge tone={marginTone(r.marginPercentage)}>
+                          {Number(r.marginPercentage).toFixed(1)}%
+                        </HandoffBadge>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="text-[var(--ink-3)]">
+                      {new Date(r.computedAt).toISOString().slice(0, 10)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
       )}
     </DevelopmentShell>
   );
