@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   loadOwnerThreadForMgmtAction,
   generateOwnerReplyDraftAction,
@@ -60,6 +61,7 @@ function msgClass(m: MgmtOwnerThreadMessage): string {
 }
 
 export function OwnerThreadsWorkspace({ threads }: { threads: OwnerThreadRow[] }) {
+  const router = useRouter();
   const [filter, setFilter] = React.useState<Filter>("all");
   const [activeId, setActiveId] = React.useState<string | null>(
     threads[0]?.id ?? null,
@@ -125,6 +127,11 @@ export function OwnerThreadsWorkspace({ threads }: { threads: OwnerThreadRow[] }
     if (res.ok) {
       setDetail(res.thread);
       setDraft("");
+      // Re-render the server page so the inbox list (the `threads` prop) drops
+      // the "Awaiting reply" badge + refreshes the last-message preview/KPIs;
+      // the action zeroed unread_count server-side but only `detail` was held
+      // in client state, so the list row was otherwise stale until reload.
+      router.refresh();
     } else {
       setError(res.error);
     }
@@ -136,8 +143,10 @@ export function OwnerThreadsWorkspace({ threads }: { threads: OwnerThreadRow[] }
     setUpdatingStatus(true);
     setError(null);
     const res = await setOwnerThreadStatusAction(activeId, status);
-    if (res.ok) setDetail(res.thread);
-    else setError(res.error);
+    if (res.ok) {
+      setDetail(res.thread);
+      router.refresh(); // keep the list filter/status chips in sync
+    } else setError(res.error);
     setUpdatingStatus(false);
   }
 
