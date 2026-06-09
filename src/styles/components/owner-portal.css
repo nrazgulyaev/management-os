@@ -1798,67 +1798,94 @@
 
 /* ---------------------------------------------------------------
  * Phase 2.3 owner-07 — Owner settings primitives
+ *
+ * Pixel target: cabinets/owner-p1/07-settings.html (.set-section /
+ * .set-row / .l / .v / .v.mono / .toggle). Each settings group is a
+ * single warm-white card (--paper + --line-soft + r-card, 24px pad)
+ * holding a Newsreader 20px title, a sans helper line, and the
+ * label / value / action rows. All values are Layer-B tokens.
  * --------------------------------------------------------------- */
 
 [data-product="owner"] .settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  background: var(--paper);
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: var(--r-card-lg, 14px);
+  padding: 24px;
 }
 [data-product="owner"] .settings-section .ss-head {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  margin-bottom: 16px;
 }
 [data-product="owner"] .settings-section .ss-title {
-  font-size: 13px;
-  font-family: var(--font-mono);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-weight: 500;
-  color: var(--c-text);
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.15;
+  color: var(--ink);
 }
 [data-product="owner"] .settings-section .ss-helper {
-  font-size: 12px;
-  color: var(--c-text-muted);
+  margin: 4px 0 0;
+  font-family: var(--sans-font), system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-3);
 }
 [data-product="owner"] .settings-section .ss-rows {
-  border: 1px solid var(--c-border);
-  border-radius: 12px;
-  background: var(--c-surface);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
-[data-product="owner"] .settings-section.ss-warn .ss-rows {
-  border-color: rgba(192,132,86,0.5);
-  background: rgba(192,132,86,0.04);
+/* Warm-warning variant (termination card): warn-tinted border + title. */
+[data-product="owner"] .settings-section.ss-warn {
+  border-color: color-mix(in oklab, var(--warn) 26%, transparent);
 }
-[data-product="owner"] .settings-section.ss-warn .ss-title { color: var(--terra); }
+[data-product="owner"] .settings-section.ss-warn .ss-title { color: var(--warn); }
+/* Warm, non-destructive termination button: warn-tinted secondary. */
+[data-product="owner"] .btn-warn-soft {
+  color: var(--warn);
+  border-color: color-mix(in oklab, var(--warn) 26%, transparent);
+}
+[data-product="owner"] .btn-warn-soft:hover {
+  color: var(--warn);
+  border-color: color-mix(in oklab, var(--warn) 45%, transparent);
+}
 
 [data-product="owner"] .settings-row {
   display: grid;
-  grid-template-columns: 220px 1fr auto;
+  grid-template-columns: 200px 1fr auto;
   gap: 16px;
   align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--c-border);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
 }
 [data-product="owner"] .settings-row:last-child { border-bottom: 0; }
 [data-product="owner"] .settings-row .sr-label-text {
+  font-family: var(--mono-font), ui-monospace, monospace;
   font-size: 11px;
-  font-family: var(--mono-font), monospace;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--c-text-muted);
+  color: var(--ink-3);
 }
 [data-product="owner"] .settings-row .sr-label-helper {
   font-size: 11px;
-  color: var(--c-text-muted);
+  color: var(--ink-3);
   margin-top: 2px;
 }
 [data-product="owner"] .settings-row .sr-value {
-  font-size: 13px;
-  color: var(--c-text);
-  font-family: var(--font-mono);
+  font-family: var(--sans-font), system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+}
+/* Masked / monospaced value chip (e.g. account number). */
+[data-product="owner"] .settings-row .sr-value .mono,
+[data-product="owner"] .settings-row .sr-value.mono {
+  font-family: var(--mono-font), ui-monospace, monospace;
+  font-size: 12.5px;
+  background: var(--cream-deep);
+  padding: 2px 8px;
+  border-radius: var(--r-xs, 4px);
+  display: inline-block;
 }
 [data-product="owner"] .settings-row .sr-action {
   display: flex;
@@ -1876,29 +1903,26 @@
 
 [data-product="owner"] .toggle {
   position: relative;
-  width: 40px;
+  width: 38px;
   height: 22px;
-  border-radius: 999px;
-  background: var(--c-bg-muted);
-  border: 1px solid var(--c-border);
+  border-radius: var(--r-pill, 999px);
+  background: var(--line);
+  border: 0;
   cursor: pointer;
   padding: 0;
-  transition: background 160ms ease, border-color 160ms ease;
+  transition: background 180ms ease;
 }
-[data-product="owner"] .toggle.is-on {
-  background: #c08456;
-  border-color: #8b5a30;
-}
+[data-product="owner"] .toggle.is-on { background: var(--accent); }
 [data-product="owner"] .toggle.is-disabled { opacity: 0.5; cursor: not-allowed; }
 [data-product="owner"] .toggle .toggle-knob {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
-  transition: transform 160ms ease;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r-pill, 999px);
+  background: var(--paper);
+  box-shadow: 0 1px 2px rgba(20, 32, 28, 0.18);
+  transition: transform 180ms ease;
 }
-[data-product="owner"] .toggle.is-on .toggle-knob { transform: translateX(18px); }
+[data-product="owner"] .toggle.is-on .toggle-knob { transform: translateX(16px); }

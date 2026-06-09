@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Toggle } from "@/components/owner-portal/toggle";
+import { SettingsRow } from "@/components/owner-portal/settings-row";
 import { updateOwnerNotificationPrefsAction } from "@/features/owner-portal/notification-prefs";
 import type { OwnerNotificationPrefsView } from "@/features/owner-portal/notification-prefs-types";
 
@@ -52,30 +53,25 @@ export function OwnerNotificationToggles({
   return (
     <>
       {FIELDS.map((f) => (
-        <div className="settings-row" key={f.key}>
-          <div className="sr-label">
-            <div className="sr-label-text">{f.label}</div>
-          </div>
-          <div className="text-[13px] text-ink-2 leading-snug">{f.helper}</div>
-          <div className="sr-action">
+        <SettingsRow
+          key={f.key}
+          label={f.label}
+          value={f.helper}
+          action={
             <Toggle
               checked={prefs[f.key]}
               onCheckedChange={(n) => update(f.key, n)}
               ariaLabel={f.label}
               disabled={disabled || pending}
             />
-          </div>
-        </div>
+          }
+        />
       ))}
       <div
-        className="mono"
+        className={`mono text-[11px] tracking-[0.08em] pt-1.5 px-1 ${
+          status === "error" ? "text-danger" : "text-ink-4"
+        }`}
         aria-live="polite"
-        style={{
-          fontSize: 11,
-          letterSpacing: "0.08em",
-          padding: "6px 4px 0",
-          color: status === "error" ? "var(--danger)" : "var(--ink-4)",
-        }}
       >
         {disabled
           ? "Read-only while impersonating."

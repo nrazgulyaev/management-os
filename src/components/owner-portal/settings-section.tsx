@@ -9,7 +9,7 @@ import * as React from "react";
 
 export interface SettingsSectionProps {
   title: string;
-  helper?: string;
+  helper?: React.ReactNode;
   children?: React.ReactNode;
   /** Optional warning tone (terra border) — used for the termination card. */
   tone?: "default" | "warn";
