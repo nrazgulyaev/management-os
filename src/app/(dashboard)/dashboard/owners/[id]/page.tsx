@@ -13,6 +13,8 @@ import { canManageEntity } from "@/features/auth/permissions";
 import { RiskPill } from "@/components/owners/risk-pill";
 import { VillaMini } from "@/components/owners/villa-mini";
 import { type OwnerInsight } from "@/components/owners/insight-card";
+import { getOwnerChurnView } from "@/features/owners/retention-churn-service";
+import { OwnerChurnPanel } from "./_churn-panel";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DetailPage } from "@/components/dashboard/detail/detail-page";
 import { DetailHeader } from "@/components/dashboard/detail/detail-header";
@@ -95,6 +97,10 @@ export default async function OwnerDetailPage({
       }
     : null;
 
+  // Owner-CHURN drill-in — score breakdown, signals timeline, save-plan,
+  // intervention feed (all on top of the same retention engine).
+  const churn = await getOwnerChurnView(id, villaIds).catch(() => null);
+
   // PR 2 — synthetic activity timeline. The dedicated
   // `src/features/activity/get-activity.ts` resolver lands in 2.2;
   // until then we surface the few existing signals (shares + grants)
@@ -156,6 +162,10 @@ export default async function OwnerDetailPage({
             Signals: payout drift vs 3-mo avg · statement disputes/revisions ·
             unread anomalies · maintenance open &gt;14d · occupancy YoY.
             Portal-disengagement signal pending a sign-in log.
+          </p>
+          <p className="text-[11px] text-ink-tertiary mt-1">
+            Open the <strong>Churn</strong> tab for the score breakdown,
+            save-plan and intervention actions.
           </p>
         </Card>
       )}
@@ -305,6 +315,14 @@ export default async function OwnerDetailPage({
     </div>
   );
 
+  const churnPanel = churn ? (
+    <OwnerChurnPanel ownerId={owner.id} view={churn} />
+  ) : (
+    <div className="flex flex-col gap-3 px-7 py-12 text-sm text-ink-tertiary">
+      <p>Churn intelligence is unavailable in demo mode (no database).</p>
+    </div>
+  );
+
   const placeholderPanel = (label: string) => (
     <div className="flex flex-col gap-3 px-7 py-12 text-sm text-ink-tertiary">
       <p>{label} lands in Phase 2.2.</p>
@@ -361,6 +379,7 @@ export default async function OwnerDetailPage({
         tabs={[
           { id: "overview", label: "Overview" },
           { id: "shares", label: "Shares", count: shares.length },
+          { id: "churn", label: "Churn", count: churn?.breakdown.contributions.length },
           { id: "activity", label: "Activity", count: activity.length },
           { id: "statements", label: "Statements" },
           { id: "contacts", label: "Contacts" },
@@ -368,6 +387,7 @@ export default async function OwnerDetailPage({
         panels={{
           overview: overviewPanel,
           shares: sharesPanel,
+          churn: churnPanel,
           activity: activityPanel,
           statements: placeholderPanel("Statements list"),
           contacts: placeholderPanel("Contacts"),
