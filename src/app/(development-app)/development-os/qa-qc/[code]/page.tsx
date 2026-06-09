@@ -12,6 +12,8 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getQaQcIssueByCode } from "@/lib/development/server/qa-qc/qa-qc-queries";
 import { QaQcTransitionActions } from "@/components/development/qa-qc/qa-qc-transition-actions";
+import { QaQcPhotoGallery } from "@/components/development/qa-qc/qa-qc-photo-gallery";
+import { QaQcPhotoUploadZone } from "@/components/development/qa-qc/qa-qc-photo-upload-zone";
 import type { QaQcStatus } from "@/lib/development/server/qa-qc/qa-qc-helpers";
 
 export const metadata: Metadata = { title: "QA/QC issue · Development OS" };
@@ -191,23 +193,23 @@ export default async function QaQcDetailPage({
       </Section>
 
       <Section eyebrow="Photos" title={`${photos.length} attached`}>
-        {photos.length === 0 ? (
-          <p className="text-sm text-ink-tertiary">No photos yet.</p>
-        ) : (
-          <ul className="text-sm space-y-1">
-            {photos.map((p) => (
-              <li key={p.id} className="flex items-center gap-2">
-                <Badge tone="neutral">{p.photoRole}</Badge>
-                <span className="font-mono text-xs">
-                  {p.documentId.slice(0, 8)}
-                </span>
-                {p.caption && (
-                  <span className="text-ink-secondary">— {p.caption}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="space-y-4">
+          <QaQcPhotoGallery
+            photos={photos.map((p) => ({
+              id: p.id,
+              documentId: p.documentId,
+              photoRole: p.photoRole,
+              caption: p.caption,
+              uploadedAt: new Date(p.uploadedAt).toISOString(),
+            }))}
+          />
+          <div>
+            <h4 className="text-[11px] uppercase tracking-wide text-ink-tertiary mb-2">
+              Add site evidence
+            </h4>
+            <QaQcPhotoUploadZone issueId={issue.id} />
+          </div>
+        </div>
       </Section>
 
       {issue.notes && (
