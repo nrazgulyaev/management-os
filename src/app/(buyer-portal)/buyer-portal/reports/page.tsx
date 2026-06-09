@@ -27,16 +27,16 @@ export default async function BuyerReportsPage() {
   return (
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>
       <section>
-        <h2 className="font-display text-2xl tracking-wide text-stone-900 mb-1">
+        <h2 className="font-display text-2xl tracking-wide text-ink mb-1">
           Progress reports
         </h2>
-        <p className="text-sm text-stone-600">
+        <p className="text-sm text-ink-secondary">
           Curated construction updates for the projects where you own a villa.
         </p>
       </section>
 
       {reports.length === 0 ? (
-        <div className="rounded-lg border border-stone-300 bg-white p-6 text-sm text-stone-600">
+        <div className="rounded-lg border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
           No published reports yet. Check back after the next site visit.
         </div>
       ) : (
@@ -44,14 +44,14 @@ export default async function BuyerReportsPage() {
           {reports.map((r) => (
             <li
               key={r.id}
-              className="rounded-lg border border-stone-300 bg-white p-5"
+              className="rounded-lg border border-line-soft bg-surface p-5"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium text-stone-900">
+                  <div className="text-sm font-medium text-ink">
                     {r.nextMilestone ?? "Construction update"}
                   </div>
-                  <div className="text-xs text-stone-500 mt-0.5">
+                  <div className="text-xs text-ink-tertiary mt-0.5">
                     Period {r.reportingPeriodStart} → {r.reportingPeriodEnd}
                     {r.currentProgressPercentage != null && (
                       <>
@@ -63,13 +63,13 @@ export default async function BuyerReportsPage() {
                 </div>
                 <Link
                   href={`/buyer-portal/reports/${r.id}`}
-                  className="text-sm text-stone-700 underline"
+                  className="text-sm text-ink-secondary underline hover:text-ink transition-colors"
                 >
                   Read full report
                 </Link>
               </div>
               {r.worksCompletedSummary && (
-                <p className="text-sm text-stone-700 mt-3 leading-relaxed line-clamp-3">
+                <p className="text-sm text-ink-secondary mt-3 leading-relaxed line-clamp-3">
                   {r.worksCompletedSummary}
                 </p>
               )}

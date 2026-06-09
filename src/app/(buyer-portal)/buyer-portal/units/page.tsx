@@ -25,10 +25,10 @@ export default async function BuyerUnitsPage() {
   return (
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>
       <section>
-        <h2 className="font-display text-2xl tracking-wide text-stone-900 mb-1">
+        <h2 className="font-display text-2xl tracking-wide text-ink mb-1">
           My villas
         </h2>
-        <p className="text-sm text-stone-600">
+        <p className="text-sm text-ink-secondary">
           {assignments.length === 0
             ? "No villas assigned yet."
             : `${assignments.length} villa${assignments.length === 1 ? "" : "s"} reserved/contracted in your name.`}
@@ -39,25 +39,25 @@ export default async function BuyerUnitsPage() {
         {assignments.map((a) => (
           <li
             key={a.id}
-            className="rounded-lg border border-stone-300 bg-white p-5 space-y-2"
+            className="rounded-lg border border-line-soft bg-surface p-5 space-y-2"
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-mono text-stone-900">
+                <div className="text-sm font-mono text-ink">
                   Villa {a.unitId.slice(0, 8)}
                 </div>
-                <div className="text-xs text-stone-500 capitalize">
+                <div className="text-xs text-ink-tertiary capitalize">
                   Status: {a.status.replace(/_/g, " ")}
                 </div>
               </div>
               <Link
                 href={`/buyer-portal/units/${a.unitId}`}
-                className="text-sm text-stone-700 underline"
+                className="text-sm text-ink-secondary underline hover:text-ink transition-colors"
               >
                 Details
               </Link>
             </div>
-            <div className="text-xs text-stone-500">
+            <div className="text-xs text-ink-tertiary">
               Assigned {a.assignedAt}
               {a.contractedAt && ` · contracted ${a.contractedAt}`}
               {a.handedOverAt && ` · handed over ${a.handedOverAt}`}

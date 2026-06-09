@@ -37,22 +37,22 @@ export default async function BuyerReportDetailPage({
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>
       <Link
         href="/buyer-portal/reports"
-        className="inline-flex items-center gap-1 text-sm text-stone-600 hover:text-stone-900"
+        className="inline-flex items-center gap-1 text-sm text-ink-secondary hover:text-ink transition-colors"
       >
         <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
         All reports
       </Link>
 
       <section>
-        <h2 className="font-display text-2xl tracking-wide text-stone-900 mb-1">
+        <h2 className="font-display text-2xl tracking-wide text-ink mb-1">
           {report.nextMilestone ?? "Construction update"}
         </h2>
-        <p className="text-sm text-stone-600">
+        <p className="text-sm text-ink-secondary">
           Period {report.reportingPeriodStart} → {report.reportingPeriodEnd}
           {report.currentProgressPercentage != null && (
             <>
               {" · "}
-              <span className="font-medium text-stone-900">
+              <span className="font-medium text-ink">
                 {Number(report.currentProgressPercentage).toFixed(0)}% complete
               </span>
             </>
@@ -61,59 +61,59 @@ export default async function BuyerReportDetailPage({
       </section>
 
       {report.worksCompletedSummary && (
-        <section className="rounded-lg border border-stone-300 bg-white p-5">
-          <h3 className="text-sm font-medium text-stone-700 mb-2">
+        <section className="rounded-lg border border-line-soft bg-surface p-5">
+          <h3 className="text-sm font-medium text-ink-secondary mb-2">
             Completed this period
           </h3>
-          <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">
+          <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">
             {report.worksCompletedSummary}
           </p>
         </section>
       )}
 
       {report.worksPlannedSummary && (
-        <section className="rounded-lg border border-stone-300 bg-white p-5">
-          <h3 className="text-sm font-medium text-stone-700 mb-2">
+        <section className="rounded-lg border border-line-soft bg-surface p-5">
+          <h3 className="text-sm font-medium text-ink-secondary mb-2">
             Planned next
           </h3>
-          <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">
+          <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">
             {report.worksPlannedSummary}
           </p>
         </section>
       )}
 
       {report.expectedHandoverDate && (
-        <section className="rounded-lg border border-stone-300 bg-white p-5">
-          <h3 className="text-sm font-medium text-stone-700 mb-1">
+        <section className="rounded-lg border border-line-soft bg-surface p-5">
+          <h3 className="text-sm font-medium text-ink-secondary mb-1">
             Expected handover
           </h3>
-          <p className="text-sm text-stone-900">{report.expectedHandoverDate}</p>
+          <p className="text-sm text-ink">{report.expectedHandoverDate}</p>
         </section>
       )}
 
       {report.highlightedRisks && (
-        <section className="rounded-lg border border-amber-300 bg-amber-50 p-5">
-          <h3 className="text-sm font-medium text-stone-900 mb-2">
+        <section className="rounded-lg border border-warning bg-warning-weak p-5">
+          <h3 className="text-sm font-medium text-ink mb-2">
             Highlighted risks
           </h3>
-          <p className="text-sm text-stone-800 whitespace-pre-wrap leading-relaxed">
+          <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
             {report.highlightedRisks}
           </p>
         </section>
       )}
 
       {report.managementCommentary && (
-        <section className="rounded-lg border border-stone-300 bg-white p-5">
-          <h3 className="text-sm font-medium text-stone-700 mb-2">
+        <section className="rounded-lg border border-line-soft bg-surface p-5">
+          <h3 className="text-sm font-medium text-ink-secondary mb-2">
             From the management team
           </h3>
-          <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed italic">
+          <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed italic">
             {report.managementCommentary}
           </p>
         </section>
       )}
 
-      <p className="text-[11px] text-stone-500 text-center pt-4">
+      <p className="text-[11px] text-ink-tertiary text-center pt-4">
         Published{" "}
         {report.publishedAt
           ? new Date(report.publishedAt).toLocaleDateString()

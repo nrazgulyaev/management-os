@@ -32,14 +32,14 @@ type VillaLadder = {
 };
 
 const STATUS_PILL: Record<string, string> = {
-  paid: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  partially_paid: "bg-amber-100 text-amber-800 border-amber-300",
-  overdue: "bg-red-100 text-red-800 border-red-300",
-  invoiced: "bg-stone-100 text-stone-700 border-stone-300",
-  pre_invoiced: "bg-stone-100 text-stone-700 border-stone-300",
-  pending: "bg-stone-100 text-stone-600 border-stone-300",
-  waived: "bg-stone-100 text-stone-500 border-stone-300",
-  cancelled: "bg-stone-100 text-stone-500 border-stone-300",
+  paid: "bg-success-weak text-success border-success/40",
+  partially_paid: "bg-warning-weak text-warning border-warning/40",
+  overdue: "bg-danger-weak text-danger border-danger/40",
+  invoiced: "bg-muted text-ink-secondary border-line-soft",
+  pre_invoiced: "bg-muted text-ink-secondary border-line-soft",
+  pending: "bg-muted text-ink-secondary border-line-soft",
+  waived: "bg-muted text-ink-tertiary border-line-soft",
+  cancelled: "bg-muted text-ink-tertiary border-line-soft",
 };
 
 const PAYABLE_STATUSES = new Set([
@@ -150,10 +150,10 @@ export default async function BuyerPaymentsPage() {
   return (
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>
       <section>
-        <h2 className="font-display text-2xl tracking-wide text-stone-900 mb-1">
+        <h2 className="font-display text-2xl tracking-wide text-ink mb-1">
           Payments
         </h2>
-        <p className="text-sm text-stone-600">
+        <p className="text-sm text-ink-secondary">
           Your installment schedule for each villa you are purchasing. Confirm a
           payment once you have transferred the funds — our team reconciles it
           against the contract.
@@ -161,11 +161,11 @@ export default async function BuyerPaymentsPage() {
       </section>
 
       {ladders.length === 0 ? (
-        <div className="rounded-lg border border-stone-300 bg-white p-6 text-sm text-stone-600">
+        <div className="rounded-lg border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
           No villas assigned yet.
         </div>
       ) : !hasAnyMilestones ? (
-        <div className="rounded-lg border border-stone-300 bg-white p-6 text-sm text-stone-600">
+        <div className="rounded-lg border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
           Your payment schedule has not been issued yet. It appears here once
           your contract milestones are set up.
         </div>
@@ -183,32 +183,32 @@ export default async function BuyerPaymentsPage() {
             return (
               <section
                 key={ladder.villaId}
-                className="rounded-lg border border-stone-300 bg-white"
+                className="rounded-lg border border-line-soft bg-surface"
               >
-                <header className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 px-5 py-4">
+                <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line-soft px-5 py-4">
                   <div>
-                    <h3 className="font-display text-lg tracking-wide text-stone-900">
+                    <h3 className="font-display text-lg tracking-wide text-ink">
                       {ladder.villaLabel}
                     </h3>
-                    <p className="text-xs text-stone-500 capitalize">
+                    <p className="text-xs text-ink-tertiary capitalize">
                       {ladder.villaStatus.replace(/_/g, " ")}
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-mono text-stone-900">
+                    <div className="text-sm font-mono text-ink">
                       {formatMoneyMinor(paidTotal, "USD")} /{" "}
                       {formatMoneyMinor(expectedTotal, "USD")}
                     </div>
-                    <div className="text-xs text-stone-500">paid of total</div>
+                    <div className="text-xs text-ink-tertiary">paid of total</div>
                   </div>
                 </header>
 
                 {ladder.milestones.length === 0 ? (
-                  <div className="px-5 py-4 text-sm text-stone-500">
+                  <div className="px-5 py-4 text-sm text-ink-tertiary">
                     No installments scheduled yet.
                   </div>
                 ) : (
-                  <ol className="divide-y divide-stone-200">
+                  <ol className="divide-y divide-line-soft">
                     {ladder.milestones.map((m) => {
                       const pill =
                         STATUS_PILL[m.status] ?? STATUS_PILL.pending;
@@ -220,10 +220,10 @@ export default async function BuyerPaymentsPage() {
                         >
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-xs text-stone-400">
+                              <span className="font-mono text-xs text-ink-tertiary">
                                 {String(m.sequence).padStart(2, "0")}
                               </span>
-                              <span className="text-sm text-stone-900">
+                              <span className="text-sm text-ink">
                                 {m.name}
                               </span>
                               <span
@@ -232,7 +232,7 @@ export default async function BuyerPaymentsPage() {
                                 {m.status.replace(/_/g, " ")}
                               </span>
                             </div>
-                            <div className="mt-1 text-xs text-stone-500">
+                            <div className="mt-1 text-xs text-ink-tertiary">
                               {m.expectedDueDate
                                 ? `Due ${m.expectedDueDate}`
                                 : "No due date"}
@@ -257,7 +257,7 @@ export default async function BuyerPaymentsPage() {
                           </div>
                           <div className="flex items-center gap-4">
                             <div className="text-right">
-                              <div className="text-sm font-mono text-stone-900">
+                              <div className="text-sm font-mono text-ink">
                                 {formatMoneyMinor(
                                   m.expectedAmountUsdMinor,
                                   "USD",
@@ -279,7 +279,7 @@ export default async function BuyerPaymentsPage() {
         </div>
       )}
 
-      <p className="text-xs text-stone-400">
+      <p className="text-xs text-ink-tertiary">
         Bank-transfer and local payment rails are coming soon. For now, please
         transfer via the instructions in your contract and confirm here.
       </p>
