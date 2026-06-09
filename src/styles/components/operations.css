@@ -9,6 +9,28 @@
    .staff-chip               — assignee chip (unassigned variant dashed)
    ============================================================= */
 
+/* ---------- Command-center page header ---------- */
+/* The shared .page-header sets margin-bottom:22px; the command center
+   pairs the header with the hero strip directly underneath, so we flush
+   the gap and let the hero own the vertical rhythm. */
+[data-product] .page-header.ops-header-flush { margin-bottom: 0; }
+
+/* ---------- Status-board state dots ---------- */
+/* Data-driven swatch colours for the villa-readiness legend. Each dot maps
+   a VillaState to its Layer-B semantic token (keeps colour out of JSX). */
+[data-product] .state-dot {
+  width: 8px; height: 8px; border-radius: 999px;
+  display: inline-block; flex-shrink: 0;
+}
+[data-product] .state-dot-ready       { background: var(--ok); }
+[data-product] .state-dot-occupied    { background: var(--forest); }
+[data-product] .state-dot-cleaning    { background: var(--terra); }
+[data-product] .state-dot-inspection  { background: var(--info); }
+[data-product] .state-dot-checkout    { background: var(--warn); }
+[data-product] .state-dot-maintenance { background: var(--danger); }
+[data-product] .state-dot-owner       { background: var(--gold); }
+[data-product] .state-dot-ooo         { background: var(--line-strong, var(--line)); }
+
 /* ---------- OpsTile + OpsHero ---------- */
 [data-product] .ops-hero {
   display: grid;
