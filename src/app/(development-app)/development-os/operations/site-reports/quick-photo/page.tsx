@@ -64,26 +64,32 @@ export default function QuickPhotoPage() {
 
   return (
     <div className="min-h-screen bg-canvas px-4 py-6 max-w-md mx-auto">
-      <div className="flex items-center justify-between mb-4">
+      {/* Carbon LIVE-CAPTURE header — matches the cabinet capture console */}
+      <div className="flex items-center gap-3 rounded-[14px] bg-carbon px-4 py-3 text-white mb-5">
         <Link
           href="/development-os/cabinets/site-supervisor"
-          className="text-sm text-ink-secondary inline-flex items-center gap-1"
+          className="inline-flex items-center gap-1 text-[13px] text-white/75 hover:text-white"
         >
           <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           Back
         </Link>
-        <span className="text-xs text-ink-tertiary">Quick photo</span>
+        <span className="ml-auto mono text-[10.5px] tracking-[0.14em] text-amber">
+          QUICK PHOTO
+        </span>
       </div>
 
-      <h1 className="text-2xl font-medium mb-1">Capture site photo</h1>
-      <p className="text-sm text-ink-secondary mb-6">
+      <h1 className="display text-[26px] font-medium mb-1">Capture site photo</h1>
+      <p className="text-[13px] text-ink-3 mb-6">
         Works offline — queued upload when connection returns.
       </p>
 
       {!photoUrl && (
-        <label className="block min-h-[200px] border-2 border-dashed border-line-soft rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-ink/30">
-          <Camera className="w-10 h-10 text-ink-tertiary mb-2" strokeWidth={1.5} />
-          <span className="text-sm text-ink-secondary">Tap to take photo</span>
+        <label className="flex min-h-[220px] flex-col items-center justify-center cursor-pointer rounded-[14px] border-2 border-dashed border-line-2 bg-bg-2 hover:border-amber">
+          <Camera className="w-10 h-10 text-amber mb-2.5" strokeWidth={1.5} />
+          <span className="text-[13px] font-medium text-ink">Tap to take photo</span>
+          <span className="mono mt-1 text-[10px] tracking-[0.12em] text-ink-4 uppercase">
+            camera · environment
+          </span>
           <input
             type="file"
             accept="image/*"
@@ -103,20 +109,20 @@ export default function QuickPhotoPage() {
           <img
             src={photoUrl}
             alt="captured"
-            className="w-full rounded-md border border-line-soft mb-4"
+            className="w-full rounded-[14px] border border-line-2 mb-4"
           />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional description"
+            placeholder="Optional description…"
             rows={3}
-            className="w-full rounded-md border border-line-soft p-3 text-sm mb-4"
+            className="textarea mb-4"
           />
           <button
             type="button"
             onClick={handleSubmit}
             disabled={status === "queued" || status === "uploaded"}
-            className="w-full min-h-[44px] rounded-md bg-info text-white text-sm font-medium disabled:opacity-60"
+            className="btn btn-amber w-full min-h-[48px]"
           >
             {status === "queued"
               ? "Queued — will sync when online"
@@ -125,7 +131,7 @@ export default function QuickPhotoPage() {
                 : "Submit photo"}
           </button>
           {(status === "queued" || status === "uploaded") && (
-            <p className="text-sm text-success mt-3 inline-flex items-center gap-2">
+            <p className="text-[13px] text-success mt-3 inline-flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" strokeWidth={1.75} />
               {status === "queued"
                 ? "Photo captured. Will sync when online."
@@ -133,7 +139,7 @@ export default function QuickPhotoPage() {
             </p>
           )}
           {error && (
-            <p className="text-sm text-danger mt-3" role="alert">
+            <p className="text-[13px] text-danger mt-3" role="alert">
               {error}
             </p>
           )}
