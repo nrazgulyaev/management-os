@@ -41,7 +41,7 @@ export default async function GuestServicesHub() {
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header">
         <div className="left">
           <div className="crumb">
             <Link href="/dashboard/guest-stays">Guest stays</Link> / <span>Services</span>
@@ -63,7 +63,7 @@ export default async function GuestServicesHub() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-[18px]">
         <Kpi label="Catalog · active" value={String(activeServices)} sub={`${categories.length} categories`} />
         <Kpi
           label="Live orders"

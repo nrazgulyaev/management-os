@@ -1,0 +1,175 @@
+/* =============================================================
+   Pixel cluster C3 · Portfolio — Villas / Projects / Ownership shares.
+
+   Ported from cabinets/mgmt-p3/Portfolio.html (`.gs-*` family) into
+   Layer-B tokens. Product-agnostic where the mockup is, mgmt/owner
+   scoped where it tints. Companion to `projects.css`.
+
+   .pf-kpis      — 4-up KPI strip (→ 2-up on mobile)
+   .pf-card-h    — inset card header (title + meta + actions)
+   .pf-proj-grid — 2-up project card grid
+   .pf-proj      — single project card (tags / title / copy / stats)
+   .pf-alloc     — 3-up share-review card grid
+   .pf-acard     — one allocation-health card (bar + message)
+   ============================================================= */
+
+/* ---------- KPI strip ---------- */
+[data-product] .pf-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+/* ---------- Card header (title + meta + actions) ---------- */
+[data-product] .pf-card-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+[data-product] .pf-card-h h3 {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--ink);
+}
+[data-product] .pf-card-h .meta {
+  margin-left: auto;
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Projects grid ---------- */
+[data-product] .pf-proj-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+[data-product] .pf-proj {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card-lg, 22px);
+  background: var(--paper);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+[data-product] .pf-proj:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-card);
+}
+[data-product] .pf-proj .tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+[data-product] .pf-proj h3 {
+  margin: 6px 0 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 23px;
+  color: var(--ink);
+}
+[data-product] .pf-proj p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.5;
+}
+[data-product] .pf-proj .stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-soft);
+}
+[data-product] .pf-proj .st .l {
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-4);
+}
+[data-product] .pf-proj .st .v {
+  font-size: 14px;
+  color: var(--ink);
+  margin-top: 3px;
+}
+
+/* ---------- Allocation-health cards ---------- */
+[data-product] .pf-alloc {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+[data-product] .pf-acard {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card, 18px);
+  background: var(--paper);
+  padding: 14px 16px;
+}
+[data-product] .pf-acard.bad {
+  border-color: color-mix(in oklab, var(--danger) 35%, var(--line));
+  background: color-mix(in oklab, var(--danger) 6%, var(--paper));
+}
+[data-product] .pf-acard.warn {
+  border-color: color-mix(in oklab, var(--warn) 35%, var(--line));
+  background: color-mix(in oklab, var(--warn) 6%, var(--paper));
+}
+[data-product] .pf-acard .top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+[data-product] .pf-acard .sub {
+  font-size: 13px;
+  color: var(--ink);
+}
+[data-product] .pf-acard .pct {
+  font-family: var(--mono-font), monospace;
+  font-size: 13px;
+  font-weight: 500;
+}
+[data-product] .pf-acard.bad .pct { color: var(--danger); }
+[data-product] .pf-acard.warn .pct { color: var(--warn); }
+[data-product] .pf-acard .bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cream-deep);
+  margin-top: 10px;
+  overflow: hidden;
+}
+[data-product] .pf-acard .bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ok);
+}
+[data-product] .pf-acard.bad .bar > i { background: var(--danger); }
+[data-product] .pf-acard.warn .bar > i { background: var(--warn); }
+[data-product] .pf-acard .msg {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  color: var(--ink-4);
+  margin-top: 7px;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 900px) {
+  [data-product] .pf-proj-grid { grid-template-columns: 1fr; }
+  [data-product] .pf-alloc { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  [data-product] .pf-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  [data-product] .pf-card-h { flex-wrap: wrap; }
+}

@@ -31,7 +31,7 @@ export default async function GuestJourneyHub() {
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header">
         <div className="left">
           <div className="crumb">
             <Link href="/dashboard">Dashboard</Link> / <span>Guest journey</span>
@@ -53,7 +53,7 @@ export default async function GuestJourneyHub() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-[18px]">
         <Kpi label="Active rules" value={String(stats.activeRules)} sub={`${stats.pausedRules} paused`} />
         <Kpi
           label="Pending runs"
@@ -76,7 +76,7 @@ export default async function GuestJourneyHub() {
       </div>
 
       {/* Operate */}
-      <div className="rounded-md border border-line-soft bg-surface px-4 py-3 flex items-center gap-3 flex-wrap text-xs mt-[18px]">
+      <div className="rounded-md border border-line-soft bg-surface px-4 py-3 flex items-center gap-3 flex-wrap text-xs">
         <span className="text-ink-tertiary">
           Run ad-hoc (both also wired to cron)
         </span>
