@@ -30,6 +30,14 @@ the config will pass production gates.
 | `DIRECT_URL` | optional | Direct (unpooled) Postgres URL.  `scripts/migrate.ts` + `scripts/seed.ts` prefer this. |
 | `CRON_MAX_CONCURRENT_PER_JOB` | optional | Default `1`.  Always 1 with current `job_locks` model. |
 
+### Observability (Task H — all optional; missing = local-stdout only)
+
+| Var | Required | Purpose |
+|---|---|---|
+| `SENTRY_DSN` | optional | Sentry DSN.  When set, the structured logger forwards `warn`/`error` lines to Sentry.  Unset = no external error forwarding. |
+| `LOGTAIL_TOKEN` | optional | Logtail (Better Stack) source token.  When set, `warn`/`error` lines ship to Logtail.  Override the ingest host with `LOGTAIL_INGEST_HOST`. |
+| `HEALTH_STALE_JOB_MINUTES` | optional | Default `60`.  Minutes a `job_run` may sit `running` before `/api/cron/health` reports it stale (returns 503). |
+
 ### Supabase
 
 | Var | Required | Purpose |

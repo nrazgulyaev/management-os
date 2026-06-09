@@ -15,6 +15,16 @@ const repoRoot = join(here, "..");
 const cronDir = join(repoRoot, "src/app/api/cron");
 const checklistPath = join(repoRoot, "docs/VERCEL-CRON-CHECKLIST.md");
 
+/**
+ * OBSERVABILITY-SPINE-H — liveness/health probes that live under /api/cron/*
+ * for path convention but are intentionally NOT scheduled jobs: they don't
+ * call `handleCronJobRequest`, carry no job key, and are reachable without
+ * the CRON_SECRET bearer (an uptime monitor must hit them anonymously). They
+ * are still listed in the checklist for path coverage, but the
+ * job-handler / job-key invariants don't apply.
+ */
+const HEALTH_PROBE_ROUTES = new Set<string>(["health"]);
+
 function listCronRoutes(): string[] {
   if (!existsSync(cronDir)) return [];
   return readdirSync(cronDir).filter((f) => {
@@ -58,6 +68,15 @@ for (const dir of routes) {
   if (!existsSync(routeFile)) {
     lines.push(`  ! ${dir}: no route.ts found — skipping.`);
     warning += 1;
+    continue;
+  }
+  // Liveness probes are exempt from the job-handler / job-key invariants.
+  if (HEALTH_PROBE_ROUTES.has(dir)) {
+    const routePath = `/api/cron/${dir}`;
+    if (checklistBody && !checklistBody.includes(routePath)) {
+      lines.push(`  ! ${dir}: route path "${routePath}" missing from checklist.`);
+      warning += 1;
+    }
     continue;
   }
   const body = readFileSync(routeFile, "utf-8");

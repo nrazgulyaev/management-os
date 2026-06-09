@@ -336,6 +336,35 @@ export const ENV_REGISTRY: ReadonlyArray<EnvVarSpec> = [
     description: "Max concurrent runs of any one cron job.",
     usage: "Default `1`.  Always 1 with current `job_locks` model.",
   },
+  // --------------------------------------------------------------------------
+  // Observability spine (Task H) — all optional; missing = local-stdout only.
+  // --------------------------------------------------------------------------
+  {
+    key: "SENTRY_DSN",
+    category: "core",
+    public: false,
+    requirement: "optional",
+    description: "Sentry DSN — forwards warn/error logs to Sentry when set.",
+    usage:
+      "Standard `https://<key>@<host>/<project>` DSN.  Unset = no external error forwarding.",
+  },
+  {
+    key: "LOGTAIL_TOKEN",
+    category: "core",
+    public: false,
+    requirement: "optional",
+    description: "Logtail (Better Stack) source token — forwards warn/error logs.",
+    usage:
+      "Source token from Better Stack.  Unset = no external log shipping.  Override host with `LOGTAIL_INGEST_HOST`.",
+  },
+  {
+    key: "HEALTH_STALE_JOB_MINUTES",
+    category: "core",
+    public: false,
+    requirement: "optional",
+    description: "Minutes a job_run may sit `running` before /api/cron/health reports stale.",
+    usage: "Default `60`.  /api/cron/health returns 503 once any run exceeds this.",
+  },
 ];
 
 /** Lookup helpers used by the validation + dashboard layers. */
