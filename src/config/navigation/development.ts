@@ -166,6 +166,8 @@ export const DEV_DASHBOARD_NAV: DashboardNavGroup[] = [
     items: [
       { href: `${DEV}/schedule`, label: "Schedule" },
       { href: `${DEV}/cabinets/qs#boq`, label: "BOQ" },
+      { href: `${DEV}/boq/takeoff`, label: "Takeoff workbench" },
+      { href: `${DEV}/knowledge`, label: "Knowledge base" },
     ],
   },
   {

@@ -594,6 +594,11 @@ export const developmentAppNav: NavGroup[] = [
         icon: ListTree,
       },
       {
+        href: `${DEVELOPMENT_APP_PATH}/boq/takeoff`,
+        label: "Takeoff workbench",
+        icon: Calculator,
+      },
+      {
         href: `${DEVELOPMENT_APP_PATH}/specifications`,
         label: "Specifications",
         icon: Library,

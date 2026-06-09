@@ -7,6 +7,55 @@ import {
   drawingRevisions,
   drawingDistributionLog,
 } from "@/lib/db/schema/drawings";
+import { projects } from "@/lib/db/schema/projects";
+
+export interface RecentDrawingRevision {
+  revisionId: string;
+  drawingCode: string;
+  drawingTitle: string;
+  projectName: string | null;
+  revisionLabel: string;
+  revisionDate: string;
+  status: string;
+  createdAt: Date;
+}
+
+/**
+ * Most-recently-created drawing revisions across all (non-archived) drawings.
+ * Powers the "Recent drawing revisions" roll-up on the Knowledge overview.
+ */
+export async function listRecentDrawingRevisions(
+  limit = 8,
+): Promise<RecentDrawingRevision[]> {
+  const db = requireDb();
+  const rows = await db
+    .select({
+      revisionId: drawingRevisions.id,
+      drawingCode: drawings.drawingCode,
+      drawingTitle: drawings.title,
+      projectName: projects.name,
+      revisionLabel: drawingRevisions.revisionLabel,
+      revisionDate: drawingRevisions.revisionDate,
+      status: drawingRevisions.status,
+      createdAt: drawingRevisions.createdAt,
+    })
+    .from(drawingRevisions)
+    .innerJoin(drawings, eq(drawings.id, drawingRevisions.drawingId))
+    .leftJoin(projects, eq(projects.id, drawings.projectId))
+    .where(eq(drawings.isArchived, false))
+    .orderBy(desc(drawingRevisions.createdAt))
+    .limit(limit);
+  return rows.map((r) => ({
+    revisionId: r.revisionId,
+    drawingCode: r.drawingCode,
+    drawingTitle: r.drawingTitle,
+    projectName: r.projectName ?? null,
+    revisionLabel: r.revisionLabel,
+    revisionDate: r.revisionDate,
+    status: r.status,
+    createdAt: r.createdAt,
+  }));
+}
 
 export async function listDrawings(filters?: {
   projectId?: string;
