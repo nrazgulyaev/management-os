@@ -7,11 +7,21 @@ import {
   postConciergeStaffReplyAction,
   type ThreadMessage,
 } from "@/features/guest-ai-concierge/cabinet-actions";
+import {
+  addConciergeExtraServiceAction,
+  createConciergeCleaningRequestAction,
+  createConciergeTechnicianRequestAction,
+  escalateConciergeToOperatorAction,
+  takeOverConciergeSessionAction,
+  type QuickActionResult,
+} from "@/features/guest-ai-concierge/quickactions-actions";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/modal";
 
 export interface SessionRow {
   id: string;
   guestName: string | null;
   villaCode: string | null;
+  bookingCode: string | null;
   language: string | null;
   status: string;
   lastMessageAt: string | null;
@@ -55,6 +65,12 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
   const [draft, setDraft] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [generating, setGenerating] = React.useState(false);
+  // Quick-actions ("spawn work" from the conversation).
+  const [actionBusy, setActionBusy] = React.useState<string | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
+  const [extraOpen, setExtraOpen] = React.useState(false);
+  const [extraDesc, setExtraDesc] = React.useState("");
+  const [extraAmount, setExtraAmount] = React.useState("");
   const streamRef = React.useRef<HTMLDivElement>(null);
 
   async function generateDraft() {
@@ -113,6 +129,53 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
       setError(res.error);
     }
     setSending(false);
+  }
+
+  // Run a session-scoped quick-action, reflect its outcome, and refresh
+  // the transcript so the inline "spawned work" note appears immediately.
+  async function runQuickAction(
+    key: string,
+    fn: (sessionId: string) => Promise<QuickActionResult>,
+  ) {
+    if (!activeId || actionBusy) return;
+    setActionBusy(key);
+    setError(null);
+    setNotice(null);
+    const res = await fn(activeId);
+    if (res.ok) {
+      setNotice(res.message);
+      await load(activeId);
+    } else {
+      setError(res.error);
+    }
+    setActionBusy(null);
+  }
+
+  async function submitExtraService(e: React.FormEvent) {
+    e.preventDefault();
+    if (!activeId || actionBusy) return;
+    const amount = Number(extraAmount);
+    if (!extraDesc.trim() || !Number.isFinite(amount) || amount < 0) {
+      setError("Describe the service and enter a valid amount.");
+      return;
+    }
+    setActionBusy("extra");
+    setError(null);
+    setNotice(null);
+    const res = await addConciergeExtraServiceAction(activeId, {
+      description: extraDesc.trim(),
+      amount,
+    });
+    if (res.ok) {
+      setNotice(res.message);
+      setExtraOpen(false);
+      setExtraDesc("");
+      setExtraAmount("");
+      await load(activeId);
+    } else {
+      setError(res.error);
+    }
+    setActionBusy(null);
   }
 
   return (
@@ -248,6 +311,94 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
           )}
         </div>
 
+        {/* Spawn-work quick actions — contextual to the active session. */}
+        <div className="px-[18px] pt-3 pb-1 border-t border-line flex flex-wrap items-center gap-2 bg-cream-warm/60">
+          <span className="mono text-[10px] uppercase tracking-[0.08em] text-ink-4 mr-1">
+            Quick actions
+          </span>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={!active || actionBusy !== null}
+            onClick={() =>
+              void runQuickAction(
+                "cleaning",
+                createConciergeCleaningRequestAction,
+              )
+            }
+            title="Raise a cleaning service request for this stay"
+          >
+            {actionBusy === "cleaning" ? "Raising…" : "Cleaning"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={!active || actionBusy !== null}
+            onClick={() =>
+              void runQuickAction(
+                "technician",
+                createConciergeTechnicianRequestAction,
+              )
+            }
+            title="Dispatch a technician (maintenance task) for this stay"
+          >
+            {actionBusy === "technician" ? "Raising…" : "Call technician"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={!active || !active.bookingCode || actionBusy !== null}
+            onClick={() => {
+              setError(null);
+              setNotice(null);
+              setExtraOpen(true);
+            }}
+            title={
+              active && !active.bookingCode
+                ? "No linked booking to bill an extra service to"
+                : "Add an extra service charge to the linked booking"
+            }
+          >
+            Add extra service
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={
+              !active || active.status === "handoff" || actionBusy !== null
+            }
+            onClick={() =>
+              void runQuickAction("takeover", takeOverConciergeSessionAction)
+            }
+            title="Take this conversation over from the AI"
+          >
+            {actionBusy === "takeover"
+              ? "Taking over…"
+              : active && active.status === "handoff"
+                ? "Handling"
+                : "Take over"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={!active || actionBusy !== null}
+            onClick={() =>
+              void runQuickAction(
+                "escalate",
+                escalateConciergeToOperatorAction,
+              )
+            }
+            title="Escalate this conversation to an operator for hands-on follow-up"
+          >
+            {actionBusy === "escalate" ? "Escalating…" : "Escalate to operator"}
+          </button>
+          {notice && (
+            <span className="mono text-[11px] text-success ml-auto">
+              {notice}
+            </span>
+          )}
+        </div>
+
         <form className="ct-composer" onSubmit={send}>
           <textarea
             className="textarea"
@@ -282,6 +433,70 @@ export function ConciergeWorkspace({ sessions }: { sessions: SessionRow[] }) {
           </button>
         </form>
       </div>
+
+      {/* Add-extra-service to the linked booking. */}
+      <Modal
+        open={extraOpen}
+        onOpenChange={setExtraOpen}
+        size="sm"
+        ariaLabel="Add extra service to booking"
+      >
+        <ModalHeader
+          title="Add extra service"
+          description={
+            active?.bookingCode
+              ? `Bills the linked booking ${active.bookingCode}.`
+              : "Bills the linked booking."
+          }
+          onClose={() => setExtraOpen(false)}
+        />
+        <form onSubmit={submitExtraService}>
+          <ModalBody>
+            <label className="label" htmlFor="extra-desc">
+              Service
+            </label>
+            <input
+              id="extra-desc"
+              className="input"
+              value={extraDesc}
+              onChange={(e) => setExtraDesc(e.target.value)}
+              placeholder="e.g. Airport transfer, private chef…"
+              maxLength={200}
+              autoFocus
+            />
+            <label className="label mt-3" htmlFor="extra-amount">
+              Amount (IDR)
+            </label>
+            <input
+              id="extra-amount"
+              className="input"
+              type="number"
+              min={0}
+              step={1}
+              value={extraAmount}
+              onChange={(e) => setExtraAmount(e.target.value)}
+              placeholder="0"
+            />
+          </ModalBody>
+          <ModalFooter help="Charged to the booking ledger.">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setExtraOpen(false)}
+              disabled={actionBusy === "extra"}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary btn-sm"
+              disabled={actionBusy === "extra" || !extraDesc.trim()}
+            >
+              {actionBusy === "extra" ? "Adding…" : "Add service"}
+            </button>
+          </ModalFooter>
+        </form>
+      </Modal>
     </div>
   );
 }
