@@ -29,6 +29,7 @@ import { rfis } from "./rfis";
 import { submittals } from "./submittals";
 import { qaQcIssues } from "./qa-qc";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const COORDINATION_ITEM_KINDS = ["rfi", "submittal", "defect"] as const;
 export type CoordinationItemKind = (typeof COORDINATION_ITEM_KINDS)[number];
@@ -37,6 +38,14 @@ export const coordinationPins = pgTable(
   "coordination_pins",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
+     * project_id -> projects.organization_id. Not yet threaded into queries
+     * and not DB-enforced NOT NULL; the app still org-scopes via project_id.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
@@ -69,6 +78,7 @@ export const coordinationPins = pgTable(
     index("coordination_pins_rfi_idx").on(t.rfiId),
     index("coordination_pins_submittal_idx").on(t.submittalId),
     index("coordination_pins_defect_idx").on(t.defectId),
+    index("coordination_pins_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -76,6 +86,15 @@ export const coordinationMessages = pgTable(
   "coordination_messages",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column. This table has no
+     * project_id; it is polymorphic over rfi/submittal/defect, so the
+     * backfill derives org from the linked item. Not yet threaded into
+     * queries and not DB-enforced NOT NULL.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** Enum: COORDINATION_ITEM_KINDS. */
     itemKind: text("item_kind").notNull(),
     rfiId: uuid("rfi_id").references(() => rfis.id, { onDelete: "cascade" }),
@@ -99,6 +118,7 @@ export const coordinationMessages = pgTable(
     index("coordination_messages_rfi_idx").on(t.rfiId, t.createdAt),
     index("coordination_messages_submittal_idx").on(t.submittalId, t.createdAt),
     index("coordination_messages_defect_idx").on(t.defectId, t.createdAt),
+    index("coordination_messages_organization_idx").on(t.organizationId),
   ],
 );
 

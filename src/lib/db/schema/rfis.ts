@@ -12,6 +12,7 @@
 import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { contacts } from "./contacts";
+import { organizations } from "./saas";
 
 export type RfiDiscipline =
   | "structural"
@@ -28,6 +29,14 @@ export const rfis = pgTable(
   "rfis",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
+     * project_id -> projects.organization_id. Not yet threaded into queries
+     * and not DB-enforced NOT NULL; the app still org-scopes via project_id.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
@@ -51,6 +60,7 @@ export const rfis = pgTable(
   (t) => [
     index("rfis_project_opened_idx").on(t.projectId, t.openedAt),
     index("rfis_routed_contact_opened_idx").on(t.routedToContactId, t.openedAt),
+    index("rfis_organization_idx").on(t.organizationId),
   ],
 );
 

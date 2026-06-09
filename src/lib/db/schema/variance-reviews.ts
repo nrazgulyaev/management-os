@@ -12,6 +12,7 @@
 import { index, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { boqItems } from "./boq";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export type VarianceReviewKind =
   | "over_budget"
@@ -27,6 +28,14 @@ export const varianceReviews = pgTable(
   "variance_reviews",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
+     * line_id -> boq_items.organization_id (boq_items carries org from 0072).
+     * Not yet threaded into queries and not DB-enforced NOT NULL.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     lineId: uuid("line_id")
       .notNull()
       .references(() => boqItems.id, { onDelete: "cascade" }),
@@ -50,6 +59,7 @@ export const varianceReviews = pgTable(
   (t) => [
     index("variance_reviews_decision_idx").on(t.qsDecision),
     index("variance_reviews_line_idx").on(t.lineId),
+    index("variance_reviews_organization_idx").on(t.organizationId),
   ],
 );
 

@@ -12,6 +12,7 @@
 import { date, index, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export type MilestoneKind =
   | "design"
@@ -30,6 +31,14 @@ export const milestones = pgTable(
   "milestones",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
+     * project_id -> projects.organization_id. Not yet threaded into queries
+     * and not DB-enforced NOT NULL; the app still org-scopes via project_id.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
@@ -50,6 +59,7 @@ export const milestones = pgTable(
   (t) => [
     index("milestones_project_target_idx").on(t.projectId, t.targetDate),
     index("milestones_status_target_idx").on(t.status, t.targetDate),
+    index("milestones_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -70,10 +80,19 @@ export const milestoneDependencies = pgTable(
       .references(() => milestones.id, { onDelete: "cascade" }),
     /** Enum: fs | ss | ff | sf — finish-to-start, start-to-start, finish-to-finish, start-to-finish. */
     kind: text("kind").notNull(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
+     * from_milestone_id -> milestones.organization_id. Not yet threaded into
+     * queries and not DB-enforced NOT NULL.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
   },
   (t) => [
     primaryKey({ columns: [t.fromMilestoneId, t.toMilestoneId] }),
     index("milestone_dependencies_to_idx").on(t.toMilestoneId),
+    index("milestone_dependencies_organization_idx").on(t.organizationId),
   ],
 );
 

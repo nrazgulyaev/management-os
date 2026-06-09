@@ -20,11 +20,20 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const payrollPeriods = pgTable(
   "payroll_periods",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY — organization_id was added to this table by migration 0072
+     * (Stage 5.J.2 propagation); the schema file never reflected it. Surfaced
+     * here as NULLABLE to end the drift WITHOUT forcing the existing insert
+     * call sites (cycle-actions.ts) to thread org — query threading is out of
+     * scope for this tenancy-schema unit. See followups.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id),
     periodLabel: text("period_label").notNull().unique(),
     /** 'weekly' | 'biweekly' | 'monthly' | 'quarterly' */
     periodType: text("period_type").notNull(),
@@ -54,6 +63,7 @@ export const payrollPeriods = pgTable(
   (t) => ({
     periodIdx: index("payroll_periods_period_idx").on(t.periodStart, t.periodEnd),
     statusIdx: index("payroll_periods_status_idx").on(t.status),
+    orgIdx: index("payroll_periods_organization_idx").on(t.organizationId),
   }),
 );
 
@@ -61,6 +71,12 @@ export const teamCapacityTracking = pgTable(
   "team_capacity_tracking",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY — organization_id was added to this table by migration 0072
+     * (Stage 5.J.2 propagation); surfaced here as NULLABLE to end the schema
+     * drift without threading org into the existing insert call sites.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id),
     trackingPeriodStart: date("tracking_period_start").notNull(),
     trackingPeriodEnd: date("tracking_period_end").notNull(),
     /**
@@ -97,6 +113,9 @@ export const teamCapacityTracking = pgTable(
       t.trackingPeriodEnd,
     ),
     roleIdx: index("team_capacity_tracking_role_idx").on(t.roleType),
+    orgIdx: index("team_capacity_tracking_organization_idx").on(
+      t.organizationId,
+    ),
   }),
 );
 
@@ -104,6 +123,12 @@ export const projectCycleRecommendations = pgTable(
   "project_cycle_recommendations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY — organization_id was added to this table by migration 0072
+     * (Stage 5.J.2 propagation); surfaced here as NULLABLE to end the schema
+     * drift without threading org into the existing insert call sites.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id),
     recommendationCode: text("recommendation_code").notNull().unique(),
     generatedForDate: date("generated_for_date").notNull(),
     generatedByAgent: text("generated_by_agent")
@@ -143,6 +168,9 @@ export const projectCycleRecommendations = pgTable(
     ),
     statusIdx: index("project_cycle_recommendations_status_idx").on(
       t.operatorStatus,
+    ),
+    orgIdx: index("project_cycle_recommendations_organization_idx").on(
+      t.organizationId,
     ),
   }),
 );

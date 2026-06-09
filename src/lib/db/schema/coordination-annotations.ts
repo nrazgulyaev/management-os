@@ -22,6 +22,7 @@ import {
 import { projects } from "./projects";
 import { drawingRevisions } from "./drawings";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 /** Kinds the coordination markup layer persists (superset of takeoff kinds). */
 export const ANNOTATION_STROKE_KINDS = [
@@ -50,6 +51,14 @@ export const coordinationAnnotations = pgTable(
   "coordination_annotations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
+     * project_id -> projects.organization_id. Not yet threaded into queries
+     * and not DB-enforced NOT NULL; the app still org-scopes via project_id.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
@@ -76,7 +85,10 @@ export const coordinationAnnotations = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("coordination_annotations_project_idx").on(t.projectId)],
+  (t) => [
+    index("coordination_annotations_project_idx").on(t.projectId),
+    index("coordination_annotations_organization_idx").on(t.organizationId),
+  ],
 );
 
 export type CoordinationAnnotation = typeof coordinationAnnotations.$inferSelect;

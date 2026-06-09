@@ -17,11 +17,20 @@ import {
 import { sql } from "drizzle-orm";
 import { projects } from "./projects";
 import { documents } from "./documents";
+import { organizations } from "./saas";
 
 export const projectPermits = pgTable(
   "project_permits",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
+     * project_id -> projects.organization_id. Not yet threaded into queries
+     * and not DB-enforced NOT NULL; the app still org-scopes via project_id.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
@@ -59,6 +68,7 @@ export const projectPermits = pgTable(
   },
   (t) => [
     index("project_permits_project_idx").on(t.projectId),
+    index("project_permits_organization_idx").on(t.organizationId),
     index("project_permits_status_idx").on(t.status),
     index("project_permits_type_idx").on(t.permitType),
     index("project_permits_expires_idx")
