@@ -22,6 +22,9 @@ import {
   loadForecastCashflow,
   type ForecastQuarterRow,
 } from "@/lib/development/server/investor/forecast-cashflow-queries";
+import { loadInvestorGpPosition } from "@/lib/investor-portal/gp-economics-queries";
+import { buildLpGpEconomics } from "@/features/investors/lp-gp-economics";
+import { InvestorCopilotPanel } from "@/components/investor-portal/investor-copilot-panel";
 
 /**
  * Mega-Sprint / Phase 12 — Investor Portal Dashboard on the Sprint-4
@@ -32,10 +35,16 @@ import {
  * DevelopmentShell, by design.
  *
  * Bilingual copy threads through the existing
- * `getPortalStrings(reportingLanguage)` system. The
- * investor-copilot agent is not yet shipped; the hero AI input
- * renders a "Coming soon" badge per the operator decision lock
- * ("no new agents this sprint").
+ * `getPortalStrings(reportingLanguage)` system.
+ *
+ * feat/w1de-lp-dashboard-gp-waterfall-copilot adds two surfaces:
+ *   1. A GP-economics <DistributionWaterfall> running the canonical
+ *      European waterfall (return-of-capital → preferred return →
+ *      catch-up → carry split) against this investor's real position.
+ *   2. An <InvestorCopilotPanel> rendering the latest investor_copilot
+ *      agent_outputs (empty-state until runs exist) — replacing the
+ *      dead "Coming soon" hero badge with a real AI surface that the
+ *      hero ask arrow now anchors to.
  */
 
 export const metadata: Metadata = {
@@ -65,12 +74,13 @@ export default async function DashboardPage() {
   if (!session) redirect("/investor-portal/login");
 
   const strings = getPortalStrings(session.reportingLanguage);
-  const [data, commitments, forecast] = await Promise.all([
+  const [data, commitments, forecast, gpPosition] = await Promise.all([
     getInvestorDashboard(),
     getMyCommitments(),
     loadForecastCashflow(session.investorId, 4).catch(
       () => [] as ForecastQuarterRow[],
     ),
+    loadInvestorGpPosition().catch(() => null),
   ]);
 
   const committed = Number(BigInt(data.totalCommittedUsdMinor)) / 100;
@@ -119,6 +129,19 @@ export default async function DashboardPage() {
     },
   ];
 
+  // GP-economics distribution waterfall — runs the canonical European
+  // waterfall (return-of-capital → preferred return → catch-up → carry)
+  // against THIS investor's real position (drawn = contributed,
+  // distributed = proceeds). Major-unit amounts; the chart formats them.
+  const economics = gpPosition
+    ? buildLpGpEconomics({
+        contributedUsdMinor: gpPosition.contributedUsdMinor,
+        distributedUsdMinor: gpPosition.distributedUsdMinor,
+        profitSharePercent: gpPosition.profitSharePercent,
+      })
+    : null;
+  const economicsTerms = economics?.termsUsed;
+
   return (
     <PortalShell
       strings={strings}
@@ -136,6 +159,7 @@ export default async function DashboardPage() {
           greetingOverride={strings.welcomeBack(data.legalName)}
           subline={`${data.activeCommitmentCount}/${data.commitmentCount} active commitments · reporting in ${data.primaryCurrency}`}
           aiPromptPlaceholder="What changed in my position this quarter?"
+          askHref="#investor-copilot"
         />
 
         <DistributionWaterfall
@@ -148,6 +172,46 @@ export default async function DashboardPage() {
           }
           currency={data.primaryCurrency}
         />
+
+        {economics && !economics.isEmpty ? (
+          <DistributionWaterfall
+            stages={economics.stages}
+            variant="surface"
+            heading="Distribution waterfall"
+            accessory={
+              economicsTerms ? (
+                <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-tertiary">
+                  {economicsTerms.prefReturnPct}% pref ·{" "}
+                  {economicsTerms.carrySplitPct}% carry
+                </span>
+              ) : undefined
+            }
+            currency={data.primaryCurrency}
+          />
+        ) : (
+          <section className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
+            <header className="flex items-center justify-between gap-3 px-5 md:px-6 py-4 border-b border-line-soft">
+              <h3 className="text-display text-[18px] md:text-[20px] leading-tight font-medium text-ink">
+                Distribution waterfall
+              </h3>
+              {economicsTerms && (
+                <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-ink-tertiary">
+                  {economicsTerms.prefReturnPct}% pref ·{" "}
+                  {economicsTerms.carrySplitPct}% carry
+                </span>
+              )}
+            </header>
+            <p className="px-6 py-10 text-sm text-center text-ink-tertiary">
+              No distributions to split yet. Once proceeds are distributed,
+              this shows how they flow through return-of-capital, preferred
+              return, GP catch-up and the carry split for your position.
+            </p>
+          </section>
+        )}
+
+        <div id="investor-copilot" className="scroll-mt-6">
+          <InvestorCopilotPanel investorId={session.investorId} />
+        </div>
 
         <AreaChartCard
           title="Forecast cashflow"
