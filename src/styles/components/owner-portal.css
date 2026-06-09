@@ -460,6 +460,7 @@
   color: var(--ink);
   line-height: 1;
   letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
 }
 [data-product] .net-hero .lhs .sub {
   font-family: var(--sans-font);
@@ -735,6 +736,34 @@
   color: var(--ink-3);
   letter-spacing: 0.06em;
   margin-top: 2px;
+}
+
+/* ---------- Dispute modal reason picker (owner-02 sign-off) ----------
+   Mirrors cabinets/owner-p1/02-statement.html dispute modal: a stacked
+   radio list where the selected card gets a terra border + faint accent
+   wash. Replaces the previous per-card inline styles. */
+[data-product] .dispute-reasons {
+  display: flex; flex-direction: column; gap: 6px;
+}
+[data-product] .dispute-reason {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm, 8px);
+  border: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+[data-product] .dispute-reason input { margin-top: 2px; }
+[data-product] .dispute-reason.is-selected {
+  border-color: var(--terra);
+  background: color-mix(in oklab, var(--accent) 4%, transparent);
+}
+[data-product] .dispute-reason .dr-title {
+  font-size: 13px; color: var(--ink); font-weight: 500;
+}
+[data-product] .dispute-reason .dr-hint {
+  font-size: 12px; color: var(--ink-3); margin-top: 2px;
 }
 
 /* ---------- WhyLink + WhyDrawer ---------- */

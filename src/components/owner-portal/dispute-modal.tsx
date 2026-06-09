@@ -69,32 +69,21 @@ export function DisputeModal({ open, onOpenChange, statementId, statementCode, o
       <ModalBody>
         <div className="field">
           <label className="field-label">Reason</label>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="dispute-reasons">
             {REASONS.map((r) => (
               <label
                 key={r.value}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 8,
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  background: reason === r.value ? "var(--cream-warm, var(--bg-2))" : "transparent",
-                  border: "1px solid",
-                  borderColor: reason === r.value ? "var(--ink-3)" : "var(--line)",
-                }}
+                className={`dispute-reason${reason === r.value ? " is-selected" : ""}`}
               >
                 <input
                   type="radio"
                   name="dispute-reason"
                   checked={reason === r.value}
                   onChange={() => setReason(r.value)}
-                  style={{ marginTop: 2 }}
                 />
                 <div>
-                  <div style={{ fontSize: 13, color: "var(--ink)", fontWeight: 500 }}>{r.label}</div>
-                  <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>{r.hint}</div>
+                  <div className="dr-title">{r.label}</div>
+                  <div className="dr-hint">{r.hint}</div>
                 </div>
               </label>
             ))}

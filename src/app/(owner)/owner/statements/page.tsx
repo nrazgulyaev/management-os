@@ -113,7 +113,7 @@ export default async function OwnerStatementsPage() {
 
   return (
     <div data-density="narrative" className="flex flex-col">
-      <div className="px-7 md:px-9 pt-7 pb-5">
+      <div className="px-7 md:px-9 pt-7 pb-5 border-b border-line-soft bg-cream-warm">
         <div className="font-mono text-[11px] text-ink-tertiary tracking-[0.12em] uppercase mb-2">
           Your portal{owner.ownerName ? ` · ${owner.ownerName}` : ""}
         </div>
