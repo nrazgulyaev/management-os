@@ -88,6 +88,7 @@ export const MGMT_DASHBOARD_NAV: DashboardNavGroup[] = [
       { href: "/dashboard/projects", label: "Projects" },
       { href: "/dashboard/villas", label: "Villas" },
       { href: "/dashboard/owners", label: "Owners" },
+      { href: "/dashboard/owners/threads", label: "Owner inbox" },
       { href: "/dashboard/shares", label: "Ownership shares" },
     ],
   },

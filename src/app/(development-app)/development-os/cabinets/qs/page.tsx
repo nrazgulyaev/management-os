@@ -12,6 +12,13 @@ import {
   type BoqLineRow,
   type RfqMatrixRow,
 } from "@/lib/development/server/cabinets/qs-cabinet-queries";
+import {
+  getQsVarianceLines,
+  getQsCostAnalystOutputs,
+  type QsVarianceLine,
+  type QsAnalystOutput,
+} from "@/lib/development/server/cabinets/qs-variance-queries";
+import { VarianceCard } from "@/components/boq/variance-card";
 
 /**
  * Sprint TASK-7-DATA-PART-2 — Dev OS QS / Cost Analyst (BOQ desk) live wiring.
@@ -55,11 +62,14 @@ function fmtQuantity(q: number): string {
 }
 
 export default async function QsPage() {
-  const [wpRollup, boqLines, rfqMatrix] = await Promise.all([
-    getBoqWpRollup().catch(() => [] as WpRollupRow[]),
-    getBoqTopLines(7).catch(() => [] as BoqLineRow[]),
-    getRfqMatrix().catch(() => [] as RfqMatrixRow[]),
-  ]);
+  const [wpRollup, boqLines, rfqMatrix, varianceLines, qsAnalystOutputs] =
+    await Promise.all([
+      getBoqWpRollup().catch(() => [] as WpRollupRow[]),
+      getBoqTopLines(7).catch(() => [] as BoqLineRow[]),
+      getRfqMatrix().catch(() => [] as RfqMatrixRow[]),
+      getQsVarianceLines(12).catch(() => [] as QsVarianceLine[]),
+      getQsCostAnalystOutputs(3).catch(() => [] as QsAnalystOutput[]),
+    ]);
 
   return (
     <>
@@ -146,31 +156,122 @@ export default async function QsPage() {
         </div>
       )}
 
-      {/* AI anomaly band — empty state until agent_outputs seeded */}
-      <Card
-        className="corner-marks p-5 mb-[18px] border-amber"
-      >
+      {/* AI anomaly band — live qs_cost_analyst agent_outputs */}
+      <Card className="corner-marks p-5 mb-[18px] border-amber">
         <div className="flex gap-[18px] items-start">
           <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-[rgba(255,107,53,0.15)] text-amber flex items-center justify-center">
             ✦
           </span>
           <div className="flex-1">
             <div className="label label-amber">qs-cost-analyst</div>
-            <p className="mt-1.5 mb-3 text-[14px] text-ink leading-[1.55] max-w-[780px]">
-              No cost anomalies detected in the active BOQ. Anomaly runs will
-              surface here once the qs-cost-analyst agent files them against
-              your baseline.
-            </p>
-            <div className="flex gap-2">
-              <Link
-                href="/development-os/ai-agents"
-                className="btn btn-dark btn-sm"
-              >
-                Configure agent
-              </Link>
-            </div>
+            {qsAnalystOutputs.length === 0 ? (
+              <>
+                <p className="mt-1.5 mb-3 text-[14px] text-ink leading-[1.55] max-w-[780px]">
+                  No cost anomalies detected in the active BOQ. Anomaly runs
+                  will surface here once the qs-cost-analyst agent files them
+                  against your baseline.
+                </p>
+                <div className="flex gap-2">
+                  <Link
+                    href="/development-os/ai-agents"
+                    className="btn btn-dark btn-sm"
+                  >
+                    Configure agent
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mt-1.5 mb-3 text-[14px] text-ink leading-[1.55] max-w-[780px]">
+                  {qsAnalystOutputs[0].summary}
+                </p>
+                <div className="grid gap-2.5 mb-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {qsAnalystOutputs.map((o) => (
+                    <Link
+                      key={o.outputCode}
+                      href={`/development-os/ai-agents/qs-cost-analyst/outputs/${o.outputCode}`}
+                      className="block rounded-[12px] border border-line bg-panel p-3 no-underline hover:border-amber transition-colors"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="label text-[10px]">
+                          {o.outputCode}
+                        </span>
+                        {o.confidenceLevel && (
+                          <HandoffBadge>{o.confidenceLevel}</HandoffBadge>
+                        )}
+                      </div>
+                      <div className="text-[13px] text-ink font-medium leading-snug">
+                        {o.title}
+                      </div>
+                      <div className="text-[11px] text-ink-3 mt-1 line-clamp-2">
+                        {o.summary}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Link
+                    href="/development-os/ai-agents/qs-cost-analyst"
+                    className="btn btn-amber btn-sm"
+                  >
+                    Open all outputs
+                  </Link>
+                  <Link
+                    href="/development-os/ai-agents"
+                    className="btn btn-dark btn-sm"
+                  >
+                    Configure agent
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
         </div>
+      </Card>
+
+      {/* Variance review queue — live boq_items vs boq_actuals rollup */}
+      <Card padding="none" overflowHidden className="mb-[18px]">
+        <div className="px-[22px] py-3.5 border-b border-line flex items-center">
+          <h2 className="display text-[18px] font-medium m-0">
+            Variance review ·{" "}
+            {varianceLines.length === 0
+              ? "no flagged lines"
+              : `${varianceLines.length} line${
+                  varianceLines.length === 1 ? "" : "s"
+                } with actuals`}
+          </h2>
+          <Link
+            href="/development-os/ai-agents"
+            className="btn btn-dark btn-sm ml-auto"
+          >
+            Agent runs
+          </Link>
+        </div>
+        {varianceLines.length === 0 ? (
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">
+            No actuals recorded against BOQ lines yet. As deliveries and
+            installs post to boq_actuals, the variance-detector agent rolls
+            them up here and flags any line crossing 5% drift for QS sign-off.
+          </p>
+        ) : (
+          <div className="p-4 flex flex-col gap-2.5">
+            {varianceLines.map((line) => (
+              <VarianceCard
+                key={line.lineId}
+                lineId={line.lineId}
+                code={line.code}
+                description={line.description}
+                wpCode={line.wpCode}
+                unit={line.unit}
+                qtyPlanned={line.qtyPlanned}
+                ratePlanned={line.ratePlanned}
+                qtyActual={line.qtyActual}
+                rateActual={line.rateActual}
+                contractorReason={line.contractorReason ?? undefined}
+              />
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* BOQ top-7 table — live boq_items */}

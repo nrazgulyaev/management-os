@@ -8,6 +8,7 @@ export * from "./audit";
 export * from "./finance";
 export * from "./access-grants";
 export * from "./operations";
+export * from "./turnovers";
 export * from "./inventory";
 export * from "./integrations";
 export * from "./jobs";
@@ -102,3 +103,5 @@ export * from "./villa-photos";
 export * from "./owner-activity-log";
 // Double-entry GL foundation (migration 0122).
 export * from "./general-ledger";
+// Front-office check-in flow persistence (migration 0123).
+export * from "./checkin-flow";

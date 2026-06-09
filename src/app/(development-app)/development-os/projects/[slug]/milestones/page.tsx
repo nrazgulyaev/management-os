@@ -2,14 +2,22 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { eq, inArray } from "drizzle-orm";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { getDb } from "@/lib/db/client";
+import { milestones as milestonesTable, milestoneDependencies } from "@/lib/db/schema/milestones";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
 import { safeQuery } from "@/lib/development/safe-query";
 import { composeWeeklyReport } from "@/features/ai-agents/projects/weekly-report-data";
 import { WeeklyReportCard } from "@/components/projects/weekly-report-card";
+import {
+  detectScheduleVariance,
+  type ScheduleVarianceRuleFlag,
+} from "@/features/ai-agents/projects/schedule-variance-rules";
 import { MilestonesEditor } from "./_editor-client";
 import type { MilestoneRowMilestone } from "@/components/projects/milestone-row";
 
@@ -29,6 +37,53 @@ import type { MilestoneRowMilestone } from "@/components/projects/milestone-row"
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Read-only "Schedule variance" band data. Queries the real `milestones`
+ * + `milestone_dependencies` tables (self-contained here to avoid a shared
+ * module across feature units) and runs the deterministic detector from
+ * `schedule-variance-rules`. Returns null on db-down (band is hidden).
+ *
+ * The flat editor below still synthesizes its rows from project phases
+ * (PR 2.2 proof-of-life); this band is the first surface to read the real
+ * milestone schema. Once the editor persists to `milestones`, the two
+ * converge. TODO(2.2 data-wiring): drive the editor off this same query.
+ */
+async function loadScheduleVariance(
+  realProjectId: string,
+): Promise<{ flags: ScheduleVarianceRuleFlag[]; scanned: number } | null> {
+  const db = getDb();
+  if (!db) return null;
+
+  const rows = await db
+    .select()
+    .from(milestonesTable)
+    .where(eq(milestonesTable.projectId, realProjectId));
+  if (rows.length === 0) return { flags: [], scanned: 0 };
+
+  const ids = rows.map((m) => m.id);
+  const edges = await db
+    .select()
+    .from(milestoneDependencies)
+    .where(inArray(milestoneDependencies.toMilestoneId, ids));
+
+  return detectScheduleVariance(
+    rows.map((m) => ({
+      id: m.id,
+      projectId: m.projectId,
+      name: m.name,
+      targetDate: m.targetDate,
+      actualDate: m.actualDate,
+      status: m.status,
+    })),
+    edges.map((e) => ({
+      fromMilestoneId: e.fromMilestoneId,
+      toMilestoneId: e.toMilestoneId,
+      kind: e.kind,
+    })),
+    new Date(),
+  );
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -47,6 +102,8 @@ export default async function MilestonesPage({
   const { slug } = await params;
   const detail = await getDevelopmentProjectBySlug(slug);
   if (!detail) notFound();
+
+  const variance = await loadScheduleVariance(detail.project.realProjectId);
 
   const today = new Date();
   // PR 2.2 dev-01 proof-of-life — synthesize from existing project
@@ -141,6 +198,54 @@ export default async function MilestonesPage({
           />
         </Section>
       )}
+      {variance && variance.scanned > 0 && (
+        <Section
+          eyebrow="schedule-variance-detector · deterministic"
+          title="Schedule variance"
+        >
+          {variance.flags.length === 0 ? (
+            <p className="text-sm text-ink-secondary">
+              No milestones are slipping past their conservative thresholds
+              ({variance.scanned} scanned). Amber flags slip of 7–20 days,
+              red flags 21+ days, including slip propagated through
+              finish-to-start dependencies.
+            </p>
+          ) : (
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="text-left text-ink-tertiary border-b border-line-soft">
+                  <th className="py-2">Severity</th>
+                  <th>Milestone</th>
+                  <th>Cause</th>
+                  <th className="text-right">Slip (days)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {variance.flags.map((f) => (
+                  <tr
+                    key={`${f.kind}:${f.milestoneId}`}
+                    className="border-b border-line-soft hover:bg-muted/30"
+                  >
+                    <td className="py-2">
+                      <Badge tone={f.severity === "red" ? "danger" : "warning"}>
+                        {f.severity}
+                      </Badge>
+                    </td>
+                    <td className="font-medium">{f.milestoneName}</td>
+                    <td className="text-xs text-ink-secondary">
+                      {f.kind === "overdue_milestone"
+                        ? "Target date passed, not done"
+                        : `Dependency slip via ${String(f.detail.predecessorName ?? "predecessor")}`}
+                    </td>
+                    <td className="text-right tabular-nums">{f.slipDays}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Section>
+      )}
+
       <MilestonesEditor projectSlug={slug} initial={initial} />
     </DevelopmentShell>
   );

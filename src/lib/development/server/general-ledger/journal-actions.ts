@@ -16,7 +16,20 @@ import { revalidatePath } from "next/cache";
 import { requireOrgId } from "@/features/auth/require-org";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { postJournal } from "./post-journal";
+import { postFinanceToGl, type AutoPostResult } from "./auto-post";
 import { JournalValidationError } from "./journal-validation";
+
+/**
+ * Auto-post the org's posted revenue + expense sub-ledger lines into the GL
+ * with the standard chart mapping (idempotent — safe to re-run).
+ */
+export async function postFinanceToGlAction(): Promise<AutoPostResult> {
+  const organizationId = await requireOrgId();
+  await requireInternalUser();
+  const res = await postFinanceToGl(organizationId);
+  revalidatePath("/development-os/finance/general-ledger");
+  return res;
+}
 
 export interface ComposerLineInput {
   accountCode: string;

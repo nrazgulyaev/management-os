@@ -16,6 +16,7 @@ import {
   listGlAccounts,
 } from "@/lib/development/server/general-ledger/trial-balance";
 import { JournalComposer } from "./_journal-composer";
+import { PostFinanceButton } from "./_post-finance-button";
 
 export const metadata: Metadata = {
   title: "General ledger · Development OS",
@@ -69,12 +70,15 @@ export default async function GeneralLedgerPage() {
         title="General ledger — trial balance"
         description="Double-entry proving spine over the existing finance sub-ledgers. Every posted entry's debits equal its credits; the whole-ledger tie-out below must be balanced. Auto-posting from the operational tables lands incrementally."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Finance
-            </Link>
-          </Button>
+          <div className="flex items-start gap-2">
+            <PostFinanceButton />
+            <Button asChild variant="secondary">
+              <Link href="/development-os/finance">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Finance
+              </Link>
+            </Button>
+          </div>
         }
       />
 

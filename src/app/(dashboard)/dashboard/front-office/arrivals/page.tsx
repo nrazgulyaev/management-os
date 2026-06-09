@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
@@ -114,15 +115,23 @@ export default async function ArrivalsPage({
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        {cstatus === "submitted" ? (
-                          <CheckinApproveButton
-                            bookingId={r.bookingId}
-                            disabled={readinessBlocksCheckin(r.readinessStatus)}
-                            disabledReason={`villa ${r.readinessStatus}`}
-                          />
-                        ) : (
-                          <CheckInButton bookingId={r.bookingId} bookingStatus={r.bookingStatus} />
-                        )}
+                        <div className="flex flex-col gap-1.5 items-start">
+                          {cstatus === "submitted" ? (
+                            <CheckinApproveButton
+                              bookingId={r.bookingId}
+                              disabled={readinessBlocksCheckin(r.readinessStatus)}
+                              disabledReason={`villa ${r.readinessStatus}`}
+                            />
+                          ) : (
+                            <CheckInButton bookingId={r.bookingId} bookingStatus={r.bookingStatus} />
+                          )}
+                          <Link
+                            href={`/dashboard/front-office/checkin/${r.bookingId}`}
+                            className="text-[11px] text-ink-tertiary hover:text-ink underline"
+                          >
+                            Guided check-in →
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

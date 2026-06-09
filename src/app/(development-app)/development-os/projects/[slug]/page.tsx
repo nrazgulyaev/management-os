@@ -1105,6 +1105,9 @@ export default async function ProjectDetailPage({
           <div className="flex items-center gap-2">
             <SourceBadge source={detail.source} />
             <Button asChild variant="secondary">
+              <Link href={`/development-os/projects/${slug}/rfis`}>RFIs</Link>
+            </Button>
+            <Button asChild variant="secondary">
               <Link href="/development-os/projects">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
                 All projects
