@@ -221,6 +221,73 @@
 [data-product] .vc-stat[data-tone="danger"] .vc-stat-value { color: var(--danger); }
 [data-product] .vc-stat[data-tone="ok"] .vc-stat-value { color: var(--ok); }
 
+/* ---------- BOQ estimate-vs-actual workbench ----------
+   dev-p1/boq-qs.html grammar: a category header band over a dense
+   table whose Amount / Actual / Variance columns carry the
+   over/under-budget semantic colour. Translated from the mockup's
+   inline `.bq-cat` / `.bq-tbl` / `.bq-var` styles → Layer-B classes. */
+[data-product] .boq-cat-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px;
+  margin: 22px 0 8px;
+  font-family: var(--display-font);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--ink);
+}
+[data-product] .boq-cat-head .sum {
+  font-family: var(--mono-font), monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+[data-product] .boq-est {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans-font);
+  font-size: 13px;
+}
+[data-product] .boq-est th {
+  text-align: left;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-4);
+  font-weight: 500;
+  padding: 0 10px 9px;
+  border-bottom: 1px solid var(--line-2, var(--line));
+  white-space: nowrap;
+}
+[data-product] .boq-est th.num,
+[data-product] .boq-est td.num {
+  text-align: right;
+  font-family: var(--mono-font), monospace;
+  font-variant-numeric: tabular-nums;
+}
+[data-product] .boq-est td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  vertical-align: middle;
+  color: var(--ink-2);
+}
+[data-product] .boq-est tbody tr:last-child td { border-bottom: 0; }
+[data-product] .boq-est tbody tr:hover td { background: var(--bg-2, var(--cream-warm)); }
+[data-product] .boq-est .code {
+  font-family: var(--mono-font), monospace;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+[data-product] .boq-est .desc { font-weight: 500; color: var(--ink); }
+[data-product] .boq-est .unit { color: var(--ink-3); }
+[data-product] .boq-est .amount { font-weight: 500; color: var(--ink); }
+
+[data-product] .boq-var.pos { color: var(--danger); }
+[data-product] .boq-var.neg { color: var(--ok); }
+[data-product] .boq-var.flat { color: var(--ink-4); }
+
 /* ---------- BOQ import diff-view ---------- */
 [data-product] .boq-diff ul {
   list-style: none; padding: 0; margin: 0;
