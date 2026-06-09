@@ -3,11 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Kpi } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getInvestor } from "@/lib/development/server/investors";
@@ -23,17 +21,28 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const MOVEMENT_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  capital_contribution: "info",
-  capital_return: "success",
-  profit_distribution: "success",
-  reinvestment_out: "warning",
-  reinvestment_in: "info",
-  withdrawal_request: "warning",
-  withdrawal_executed: "warning",
-  manual_adjustment: "neutral",
-  residual_inventory_realloc: "neutral",
+/** Movement type → handoff `.badge-*` class (dev palette). */
+const MOVEMENT_BADGE: Record<string, string> = {
+  capital_contribution: "badge-steel",
+  capital_return: "badge-ok",
+  profit_distribution: "badge-ok",
+  reinvestment_out: "badge-warn",
+  reinvestment_in: "badge-steel",
+  withdrawal_request: "badge-warn",
+  withdrawal_executed: "badge-warn",
+  manual_adjustment: "badge-soft",
+  residual_inventory_realloc: "badge-soft",
 };
+
+/** Mock `.iv-sec` — mono uppercase eyebrow with a trailing hairline rule. */
+function SectionRule({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-6 mb-3 flex items-center gap-2.5">
+      <span className="label text-[10.5px]">{children}</span>
+      <span className="h-px flex-1 bg-line" aria-hidden />
+    </div>
+  );
+}
 
 function fmtUsd(b: bigint | string | number | null): string {
   if (b == null) return "—";
@@ -108,132 +117,136 @@ export default async function CapitalAccountPage({
         }
       />
 
-      <Section eyebrow="Buckets" title="Aggregated balances (USD)">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <Stat label="Cash (available)" value={fmtUsd(account.totals.cash)} />
-          <Stat
-            label="Economic (incl. residual)"
-            value={fmtUsd(account.totals.economic)}
-          />
-          <Stat label="Reinvestment earmark" value={fmtUsd(account.totals.reinvestment)} />
-          <Stat label="Committed (open)" value={fmtUsd(account.totals.committed)} />
-          <Stat
-            label="Pending distribution"
-            value={fmtUsd(account.totals.pendingDistribution)}
-          />
-          <Stat
-            label="Residual inventory value"
-            value={fmtUsd(account.totals.residualInventory)}
-          />
-        </div>
-      </Section>
+      <SectionRule>Buckets · aggregated balances (USD)</SectionRule>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        <Kpi label="Cash (available)" value={fmtUsd(account.totals.cash)} />
+        <Kpi
+          label="Economic (incl. residual)"
+          value={fmtUsd(account.totals.economic)}
+          tone="accent"
+        />
+        <Kpi
+          label="Reinvestment earmark"
+          value={fmtUsd(account.totals.reinvestment)}
+        />
+        <Kpi label="Committed (open)" value={fmtUsd(account.totals.committed)} />
+        <Kpi
+          label="Pending distribution"
+          value={fmtUsd(account.totals.pendingDistribution)}
+        />
+        <Kpi
+          label="Residual inventory value"
+          value={fmtUsd(account.totals.residualInventory)}
+        />
+      </div>
 
-      <Section
-        eyebrow="Activity"
-        title={`Recent movements (${movements.length})`}
-      >
-        {movements.length === 0 ? (
-          <EmptyState
-            title="No wallet movements yet"
-            description="Movements appear here as soon as the first contribution / distribution / withdrawal lands."
-          />
-        ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Date</TH>
-                <TH>Type</TH>
-                <TH>Bucket</TH>
-                <TH>Amount</TH>
-                <TH>Status</TH>
-                <TH>Reason</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {movements.map((m) => (
-                <TR key={m.id}>
-                  <TD className="text-xs">
-                    {new Date(m.effectedAt)
-                      .toISOString()
-                      .slice(0, 16)
-                      .replace("T", " ")}
-                  </TD>
-                  <TD>
-                    <Badge tone={MOVEMENT_TONE[m.movementType] ?? "neutral"}>
-                      {m.movementType}
-                    </Badge>
-                  </TD>
-                  <TD className="text-xs">{m.affectsBalance}</TD>
-                  <TDNum
-                    className={
-                      Number(m.amountMinor) >= 0 ? "text-success" : "text-warning"
-                    }
-                  >
-                    {Number(m.amountMinor) >= 0 ? "+" : ""}
-                    {fmtUsd(m.amountMinor)}
-                  </TDNum>
-                  <TD className="text-xs">{m.status}</TD>
-                  <TD className="text-xs max-w-[280px] truncate">{m.reason ?? "—"}</TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        )}
-      </Section>
+      <SectionRule>{`Activity · recent movements (${movements.length})`}</SectionRule>
+      {movements.length === 0 ? (
+        <EmptyState
+          title="No wallet movements yet"
+          description="Movements appear here as soon as the first contribution / distribution / withdrawal lands."
+        />
+      ) : (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="data w-full">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Bucket</th>
+                  <th className="num">Amount</th>
+                  <th>Status</th>
+                  <th>Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {movements.map((m) => (
+                  <tr key={m.id}>
+                    <td className="font-mono text-[11px]">
+                      {new Date(m.effectedAt)
+                        .toISOString()
+                        .slice(0, 16)
+                        .replace("T", " ")}
+                    </td>
+                    <td>
+                      <span
+                        className={
+                          "badge " +
+                          (MOVEMENT_BADGE[m.movementType] ?? "badge-soft")
+                        }
+                      >
+                        {m.movementType}
+                      </span>
+                    </td>
+                    <td className="text-xs">{m.affectsBalance}</td>
+                    <td
+                      className={
+                        "num " +
+                        (Number(m.amountMinor) >= 0 ? "text-ok" : "text-warning")
+                      }
+                    >
+                      {Number(m.amountMinor) >= 0 ? "+" : ""}
+                      {fmtUsd(m.amountMinor)}
+                    </td>
+                    <td className="text-xs">{m.status}</td>
+                    <td className="max-w-[280px] truncate text-xs">
+                      {m.reason ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {residual.length > 0 && (
-        <Section
-          eyebrow="Residual"
-          title={`Residual unit shares (${residual.length})`}
-        >
-          <Table>
-            <THead>
-              <TR>
-                <TH>Unit</TH>
-                <TH>Ownership %</TH>
-                <TH>Economic claim</TH>
-                <TH>Method</TH>
-                <TH>Approved</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {residual.map((r) => (
-                <TR key={r.id}>
-                  <TD className="font-mono text-xs">
-                    <Link
-                      href={`/development-os/residual-inventory/${r.residualUnitId}`}
-                      className="hover:underline"
-                    >
-                      {r.residualUnitId.slice(0, 8)}
-                    </Link>
-                  </TD>
-                  <TDNum>{Number(r.ownershipPercentage).toFixed(2)}%</TDNum>
-                  <TDNum>{fmtUsd(r.economicClaimMinor)}</TDNum>
-                  <TD className="text-xs">{r.settlementMethod}</TD>
-                  <TD>
-                    {r.isApproved ? (
-                      <Badge tone="success">approved</Badge>
-                    ) : (
-                      <Badge tone="warning">pending</Badge>
-                    )}
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Section>
+        <>
+          <SectionRule>{`Residual · unit shares (${residual.length})`}</SectionRule>
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="data w-full">
+                <thead>
+                  <tr>
+                    <th>Unit</th>
+                    <th className="num">Ownership %</th>
+                    <th className="num">Economic claim</th>
+                    <th>Method</th>
+                    <th>Approved</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {residual.map((r) => (
+                    <tr key={r.id}>
+                      <td className="font-mono text-xs">
+                        <Link
+                          href={`/development-os/residual-inventory/${r.residualUnitId}`}
+                          className="hover:underline"
+                        >
+                          {r.residualUnitId.slice(0, 8)}
+                        </Link>
+                      </td>
+                      <td className="num">
+                        {Number(r.ownershipPercentage).toFixed(2)}%
+                      </td>
+                      <td className="num">{fmtUsd(r.economicClaimMinor)}</td>
+                      <td className="text-xs">{r.settlementMethod}</td>
+                      <td>
+                        {r.isApproved ? (
+                          <span className="badge badge-ok">approved</span>
+                        ) : (
+                          <span className="badge badge-warn">pending</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </DevelopmentShell>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-line-soft bg-surface px-4 py-3 flex flex-col gap-0.5">
-      <span className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-        {label}
-      </span>
-      <span className="text-sm text-ink font-mono tabular-nums">{value}</span>
-    </div>
   );
 }

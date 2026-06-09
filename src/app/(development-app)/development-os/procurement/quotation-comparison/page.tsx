@@ -8,6 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import {
+  QueueRow,
+  WaitChip,
+} from "@/components/development/procurement/procurement-ui";
 import { safeQuery } from "@/lib/development/safe-query";
 import {
   listQuotationComparisons,
@@ -105,7 +109,7 @@ export default async function QuotationComparisonListPage() {
         <DashboardKpi
           label="Awaiting decision"
           value={String(summary.awaitingDecisionCount)}
-          status={summary.awaitingDecisionCount > 0 ? "bad" : "good"}
+          status={summary.awaitingDecisionCount > 0 ? "warn" : "good"}
           hint="No quote selected yet"
         />
         <DashboardKpi
@@ -238,51 +242,25 @@ export default async function QuotationComparisonListPage() {
           title={`${awaiting.length} approved PR${awaiting.length === 1 ? "" : "s"} awaiting quotations`}
           description="These purchase requests are submitted or approved but have no quotes yet — chase the vendor list before the required-by date slips."
         >
-          <div className="rounded-md border border-warning/40 bg-warning-weak/30 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-warning-weak/50 text-ink-tertiary text-[11px] uppercase tracking-widest">
-                <tr>
-                  <th className="text-left px-3 py-2">PR</th>
-                  <th className="text-left px-3 py-2">Material</th>
-                  <th className="text-left px-3 py-2">Required by</th>
-                  <th className="text-left px-3 py-2">Urgency</th>
-                  <th className="text-left px-3 py-2">PR status</th>
-                  <th className="text-right px-3 py-2"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-warning/30">
-                {awaiting.map((p) => (
-                  <tr key={p.id}>
-                    <td className="px-3 py-2 font-mono text-xs">
-                      <Link
-                        href={`/development-os/procurement/purchase-requests/${encodeURIComponent(p.requestCode)}`}
-                        className="hover:underline"
-                      >
-                        {p.requestCode}
-                      </Link>
-                    </td>
-                    <td className="px-3 py-2 text-sm">{p.materialName}</td>
-                    <td className="px-3 py-2 text-xs">{p.requiredByDate}</td>
-                    <td className="px-3 py-2">
-                      <Badge tone={URGENCY_TONE[p.urgency] ?? "neutral"}>
-                        {p.urgency}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge tone="info">{p.status}</Badge>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <Link
-                        href={`/development-os/procurement/purchase-requests/${encodeURIComponent(p.requestCode)}`}
-                        className="text-xs underline underline-offset-4 text-ink hover:text-ink-secondary"
-                      >
-                        Add quote →
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="rounded-[14px] border border-warning/40 bg-warning-weak/30 overflow-hidden">
+            {awaiting.map((p) => (
+              <QueueRow
+                key={p.id}
+                href={`/development-os/procurement/purchase-requests/${encodeURIComponent(p.requestCode)}`}
+                className="border-warning/25 hover:bg-warning-weak/40"
+                code={p.requestCode}
+                title={p.materialName}
+                sub={`required by ${p.requiredByDate}`}
+                wait="No quotes yet"
+                status={
+                  <Badge tone={URGENCY_TONE[p.urgency] ?? "neutral"}>
+                    {p.urgency}
+                  </Badge>
+                }
+                amount={<Badge tone="info">{p.status}</Badge>}
+                meta={<WaitChip>Add quote →</WaitChip>}
+              />
+            ))}
           </div>
         </Section>
       )}

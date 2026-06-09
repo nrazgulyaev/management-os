@@ -68,6 +68,7 @@ export async function DevelopmentAppShell({
   return (
     <div
       data-product="development"
+      data-surface="development-os"
       className="flex min-h-screen bg-[var(--bg,var(--cream))]"
     >
       <DevelopmentSidebar />

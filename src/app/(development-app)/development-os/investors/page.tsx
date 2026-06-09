@@ -2,13 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Briefcase, Waves } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Kpi } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { MetricCard } from "@/components/ui/metric-card";
 import { DevOsRowActions } from "@/components/development/dev-os-row-actions";
 import { getDb } from "@/lib/db/client";
 import {
@@ -52,6 +49,16 @@ const EMPTY_METRICS = {
   totalWalletAvailableUsdMinor: "0",
 };
 
+/** Mock `.iv-sec` — mono uppercase eyebrow with a trailing hairline rule. */
+function SectionRule({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-6 mb-3 flex items-center gap-2.5">
+      <span className="label text-[10.5px]">{children}</span>
+      <span className="h-px flex-1 bg-line" aria-hidden />
+    </div>
+  );
+}
+
 export default async function InvestorsPage() {
   const db = getDb();
   const timings: SafeQueryTiming[] = [];
@@ -76,6 +83,13 @@ export default async function InvestorsPage() {
   logSafeQueryTimings("investors", timings);
   const degraded = timings.filter((t) => t.usedFallback).map((t) => t.label);
 
+  const committed = BigInt(metrics.totalCommittedUsdMinor);
+  const drawn = BigInt(metrics.totalDrawnUsdMinor);
+  const distributed = BigInt(metrics.totalDistributedUsdMinor);
+  const wallet = BigInt(metrics.totalWalletAvailableUsdMinor);
+  const deployedPct =
+    committed > 0n ? Math.round(Number((drawn * 100n) / committed)) : 0;
+
   return (
     <DevelopmentShell>
       <PageHeader
@@ -85,10 +99,10 @@ export default async function InvestorsPage() {
         ]}
         eyebrow={
           db
-            ? `${metrics.totalInvestors} investors · ${formatUsdMinor(BigInt(metrics.totalCommittedUsdMinor))} committed`
+            ? `${metrics.totalInvestors} investors · ${formatUsdMinor(committed)} committed · ${deployedPct}% deployed`
             : "Database not configured"
         }
-        title="Investors"
+        title="Fund, investors & distributions"
         description="Pre-handover capital partners. Each investor can hold one or more commitments across projects with negotiated profit-share and capital-return priority."
         actions={
           <div className="flex items-center gap-2">
@@ -114,145 +128,158 @@ export default async function InvestorsPage() {
         <EmptyState
           title="Investors module needs the database"
           description="Database connection not configured. Contact support."
-          action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+          action={
+            <span className="badge badge-warn">DATABASE_URL not set</span>
+          }
         />
       )}
 
       {db && degraded.length > 0 && (
-        <div className="rounded-lg border border-amber-300/60 bg-amber-50/80 px-4 py-3 text-sm text-amber-900">
+        <div className="rounded-md border border-warning/40 bg-warning-weak px-4 py-3 text-sm text-warning">
           <div className="font-medium">Some investor data is unavailable</div>
-          <div className="text-xs text-amber-800/80 mt-1">
+          <div className="text-xs text-warning/80 mt-1">
             Affected: {degraded.join(", ")}. Refresh in a moment.
           </div>
         </div>
       )}
 
       {db && (
-        <>
-          <Section eyebrow="Capital snapshot" title="At a glance">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <MetricCard
-                label="Total committed"
-                value={formatUsdMinor(BigInt(metrics.totalCommittedUsdMinor))}
-                hint={`${metrics.totalInvestors} investors`}
-              />
-              <MetricCard
-                label="Total drawn"
-                value={formatUsdMinor(BigInt(metrics.totalDrawnUsdMinor))}
-                hint="Capital received from investors"
-              />
-              <MetricCard
-                label="Distributed"
-                value={formatUsdMinor(BigInt(metrics.totalDistributedUsdMinor))}
-                hint="Capital + profit attributed"
-              />
-              <MetricCard
-                label="In wallets"
-                value={formatUsdMinor(
-                  BigInt(metrics.totalWalletAvailableUsdMinor),
-                )}
-                hint="Available, not yet withdrawn"
-              />
-            </div>
-          </Section>
+        <div>
+          <SectionRule>Capital snapshot</SectionRule>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Kpi
+              label="Total committed"
+              value={formatUsdMinor(committed)}
+              sub={`${metrics.totalInvestors} investors`}
+              tone="accent"
+            />
+            <Kpi
+              label="Total drawn"
+              value={formatUsdMinor(drawn)}
+              sub={`${deployedPct}% deployed`}
+            />
+            <Kpi
+              label="Distributed"
+              value={formatUsdMinor(distributed)}
+              sub="Capital + profit attributed"
+              tone="success"
+            />
+            <Kpi
+              label="In wallets"
+              value={formatUsdMinor(wallet)}
+              sub="Available, not yet withdrawn"
+            />
+          </div>
 
-          <Section eyebrow="Investors" title="All investors">
-            {investors.length === 0 ? (
-              <EmptyState
-                title="No investors yet"
-                description="Add your first investor to start tracking commitments and distributions."
-                action={
-                  <Badge tone="neutral" className="gap-1">
-                    <Briefcase className="w-3 h-3" />
-                    {INVESTOR_TYPE_LABEL.gp}, {INVESTOR_TYPE_LABEL.lp_private},{" "}
-                    {INVESTOR_TYPE_LABEL.lp_institutional},{" "}
-                    {INVESTOR_TYPE_LABEL.landowner_jv}
-                  </Badge>
-                }
-              />
-            ) : (
-              <Table>
-                <THead>
-                  <TR>
-                    <TH>Code</TH>
-                    <TH>Legal name</TH>
-                    <TH>Type</TH>
-                    <TH>Currency</TH>
-                    <TH>Commitments</TH>
-                    <TH>Committed (USD)</TH>
-                    <TH>Drawn (USD)</TH>
-                    <TH>In wallet (USD)</TH>
-                    <TH>Status</TH>
-                    <TH />
-                  </TR>
-                </THead>
-                <TBody>
-                  {investors.map((i) => (
-                    <TR key={i.id}>
-                      <TD className="font-mono text-xs">
-                        <Link
-                          href={`/development-os/investors/${i.investorCode}`}
-                          className="hover:underline"
-                        >
-                          {i.investorCode}
-                        </Link>
-                      </TD>
-                      <TD className="font-medium">{i.legalName}</TD>
-                      <TD className="text-xs text-ink-secondary">
-                        {INVESTOR_TYPE_LABEL[i.investorType]}
-                      </TD>
-                      <TD className="text-xs">{i.primaryCurrency}</TD>
-                      <TDNum>{i.commitmentCount}</TDNum>
-                      <TDNum>
-                        {formatUsdMinor(BigInt(i.totalCommittedUsdMinor))}
-                      </TDNum>
-                      <TDNum>
-                        {formatUsdMinor(BigInt(i.totalDrawnUsdMinor))}
-                      </TDNum>
-                      <TDNum>
-                        {formatUsdMinor(
-                          BigInt(i.walletAvailableTotalUsdMinor),
-                        )}
-                      </TDNum>
-                      <TD>
-                        <Badge
-                          tone={
-                            i.status === "active"
-                              ? "success"
-                              : i.status === "exited"
-                                ? "neutral"
-                                : "warning"
-                          }
-                        >
-                          {INVESTOR_STATUS_LABEL[i.status]}
-                        </Badge>
-                      </TD>
-                      <TD className="text-right">
-                        <DevOsRowActions
-                          kind="investor"
-                          row={{
-                            id: i.id,
-                            displayName: i.legalName,
-                            detailHref: `/development-os/investors/${i.investorCode}`,
-                            values: {
-                              investorCode: i.investorCode,
-                              legalName: i.legalName,
-                              investorType: i.investorType,
-                              primaryCurrency: i.primaryCurrency,
-                              contactEmail: i.contactEmail ?? "",
-                              contactPhone: i.contactPhone ?? "",
-                              taxResidency: i.taxResidency ?? "",
-                            },
-                          }}
-                        />
-                      </TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            )}
-          </Section>
-        </>
+          <SectionRule>
+            LP · positions (open an investor for the ledger)
+          </SectionRule>
+          {investors.length === 0 ? (
+            <EmptyState
+              title="No investors yet"
+              description="Add your first investor to start tracking commitments and distributions."
+              action={
+                <span className="badge badge-soft gap-1">
+                  <Briefcase className="w-3 h-3" />
+                  {INVESTOR_TYPE_LABEL.gp}, {INVESTOR_TYPE_LABEL.lp_private},{" "}
+                  {INVESTOR_TYPE_LABEL.lp_institutional},{" "}
+                  {INVESTOR_TYPE_LABEL.landowner_jv}
+                </span>
+              }
+            />
+          ) : (
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="data lp-table w-full">
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Legal name</th>
+                      <th>Type</th>
+                      <th>Currency</th>
+                      <th className="num">Commitments</th>
+                      <th className="num">Committed (USD)</th>
+                      <th className="num">Drawn (USD)</th>
+                      <th className="num">In wallet (USD)</th>
+                      <th>Status</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {investors.map((i) => (
+                      <tr key={i.id}>
+                        <td className="font-mono text-xs">
+                          <Link
+                            href={`/development-os/investors/${i.investorCode}`}
+                            className="hover:underline"
+                          >
+                            {i.investorCode}
+                          </Link>
+                        </td>
+                        <td className="row-title">{i.legalName}</td>
+                        <td className="text-xs text-ink-3">
+                          {INVESTOR_TYPE_LABEL[i.investorType]}
+                        </td>
+                        <td className="text-xs">{i.primaryCurrency}</td>
+                        <td className="num">{i.commitmentCount}</td>
+                        <td className="num">
+                          {formatUsdMinor(BigInt(i.totalCommittedUsdMinor))}
+                        </td>
+                        <td className="num">
+                          {formatUsdMinor(BigInt(i.totalDrawnUsdMinor))}
+                        </td>
+                        <td className="num text-ok">
+                          {formatUsdMinor(
+                            BigInt(i.walletAvailableTotalUsdMinor),
+                          )}
+                        </td>
+                        <td>
+                          <span
+                            className={
+                              "badge " +
+                              (i.status === "active"
+                                ? "badge-ok"
+                                : i.status === "exited"
+                                  ? "badge-soft"
+                                  : "badge-warn")
+                            }
+                          >
+                            {INVESTOR_STATUS_LABEL[i.status]}
+                          </span>
+                        </td>
+                        <td className="text-right">
+                          <DevOsRowActions
+                            kind="investor"
+                            row={{
+                              id: i.id,
+                              displayName: i.legalName,
+                              detailHref: `/development-os/investors/${i.investorCode}`,
+                              values: {
+                                investorCode: i.investorCode,
+                                legalName: i.legalName,
+                                investorType: i.investorType,
+                                primaryCurrency: i.primaryCurrency,
+                                contactEmail: i.contactEmail ?? "",
+                                contactPhone: i.contactPhone ?? "",
+                                taxResidency: i.taxResidency ?? "",
+                              },
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex items-center justify-between border-t border-line-soft px-[18px] py-3 font-mono text-[11px] text-ink-3">
+                <span>
+                  {investors.length} LP · pro-rata by committed share
+                </span>
+                <span>auto-reconcile via bank webhook</span>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </DevelopmentShell>
   );

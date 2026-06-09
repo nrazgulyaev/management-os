@@ -33,7 +33,7 @@ export function LeadCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="text-sm font-medium text-ink truncate">
+          <span className="text-display text-[15px] font-medium text-ink truncate">
             {lead.fullName}
           </span>
           {lead.projectName && (

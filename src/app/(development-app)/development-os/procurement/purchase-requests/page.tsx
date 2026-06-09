@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import {
+  QueueCard,
+  QueueRow,
+  QueueEmpty,
+  WaitChip,
+} from "@/components/development/procurement/procurement-ui";
 import { getDb } from "@/lib/db/client";
 import { listPurchaseRequests } from "@/lib/development/server/procurement/procurement-actions";
 import { getDevelopmentProjects } from "@/lib/development/server/projects";
@@ -17,15 +20,26 @@ import { PurchaseRequestDevAddButton } from "@/components/development/procuremen
 export const metadata: Metadata = { title: "Purchase requests · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
+const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral" | "accent"> = {
   draft: "neutral",
   submitted: "info",
   approved: "success",
   quotations_in_progress: "warning",
   quotation_selected: "info",
-  po_created: "success",
+  po_created: "accent",
   rejected: "danger",
   cancelled: "neutral",
+};
+
+const STATUS_WAIT: Record<string, string> = {
+  draft: "Awaiting submit",
+  submitted: "Awaiting approval",
+  approved: "Awaiting quotes",
+  quotations_in_progress: "Collecting quotes",
+  quotation_selected: "Awaiting PO",
+  po_created: "PO issued",
+  rejected: "Rejected",
+  cancelled: "Closed",
 };
 
 const URGENCY_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
@@ -46,7 +60,7 @@ export default async function PurchaseRequestsPage({
     return (
       <DevelopmentShell>
         <PageHeader title="Purchase requests" />
-        <EmptyState title="Database not configured" description="Set DATABASE_URL." />
+        <QueueEmpty>Database not configured — set DATABASE_URL.</QueueEmpty>
       </DevelopmentShell>
     );
   }
@@ -65,6 +79,8 @@ export default async function PurchaseRequestsPage({
     ),
   ]);
 
+  const active = sp.status ?? "";
+
   return (
     <DevelopmentShell>
       <PageHeader
@@ -74,8 +90,8 @@ export default async function PurchaseRequestsPage({
           { label: "Purchase requests" },
         ]}
         eyebrow={`${requests.length} request${requests.length === 1 ? "" : "s"}`}
-        title="Purchase requests"
-        description="Site staff request → procurement collects quotations → approval → PO. Mobile-friendly create form is at /procurement/purchase-requests/new."
+        title="Requests & procurement"
+        description="Site staff request → procurement collects quotations → approval → PO. The mobile-friendly create form lives at /procurement/purchase-requests/new."
         actions={
           <div className="flex items-center gap-2">
             <PurchaseRequestDevAddButton projects={projects} />
@@ -89,7 +105,7 @@ export default async function PurchaseRequestsPage({
         }
       />
 
-      <div className="flex items-center gap-2 text-xs">
+      <div className="flex items-center gap-2 flex-wrap">
         {[
           { v: "", label: "All" },
           { v: "draft", label: "Draft" },
@@ -98,73 +114,72 @@ export default async function PurchaseRequestsPage({
           { v: "quotations_in_progress", label: "Quoting" },
           { v: "po_created", label: "PO created" },
           { v: "rejected", label: "Rejected" },
-        ].map((p) => (
-          <Link
-            key={p.v}
-            href={`/development-os/procurement/purchase-requests${p.v ? `?status=${p.v}` : ""}`}
-            className={`rounded-md px-3 py-1.5 ${(sp.status ?? "") === p.v ? "bg-ink text-ink-inverse" : "border border-line-soft hover:bg-muted/40"}`}
-          >
-            {p.label}
-          </Link>
-        ))}
+        ].map((p) => {
+          const on = active === p.v;
+          return (
+            <Link
+              key={p.v}
+              href={`/development-os/procurement/purchase-requests${p.v ? `?status=${p.v}` : ""}`}
+              className={
+                on
+                  ? "inline-flex items-center rounded-full bg-amber border border-amber px-[13px] py-[7px] text-[12.5px] text-carbon"
+                  : "inline-flex items-center rounded-full bg-bg-2 border border-line-2 px-[13px] py-[7px] text-[12.5px] text-ink-2 hover:border-line-3 transition-colors"
+              }
+            >
+              {p.label}
+            </Link>
+          );
+        })}
       </div>
 
-      <Section eyebrow="Requests" title="All purchase requests">
-        {requests.length === 0 ? (
-          <EmptyState
-            title="No purchase requests"
-            description="Site staff create requests at /procurement/purchase-requests/new (mobile-friendly form)."
-          />
-        ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Material</TH>
-                <TH>Qty</TH>
-                <TH>Urgency</TH>
-                <TH>Required by</TH>
-                <TH>Status</TH>
-                <TH>Submitted</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {requests.map((r) => (
-                <TR key={r.id}>
-                  <TD className="font-mono text-xs">
-                    <Link
-                      href={`/development-os/procurement/purchase-requests/${r.requestCode}`}
-                      className="hover:underline"
-                    >
-                      {r.requestCode}
-                    </Link>
-                  </TD>
-                  <TD className="text-sm">{r.materialName}</TD>
-                  <TDNum>
-                    {r.quantity} {r.unitOfMeasure}
-                  </TDNum>
-                  <TD>
-                    <Badge tone={URGENCY_TONE[r.urgency] ?? "neutral"}>
-                      {r.urgency}
-                    </Badge>
-                  </TD>
-                  <TD className="text-xs">{r.requiredByDate}</TD>
-                  <TD>
-                    <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>
-                      {r.status}
-                    </Badge>
-                  </TD>
-                  <TD className="text-xs">
-                    {r.submittedAt
-                      ? new Date(r.submittedAt).toISOString().slice(0, 10)
-                      : "—"}
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        )}
-      </Section>
+      <div className="flex items-end justify-between gap-3 flex-wrap mt-1">
+        <div className="min-w-0">
+          <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+            Requests
+          </div>
+          <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink">
+            All purchase requests
+          </h2>
+        </div>
+      </div>
+
+      {requests.length === 0 ? (
+        <QueueEmpty>
+          No purchase requests yet — site staff create the first at
+          /procurement/purchase-requests/new.
+        </QueueEmpty>
+      ) : (
+        <QueueCard className="mt-3">
+          {requests.map((r) => (
+            <QueueRow
+              key={r.id}
+              href={`/development-os/procurement/purchase-requests/${r.requestCode}`}
+              code={r.requestCode}
+              title={r.materialName}
+              sub={
+                <>
+                  {r.quantity} {r.unitOfMeasure} ·{" "}
+                  <Badge tone={URGENCY_TONE[r.urgency] ?? "neutral"}>
+                    {r.urgency}
+                  </Badge>
+                </>
+              }
+              wait={STATUS_WAIT[r.status] ?? r.status}
+              status={
+                <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>
+                  {r.status}
+                </Badge>
+              }
+              amount={
+                r.submittedAt
+                  ? new Date(r.submittedAt).toISOString().slice(0, 10)
+                  : "—"
+              }
+              meta={<WaitChip>by {r.requiredByDate}</WaitChip>}
+            />
+          ))}
+        </QueueCard>
+      )}
     </DevelopmentShell>
   );
 }

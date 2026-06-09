@@ -118,71 +118,68 @@ export default async function QuotationComparisonPage({
               return (
                 <div
                   key={q.id}
-                  className={`rounded-lg border p-4 ${
+                  className={`rounded-[14px] border p-5 transition-shadow ${
                     isSelected
-                      ? "border-success bg-success/5"
-                      : "border-line-soft bg-surface"
+                      ? "border-amber ring-1 ring-inset ring-amber/40 bg-amber/[0.04]"
+                      : "border-line-2 bg-panel hover:shadow-soft-card"
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-medium">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <h4 className="text-display text-[16px] font-semibold leading-tight tracking-[-0.01em] text-ink truncate">
                       {vendor?.name ?? q.vendorId.slice(0, 8)}
                     </h4>
-                    <Badge tone={isSelected ? "success" : "neutral"}>
+                    <Badge tone={isSelected ? "accent" : "neutral"}>
                       {q.status}
                     </Badge>
                   </div>
-                  <div className="flex items-baseline gap-2 mb-3">
-                    <div className="text-2xl font-semibold">
+
+                  {/* Vendor scorecard strip (vendor_scores-backed). */}
+                  <div className="flex items-center gap-3 mb-3 rounded-[10px] border border-line-soft bg-bg-2 px-3 py-2">
+                    <ScoreStat
+                      label="On-time"
+                      value={
+                        vendor?.onTimeRate
+                          ? `${Number(vendor.onTimeRate).toFixed(0)}%`
+                          : "—"
+                      }
+                    />
+                    <span className="w-px h-7 bg-line-2" />
+                    <ScoreStat
+                      label="Quality"
+                      value={
+                        vendor?.qualityRating
+                          ? `${Number(vendor.qualityRating).toFixed(1)}/5`
+                          : "—"
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <div className="text-display font-mono tabular-nums text-[28px] leading-none font-medium text-ink">
                       {(Number(q.totalAmountMinor) / 100).toLocaleString()}
                     </div>
-                    <div className="text-sm text-ink-tertiary">{q.currency}</div>
-                    {isLowest && (
-                      <Badge tone="success">Lowest price</Badge>
-                    )}
+                    <div className="text-sm text-ink-3">{q.currency}</div>
                   </div>
-                  <dl className="grid grid-cols-2 gap-2 text-xs mb-3">
-                    <div>
-                      <dt className="text-ink-tertiary">Quote #</dt>
-                      <dd>{q.quotationNumber ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-ink-tertiary">Quoted at</dt>
-                      <dd>{q.quotedAt}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-ink-tertiary">Valid until</dt>
-                      <dd>{q.validityUntil ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-ink-tertiary">Delivery</dt>
-                      <dd>
-                        {q.deliveryEstimatedDate ?? "—"}{" "}
-                        {isEarliest && (
-                          <Badge tone="success">Earliest</Badge>
-                        )}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-ink-tertiary">Payment terms</dt>
-                      <dd>{q.paymentTerms ?? "—"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-ink-tertiary">Vendor on-time</dt>
-                      <dd>
-                        {vendor?.onTimeRate
-                          ? `${Number(vendor.onTimeRate).toFixed(1)}%`
-                          : "—"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-ink-tertiary">Vendor quality</dt>
-                      <dd>
-                        {vendor?.qualityRating
-                          ? `${Number(vendor.qualityRating).toFixed(2)}/5`
-                          : "—"}
-                      </dd>
-                    </div>
+                  <div className="flex items-center gap-1.5 mb-3 min-h-[20px]">
+                    {isLowest && <Badge tone="accent">Lowest price</Badge>}
+                    {isEarliest && <Badge tone="info">Earliest delivery</Badge>}
+                  </div>
+
+                  <dl className="grid grid-cols-2 gap-y-2 gap-x-3 text-xs mb-4">
+                    <CardField label="Quote #" value={q.quotationNumber ?? "—"} />
+                    <CardField label="Quoted at" value={q.quotedAt} />
+                    <CardField
+                      label="Valid until"
+                      value={q.validityUntil ?? "—"}
+                    />
+                    <CardField
+                      label="Delivery"
+                      value={q.deliveryEstimatedDate ?? "—"}
+                    />
+                    <CardField
+                      label="Payment terms"
+                      value={q.paymentTerms ?? "—"}
+                    />
                   </dl>
                   {!isSelected && q.status !== "rejected" && (
                     <QuotationSelectButton quotationId={q.id} />
@@ -194,5 +191,29 @@ export default async function QuotationComparisonPage({
         </Section>
       )}
     </DevelopmentShell>
+  );
+}
+
+function ScoreStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-[9.5px] font-mono uppercase tracking-[0.14em] text-ink-4">
+        {label}
+      </span>
+      <span className="font-mono tabular-nums text-[15px] font-medium text-ink leading-tight">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function CardField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[10px] font-mono uppercase tracking-[0.1em] text-ink-4">
+        {label}
+      </dt>
+      <dd className="text-ink mt-0.5">{value}</dd>
+    </div>
   );
 }

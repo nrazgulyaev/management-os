@@ -88,7 +88,7 @@ export function LeadReservationContractTab({
       {reservations.length > 0 && (
         <section className="flex flex-col gap-3">
           <header className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-ink uppercase tracking-wide">
+            <h3 className="font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-tertiary">
               Reservations · {reservations.length}
             </h3>
           </header>
@@ -152,7 +152,7 @@ export function LeadReservationContractTab({
       {contractGroups.length > 0 && (
         <section className="flex flex-col gap-3">
           <header className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-ink uppercase tracking-wide">
+            <h3 className="font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-tertiary">
               Contract groups · {contractGroups.length}
             </h3>
           </header>

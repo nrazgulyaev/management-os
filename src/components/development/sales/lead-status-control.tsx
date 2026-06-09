@@ -44,7 +44,9 @@ export function LeadStatusControl({
   return (
     <div className="rounded-md border border-line-soft bg-surface p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-label">Pipeline status</span>
+        <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-tertiary">
+          Pipeline status
+        </span>
         <span className="text-xs text-ink-tertiary font-mono">
           current: {currentStatus}
         </span>
@@ -52,7 +54,7 @@ export function LeadStatusControl({
       <select
         value={next}
         onChange={(e) => setNext(e.target.value as LeadStatus)}
-        className="h-10 rounded-sm border border-line-soft bg-surface px-3 text-sm text-ink focus:outline-none focus:border-line-strong"
+        className="h-10 rounded-md border border-line-soft bg-surface px-3 text-sm text-ink focus:outline-none focus:border-line-strong"
       >
         {LEAD_STATUSES.map((s) => (
           <option key={s} value={s}>
@@ -66,7 +68,7 @@ export function LeadStatusControl({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Reason / note for status change (optional)"
-          className="h-9 rounded-sm border border-line-soft bg-surface px-3 text-sm text-ink focus:outline-none focus:border-line-strong"
+          className="h-9 rounded-md border border-line-soft bg-surface px-3 text-sm text-ink focus:outline-none focus:border-line-strong"
         />
       )}
       {error && (

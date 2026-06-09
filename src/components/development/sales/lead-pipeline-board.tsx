@@ -155,7 +155,7 @@ export function LeadPipelineBoard({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by name, email, project…"
-                className="w-full h-9 pl-8 pr-3 rounded-sm border border-line-soft bg-surface text-sm text-ink placeholder:text-ink-tertiary focus:outline-none focus:border-line-strong"
+                className="w-full h-9 pl-8 pr-3 rounded-full border border-line-soft bg-surface text-sm text-ink placeholder:text-ink-tertiary focus:outline-none focus:border-line-strong"
               />
             </div>
             {showNewButton && (
@@ -187,7 +187,9 @@ export function LeadPipelineBoard({
                     className="w-[280px] shrink-0 flex flex-col gap-3"
                   >
                     <div className="flex items-center justify-between px-1">
-                      <span className="text-label">{LEAD_STATUS_LABEL[status]}</span>
+                      <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-tertiary">
+                        {LEAD_STATUS_LABEL[status]}
+                      </span>
                       <Badge tone="neutral">{items.length}</Badge>
                     </div>
                     <div className="rounded-md bg-muted/40 border border-dashed border-line-soft p-2 flex flex-col gap-2 min-h-[80px]">
@@ -239,10 +241,12 @@ function Filter({
   return (
     <label
       className={cn(
-        "inline-flex items-center gap-1.5 h-9 px-2.5 rounded-sm border border-line-soft bg-surface text-xs text-ink",
+        "inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border border-line-soft bg-muted text-xs text-ink",
       )}
     >
-      <span className="text-ink-tertiary">{label}</span>
+      <span className="font-mono uppercase tracking-[0.1em] text-ink-tertiary">
+        {label}
+      </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
