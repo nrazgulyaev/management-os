@@ -20,9 +20,11 @@ export interface HealthPillProps {
   level: HealthLevel;
   /** Optional explanation surfaced on hover (title attr). */
   reason?: string;
-  /** Default false — shorter "●" form. Pass true to render
-   *  "GREEN · on track" etc. */
+  /** Default false — shorter dot-only form. Pass true to render
+   *  "On track" / "Amber · BOQ alert" etc. */
   verbose?: boolean;
+  /** Overrides the default verbose label (e.g. "Amber · BOQ alert"). */
+  verboseLabel?: React.ReactNode;
   className?: string;
 }
 
@@ -32,15 +34,15 @@ const LABEL: Record<HealthLevel, string> = {
   red: "Critical",
 };
 
-export function HealthPill({ level, reason, verbose, className }: HealthPillProps) {
+export function HealthPill({ level, reason, verbose, verboseLabel, className }: HealthPillProps) {
   return (
     <span
-      className={`health-pill ${level}${className ? ` ${className}` : ""}`}
+      className={`health-pill ${level}${verbose ? " verbose" : ""}${className ? ` ${className}` : ""}`}
       title={reason}
       data-health={level}
     >
       <span className="dot" aria-hidden />
-      {verbose && <span className="lbl">{LABEL[level]}</span>}
+      {verbose && <span className="lbl">{verboseLabel ?? LABEL[level]}</span>}
     </span>
   );
 }

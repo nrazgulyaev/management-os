@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
+import { Kpi } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { ProjectCard } from "@/components/projects/project-card";
 import type { HealthLevel } from "@/components/projects/health-pill";
@@ -58,6 +59,18 @@ function projectHealth(p: {
   return { health: h.overall, reason: h.reason };
 }
 
+function fmtMillions(usd: number): string {
+  if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
+  if (usd >= 1_000) return `$${Math.round(usd / 1_000)}K`;
+  return `$${Math.round(usd)}`;
+}
+
+const HEALTH_LABEL: Record<HealthLevel, string> = {
+  green: "Green",
+  amber: "Amber",
+  red: "Red",
+};
+
 export default async function ProjectsPage() {
   const projects = await getDevelopmentProjects();
 
@@ -66,31 +79,81 @@ export default async function ProjectsPage() {
     active: projects.filter(
       (p) => p.phase === "under_construction" || p.phase === "fit_out",
     ).length,
-    planning: projects.filter(
-      (p) =>
-        p.phase === "permitting" ||
-        p.phase === "design" ||
-        p.phase === "pre_acquisition" ||
-        p.phase === "acquisition",
+    design: projects.filter(
+      (p) => p.phase === "design" || p.phase === "permitting",
+    ).length,
+    closing: projects.filter(
+      (p) => p.phase === "managed" || p.phase === "archived",
     ).length,
   };
+
+  // KPI strip — capex committed (budget used) of total budget, and the
+  // schedule-health distribution across the portfolio.
+  const committedUsd = projects.reduce(
+    (a, p) => a + Number(p.budgetUsedMinor) / 100,
+    0,
+  );
+  const totalBudgetUsd = projects.reduce(
+    (a, p) => a + Number(p.totalBudgetMinor) / 100,
+    0,
+  );
+  const healthByLevel = projects.reduce(
+    (acc, p) => {
+      acc[projectHealth(p).health] += 1;
+      return acc;
+    },
+    { green: 0, amber: 0, red: 0 } as Record<HealthLevel, number>,
+  );
 
   return (
     <DevelopmentShell>
       <PageHeader
         breadcrumbs={[{ label: "Development OS", href: "/development-os" }, { label: "Projects" }]}
-        eyebrow={`${counts.total} projects · ${counts.active} active · ${counts.planning} planning`}
+        eyebrow={`${counts.total} projects · ${counts.active} building · ${counts.design} design · ${counts.closing} closing`}
         title="Projects"
         description="Every project Arconique is currently developing. Click a card to open the project detail with milestones, BOQ, procurement, and team."
         actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost">
+              <Link href="/development-os/projects?export=csv">Export</Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/development-os/investors">↗ Investor view</Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href="/development-os">
+                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+                Command center
+              </Link>
+            </Button>
+          </div>
         }
       />
+
+      <div className="projects-kpi-strip">
+        <Kpi
+          label="Active projects"
+          value={counts.total}
+          sub={`${counts.active} building · ${counts.design} design · ${counts.closing} closing`}
+          tone="accent"
+        />
+        <Kpi
+          label="Capex committed"
+          value={fmtMillions(committedUsd)}
+          sub={`of ${fmtMillions(totalBudgetUsd)} total budget`}
+        />
+        <Kpi
+          label="On track"
+          value={healthByLevel.green}
+          sub={`${healthByLevel.amber} amber · ${healthByLevel.red} red`}
+        />
+        <Kpi
+          label="Schedule health"
+          value={`${healthByLevel.green} ★`}
+          sub={`${healthByLevel.amber} amber · ${healthByLevel.red} red`}
+          tone={healthByLevel.red > 0 ? "warn" : undefined}
+        />
+      </div>
 
       <div className="projects-grid">
         {projects.map((p) => {
@@ -98,6 +161,12 @@ export default async function ProjectsPage() {
           const totalUsd = Number(p.totalBudgetMinor) / 100;
           const budgetPct = totalUsd > 0 ? (budgetUsd / totalUsd) * 100 : 0;
           const { health, reason } = projectHealth(p);
+          const handover = p.expectedHandover
+            ? new Date(p.expectedHandover).toLocaleDateString("en-US", {
+                month: "short",
+                year: "numeric",
+              })
+            : "TBD";
           return (
             <ProjectCard
               key={p.id}
@@ -105,16 +174,21 @@ export default async function ProjectsPage() {
               href={`/development-os/projects/${p.slug}`}
               code={p.slug.toUpperCase().slice(0, 8)}
               name={p.name}
-              phaseLabel={`${PHASE_LABEL[p.phase] ?? p.phase} · ${p.location}`}
+              phaseLabel={`${p.location} · ${p.units} villas · ${(PHASE_LABEL[p.phase] ?? p.phase).toUpperCase()}`}
               schedulePct={p.constructionProgressPct}
-              scheduleLabel={`${p.constructionProgressPct}% built`}
-              budgetPct={budgetPct}
-              budgetLabel={`$${(budgetUsd / 1_000_000).toFixed(2)}M of $${(totalUsd / 1_000_000).toFixed(2)}M`}
+              scheduleLabel={`est. ${handover}`}
               health={health}
-              healthReason={reason}
+              healthReason={`${HEALTH_LABEL[health]} · ${reason}`}
               stats={[
-                { label: "Units", value: `${p.unitsSold}/${p.units}` },
-                { label: "AI risk", value: p.aiRiskScore },
+                {
+                  label: "Budget",
+                  value: `${fmtMillions(budgetUsd)} / ${fmtMillions(totalUsd)}`,
+                },
+                {
+                  label: "Budget burn",
+                  value: `${Math.round(budgetPct)}%`,
+                  tone: budgetPct > 100 ? "danger" : budgetPct > 90 ? "warn" : "ok",
+                },
               ]}
             />
           );
