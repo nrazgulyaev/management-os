@@ -35,27 +35,27 @@ export default async function FrontOfficeWatchPage() {
           <Empty>All arriving villas are ready.</Empty>
         ) : (
           <Card padding="none" overflowHidden>
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Guest</th>
-                  <th className="text-left px-3 py-2">Readiness</th>
-                  <th className="text-left px-3 py-2" />
+                  <th>Villa</th>
+                  <th>Guest</th>
+                  <th>Readiness</th>
+                  <th className="num" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {turnover.map((t) => (
                   <tr key={t.bookingId}>
-                    <td className="px-3 py-2 text-ink">{t.villaCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{t.guestDisplay}</td>
-                    <td className="px-3 py-2">
+                    <td className="row-title">{t.villaCode ?? "—"}</td>
+                    <td className="text-ink-2">{t.guestDisplay}</td>
+                    <td>
                       <Badge tone="warning">{t.readinessStatus}</Badge>
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="num">
                       <Link
                         href="/dashboard/front-office/arrivals"
-                        className="text-xs text-ink-secondary hover:text-accent"
+                        className="text-xs text-ink-2 hover:text-accent"
                       >
                         Arrivals →
                       </Link>
@@ -76,24 +76,24 @@ export default async function FrontOfficeWatchPage() {
           <Empty>No ID/visa expiries during current stays.</Empty>
         ) : (
           <Card padding="none" overflowHidden>
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Guest</th>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Expires</th>
-                  <th className="text-left px-3 py-2">Checkout</th>
-                  <th className="text-left px-3 py-2">Flag</th>
+                  <th>Guest</th>
+                  <th>Villa</th>
+                  <th className="num">Expires</th>
+                  <th className="num">Checkout</th>
+                  <th>Flag</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {visa.map((v) => (
                   <tr key={v.bookingId}>
-                    <td className="px-3 py-2 text-ink">{v.guestName ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{v.villaCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-secondary tabular-nums">{v.expiresAt ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">{v.checkOut}</td>
-                    <td className="px-3 py-2">
+                    <td className="row-title">{v.guestName ?? "—"}</td>
+                    <td className="text-ink-2">{v.villaCode ?? "—"}</td>
+                    <td className="num text-ink-2">{v.expiresAt ?? "—"}</td>
+                    <td className="num text-ink-3">{v.checkOut}</td>
+                    <td>
                       <Badge tone={v.severity === "expired" ? "danger" : "warning"}>
                         {v.severity === "expired" ? "expired" : "expires during stay"}
                       </Badge>
@@ -120,9 +120,5 @@ export default async function FrontOfficeWatchPage() {
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
-      {children}
-    </p>
-  );
+  return <p className="empty m-0 text-sm text-ink-3">{children}</p>;
 }

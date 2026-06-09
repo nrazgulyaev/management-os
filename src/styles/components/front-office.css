@@ -235,3 +235,151 @@
 [data-product="management"] table.data.registry-table .rt-flag-p1    { background: rgba(176,74,58,0.14); color: var(--danger); }
 [data-product="management"] table.data.registry-table tbody tr.is-warn td { background: color-mix(in srgb, var(--warn) 5%, var(--paper)); }
 [data-product="management"] table.data.registry-table tbody tr.is-p1 td { background: color-mix(in srgb, var(--danger) 6%, var(--paper)); }
+
+/* ---------------------------------------------------------------
+ * Shift band — the forest "Shift: …" inverted band that opens the
+ * front-office board in the cabinet mock. Carries the operator, the
+ * shift counts and the hand-over action across the top of the desk.
+ * --------------------------------------------------------------- */
+[data-product="management"] .fo-shiftbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 22px;
+  border-radius: var(--r-card-lg);
+  background: var(--forest);
+  color: var(--cream-warm);
+  border: 1px solid var(--forest);
+}
+[data-product="management"] .fo-shiftbar .fo-shift-main { flex: 1; min-width: 0; }
+[data-product="management"] .fo-shiftbar .fo-shift-nm {
+  font-family: var(--display-font);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+[data-product="management"] .fo-shiftbar .fo-shift-sub {
+  margin-top: 3px;
+  font-family: var(--mono-font);
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--cream-warm) 78%, transparent);
+}
+[data-product="management"] .fo-shiftbar .fo-shift-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+[data-product="management"] .fo-shiftbar .badge {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--cream-warm);
+  border-color: transparent;
+}
+
+/* ---------------------------------------------------------------
+ * Airy guest row list — avatar · name · sub · right-aligned action,
+ * used inside front-office cards (arrivals / departures) per the mock.
+ * --------------------------------------------------------------- */
+[data-product="management"] .fo-rowlist {
+  display: flex;
+  flex-direction: column;
+}
+[data-product="management"] .fo-rowlist .fo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product="management"] .fo-rowlist .fo-row:last-child { border-bottom: 0; }
+[data-product="management"] .fo-rowlist .fo-row .fo-row-main { min-width: 0; }
+[data-product="management"] .fo-rowlist .fo-row .fo-row-name {
+  font-family: var(--display-font);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+[data-product="management"] .fo-rowlist .fo-row .fo-row-sub {
+  margin-top: 1px;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  color: var(--ink-4);
+}
+[data-product="management"] .fo-rowlist .fo-row .fo-row-right { margin-left: auto; }
+
+/* ---------------------------------------------------------------
+ * Check-in stepper — the 4-step vertical FSM from the mock, with a
+ * numbered circle that flips to a check on completion and a terra
+ * outline on the active step.
+ * --------------------------------------------------------------- */
+[data-product="management"] .fo-checkin-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+[data-product="management"] .fo-checkin-step {
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: var(--r-md);
+  padding: 14px;
+  background: var(--cream-warm, var(--bg-2));
+}
+[data-product="management"] .fo-checkin-step.is-done {
+  background: color-mix(in srgb, var(--ok) 8%, var(--paper));
+  border-color: color-mix(in srgb, var(--ok) 30%, transparent);
+}
+[data-product="management"] .fo-checkin-step.is-active {
+  border-color: var(--terra);
+  background: var(--paper);
+}
+[data-product="management"] .fo-checkin-step .fo-step-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+[data-product="management"] .fo-checkin-step .fo-step-n {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  border-radius: var(--r-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono-font);
+  font-size: 12px;
+  background: var(--cream-deep);
+  color: var(--ink-3);
+}
+[data-product="management"] .fo-checkin-step.is-done .fo-step-n { background: var(--ok); color: var(--cream-warm); }
+[data-product="management"] .fo-checkin-step.is-active .fo-step-n { background: var(--terra); color: var(--on-accent); }
+[data-product="management"] .fo-checkin-step .fo-step-ttl {
+  font-family: var(--sans-font);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+[data-product="management"] .fo-checkin-step .fo-step-body { margin-top: 10px; }
+[data-product="management"] .fo-checkin-step .fo-keycode {
+  font-family: var(--mono-font);
+  font-size: 28px;
+  letter-spacing: 0.2em;
+  color: var(--ink);
+  background: var(--cream-deep);
+  border-radius: var(--r-md);
+  padding: 14px;
+  text-align: center;
+}
+
+/* Shift notes block under the departures card. */
+[data-product="management"] .fo-shift-notes .fo-note {
+  font-size: 13px;
+  padding: 7px 10px;
+  background: var(--cream-warm, var(--bg-2));
+  border-radius: var(--r-sm);
+  margin-bottom: 6px;
+}
+[data-product="management"] .fo-shift-notes .fo-note .fo-note-ts {
+  font-family: var(--mono-font);
+  font-size: 10px;
+  color: var(--ink-4);
+}
