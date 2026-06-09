@@ -120,6 +120,29 @@ export function FundWaterfallPanel({ funds }: FundWaterfallPanelProps) {
     fund.lps.map((l) => [l.investorId, l.investorLegalName]),
   );
 
+  // runWaterfall builds its KPI strings as raw localized cents
+  // (.toLocaleString()), which the shared DistributionPreviewWaterfall then
+  // renders verbatim. Re-format the three MONEY KPIs (Proceeds, LPs, GP)
+  // through formatUsdMinor so they match the "$1,234.56" formatting used by
+  // the LP distribution table below; "Carry split" is already a percentage
+  // and is passed through untouched. We derive the raw cent values from the
+  // canonical result fields rather than re-parsing the localized strings.
+  const lpTotalCents = result.lpDistributions.reduce(
+    (n, d) => n + d.amount,
+    0,
+  );
+  const moneyKpiLabels = new Set(["Proceeds", "LPs", "GP"]);
+  const formattedKpis = result.kpis.map((k) => {
+    if (!moneyKpiLabels.has(k.label)) return k;
+    const cents =
+      k.label === "Proceeds"
+        ? Math.round(proceedsUsd * 100)
+        : k.label === "LPs"
+        ? lpTotalCents
+        : result.gpTotal;
+    return { label: k.label, value: formatUsdMinor(cents) };
+  });
+
   // Capital-call modal expects { lpId, lpName, pctOfFund }. Collapse to
   // one entry per investor (the modal's preview is keyed by lpId).
   const callLps = Array.from(
@@ -144,7 +167,7 @@ export function FundWaterfallPanel({ funds }: FundWaterfallPanelProps) {
     try {
       // The modal collects the total in whole units; treat it as USD and
       // convert to cents for the server (which re-derives the pro-rata).
-      const totalUsdMinor = String(Math.round(draft.totalIdr * 100));
+      const totalUsdMinor = String(Math.round(draft.totalUsd * 100));
       const res = await issueCapitalCallAction({
         projectId: fund!.projectId,
         totalUsdMinor,
@@ -252,7 +275,10 @@ export function FundWaterfallPanel({ funds }: FundWaterfallPanelProps) {
 
         {proceedsUsd > 0 ? (
           <>
-            <DistributionPreviewWaterfall result={result} unit="USD cents" />
+            <DistributionPreviewWaterfall
+              result={{ ...result, kpis: formattedKpis }}
+              unit="USD cents"
+            />
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
