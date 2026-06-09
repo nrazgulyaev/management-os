@@ -11,6 +11,7 @@ import { serviceRequests } from "@/lib/db/schema/operations";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { queueNotification } from "@/features/notifications/services";
 import { buildServiceRequestCode } from "@/features/operations/codes";
 import { nextDailyCounter } from "@/features/operations/services";
@@ -61,6 +62,7 @@ export async function issueGuestStayTokenAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [booking] = await db
     .select()
@@ -81,6 +83,7 @@ export async function issueGuestStayTokenAction(
   const [row] = await db
     .insert(guestStayTokens)
     .values({
+      organizationId,
       bookingId: parsed.data.bookingId,
       tokenHash,
       tokenPrefix,

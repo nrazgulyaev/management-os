@@ -11,6 +11,7 @@ import {
 import { villaCalendarBlocks, villaReadinessStates } from "@/lib/db/schema/availability";
 import { bookings } from "@/lib/db/schema/bookings";
 import { maintenanceTickets } from "@/lib/db/schema/operations";
+import { villas, projects } from "@/lib/db/schema/projects";
 import {
   classifyReadingFreshness,
   classifyUtilityBalance,
@@ -43,6 +44,7 @@ const STALE_READING_DAYS = 30;
 const REPEATED_TICKET_THRESHOLD = 3;
 
 interface UpsertRiskInput {
+  organizationId: string | null;
   villaId: string | null;
   projectId: string | null;
   riskType:
@@ -65,6 +67,7 @@ async function upsertRisk(input: UpsertRiskInput) {
   await db
     .insert(maintenanceRiskEvents)
     .values({
+      organizationId: input.organizationId,
       villaId: input.villaId,
       projectId: input.projectId,
       riskType: input.riskType,
@@ -172,6 +175,7 @@ export async function scanMaintenanceRisks(
   const overdue = await db
     .select({
       id: villaMaintenancePlans.id,
+      organizationId: villaMaintenancePlans.organizationId,
       villaId: villaMaintenancePlans.villaId,
       projectId: villaMaintenancePlans.projectId,
       planName: villaMaintenancePlans.planName,
@@ -192,6 +196,7 @@ export async function scanMaintenanceRisks(
     const severity =
       p.priority === "urgent" || ageHours > 7 * 24 ? "high" : "medium";
     const event: UpsertRiskInput = {
+      organizationId: p.organizationId,
       villaId: p.villaId,
       projectId: p.projectId,
       riskType: "overdue_maintenance",
@@ -229,6 +234,7 @@ export async function scanMaintenanceRisks(
     const riskType = balanceLevelToRiskType(balanceLevel);
     if (riskType) {
       const event: UpsertRiskInput = {
+        organizationId: a.organizationId,
         villaId: a.villaId,
         projectId: a.projectId,
         riskType,
@@ -254,6 +260,7 @@ export async function scanMaintenanceRisks(
     });
     if (freshness !== "ok") {
       const event: UpsertRiskInput = {
+        organizationId: a.organizationId,
         villaId: a.villaId,
         projectId: a.projectId,
         riskType: "no_recent_reading",
@@ -283,7 +290,15 @@ export async function scanMaintenanceRisks(
   for (const r of repeats) {
     if (Number(r.c) < REPEATED_TICKET_THRESHOLD) continue;
     if (!r.villaId) continue;
+    // No org on maintenance_tickets — resolve via the villa's project.
+    const [vp] = await db
+      .select({ organizationId: projects.organizationId })
+      .from(villas)
+      .leftJoin(projects, eq(projects.id, villas.projectId))
+      .where(eq(villas.id, r.villaId))
+      .limit(1);
     const event: UpsertRiskInput = {
+      organizationId: vp?.organizationId ?? null,
       villaId: r.villaId,
       projectId: null,
       riskType: "repeated_ticket",
@@ -304,6 +319,7 @@ export async function scanMaintenanceRisks(
   const overlap = await db
     .select({
       blockId: villaCalendarBlocks.id,
+      organizationId: villaCalendarBlocks.organizationId,
       villaId: villaCalendarBlocks.villaId,
       projectId: villaCalendarBlocks.projectId,
       startsAt: villaCalendarBlocks.startsAt,
@@ -336,6 +352,7 @@ export async function scanMaintenanceRisks(
       .limit(1);
     if (!hit) continue;
     const event: UpsertRiskInput = {
+      organizationId: b.organizationId,
       villaId: b.villaId,
       projectId: b.projectId,
       riskType: "upcoming_guest_conflict",
@@ -356,6 +373,7 @@ export async function scanMaintenanceRisks(
   const todaysArrivals = await db
     .select({
       bookingId: bookings.id,
+      organizationId: bookings.organizationId,
       villaId: bookings.villaId,
     })
     .from(bookings)
@@ -386,6 +404,7 @@ export async function scanMaintenanceRisks(
       continue;
     }
     const event: UpsertRiskInput = {
+      organizationId: a.organizationId,
       villaId: a.villaId,
       projectId: null,
       riskType: "arrival_not_ready",

@@ -9,6 +9,7 @@ import { bookings } from "@/lib/db/schema/bookings";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   assignBookingToVillaSchema,
   cancelCalendarBlockSchema,
@@ -41,6 +42,7 @@ export async function createVillaCalendarBlockAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const startsAt = new Date(parsed.data.startsAt);
   const endsAt = new Date(parsed.data.endsAt);
@@ -70,6 +72,7 @@ export async function createVillaCalendarBlockAction(
   const [row] = await db
     .insert(villaCalendarBlocks)
     .values({
+      organizationId,
       villaId: parsed.data.villaId,
       projectId,
       blockType: parsed.data.blockType,

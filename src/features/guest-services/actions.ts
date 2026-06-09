@@ -14,6 +14,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { getStayByToken } from "@/features/guest-stays/services";
 import { recordStayAccessEvent } from "@/features/guest-stays/access-log";
 import type { ActionResult } from "@/features/projects/actions";
@@ -176,9 +177,10 @@ export async function upsertServiceAction(
     return { ok: true, id: v.id };
   }
 
+  const organizationId = await requireOrgId();
   const [row] = await db
     .insert(guestServices)
-    .values({ ...values, createdBy: me?.id ?? null })
+    .values({ ...values, organizationId, createdBy: me?.id ?? null })
     .returning({ id: guestServices.id });
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

@@ -37,12 +37,14 @@ export const ownerThreads = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  owner → ownership_shares → project.organization_id. Not threaded into
-     *  queries yet; kept NULLABLE until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor, backfilled
+     *  via owner → ownership_shares → project.organization_id. Threaded into
+     *  inserts + the primary inbox read (thread-portal unit). */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     subject: text("subject").notNull(),
     /** Enum: general | dispute | personal_stay_request | maintenance_question | tax_question | onboarding | offboarding | other. */
     kind: text("kind").notNull().default("general"),

@@ -33,12 +33,14 @@ export const guestStayTokens = pgTable(
     bookingId: uuid("booking_id")
       .notNull()
       .references(() => bookings.id, { onDelete: "cascade" }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  booking → villa → project.organization_id. Not threaded into queries
-     *  yet; kept NULLABLE until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor from
+     *  requireOrgId() on token issue (booking → villa → project lineage in
+     *  the seed). thread-portal unit. */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     tokenHash: text("token_hash").notNull().unique(),
     tokenPrefix: text("token_prefix").notNull(),
     status: text("status").notNull().default("active"),

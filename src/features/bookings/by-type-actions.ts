@@ -9,6 +9,7 @@ import { bookings } from "@/lib/db/schema/bookings";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { assertHoldDatesStillAvailable } from "@/features/direct-booking/availability";
 import { listAvailableVillaTypes, type AvailableVillaType } from "./type-availability";
 import type { ActionResult } from "@/features/projects/actions";
@@ -79,6 +80,7 @@ export async function createBookingByTypeAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const code = `BK-${Date.now().toString(36).toUpperCase().slice(-6)}`;
 
   let id: string;
@@ -86,6 +88,7 @@ export async function createBookingByTypeAction(
     const [row] = await db
       .insert(bookings)
       .values({
+        organizationId,
         villaId,
         channelId: d.channelId && d.channelId !== "" ? d.channelId : null,
         bookingCode: code,

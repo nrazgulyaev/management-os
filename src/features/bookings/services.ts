@@ -1,9 +1,10 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { bookings, bookingChannels, guests } from "@/lib/db/schema/bookings";
 import { villas } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { WithSource } from "@/features/types";
 
 export interface BookingListRow {
@@ -77,6 +78,7 @@ function n(v: string | null) { return v === null ? null : Number(v); }
 export async function listBookings(): Promise<WithSource<BookingListRow>[]> {
   const db = getDb();
   if (!db) return fallback;
+  const organizationId = await requireOrgId();
 
   const rows = await db
     .select({
@@ -90,6 +92,7 @@ export async function listBookings(): Promise<WithSource<BookingListRow>[]> {
     .innerJoin(villas, eq(villas.id, bookings.villaId))
     .leftJoin(bookingChannels, eq(bookingChannels.id, bookings.channelId))
     .leftJoin(guests, eq(guests.id, bookings.guestId))
+    .where(eq(bookings.organizationId, organizationId))
     .orderBy(desc(bookings.checkIn));
 
   return rows.map((r) => ({
@@ -117,6 +120,7 @@ export async function listBookings(): Promise<WithSource<BookingListRow>[]> {
 export async function getBookingById(id: string): Promise<WithSource<BookingListRow> | null> {
   const db = getDb();
   if (!db) return fallback.find((b) => b.id === id) ?? null;
+  const organizationId = await requireOrgId();
 
   const [r] = await db
     .select({
@@ -130,7 +134,7 @@ export async function getBookingById(id: string): Promise<WithSource<BookingList
     .innerJoin(villas, eq(villas.id, bookings.villaId))
     .leftJoin(bookingChannels, eq(bookingChannels.id, bookings.channelId))
     .leftJoin(guests, eq(guests.id, bookings.guestId))
-    .where(eq(bookings.id, id))
+    .where(and(eq(bookings.id, id), eq(bookings.organizationId, organizationId)))
     .limit(1);
 
   if (!r) return null;

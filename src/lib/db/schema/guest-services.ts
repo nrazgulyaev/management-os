@@ -67,12 +67,13 @@ export const guestServices = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "cascade",
     }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  villa → project.organization_id (else project, else default org). Not
-     *  threaded into queries yet; kept NULLABLE until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor from
+     *  requireOrgId() on catalog create (thread-portal unit). */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     serviceKey: text("service_key").notNull(),
     name: text("name").notNull(),
     shortDescription: text("short_description"),

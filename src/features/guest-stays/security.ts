@@ -8,6 +8,7 @@ import {
   type NewGuestStaySecurityEvent,
 } from "@/lib/db/schema/guest-stay-security";
 import { guestStayTokens } from "@/lib/db/schema/guest-stays";
+import { bookings } from "@/lib/db/schema/bookings";
 
 export type SecurityEventType =
   | "verification_sent"
@@ -45,7 +46,27 @@ export async function recordSecurityEvent(
   const db = getDb();
   if (!db) return;
   try {
+    // Guest/public path (no session). Resolve org from the stay token
+    // (carries org + booking) first, else from the booking directly.
+    let organizationId: string | null = null;
+    if (input.guestStayTokenId) {
+      const [tok] = await db
+        .select({ organizationId: guestStayTokens.organizationId })
+        .from(guestStayTokens)
+        .where(eq(guestStayTokens.id, input.guestStayTokenId))
+        .limit(1);
+      organizationId = tok?.organizationId ?? null;
+    }
+    if (!organizationId && input.bookingId) {
+      const [bk] = await db
+        .select({ organizationId: bookings.organizationId })
+        .from(bookings)
+        .where(eq(bookings.id, input.bookingId))
+        .limit(1);
+      organizationId = bk?.organizationId ?? null;
+    }
     const row: NewGuestStaySecurityEvent = {
+      organizationId,
       eventType: input.eventType,
       severity: input.severity ?? defaultSeverityFor(input.eventType),
       guestStayTokenId: input.guestStayTokenId ?? null,

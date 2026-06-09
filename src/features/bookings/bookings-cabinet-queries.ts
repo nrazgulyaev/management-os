@@ -6,6 +6,7 @@ import { villas } from "@/lib/db/schema/projects";
 import { bookings, guests } from "@/lib/db/schema/bookings";
 import { ownerStayRequests } from "@/lib/db/schema/owner-stays";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
+import { requireOrgId } from "@/features/auth/require-org";
 // SHAPE-FIX-1 / DAILY-DIGEST P0 — rowsOf handles postgres-js Array shape.
 // TODO(DB-SHAPE-CODEMOD-1): adjacent files in this module still pending full sweep.
 
@@ -46,6 +47,7 @@ export interface BookingsCabinetRow {
 export async function listBookingsForCabinet(limit = 25): Promise<BookingsCabinetRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db.execute<{
     id: string;
     booking_code: string;
@@ -77,6 +79,7 @@ export async function listBookingsForCabinet(limit = 25): Promise<BookingsCabine
       FROM bookings b
       JOIN villas v ON v.id = b.villa_id
       LEFT JOIN booking_channels bc ON bc.id = b.channel_id
+     WHERE b.organization_id = ${organizationId}
      ORDER BY b.check_in DESC
      LIMIT ${limit}
   `);

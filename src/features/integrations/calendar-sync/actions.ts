@@ -10,7 +10,7 @@ import {
   channelCalendarFeeds,
 } from "@/lib/db/schema/integrations";
 import { bookings } from "@/lib/db/schema/bookings";
-import { villas } from "@/lib/db/schema/projects";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
@@ -537,6 +537,19 @@ export async function materialiseCalendarEventAsBooking(
     .limit(1);
   if (!villa) return { error: "Villa missing." };
 
+  // Org for the materialised booking. The feed carries it (backfilled),
+  // but the column is nullable — fall back to the villa's project org.
+  let organizationId = feed.organizationId;
+  if (!organizationId) {
+    const [proj] = await db
+      .select({ organizationId: projects.organizationId })
+      .from(projects)
+      .where(eq(projects.id, villa.projectId))
+      .limit(1);
+    organizationId = proj?.organizationId ?? null;
+  }
+  if (!organizationId) return { error: "Cannot resolve organization for feed." };
+
   // De-dup by source_reference.
   const [existing] = await db
     .select({ id: bookings.id })
@@ -561,6 +574,7 @@ export async function materialiseCalendarEventAsBooking(
     const [row] = await db
       .insert(bookings)
       .values({
+        organizationId,
         villaId: feed.villaId,
         channelId: feed.bookingChannelId,
         guestId: null,

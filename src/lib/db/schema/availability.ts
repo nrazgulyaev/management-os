@@ -126,8 +126,10 @@ export const bookingStayEvents = pgTable(
     bookingId: uuid("booking_id")
       .notNull()
       .references(() => bookings.id, { onDelete: "cascade" }),
-    // TENANCY (migration 0149): nullable org anchor via booking.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via booking; 0155 NOT NULL cutover).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     eventType: text("event_type").notNull(),
     eventAt: timestamp("event_at", { withTimezone: true })
       .notNull()
@@ -166,8 +168,10 @@ export const checkinCheckoutRequests = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "set null",
     }),
-    // TENANCY (migration 0149): nullable org anchor via booking.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via booking; 0155 NOT NULL cutover).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     requestType: text("request_type").notNull(),
     requestedTime: timestamp("requested_time", { withTimezone: true }),
     status: text("status").notNull().default("requested"),
@@ -215,8 +219,11 @@ export const userResponsibilityScopes = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "cascade",
     }),
-    // TENANCY (migration 0149): nullable org anchor via project / villa / user.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via project/villa/user; 0155 NOT NULL
+    // cutover). Inserts use requireOrgId().
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     taskCategory: text("task_category"),
     scopeType: text("scope_type").notNull().default("operations"),
     status: text("status").notNull().default("active"),
@@ -256,8 +263,11 @@ export const securityCameraDevices = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "set null",
     }),
-    // TENANCY (migration 0149): nullable org anchor via villa/project.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via villa/project; 0155 NOT NULL cutover).
+    // Inserts use requireOrgId().
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     name: text("name").notNull(),
     locationLabel: text("location_label").notNull(),
     provider: text("provider"),

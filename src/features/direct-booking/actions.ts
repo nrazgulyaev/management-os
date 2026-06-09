@@ -11,6 +11,7 @@ import { directBookingRequests } from "@/lib/db/schema/direct-booking";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   appendRequestEvent,
   getHoldById,
@@ -260,9 +261,11 @@ export async function convertDirectBookingRequestToBookingAction(
   const grossMajor = (totalMinor / 100n).toString() + "." +
     String(totalMinor % 100n).padStart(2, "0");
 
+  const organizationId = await requireOrgId();
   const [bookingRow] = await db
     .insert(bookings)
     .values({
+      organizationId,
       villaId: request.villaId,
       guestId,
       channelId,

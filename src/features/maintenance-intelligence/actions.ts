@@ -15,6 +15,7 @@ import { villas } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { nextDailyCounter } from "@/features/operations/services";
 import { calculateNextDueAt, type Frequency } from "./scheduling-pure";
 import {
@@ -141,6 +142,7 @@ export async function createVillaMaintenancePlanAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [v] = await db
     .select({ projectId: villas.projectId })
@@ -158,6 +160,7 @@ export async function createVillaMaintenancePlanAction(
   const [row] = await db
     .insert(villaMaintenancePlans)
     .values({
+      organizationId,
       villaId: parsed.data.villaId,
       projectId: v?.projectId ?? null,
       templateId: parsed.data.templateId,
@@ -369,6 +372,7 @@ export async function generateTaskFromPlan(
   const [task] = await db
     .insert(operationTasks)
     .values({
+      organizationId: plan.organizationId,
       taskCode,
       villaId: plan.villaId,
       projectId: plan.projectId,
@@ -394,6 +398,7 @@ export async function generateTaskFromPlan(
     plan.guestDisruptionLevel === "high"
   ) {
     await db.insert(villaCalendarBlocks).values({
+      organizationId: plan.organizationId,
       villaId: plan.villaId,
       projectId: plan.projectId,
       blockType: "maintenance_block",

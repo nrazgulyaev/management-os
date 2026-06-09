@@ -31,8 +31,10 @@ export const bookingGuests = pgTable(
     bookingId: uuid("booking_id")
       .notNull()
       .references(() => bookings.id, { onDelete: "cascade" }),
-    // TENANCY (migration 0149): nullable org anchor, backfilled via booking.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via booking; 0155 NOT NULL cutover).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     fullName: text("full_name").notNull(),
     // role: primary | accompanying | child
     role: text("role").notNull().default("accompanying"),
@@ -67,8 +69,10 @@ export const bookingCharges = pgTable(
     bookingId: uuid("booking_id")
       .notNull()
       .references(() => bookings.id, { onDelete: "cascade" }),
-    // TENANCY (migration 0149): nullable org anchor, backfilled via booking.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (0149 add/backfill via booking; 0155 NOT NULL cutover).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     // charge_type: nightly | service | fee | tax | discount
     chargeType: text("charge_type").notNull(),
     description: text("description").notNull(),

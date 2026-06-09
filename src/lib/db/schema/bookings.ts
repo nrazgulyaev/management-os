@@ -53,9 +53,12 @@ export const bookings = pgTable(
     villaId: uuid("villa_id")
       .notNull()
       .references(() => villas.id, { onDelete: "restrict" }),
-    // TENANCY (migration 0149): nullable org anchor backfilled via
-    // villa -> project.organization_id. NOT threaded into queries yet.
-    organizationId: uuid("organization_id").references(() => organizations.id),
+    // TENANCY (migration 0149 add + backfill; 0155 NOT NULL cutover):
+    // org anchor backfilled via villa -> project.organization_id; threaded
+    // through every insert + the primary list/detail reads (thread-ops).
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
     guestId: uuid("guest_id").references(() => guests.id, { onDelete: "set null" }),
     channelId: uuid("channel_id").references(() => bookingChannels.id, {
       onDelete: "set null",

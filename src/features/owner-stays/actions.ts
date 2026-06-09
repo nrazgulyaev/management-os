@@ -10,11 +10,12 @@ import {
   villaEquivalenceGroupMembers,
 } from "@/lib/db/schema/owner-stays";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
-import { villas } from "@/lib/db/schema/projects";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { appUsersOwners } from "@/lib/db/schema/access-grants";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   addEquivalenceMemberSchema,
   archiveOwnerStayPolicySchema,
@@ -259,8 +260,13 @@ export async function createOwnerStayRequestAction(
   }
 
   const [v] = await db
-    .select({ id: villas.id, projectId: villas.projectId })
+    .select({
+      id: villas.id,
+      projectId: villas.projectId,
+      organizationId: projects.organizationId,
+    })
     .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
     .where(eq(villas.id, parsed.data.villaId))
     .limit(1);
   if (!v) return { ok: false, error: "Villa not found." };
@@ -298,6 +304,7 @@ export async function createOwnerStayRequestAction(
   const [row] = await db
     .insert(ownerStayRequests)
     .values({
+      organizationId: v.organizationId,
       ownerId: parsed.data.ownerId,
       requestedByAppUserId: me?.id ?? null,
       villaId: parsed.data.villaId,
@@ -459,11 +466,13 @@ export async function approveOwnerStayRequestAction(
   }
 
   // Materialise the calendar block.
+  const organizationId = await requireOrgId();
   const startsAt = new Date(`${req.requestedStart as unknown as string}T00:00:00.000Z`);
   const endsAt = new Date(`${req.requestedEnd as unknown as string}T00:00:00.000Z`);
   const [block] = await db
     .insert(villaCalendarBlocks)
     .values({
+      organizationId,
       villaId: req.villaId,
       projectId: req.projectId,
       blockType: "owner_stay",

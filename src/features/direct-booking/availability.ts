@@ -7,7 +7,7 @@ import {
   directBookingHolds,
   type DirectBookingHold,
 } from "@/lib/db/schema/direct-booking";
-import { villas } from "@/lib/db/schema/projects";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { bookings } from "@/lib/db/schema/bookings";
 
 /**
@@ -116,8 +116,12 @@ export async function createInternalHoldBlockForDirectHold(
     .limit(1);
   if (!hold) return { blockId: null };
   const [villa] = await db
-    .select({ projectId: villas.projectId })
+    .select({
+      projectId: villas.projectId,
+      organizationId: projects.organizationId,
+    })
     .from(villas)
+    .leftJoin(projects, eq(projects.id, villas.projectId))
     .where(eq(villas.id, hold.villaId))
     .limit(1);
   const startsAt = new Date(`${hold.checkIn}T00:00:00.000Z`);
@@ -149,6 +153,7 @@ export async function createInternalHoldBlockForDirectHold(
   const [inserted] = await db
     .insert(villaCalendarBlocks)
     .values({
+      organizationId: villa?.organizationId ?? null,
       villaId: hold.villaId,
       projectId: villa?.projectId ?? null,
       blockType: "internal_hold",

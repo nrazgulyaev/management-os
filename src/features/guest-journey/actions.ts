@@ -13,6 +13,7 @@ import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { listOwnerIdsForCurrentUser } from "@/features/notifications/services";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   createGuestJourneyRuleSchema,
   generateSuggestionsSchema,
@@ -55,10 +56,12 @@ export async function createGuestJourneyRuleAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const v = parsed.data;
   const [row] = await db
     .insert(guestJourneyRules)
     .values({
+      organizationId,
       ruleKey: v.ruleKey,
       name: v.name,
       description: v.description ?? null,

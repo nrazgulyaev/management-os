@@ -4,6 +4,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { securityCameraDevices } from "@/lib/db/schema/availability";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * V9A — security camera REGISTRY only. We never stream video; the app
@@ -37,7 +38,8 @@ export async function listSecurityCameraDevices(opts?: {
 }): Promise<SecurityCameraDeviceRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(securityCameraDevices.organizationId, organizationId)];
   if (opts?.projectId)
     filters.push(eq(securityCameraDevices.projectId, opts.projectId));
   if (opts?.villaId)
@@ -52,7 +54,7 @@ export async function listSecurityCameraDevices(opts?: {
     .from(securityCameraDevices)
     .leftJoin(projectsTable, eq(projectsTable.id, securityCameraDevices.projectId))
     .leftJoin(villas, eq(villas.id, securityCameraDevices.villaId))
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(asc(securityCameraDevices.name));
   return rows.map(toRow);
 }
@@ -62,6 +64,7 @@ export async function getSecurityCameraDeviceById(
 ): Promise<SecurityCameraDeviceRow | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select({
       d: securityCameraDevices,
@@ -71,7 +74,12 @@ export async function getSecurityCameraDeviceById(
     .from(securityCameraDevices)
     .leftJoin(projectsTable, eq(projectsTable.id, securityCameraDevices.projectId))
     .leftJoin(villas, eq(villas.id, securityCameraDevices.villaId))
-    .where(eq(securityCameraDevices.id, id))
+    .where(
+      and(
+        eq(securityCameraDevices.id, id),
+        eq(securityCameraDevices.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ? toRow(row) : null;
 }

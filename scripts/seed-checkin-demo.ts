@@ -22,7 +22,7 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { getDb, closeDb } from "./lib/db-script";
 import { bookings } from "../src/lib/db/schema/bookings";
-import { villas } from "../src/lib/db/schema/projects";
+import { villas, projects } from "../src/lib/db/schema/projects";
 import {
   checkins,
   guestStayTokens,
@@ -46,15 +46,17 @@ async function main() {
 
   const [bk] = argId
     ? await db
-        .select({ id: bookings.id, villaId: bookings.villaId, code: bookings.bookingCode, checkIn: bookings.checkIn, checkOut: bookings.checkOut, unit: villas.unitCode })
+        .select({ id: bookings.id, villaId: bookings.villaId, code: bookings.bookingCode, checkIn: bookings.checkIn, checkOut: bookings.checkOut, unit: villas.unitCode, organizationId: projects.organizationId })
         .from(bookings)
         .leftJoin(villas, eq(villas.id, bookings.villaId))
+        .leftJoin(projects, eq(projects.id, villas.projectId))
         .where(eq(bookings.id, argId))
         .limit(1)
     : await db
-        .select({ id: bookings.id, villaId: bookings.villaId, code: bookings.bookingCode, checkIn: bookings.checkIn, checkOut: bookings.checkOut, unit: villas.unitCode })
+        .select({ id: bookings.id, villaId: bookings.villaId, code: bookings.bookingCode, checkIn: bookings.checkIn, checkOut: bookings.checkOut, unit: villas.unitCode, organizationId: projects.organizationId })
         .from(bookings)
         .leftJoin(villas, eq(villas.id, bookings.villaId))
+        .leftJoin(projects, eq(projects.id, villas.projectId))
         .where(eq(bookings.status, "confirmed"))
         .orderBy(desc(bookings.checkIn))
         .limit(1);
@@ -101,7 +103,12 @@ async function main() {
 
   // 3) issue a fresh guest stay token (plaintext only printed here)
   const token = generateStayToken();
+  if (!bk.organizationId) {
+    console.error("Booking's villa has no organization — cannot seed token.");
+    process.exit(1);
+  }
   await db.insert(guestStayTokens).values({
+    organizationId: bk.organizationId,
     bookingId: bk.id,
     tokenHash: hashStayToken(token),
     tokenPrefix: tokenPrefixFromToken(token),

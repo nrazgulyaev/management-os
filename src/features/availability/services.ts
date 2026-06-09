@@ -21,6 +21,7 @@ import {
 } from "@/lib/db/schema/availability";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
 import { bookings } from "@/lib/db/schema/bookings";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   bookingDatesToBlockRange,
   detectConflicts,
@@ -87,7 +88,8 @@ export async function listVillaCalendarBlocks(opts?: {
 }): Promise<CalendarBlockRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(villaCalendarBlocks.organizationId, organizationId)];
   if (opts?.villaId) filters.push(eq(villaCalendarBlocks.villaId, opts.villaId));
   if (opts?.projectId)
     filters.push(eq(villaCalendarBlocks.projectId, opts.projectId));
@@ -352,6 +354,7 @@ export async function syncBookingCalendarBlock(
   const [inserted] = await db
     .insert(villaCalendarBlocks)
     .values({
+      organizationId: booking.organizationId,
       villaId,
       projectId: villaRow?.projectId ?? null,
       blockType: "guest_booking",

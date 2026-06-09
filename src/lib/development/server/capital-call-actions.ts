@@ -202,6 +202,7 @@ export async function issueCapitalCallAction(
         const [call] = await tx
           .insert(capitalCalls)
           .values({
+            organizationId,
             projectId: parsed.projectId,
             ref,
             kind: parsed.kind,

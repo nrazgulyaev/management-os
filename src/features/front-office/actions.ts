@@ -33,7 +33,7 @@ export async function updateExpectedCheckoutTimeAction(
   const me = await getCurrentAppUser();
 
   const [booking] = await db
-    .select({ id: bookings.id })
+    .select({ id: bookings.id, organizationId: bookings.organizationId })
     .from(bookings)
     .where(eq(bookings.id, parsed.data.bookingId))
     .limit(1);
@@ -41,6 +41,7 @@ export async function updateExpectedCheckoutTimeAction(
 
   const at = new Date(parsed.data.expectedCheckoutAt);
   await db.insert(bookingStayEvents).values({
+    organizationId: booking.organizationId,
     bookingId: parsed.data.bookingId,
     eventType: "expected_checkout_updated",
     eventAt: at,
@@ -83,9 +84,18 @@ export async function createCheckinCheckoutRequestAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
 
+  // Child row inherits the parent booking's org (tenancy).
+  const [parent] = await db
+    .select({ organizationId: bookings.organizationId })
+    .from(bookings)
+    .where(eq(bookings.id, parsed.data.bookingId))
+    .limit(1);
+  if (!parent) return { ok: false, error: "Booking not found." };
+
   const [row] = await db
     .insert(checkinCheckoutRequests)
     .values({
+      organizationId: parent.organizationId,
       bookingId: parsed.data.bookingId,
       villaId: parsed.data.villaId ?? null,
       requestType: parsed.data.requestType,

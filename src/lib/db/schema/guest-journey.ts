@@ -53,12 +53,13 @@ export const guestJourneyRules = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  villa → project.organization_id (else project, else default org). Not
-     *  threaded into queries yet; kept NULLABLE until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor from
+     *  requireOrgId() on rule create (thread-portal unit). */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     appliesToChannel: text("applies_to_channel"),
     conditionsJson: jsonb("conditions_json"),
     payloadJson: jsonb("payload_json"),

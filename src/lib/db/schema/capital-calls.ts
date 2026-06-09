@@ -35,12 +35,13 @@ export const capitalCalls = pgTable(
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "restrict" }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  project.organization_id. Not threaded into queries yet; kept NULLABLE
-     *  until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor from
+     *  requireOrgId() on issue; CFO list read is org-scoped (thread-portal). */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     /** e.g. CC-EV02-0004. */
     ref: text("ref").notNull().unique(),
     /** Enum: initial | construction_milestone | overrun | bridge | final. */

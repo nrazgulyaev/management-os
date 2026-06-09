@@ -28,6 +28,7 @@ import { owners } from "@/lib/db/schema/ownership";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { getOwnerOrgId } from "@/features/owner-portal/owner-context";
 import { listOwnershipShares } from "./services";
 import { getOwnerRetentionRisk } from "./retention-risk-service";
 import { computeChurnScore, INTERVENTION_LABEL, type InterventionKind } from "./retention-churn";
@@ -80,7 +81,13 @@ export async function runChurnAnalysisAction(
   const breakdown = computeChurnScore(risk ?? { level: "ok", signals: [] });
 
   const me = await getCurrentAppUser();
+  // Org anchor (TENANCY 0158) — owner → ownership_shares → project.org.
+  const organizationId = await getOwnerOrgId(ownerId);
+  if (!organizationId) {
+    return { ok: false, error: "Could not resolve the owner's organisation." };
+  }
   await db.insert(ownerInsights).values({
+    organizationId,
     ownerId,
     kind: "other",
     level: levelForBand(breakdown.band),
@@ -123,10 +130,16 @@ async function openIntervention(
   if (!owner) return { ok: false, error: "Owner not found." };
 
   const me = await getCurrentAppUser();
+  // Org anchor (TENANCY 0158) — owner → ownership_shares → project.org.
+  const organizationId = await getOwnerOrgId(ownerId);
+  if (!organizationId) {
+    return { ok: false, error: "Could not resolve the owner's organisation." };
+  }
   const label = INTERVENTION_LABEL[churnKind];
   const [row] = await db
     .insert(ownerInsights)
     .values({
+      organizationId,
       ownerId,
       kind: "other",
       level: "act",

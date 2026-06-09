@@ -10,6 +10,7 @@ import {
   taskChecklists,
   preventiveSchedules,
 } from "@/lib/db/schema";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { computeNextDueOn, todayYmd } from "@/features/operations/scheduling";
 import { templateItemRequiresPhoto } from "@/features/operations/checklists";
@@ -61,9 +62,32 @@ export async function runPreventiveTasksJob(handle: JobRunHandle): Promise<JobOu
       const counter = await nextDailyCounter("OPS");
       const taskCode = buildTaskCode(counter);
 
+      // CRON spans all orgs (no session). Resolve the new task's org from
+      // the schedule's project chain: direct project_id, else villa->project.
+      // The created task copies that org so per-org reads can see it.
+      let organizationId: string | null = null;
+      if (s.projectId) {
+        const [p] = await db
+          .select({ organizationId: projects.organizationId })
+          .from(projects)
+          .where(eq(projects.id, s.projectId))
+          .limit(1);
+        organizationId = p?.organizationId ?? null;
+      }
+      if (!organizationId && s.villaId) {
+        const [v] = await db
+          .select({ organizationId: projects.organizationId })
+          .from(villas)
+          .leftJoin(projects, eq(projects.id, villas.projectId))
+          .where(eq(villas.id, s.villaId))
+          .limit(1);
+        organizationId = v?.organizationId ?? null;
+      }
+
       const [task] = await db
         .insert(operationTasks)
         .values({
+          organizationId,
           taskCode,
           title: s.name,
           category: s.category,
