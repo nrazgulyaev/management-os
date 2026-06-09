@@ -101,6 +101,8 @@ export * from "./owner-notification-prefs";
 // Packet C PR 1 — owner-data-l2.
 export * from "./villa-photos";
 export * from "./owner-activity-log";
+// OWNER-ENGAGEMENT (#168 follow-up · migration 0143).
+export * from "./owner-guest-preapprovals";
 // Double-entry GL foundation (migration 0122).
 export * from "./general-ledger";
 // GL bank-reconciliation matches (migration 0136).

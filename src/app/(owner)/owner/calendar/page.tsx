@@ -10,6 +10,7 @@ import { getOwnerStayQuota } from "@/features/owner-portal/owner-portal-queries"
 import { MonthCalendar } from "@/components/owner-portal/month-calendar";
 import { PipelineList } from "@/components/owner-portal/pipeline-list";
 import { PoolManager } from "@/components/owner-portal/pool-manager";
+import { PoolStatusLegend } from "@/components/owner-portal/pool-status-legend";
 
 /**
  * Sprint OWNER-PORTAL · redesign owner-04 — Calendar.
@@ -80,6 +81,17 @@ export default async function OwnerCalendarPage({
   const villaLabel = data.villas.length === 1 ? ` · ${data.villas[0].label}` : "";
   const pipelineItems = data.pipeline.map((p) => ({ ...p, dateLabel: fmtDay(p.dateLabel) }));
 
+  // Three-state tally for the rental-pool legend (in pool / cooling / out).
+  const poolCounts = pool.villas.reduce(
+    (acc, v) => {
+      if (v.isCoolingOff) acc.cooling += 1;
+      else if (v.status === "out_of_pool") acc.outOfPool += 1;
+      else acc.inPool += 1;
+      return acc;
+    },
+    { inPool: 0, cooling: 0, outOfPool: 0 },
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end gap-4">
@@ -115,9 +127,12 @@ export default async function OwnerCalendarPage({
           take-out / return toggle (14-day cooling-off), free-nights
           allowance, Pay-&-book vs Book-free, and cancel-stay. */}
       <section className="flex flex-col gap-3">
-        <h2 className="display" style={{ fontSize: 22, fontWeight: 400, margin: 0, color: "var(--ink)" }}>
-          Rental pool
-        </h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="display" style={{ fontSize: 22, fontWeight: 400, margin: 0, color: "var(--ink)" }}>
+            Rental pool
+          </h2>
+          <PoolStatusLegend counts={poolCounts} />
+        </div>
         <PoolManager
           villas={pool.villas}
           quota={

@@ -6,10 +6,8 @@ import { OwnerGreeting } from "@/components/owner-portal/owner-greeting";
 import { HeroTile } from "@/components/owner-portal/hero-tile";
 import { VillaCard } from "@/components/owner-portal/villa-card";
 import { UpcomingList } from "@/components/owner-portal/upcoming-list";
-import {
-  QuickActionGrid,
-  type QuickAction,
-} from "@/components/owner-portal/quick-action-grid";
+import { OwnerQuickActions } from "@/components/owner-portal/owner-quick-actions";
+import type { OwnerVillaOption } from "@/features/owner-portal/engagement-types";
 
 /**
  * Sprint OWNER-PORTAL-1A · redesign owner-01 — Owner home.
@@ -38,34 +36,6 @@ function fmtDay(iso: string): string {
     .toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })
     .toUpperCase();
 }
-
-const ICON = {
-  stay: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  ),
-  guest: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
-    </svg>
-  ),
-  message: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
-  ),
-  call: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  ),
-};
 
 function SectionHead({
   title,
@@ -134,36 +104,10 @@ export default async function OwnerHomePage() {
     </>
   );
 
-  const actions: QuickAction[] = [
-    {
-      id: "stay",
-      href: "/owner/stays/new",
-      label: "Request personal stay",
-      context: "Pick dates · mgmt confirms",
-      icon: ICON.stay,
-    },
-    {
-      id: "guest",
-      href: "/owner/inbox",
-      label: "Pre-approve a guest",
-      context: "Friends without a booking",
-      icon: ICON.guest,
-    },
-    {
-      id: "msg",
-      href: "/owner/inbox",
-      label: "Message mgmt team",
-      context: "Your dedicated operators",
-      icon: ICON.message,
-    },
-    {
-      id: "call",
-      href: "/owner/preferences",
-      label: "Schedule a review call",
-      context: "15-min · director",
-      icon: ICON.call,
-    },
-  ];
+  const villaOptions: OwnerVillaOption[] = home.villas.map((v) => ({
+    id: v.id,
+    label: v.code && v.code !== "—" ? `${v.code} · ${v.name}` : v.name,
+  }));
 
   return (
     <div className="flex flex-col gap-10">
@@ -269,7 +213,7 @@ export default async function OwnerHomePage() {
         >
           Quick actions
         </h2>
-        <QuickActionGrid actions={actions} />
+        <OwnerQuickActions villas={villaOptions} />
       </section>
     </div>
   );

@@ -1,31 +1,51 @@
-import { SectionHeading, Card } from "@/components/dashboard/primitives";
+import Link from "next/link";
+import { EmptyState } from "@/components/ui/state";
 import { listOwnerPortalChoicesForCurrentUser } from "@/features/owner-stays/services";
 import { OwnerStayRequestForm } from "@/components/owner-stays/owner-request-form";
+
+/**
+ * P1 owner-rental-pool — "Request a stay" re-skin.
+ *
+ * Re-skinned off the older dashboard primitives (SectionHeading/Card) onto
+ * the owner-portal lineage (display headline + terra accents + state kit).
+ * The request form itself is the existing owner-stays client component.
+ */
 
 export const metadata = { title: "Request a stay" };
 export const dynamic = "force-dynamic";
 
 export default async function NewOwnerStayPage() {
-  const choices = await listOwnerPortalChoicesForCurrentUser();
+  const choices = await listOwnerPortalChoicesForCurrentUser().catch(() => []);
+
   return (
     <div className="flex flex-col gap-10">
-      <SectionHeading
-        eyebrow="Portfolio · stays · new"
-        title="Request an owner stay"
-        subtitle="Owner stays are welcome. Operational costs and rental-pool compensation may apply depending on your policy and selected dates."
-      />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-[200px]">
+          <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary mb-2">
+            Portfolio · stays · new
+          </div>
+          <h1
+            className="display"
+            style={{ fontSize: 42, fontWeight: 400, margin: 0, lineHeight: 1.05, letterSpacing: "-0.02em", color: "var(--ink)" }}
+          >
+            Request an owner stay
+          </h1>
+          <p className="text-sm text-ink-secondary mt-3 max-w-[60ch]">
+            Owner stays are welcome. Operational costs and rental-pool compensation
+            may apply depending on your policy and selected dates.
+          </p>
+        </div>
+        <Link href="/owner/stays" className="btn btn-secondary btn-sm">
+          ← My stays
+        </Link>
+      </div>
 
       {choices.length === 0 ? (
-        <Card style={{ padding: 24 }}>
-          <div className="label">Heads up</div>
-          <h2 className="display" style={{ fontSize: 20, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
-            No villas available
-          </h2>
-          <p style={{ fontSize: 14, color: "var(--ink-3)", margin: 0 }}>
-            We couldn&apos;t find any villas linked to your account. Please contact
-            your property manager to confirm your portfolio.
-          </p>
-        </Card>
+        <EmptyState
+          variant="first-run"
+          title="No villas available"
+          body="We couldn't find any villas linked to your account. Please contact your property manager to confirm your portfolio."
+        />
       ) : (
         <OwnerStayRequestForm choices={choices} />
       )}

@@ -313,6 +313,9 @@ export async function getMyWallet(commitmentId: string): Promise<{
       totalWithdrawnUsdMinor: toStr(w.totalWithdrawnUsdMinor),
       totalReinvestedUsdMinor: toStr(w.totalReinvestedUsdMinor),
       lastActivityAt: new Date(w.lastActivityAt).toISOString(),
+      cashBalanceMinor: toStr(w.cashBalanceMinor),
+      reinvestmentBalanceMinor: toStr(w.reinvestmentBalanceMinor),
+      pendingDistributionMinor: toStr(w.pendingDistributionMinor),
     },
     recentTransactions: tx.map(
       (t): WalletTransactionListItem => ({
@@ -331,6 +334,77 @@ export async function getMyWallet(commitmentId: string): Promise<{
       }),
     ),
   };
+}
+
+export interface WalletRequestItem {
+  id: string;
+  requestCode: string;
+  requestType: string;
+  status: string;
+  requestedAmountMinor: string;
+  currency: string;
+  submittedAt: string;
+}
+
+/**
+ * Portal requests (withdraw / reinvest / transfer) tied to a specific
+ * commitment — either by `related_commitment_id` or by the commitment's
+ * project on `source_project_id`. Scoped to the calling investor.
+ * Newest first. Drives the "requests against this wallet" rail on the
+ * wallet detail page.
+ */
+export async function getMyWalletRequests(
+  commitmentId: string,
+): Promise<WalletRequestItem[]> {
+  const session = await requireInvestorSession();
+  const db = getDb();
+  if (!db) return [];
+
+  // Ownership: confirm the commitment is the investor's, and resolve its
+  // project for the source-project match.
+  const [owns] = await db
+    .select({
+      id: capitalCommitments.id,
+      projectId: capitalCommitments.projectId,
+    })
+    .from(capitalCommitments)
+    .where(
+      and(
+        eq(capitalCommitments.id, commitmentId),
+        eq(capitalCommitments.investorId, session.investorId),
+      ),
+    )
+    .limit(1);
+  if (!owns) return [];
+
+  const rows = await db.execute(sql`
+    SELECT
+      r.id,
+      r.request_code,
+      r.request_type,
+      r.status,
+      r.requested_amount_minor,
+      r.currency,
+      r.submitted_at
+    FROM investor_portal_requests r
+    WHERE r.investor_id = ${session.investorId}
+      AND (
+        r.related_commitment_id = ${commitmentId}
+        ${owns.projectId ? sql`OR r.source_project_id = ${owns.projectId}` : sql``}
+      )
+    ORDER BY r.submitted_at DESC
+    LIMIT 10
+  `);
+
+  return (rows as Record<string, unknown>[]).map((r) => ({
+    id: String(r.id),
+    requestCode: String(r.request_code),
+    requestType: String(r.request_type),
+    status: String(r.status),
+    requestedAmountMinor: toStr(r.requested_amount_minor),
+    currency: String(r.currency),
+    submittedAt: new Date(r.submitted_at as string).toISOString(),
+  }));
 }
 
 export async function getMyIRR(commitmentId: string): Promise<IRRResult> {

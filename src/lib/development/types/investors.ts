@@ -192,6 +192,14 @@ export interface WalletSummary {
   totalWithdrawnUsdMinor: string;
   totalReinvestedUsdMinor: string;
   lastActivityAt: string;
+  /**
+   * Stage 4.B.2 live cash bucket — the spendable balance the reinvest /
+   * withdraw request flows actually debit. Distinct from the legacy
+   * `availableBalanceUsdMinor` (Stage 2.3) which is recomputed separately.
+   */
+  cashBalanceMinor: string;
+  reinvestmentBalanceMinor: string;
+  pendingDistributionMinor: string;
 }
 
 export interface WalletTransactionListItem {

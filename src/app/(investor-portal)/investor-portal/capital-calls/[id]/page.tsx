@@ -6,6 +6,7 @@ import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
 import { ConfirmWireForm } from "@/components/investor-portal/confirm-wire-form";
+import { Badge } from "@/components/ui/badge";
 import {
   getMyCapitalCall,
   getMyCapitalCallBreakdown,
@@ -58,6 +59,36 @@ export default async function CapitalCallDetailPage({
           {call.ref} · <span className="capitalize">{call.kind.replace(/_/g, " ")}</span>
         </p>
       </div>
+
+      {/* Lifecycle — Issued → Wire confirmed → Reconciled by Arconique. */}
+      <section className="rounded-lg border border-line-soft bg-surface p-5">
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <h2 className="text-sm uppercase tracking-wide text-ink-tertiary">
+            Wire status
+          </h2>
+          <Badge
+            tone={
+              call.isPaid
+                ? "success"
+                : overdue
+                  ? "danger"
+                  : "warning"
+            }
+          >
+            {call.isPaid
+              ? "Wire confirmed"
+              : overdue
+                ? "Overdue"
+                : "Awaiting your wire"}
+          </Badge>
+        </div>
+        <WireStepper isPaid={call.isPaid} />
+        <p className="text-[11px] text-ink-tertiary mt-3">
+          Manual settlement: confirming your wire records that you have sent the
+          funds. Arconique finance reconciles it against the incoming bank
+          transfer — no payment is captured in the portal.
+        </p>
+      </section>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat
@@ -167,6 +198,64 @@ export default async function CapitalCallDetailPage({
         )}
       </section>
     </PortalShell>
+  );
+}
+
+function WireStepper({ isPaid }: { isPaid: boolean }) {
+  // Two LP-visible steps. The 3rd (reconciliation) is an Arconique-side
+  // action shown as "Next" until confirmed — the portal never asserts it.
+  const steps = [
+    { label: "Issued", done: true },
+    { label: "Wire confirmed", done: isPaid, active: !isPaid },
+    {
+      label: "Reconciled by Arconique",
+      done: false,
+      active: isPaid,
+      muted: true,
+    },
+  ];
+  return (
+    <ol className="flex items-center gap-2 overflow-x-auto" aria-label="Wire lifecycle">
+      {steps.map((s, i) => (
+        <li key={s.label} className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={[
+                "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium",
+                s.done
+                  ? "bg-success text-white"
+                  : s.active
+                    ? "bg-ink text-ink-inverse"
+                    : "bg-muted text-ink-tertiary",
+              ].join(" ")}
+            >
+              {s.done ? "✓" : i + 1}
+            </span>
+            <span
+              className={[
+                "text-[11px] whitespace-nowrap",
+                s.active
+                  ? "text-ink font-medium"
+                  : s.done
+                    ? "text-ink-secondary"
+                    : "text-ink-tertiary",
+              ].join(" ")}
+            >
+              {s.label}
+            </span>
+          </div>
+          {i < steps.length - 1 && (
+            <span
+              className={[
+                "h-px w-6",
+                s.done ? "bg-success" : "bg-line-soft",
+              ].join(" ")}
+              aria-hidden
+            />
+          )}
+        </li>
+      ))}
+    </ol>
   );
 }
 

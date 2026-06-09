@@ -1,25 +1,32 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Send } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Send, CheckCircle2 } from "lucide-react";
 import { submitInvestorPortalRequest } from "@/lib/development/server/investor-portal-requests/request-actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 
 /**
  * Investor-side write surface — submit a withdrawal request. Goes to
  * `submitted` status; operator review + execution is required before any
- * money moves.
+ * money moves. Manual settlement only (PSP / payout capture deferred).
  */
 export function WithdrawRequestForm({
-  investorId,
   commitmentId,
   sourceProjectId,
   availableMinor,
 }: {
-  investorId: string;
+  /** Retained for call-site compatibility; the action resolves the
+   * investor from the portal session and ignores any client value. */
+  investorId?: string;
   commitmentId: string;
   sourceProjectId: string;
   availableMinor: number;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -38,13 +45,14 @@ export function WithdrawRequestForm({
       return;
     }
     if (amountNum > availableMajor) {
-      setError(`Amount exceeds available cash ($${availableMajor.toLocaleString()}).`);
+      setError(
+        `Amount exceeds available cash (${formatUsdMinor(BigInt(availableMinor))}).`,
+      );
       return;
     }
     startTransition(async () => {
       try {
         const out = await submitInvestorPortalRequest({
-          investorId,
           requestType: "withdrawal",
           requestedAmountMinor: BigInt(Math.round(amountNum * 100)),
           currency: "USD",
@@ -57,56 +65,61 @@ export function WithdrawRequestForm({
         );
         setAmount("");
         setNotes("");
+        router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Submit failed");
       }
     });
   }
 
+  if (success) {
+    return (
+      <div className="flex items-start gap-2 rounded-md border border-success/40 bg-success-weak px-4 py-3 text-sm text-success">
+        <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" strokeWidth={1.75} />
+        <span>{success}</span>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={submit} className="space-y-3">
       <label className="block text-sm">
-        <span className="text-stone-700">
-          Amount to withdraw (USD, max ${availableMajor.toLocaleString()})
+        <span className="text-ink-secondary">
+          Amount to withdraw (USD, max {formatUsdMinor(BigInt(availableMinor))})
         </span>
-        <input
+        <Input
           type="number"
           step="0.01"
           min="0"
           max={availableMajor}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="mt-1 block w-full rounded border border-stone-300 p-2 text-sm font-mono"
+          className="mt-1 font-mono tabular-nums"
           required
         />
       </label>
       <label className="block text-sm">
-        <span className="text-stone-700">Notes (optional)</span>
-        <textarea
+        <span className="text-ink-secondary">Notes (optional)</span>
+        <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
-          className="mt-1 block w-full rounded border border-stone-300 p-2 text-sm"
+          className="mt-1"
           placeholder="Any context for the Arconique team"
         />
       </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded bg-stone-900 text-white text-sm hover:bg-stone-800 disabled:opacity-50"
-      >
+      <Button type="submit" variant="primary" size="sm" disabled={pending}>
         {pending ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
           <Send className="w-4 h-4" />
         )}
         Submit withdrawal request
-      </button>
-      {error && <p className="text-xs text-red-700">{error}</p>}
-      {success && <p className="text-xs text-emerald-700">{success}</p>}
-      <p className="text-[11px] text-stone-500">
-        Submitting creates a request — no money moves until Arconique
-        reviews, approves, and explicitly executes it.
+      </Button>
+      {error && <p className="text-xs text-danger">{error}</p>}
+      <p className="text-[11px] text-ink-tertiary">
+        Submitting creates a request — no money moves until Arconique reviews,
+        approves, and explicitly executes it.
       </p>
     </form>
   );

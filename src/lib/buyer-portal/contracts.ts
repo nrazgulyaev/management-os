@@ -1,11 +1,22 @@
 import "server-only";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
-import { contractGroups } from "@/lib/db/schema/sales";
+import {
+  contractGroups,
+  contractMilestones,
+} from "@/lib/db/schema/sales";
 import { contractSignatures } from "@/lib/db/schema/contract-signatures";
 import { villas } from "@/lib/db/schema/projects";
+import {
+  getBuyerInvoices,
+  type BuyerInvoice,
+} from "@/lib/buyer-portal/invoices";
+import {
+  getBuyerReceiptsByMilestone,
+  type BuyerReceipt,
+} from "@/lib/buyer-portal/receipts";
 
 /**
  * Buyer-portal contract / e-sign data layer.
@@ -132,4 +143,122 @@ export async function getBuyerContracts(
         }),
       };
     });
+}
+
+// -----------------------------------------------------------------------------
+// Unified contract view — milestones + per-milestone invoice + receipt + e-sign
+// -----------------------------------------------------------------------------
+
+export interface BuyerContractMilestone {
+  id: string;
+  sequence: number;
+  name: string;
+  status: string;
+  expectedAmountUsdMinor: bigint;
+  paidAmountUsdMinor: bigint;
+  expectedDueDate: string | null;
+  paidAt: Date | null;
+  /** The operator-issued invoice for this milestone, if one has been sent. */
+  invoice: BuyerInvoice | null;
+  /** The receipt generated when this milestone was marked paid, if any. */
+  receipt: BuyerReceipt | null;
+}
+
+export interface BuyerContractDetail extends BuyerContract {
+  milestones: BuyerContractMilestone[];
+  /** Sum of every milestone's expected amount on this contract. */
+  scheduledTotalUsdMinor: bigint;
+  /** Sum of every milestone's recorded paid amount. */
+  paidTotalUsdMinor: bigint;
+}
+
+/**
+ * The unified buyer-facing contract surface: each contract group enriched with
+ * its milestone ladder (build phases), the per-milestone invoice (due / paid),
+ * and the receipt for a paid milestone — composed alongside the same e-sign
+ * state `getBuyerContracts` returns. Scoped to the authenticated buyer through
+ * their assigned villas → contract groups.
+ *
+ * Reuses the existing scoped readers (`getBuyerContracts`, `getBuyerInvoices`,
+ * `getBuyerReceiptsByMilestone`) so ownership is enforced once, consistently.
+ */
+export async function getBuyerContractDetails(
+  buyerId: string,
+): Promise<BuyerContractDetail[]> {
+  const contracts = await getBuyerContracts(buyerId);
+  if (contracts.length === 0) return [];
+
+  const db = getDb();
+  if (!db) {
+    return contracts.map((c) => ({
+      ...c,
+      milestones: [],
+      scheduledTotalUsdMinor: 0n,
+      paidTotalUsdMinor: 0n,
+    }));
+  }
+
+  const groupIds = contracts.map((c) => c.contractGroupId);
+
+  // Milestone ladder for the buyer's contract groups, ordered by sequence.
+  const milestoneRows = await db
+    .select({
+      id: contractMilestones.id,
+      contractGroupId: contractMilestones.contractGroupId,
+      sequence: contractMilestones.sequence,
+      name: contractMilestones.name,
+      status: contractMilestones.status,
+      expectedAmountUsdMinor: contractMilestones.expectedAmountUsdMinor,
+      paidAmountUsdMinor: contractMilestones.paidAmountUsdMinor,
+      expectedDueDate: contractMilestones.expectedDueDate,
+      paidAt: contractMilestones.paidAt,
+    })
+    .from(contractMilestones)
+    .where(inArray(contractMilestones.contractGroupId, groupIds))
+    .orderBy(
+      asc(contractMilestones.contractGroupId),
+      asc(contractMilestones.sequence),
+    );
+
+  // Issued invoices + generated receipts, both already buyer-scoped.
+  const invoices = await getBuyerInvoices(buyerId);
+  const invoiceByMilestone = new Map<string, BuyerInvoice>();
+  for (const inv of invoices) {
+    // Query is newest-first; keep the latest per milestone.
+    if (!invoiceByMilestone.has(inv.contractMilestoneId)) {
+      invoiceByMilestone.set(inv.contractMilestoneId, inv);
+    }
+  }
+  const receiptByMilestone = await getBuyerReceiptsByMilestone(buyerId);
+
+  const milestonesByGroup = new Map<string, BuyerContractMilestone[]>();
+  for (const m of milestoneRows) {
+    const list = milestonesByGroup.get(m.contractGroupId) ?? [];
+    list.push({
+      id: m.id,
+      sequence: m.sequence,
+      name: m.name,
+      status: m.status,
+      expectedAmountUsdMinor: m.expectedAmountUsdMinor,
+      paidAmountUsdMinor: m.paidAmountUsdMinor,
+      expectedDueDate: m.expectedDueDate,
+      paidAt: m.paidAt,
+      invoice: invoiceByMilestone.get(m.id) ?? null,
+      receipt: receiptByMilestone.get(m.id) ?? null,
+    });
+    milestonesByGroup.set(m.contractGroupId, list);
+  }
+
+  return contracts.map((c) => {
+    const milestones = milestonesByGroup.get(c.contractGroupId) ?? [];
+    const scheduledTotalUsdMinor = milestones.reduce(
+      (sum, m) => sum + m.expectedAmountUsdMinor,
+      0n,
+    );
+    const paidTotalUsdMinor = milestones.reduce(
+      (sum, m) => sum + m.paidAmountUsdMinor,
+      0n,
+    );
+    return { ...c, milestones, scheduledTotalUsdMinor, paidTotalUsdMinor };
+  });
 }
