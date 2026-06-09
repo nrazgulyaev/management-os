@@ -102,7 +102,7 @@ export default async function PurchaseRequestsPage({
           <Link
             key={p.v}
             href={`/development-os/procurement/purchase-requests${p.v ? `?status=${p.v}` : ""}`}
-            className={`rounded-md px-3 py-1.5 ${(sp.status ?? "") === p.v ? "bg-stone-900 text-white" : "border border-line-soft hover:bg-muted/40"}`}
+            className={`rounded-md px-3 py-1.5 ${(sp.status ?? "") === p.v ? "bg-ink text-ink-inverse" : "border border-line-soft hover:bg-muted/40"}`}
           >
             {p.label}
           </Link>

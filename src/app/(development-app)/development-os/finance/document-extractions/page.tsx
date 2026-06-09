@@ -226,7 +226,7 @@ function FilterPill({
   return (
     <Link
       href={href}
-      className={`rounded-md px-3 py-1.5 ${active ? "bg-stone-900 text-white" : "border border-line-soft hover:bg-muted/40"}`}
+      className={`rounded-md px-3 py-1.5 ${active ? "bg-ink text-ink-inverse" : "border border-line-soft hover:bg-muted/40"}`}
     >
       {children}
     </Link>

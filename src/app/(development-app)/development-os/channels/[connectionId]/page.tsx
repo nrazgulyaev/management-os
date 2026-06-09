@@ -324,7 +324,7 @@ function TabStrip({
             href={`/development-os/channels/${connectionId}?tab=${t}`}
             className={`rounded-md px-3 py-1.5 ${
               isActive
-                ? "bg-stone-900 text-white"
+                ? "bg-ink text-ink-inverse"
                 : "border border-line-soft hover:bg-muted/40"
             }`}
             data-testid={`tab-${t}`}

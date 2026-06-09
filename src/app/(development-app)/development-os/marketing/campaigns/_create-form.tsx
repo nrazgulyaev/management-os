@@ -71,7 +71,7 @@ export function CampaignCreateForm() {
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="modal-overlay flex items-center justify-center p-4"
           onClick={() => setOpen(false)}
         >
           <div

@@ -4,6 +4,7 @@ import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import { getOwnerSettings } from "@/features/owner-portal/get-settings";
 import { getOwnerNotificationPrefs } from "@/features/owner-portal/notification-prefs";
 import { DEFAULT_NOTIFICATION_PREFS } from "@/features/owner-portal/notification-prefs-types";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { SettingsSection } from "@/components/owner-portal/settings-section";
 import { SettingsRow } from "@/components/owner-portal/settings-row";
 import { OwnerNotificationToggles } from "@/components/owner-portal/owner-notification-toggles";
@@ -28,15 +29,6 @@ import { OwnerNotificationToggles } from "@/components/owner-portal/owner-notifi
 export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
 
-const H1: React.CSSProperties = {
-  fontSize: 36,
-  fontWeight: 400,
-  margin: 0,
-  lineHeight: 1.05,
-  letterSpacing: "-0.02em",
-  color: "var(--ink)",
-};
-
 export default async function OwnerSettingsPage() {
   const owner = await getCurrentOwnerContext();
   if (!owner) redirect("/dashboard");
@@ -49,14 +41,7 @@ export default async function OwnerSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary mb-2">
-          Your account
-        </div>
-        <h1 className="display" style={H1}>
-          Settings
-        </h1>
-      </div>
+      <SectionHeading eyebrow="Your account" title="Settings" />
 
       {readOnly && (
         <p className="text-xs text-ink-secondary">

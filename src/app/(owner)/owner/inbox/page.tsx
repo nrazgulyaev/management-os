@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import { listOwnerThreads, getOwnerThreadDetail } from "@/features/owner-portal/get-threads";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { OwnerInboxClient } from "@/components/owner-portal/owner-inbox-client";
 import type { ThreadListItem, ThreadKind } from "@/components/owner-portal/thread-list";
 import type { ThreadMessage } from "@/components/owner-portal/thread-view";
@@ -82,21 +83,11 @@ export default async function OwnerInboxPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary mb-2">
-          Your inbox
-        </div>
-        <h1
-          className="display"
-          style={{ fontSize: 36, fontWeight: 400, margin: 0, lineHeight: 1.05, letterSpacing: "-0.02em", color: "var(--ink)" }}
-        >
-          Messages
-        </h1>
-        <p className="text-[14px] text-ink-tertiary mt-2 max-w-[680px]">
-          Two-way conversations with your management team — statements, stay
-          requests, and anything else. Replies notify the team directly.
-        </p>
-      </div>
+      <SectionHeading
+        eyebrow="Your inbox"
+        title="Messages"
+        subtitle="Two-way conversations with your management team — statements, stay requests, and anything else. Replies notify the team directly."
+      />
 
       {threads.length === 0 ? (
         <div className="rounded-[14px] border border-dashed border-line-strong p-8">

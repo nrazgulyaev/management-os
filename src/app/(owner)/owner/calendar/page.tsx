@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import { getOwnerCalendar } from "@/features/owner-portal/get-calendar";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { MonthCalendar } from "@/components/owner-portal/month-calendar";
 import { PipelineList } from "@/components/owner-portal/pipeline-list";
 
@@ -71,33 +72,26 @@ export default async function OwnerCalendarPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="flex-1 min-w-[200px]">
-          <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary mb-2">
-            Your calendar{villaLabel}
-          </div>
-          <h1
-            className="display"
-            style={{ fontSize: 42, fontWeight: 400, margin: 0, lineHeight: 1.05, letterSpacing: "-0.02em", color: "var(--ink)" }}
-          >
-            {monthName(ym)}
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link href={`/owner/calendar?month=${prev}`} className="btn btn-ghost btn-sm">
-            ← {monthShort(prev)}
-          </Link>
-          <Link href="/owner/calendar" className="btn btn-ghost btn-sm">
-            Today
-          </Link>
-          <Link href={`/owner/calendar?month=${next}`} className="btn btn-ghost btn-sm">
-            {monthShort(next)} →
-          </Link>
-          <Link href="/owner/stays/new" className="btn btn-accent btn-sm">
-            + Request personal stay
-          </Link>
-        </div>
-      </div>
+      <SectionHeading
+        eyebrow={`Your calendar${villaLabel}`}
+        title={monthName(ym)}
+        actions={
+          <>
+            <Link href={`/owner/calendar?month=${prev}`} className="btn btn-ghost btn-sm">
+              ← {monthShort(prev)}
+            </Link>
+            <Link href="/owner/calendar" className="btn btn-ghost btn-sm">
+              Today
+            </Link>
+            <Link href={`/owner/calendar?month=${next}`} className="btn btn-ghost btn-sm">
+              {monthShort(next)} →
+            </Link>
+            <Link href="/owner/stays/new" className="btn btn-accent btn-sm">
+              + Request personal stay
+            </Link>
+          </>
+        }
+      />
 
       <MonthCalendar month={ym} events={data.events} />
 

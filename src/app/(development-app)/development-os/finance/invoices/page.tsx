@@ -164,7 +164,7 @@ export default async function InvoicesPage({
                   href={href}
                   className={`rounded-md px-2 py-1 border ${
                     isActive
-                      ? "bg-stone-900 text-white border-stone-900"
+                      ? "bg-ink text-ink-inverse border-ink"
                       : "border-line-soft hover:bg-muted/40"
                   }`}
                   data-testid={`invoice-status-chip-${s}`}

@@ -84,7 +84,7 @@ export function LogRevenueStreamForm({
         + Log revenue stream
       </Button>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOpen(false)}>
+        <div className="modal-overlay flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <div className="w-full max-w-lg rounded-lg border border-line-soft bg-surface p-5 shadow-xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-sm font-semibold mb-3">Log revenue stream</h2>
             <form onSubmit={submit} className="space-y-3">

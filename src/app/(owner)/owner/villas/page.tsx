@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import { listMyVillas } from "@/features/owner-portal/owner-portal-queries";
 import { getVillaHeroUrls } from "@/features/owner-portal/get-owner-insights";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { VillaCard } from "@/components/owner-portal/villa-card";
 
 /**
@@ -31,22 +32,15 @@ export default async function OwnerVillasPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary mb-2">
-          Your villas
-        </div>
-        <h1
-          className="display"
-          style={{ fontSize: 36, fontWeight: 400, margin: 0, lineHeight: 1.05, letterSpacing: "-0.02em", color: "var(--ink)" }}
-        >
-          Your portfolio
-        </h1>
-        <p className="text-[14px] text-ink-tertiary mt-2">
-          {villas.length === 0
+      <SectionHeading
+        eyebrow="Your villas"
+        title="Your portfolio"
+        subtitle={
+          villas.length === 0
             ? "No villa ownership recorded yet — your shares are configured by your operator."
-            : `${villas.length} villas with ownership shares on record.`}
-        </p>
-      </div>
+            : `${villas.length} villas with ownership shares on record.`
+        }
+      />
 
       {villas.length === 0 ? (
         <div className="rounded-[14px] border border-dashed border-line-strong p-8">
