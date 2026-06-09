@@ -12,11 +12,15 @@ import { computeShareTotals } from "@/features/shares/totals";
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
 import { ShareAddButton } from "@/components/shares/share-add-button";
 import { NoItemsYet } from "@/components/ui/primitives";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Ownership shares" };
 export const dynamic = "force-dynamic";
 
 export default async function SharesPage() {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Ownership shares" />;
   const [shares, owners, projects, villas] = await Promise.all([
     listOwnershipShares(),
     listOwners(),

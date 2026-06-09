@@ -5,6 +5,8 @@ import {
   type DashboardNavGroup,
   type DashboardNavItem,
 } from "@/config/dashboard-nav";
+import { getCabinetAccess } from "@/features/keystone/access";
+import { cabinetForNavHref } from "@/features/keystone/matrix";
 import { DashboardIcon } from "./icons";
 import { ActiveSidebarLink } from "./active-sidebar-link";
 
@@ -33,10 +35,31 @@ interface SidebarProps {
   workspaceSubtitle?: string;
 }
 
-export function DashboardSidebar({
+export async function DashboardSidebar({
   workspaceLabel = "Arconique workspace",
   workspaceSubtitle,
 }: SidebarProps = {}) {
+  // Block 08 — the override-aware "who-sees-what" matrix now actually
+  // filters the nav. A role that an admin un-ticked for a cabinet no
+  // longer sees that nav row. Demo mode / super-admin see everything.
+  // A resolve failure must never blank the whole sidebar, so we fall
+  // back to showing every group/item.
+  let canSee: (cabinetKey: string) => boolean = () => true;
+  try {
+    const access = await getCabinetAccess();
+    canSee = access.canSee;
+  } catch {
+    canSee = () => true;
+  }
+
+  const visibleGroups = MGMT_DASHBOARD_NAV.map((g) => ({
+    ...g,
+    items: g.items.filter((item) => {
+      const cabinet = cabinetForNavHref(item.href);
+      return cabinet === null || canSee(cabinet);
+    }),
+  })).filter((g) => g.items.length > 0);
+
   return (
     <aside className="sidebar">
       <Link
@@ -62,7 +85,7 @@ export function DashboardSidebar({
         </div>
       </div>
 
-      {MGMT_DASHBOARD_NAV.map((g) => (
+      {visibleGroups.map((g) => (
         <DashboardSidebarGroup key={g.title} group={g} />
       ))}
     </aside>

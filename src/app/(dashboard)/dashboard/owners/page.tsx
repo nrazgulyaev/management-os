@@ -13,6 +13,8 @@ import { RiskPill } from "@/components/owners/risk-pill";
 import { PortalStatusDot } from "@/components/owners/portal-dot";
 import { ListTableCard, NoItemsYet } from "@/components/ui/primitives";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 import { startImpersonatingOwner } from "@/features/owner-portal/impersonation-actions";
 import { formatMoneyMinor } from "@/lib/money";
 
@@ -42,6 +44,8 @@ const riskRowClass: Record<string, string> = {
 };
 
 export default async function OwnersPage() {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owners" />;
   const [owners, ctx, villas] = await Promise.all([
     listOwnersForCrm(),
     getCurrentUserContext(),

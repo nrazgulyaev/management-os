@@ -9,6 +9,8 @@ import {
   listPaymentProviderAccounts,
   listPaymentWebhookEvents,
 } from "@/features/direct-booking/deposits";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Payments" };
 export const dynamic = "force-dynamic";
@@ -46,6 +48,8 @@ function fmtDateTime(d: Date | string): string {
 }
 
 export default async function PaymentsHub() {
+  const { allowed } = await requireCabinetAccess("finance");
+  if (!allowed) return <CabinetGate cabinet="Payments" />;
   const [m, providers, webhooks] = await Promise.all([
     getDepositMetrics(),
     safeQuery(
