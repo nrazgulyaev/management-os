@@ -13,6 +13,10 @@ import {
   type ProcurementPoRow,
   type ProcurementInvoiceRow,
 } from "@/lib/development/server/cabinets/procurement-cabinet-queries";
+import {
+  loadProcurementAnalystBand,
+  type ProcurementAnalystOutput,
+} from "./_procurement-analyst-band";
 
 /**
  * Sprint _handoff/ Task 7 → TASK-7-DATA-PART-1 — Procurement Manager.
@@ -86,6 +90,24 @@ function statusBadge(s: string) {
   return tone ? <HandoffBadge tone={tone}>{s.replace(/_/g, " ")}</HandoffBadge> : <HandoffBadge>{s.replace(/_/g, " ")}</HandoffBadge>;
 }
 
+const ANALYST_STATUS_TONE: Record<string, "ok" | "warn" | "danger" | undefined> = {
+  approved: "ok",
+  edited_and_approved: "ok",
+  partially_approved: "ok",
+  awaiting_review: "warn",
+  rejected: "danger",
+  expired: undefined,
+};
+function analystBadge(s: string) {
+  const tone = ANALYST_STATUS_TONE[s];
+  const label = s.replace(/_/g, " ");
+  return tone ? (
+    <HandoffBadge tone={tone}>{label}</HandoffBadge>
+  ) : (
+    <HandoffBadge>{label}</HandoffBadge>
+  );
+}
+
 interface EmptyStateProps {
   title: string;
   hint: string;
@@ -106,10 +128,11 @@ function EmptyState({ title, hint, cta }: EmptyStateProps) {
 }
 
 export default async function ProcurementManagerPage() {
-  const [prs, pos, invoices] = await Promise.all([
+  const [prs, pos, invoices, analystOutputs] = await Promise.all([
     listOpenPurchaseRequests().catch(() => []),
     listPosInTransit().catch(() => []),
     listInvoicesAwaitingApproval().catch(() => []),
+    loadProcurementAnalystBand().catch(() => [] as ProcurementAnalystOutput[]),
   ]);
 
   // Computed KPIs — derive directly from the three reads.
@@ -194,6 +217,78 @@ export default async function ProcurementManagerPage() {
         />
         <Kpi label="Avg PR → PO" value="—" sub="cycle-time analytics coming soon" />
       </div>
+
+      {/* AI band — live procurement_analyst agent_outputs (vendor reliability + lead-time). */}
+      <Card className="corner-marks p-5 mb-[18px] border-amber">
+        <div className="flex gap-[18px] items-start">
+          <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-[rgba(255,107,53,0.15)] text-amber flex items-center justify-center">
+            ✦
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="label label-amber">procurement-analyst</span>
+              {analystOutputs.length > 0 &&
+                analystBadge(analystOutputs[0].status)}
+            </div>
+            {analystOutputs.length === 0 ? (
+              <>
+                <p className="mt-1.5 mb-3 text-[14px] text-ink leading-[1.55] max-w-[780px]">
+                  No procurement-analyst findings yet. Vendor reliability and
+                  lead-time insights surface here once the analyst agent files
+                  its first output against your PO history.
+                </p>
+                <div className="flex gap-2">
+                  <Link
+                    href="/development-os/ai-agents/procurement-analyst"
+                    className="btn btn-dark btn-sm"
+                  >
+                    Open agent
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={`/development-os/ai-agents/procurement-analyst/outputs/${analystOutputs[0].outputCode}`}
+                  className="block mt-1.5 text-[15px] text-ink font-medium hover:underline"
+                >
+                  {analystOutputs[0].title}
+                </Link>
+                <p className="mt-1 mb-3 text-[14px] text-ink-2 leading-[1.55] max-w-[780px]">
+                  {analystOutputs[0].summary}
+                </p>
+                {analystOutputs.length > 1 && (
+                  <ul className="mb-3 mt-0 pl-0 list-none space-y-1">
+                    {analystOutputs.slice(1).map((o) => (
+                      <li
+                        key={o.outputCode}
+                        className="text-[13px] text-ink-3 flex items-center gap-2"
+                      >
+                        <span className="text-amber">›</span>
+                        <Link
+                          href={`/development-os/ai-agents/procurement-analyst/outputs/${o.outputCode}`}
+                          className="hover:underline truncate"
+                        >
+                          {o.title}
+                        </Link>
+                        {analystBadge(o.status)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex gap-2">
+                  <Link
+                    href="/development-os/ai-agents/procurement-analyst"
+                    className="btn btn-dark btn-sm"
+                  >
+                    All findings
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </Card>
 
       <h2 className="display text-[22px] mb-3.5 font-medium">
         Open purchase requests
