@@ -57,8 +57,11 @@
   line-height: 1.6;
   color: var(--ink-2);
   margin-top: 14px;
-  max-width: 620px;
+  max-width: 680px;
 }
+/* Bold amounts inside the greeting narrative read as ink (01-home.html). */
+[data-density="narrative"] .owner-narr strong,
+.owner-greeting .owner-narr strong { color: var(--ink); font-weight: 500; }
 [data-density="narrative"] .owner-eyebrow,
 .owner-greeting .owner-eyebrow {
   font-family: var(--mono-font), monospace;
@@ -69,16 +72,55 @@
   margin-bottom: 12px;
 }
 
+/* ---------- Owner section heading (home) ----------
+   28px Newsreader title + optional terra mono "see all" link, aligned
+   to the baseline (01-home.html "Your villa" / "Upcoming" headers). */
+[data-product] .owner-sec-head {
+  display: flex; align-items: baseline; gap: 12px;
+}
+[data-product] .owner-sec-head .owner-sec-title {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+[data-product] .owner-sec-head .owner-sec-link {
+  margin-left: auto;
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--terra);
+  text-decoration: none;
+}
+[data-product] .owner-sec-head .owner-sec-link:hover { opacity: 0.7; }
+
+/* ---------- Hero grid (3-up · YTD / pending / next) ----------
+   01-home.html: 1.4fr 1fr 1fr · 14px gap · headline tile gets the
+   extra width. Collapses to a single column at the ≤900px mobile
+   breakpoint where the tiles stack vertically. */
+[data-product] .hero-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  [data-product] .hero-grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- HeroTile ---------- */
 [data-product] .hero-tile {
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column;
   padding: 22px 24px;
   background: var(--paper, var(--panel));
   border: 1px solid var(--line-soft, var(--line));
-  border-radius: 22px;
+  border-radius: 16px;
 }
 [data-product] .hero-tile.dark {
-  background: var(--ink);
+  background: linear-gradient(160deg, var(--ink), var(--forest, #1f3a33));
   color: var(--cream-warm, #fff);
   border-color: var(--ink);
 }
@@ -90,7 +132,7 @@
 [data-product] .hero-tile.gold .ht-label { color: #8a6b2d; }
 [data-product] .hero-tile .ht-label {
   font-family: var(--mono-font), monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-3);
@@ -98,37 +140,46 @@
 [data-product] .hero-tile.dark .ht-label { color: rgba(255,255,255,0.55); }
 [data-product] .hero-tile .ht-value {
   font-family: var(--display-font), Georgia, serif;
-  font-size: 42px;
+  font-size: 36px;
   font-weight: 400;
   letter-spacing: -0.02em;
-  line-height: 1;
+  line-height: 1.05;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
-  margin-top: 8px;
+  margin: 8px 0 4px;
 }
 [data-product] .hero-tile.dark .ht-value { color: var(--cream-warm, #fff); }
 [data-product] .hero-tile .ht-sub {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--ink-3);
-  margin-top: 6px;
+  line-height: 1.5;
 }
 [data-product] .hero-tile.dark .ht-sub { color: rgba(255,255,255,0.7); }
 [data-product] .hero-tile .ht-foot {
+  display: flex; align-items: center; gap: 8px;
   font-family: var(--mono-font), monospace;
   font-size: 11px;
   color: var(--ink-3);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   margin-top: auto;
-  padding-top: 10px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
 }
-[data-product] .hero-tile.dark .ht-foot { color: rgba(255,255,255,0.55); }
+[data-product] .hero-tile.dark .ht-foot {
+  color: rgba(255,255,255,0.55);
+  border-top-color: rgba(255,255,255,0.15);
+}
 
-/* ---------- VillaCard ---------- */
+/* ---------- VillaCard ----------
+   01-home.html: row card · 140px gradient image plate (mint→ok) left,
+   body right with serif name + mono meta line + inline stats divided
+   by a hairline. The col orientation keeps a tall hero for the
+   /owner/villas list. */
 [data-product] .villa-card {
   display: flex;
   background: var(--paper, var(--panel));
   border: 1px solid var(--line-soft, var(--line));
-  border-radius: 22px;
+  border-radius: 14px;
   overflow: hidden;
   text-decoration: none;
   color: inherit;
@@ -138,80 +189,97 @@
   border-color: var(--ink-2);
   transform: translateY(-2px);
 }
-[data-product] .villa-card.col { flex-direction: column; }
+[data-product] .villa-card.col { flex-direction: column; border-radius: 22px; }
 [data-product] .villa-card.row { flex-direction: row; align-items: stretch; }
 [data-product] .villa-card .vc-hero {
   position: relative;
-  background: linear-gradient(135deg, color-mix(in oklab, var(--terra) 30%, transparent), var(--cream-deep));
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--mint, #D8E8D6), var(--ok, #4F7A5D));
   background-size: cover;
   background-position: center;
-  min-height: 180px;
   display: flex; align-items: center; justify-content: center;
 }
+[data-product] .villa-card.col .vc-hero { min-height: 180px; }
 [data-product] .villa-card.row .vc-hero {
-  width: 200px;
+  width: 140px;
   min-height: auto;
 }
 [data-product] .villa-card .vc-hero-fallback {
   font-family: var(--mono-font), monospace;
-  font-size: 18px;
-  color: var(--cream-warm, #fff);
-  letter-spacing: 0.16em;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--paper, #fff);
+  letter-spacing: 0.1em;
+  text-align: center;
+  line-height: 1.4;
 }
 [data-product] .villa-card .vc-body {
-  display: flex; flex-direction: column; gap: 4px;
-  padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 16px 18px;
   flex: 1;
+  min-width: 0;
 }
+[data-product] .villa-card.col .vc-body { padding: 18px 20px; }
+[data-product] .villa-card .vc-head {
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+}
+[data-product] .villa-card .vc-name {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+[data-product] .villa-card.col .vc-name { font-size: 22px; margin-top: 4px; }
 [data-product] .villa-card .vc-code {
   font-family: var(--mono-font), monospace;
   font-size: 10.5px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.08em;
   color: var(--ink-3);
   text-transform: uppercase;
-}
-[data-product] .villa-card .vc-name {
-  margin: 4px 0 0;
-  font-family: var(--display-font), Georgia, serif;
-  font-weight: 400;
-  font-size: 22px;
-  color: var(--ink);
-  letter-spacing: -0.01em;
 }
 [data-product] .villa-card .vc-loc {
   font-size: 13px;
   color: var(--ink-3);
-  margin-top: 2px;
 }
 [data-product] .villa-card .vc-stats {
-  display: flex; gap: 16px;
+  display: flex; gap: 18px;
+  margin-top: 6px;
+}
+[data-product] .villa-card.col .vc-stats {
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--line-soft, var(--line));
 }
 [data-product] .villa-card .vc-stat {
-  display: flex; flex-direction: column;
-}
-[data-product] .villa-card .vc-stat .value {
-  font-family: var(--mono-font), monospace;
-  font-size: 16px;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
+  display: flex; flex-direction: column; gap: 2px;
 }
 [data-product] .villa-card .vc-stat .label {
   font-family: var(--mono-font), monospace;
   font-size: 9.5px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
+[data-product] .villa-card .vc-stat .value {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 18px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+[data-product] .villa-card .vc-stat .value.up { color: var(--ok); }
+[data-product] .villa-card .vc-stat .value.down { color: var(--warn); }
 
-/* ---------- UpcomingList ---------- */
+/* ---------- UpcomingList ----------
+   01-home.html: 88px (when) · 1fr (guest + villa sub) · auto (badge).
+   The middle cell stacks the guest name (with pax/nights inline) over a
+   mono villa/channel sub-line. Right cell carries a status badge. */
 [data-product] .upcoming-list {
   list-style: none; padding: 0; margin: 0;
   background: var(--paper, var(--panel));
   border: 1px solid var(--line-soft, var(--line));
-  border-radius: 18px;
+  border-radius: 14px;
   overflow: hidden;
 }
 [data-product] .upcoming-list.empty {
@@ -226,12 +294,13 @@
 [data-product] .upcoming-list li:last-child { border-bottom: 0; }
 [data-product] .upcoming-list li > a {
   display: grid;
-  grid-template-columns: 110px 1fr 80px 50px 100px;
-  gap: 12px;
+  grid-template-columns: 88px 1fr auto;
+  gap: 14px;
   align-items: center;
   padding: 12px 18px;
+  font-family: var(--sans-font);
   font-size: 13.5px;
-  color: var(--ink);
+  color: var(--ink-2);
   text-decoration: none;
 }
 [data-product] .upcoming-list li > a:hover { background: var(--cream-warm, var(--bg-2)); }
@@ -239,25 +308,51 @@
   font-family: var(--mono-font), monospace;
   font-size: 11px;
   color: var(--ink-3);
+  letter-spacing: 0.06em;
 }
-[data-product] .upcoming-list .who { color: var(--ink); }
+[data-product] .upcoming-list .who { min-width: 0; }
+[data-product] .upcoming-list .who .guest {
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product] .upcoming-list .who .nights { color: var(--ink-3); }
 [data-product] .upcoming-list .where {
-  font-family: var(--mono-font), monospace;
-  font-size: 11px;
-  color: var(--ink-3);
-}
-[data-product] .upcoming-list .nights {
-  font-family: var(--mono-font), monospace;
-  font-size: 12px;
-  color: var(--ink-2);
-}
-[data-product] .upcoming-list .state {
+  display: block;
+  margin-top: 2px;
   font-family: var(--mono-font), monospace;
   font-size: 10.5px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-3);
-  text-align: right;
+}
+/* Upcoming status pill — owner-scoped (the .badge-* variants in
+   primitives.css are management/development scoped, so the owner
+   cabinet gets its own pill family with the same 12%/35% semantics). */
+[data-product] .upcoming-list .ub-badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--r-pill, 999px);
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+[data-product] .upcoming-list .ub-badge.ub-ok {
+  background: color-mix(in oklab, var(--ok) 12%, transparent);
+  color: var(--ok);
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+}
+[data-product] .upcoming-list .ub-badge.ub-info {
+  background: color-mix(in oklab, var(--info) 12%, transparent);
+  color: var(--info);
+  border-color: color-mix(in oklab, var(--info) 35%, transparent);
+}
+[data-product] .upcoming-list .ub-badge.ub-gold {
+  background: color-mix(in oklab, var(--gold) 14%, transparent);
+  color: #8a6b2d;
+  border-color: color-mix(in oklab, var(--gold) 26%, transparent);
 }
 
 /* ---------- QuickActionGrid ---------- */
@@ -269,33 +364,43 @@
 @media (max-width: 720px) {
   [data-product] .quick-action-grid { grid-template-columns: repeat(2, 1fr); }
 }
+/* 01-home.html: horizontal card — icon plate left, label + mono desc
+   right. Icon 36px / radius 10px, label serif 14px, desc mono 10px. */
 [data-product] .qa-card {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 18px 18px 20px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 18px;
   background: var(--paper, var(--panel));
   border: 1px solid var(--line-soft, var(--line));
-  border-radius: 18px;
+  border-radius: 12px;
   text-decoration: none;
   color: inherit;
 }
 [data-product] .qa-card:hover { border-color: var(--ink-2); }
 [data-product] .qa-card .qa-icon {
-  width: 40px; height: 40px;
+  width: 36px; height: 36px;
+  flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--terra) 14%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--terra) 12%, transparent);
   color: var(--terra);
 }
+[data-product] .qa-card .qa-body { flex: 1; min-width: 0; }
 [data-product] .qa-card .qa-label {
-  margin-top: 8px;
+  display: block;
   font-family: var(--display-font), Georgia, serif;
-  font-size: 17px;
+  font-size: 14px;
   color: var(--ink);
+  line-height: 1.2;
 }
 [data-product] .qa-card .qa-ctx {
-  font-size: 13px;
+  display: block;
+  margin-top: 2px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--ink-3);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 /* =============================================================

@@ -47,17 +47,9 @@ function SectionHead({
   link: string;
 }) {
   return (
-    <div className="flex items-baseline gap-3">
-      <h2
-        className="display"
-        style={{ fontSize: 28, fontWeight: 400, margin: 0, lineHeight: 1.1, color: "var(--ink)" }}
-      >
-        {title}
-      </h2>
-      <Link
-        href={href}
-        className="ml-auto font-mono text-[11px] uppercase tracking-[0.08em] text-terra no-underline hover:opacity-70"
-      >
+    <div className="owner-sec-head">
+      <h2 className="owner-sec-title">{title}</h2>
+      <Link href={href} className="owner-sec-link">
         {link}
       </Link>
     </div>
@@ -118,7 +110,7 @@ export default async function OwnerHomePage() {
       />
 
       {/* 3-tile hero — YTD net / pending review / next statement */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="hero-grid">
         <HeroTile
           variant="dark"
           label={`YTD net · ${year}`}
@@ -173,7 +165,7 @@ export default async function OwnerHomePage() {
             No villa ownership recorded. Contact your operator to confirm shares.
           </p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-4">
             {home.villas.map((v) => (
               <VillaCard
                 key={v.id}
@@ -185,7 +177,7 @@ export default async function OwnerHomePage() {
                 occupancyPct={v.occupancyPct}
                 netUsd={v.netUsd}
                 location={v.location}
-                orientation="col"
+                orientation="row"
               />
             ))}
           </div>
@@ -207,12 +199,7 @@ export default async function OwnerHomePage() {
 
       {/* Quick actions */}
       <section className="flex flex-col gap-4">
-        <h2
-          className="display"
-          style={{ fontSize: 28, fontWeight: 400, margin: 0, lineHeight: 1.1, color: "var(--ink)" }}
-        >
-          Quick actions
-        </h2>
+        <h2 className="owner-sec-title">Quick actions</h2>
         <OwnerQuickActions villas={villaOptions} />
       </section>
     </div>

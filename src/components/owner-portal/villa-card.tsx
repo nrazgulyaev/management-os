@@ -46,27 +46,46 @@ export function VillaCard({
   orientation = "col",
   className,
 }: VillaCardProps) {
+  // Image plate fallback uses the villa code over the location, mirroring
+  // the mock's "EV-07 / UBUD" two-line plate.
+  const heroStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined;
   return (
     <Link className={`villa-card ${orientation}${className ? ` ${className}` : ""}`} href={href}>
-      <div className="vc-hero" style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined}>
-        {!imageUrl && <span className="vc-hero-fallback mono">{code}</span>}
+      <div className="vc-hero" style={heroStyle}>
+        {!imageUrl && (
+          <span className="vc-hero-fallback mono">
+            {code}
+            {location && (
+              <>
+                <br />
+                {location}
+              </>
+            )}
+          </span>
+        )}
       </div>
       <div className="vc-body">
-        <div className="vc-code mono">{code}</div>
-        <h3 className="vc-name">{name}</h3>
-        {location && <div className="vc-loc">{location}</div>}
+        <div className="vc-head">
+          <h3 className="vc-name">{name}</h3>
+          <span className="vc-code mono">
+            {code}
+            {location ? ` · ${location}` : ""} · {bedrooms} BR
+          </span>
+        </div>
         <div className="vc-stats">
           <div className="vc-stat">
-            <span className="value mono">{bedrooms}</span>
-            <span className="label">Bedrooms</span>
-          </div>
-          <div className="vc-stat">
-            <span className="value mono">{occupancyPct}%</span>
             <span className="label">Occupancy</span>
+            <span className={`value mono${occupancyPct >= 70 ? " up" : ""}`}>
+              {occupancyPct}%
+            </span>
           </div>
           <div className="vc-stat">
-            <span className="value mono">{fmtUsd(netUsd)}</span>
+            <span className="label">Bedrooms</span>
+            <span className="value mono">{bedrooms}</span>
+          </div>
+          <div className="vc-stat">
             <span className="label">Net · MTD</span>
+            <span className="value mono">{fmtUsd(netUsd)}</span>
           </div>
         </div>
       </div>

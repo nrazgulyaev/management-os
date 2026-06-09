@@ -65,8 +65,10 @@ function Card({
   return (
     <button type="button" className="qa-card qa-card-button" onClick={onClick}>
       <span className="qa-icon" aria-hidden>{icon}</span>
-      <span className="qa-label">{label}</span>
-      <span className="qa-ctx">{context}</span>
+      <span className="qa-body">
+        <span className="qa-label">{label}</span>
+        <span className="qa-ctx">{context}</span>
+      </span>
     </button>
   );
 }
@@ -111,8 +113,10 @@ export function OwnerQuickActions({ villas }: { villas: OwnerVillaOption[] }) {
       <div className="quick-action-grid">
         <Link className="qa-card" href="/owner/stays/new">
           <span className="qa-icon" aria-hidden>{ICON.stay}</span>
-          <span className="qa-label">Request personal stay</span>
-          <span className="qa-ctx">Pick dates · mgmt confirms</span>
+          <span className="qa-body">
+            <span className="qa-label">Request personal stay</span>
+            <span className="qa-ctx">Pick dates · mgmt confirms</span>
+          </span>
         </Link>
         <Card
           icon={ICON.guest}
@@ -122,8 +126,10 @@ export function OwnerQuickActions({ villas }: { villas: OwnerVillaOption[] }) {
         />
         <Link className="qa-card" href="/owner/inbox">
           <span className="qa-icon" aria-hidden>{ICON.message}</span>
-          <span className="qa-label">Message mgmt team</span>
-          <span className="qa-ctx">Your dedicated operators</span>
+          <span className="qa-body">
+            <span className="qa-label">Message mgmt team</span>
+            <span className="qa-ctx">Your dedicated operators</span>
+          </span>
         </Link>
         <Card
           icon={ICON.call}
