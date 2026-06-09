@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Kpi } from "@/components/dashboard/primitives";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Forbidden } from "@/components/ui/state";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { getDb } from "@/lib/db/client";
@@ -46,38 +44,42 @@ export default async function ChannelManagerPage() {
   const degraded = health.filter((h) => h.health === "warn").length;
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Channels", href: "/dashboard/channels" },
-          { label: "Manager" },
-        ]}
-        eyebrow="Availability · rates · inventory"
-        title="Channel manager"
-        description="Push ARI to your OTA channels, resolve cross-channel double-bookings, and watch per-connection sync health. The push execution is simulated — the live OTA API integration is deferred to launch."
-        actions={
+    <>
+      <div className="page-header mb-0">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/channels">Channels</Link> / <span>Manager</span>
+          </div>
+          <h1>Channel manager</h1>
+          <p className="text-[13.5px] text-ink-3 mt-2 max-w-[560px]">
+            Push ARI to your OTA channels, resolve cross-channel double-bookings, and
+            watch per-connection sync health. The push execution is simulated — the
+            live OTA API integration is deferred to launch.
+          </p>
+        </div>
+        <div className="actions">
           <Link href="/dashboard/channels" className="btn btn-secondary btn-sm">
             ← Channels
           </Link>
-        }
-      />
+        </div>
+      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Kpi label="Villas in grid" value={String(grid.villas.length)} sub="active" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-[18px] mb-[18px]">
+        <Kpi label="villas in grid" value={String(grid.villas.length)} sub="active" />
         <Kpi
-          label="Open conflicts"
+          label="open conflicts"
           value={String(conflicts.length)}
           sub="cross-channel"
-          tone={conflicts.length > 0 ? "gold" : undefined}
+          tone={conflicts.length > 0 ? "warn" : undefined}
         />
         <Kpi
-          label="Connections failing"
+          label="connections failing"
           value={String(failing)}
           sub="need a retry"
-          tone={failing > 0 ? "gold" : undefined}
+          tone={failing > 0 ? "warn" : undefined}
         />
         <Kpi
-          label="Connections degraded"
+          label="connections degraded"
           value={String(degraded)}
           sub="recent errors"
           tone={degraded > 0 ? "gold" : undefined}
@@ -86,29 +88,38 @@ export default async function ChannelManagerPage() {
 
       <DbStatusNotice />
 
-      <Section
-        eyebrow="(a) ARI push"
-        title="Availability / rate / inventory grid"
-      >
+      <section className="mt-2">
+        <div className="section-heading mb-[18px]">
+          <div className="label mb-1.5">(a) ARI push</div>
+          <h2 className="text-[28px]">Availability · rate · inventory grid</h2>
+        </div>
         {db ? (
           <AriPushGrid data={grid} />
         ) : (
-          <p className="text-sm text-ink-tertiary">
+          <p className="text-sm text-ink-3">
             Connect a database to build the ARI grid.
           </p>
         )}
-      </Section>
+      </section>
 
-      <Section
-        eyebrow="(b) Conflicts"
-        title={`Double-booking resolution${conflicts.length ? ` · ${conflicts.length}` : ""}`}
-      >
+      <section className="mt-10">
+        <div className="section-heading mb-[18px]">
+          <div className="label mb-1.5">(b) Conflicts</div>
+          <h2 className="text-[28px]">
+            Double-booking resolution
+            {conflicts.length ? ` · ${conflicts.length}` : ""}
+          </h2>
+        </div>
         <ConflictResolver conflicts={conflicts} />
-      </Section>
+      </section>
 
-      <Section eyebrow="(c) Sync health" title="Per-connection health & retry">
+      <section className="mt-10">
+        <div className="section-heading mb-[18px]">
+          <div className="label mb-1.5">(c) Sync health</div>
+          <h2 className="text-[28px]">Per-connection health &amp; retry</h2>
+        </div>
         <SyncHealth rows={health} />
-      </Section>
-    </div>
+      </section>
+    </>
   );
 }

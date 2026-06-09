@@ -1,18 +1,27 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useMemo, useState, useTransition } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { formatMoneyMinor } from "@/lib/money";
 import { enqueueAriPushAction } from "@/features/channels/manager-actions";
 import type { AriGridData } from "@/features/channels/manager";
 
-function fmtDay(iso: string): { dow: string; dm: string } {
+function fmtDay(iso: string): { dow: string; dn: string; weekend: boolean } {
   const d = new Date(`${iso}T00:00:00.000Z`);
+  const day = d.getUTCDay();
   return {
-    dow: d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
-    dm: d.toLocaleDateString("en-US", { day: "numeric", month: "short", timeZone: "UTC" }),
+    dow: d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }).toLowerCase(),
+    dn: String(d.getUTCDate()).padStart(2, "0"),
+    weekend: day === 0 || day === 6,
   };
+}
+
+/** Compact rate label from minor units (e.g. 4250000 → "425" for k display). */
+function rateLabel(minor: string, currency: string): string {
+  const major = Number(BigInt(minor)) / 100;
+  if (major >= 1000) return `${Math.round(major / 1000)}k`;
+  return formatMoneyMinor(BigInt(minor), currency).replace(/[^\d.,]/g, "");
 }
 
 export function AriPushGrid({ data }: { data: AriGridData }) {
@@ -25,7 +34,7 @@ export function AriPushGrid({ data }: { data: AriGridData }) {
 
   const dateStart = data.dates[0];
   const dateEnd = data.dates[data.dates.length - 1];
-
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const headerDays = useMemo(() => data.dates.map(fmtDay), [data.dates]);
 
   function pushVilla(villaId: string) {
@@ -51,23 +60,27 @@ export function AriPushGrid({ data }: { data: AriGridData }) {
 
   if (data.villas.length === 0) {
     return (
-      <p className="text-sm text-ink-tertiary">
+      <p className="text-sm text-ink-3">
         No active villas to push. Add a villa to build an ARI grid.
       </p>
     );
   }
 
+  const channelName =
+    data.channelKeys.find((c) => c.key === channelKey)?.name ?? "channel";
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="text-xs text-ink-tertiary" htmlFor="ari-channel">
+    <div className="flex flex-col gap-3.5">
+      {/* Toolbar — mirrors the mock filter-bar */}
+      <div className="filter-bar mb-0">
+        <label className="field-label" htmlFor="ari-channel">
           Target channel
         </label>
         <select
           id="ari-channel"
           value={channelKey}
           onChange={(e) => setChannelKey(e.target.value)}
-          className="h-9 px-3 rounded-md border border-line-soft bg-canvas text-sm text-ink"
+          className="select max-w-[200px]"
         >
           {data.channelKeys.length === 0 ? (
             <option value="">No active OTA channels</option>
@@ -79,93 +92,106 @@ export function AriPushGrid({ data }: { data: AriGridData }) {
             ))
           )}
         </select>
-        <span className="text-xs text-ink-tertiary">
-          {dateStart} → {dateEnd} · {data.dates.length} nights
+        <span className="divider" />
+        <span className="font-mono text-[11px] text-ink-3">
+          {dateStart} — {dateEnd} · {data.dates.length} nights
         </span>
-        <Badge tone="info">Simulated — API integration deferred to launch</Badge>
+        <HandoffBadge tone="info">Simulated — API deferred to launch</HandoffBadge>
       </div>
 
-      <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-canvas/50 text-[11px] uppercase tracking-widest text-ink-tertiary">
-              <th className="sticky left-0 z-10 bg-canvas/50 px-3 py-2 text-left font-medium">
-                Villa
-              </th>
-              {headerDays.map((d, i) => (
-                <th key={data.dates[i]} className="px-2 py-2 text-center font-medium">
-                  <div className="text-ink-secondary">{d.dow}</div>
-                  <div className="text-[10px] text-ink-tertiary">{d.dm}</div>
-                </th>
-              ))}
-              <th className="px-3 py-2 text-right font-medium">Push</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.villas.map((v) => (
-              <tr key={v.villaId} className="border-t border-line-soft">
-                <td className="sticky left-0 z-10 bg-surface px-3 py-2 align-top">
-                  <div className="font-medium text-ink">{v.villaName}</div>
-                  <div className="font-mono text-[11px] text-ink-tertiary">{v.unitCode}</div>
-                  <div className="text-[11px] text-ink-tertiary mt-0.5">
-                    {formatMoneyMinor(BigInt(v.baseRateMinor), "USD")}/night
-                  </div>
-                </td>
-                {v.cells.map((c) => (
-                  <td key={c.date} className="px-1 py-2 text-center align-top">
-                    <div
-                      className={
-                        "mx-auto flex h-9 w-12 flex-col items-center justify-center rounded " +
-                        (c.available
-                          ? "bg-success-weak/40 text-success"
-                          : "bg-muted text-ink-tertiary")
-                      }
-                      title={
-                        c.available
-                          ? `Open · ${formatMoneyMinor(BigInt(c.rateMinor), c.currency)}`
-                          : `Closed · ${c.bookingCode ?? "booked"}`
-                      }
-                    >
-                      <span className="text-[10px] font-medium leading-none">
-                        {c.available ? "open" : "closed"}
-                      </span>
-                      {c.lastPushStatus && (
-                        <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-accent" />
-                      )}
-                    </div>
-                  </td>
-                ))}
-                <td className="px-3 py-2 text-right align-top">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    disabled={!channelKey || (pending && busyVilla === v.villaId)}
-                    onClick={() => pushVilla(v.villaId)}
+      {/* ChannelGrid-styled ARI matrix */}
+      <div className="overflow-x-auto">
+        <div
+          className="channel-grid"
+          style={{ "--cols": data.dates.length } as CSSProperties}
+        >
+          <div className="cg-head">
+            <div className="corner">villa · {channelName}</div>
+            {data.dates.map((iso, i) => {
+              const d = headerDays[i];
+              const cls = `day${d.weekend ? " weekend" : ""}${iso === today ? " today" : ""}`;
+              return (
+                <div key={iso} className={cls}>
+                  <div className="dow">{d.dow}</div>
+                  <div className="dn">{d.dn}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {data.villas.map((v) => (
+            <div className="cg-row ch-terra" key={v.villaId}>
+              <div className="label">
+                <span className="ch" aria-hidden />
+                <span className="truncate">{v.villaName}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm ml-auto !px-2.5 !py-1"
+                  disabled={!channelKey || (pending && busyVilla === v.villaId)}
+                  onClick={() => pushVilla(v.villaId)}
+                >
+                  {pending && busyVilla === v.villaId ? "Pushing…" : "Push"}
+                </button>
+              </div>
+              {v.cells.map((c, i) => {
+                const d = headerDays[i];
+                const cls = [
+                  "cg-cell",
+                  d?.weekend ? "weekend" : "",
+                  c.available ? "" : "booked",
+                  c.lastPushStatus ? "synced" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+                return (
+                  <div
+                    key={c.date}
+                    className={cls}
+                    title={
+                      c.available
+                        ? `Open · ${formatMoneyMinor(BigInt(c.rateMinor), c.currency)}`
+                        : `Closed · ${c.bookingCode ?? "booked"}`
+                    }
                   >
-                    {pending && busyVilla === v.villaId ? "Pushing…" : "Push"}
-                  </Button>
-                  {flash && flash.villaId === v.villaId && (
-                    <div
-                      className={
-                        "mt-1 text-[11px] " +
-                        (flash.ok ? "text-success" : "text-danger")
-                      }
-                    >
-                      {flash.msg}
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    {c.available ? (
+                      <span className="rate">{rateLabel(c.rateMinor, c.currency)}</span>
+                    ) : (
+                      <span className="rate text-[9.5px] uppercase tracking-wide">
+                        {c.bookingCode ? "bk" : "—"}
+                      </span>
+                    )}
+                    {c.lastPushStatus && <span className="indicator" aria-hidden />}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+
+          <div className="cg-legend">
+            <span className="item">
+              <span className="sw sw-ink" />
+              open · rate shown
+            </span>
+            <span className="item">
+              <span className="sw sw-ok" />
+              booked
+            </span>
+            <span className="item">
+              <span className="sw sw-ok" />
+              push recorded
+            </span>
+            <span className="ml-auto font-mono text-[10.5px] text-ink-4">
+              push records the exact ARI payload — no live OTA call is made
+            </span>
+          </div>
+        </div>
       </div>
-      <p className="text-[11px] text-ink-tertiary">
-        Green = open to sell at the shown nightly rate; grey = closed by a confirmed
-        booking. A dot marks nights already covered by a simulated push. Pushing records
-        the exact ARI payload that would be transmitted — no live OTA call is made.
-      </p>
+
+      {flash && (
+        <p className={"text-[11px] " + (flash.ok ? "text-ok" : "text-danger")}>
+          {flash.msg}
+        </p>
+      )}
     </div>
   );
 }

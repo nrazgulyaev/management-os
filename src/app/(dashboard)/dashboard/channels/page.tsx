@@ -77,13 +77,14 @@ export default async function ChannelsPage() {
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header mb-0">
         <div className="left">
           <div className="crumb">
             <Link href="/dashboard/bookings">Bookings</Link> / <span>Channels</span>
           </div>
           <h1>Booking channels</h1>
-          <p className="text-[13px] text-ink-3 mt-2 max-w-[700px]">
+          <p className="text-[13.5px] text-ink-3 mt-2 max-w-[540px]">
+            Live availability, rates, and sync state across your OTAs and direct.
             Channels are workspace-wide commission defaults; each villa connects to a
             channel via a calendar feed.
           </p>
@@ -111,14 +112,9 @@ export default async function ChannelsPage() {
       </div>
 
       {channels.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
-          <Kpi label="Channels · total" value={String(channels.length)} sub="configured" />
-          <Kpi
-            label="Connected"
-            value={String(connected)}
-            sub="active"
-            tone={connected > 0 ? "success" : undefined}
-          />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mt-[18px] mb-[18px]">
+          <Kpi label="connected" value={String(connected)} sub="active channels" tone={connected > 0 ? "success" : undefined} />
+          <Kpi label="channels · total" value={String(channels.length)} sub="configured" />
           <Kpi
             label="OTA channels"
             value={String(otaChannels.length)}
@@ -126,7 +122,7 @@ export default async function ChannelsPage() {
             tone={otaChannels.length > 0 ? "accent" : undefined}
           />
           <Kpi
-            label="Avg OTA commission"
+            label="avg OTA commission"
             value={avgCommission !== null ? `${avgCommission.toFixed(1)}%` : "—"}
             sub="default rate"
           />
