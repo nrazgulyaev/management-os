@@ -1,6 +1,6 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   aiAssistantRuns,
@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema/ai";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { requireOrgId } from "@/features/auth/require-org";
 import { aiModel, isAiConfigured, isAiDryRun } from "@/lib/env";
 import { buildOperationsSnapshot } from "./context";
 import { deterministicFallbackSummary } from "./fallback";
@@ -59,12 +60,19 @@ export async function generateOperationsCopilotSummary(opts?: {
   }
 
   const me = await getCurrentAppUser();
+  // AI FOLLOW-ON (a) — attribute the run to its org (migration 0148). The
+  // scheduled cron has no user session; requireOrgId() falls back to the
+  // ARCONIQUE_DEFAULT seed org there (the backfill target). When neither a
+  // session nor a seed org exists we leave it null — the read layer treats
+  // a null-org run as a platform run visible to every org.
+  const organizationId = await requireOrgId().catch(() => null);
 
   // Insert the run row up-front so tool-call rows have a parent FK and
   // the dashboard can show "running" if the page reloads mid-call.
   const [run] = await db
     .insert(aiAssistantRuns)
     .values({
+      organizationId,
       assistantKey: OPERATIONS_COPILOT_KEY,
       runType: triggerType,
       status: "running",
@@ -283,13 +291,25 @@ export async function listAssistantRuns(opts?: {
 }): Promise<AssistantRunRow[]> {
   const db = getDb();
   if (!db) return [];
+  // AI FOLLOW-ON (a) — org-scope the runs inspector (migration 0148). Shows
+  // the caller's org runs plus null-org (platform / un-attributed) runs.
+  const orgId = await requireOrgId().catch(() => null);
+  const orgFilter = orgId
+    ? or(
+        eq(aiAssistantRuns.organizationId, orgId),
+        isNull(aiAssistantRuns.organizationId),
+      )
+    : undefined;
   const rows = await db
     .select()
     .from(aiAssistantRuns)
     .where(
-      opts?.assistantKey
-        ? eq(aiAssistantRuns.assistantKey, opts.assistantKey)
-        : undefined,
+      and(
+        opts?.assistantKey
+          ? eq(aiAssistantRuns.assistantKey, opts.assistantKey)
+          : undefined,
+        orgFilter,
+      ),
     )
     .orderBy(desc(aiAssistantRuns.createdAt))
     .limit(opts?.limit ?? 50);
@@ -329,10 +349,20 @@ export async function getAssistantRunDetail(runId: string): Promise<{
 }> {
   const db = getDb();
   if (!db) return { run: null, toolCalls: [] };
+  // AI FOLLOW-ON (a) — org-scope the detail lookup (migration 0148) so a
+  // guessed run UUID can't read another tenant's run. Null-org (platform)
+  // runs stay readable by any org.
+  const orgId = await requireOrgId().catch(() => null);
+  const orgFilter = orgId
+    ? or(
+        eq(aiAssistantRuns.organizationId, orgId),
+        isNull(aiAssistantRuns.organizationId),
+      )
+    : undefined;
   const [r] = await db
     .select()
     .from(aiAssistantRuns)
-    .where(eq(aiAssistantRuns.id, runId))
+    .where(and(eq(aiAssistantRuns.id, runId), orgFilter))
     .limit(1);
   if (!r) return { run: null, toolCalls: [] };
 

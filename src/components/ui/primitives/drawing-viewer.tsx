@@ -25,9 +25,15 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Ruler, Square, Hash, RotateCcw} from "lucide-react";
+import { Ruler, Square, Hash, RotateCcw, StickyNote } from "lucide-react";
 
-export type StrokeKind = "length" | "area" | "count";
+/**
+ * `note` is a free text annotation anchored at a single image-space point. It
+ * carries no measurement (scale-independent) — it exists so coordination markup
+ * can drop a typed comment on the plan. The takeoff workbench leaves `note`
+ * off (see `noteTool`) so its measurement path only ever sees length/area/count.
+ */
+export type StrokeKind = "length" | "area" | "count" | "note";
 
 export interface DrawingPoint {
   /** Image-space coordinates (not screen pixels). */
@@ -61,6 +67,12 @@ export interface DrawingViewerProps {
   onStrokeRemove?: (id: string) => void;
   scale?: ScaleCalibration | null;
   onScaleSet?: (s: ScaleCalibration) => void;
+  /**
+   * When true, expose the free-text `note` annotation tool. Off by default so
+   * the takeoff workbench (length/area/count only) never produces a note
+   * stroke. Coordination markup turns it on.
+   */
+  noteTool?: boolean;
   /** When set, the toolbar is hidden + clicks do nothing. */
   readOnly?: boolean;
   className?: string;
@@ -70,6 +82,7 @@ const KIND_COLOR: Record<StrokeKind, string> = {
   length: "#a06a1a",
   area: "#0e3b2e",
   count: "#a43e2f",
+  note: "#3a4a8c",
 };
 
 export function DrawingViewer({
@@ -80,6 +93,7 @@ export function DrawingViewer({
   onStrokeRemove,
   scale = null,
   onScaleSet,
+  noteTool = false,
   readOnly = false,
   className,
 }: DrawingViewerProps) {
@@ -125,6 +139,19 @@ export function DrawingViewer({
 
     if (tool === "count") {
       onStrokeAdd?.({ id: crypto.randomUUID(), kind: "count", points: [pt] });
+      return;
+    }
+
+    if (tool === "note") {
+      const text = window.prompt("Note text:", "")?.trim();
+      if (text) {
+        onStrokeAdd?.({
+          id: crypto.randomUUID(),
+          kind: "note",
+          points: [pt],
+          label: text,
+        });
+      }
       return;
     }
 
@@ -184,6 +211,17 @@ export function DrawingViewer({
             icon={Hash}
             label="Count"
           />
+          {noteTool && (
+            <ToolBtn
+              active={tool === "note"}
+              onClick={() => {
+                setTool("note");
+                setDraft([]);
+              }}
+              icon={StickyNote}
+              label="Note"
+            />
+          )}
           <span className="mx-2 h-5 w-px bg-line-soft" />
           <ToolBtn
             active={tool === "calibrate"}
@@ -288,6 +326,41 @@ function StrokeRender({
         <circle cx={p.x} cy={p.y} r={8} fill={color} fillOpacity={0.8} />
         {onRemove && (
           <RemoveBtn x={p.x + 12} y={p.y - 12} onRemove={() => onRemove(stroke.id)} />
+        )}
+      </g>
+    );
+  }
+
+  if (stroke.kind === "note") {
+    const p = stroke.points[0];
+    if (!p) return null;
+    const text = stroke.label ?? "";
+    // Width the pill roughly to the text so it stays legible at any zoom.
+    const w = Math.max(40, Math.min(360, text.length * 8 + 24));
+    return (
+      <g>
+        <circle cx={p.x} cy={p.y} r={5} fill={color} />
+        <g transform={`translate(${p.x + 8}, ${p.y - 12})`}>
+          <rect
+            width={w}
+            height={24}
+            rx={5}
+            ry={5}
+            fill={color}
+            fillOpacity={0.92}
+          />
+          <text
+            x={10}
+            y={16}
+            fill="#fff"
+            fontSize="13"
+            fontWeight="500"
+          >
+            {text.length > 44 ? `${text.slice(0, 43)}…` : text}
+          </text>
+        </g>
+        {onRemove && (
+          <RemoveBtn x={p.x} y={p.y + 16} onRemove={() => onRemove(stroke.id)} />
         )}
       </g>
     );
@@ -435,6 +508,7 @@ function DrawingFooter({
     length: strokes.filter((s) => s.kind === "length").length,
     area: strokes.filter((s) => s.kind === "area").length,
     count: strokes.filter((s) => s.kind === "count").length,
+    note: strokes.filter((s) => s.kind === "note").length,
   };
   const totalLengthPx = strokes
     .filter((s) => s.kind === "length")
@@ -451,6 +525,7 @@ function DrawingFooter({
       <span>{counts.length} length · {formatMeasurement(totalLengthPx, scale, "length")}</span>
       <span>{counts.area} area · {formatMeasurement(totalAreaPx, scale, "area")}</span>
       <span>{counts.count} count</span>
+      {counts.note > 0 && <span>{counts.note} note</span>}
       {!scale && (
         <span className="text-warning">
           ⚠ scale not set — measurements shown in pixels

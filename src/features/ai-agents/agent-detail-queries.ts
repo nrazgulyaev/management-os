@@ -14,7 +14,7 @@ import "server-only";
  *   · output payload  ← ai_assistant_runs (single row by id)
  */
 
-import { desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { aiAssistantRuns, aiOrgUsageMonthly } from "@/lib/db/schema/ai";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -129,17 +129,30 @@ export async function listRunsForAgent(
   if (!db) return { runs: [], total: 0 };
   const assistantKey = assistantKeyForMgmtCode(agentCode);
 
+  // AI FOLLOW-ON (a) — org-scope the Logs panel (migration 0148). Rows are
+  // attributed to the caller's org OR left null (platform/un-attributed
+  // runs from writers without org context — never hidden). requireOrgId
+  // falls back to ARCONIQUE_DEFAULT for anonymous/curl reads.
+  const orgId = await requireOrgId().catch(() => null);
+  const orgFilter = orgId
+    ? or(
+        eq(aiAssistantRuns.organizationId, orgId),
+        isNull(aiAssistantRuns.organizationId),
+      )
+    : undefined;
+  const where = and(eq(aiAssistantRuns.assistantKey, assistantKey), orgFilter);
+
   const rows = await db
     .select()
     .from(aiAssistantRuns)
-    .where(eq(aiAssistantRuns.assistantKey, assistantKey))
+    .where(where)
     .orderBy(desc(aiAssistantRuns.createdAt))
     .limit(limit);
 
   const [{ count } = { count: 0 }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(aiAssistantRuns)
-    .where(eq(aiAssistantRuns.assistantKey, assistantKey));
+    .where(where);
 
   return {
     total: Number(count ?? 0),
@@ -180,10 +193,20 @@ export interface AgentRunPayload {
 export async function getRunPayload(runId: string): Promise<AgentRunPayload | null> {
   const db = getDb();
   if (!db) return null;
+  // AI FOLLOW-ON (a) — org-scope the payload lookup (migration 0148) so a
+  // guessed run UUID can't export another tenant's run via the JSON / PDF
+  // routes. Null-org (platform) runs stay readable by any org.
+  const orgId = await requireOrgId().catch(() => null);
+  const orgFilter = orgId
+    ? or(
+        eq(aiAssistantRuns.organizationId, orgId),
+        isNull(aiAssistantRuns.organizationId),
+      )
+    : undefined;
   const [r] = await db
     .select()
     .from(aiAssistantRuns)
-    .where(eq(aiAssistantRuns.id, runId))
+    .where(and(eq(aiAssistantRuns.id, runId), orgFilter))
     .limit(1);
   if (!r) return null;
   return {
@@ -272,9 +295,10 @@ export async function getTokenUsageView(): Promise<TokenUsageView> {
     null;
 
   // Live per-agent breakdown for the current month, derived from runs.
-  // ai_assistant_runs is NOT org-scoped (no org column), so this is a
-  // platform-wide view of agent activity this month; the monthly
-  // aggregate above is the authoritative per-org figure.
+  // AI FOLLOW-ON (a) — now org-scoped (migration 0148): the breakdown counts
+  // this org's runs plus null-org (platform / un-attributed) runs, so it no
+  // longer leaks other tenants' agent activity. The monthly aggregate above
+  // remains the authoritative per-org figure.
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const breakdownRows = await db
     .select({
@@ -284,7 +308,15 @@ export async function getTokenUsageView(): Promise<TokenUsageView> {
       costUsd: sql<string>`coalesce(sum(${aiAssistantRuns.totalCostUsd}), 0)::text`,
     })
     .from(aiAssistantRuns)
-    .where(gte(aiAssistantRuns.createdAt, monthStart))
+    .where(
+      and(
+        gte(aiAssistantRuns.createdAt, monthStart),
+        or(
+          eq(aiAssistantRuns.organizationId, orgId),
+          isNull(aiAssistantRuns.organizationId),
+        ),
+      ),
+    )
     .groupBy(aiAssistantRuns.assistantKey)
     .orderBy(sql`count(*) desc`)
     .limit(30);

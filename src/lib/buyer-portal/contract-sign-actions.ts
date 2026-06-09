@@ -30,7 +30,15 @@ import { getBuyerSession } from "@/lib/buyer-portal/session";
 import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { contractGroups, contracts } from "@/lib/db/schema/sales";
 import { contractSignatures } from "@/lib/db/schema/contract-signatures";
+import { villas } from "@/lib/db/schema/projects";
+import { documents } from "@/lib/db/schema/documents";
 import { recordAuditEvent } from "@/features/audit/services";
+import { contractStoragePath, contractReference } from "@/lib/buyer-portal/contracts";
+import {
+  renderSignedContractPdf,
+  uploadBuyerDocumentBytes,
+  BUYER_DOC_BUCKET,
+} from "@/lib/buyer-portal/document-pdf";
 
 const CONSENT_TEXT =
   "By typing my full legal name below I confirm I have read the contract and " +
@@ -192,6 +200,90 @@ export async function signBuyerContract(input: {
     .set(groupUpdate)
     .where(eq(contractGroups.id, group.id));
 
+  // Generate a SIGNED-CONTRACT PDF into the buyer's document vault. Render real
+  // bytes (signed terms + signature block), upload to the canonical documents
+  // bucket at a deterministic per-(group, buyer) key, then index a `documents`
+  // row scoped to the villa + marked owner-visible so it lands in the buyer
+  // doc-vault "Contract" group AND is downloadable. Best-effort: a render /
+  // upload / index failure must never undo the recorded signature.
+  let contractDocumentId: string | null = null;
+  try {
+    const [villa] = await db
+      .select({ unitCode: villas.unitCode, name: villas.name })
+      .from(villas)
+      .where(eq(villas.id, group.villaId))
+      .limit(1);
+    const villaLabel =
+      villa?.name ?? villa?.unitCode ?? `Villa ${group.villaId.slice(0, 8)}`;
+    const reference = contractReference(group.id);
+    const storagePath = contractStoragePath(group.id, session.buyerId);
+
+    const bytes = await renderSignedContractPdf({
+      contractReference: reference,
+      buyerName: session.displayName,
+      buyerCode: session.buyerCode,
+      villaLabel,
+      contractDate: group.contractDate,
+      totalValueMinor: group.totalContractValueUsdMinor,
+      currency: "USD",
+      signerName: parsed.data.typedName,
+      signerEmail: session.primaryEmail,
+      signedAt: now,
+      signedHash,
+      consentText: CONSENT_TEXT,
+    });
+    const upload = await uploadBuyerDocumentBytes(storagePath, bytes);
+
+    // One signed-contract doc per (group, buyer): upsert so re-issue replaces.
+    const [existingDoc] = await db
+      .select({ id: documents.id })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.documentType, "contract"),
+          eq(documents.entityType, "villa"),
+          eq(documents.entityId, group.villaId),
+          eq(documents.storagePath, storagePath),
+        ),
+      )
+      .limit(1);
+
+    const docValues = {
+      title: `Signed contract ${reference} — ${villaLabel}`,
+      documentType: "contract",
+      entityType: "villa",
+      entityId: group.villaId,
+      visibility: "owner",
+      visibleToOwner: true,
+      status: "active",
+      storagePath,
+      storageBucket: upload.ok ? upload.bucket ?? BUYER_DOC_BUCKET : null,
+      fileName: upload.ok ? `${reference}.pdf` : null,
+      mimeType: upload.ok ? "application/pdf" : null,
+      sizeBytes: upload.ok ? upload.sizeBytes ?? null : null,
+      signedAt: now,
+      signedHash,
+      updatedAt: now,
+    };
+
+    if (existingDoc) {
+      await db
+        .update(documents)
+        .set(docValues)
+        .where(eq(documents.id, existingDoc.id));
+      contractDocumentId = existingDoc.id;
+    } else {
+      const [doc] = await db
+        .insert(documents)
+        .values({ ...docValues, createdAt: now })
+        .returning({ id: documents.id });
+      contractDocumentId = doc?.id ?? null;
+    }
+  } catch (err) {
+    // Document is a side-effect; never undo the recorded signature.
+    console.error("[buyer-portal] signed-contract PDF generation failed", err);
+  }
+
   await recordAuditEvent({
     actorUserId: null,
     action: "contract_group.buyer_signed",
@@ -206,6 +298,7 @@ export async function signBuyerContract(input: {
       method: "typed_name_esign",
       signedHash,
       signedValueUsdMinor: group.totalContractValueUsdMinor.toString(),
+      contractDocumentId,
     },
   });
 

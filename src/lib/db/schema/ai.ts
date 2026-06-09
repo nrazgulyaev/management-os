@@ -31,6 +31,14 @@ export const aiAssistantRuns = pgTable(
   "ai_assistant_runs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // AI FOLLOW-ON (a), migration 0148 — per-org attribution for the
+    // per-agent Logs panel + token/cost usage breakdown. NULLABLE: writers
+    // without an org context (Development-OS engines, cron ops summaries)
+    // leave it null, and the read layer treats null as a platform/un-
+    // attributed run visible to every org.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "set null",
+    }),
     assistantKey: text("assistant_key").notNull(),
     runType: text("run_type").notNull().default("manual"),
     status: text("status").notNull().default("running"),
@@ -58,6 +66,9 @@ export const aiAssistantRuns = pgTable(
     index("ai_runs_assistant_idx").on(t.assistantKey),
     index("ai_runs_status_idx").on(t.status),
     index("ai_runs_created_idx").on(t.createdAt),
+    // Migration 0148 — org-scoped reads (usage roll-up + per-agent Logs).
+    index("ai_runs_org_idx").on(t.organizationId),
+    index("ai_runs_org_assistant_idx").on(t.organizationId, t.assistantKey),
   ],
 );
 

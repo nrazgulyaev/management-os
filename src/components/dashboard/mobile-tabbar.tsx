@@ -23,6 +23,8 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MGMT_DASHBOARD_NAV, MGMT_PRIMARY_MOBILE_TABS } from "@/config/navigation/management";
+import { cabinetForNavHref, canSeeFromAccess } from "@/features/keystone/matrix";
+import { useCabinetAccess } from "@/features/keystone/use-cabinet-access";
 import { MobileTabbarMoreSheet } from "./mobile-tabbar-more-sheet";
 
 interface PrimaryTab {
@@ -91,6 +93,23 @@ export function MobileTabbar() {
   const pathname = usePathname() ?? "";
   const [moreOpen, setMoreOpen] = React.useState(false);
 
+  // Keystone gating — the "More" sheet enumerates the FULL nav, so filter it
+  // through the same cabinet-access resolver the sidebar uses. A cabinet a
+  // role was un-ticked for disappears here too. `access` is null until the
+  // snapshot loads (fail-open → everything visible), matching the sidebar.
+  const access = useCabinetAccess();
+  const moreGroups = React.useMemo(
+    () =>
+      MGMT_DASHBOARD_NAV.map((g) => ({
+        ...g,
+        items: g.items.filter((item) => {
+          const cabinet = cabinetForNavHref(item.href);
+          return cabinet === null || canSeeFromAccess(access, cabinet);
+        }),
+      })).filter((g) => g.items.length > 0),
+    [access],
+  );
+
   const tabs: PrimaryTab[] = MGMT_PRIMARY_MOBILE_TABS.map((href) => {
     const def = TABS[href];
     return {
@@ -134,7 +153,7 @@ export function MobileTabbar() {
       <MobileTabbarMoreSheet
         open={moreOpen}
         onOpenChange={setMoreOpen}
-        groups={MGMT_DASHBOARD_NAV}
+        groups={moreGroups}
         primaryHrefs={MGMT_PRIMARY_MOBILE_TABS}
       />
     </>

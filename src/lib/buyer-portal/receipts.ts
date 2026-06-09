@@ -9,13 +9,15 @@ import { documents } from "@/lib/db/schema/documents";
  * Buyer-portal receipts data layer — the milestone → receipt join.
  *
  * When a buyer marks an installment paid (see payment-actions.ts) we index a
- * metadata-only `documents` row of type `receipt` scoped to the villa, with the
- * milestone id stashed in `storage_path` as a stable sentinel
- * (`receipt/milestone/<milestoneId>`). The `documents` table has no milestone
- * FK and no JSON metadata column, so this sentinel is how a paid milestone
- * finds its receipt WITHOUT a migration. (`storage_bucket` stays null, so the
- * doc vault still shows the row as byte-less rather than offering a dead
- * download link.)
+ * `documents` row of type `receipt` scoped to the villa, with the milestone id
+ * encoded into `storage_path` (`receipt/milestone/<milestoneId>.pdf`). The
+ * `documents` table has no milestone FK and no JSON metadata column, so this
+ * deterministic path is how a paid milestone finds its receipt WITHOUT a
+ * migration — and because it is also a real Supabase object key, the rendered
+ * receipt PDF bytes upload to exactly that path, so the doc-vault row is
+ * downloadable. (Legacy metadata-only rows used the same prefix WITHOUT the
+ * `.pdf` suffix and no bytes; the helpers below still resolve their milestone
+ * id so the join keeps working for both.)
  *
  * This module is `server-only` but deliberately NOT a "use server" action
  * module, so it can export the sync `receiptStoragePath` / `milestoneIdFrom`
@@ -24,15 +26,20 @@ import { documents } from "@/lib/db/schema/documents";
 
 const RECEIPT_PATH_PREFIX = "receipt/milestone/";
 
-/** Stable sentinel stored in documents.storage_path for a milestone receipt. */
+/**
+ * Deterministic Supabase object key + milestone link for a receipt PDF. Real
+ * object key (ends `.pdf`) so the rendered bytes upload here and the doc vault
+ * can hand back a signed download URL.
+ */
 export function receiptStoragePath(milestoneId: string): string {
-  return `${RECEIPT_PATH_PREFIX}${milestoneId}`;
+  return `${RECEIPT_PATH_PREFIX}${milestoneId}.pdf`;
 }
 
-/** Recover the milestone id from a receipt sentinel path (null if not one). */
+/** Recover the milestone id from a receipt path (null if not one). */
 export function milestoneIdFromReceiptPath(path: string | null): string | null {
   if (!path || !path.startsWith(RECEIPT_PATH_PREFIX)) return null;
-  return path.slice(RECEIPT_PATH_PREFIX.length) || null;
+  const rest = path.slice(RECEIPT_PATH_PREFIX.length).replace(/\.pdf$/i, "");
+  return rest || null;
 }
 
 export interface BuyerReceipt {

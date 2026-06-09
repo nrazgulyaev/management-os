@@ -31,6 +31,7 @@ import type {
   CommandRecord,
   CommandSources,
 } from "@/features/command-palette/types";
+import { useCabinetAccess } from "@/features/keystone/use-cabinet-access";
 import { useSearchIndex } from "@/features/command-palette/use-search-index";
 import { emit } from "@/lib/telemetry";
 
@@ -76,17 +77,21 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const product = React.useMemo(readProduct, [open]);
 
+  // Keystone gating — the same cabinet-access snapshot the sidebar + mobile
+  // tabbar use, so "Jump to cabinet" hides cabinets a role was un-ticked for.
+  const access = useCabinetAccess();
+
   // Resolve per-route sources (actions + navigation) on open.
   React.useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    void getCommandSources({ pathname, product }).then((next) => {
+    void getCommandSources({ pathname, product, access }).then((next) => {
       if (!cancelled) setSources(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [open, pathname, product]);
+  }, [open, pathname, product, access]);
 
   // Telemetry — open event.
   React.useEffect(() => {

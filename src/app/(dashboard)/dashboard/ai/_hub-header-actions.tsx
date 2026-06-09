@@ -5,8 +5,9 @@
  *
  * Replaces three disabled stubs:
  *   · Token usage      → link to /dashboard/ai/usage (derived view).
- *   · Memory editor    → coming-soon state (no backend yet — see block 01
- *                        kit: clear, non-bare disabled with a title).
+ *   · Memory editor    → <ComingSoon> state from the block-01 state kit
+ *                        (no write-back model yet — self-explaining, not a
+ *                        bare disabled button).
  *   · New conversation → opens a minimal HITL agent chat against the
  *                        existing aiExecute runtime via useAgentStream.
  *
@@ -28,6 +29,7 @@ import {
 } from "@/components/ai-agents/agent-transcript";
 import { AgentComposer } from "@/components/ai-agents/agent-composer";
 import { useAgentStream } from "@/features/ai-agents/use-stream";
+import { ComingSoon } from "@/components/ui/state";
 
 export interface HubAgentOption {
   code: string;
@@ -76,14 +78,9 @@ export function HubHeaderActions({ agents }: { agents: HubAgentOption[] }) {
       <Link href="/dashboard/ai/usage" className="btn btn-secondary btn-sm">
         Token usage
       </Link>
-      <button
-        type="button"
-        className="btn btn-secondary btn-sm opacity-55 cursor-not-allowed"
-        disabled
-        title="Memory editor — coming soon"
-      >
-        Memory editor
-      </button>
+      <ComingSoon note="A cross-agent memory editor (review / correct / forget the facts agents persist) is coming soon.">
+        <span className="btn btn-secondary btn-sm">Memory editor</span>
+      </ComingSoon>
       <button
         type="button"
         className="btn btn-primary btn-sm"

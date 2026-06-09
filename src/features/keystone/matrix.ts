@@ -120,6 +120,35 @@ export function cabinetForNavHref(href: string): string | null {
 
 export type OverrideMap = Map<string, boolean>;
 
+/**
+ * Serializable cabinet-access snapshot — what a client surface (mobile
+ * tabbar / command palette) needs to mirror the sidebar's gating. Returned
+ * by the `getVisibleCabinetKeysAction` server action. `allAccess` is the
+ * demo / super-admin short-circuit (show everything); otherwise
+ * `visibleKeys` is the subset of `MATRIX_CABINETS` keys the user can see.
+ */
+export interface VisibleCabinetAccess {
+  allAccess: boolean;
+  visibleKeys: string[];
+}
+
+const CABINET_KEYS = new Set(MATRIX_CABINETS.map((c) => c.key));
+
+/**
+ * Client-side mirror of `CabinetAccessResolver.canSee`, built from the
+ * serialized `VisibleCabinetAccess` a server action returns. Unknown /
+ * non-matrix cabinet keys default to visible (the matrix is a curated
+ * subset — gate only what the grid covers), matching the server resolver.
+ */
+export function canSeeFromAccess(
+  access: VisibleCabinetAccess | null,
+  cabinetKey: string,
+): boolean {
+  if (!access || access.allAccess) return true;
+  if (!CABINET_KEYS.has(cabinetKey)) return true;
+  return access.visibleKeys.includes(cabinetKey);
+}
+
 /** Stable map key for an override cell. */
 export function cellKey(cabinetKey: string, role: RoleKey): string {
   return `${cabinetKey}::${role}`;

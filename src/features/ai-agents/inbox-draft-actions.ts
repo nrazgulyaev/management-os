@@ -50,6 +50,11 @@ import {
   getAgentRuntimeConfig,
 } from "./agent-config-actions";
 import type { AgentMode } from "./agent-config-keys";
+import {
+  retrieveInboxProjectMemory,
+  formatInboxMemoryBlock,
+  bumpInboxMemoryAccess,
+} from "./inbox-project-memory";
 
 // The unified-inbox AI drafter is the `inbox` configurable agent.
 const INBOX_AGENT_KEY = "inbox";
@@ -153,8 +158,27 @@ export async function generateInboxDraftAction(
   // others widen or narrow what the drafter may lean on.
   const allowed: string[] = [];
   if (cfg.knowledgeSources.conversation) allowed.push("the conversation above");
-  if (cfg.knowledgeSources.project_memory)
+
+  // AI FOLLOW-ON (b) — when project_memory is on, RETRIEVE real facts from
+  // ai_project_memory (org-scoped, narrowed to this contact + org-wide) and
+  // inject them into the prompt. Previously this branch only appended a
+  // guardrail note without fetching anything. If the store has no matching
+  // facts we keep the honest note and add no fabricated context.
+  let memoryBlock = "";
+  if (cfg.knowledgeSources.project_memory) {
     allowed.push("known property/project facts already established with this contact");
+    const facts = await retrieveInboxProjectMemory({
+      organizationId: thread.organizationId,
+      contactId: thread.contactId,
+      limit: 6,
+    });
+    memoryBlock = formatInboxMemoryBlock(facts);
+    if (facts.length > 0) {
+      // Best-effort access bookkeeping — never blocks the draft.
+      await bumpInboxMemoryAccess(facts.map((f) => f.id));
+    }
+  }
+
   let templateHint = "";
   if (cfg.knowledgeSources.templates) {
     const templates = await listTemplates({ activeOnly: true });
@@ -169,7 +193,9 @@ export async function generateInboxDraftAction(
       `You may ground your reply only in: ${allowed.join("; ")}. Do not use any other source.`,
     );
   }
-  const systemPrompt = parts.join(" ");
+  // The retrieved project-memory facts (if any) are appended as a distinct
+  // block after the guardrails so the drafter sees them verbatim.
+  const systemPrompt = parts.join(" ") + memoryBlock;
 
   const primaryChannel =
     (thread.primaryChannel as MessagingChannel | null) ??

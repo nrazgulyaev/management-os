@@ -22,12 +22,14 @@ import {
 import { requirePermission, AuthorizationError } from "@/features/auth/permissions";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { recordAuditEvent } from "@/features/audit/services";
+import { getCabinetAccess } from "./access";
 import {
   MATRIX_CABINETS,
   MATRIX_ROLES,
   defaultAccess,
   cellKey,
 } from "./matrix";
+import type { VisibleCabinetAccess } from "./matrix";
 import type { RoleKey } from "@/features/auth/permission-matrix";
 
 export type KeystoneResult =
@@ -36,6 +38,33 @@ export type KeystoneResult =
 
 const CABINET_KEYS = new Set(MATRIX_CABINETS.map((c) => c.key));
 const ROLE_KEYS = new Set<string>(MATRIX_ROLES);
+
+// ---------------------------------------------------------------------------
+// Cabinet-access snapshot (for client surfaces — mobile tabbar / palette)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the set of matrix cabinet keys the current user can see, mirroring
+ * the sidebar's server-side gating so client-rendered nav surfaces (the mobile
+ * tabbar's "More" sheet + the ⌘K command palette) hide the same cabinets a
+ * role was un-ticked for. Demo / super-admin short-circuit to `allAccess`.
+ *
+ * Read-only and never throws — a resolve failure returns `allAccess: true`
+ * (fail-open, exactly like the sidebar's catch) so a transient DB hiccup never
+ * blanks the whole nav.
+ */
+export async function getVisibleCabinetKeysAction(): Promise<VisibleCabinetAccess> {
+  try {
+    const access = await getCabinetAccess();
+    if (access.allAccess) return { allAccess: true, visibleKeys: [] };
+    const visibleKeys = MATRIX_CABINETS.map((c) => c.key).filter((k) =>
+      access.canSee(k),
+    );
+    return { allAccess: false, visibleKeys };
+  } catch {
+    return { allAccess: true, visibleKeys: [] };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Onboarding wizard progress

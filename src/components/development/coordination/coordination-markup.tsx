@@ -125,6 +125,7 @@ export function CoordinationMarkup({
         imageAlt={imageAlt}
         strokes={strokes}
         scale={scale}
+        noteTool
         onStrokeAdd={(s) => {
           const next = [...strokes, s];
           setStrokes(next);
@@ -158,7 +159,8 @@ export function CoordinationMarkup({
         )}
         {saveState === "idle" && (
           <span className="text-ink-tertiary">
-            Markup auto-saves to this revision and reloads next visit.
+            Draw measurements or drop a Note, then it auto-saves to this
+            revision and reloads next visit.
           </span>
         )}
       </div>
