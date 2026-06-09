@@ -17,6 +17,7 @@ import {
   Bot,
   Building2,
   CreditCard,
+  Flag,
   LineChart,
   LifeBuoy,
   ScrollText,
@@ -107,6 +108,15 @@ const PLANNED_PAGES: PageCard[] = [
     href: "/platform/agents",
     status: "needs-config",
     detail: "P5 AGENT-FOUNDATION — schema + Vault shipped, admin UI in progress",
+  },
+  {
+    name: "Feature flags",
+    description:
+      "Every flag in the catalog with its owner, lifecycle stage (GA / beta / internal / archived), and rollout %. Kill a flag to disable it everywhere, bump rollout to widen exposure, or register a new flag. Every change is audit-logged.",
+    icon: <Flag className="w-5 h-5" />,
+    href: "/platform/feature-flags",
+    status: "configured",
+    detail: "Live — index + kill switch + rollout + new-flag form",
   },
 ];
 
