@@ -363,3 +363,336 @@
   letter-spacing: 0.08em;
 }
 
+/* =============================================================
+   Agent Studio (super-admin) — registry CRUD, per-agent config,
+   knowledge base, sources, live test-chat, run log. Ported from
+   the `cabinets/super-admin/Agent Studio.html` prototype; every
+   value resolves a Layer-B token under the active [data-product].
+   ============================================================= */
+
+/* ---------- Card padding presets (parity with prototype chrome) ---------- */
+[data-product] .card-pad { padding: 20px; }
+[data-product] .card-pad-lg { padding: 28px; }
+
+/* ---------- Detail tab bar ---------- */
+[data-product] .detail-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+[data-product] .detail-tabs .tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font-family: var(--sans-font), system-ui, sans-serif;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  padding: 10px 14px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+[data-product] .detail-tabs .tab:hover { color: var(--ink); }
+[data-product] .detail-tabs .tab.on {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- Studio layout ---------- */
+[data-product] .ag-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+[data-product] .ag-cols {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 18px;
+  align-items: start;
+}
+[data-product] .ag-side .ag-h3 { margin-top: 0; }
+[data-product] .ag-h3 {
+  font-family: var(--display-font);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+}
+[data-product="development"] .ag-h3 { font-weight: 500; }
+[data-product] .ag-muted { color: var(--ink-3); font-size: 13px; line-height: 1.5; }
+[data-product] .ag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+[data-product] .ag-form { display: flex; flex-direction: column; gap: 14px; }
+[data-product] .ag-kv {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--ink-3);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .ag-kv b { color: var(--ink); font-weight: 600; }
+[data-product] .ag-note {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  border-radius: 10px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+[data-product] .ag-foot {
+  color: var(--ink-4);
+  font-size: 12.5px;
+  margin-top: 16px;
+  max-width: 70ch;
+  line-height: 1.55;
+}
+
+/* ---------- Avatar / glyph ---------- */
+[data-product] .ag-ava {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--inverted-bg, var(--ink));
+  color: var(--inverted-fg, var(--paper));
+  flex: none;
+}
+[data-product] .ag-ava.lg { width: 40px; height: 40px; border-radius: 11px; }
+
+/* ---------- Icon button ---------- */
+[data-product] .ag-icobtn {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+  color: var(--ink-3);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+[data-product] .ag-icobtn:hover { border-color: var(--ink-3); color: var(--ink); }
+[data-product] .ag-icobtn.danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+
+/* ---------- Segmented control (mode picker) ---------- */
+[data-product] .ag-seg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--paper, var(--panel));
+}
+[data-product] .ag-seg button {
+  border: 0;
+  background: transparent;
+  font-family: var(--sans-font), system-ui, sans-serif;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  padding: 7px 13px;
+  cursor: pointer;
+}
+[data-product] .ag-seg button.on {
+  background: var(--inverted-bg, var(--ink));
+  color: var(--inverted-fg, var(--paper));
+}
+
+/* ---------- Tab count chip ---------- */
+[data-product] .ag-tabnum {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  margin-left: 6px;
+  background: var(--cream-deep, var(--muted));
+  color: var(--ink-3);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+[data-product] .detail-tabs .tab.on .ag-tabnum {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ---------- Knowledge / source list ---------- */
+[data-product] .ag-klist { display: flex; flex-direction: column; gap: 10px; }
+[data-product] .ag-kdoc-title {
+  font-family: var(--display-font);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+[data-product="development"] .ag-kdoc-title { font-weight: 500; }
+[data-product] .ag-kdoc-body {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+/* ---------- Source connect dot + toggle ---------- */
+[data-product] .ag-srcdot {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--cream-deep, var(--muted));
+  color: var(--ink-4);
+  flex: none;
+}
+[data-product] .ag-srcdot.on {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  color: var(--ok);
+}
+[data-product] .ag-toggle {
+  width: 40px; height: 23px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--line);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.18s ease;
+  flex: none;
+}
+[data-product] .ag-toggle span {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 19px; height: 19px;
+  border-radius: 999px;
+  background: var(--paper, #fff);
+  box-shadow: 0 1px 2px rgba(20, 32, 28, 0.2);
+  transition: transform 0.18s ease;
+}
+[data-product] .ag-toggle.on { background: var(--accent); }
+[data-product] .ag-toggle.on span { transform: translateX(17px); }
+
+/* ---------- Test chat ---------- */
+[data-product] .ag-chat-h {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .ag-chat-body {
+  flex: 1;
+  overflow: auto;
+  padding: 18px;
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--cream-warm, var(--bg-2));
+}
+[data-product] .ag-chat-empty { margin: auto; text-align: center; max-width: 320px; }
+[data-product] .ag-samples {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+}
+[data-product] .ag-bubble {
+  max-width: 78%;
+  padding: 11px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+[data-product] .ag-bubble.user {
+  align-self: flex-end;
+  background: var(--inverted-bg, var(--ink));
+  color: var(--inverted-fg, var(--paper));
+  border-bottom-right-radius: 4px;
+}
+[data-product] .ag-bubble.bot {
+  align-self: flex-start;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  color: var(--ink-2);
+  border-bottom-left-radius: 4px;
+}
+[data-product] .ag-bubble.ag-typing { display: inline-flex; gap: 4px; align-items: center; }
+[data-product] .ag-bubble.ag-typing span {
+  width: 6px; height: 6px;
+  border-radius: 999px;
+  background: var(--ink-4);
+  animation: ag-typing 1.2s infinite ease-in-out;
+}
+[data-product] .ag-bubble.ag-typing span:nth-child(2) { animation-delay: 0.15s; }
+[data-product] .ag-bubble.ag-typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes ag-typing {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+[data-product] .ag-chat-input {
+  display: flex; gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  align-items: flex-end;
+}
+[data-product] .ag-chat-input .textarea { flex: 1; resize: none; }
+
+/* ---------- Inline-editable title ---------- */
+[data-product] .ag-inline {
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  border: 0;
+  background: transparent;
+  outline: none;
+  border-bottom: 1px dashed transparent;
+  padding: 0;
+  min-width: 280px;
+}
+[data-product] .ag-inline:hover { border-bottom-color: var(--line-strong); }
+[data-product] .ag-inline:focus { border-bottom-color: var(--accent); }
+
+/* ---------- Source / template pick grid ---------- */
+[data-product] .ag-srcgrid,
+[data-product] .ag-tpl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+[data-product] .ag-srcpick {
+  display: flex; flex-direction: column; gap: 4px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper, var(--panel));
+  color: var(--ink-2);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+[data-product] .ag-srcpick:hover { border-color: var(--ink-3); }
+[data-product] .ag-srcpick b { color: var(--ink); font-weight: 600; }
+[data-product] .ag-srcpick span { color: var(--ink-4); font-size: 12px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  [data-product] .ag-cols { grid-template-columns: 1fr; }
+  [data-product] .ag-kpis { grid-template-columns: 1fr 1fr; }
+  [data-product] .ag-srcgrid,
+  [data-product] .ag-tpl { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  [data-product] .ag-kpis { grid-template-columns: 1fr 1fr; }
+  [data-product] .ag-bubble { max-width: 88%; }
+}
+

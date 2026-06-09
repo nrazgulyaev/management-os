@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { GuestShell } from "@/components/layout/guest-shell";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { StayShell } from "@/components/layout/stay-shell";
+import { StayHeader, Eyebrow } from "@/components/stay/stay-ui";
+import { MapPin } from "lucide-react";
 import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
 
 export const metadata = { title: "Neighborhood" };
@@ -28,61 +28,63 @@ export default async function NeighborhoodPage({
   }
 
   return (
-    <GuestShell villaName={villaLabel} dates={`${summary.base.checkIn} → ${summary.base.checkOut}`}>
+    <StayShell
+      villaName={villaLabel}
+      dates={`${summary.base.checkIn} → ${summary.base.checkOut}`}
+      basePath={`/stay/${token}`}
+    >
       <div className="flex flex-col gap-6">
-        <Link
-          href={`/stay/${token}`}
-          className="inline-flex items-center gap-1.5 text-xs text-ink-tertiary hover:text-ink"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Stay home
-        </Link>
-        <h1 className="text-2xl font-medium text-ink">Neighborhood</h1>
+        <StayHeader title="Nearby" backHref={`/stay/${token}`} />
         {byCategory.size === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
+          <p className="rounded-[var(--r-md)] border border-dashed border-line-soft bg-muted/40 px-5 py-6 text-sm text-ink-tertiary">
             Recommendations are being prepared.
           </p>
         ) : (
           Array.from(byCategory.entries()).map(([category, places]) => (
-            <section
-              key={category}
-              className="rounded-xl border border-line-soft bg-surface p-6"
-            >
-              <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                {category}
-              </div>
-              <ul className="divide-y divide-line-soft mt-2">
-                {places.map((p) => (
-                  <li key={p.id} className="py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-ink font-medium text-sm">{p.name}</div>
-                        {(p.distanceLabel || p.travelTimeLabel) && (
-                          <div className="text-[11px] text-ink-tertiary mt-0.5">
-                            {[p.distanceLabel, p.travelTimeLabel].filter(Boolean).join(" · ")}
-                          </div>
-                        )}
-                      </div>
-                      {p.googleMapsUrl && (
-                        <a
-                          href={p.googleMapsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-ink hover:underline underline-offset-4"
-                        >
-                          <MapPin className="w-3.5 h-3.5" /> Map
-                        </a>
-                      )}
+            <section key={category} className="flex flex-col gap-3">
+              <Eyebrow>{category}</Eyebrow>
+              {places.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex gap-3.5 items-center p-3.5 rounded-[var(--r-md)] border border-line-soft bg-surface shadow-[var(--shadow-card)]"
+                >
+                  <span className="w-16 h-16 rounded-[14px] shrink-0 bg-gradient-coral-soft flex items-center justify-center">
+                    <MapPin className="w-6 h-6 text-terra" strokeWidth={1.6} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[15px] font-semibold text-ink">
+                      {p.name}
                     </div>
-                    {p.address && (
-                      <div className="text-[11px] text-ink-tertiary mt-1">{p.address}</div>
+                    {(p.distanceLabel || p.travelTimeLabel) && (
+                      <div className="text-[12.5px] text-ink-tertiary mt-0.5">
+                        {[p.distanceLabel, p.travelTimeLabel]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
                     )}
-                  </li>
-                ))}
-              </ul>
+                    {p.address && (
+                      <div className="text-[11px] text-ink-tertiary mt-1">
+                        {p.address}
+                      </div>
+                    )}
+                  </div>
+                  {p.googleMapsUrl && (
+                    <a
+                      href={p.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Open ${p.name} on the map`}
+                      className="w-[34px] h-[34px] shrink-0 rounded-full bg-muted border border-line text-forest flex items-center justify-center"
+                    >
+                      <MapPin className="w-4 h-4" strokeWidth={2} />
+                    </a>
+                  )}
+                </div>
+              ))}
             </section>
           ))
         )}
       </div>
-    </GuestShell>
+    </StayShell>
   );
 }

@@ -155,7 +155,7 @@ export default async function PlatformConsolePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <DashboardKpi
           variant="hero"
-          tone="ink-warm"
+          tone="emerald-soft"
           label="MRR"
           value={fmtMoney(revenue.mrrMinor, revenue.currency)}
           status="neutral"

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { GuestShell } from "@/components/layout/guest-shell";
+import { StayShell } from "@/components/layout/stay-shell";
+import { Eyebrow, SectionTitle, StayRow } from "@/components/stay/stay-ui";
 import { Badge } from "@/components/ui/badge";
 import {
   KeyRound,
@@ -7,14 +8,15 @@ import {
   Users,
   ArrowUpRight,
   Wifi,
-  BookOpen,
-  ShieldAlert,
-  Map,
-  Sparkles,
-  MessagesSquare,
+  ScrollText,
+  ConciergeBell,
+  Compass,
+  MessageCircle,
   ListChecks,
   FileDown,
-  ScrollText,
+  ShieldAlert,
+  Map,
+  MessagesSquare,
   Phone,
 } from "lucide-react";
 import {
@@ -36,65 +38,98 @@ export default function StayDemoPage() {
   const topContacts = DEMO_EMERGENCY_CONTACTS.slice(0, 3);
 
   return (
-    <GuestShell
+    <StayShell
       villaName={DEMO_STAY.villaName}
       dates="25 Apr → 29 Apr · 4 nights"
+      basePath="/stay/demo"
     >
-      <div className="flex flex-col gap-10">
-        <div className="rounded-md border border-amber-200 bg-amber-50/60 px-5 py-3 text-xs text-amber-900 leading-relaxed">
-          <span className="font-medium">Demo only.</span> No personal data is
-          stored or collected. Real stays use tokenised links of the form{" "}
-          <code className="font-mono text-[11px]">/stay/[token]</code>{" "}
-          minted from a confirmed booking.
-        </div>
-
-        {/* Hero */}
-        <section className="rounded-xl overflow-hidden border border-line-soft bg-surface">
-          <div
-            className="aspect-[16/10] md:aspect-[16/9]"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(14,59,46,0.15) 0%, rgba(14,59,46,0.5) 100%), linear-gradient(135deg, #5a6b5c 0%, #2a3a30 100%)",
-            }}
-          />
-          <div className="p-6 md:p-8">
-            <Badge tone="gold">Welcome, {DEMO_STAY.guestSalutation}</Badge>
-            <h1 className="text-display text-[34px] md:text-[44px] leading-[1.05] font-medium text-ink mt-4">
+      <div className="flex flex-col gap-8">
+        {/* Hero — editorial villa band (mockup variant A). */}
+        <section className="relative -mx-6 -mt-7 overflow-hidden rounded-b-[var(--r-hero)]">
+          <div className="bg-stay-hero h-[300px] sm:h-[360px]" />
+          <div className="absolute inset-0 bg-stay-hero-scrim" />
+          <div className="absolute inset-x-6 bottom-12 text-[#F6F1E7]">
+            <Eyebrow className="text-[#F6F1E7]/75">
+              Welcome, {DEMO_STAY.guestSalutation}
+            </Eyebrow>
+            <h1 className="text-display text-[38px] leading-[1.06] tracking-[-0.02em] font-normal text-white mt-1.5">
               {DEMO_STAY.villaName}
             </h1>
-            <p className="mt-3 text-ink-secondary">
-              {DEMO_STAY.area} · {DEMO_STAY.bedrooms} bedrooms · Ocean-side residence
+            <p className="text-[14.5px] text-white/90 mt-1.5">
+              {DEMO_STAY.area} · {DEMO_STAY.bedrooms} bedrooms
             </p>
-            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-line-soft">
-              <div>
-                <div className="flex items-center gap-1.5 text-label mb-1.5">
-                  <CalendarDays className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  Check-in
-                </div>
-                <div className="text-sm text-ink">{DEMO_STAY.checkInLabel}</div>
+          </div>
+        </section>
+
+        <div className="rounded-[var(--r-md)] border border-warning/30 bg-warning-weak px-5 py-3 text-xs text-warning leading-relaxed">
+          <span className="font-medium">Demo only.</span> No personal data is
+          stored or collected. Real stays use tokenised links of the form{" "}
+          <code className="font-mono text-[11px]">/stay/[token]</code> minted
+          from a confirmed booking.
+        </div>
+
+        {/* Stay facts (mockup countdown card analogue). */}
+        <section className="rounded-[var(--r-card)] border border-line-soft bg-surface shadow-[var(--shadow-card)] p-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <div className="flex items-center gap-1.5 text-label mb-1.5">
+                <CalendarDays className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Check-in
               </div>
-              <div>
-                <div className="flex items-center gap-1.5 text-label mb-1.5">
-                  <CalendarDays className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  Check-out
-                </div>
-                <div className="text-sm text-ink">{DEMO_STAY.checkOutLabel}</div>
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5 text-label mb-1.5">
-                  <Users className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  Guests
-                </div>
-                <div className="text-sm text-ink">{DEMO_STAY.guests} adults</div>
-              </div>
+              <div className="text-sm text-ink">{DEMO_STAY.checkInLabel}</div>
             </div>
+            <div>
+              <div className="flex items-center gap-1.5 text-label mb-1.5">
+                <CalendarDays className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Check-out
+              </div>
+              <div className="text-sm text-ink">{DEMO_STAY.checkOutLabel}</div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 text-label mb-1.5">
+                <Users className="w-3.5 h-3.5" strokeWidth={1.75} />
+                Guests
+              </div>
+              <div className="text-sm text-ink">{DEMO_STAY.guests} adults</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Your service (mockup .row list). */}
+        <section>
+          <SectionTitle title="Your service" />
+          <div className="rounded-[var(--r-card)] border border-line-soft bg-surface shadow-[var(--shadow-card)] px-5 divide-y divide-line-soft">
+            <StayRow
+              href="/stay/demo/concierge"
+              icon={MessageCircle}
+              title="Concierge"
+              detail="Ask anything — we reply around the clock"
+            />
+            <StayRow
+              href="/stay/demo/services"
+              icon={ConciergeBell}
+              title="Services & orders"
+              detail="Breakfast, spa, transfer, groceries"
+            />
+            <StayRow
+              href="/stay/demo/neighborhood"
+              icon={Compass}
+              title="Nearby"
+              detail="Beaches, restaurants, what to see"
+            />
+            <StayRow
+              href="/stay/demo/guide"
+              icon={ScrollText}
+              title="Villa guide"
+              detail="Wi-Fi, appliances, house rules"
+            />
           </div>
         </section>
 
         {/* Smart lock / Check-in */}
         <Link
           href="/stay/demo/check-in"
-          className="rounded-lg border border-line-soft bg-surface p-6 flex items-start gap-4 hover:border-line-strong transition-colors group"
+          className="rounded-[var(--r-card)] border border-line-soft bg-surface shadow-[var(--shadow-card)] p-6 flex items-start gap-4 hover:border-line-strong transition-colors group"
         >
           <div className="w-10 h-10 rounded-md bg-ink text-ink-inverse inline-flex items-center justify-center shrink-0">
             <KeyRound className="w-4 h-4" strokeWidth={1.75} />
@@ -124,7 +159,7 @@ export default function StayDemoPage() {
         {/* Wi-Fi */}
         <Link
           href="/stay/demo/wifi"
-          className="rounded-lg border border-line-soft bg-surface p-6 flex items-start gap-4 hover:border-line-strong transition-colors group"
+          className="rounded-[var(--r-card)] border border-line-soft bg-surface shadow-[var(--shadow-card)] p-6 flex items-start gap-4 hover:border-line-strong transition-colors group"
         >
           <div className="w-10 h-10 rounded-md bg-ink/5 inline-flex items-center justify-center shrink-0">
             <Wifi className="w-4 h-4 text-ink-secondary" strokeWidth={1.75} />
@@ -164,10 +199,10 @@ export default function StayDemoPage() {
               <Link
                 key={s.id}
                 href={`/stay/demo/services/${s.id}`}
-                className="rounded-md border border-line-soft bg-surface p-5 flex flex-col gap-2 hover:border-line-strong transition-colors group"
+                className="rounded-[var(--r-md)] border border-line-soft bg-surface shadow-[var(--shadow-card)] p-5 flex flex-col gap-2 hover:border-line-strong transition-colors group"
               >
                 <div className="flex items-start justify-between">
-                  <Sparkles className="w-4 h-4 text-ink-secondary" strokeWidth={1.75} />
+                  <ConciergeBell className="w-4 h-4 text-forest" strokeWidth={1.75} />
                   <ArrowUpRight className="w-4 h-4 text-ink-tertiary group-hover:text-ink" />
                 </div>
                 <div className="text-ink font-medium text-sm">{s.name}</div>
@@ -186,7 +221,7 @@ export default function StayDemoPage() {
         {/* Concierge */}
         <Link
           href="/stay/demo/concierge"
-          className="rounded-lg border border-line-soft bg-surface p-6 flex items-start gap-4 hover:border-line-strong transition-colors group"
+          className="rounded-[var(--r-card)] border border-line-soft bg-surface shadow-[var(--shadow-card)] p-6 flex items-start gap-4 hover:border-line-strong transition-colors group"
         >
           <div className="w-10 h-10 rounded-md bg-ink/5 inline-flex items-center justify-center shrink-0">
             <MessagesSquare className="w-4 h-4 text-ink-secondary" strokeWidth={1.75} />
@@ -300,14 +335,14 @@ export default function StayDemoPage() {
         </section>
 
         {/* Secondary nav */}
-        <section className="rounded-md border border-line-soft bg-canvas p-5">
+        <section className="rounded-[var(--r-md)] border border-line-soft bg-muted/40 p-5">
           <div className="text-label mb-3">More</div>
           <div className="flex flex-wrap gap-3">
             <Link
               href="/stay/demo/guide"
               className="text-sm text-ink hover:underline underline-offset-4 inline-flex items-center gap-1.5"
             >
-              <BookOpen className="w-3.5 h-3.5" /> Read the full guide
+              <ScrollText className="w-3.5 h-3.5" /> Read the full guide
             </Link>
             <Link
               href="/stay/demo/requests"
@@ -324,6 +359,6 @@ export default function StayDemoPage() {
           </div>
         </section>
       </div>
-    </GuestShell>
+    </StayShell>
   );
 }

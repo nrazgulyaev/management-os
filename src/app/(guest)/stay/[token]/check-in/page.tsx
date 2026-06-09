@@ -1,9 +1,9 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { GuestShell } from "@/components/layout/guest-shell";
+import { StayShell } from "@/components/layout/stay-shell";
+import { StayHeader } from "@/components/stay/stay-ui";
 import { Badge } from "@/components/ui/badge";
-import { KeyRound, ArrowLeft } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
 import { recordStayAccessEvent } from "@/features/guest-stays/access-log";
 import { canAccessStayWithoutVerification } from "@/features/guest-stays/verification";
@@ -59,20 +59,13 @@ export default async function CheckInPage({
   const status = checkin?.status ?? "not_started";
 
   return (
-    <GuestShell villaName={villaLabel} dates={dateRange}>
+    <StayShell villaName={villaLabel} dates={dateRange} basePath={`/stay/${token}`}>
       <div className="flex flex-col gap-6">
-        <Link
-          href={`/stay/${token}`}
-          className="inline-flex items-center gap-1.5 text-xs text-ink-tertiary hover:text-ink"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Stay home
-        </Link>
-
-        <h1 className="text-2xl font-medium text-ink">Check-in</h1>
+        <StayHeader title="Online check-in" backHref={`/stay/${token}`} />
 
         {status === "code_issued" ? (
-          <section className="rounded-xl border border-line-soft bg-surface p-6">
-            <div className="flex items-center gap-2 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <section className="rounded-[var(--r-card)] border border-line-soft bg-surface shadow-[var(--shadow-card)] p-5">
+            <div className="flex items-center gap-2 text-ink-tertiary text-[11px] uppercase tracking-[0.2em] font-mono">
               <KeyRound className="w-3.5 h-3.5" /> Door access
             </div>
             <div className="mt-3">
@@ -84,11 +77,13 @@ export default async function CheckInPage({
             </p>
           </section>
         ) : status === "submitted" || status === "approved" ? (
-          <section className="rounded-xl border border-line-soft bg-muted/30 p-6">
-            <h2 className="text-lg font-medium text-ink">Check-in submitted</h2>
-            <p className="text-sm text-ink-secondary mt-1">
+          <section className="rounded-[var(--r-card)] border border-line-soft bg-muted/50 p-5">
+            <h2 className="text-display text-[19px] font-normal text-ink">
+              Check-in submitted
+            </h2>
+            <p className="text-sm text-ink-secondary mt-1 leading-[1.5]">
               Thanks — our team is reviewing your check-in. Your villa door code will appear
-              here once it’s approved.
+              here once it&apos;s approved.
             </p>
           </section>
         ) : (
@@ -96,12 +91,14 @@ export default async function CheckInPage({
         )}
 
         {checkInSection && (
-          <section className="rounded-xl border border-line-soft bg-surface p-6">
-            <h2 className="text-lg font-medium text-ink mb-3">{checkInSection.title}</h2>
+          <section className="rounded-[var(--r-card)] border border-line-soft bg-surface shadow-[var(--shadow-card)] p-5">
+            <h2 className="text-display text-[19px] font-normal text-ink mb-3">
+              {checkInSection.title}
+            </h2>
             <MarkdownBlock source={checkInSection.bodyMd} />
           </section>
         )}
       </div>
-    </GuestShell>
+    </StayShell>
   );
 }

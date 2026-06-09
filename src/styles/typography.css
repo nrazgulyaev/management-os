@@ -74,6 +74,25 @@
     box-shadow: var(--shadow-elevated-card);
   }
 
+  /* Guest Stay Portal — villa hero band. The pixel mockup renders an
+     inline SVG sunset behind the greeting; in production this is the
+     placeholder gradient scrim that sits under the real villa photo
+     (forest dusk + a warm sun radial). Defined as a utility so the
+     stay home page needs no inline style. */
+  .bg-stay-hero {
+    background:
+      radial-gradient(60% 42% at 74% 24%, rgba(231, 174, 118, 0.55) 0%, rgba(231, 174, 118, 0) 70%),
+      linear-gradient(180deg, #2c4a40 0%, #1f3a33 55%, #102019 100%);
+  }
+  /* legibility scrim over the photo/gradient for the serif greeting */
+  .bg-stay-hero-scrim {
+    background: linear-gradient(180deg, rgba(11, 21, 17, 0) 30%, rgba(11, 21, 17, 0.55) 100%);
+  }
+  /* forest gradient panel — Wi-Fi card + concierge nudge (mockup) */
+  .bg-stay-forest {
+    background: linear-gradient(135deg, #23413a 0%, #1f3a33 100%);
+  }
+
   /* -----------------------------------------------------------
      Arconique OS redesign — typographic utility classes.
      Match the handoff's `.serif` / `.mono` / `.tnum` API exactly

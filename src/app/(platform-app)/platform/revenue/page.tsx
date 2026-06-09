@@ -63,9 +63,9 @@ export default async function RevenueDashboardPage() {
           { label: "Platform Admin OS", href: "/platform" },
           { label: "Revenue" },
         ]}
-        eyebrow="Platform metrics"
-        title="Revenue"
-        description="MRR, ARR, customer count by tier, trial → paid conversion, churn. Read-only snapshot from orgSubscriptions + lifecycle events."
+        eyebrow="Platform · metrics"
+        title="The business of the platform"
+        description="MRR, ARR, customers by tier, trial → paid conversion and churn — a read-only snapshot from subscriptions + lifecycle events."
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -75,7 +75,7 @@ export default async function RevenueDashboardPage() {
           label="MRR"
           value={fmtMoney(snap.mrrMinor, snap.currency)}
           status="neutral"
-          hint="Sum of monthly price across active subs"
+          hint="Sum of active monthly price"
           className="sm:col-span-2 lg:col-span-2"
         />
         <DashboardKpi

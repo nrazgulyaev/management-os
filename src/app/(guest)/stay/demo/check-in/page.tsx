@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GuestShell } from "@/components/layout/guest-shell";
+import { StayShell } from "@/components/layout/stay-shell";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, KeyRound } from "lucide-react";
 import { DEMO_STAY } from "@/features/demo-data/stay-demo-content";
@@ -8,9 +8,10 @@ export const metadata = { title: "Check-in · demo" };
 
 export default function StayDemoCheckInPage() {
   return (
-    <GuestShell
+    <StayShell
       villaName={DEMO_STAY.villaName}
       dates="25 Apr → 29 Apr · 4 nights"
+      basePath="/stay/demo"
     >
       <div className="flex flex-col gap-8">
         <Link
@@ -84,6 +85,6 @@ export default function StayDemoCheckInPage() {
           </div>
         </section>
       </div>
-    </GuestShell>
+    </StayShell>
   );
 }

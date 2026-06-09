@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { GuestShell } from "@/components/layout/guest-shell";
+import { StayShell } from "@/components/layout/stay-shell";
+import { StayHeader, Eyebrow } from "@/components/stay/stay-ui";
 import { Section } from "@/components/ui/section";
 import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
 import { listGuestVisibleServices } from "@/features/guest-services/services";
@@ -43,25 +42,16 @@ export default async function ServicesPage({
     : null;
 
   return (
-    <GuestShell
+    <StayShell
       villaName={villaLabel}
       dates={`${stay.checkIn} → ${stay.checkOut}`}
+      basePath={`/stay/${token}`}
     >
       <div className="flex flex-col gap-8">
-        <Link
-          href={`/stay/${token}`}
-          className="inline-flex items-center gap-1.5 text-xs text-ink-tertiary hover:text-ink"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Stay home
-        </Link>
+        <StayHeader title="Services & orders" backHref={`/stay/${token}`} />
         <header className="flex flex-col gap-2">
-          <span className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-            Concierge
-          </span>
-          <h1 className="text-display text-2xl md:text-3xl font-medium text-ink">
-            Services & extras
-          </h1>
-          <p className="text-sm text-ink-secondary max-w-prose">
+          <Eyebrow>Concierge</Eyebrow>
+          <p className="text-[14.5px] text-ink-secondary leading-[1.5] max-w-prose">
             Tap any service to send a request. Our team confirms availability,
             timing and final price within a few hours.
           </p>
@@ -91,6 +81,6 @@ export default async function ServicesPage({
           <GuestServiceRequestForm token={token} />
         </Section>
       </div>
-    </GuestShell>
+    </StayShell>
   );
 }
