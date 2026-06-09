@@ -31,6 +31,7 @@ import {
   Library,
   LineChart,
   ListTree,
+  MapPin,
   Megaphone,
   MessageSquare,
   Package,
@@ -587,6 +588,11 @@ export const developmentAppNav: NavGroup[] = [
         href: `${DEVELOPMENT_APP_PATH}/drawings`,
         label: "Drawings",
         icon: Layers,
+      },
+      {
+        href: `${DEVELOPMENT_APP_PATH}/coordination`,
+        label: "Coordination",
+        icon: MapPin,
       },
       {
         href: `${DEVELOPMENT_APP_PATH}/boq`,

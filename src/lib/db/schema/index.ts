@@ -105,3 +105,6 @@ export * from "./owner-activity-log";
 export * from "./general-ledger";
 // Front-office check-in flow persistence (migration 0123).
 export * from "./checkin-flow";
+// Coordination cabinet — submittals + drawing pins + threads (migration 0126).
+export * from "./submittals";
+export * from "./coordination";
