@@ -448,6 +448,9 @@ export async function aiExecute(
     const [failed] = await db
       .insert(aiAssistantRuns)
       .values({
+        // AI FOLLOW-ON (a) — attribute the run to its org so the per-agent
+        // Logs panel + usage breakdown can scope by tenant (migration 0148).
+        organizationId: input.organizationId,
         assistantKey: input.assistantKey,
         runType: "manual",
         status: "failed",
@@ -484,6 +487,8 @@ export async function aiExecute(
   const [run] = await db
     .insert(aiAssistantRuns)
     .values({
+      // AI FOLLOW-ON (a) — attribute the run to its org (migration 0148).
+      organizationId: input.organizationId,
       assistantKey: input.assistantKey,
       runType: "manual",
       status: "completed",
