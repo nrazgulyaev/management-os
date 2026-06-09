@@ -122,6 +122,7 @@ export const DEV_DASHBOARD_NAV: DashboardNavGroup[] = [
       { href: `${DEV}/finance/tax-types`, label: "Tax types" },
       { href: `${DEV}/finance/tax-reports`, label: "Tax reports" },
       { href: `${DEV}/finance/shared-costs`, label: "Shared costs" },
+      { href: `${DEV}/finance/commitments`, label: "Commitments (PO)" },
       { href: `${DEV}/finance/document-extractions`, label: "Document extractions" },
       { href: `${DEV}/investors`, label: "Investors" },
       { href: `${DEV}/commitments`, label: "Commitments" },

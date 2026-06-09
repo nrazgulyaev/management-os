@@ -6,6 +6,8 @@ import { requireDb } from "@/lib/db/client";
 import { devCommitmentsLedger } from "@/lib/db/schema/dev-finance";
 import { SUPPORTED_CURRENCIES } from "@/lib/development/constants/investor-constants";
 import { requireOrgId } from "@/features/auth/require-org";
+import { getCurrentUserContext } from "@/features/auth/permissions";
+import { recordAuditEvent } from "@/features/audit/services";
 
 const createSchema = z.object({
   projectId: z.string().uuid(),
@@ -77,6 +79,28 @@ export async function createCommitmentLedger(
       id: devCommitmentsLedger.id,
       commitmentCode: devCommitmentsLedger.commitmentCode,
     });
+
+  const ctx = await getCurrentUserContext();
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "commitment_ledger.create",
+    entityType: "commitment_ledger",
+    entityId: row.id,
+    after: {
+      commitmentCode: row.commitmentCode,
+      organizationId,
+      projectId: parsed.projectId,
+      categoryId: parsed.categoryId,
+      vendorContactId: parsed.vendorContactId ?? null,
+      amountUsdMinor: usdAmount.toString(),
+      amountCurrency: parsed.amountCurrency,
+      amountOriginalMinor: amount.toString(),
+      fxRateAtCommit: parsed.fxRateAtCommit,
+      committedDate: parsed.committedDate,
+      status: "open",
+    },
+  });
+
   return { ...row, amountUsdMinor: usdAmount.toString() };
 }
 
@@ -86,6 +110,16 @@ export async function updateCommitmentLedgerStatus(
 ): Promise<void> {
   const db = requireDb();
   const organizationId = await requireOrgId();
+  const [before] = await db
+    .select({ status: devCommitmentsLedger.status })
+    .from(devCommitmentsLedger)
+    .where(
+      and(
+        eq(devCommitmentsLedger.id, id),
+        eq(devCommitmentsLedger.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
   await db
     .update(devCommitmentsLedger)
     .set({ status: newStatus, updatedAt: new Date() })
@@ -95,6 +129,16 @@ export async function updateCommitmentLedgerStatus(
         eq(devCommitmentsLedger.organizationId, organizationId),
       ),
     );
+
+  const ctx = await getCurrentUserContext();
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "commitment_ledger.status_change",
+    entityType: "commitment_ledger",
+    entityId: id,
+    before: before ? { status: before.status } : null,
+    after: { status: newStatus, organizationId },
+  });
 }
 
 export async function cancelCommitmentLedger(
@@ -106,6 +150,16 @@ export async function cancelCommitmentLedger(
   }
   const db = requireDb();
   const organizationId = await requireOrgId();
+  const [before] = await db
+    .select({ status: devCommitmentsLedger.status })
+    .from(devCommitmentsLedger)
+    .where(
+      and(
+        eq(devCommitmentsLedger.id, id),
+        eq(devCommitmentsLedger.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
   await db
     .update(devCommitmentsLedger)
     .set({
@@ -119,4 +173,15 @@ export async function cancelCommitmentLedger(
         eq(devCommitmentsLedger.organizationId, organizationId),
       ),
     );
+
+  const ctx = await getCurrentUserContext();
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "commitment_ledger.cancel",
+    entityType: "commitment_ledger",
+    entityId: id,
+    before: before ? { status: before.status } : null,
+    after: { status: "cancelled", organizationId },
+    metadata: { reason },
+  });
 }
