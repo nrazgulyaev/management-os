@@ -25,6 +25,7 @@ import { RiskPill } from "@/components/owners/risk-pill";
 import { PortalStatusDot } from "@/components/owners/portal-dot";
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
 import { CrmFilterBar } from "@/components/crm/crm-filter-bar";
+import { OwnerTagsCell, type OwnerRowTag } from "./_owner-tags-cell";
 import { SavedViewsBar, ALL_VIEW_ID } from "@/components/crm/saved-views-bar";
 import { BulkActionBar } from "@/components/crm/bulk-action-bar";
 import {
@@ -32,6 +33,7 @@ import {
   type FilterCondition,
   type FilterFieldDef,
 } from "@/features/crm/saved-views/filter-types";
+import { matchTagCondition } from "./_owner-tag-filter";
 import {
   bulkOwnerStatusAction,
   bulkOwnerTagAction,
@@ -61,6 +63,8 @@ export interface OwnerRowVM {
   nationality: string | null;
   taxResidency: string | null;
   riskRowClass: string;
+  /** CRM tags assigned to this owner (column + filter). */
+  tags: OwnerRowTag[];
 }
 
 const statusTone: Record<string, "success" | "gold" | "neutral"> = {
@@ -110,6 +114,7 @@ function toCsv(rows: OwnerRowVM[]): string {
     "YTD net",
     "Retention",
     "Portal",
+    "Tags",
     "Status",
     "Nationality",
     "Tax residency",
@@ -126,6 +131,7 @@ function toCsv(rows: OwnerRowVM[]): string {
       r.ytdNetLabel,
       r.riskLevel,
       r.portalStatus,
+      r.tags.map((t) => t.label).join("; "),
       r.status,
       r.nationality ?? "",
       r.taxResidency ?? "",
@@ -164,13 +170,29 @@ export function OwnersListClient({
   const [busy, startTransition] = React.useTransition();
   const [message, setMessage] = React.useState<string | null>(null);
 
-  const filtered = React.useMemo(
-    () =>
-      conditions.length === 0
-        ? rows
-        : rows.filter((r) => matchAllConditions(conditions, (f) => cellFor(r, f))),
-    [rows, conditions],
+  // Tag conditions need multi-membership semantics (an owner carries MANY
+  // tags), so they are matched separately from the single-value cell fields
+  // the shared <matchCondition> understands.
+  const tagConditions = React.useMemo(
+    () => conditions.filter((c) => c.field === "tags"),
+    [conditions],
   );
+  const scalarConditions = React.useMemo(
+    () => conditions.filter((c) => c.field !== "tags"),
+    [conditions],
+  );
+
+  const filtered = React.useMemo(() => {
+    if (conditions.length === 0) return rows;
+    return rows.filter((r) => {
+      const scalarOk =
+        scalarConditions.length === 0 ||
+        matchAllConditions(scalarConditions, (f) => cellFor(r, f));
+      if (!scalarOk) return false;
+      const tagIds = r.tags.map((t) => t.id);
+      return tagConditions.every((c) => matchTagCondition(tagIds, c));
+    });
+  }, [rows, conditions, scalarConditions, tagConditions]);
 
   // Keep selection in sync with the currently-visible rows.
   const visibleIds = React.useMemo(() => filtered.map((r) => r.id), [filtered]);
@@ -270,6 +292,7 @@ export function OwnersListClient({
               <TH className="text-right">YTD net</TH>
               <TH>Retention</TH>
               <TH>Portal</TH>
+              <TH>Tags</TH>
               <TH>Last contact</TH>
               <TH>Status</TH>
               <TH />
@@ -321,6 +344,9 @@ export function OwnersListClient({
                 <TD>
                   <PortalStatusDot status={o.portalStatus} verbose />
                 </TD>
+                <TD>
+                  <OwnerTagsCell tags={o.tags} />
+                </TD>
                 <TD className="text-ink-secondary text-sm font-mono">{o.lastContact ?? "—"}</TD>
                 <TD>
                   <Badge tone={statusTone[o.status] ?? "neutral"}>{o.status}</Badge>
@@ -363,7 +389,7 @@ export function OwnersListClient({
             ))}
             {filtered.length === 0 && (
               <TR>
-                <TD colSpan={9} className="py-10 text-center text-ink-tertiary text-sm">
+                <TD colSpan={10} className="py-10 text-center text-ink-tertiary text-sm">
                   No owners match these filters.
                 </TD>
               </TR>

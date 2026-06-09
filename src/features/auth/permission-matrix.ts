@@ -68,6 +68,8 @@ export const ROLE_CAPABILITIES: Record<string, RoleKey[]> = {
   // crm follow-up tasks / reminders (any internal user can run their pipeline)
   "crm_tasks.read": INTERNAL_ROLES,
   "crm_tasks.write": INTERNAL_ROLES,
+  // crm activity timeline — operators log notes/calls/emails on any record
+  "crm_activity.write": INTERNAL_ROLES,
   // bookings / channels / guests
   "bookings.read": INTERNAL_ROLES,
   "bookings.write": [

@@ -11,6 +11,10 @@ import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getBuyerByCode } from "@/lib/development/server/buyers/buyer-queries";
+import { RecordTimeline } from "@/components/ui/primitives";
+import { listCrmActivities } from "@/features/crm-activity/services";
+import { LogActivityComposer } from "@/components/crm/log-activity-composer";
+import { getCurrentUserContext } from "@/features/auth/permissions";
 
 export const metadata: Metadata = { title: "Buyer · Development OS" };
 export const dynamic = "force-dynamic";
@@ -42,6 +46,15 @@ export default async function BuyerDetailPage({
   const data = await getBuyerByCode(code);
   if (!data) notFound();
   const { buyer, assignments } = data;
+
+  // CRM ACTIVITY TIMELINE (#172 follow-on) — crm_activities already supports
+  // subject_type 'buyer'; this is the first surface to mount it. Org-scoped
+  // read; the composer beside it is permission-gated + audit-logged.
+  const [crmActivity, ctx] = await Promise.all([
+    listCrmActivities("buyer", buyer.id).catch(() => []),
+    getCurrentUserContext(),
+  ]);
+  const canManageCrm = ctx.mode === "demo" || ctx.isInternal;
 
   return (
     <DevelopmentShell>
@@ -160,6 +173,23 @@ export default async function BuyerDetailPage({
             </TBody>
           </Table>
         )}
+      </Section>
+
+      <Section
+        eyebrow="CRM"
+        title="Activity timeline"
+        action={
+          <LogActivityComposer
+            subjectType="buyer"
+            subjectId={buyer.id}
+            canManage={canManageCrm}
+          />
+        }
+      >
+        <RecordTimeline
+          activities={crmActivity}
+          emptyLabel="No CRM activity yet — log a note, call, or email to start the timeline."
+        />
       </Section>
     </DevelopmentShell>
   );
