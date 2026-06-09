@@ -116,3 +116,5 @@ export * from "./keystone-setup";
 export * from "./contract-remind-prefs";
 // Villa rental-pool state + cooling-off (migration 0131, owner-calendar-pool).
 export * from "./villa-pool-state";
+// Documents-app v1 — templates / versions / signature requests (migration 0132).
+export * from "./documents-app";
