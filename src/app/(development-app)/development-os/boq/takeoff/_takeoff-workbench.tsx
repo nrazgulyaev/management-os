@@ -73,6 +73,12 @@ export function TakeoffWorkbench({
 }) {
   const [revisionId, setRevisionId] = React.useState<string>("");
   const [imageUrl, setImageUrl] = React.useState<string>("");
+  // True once the operator overrides the auto-loaded plan (upload / paste URL),
+  // so re-selecting the same revision doesn't clobber their manual image.
+  const [manualImage, setManualImage] = React.useState(false);
+  const [autoImageState, setAutoImageState] = React.useState<
+    "idle" | "loading" | "loaded" | "missing" | "pdf" | "error"
+  >("idle");
   const [strokes, setStrokes] = React.useState<DrawingStroke[]>([]);
   const [scale, setScale] = React.useState<ScaleSnapshot | null>(null);
   const [currency, setCurrency] = React.useState("IDR");
@@ -111,9 +117,48 @@ export function TakeoffWorkbench({
     void reloadPersisted(revisionId);
   }, [revisionId, reloadPersisted]);
 
+  // Auto-load the selected revision's drawing image (signed URL resolved
+  // server-side from documents.storage_bucket/storage_path). The estimator no
+  // longer re-uploads the plan by hand; a manual upload / URL still wins.
+  React.useEffect(() => {
+    if (!revisionId) {
+      setAutoImageState("idle");
+      return;
+    }
+    let active = true;
+    setManualImage(false);
+    setImageUrl("");
+    setStrokes([]);
+    setScale(null);
+    setAutoImageState("loading");
+    (async () => {
+      const { loadRevisionImageAction } = await import("./_save-action");
+      const res = await loadRevisionImageAction(revisionId);
+      if (!active) return;
+      if (!res.ok) {
+        setAutoImageState("error");
+        return;
+      }
+      if (res.image.isPdf) {
+        setAutoImageState("pdf");
+        return;
+      }
+      if (!res.image.url) {
+        setAutoImageState("missing");
+        return;
+      }
+      setImageUrl(res.image.url);
+      setAutoImageState("loaded");
+    })();
+    return () => {
+      active = false;
+    };
+  }, [revisionId]);
+
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setManualImage(true);
     setImageUrl(URL.createObjectURL(file));
     setStrokes([]);
     setScale(null);
@@ -251,7 +296,10 @@ export function TakeoffWorkbench({
         <input
           type="url"
           value={imageUrl.startsWith("blob:") ? "" : imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
+          onChange={(e) => {
+            setManualImage(true);
+            setImageUrl(e.target.value);
+          }}
           placeholder="https://…/floor-plan.png"
           className="flex-1 min-w-[160px] text-xs px-2 py-1 rounded border border-line-soft bg-surface"
         />
@@ -303,27 +351,59 @@ export function TakeoffWorkbench({
         />
       ) : !imageUrl ? (
         <div className="rounded-lg border border-dashed border-line-soft bg-muted/20 px-6 py-12 text-center text-sm text-ink-tertiary">
-          Load the floor-plan or elevation for{" "}
-          <span className="font-medium text-ink">
-            {selectedRevision?.drawingCode} {selectedRevision?.revisionLabel}
-          </span>{" "}
-          to start measuring. Calibrate the scale first (pick two points a known
-          distance apart), then draw area / length / count takeoffs.
+          {autoImageState === "loading" ? (
+            <>
+              Loading the plan for{" "}
+              <span className="font-medium text-ink">
+                {selectedRevision?.drawingCode} {selectedRevision?.revisionLabel}
+              </span>
+              …
+            </>
+          ) : (
+            <>
+              {autoImageState === "pdf" &&
+                "This revision is a PDF — the viewer rasters images only. Upload a PNG/JPG export below to measure. "}
+              {autoImageState === "missing" &&
+                "This revision has no stored image file yet. Upload the floor-plan or elevation below. "}
+              {autoImageState === "error" &&
+                "Could not auto-load this revision's image. Upload it below. "}
+              {autoImageState === "idle" || autoImageState === "loaded"
+                ? "Load the floor-plan or elevation "
+                : "You can still measure — load it "}
+              for{" "}
+              <span className="font-medium text-ink">
+                {selectedRevision?.drawingCode} {selectedRevision?.revisionLabel}
+              </span>{" "}
+              to start measuring. Calibrate the scale first (pick two points a
+              known distance apart), then draw area / length / count takeoffs.
+            </>
+          )}
         </div>
       ) : (
-        <DrawingViewer
-          imageUrl={imageUrl}
-          strokes={strokes}
-          scale={scale}
-          onScaleSet={setScale}
-          onStrokeAdd={(s) => {
-            setStrokes((prev) => [...prev, s]);
-            void persistStroke(s);
-          }}
-          onStrokeRemove={(id) =>
-            setStrokes((prev) => prev.filter((s) => s.id !== id))
-          }
-        />
+        <div className="flex flex-col gap-1.5">
+          {!manualImage && autoImageState === "loaded" && (
+            <p className="text-xs text-ink-tertiary">
+              Auto-loaded{" "}
+              <span className="font-medium text-ink">
+                {selectedRevision?.drawingCode} {selectedRevision?.revisionLabel}
+              </span>{" "}
+              from the drawing register. Upload above to override.
+            </p>
+          )}
+          <DrawingViewer
+            imageUrl={imageUrl}
+            strokes={strokes}
+            scale={scale}
+            onScaleSet={setScale}
+            onStrokeAdd={(s) => {
+              setStrokes((prev) => [...prev, s]);
+              void persistStroke(s);
+            }}
+            onStrokeRemove={(id) =>
+              setStrokes((prev) => prev.filter((s) => s.id !== id))
+            }
+          />
+        </div>
       )}
 
       {savingStrokeId && (

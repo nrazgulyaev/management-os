@@ -10,6 +10,10 @@ import {
 import { drawings, drawingRevisions } from "@/lib/db/schema/drawings";
 import { boqItems } from "@/lib/db/schema/boq";
 import { projects } from "@/lib/db/schema/projects";
+import {
+  resolveRevisionImage,
+  type ResolvedRevisionImage,
+} from "@/app/(development-app)/development-os/drawings/[code]/_resolve-revision-image";
 
 /**
  * Block 09 ESTIMATOR readers. All org-scoping is enforced at the action layer
@@ -27,6 +31,9 @@ export interface TakeoffRevisionOption {
   revisionLabel: string;
   revisionDate: string;
   status: string;
+  /** The documents row this revision points at — used to auto-resolve the
+   * drawing image into the takeoff viewer (signed URL via resolveRevisionImage). */
+  documentId: string;
   /** True when a newer (later-dated, or same-date later-created) revision of
    * the SAME drawing exists — measuring against a stale revision is allowed
    * but surfaced. */
@@ -52,6 +59,7 @@ export async function listTakeoffRevisionOptions(
       revisionLabel: drawingRevisions.revisionLabel,
       revisionDate: drawingRevisions.revisionDate,
       status: drawingRevisions.status,
+      documentId: drawingRevisions.documentId,
       createdAt: drawingRevisions.createdAt,
     })
     .from(drawingRevisions)
@@ -80,6 +88,7 @@ export async function listTakeoffRevisionOptions(
       revisionLabel: r.revisionLabel,
       revisionDate: r.revisionDate,
       status: r.status,
+      documentId: r.documentId,
       isLatest,
       label: `${r.drawingCode} ${r.revisionLabel} · ${r.drawingTitle}${project}`,
     };
@@ -218,4 +227,32 @@ export async function countStaleTakeoffs(orgId: string): Promise<number> {
       ),
     );
   return count ?? 0;
+}
+
+/**
+ * Org-scoped signed-image resolution for a drawing revision. Verifies the
+ * revision's drawing belongs to `orgId`, then resolves the revision's document
+ * to a short-lived signed URL via the shared `resolveRevisionImage` helper (the
+ * same path the drawing-detail + coordination viewers use). Returns null when
+ * the revision is missing or cross-tenant, so the estimator auto-load fails
+ * closed rather than leaking another org's drawing.
+ */
+export async function resolveTakeoffRevisionImage(
+  orgId: string,
+  revisionId: string,
+): Promise<ResolvedRevisionImage | null> {
+  const db = requireDb();
+  const [rev] = await db
+    .select({ documentId: drawingRevisions.documentId })
+    .from(drawingRevisions)
+    .innerJoin(drawings, eq(drawings.id, drawingRevisions.drawingId))
+    .where(
+      and(
+        eq(drawingRevisions.id, revisionId),
+        eq(drawings.organizationId, orgId),
+      ),
+    )
+    .limit(1);
+  if (!rev) return null;
+  return resolveRevisionImage(rev.documentId);
 }
