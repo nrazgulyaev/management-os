@@ -42,7 +42,7 @@ export default async function LoginPage() {
                 <Link href="/development-os">Go to internal app</Link>
               </Button>
               <Button asChild variant="secondary" className="w-full">
-                <a href="/auth/logout">Sign out</a>
+                <a href="/login">Sign out</a>
               </Button>
             </div>
           </div>
@@ -59,15 +59,15 @@ export default async function LoginPage() {
               <span className="font-mono">singapore.demo@example.com</span>.
               Use the existing Supabase Auth flow at{" "}
               <Link
-                href="/auth/login"
+                href="/login"
                 className="underline hover:text-ink"
               >
-                /auth/login
+                /login
               </Link>{" "}
               and you will be redirected here on success.
             </div>
             <Button asChild variant="primary" className="w-full">
-              <Link href="/auth/login">{strings.loginSubmit}</Link>
+              <Link href="/login">{strings.loginSubmit}</Link>
             </Button>
           </div>
         )}

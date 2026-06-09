@@ -130,7 +130,7 @@ export default async function WarehouseCabinetPage() {
         data.pendingDeliveriesCount === 0
           ? "No POs in flight"
           : "Open POs awaiting receipt",
-      href: "/development-os/procurement/purchase-orders",
+      href: "/development-os/cabinets/procurement-manager/pos",
     },
     {
       label: "Movements today",
@@ -343,7 +343,7 @@ export default async function WarehouseCabinetPage() {
                     label: "Material QA/QC",
                   },
                   {
-                    href: "/development-os/procurement/purchase-orders",
+                    href: "/development-os/cabinets/procurement-manager/pos",
                     label: "Open POs",
                   },
                 ].map((l) => (

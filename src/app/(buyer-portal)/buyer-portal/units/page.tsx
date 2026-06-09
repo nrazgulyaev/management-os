@@ -51,7 +51,7 @@ export default async function BuyerUnitsPage() {
                 </div>
               </div>
               <Link
-                href={`/buyer-portal/units/${a.unitId}`}
+                href={`/buyer-portal/dashboard`}
                 className="text-sm text-ink-secondary underline hover:text-ink transition-colors"
               >
                 Details

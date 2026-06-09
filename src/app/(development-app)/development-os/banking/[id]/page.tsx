@@ -146,7 +146,7 @@ export default async function BankConnectionDetailPage({
           <p className="text-sm text-stone-600">
             This provider ingests transactions via CSV statement upload. Use{" "}
             <Link
-              href="/dashboard/finance/statement-imports"
+              href="/development-os/finance/statement-import"
               className="underline"
             >
               /finance/statement-imports

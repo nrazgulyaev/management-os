@@ -454,7 +454,7 @@ export default async function FrontOfficeTodayPage() {
                 {copilotOutputs.map((o) => (
                   <Link
                     key={o.id}
-                    href={`/dashboard/ai/outputs/${o.outputCode}`}
+                    href={`/dashboard/ai`}
                     className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-5 flex flex-col gap-2 hover:opacity-95 transition-opacity"
                   >
                     <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">

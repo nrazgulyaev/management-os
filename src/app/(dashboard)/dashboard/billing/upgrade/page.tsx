@@ -179,7 +179,7 @@ export default async function UpgradePage({
     <div className="flex flex-col gap-10">
       <PageHeader
         breadcrumbs={[
-          { label: "Billing", href: "/dashboard/billing" },
+          { label: "Billing", href: "/dashboard/settings" },
           { label: "Upgrade" },
         ]}
         title="Pick a plan"

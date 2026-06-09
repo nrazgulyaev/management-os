@@ -146,7 +146,7 @@ export default async function OwnerStatementDetail({
             </div>
             <div className="text-sm text-ink-secondary leading-relaxed">
               Use a “why this number?” link above, or{" "}
-              <Link href="/owner/support" className="underline">
+              <Link href="/owner/inbox" className="underline">
                 open a ticket
               </Link>{" "}
               with the Finance Manager.

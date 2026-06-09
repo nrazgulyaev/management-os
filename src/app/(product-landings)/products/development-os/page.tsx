@@ -2290,7 +2290,7 @@ function DevFooter() {
       items: [
         ["Terms", "/legal/terms"],
         ["Privacy", "/legal/privacy"],
-        ["DPA", "/legal/dpa"],
+        ["DPA", "/legal/privacy"],
         ["Status", "/contact"],
       ],
     },
