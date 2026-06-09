@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { SectionHeading } from "@/components/dashboard/primitives";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { SectionHeading, Card, Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { listOwners, listOwnershipShares } from "@/features/owners/services";
 import { listProjects } from "@/features/projects/services";
 import { listVillas } from "@/features/villas/services";
@@ -29,17 +27,24 @@ export default async function SharesPage() {
   ]);
   const totals = computeShareTotals(shares);
   const issues = totals.filter((t) => t.exceedsHundred || t.underAllocated);
+  const fullyAllocated = totals.filter((t) => !t.exceedsHundred && !t.underAllocated).length;
+  const overCount = totals.filter((t) => t.exceedsHundred).length;
+  const underCount = totals.filter((t) => t.underAllocated).length;
   const source = shares[0]?.source ?? "mock";
   const ownerOpts = owners.map((o) => ({ id: o.id, label: o.displayName }));
   const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <SectionHeading
         eyebrow="Portfolio · ownership shares"
-        title="Ownership shares"
-        subtitle="Active and scheduled allocations across villas and pools. Active shares per villa or per project pool must total 100%."
+        title={
+          <>
+            Allocations to <em>100%</em>.
+          </>
+        }
+        subtitle="Active shares per villa or per project pool must total exactly 100%. Anything over- or under-allocated is flagged before it reaches an owner statement."
         actions={
           <div className="flex items-center gap-2">
             <SourceBadge source={source} />
@@ -50,119 +55,124 @@ export default async function SharesPage() {
 
       <DbStatusNotice />
 
-      {/* Totals & warnings */}
-      <section>
-        <div className="flex items-baseline justify-between mb-3">
-          <span className="text-label">Allocation totals</span>
-          <span className="text-xs text-ink-tertiary">
-            {totals.length} villa/pool groups · {issues.length} need review
-          </span>
+      <section className="flex flex-col gap-[22px]">
+        <div className="pf-kpis">
+          <Kpi label="Share groups" value={totals.length} sub="villas + pools" />
+          <Kpi tone="success" label="Fully allocated" value={fullyAllocated} sub="= 100%" />
+          <Kpi tone="danger" label="Over 100%" value={overCount} sub="needs review" />
+          <Kpi tone="warn" label="Under-allocated" value={underCount} sub="owner missing?" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {totals.length === 0 && (
-            <div className="text-sm text-ink-tertiary">No active shares yet.</div>
-          )}
-          {totals.map((t) => {
-            const tone = t.exceedsHundred ? "danger" : t.underAllocated ? "warning" : "success";
-            const message = t.exceedsHundred
-              ? "Exceeds 100% — needs review"
-              : t.underAllocated
-                ? "Under-allocated — owner missing?"
-                : "Fully allocated";
-            return (
-              <div
-                key={`${t.scope}:${t.scopeId}`}
-                className="rounded-md border border-line-soft bg-surface p-4 flex flex-col gap-2"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm text-ink truncate">{t.scopeLabel}</div>
-                  <Badge tone={tone}>
-                    {tone === "success" ? (
-                      <ShieldCheck className="w-3 h-3" />
-                    ) : (
-                      <AlertTriangle className="w-3 h-3" />
-                    )}
-                    {t.totalPercent.toFixed(2)}%
-                  </Badge>
-                </div>
-                <div className="text-[11px] text-ink-tertiary">{message}</div>
-                <div className="text-[11px] text-ink-tertiary tabular-nums">
-                  {t.shares} share{t.shares === 1 ? "" : "s"}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
 
-      {shares.length === 0 ? (
-        <NoItemsYet
-          entityLabel="ownership shares"
-          description="Allocate ownership across villas and pools. Active shares per villa or per project must total 100%."
-          addHref="/dashboard/shares/new"
-          addLabel="New share"
-        />
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Owner</TH>
-              <TH>Subject</TH>
-              <TH>Model</TH>
-              <TH>Effective from</TH>
-              <TH>Status</TH>
-              <TH className="text-right">Share %</TH>
-              <TH />
-            </TR>
-          </THead>
-          <TBody>
-            {shares.map((s) => (
-              <TR key={s.id}>
-                <TD>
-                  <Link
-                    href={`/dashboard/owners/${s.ownerId}`}
-                    className="text-ink font-medium hover:text-accent"
-                  >
-                    {s.ownerName}
-                  </Link>
-                </TD>
-                <TD className="text-ink-secondary">
-                  {s.villaCode ? `Villa · ${s.villaCode}` : `Pool · ${s.projectName ?? "—"}`}
-                </TD>
-                <TD>
-                  <Badge tone="outline">{s.model}</Badge>
-                </TD>
-                <TD className="text-ink-secondary text-sm">{s.startsOn}</TD>
-                <TD>
-                  <Badge tone={s.status === "active" ? "success" : "neutral"}>
-                    {s.status}
-                  </Badge>
-                </TD>
-                <TDNum>{s.sharePercent.toFixed(2)}%</TDNum>
-                <TD className="text-right">
-                  <OwnersRowActions
-                    kind="share"
-                    row={{
-                      id: s.id,
-                      displayName: `${s.ownerName} · ${s.villaCode ?? s.projectName ?? "—"}`,
-                      values: {
-                        ownerId: s.ownerId,
-                        villaId: s.villaId ?? "",
-                        projectId: s.projectId ?? "",
-                        sharePercent: s.sharePercent,
-                        model: s.model,
-                        startsOn: s.startsOn,
-                        endsOn: s.endsOn ?? "",
-                        status: s.status,
-                      },
-                    }}
-                  />
-                </TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      )}
+        {issues.length > 0 && (
+          <div className="flex flex-col gap-[18px]">
+            <div className="pf-card-h">
+              <h3 className="!text-[16px]">Groups needing review</h3>
+              <span className="meta">
+                {issues.length} OF {totals.length}
+              </span>
+            </div>
+            <div className="pf-alloc">
+              {issues.map((t) => {
+                const variant = t.exceedsHundred ? "bad" : "warn";
+                const width = Math.min(100, t.totalPercent);
+                const message = t.exceedsHundred
+                  ? "Exceeds 100% — needs review"
+                  : "Under-allocated — owner missing?";
+                return (
+                  <div key={`${t.scope}:${t.scopeId}`} className={`pf-acard ${variant}`}>
+                    <div className="top">
+                      <span className="sub">{t.scopeLabel}</span>
+                      <span className="pct">{t.totalPercent.toFixed(1)}%</span>
+                    </div>
+                    <div className="bar">
+                      <i style={{ width: `${width}%` }} />
+                    </div>
+                    <div className="msg">{message}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <Card padding="lg">
+          <div className="pf-card-h">
+            <h3>All allocations</h3>
+            <span className="meta">ACTIVE + SCHEDULED</span>
+          </div>
+
+          {shares.length === 0 ? (
+            <NoItemsYet
+              entityLabel="ownership shares"
+              description="Allocate ownership across villas and pools. Active shares per villa or per project must total 100%."
+              addHref="/dashboard/shares/new"
+              addLabel="New share"
+            />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Owner</th>
+                    <th>Subject</th>
+                    <th>Model</th>
+                    <th>Effective</th>
+                    <th>Status</th>
+                    <th className="num">Share %</th>
+                    <th className="text-right" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {shares.map((s) => (
+                    <tr key={s.id}>
+                      <td className="row-title">
+                        <Link
+                          href={`/dashboard/owners/${s.ownerId}`}
+                          className="hover:text-accent transition-colors"
+                        >
+                          {s.ownerName}
+                        </Link>
+                      </td>
+                      <td className="text-ink-secondary">
+                        {s.villaCode ? `Villa · ${s.villaCode}` : `Pool · ${s.projectName ?? "—"}`}
+                      </td>
+                      <td>
+                        <Badge tone="outline">{s.model}</Badge>
+                      </td>
+                      <td className="mono text-[12px] text-ink-secondary">{s.startsOn}</td>
+                      <td>
+                        <Badge tone={s.status === "active" ? "success" : "neutral"}>
+                          {s.status}
+                        </Badge>
+                      </td>
+                      <td className="num">{s.sharePercent.toFixed(2)}%</td>
+                      <td className="text-right">
+                        <OwnersRowActions
+                          kind="share"
+                          row={{
+                            id: s.id,
+                            displayName: `${s.ownerName} · ${s.villaCode ?? s.projectName ?? "—"}`,
+                            values: {
+                              ownerId: s.ownerId,
+                              villaId: s.villaId ?? "",
+                              projectId: s.projectId ?? "",
+                              sharePercent: s.sharePercent,
+                              model: s.model,
+                              startsOn: s.startsOn,
+                              endsOn: s.endsOn ?? "",
+                              status: s.status,
+                            },
+                          }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      </section>
     </div>
   );
 }
