@@ -316,4 +316,23 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+[data-product] .ms-editor-delete {
+  flex: none;
+  width: 30px; height: 30px;
+  margin: 0 8px;
+  border: 1px solid var(--line);
+  background: var(--paper, var(--panel));
+  border-radius: 6px;
+  color: var(--ink-3);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+[data-product] .ms-editor-delete:hover:not(:disabled) {
+  border-color: var(--danger, #b42318);
+  color: var(--danger, #b42318);
+}
+[data-product] .ms-editor-delete:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 
