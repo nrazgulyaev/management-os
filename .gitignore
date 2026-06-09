@@ -16,3 +16,6 @@ tmp/
 # Playwright (STAB-2)
 test-results/
 playwright-report/
+
+# Local workflow agent worktrees (never commit)
+.claude/worktrees/
