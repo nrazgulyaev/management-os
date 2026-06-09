@@ -71,19 +71,19 @@ export function OwnerInboxClient({
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 items-start">
-      <ThreadList
-        threads={threads}
-        selectedId={selectedId}
-        onSelect={(id) => router.push(`/owner/inbox?thread=${id}`)}
-      />
-      {selectedId && subject ? (
-        <div className="flex flex-col gap-2">
-          {err && (
-            <p className="text-xs text-terra" role="alert">
-              {err}
-            </p>
-          )}
+    <div className="flex flex-col gap-2">
+      {err && (
+        <p className="text-xs text-terra" role="alert">
+          {err}
+        </p>
+      )}
+      <div className="inbox-grid">
+        <ThreadList
+          threads={threads}
+          selectedId={selectedId}
+          onSelect={(id) => router.push(`/owner/inbox?thread=${id}`)}
+        />
+        {selectedId && subject ? (
           <ThreadView
             subject={subject}
             counterpart={counterpart}
@@ -92,12 +92,12 @@ export function OwnerInboxClient({
             onAttach={attach}
             onSchedulingRespond={schedulingRespond}
           />
-        </div>
-      ) : (
-        <div className="rounded-[14px] border border-line-soft bg-surface flex items-center justify-center p-10 text-sm text-ink-tertiary">
-          Select a conversation to read and reply.
-        </div>
-      )}
+        ) : (
+          <div className="flex items-center justify-center p-10 text-sm text-ink-tertiary bg-paper">
+            Select a conversation to read and reply.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

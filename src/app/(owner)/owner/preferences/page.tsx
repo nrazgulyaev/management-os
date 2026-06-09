@@ -52,34 +52,77 @@ export default async function OwnerSettingsPage() {
 
       <SettingsSection
         title="Profile"
-        helper="Your contact info — the team uses these for statements, alerts, and review scheduling."
+        helper="Your contact info. The Mgmt team uses these for statements, alerts, and review scheduling."
       >
-        <SettingsRow label="Full name" value={settings.profile.name} />
-        <SettingsRow label="Email" value={settings.profile.email} />
-        <SettingsRow label="Phone" value={settings.profile.phone} />
-        <SettingsRow label="Language" value={settings.profile.language} />
+        <SettingsRow
+          label="Full name"
+          value={settings.profile.name}
+          action={<EditAffordance label="Edit" />}
+        />
+        <SettingsRow
+          label="Email"
+          value={settings.profile.email}
+          action={<EditAffordance label="Edit" />}
+        />
+        <SettingsRow
+          label="Phone"
+          value={settings.profile.phone}
+          action={<EditAffordance label="Edit" />}
+        />
+        <SettingsRow
+          label="Language"
+          value={settings.profile.language}
+          action={<EditAffordance label="Edit" />}
+        />
       </SettingsSection>
 
       <SettingsSection
         title="Payout method"
-        helper="Where your monthly statement payouts wire. Editing requires 2FA and email confirmation."
+        helper={
+          <>
+            Where your monthly statement payouts wire.{" "}
+            <strong className="text-terra font-medium">Editing requires 2FA</strong>{" "}
+            and email confirmation.
+            {settings.payout.lastUpdatedLabel
+              ? ` Last change: ${settings.payout.lastUpdatedLabel}.`
+              : ""}
+          </>
+        }
       >
-        <SettingsRow
-          label="Account"
-          value={<span className="font-mono">{settings.payout.maskedAccount}</span>}
-        />
-        <SettingsRow label="Currency" value={settings.payout.currency} />
         {settings.payout.bankName && settings.payout.bankName !== "—" && (
-          <SettingsRow label="Bank" value={settings.payout.bankName} />
+          <SettingsRow
+            label="Method"
+            value={settings.payout.bankName}
+            action={
+              <button
+                className="btn btn-secondary btn-sm opacity-60 cursor-not-allowed"
+                disabled
+                title="Changing the payout method requires 2FA"
+              >
+                Change method
+              </button>
+            }
+          />
         )}
-        {settings.payout.lastUpdatedLabel && (
-          <SettingsRow label="Last changed" value={settings.payout.lastUpdatedLabel} />
-        )}
+        <SettingsRow label="Currency" value={settings.payout.currency} />
+        <SettingsRow
+          label="Account number"
+          value={<span className="mono">{settings.payout.maskedAccount}</span>}
+          action={
+            <button
+              className="btn btn-ghost btn-sm opacity-60 cursor-not-allowed"
+              disabled
+              title="Revealing the full account number requires 2FA"
+            >
+              Reveal
+            </button>
+          }
+        />
         <SettingsRow
           label="Wire schedule"
-          value="1st of each month"
+          value="1st of each month, 09:00 GMT+8"
           action={
-            <span className="font-mono text-[10.5px] tracking-[0.06em] text-ink-tertiary">
+            <span className="font-mono text-[10.5px] tracking-[0.06em] text-ink-4">
               FIXED
             </span>
           }
@@ -112,7 +155,11 @@ export default async function OwnerSettingsPage() {
         />
         <SettingsRow
           label="Delegates"
-          value="None · invite delegate available in 2.5"
+          value={
+            <span className="italic text-ink-3">
+              None · invite delegate available in 2.5
+            </span>
+          }
         />
         <SettingsRow
           label="Calendar"
@@ -128,14 +175,33 @@ export default async function OwnerSettingsPage() {
       <SettingsSection
         title="Leaving Arconique"
         tone="warn"
-        helper="Off-boarding runs through your MSA termination clause — there's a 90-day grace period and a final statement. Speak with the Director first; it's always human-mediated, never self-service."
+        helper="Off-boarding is initiated through your MSA termination clause. Speak with the Director first — there's a 90-day grace period and your final statement finalises after that."
       >
-        <div style={{ padding: "12px 0" }}>
-          <Link href="/owner/inbox" className="btn btn-secondary btn-sm">
+        <div className="pt-3">
+          <Link href="/owner/inbox" className="btn btn-secondary btn-sm btn-warn-soft">
             Request termination call
           </Link>
         </div>
       </SettingsSection>
     </div>
+  );
+}
+
+/**
+ * Deferred edit affordance — matches the mock's ghost "Edit" button.
+ * Inline profile / payout edits route through dedicated 2FA-gated flows
+ * that aren't built yet, so the button renders disabled (same pattern as
+ * the "Manage 2FA" control above), preserving the visual without
+ * fabricating an action.
+ */
+function EditAffordance({ label }: { label: string }) {
+  return (
+    <button
+      className="btn btn-ghost btn-sm opacity-60 cursor-not-allowed"
+      disabled
+      title="Editing requires confirmation — coming soon"
+    >
+      {label}
+    </button>
   );
 }

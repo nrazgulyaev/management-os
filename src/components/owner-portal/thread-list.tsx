@@ -55,13 +55,14 @@ export function ThreadList({ threads, selectedId, onSelect, className }: ThreadL
             onClick={() => onSelect?.(t.id)}
           >
             <div className="tl-meta">
-              <span className="tl-kind mono">{KIND_LABEL[t.kind]}</span>
+              <span className="tl-from">{t.counterpart}</span>
               <span className="tl-when mono">{t.lastMessageLabel}</span>
+              {isUnread && <span className="tl-dot" aria-hidden />}
             </div>
             <div className="tl-subject">{t.subject}</div>
             <div className="tl-preview">{t.preview}</div>
             <div className="tl-foot mono">
-              <span>{t.counterpart}</span>
+              <span>{KIND_LABEL[t.kind]}</span>
               {isUnread && <span className="tl-badge">{t.unreadCount}</span>}
             </div>
           </button>

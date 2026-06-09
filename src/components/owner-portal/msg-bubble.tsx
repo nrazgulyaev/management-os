@@ -73,14 +73,27 @@ export function MsgBubble({
   const hasScheduling = !!scheduling && scheduling.length > 0;
   const interactive = hasScheduling && !schedulingResolved && !!onSchedulingRespond;
 
+  const initials =
+    actorKind === "owner"
+      ? "YOU"
+      : actorName
+          .split(/\s+/)
+          .map((p) => p[0])
+          .filter(Boolean)
+          .slice(0, 2)
+          .join("")
+          .toUpperCase() || "AR";
+
   return (
     <div className={`msg-row msg-row-${actorKind}${className ? ` ${className}` : ""}`}>
       <div className={`msg-bubble msg-${actorKind}`}>
-        <div className="msg-head mono">
-          <span className="msg-actor">{actorName}</span>
-          <span className="msg-when">{sentLabel}</span>
-        </div>
-        <div className="msg-body">{body}</div>
+        <span className="msg-avatar" aria-hidden>{initials}</span>
+        <div className="msg-text">
+          <div className="msg-head mono">
+            <span className="msg-actor">{actorName}</span>
+            <span className="msg-when">{sentLabel}</span>
+          </div>
+          <div className="msg-body">{body}</div>
 
         {attachments && attachments.length > 0 && (
           <div className="msg-attachments">
@@ -147,17 +160,18 @@ export function MsgBubble({
           </div>
         )}
 
-        {inlineActions && inlineActions.length > 0 && (
-          <div className="msg-actions">
-            {inlineActions.map((a, i) =>
-              a.href ? (
-                <a key={i} className="msg-action-chip" href={a.href}>{a.label}</a>
-              ) : (
-                <button key={i} type="button" className="msg-action-chip" onClick={a.onClick}>{a.label}</button>
-              ),
-            )}
-          </div>
-        )}
+          {inlineActions && inlineActions.length > 0 && (
+            <div className="msg-actions">
+              {inlineActions.map((a, i) =>
+                a.href ? (
+                  <a key={i} className="msg-action-chip" href={a.href}>{a.label}</a>
+                ) : (
+                  <button key={i} type="button" className="msg-action-chip" onClick={a.onClick}>{a.label}</button>
+                ),
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

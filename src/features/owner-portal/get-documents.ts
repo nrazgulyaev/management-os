@@ -26,6 +26,8 @@ export interface OwnerDocument {
   fileUrl?: string;
   signedAt?: string;
   expiresAt?: string;
+  /** Right-aligned date label, e.g. "14 APR 2024". */
+  when?: string;
 }
 
 export interface OwnerDocumentGroup {
@@ -117,6 +119,18 @@ function statusForRow(row: {
   return undefined;
 }
 
+const DATE_LABEL_FMT = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
+/** "14 Apr 2024" → "14 APR 2024" (uppercase, matching the cabinet). */
+function whenLabel(date: Date | null): string | undefined {
+  if (!date) return undefined;
+  return DATE_LABEL_FMT.format(date).toUpperCase();
+}
+
 export async function getOwnerDocuments(ownerId: string): Promise<OwnerDocumentsResult> {
   const db = getDb();
   if (!db) {
@@ -134,6 +148,7 @@ export async function getOwnerDocuments(ownerId: string): Promise<OwnerDocuments
       status: documents.status,
       signedAt: documents.signedAt,
       expiresAt: documents.expiresAt,
+      createdAt: documents.createdAt,
       storageBucket: documents.storageBucket,
       storagePath: documents.storagePath,
     })
@@ -173,6 +188,7 @@ export async function getOwnerDocuments(ownerId: string): Promise<OwnerDocuments
       fileUrl,
       signedAt: r.signedAt?.toISOString().slice(0, 10),
       expiresAt: r.expiresAt?.toISOString().slice(0, 10),
+      when: whenLabel(r.signedAt ?? r.createdAt ?? null),
     });
     if (kind === "statement_pdf") hasYearStatement = true;
     if (kind === "tax_cert") hasTaxCert = true;

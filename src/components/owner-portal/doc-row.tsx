@@ -26,6 +26,8 @@ export interface DocRowProps {
   sub?: string;
   kind: DocKind;
   status?: DocStatus;
+  /** Right-aligned date label (e.g. "14 APR 2024"). */
+  when?: string;
   fileUrl?: string;
   /** Bundle / zip download? Renders alternate icon + "Generate" CTA when no fileUrl yet. */
   bundle?: boolean;
@@ -34,16 +36,34 @@ export interface DocRowProps {
 }
 
 const KIND_LABEL: Record<DocKind, string> = {
-  msa: "MSA",
+  msa: "Contract",
   annex: "Annex",
   legal: "Legal",
-  tax_summary: "Tax",
+  tax_summary: "Summary",
   tax_cert: "Cert",
   statement_pdf: "Statement",
   policy: "Policy",
 };
 
-export function DocRow({ name, sub, kind, status, fileUrl, bundle, onGenerate, className }: DocRowProps) {
+const STATUS_LABEL: Record<DocStatus, string> = {
+  signed: "Signed",
+  pending: "Pending",
+  expired: "Expired",
+  current: "Current",
+};
+
+/** Document glyph per kind family — keyed to the 4 cabinet groups. */
+const KIND_GLYPH: Record<DocKind, string> = {
+  msa: "\u{1F4C4}",
+  annex: "\u{1F4C4}",
+  legal: "\u{1F4C4}",
+  tax_summary: "\u{1F4CA}",
+  tax_cert: "\u{1F4CA}",
+  statement_pdf: "\u{1F4D1}",
+  policy: "\u{1F3DB}\u{FE0F}",
+};
+
+export function DocRow({ name, sub, kind, status, when, fileUrl, bundle, onGenerate, className }: DocRowProps) {
   const [busy, setBusy] = React.useState(false);
 
   async function generate() {
@@ -59,14 +79,15 @@ export function DocRow({ name, sub, kind, status, fileUrl, bundle, onGenerate, c
   const body = (
     <>
       <span className={`dr-icon${bundle ? " dr-icon-bundle" : ""}`} aria-hidden>
-        {bundle ? "↓" : "•"}
+        {bundle ? "↓" : KIND_GLYPH[kind]}
       </span>
       <div className="dr-main">
         <div className="dr-name">{name}</div>
         {sub && <div className="dr-sub mono">{sub}</div>}
       </div>
       <span className="dr-kind mono">{KIND_LABEL[kind]}</span>
-      {status && <span className={`dr-status dr-status-${status} mono`}>{status}</span>}
+      {when ? <span className="dr-when mono">{when}</span> : <span className="dr-when" aria-hidden />}
+      {status && <span className={`dr-status dr-status-${status} mono`}>{STATUS_LABEL[status]}</span>}
     </>
   );
 
