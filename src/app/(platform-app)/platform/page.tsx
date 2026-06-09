@@ -22,6 +22,7 @@ import {
   LifeBuoy,
   ScrollText,
   Layers,
+  Users,
 } from "lucide-react";
 import {
   CabinetGreetingBlock,
@@ -54,6 +55,15 @@ const PLANNED_PAGES: PageCard[] = [
     href: "/platform/organizations",
     status: "needs-config",
     detail: "Ships in 10.6.E.2.1",
+  },
+  {
+    name: "Cross-org user directory",
+    description:
+      "Every user across every customer org. Filter by security posture (missing MFA / dormant 30d+) or admin role, search by name / email / org, sort by last sign-in, then drill into a user for auth/MFA state, org memberships, and admin actions (view dashboard / send password reset / reset MFA).",
+    icon: <Users className="w-5 h-5" />,
+    href: "/platform/users",
+    status: "configured",
+    detail: "Live — reads app_users across orgs",
   },
   {
     name: "Revenue dashboard",
