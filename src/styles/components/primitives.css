@@ -108,6 +108,14 @@
 [data-product="management"] .badge-warn  { background: rgba(196,88,60,0.10); color: var(--terra); border-color: rgba(196,88,60,0.25); }
 [data-product="management"] .badge-gold  { background: rgba(188,154,92,0.12); color: #8c6f33; border-color: rgba(188,154,92,0.30); }
 [data-product="management"] .badge-ink   { background: var(--ink); color: var(--cream-warm); border-color: var(--ink); }
+/* Mgmt P3 Security & System cluster — accent / danger / info / soft variants
+   from cabinets/mgmt-p3 (`.badge-accent` queued notif, `.badge-danger`
+   bounced delivery, `.badge-soft` disabled job). Match the handoff
+   color-mix recipe (12–14% fill / 35% border). */
+[data-product="management"] .badge-accent { background: color-mix(in oklab, var(--accent) 14%, transparent); color: var(--accent); border-color: color-mix(in oklab, var(--accent) 35%, transparent); }
+[data-product="management"] .badge-danger { background: color-mix(in oklab, var(--danger) 12%, transparent); color: var(--danger); border-color: color-mix(in oklab, var(--danger) 35%, transparent); }
+[data-product="management"] .badge-info   { background: color-mix(in oklab, var(--info) 12%, transparent); color: var(--info); border-color: color-mix(in oklab, var(--info) 35%, transparent); }
+[data-product="management"] .badge-soft   { background: var(--cream-warm); color: var(--ink-2); border-color: var(--line-soft); }
 [data-product="development"] .badge-ok    { color: var(--ok); border-color: rgba(79,138,93,0.4); background: rgba(79,138,93,0.10); }
 [data-product="development"] .badge-amber { color: var(--amber); border-color: rgba(255,107,53,0.4); background: rgba(255,107,53,0.10); }
 [data-product="development"] .badge-warn  { color: var(--warn); border-color: rgba(230,162,60,0.4); background: rgba(230,162,60,0.10); }
@@ -166,10 +174,25 @@
 [data-product="management"] .pulse-dot { background: var(--ok); }
 [data-product="development"] .pulse-dot { background: var(--amber); }
 [data-product="subscription"] .pulse-dot { background: var(--terra); }
+[data-product] .pulse-dot.accent { background: var(--accent); color: var(--accent); }
 @keyframes handoff-pulse {
   0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
   50%      { box-shadow: 0 0 0 6px transparent; opacity: 0.55; }
 }
+
+/* Avatar — initials chip used in the topbar + the Settings "current
+   session" row (mgmt-p3 cluster). Gradient gold→accent fill, mono-free
+   sans initials. -lg (44px) / -sm (24px) size variants. */
+[data-product] .avatar {
+  width: 32px; height: 32px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--inverted-fg, var(--cream-warm));
+  font-family: var(--sans-font, var(--font-inter)), system-ui, sans-serif;
+  font-size: 11px; font-weight: 500;
+  background: linear-gradient(135deg, var(--gold-soft, var(--amber-soft)), var(--accent));
+}
+[data-product] .avatar-lg { width: 44px; height: 44px; font-size: 14px; }
+[data-product] .avatar-sm { width: 24px; height: 24px; font-size: 10px; }
 [data-product="development"] table.data {
   width: 100%; border-collapse: collapse; font-size: 13px;
 }

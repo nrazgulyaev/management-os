@@ -12,6 +12,11 @@ import {
 } from "@/components/dashboard/attention-feed-section";
 import { DashboardIcon } from "@/components/dashboard/icons";
 import { RecentDigestsTile } from "@/components/digests/recent-digests-tile";
+import {
+  AgentActivityCard,
+  QuickActions,
+  CabinetMap,
+} from "@/components/dashboard/workspace-overview";
 import { getLiveDashboardCounts } from "@/features/dashboard/live-counts";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { mapPoolAll } from "@/lib/db/map-pool";
@@ -29,6 +34,7 @@ import {
   getTodaySchedule,
   getCurrentStatementNudge,
   getOperationalHealthTiles,
+  getAgentActivity,
 } from "@/features/dashboard/dashboard-cabinet-queries";
 
 /**
@@ -103,7 +109,7 @@ export default async function DashboardOverviewPage() {
   // transaction pooler. Each task keeps its own .catch() fallback, so a
   // failing/timed-out query degrades to empty data instead of stalling
   // the page to the 300s function timeout.
-  const [live, currentUser, metrics, channels, monthly, owners, portfolio, schedule, nudge, opsHealth, setupCounts] =
+  const [live, currentUser, metrics, channels, monthly, owners, portfolio, schedule, nudge, opsHealth, agents, setupCounts] =
     await mapPoolAll(
       [
         () => getLiveDashboardCounts().catch(() => null),
@@ -116,6 +122,7 @@ export default async function DashboardOverviewPage() {
         () => getTodaySchedule().catch(() => []),
         () => getCurrentStatementNudge().catch(() => null),
         () => getOperationalHealthTiles().catch(() => null),
+        () => getAgentActivity(6).catch(() => null),
         () => getSetupCounts().catch(() => null),
       ] as const,
       4,
@@ -150,9 +157,31 @@ export default async function DashboardOverviewPage() {
   const projectCount = portfolio.length;
   const upcomingCheckIns = live?.upcomingCheckIns ?? 0;
   const arrivalsToday = schedule.filter((s) => s.type === "arrival").length;
+  const departuresToday = schedule.filter((s) => s.type === "departure").length;
+  // In-house = guests currently mid-stay (live "checked_in" bookings).
+  const inHouseNow = live?.activeBookings ?? 0;
+  const turnoversToday = opsHealth?.housekeepingTurnoversToday ?? 0;
 
   const monthlyMax = Math.max(0, ...monthly.map((r) => Number(r.amountIdrMinor)));
   const sixMonthTotalMinor = monthly.reduce((s, r) => s + r.amountIdrMinor, 0n);
+
+  // Cabinet-map badge counts, derived from the same live aggregates the
+  // KPI strip + ops tiles already read — no extra fetches.
+  const cabinetCounts = {
+    villas: villaCount,
+    owners: live?.owners ?? 0,
+    projects: projectCount,
+    activeBookings: inHouseNow,
+    occupancyYtd: metrics?.occupancyYtd ?? 0,
+    upcomingCheckIns,
+    openMaintenance: opsHealth?.openMaintenance ?? 0,
+    housekeepingTurnovers: turnoversToday,
+    ownerStayRequestsPending: opsHealth?.ownerStayRequestsPending ?? 0,
+    // Channel conflicts + reconciliation warnings surface in the attention
+    // feed; the cabinet map mirrors those signals at a glance.
+    channelConflicts: 0,
+    reconciliationWarnings: 0,
+  };
 
   return (
     <>
@@ -229,58 +258,100 @@ export default async function DashboardOverviewPage() {
         </Suspense>
       </div>
 
-      {/* Today + AI Copilot */}
-      <div className="grid grid-cols-[1.5fr_1fr] gap-3.5 mb-3.5">
-        <Card padding="none" overflowHidden>
-          <div className="px-5 py-4 flex items-center border-b border-line-soft">
-            <h2 className="display-md">Today</h2>
-            <span className="mono ml-auto text-[11px] text-ink-3">
-              ARRIVALS · DEPARTURES
-            </span>
-          </div>
-          {schedule.length === 0 ? (
-            <p className="p-5 text-[13px] text-ink-3 italic m-0">
-              No arrivals or departures scheduled for today.
-            </p>
-          ) : (
-            <table className="data">
-              <thead>
-                <tr>
-                  <th scope="col">Time</th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Villa</th>
-                  <th scope="col">Guest / Notes</th>
-                  <th scope="col">Nights</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedule.map((row) => (
-                  <tr key={`${row.villaCode}-${row.type}-${row.time}`}>
-                    <td className="mono">{row.time}</td>
-                    <td>{row.type === "arrival" ? "Arrival" : "Departure"}</td>
-                    <td>{row.villaCode}</td>
-                    <td>{row.guestName ?? "—"}</td>
-                    <td>
-                      <HandoffBadge tone={row.type === "arrival" ? "ok" : "warn"}>
-                        {row.nights}n
-                      </HandoffBadge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </Card>
+      {/* Main grid — mgmt-workspace.html §03/§04: Today snapshot + schedule
+          on the left (1.5fr), AI agents activity + quick actions on the
+          right (1fr). Stacks below 900px. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-3.5 mb-3.5 items-start">
+        <div className="flex flex-col gap-3.5">
+          {/* Today · ops snapshot — 4 tiles, derived from live schedule +
+              ops aggregates. */}
+          <Card className="p-[18px]">
+            <h3 className="display-sm mb-3">
+              Today · <em>ops snapshot</em>
+            </h3>
+            <div className="today-grid">
+              <div className="today-tile">
+                <div className="l">arrivals</div>
+                <div className="v">{arrivalsToday}</div>
+                <div className="ctx">scheduled today</div>
+              </div>
+              <div className="today-tile">
+                <div className="l">departures</div>
+                <div className="v">{departuresToday}</div>
+                <div className="ctx">check-outs today</div>
+              </div>
+              <div className="today-tile">
+                <div className="l">in-house</div>
+                <div className="v">{inHouseNow}</div>
+                <div className="ctx">guests mid-stay</div>
+              </div>
+              <div className="today-tile">
+                <div className="l">turnovers</div>
+                <div className={"v" + (turnoversToday > 0 ? " warn" : "")}>
+                  {turnoversToday}
+                </div>
+                <div className="ctx">housekeeping today</div>
+              </div>
+            </div>
+          </Card>
 
-        {/* DAILY-DIGEST-SPRINT-1 P4.4 — Recent digests tile replaces
-            the previous scaffolded "Operations Copilot" placeholder.
-            Empty state in the component still surfaces friendly copy
-            until the first digest lands. */}
-        <RecentDigestsTile basePath="/dashboard/digests" />
+          {/* Today's arrivals / departures schedule. */}
+          <Card padding="none" overflowHidden>
+            <div className="px-5 py-4 flex items-center border-b border-line-soft">
+              <h2 className="display-md">Arrivals &amp; departures</h2>
+              <span className="mono ml-auto text-[11px] text-ink-3">
+                TODAY
+              </span>
+            </div>
+            {schedule.length === 0 ? (
+              <p className="p-5 text-[13px] text-ink-3 italic m-0">
+                No arrivals or departures scheduled for today.
+              </p>
+            ) : (
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th scope="col">Time</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Villa</th>
+                    <th scope="col">Guest / Notes</th>
+                    <th scope="col">Nights</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {schedule.map((row) => (
+                    <tr key={`${row.villaCode}-${row.type}-${row.time}`}>
+                      <td className="mono">{row.time}</td>
+                      <td>{row.type === "arrival" ? "Arrival" : "Departure"}</td>
+                      <td>{row.villaCode}</td>
+                      <td>{row.guestName ?? "—"}</td>
+                      <td>
+                        <HandoffBadge tone={row.type === "arrival" ? "ok" : "warn"}>
+                          {row.nights}n
+                        </HandoffBadge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        </div>
+
+        {/* Right column — AI agents activity (§04) + quick actions +
+            recent digests. */}
+        <div className="flex flex-col gap-3.5">
+          <AgentActivityCard activity={agents ?? { rows: [], activeAgents: 0, costMinorUsd: 0n }} />
+          <QuickActions />
+          {/* DAILY-DIGEST-SPRINT-1 P4.4 — Recent digests tile. Empty state
+              in the component surfaces friendly copy until the first digest
+              lands. */}
+          <RecentDigestsTile basePath="/dashboard/digests" />
+        </div>
       </div>
 
       {/* Channels + Monthly revenue + Owners */}
-      <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-3.5 mb-3.5">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[1fr_1.3fr_1fr] gap-3.5 mb-3.5">
         <Card className="p-5">
           <h3 className="display-sm">Revenue by channel</h3>
           <div className="label mt-1">MTD share</div>
@@ -487,6 +558,12 @@ export default async function DashboardOverviewPage() {
           </table>
         )}
       </Card>
+
+      {/* Cabinet map — mgmt-workspace.html §05: every cabinet with live
+          badge counts, the hub at the foot of the operator's first screen. */}
+      <div className="mt-3.5">
+        <CabinetMap counts={cabinetCounts} />
+      </div>
 
       {/* Statement nudge — empty state until STATEMENT-1 ships the schema */}
       {nudge ? (

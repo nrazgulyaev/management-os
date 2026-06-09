@@ -3,6 +3,7 @@ import "server-only";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { getOperationsKpis } from "@/features/operations/operations-cabinet-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Overview live read aggregates.
@@ -510,5 +511,99 @@ export async function getOperationalHealthTiles(): Promise<OperationalHealthTile
     openMaintenance: kpis.ticketsOpen,
     housekeepingTurnoversToday: kpis.turnoversToday,
     ownerStayRequestsPending,
+  };
+}
+
+export interface AgentActivityRow {
+  agentKey: string;
+  /** Total invocations in the lookback window. */
+  runs: number;
+  /** Most-recent run status, drives the dot colour. */
+  lastStatus: string;
+  /** ISO of the most-recent run. */
+  lastRunAt: string;
+}
+
+export interface AgentActivitySummary {
+  rows: AgentActivityRow[];
+  /** Distinct agents that ran in the window. */
+  activeAgents: number;
+  /** Total spend (USD minor) across the window — the "$N today" teaser. */
+  costMinorUsd: bigint;
+}
+
+const EMPTY_AGENT_ACTIVITY: AgentActivitySummary = {
+  rows: [],
+  activeAgents: 0,
+  costMinorUsd: 0n,
+};
+
+/**
+ * The Overview's "AI agents · live" card. Aggregates the last 24h of
+ * `agent_invocation_log` per agent_key into one row each (run count, most
+ * recent status + time), plus the active-agent count and total spend for
+ * the header teaser. Tenant-scoped via requireOrgId; degrades to empty if
+ * the org context can't be resolved (anonymous probe) so the card simply
+ * renders its idle/empty state rather than throwing.
+ */
+export async function getAgentActivity(limit = 6): Promise<AgentActivitySummary> {
+  const db = getDb();
+  if (!db) return EMPTY_AGENT_ACTIVITY;
+
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
+    return EMPTY_AGENT_ACTIVITY;
+  }
+
+  const rows = await db.execute<{
+    agent_key: string;
+    runs: string;
+    last_status: string;
+    last_run_at: string;
+  }>(sql`
+    WITH recent AS (
+      SELECT agent_key, status, invoked_at, cost_minor,
+             ROW_NUMBER() OVER (PARTITION BY agent_key ORDER BY invoked_at DESC) AS rn
+        FROM agent_invocation_log
+       WHERE organization_id = ${orgId}
+         AND invoked_at >= now() - interval '24 hours'
+    )
+    SELECT agent_key                                   AS agent_key,
+           COUNT(*)::text                               AS runs,
+           (ARRAY_AGG(status ORDER BY invoked_at DESC))[1] AS last_status,
+           MAX(invoked_at)::text                        AS last_run_at
+      FROM recent
+     GROUP BY agent_key
+     ORDER BY MAX(invoked_at) DESC
+     LIMIT ${limit}
+  `);
+
+  const data = rowsOf<{
+    agent_key: string;
+    runs: string;
+    last_status: string;
+    last_run_at: string;
+  }>(rows).map((r) => ({
+    agentKey: r.agent_key,
+    runs: Number(r.runs || "0"),
+    lastStatus: r.last_status,
+    lastRunAt: r.last_run_at,
+  }));
+
+  const totals = await db.execute<{ active: string; cost_minor: string }>(sql`
+    SELECT COUNT(DISTINCT agent_key)::text       AS active,
+           COALESCE(SUM(cost_minor), 0)::text    AS cost_minor
+      FROM agent_invocation_log
+     WHERE organization_id = ${orgId}
+       AND invoked_at >= now() - interval '24 hours'
+  `);
+  const t = rowsOf<{ active: string; cost_minor: string }>(totals)[0];
+
+  return {
+    rows: data,
+    activeAgents: Number(t?.active ?? "0"),
+    costMinorUsd: BigInt(t?.cost_minor ?? "0"),
   };
 }

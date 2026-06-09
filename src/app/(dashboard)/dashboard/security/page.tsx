@@ -1,23 +1,5 @@
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Camera,
-  ShieldAlert,
-  Sparkles,
-} from "lucide-react";
-import { DashboardKpi } from "@/components/ui/primitives";
-import {
-  HalfDonutGauge,
-  HatchedBarChart,
-  HeroGreetingAI,
-  KpiRowMixed,
-  PatrolTimeline,
-  type HatchedBarDatum,
-  type KpiItem,
-  type PatrolEvent,
-} from "@/components/award";
 import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { listSecurityCameraDevices } from "@/features/security/services";
 import { listSecurityEventsForAdmin } from "@/features/security-baseline/mfa-services";
@@ -29,60 +11,26 @@ import { mapPoolAll } from "@/lib/db/map-pool";
 import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
 
 /**
- * Mega-Sprint / Phase 11 — Security cabinet REBUILD.
+ * Mgmt-P3 · Security cabinet — pixel pass to `cabinets/mgmt-p3/Security
+ * and System.html` (#s-security). Forest `gs-hero` glow band, a 4-up
+ * `.kpi` strip (open incidents / camera health / patrols today / auth
+ * events 7d), then the two-column split: the auth-event cadence
+ * `gs-bars` mini chart + the `gs-tl` recent-events timeline. The camera
+ * registry, login-attempt log and security-copilot tiles are preserved
+ * below as design-system sections.
  *
- * The prior surface was a 42-LOC camera-registry stub. Per the audit
- * §M2 ("rebuild this into a real cabinet rather than refactor"),
- * this phase delivers a Sprint-4 gold-standard apex: HeroGreetingAI
- * shell, KpiRowMixed with ink-deep hero (Open incidents) + Camera
- * health + Patrol completion + Auth events, Today's-pulse hatched-
- * bar of daily auth events, <PatrolTimeline> of recent security
- * events, and the camera registry as a sub-surface card.
- *
- * Patrol completion is a derived heuristic from operation_tasks with
- * category = "security"; a proper patrol-log table is downstream
- * work tracked in the deferrals below.
+ * Every fetch + derived metric is preserved from the prior award-lineage
+ * surface; only the presentation is re-skinned to Layer B.
  */
 
 export const metadata = { title: "Security" };
 export const dynamic = "force-dynamic";
 
-function todayLabel(now: Date): string {
-  const day = now.getDate();
-  const weekday = now.toLocaleDateString("en-US", { weekday: "short" });
-  const month = now.toLocaleDateString("en-US", { month: "long" });
-  return `${day} · ${weekday}, ${month}`;
-}
+const BAR_MAX_PX = 80;
 
-function bucketLast7Days(
-  rows: Array<string>,
-  today: Date,
-): HatchedBarDatum[] {
-  const counts = new Map<string, number>();
-  for (const iso of rows) {
-    if (!iso) continue;
-    const k = iso.slice(0, 10);
-    counts.set(k, (counts.get(k) ?? 0) + 1);
-  }
-  const out: HatchedBarDatum[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setUTCDate(d.getUTCDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    const n = counts.get(iso) ?? 0;
-    out.push({
-      label: d.toLocaleDateString("en-US", { weekday: "narrow" }),
-      value: Math.max(n, 1),
-      status: n > 0 ? "active" : "inactive",
-      caption: n > 0 ? String(n) : undefined,
-    });
-  }
-  return out;
-}
+type EvDot = "alert" | "warn" | "ok" | "";
 
-function severityStatus(
-  severity: string,
-): "ok" | "warn" | "alert" | "info" | "pending" {
+function severityDot(severity: string): EvDot {
   switch (severity) {
     case "critical":
     case "high":
@@ -91,10 +39,35 @@ function severityStatus(
     case "medium":
       return "warn";
     case "info":
-      return "info";
+      return "ok";
     default:
-      return "pending";
+      return "";
   }
+}
+
+function bucketLast7Days(
+  rows: Array<string>,
+  today: Date,
+): Array<{ label: string; count: number; quiet: boolean }> {
+  const counts = new Map<string, number>();
+  for (const iso of rows) {
+    if (!iso) continue;
+    const k = iso.slice(0, 10);
+    counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  const out: Array<{ label: string; count: number; quiet: boolean }> = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - i);
+    const iso = d.toISOString().slice(0, 10);
+    const n = counts.get(iso) ?? 0;
+    out.push({
+      label: d.toLocaleDateString("en-US", { weekday: "narrow" }),
+      count: n,
+      quiet: n === 0,
+    });
+  }
+  return out;
 }
 
 export default async function SecurityCabinetPage() {
@@ -128,16 +101,12 @@ export default async function SecurityCabinetPage() {
   const totalCameras = cameras.length;
   const activeCameras = cameras.filter((c) => c.status === "active").length;
   const cameraHealthPct =
-    totalCameras > 0
-      ? Math.round((activeCameras / totalCameras) * 100)
-      : 0;
+    totalCameras > 0 ? Math.round((activeCameras / totalCameras) * 100) : 0;
 
   const openIncidents = securityTasks.filter(
     (t) => t.status !== "completed" && t.status !== "approved",
   ).length;
 
-  // Patrol completion is approximated from security-category tasks
-  // scheduled for today: completed / scheduled.
   const todayIso = now.toISOString().slice(0, 10);
   const todaysPatrols = securityTasks.filter(
     (t) => t.scheduledFor && t.scheduledFor.slice(0, 10) === todayIso,
@@ -165,421 +134,314 @@ export default async function SecurityCabinetPage() {
     events.map((e) => e.createdAt),
     now,
   );
+  const peakCount = Math.max(1, ...dailyEvents.map((d) => d.count));
 
-  const kpis: KpiItem[] = [
-    {
-      label: "Open incidents",
-      value: String(openIncidents),
-      delta:
-        openIncidents === 0
-          ? "Site quiet"
-          : "Need triage",
-      href: "/dashboard/security/events",
-    },
-    {
-      label: "Camera health",
-      value: totalCameras > 0 ? `${cameraHealthPct}%` : "—",
-      delta:
-        totalCameras > 0
-          ? `${activeCameras} of ${totalCameras} active`
-          : "No cameras registered",
-      href: "/dashboard/security/cameras",
-    },
-    {
-      label: "Patrol completion (today)",
-      value: todaysPatrols.length > 0 ? `${patrolPct}%` : "—",
-      delta:
-        todaysPatrols.length === 0
-          ? "No patrols scheduled"
-          : `${completedPatrols} of ${todaysPatrols.length} done`,
-      href: "/dashboard/operations?category=security",
-    },
-    {
-      label: "Auth events (7d)",
-      value: String(eventsThisWeek),
-      delta:
-        criticalEventsThisWeek > 0
-          ? `${criticalEventsThisWeek} critical`
-          : "Within baseline",
-      href: "/dashboard/security/events",
-    },
-  ];
-
-  const timelineEvents: PatrolEvent[] = events.slice(0, 8).map((e) => ({
+  const timelineEvents = events.slice(0, 6).map((e) => ({
     id: e.id,
     timestamp: e.createdAt
       ? new Date(e.createdAt).toISOString().slice(11, 16)
       : "—",
-    status: severityStatus(e.severity),
+    dot: severityDot(e.severity),
     title: e.eventType.replaceAll("_", " "),
-    body:
-      e.appUserId
-        ? `user ${e.appUserId.slice(0, 8)} · ${e.severity}`
-        : `system · ${e.severity}`,
-    kind:
-      e.severity === "critical" || e.severity === "high"
-        ? "alert"
-        : "incident",
-    href: "/dashboard/security/events",
-    statusLabel: e.severity,
+    meta: e.appUserId
+      ? `user ${e.appUserId.slice(0, 8)}… · ${e.severity}`
+      : `system · ${e.severity}`,
   }));
 
   return (
-    <div className="flex flex-col gap-8 md:gap-10">
-      <HeroGreetingAI
-        firstName={firstName}
-        role="Security · Cabinet"
-        dateLabel={todayLabel(now)}
-        aiPromptPlaceholder="Security copilot — coming soon."
-        showMyTasksHref="/dashboard/security/events"
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-        {[
-          {
-            href: "/dashboard/operations/tasks/new?category=security",
-            icon: ShieldAlert,
-            label: "Log patrol event",
-            caption: "Create a security task",
-          },
-          {
-            href: "/dashboard/security/cameras",
-            icon: Camera,
-            label: "Camera registry",
-            caption: `${activeCameras}/${totalCameras} active`,
-          },
-          {
-            href: "/dashboard/security/events",
-            icon: Sparkles,
-            label: "Auth events log",
-            caption: `${eventsThisWeek} this week`,
-          },
-        ].map(({ href, icon: Icon, label, caption }) => (
-          <Link
-            key={href}
-            href={href}
-            className="rounded-3xl border border-line-soft bg-surface shadow-soft-card px-5 py-4 flex items-center gap-4 hover:bg-muted/40 transition-colors"
-          >
-            <span className="shrink-0 w-10 h-10 rounded-full bg-gradient-ink-deep text-ink-inverse border border-line-soft inline-flex items-center justify-center">
-              <Icon className="w-4 h-4" strokeWidth={1.75} />
-            </span>
-            <span className="flex flex-col min-w-0 flex-1">
-              <span className="text-sm font-medium text-ink truncate">
-                {label}
-              </span>
-              <span className="text-xs text-ink-tertiary truncate">
-                {caption}
-              </span>
-            </span>
-            <ArrowUpRight
-              className="w-4 h-4 text-ink-tertiary shrink-0"
-              strokeWidth={1.75}
-            />
-          </Link>
-        ))}
+    <>
+      <div className="gs-hero">
+        <div className="glow" />
+        <div className="lab">Security · cabinet</div>
+        <h2>
+          {firstName ? `${firstName}, site is ` : "Site is "}
+          <em>quiet</em>
+          {openIncidents > 0
+            ? ` — ${openIncidents} event${openIncidents === 1 ? "" : "s"} need a look.`
+            : " — nothing needs a look."}
+        </h2>
       </div>
 
-      <KpiRowMixed kpis={kpis} heroTone="ink-deep" />
-
-      <Section
-        eyebrow="Today's pulse"
-        title="Auth-event cadence + camera health"
-        description="Authentication + suspicious-request events per day over the last 7 days, alongside the share of registered cameras that are healthy."
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
-                Last 7 days
-              </span>
-              <span className="text-xs text-ink-tertiary tabular-nums">
-                {eventsThisWeek} events · {criticalEventsThisWeek} critical
-              </span>
-            </div>
-            <HatchedBarChart
-              data={dailyEvents}
-              tone="terracotta"
-              height={200}
-            />
+      <div className="gs-kpis">
+        <Link href="/dashboard/security/events" className="kpi block">
+          <div className="label">Open incidents</div>
+          <div className="v">{openIncidents}</div>
+          <div className="sub">{openIncidents === 0 ? "site quiet" : "need triage"}</div>
+        </Link>
+        <Link href="/dashboard/security/cameras" className="kpi ok block">
+          <div className="label">Camera health</div>
+          <div className="v">{totalCameras > 0 ? `${cameraHealthPct}%` : "—"}</div>
+          <div className="sub">
+            {totalCameras > 0
+              ? `${activeCameras} of ${totalCameras} active`
+              : "no cameras registered"}
           </div>
-          <HalfDonutGauge
-            variant="emerald"
-            value={cameraHealthPct}
-            max={100}
-            label={
-              <>
-                <p className="text-display text-[28px] md:text-[36px] leading-none font-medium text-ink tabular-nums">
-                  {totalCameras > 0 ? `${cameraHealthPct}%` : "—"}
-                </p>
-                <p className="text-xs text-ink-tertiary mt-1">
-                  Camera health
-                </p>
-              </>
-            }
-            legend={[
-              { label: `${activeCameras} active` },
-              {
-                label: `${Math.max(0, totalCameras - activeCameras)} offline`,
-                color: "var(--line-strong)",
-              },
-            ]}
-          />
-        </div>
-      </Section>
-
-      <Section
-        eyebrow="Activity"
-        title="Recent security events"
-        description="Last 8 auth + suspicious-request events, severity-coded."
-        action={
-          <Link
-            href="/dashboard/security/events"
-            className="text-xs text-ink-tertiary hover:underline"
-          >
-            All events →
-          </Link>
-        }
-      >
-        {timelineEvents.length === 0 ? (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm text-ink-tertiary">
-            No security events logged yet. MFA enrolment + login
-            throttling will surface here as they happen.
+        </Link>
+        <Link
+          href="/dashboard/operations?category=security"
+          className="kpi block"
+        >
+          <div className="label">Patrols today</div>
+          <div className="v">{todaysPatrols.length > 0 ? `${patrolPct}%` : "—"}</div>
+          <div className="sub">
+            {todaysPatrols.length === 0
+              ? "none scheduled"
+              : `${completedPatrols} of ${todaysPatrols.length} done`}
           </div>
-        ) : (
-          <PatrolTimeline
-            events={timelineEvents}
-            maxVisible={8}
-            moreHref="/dashboard/security/events"
-          />
-        )}
-      </Section>
+        </Link>
+        <Link
+          href="/dashboard/security/events"
+          className={`kpi block${criticalEventsThisWeek > 0 ? " warn" : ""}`}
+        >
+          <div className="label">Auth events · 7d</div>
+          <div className="v">{eventsThisWeek}</div>
+          <div className="sub">
+            {criticalEventsThisWeek > 0
+              ? `${criticalEventsThisWeek} critical`
+              : "within baseline"}
+          </div>
+        </Link>
+      </div>
 
-      <Section
-        eyebrow="Authentication"
-        title="Login attempts · 24h"
-        description="Server-side login attempts — IP and user-agent are stored as salted SHA-256 hashes; raw values never persist."
-        action={
-          <Link
-            href="/dashboard/security/login-attempts"
-            className="text-xs text-ink-tertiary hover:underline"
-          >
-            All attempts →
-          </Link>
-        }
-      >
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-line-soft">
-            <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
-              Last 24h
+      <div className="gs-2col">
+        <div className="card card-pad">
+          <div className="gs-card-h">
+            <h3>Auth-event cadence · 7d</h3>
+            <span className="meta">
+              {eventsThisWeek} EVENTS · {criticalEventsThisWeek} CRITICAL
             </span>
-            <span className="text-xs text-ink-tertiary tabular-nums">
-              {attempts24h.length} attempt{attempts24h.length === 1 ? "" : "s"} ·{" "}
-              {failedAttempts24h} failed
+          </div>
+          <div className="gs-bars">
+            {dailyEvents.map((d, i) => (
+              <div
+                key={i}
+                className={d.quiet ? "b q" : "b"}
+                title={`${d.count} event${d.count === 1 ? "" : "s"}`}
+              >
+                <i
+                  style={{
+                    height: `${Math.max(
+                      6,
+                      Math.round((d.count / peakCount) * BAR_MAX_PX),
+                    )}px`,
+                  }}
+                />
+                <span>{d.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card card-pad">
+          <div className="gs-card-h">
+            <h3>Recent events</h3>
+            <Link
+              href="/dashboard/security/events"
+              className="meta hover:underline"
+            >
+              ALL EVENTS →
+            </Link>
+          </div>
+          {timelineEvents.length === 0 ? (
+            <p className="text-[13px] text-ink-3 leading-relaxed">
+              No security events logged yet. MFA enrolment + login
+              throttling surface here as they happen.
+            </p>
+          ) : (
+            <div className="gs-tl">
+              {timelineEvents.map((e) => (
+                <Link
+                  key={e.id}
+                  href="/dashboard/security/events"
+                  className="ev hover:opacity-80"
+                >
+                  <span className="t">{e.timestamp}</span>
+                  <span className={`d${e.dot ? ` ${e.dot}` : ""}`} />
+                  <span>
+                    <span className="ti block capitalize">{e.title}</span>
+                    <span className="mn block">{e.meta}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="gs-2col mt-[18px]">
+        <div className="card card-pad">
+          <div className="gs-card-h">
+            <h3>Login attempts · 24h</h3>
+            <span className="meta">
+              {attempts24h.length} ATTEMPT{attempts24h.length === 1 ? "" : "S"} ·{" "}
+              {failedAttempts24h} FAILED
             </span>
           </div>
           {!loginAttemptsRes.ok ? (
-            <p className="p-5 text-xs text-ink-tertiary">
+            <p className="text-[13px] text-ink-3">
               {loginAttemptsRes.error?.kind === "missing_relation"
                 ? "Migration pending — login-attempt log not yet provisioned."
                 : "Could not load login attempts."}
             </p>
           ) : loginAttempts.length === 0 ? (
-            <p className="p-5 text-sm text-ink-tertiary">
+            <p className="text-[13px] text-ink-3">
               No login attempts on file. Successful + failed sign-ins surface
               here as they happen.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-canvas/50 text-left">
-                  <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                    <th className="px-4 py-3">When</th>
-                    <th className="px-4 py-3">Email</th>
-                    <th className="px-4 py-3">Outcome</th>
-                    <th className="px-4 py-3">Reason</th>
-                    <th className="px-4 py-3">IP hash</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loginAttempts.slice(0, 8).map((a) => (
-                    <tr key={a.id} className="border-t border-line-soft">
-                      <td className="px-4 py-3 font-mono tabular-nums text-xs whitespace-nowrap">
-                        {a.createdAt.slice(0, 16).replace("T", " ")}
-                      </td>
-                      <td className="px-4 py-3 text-xs">{a.emailNormalized ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <Badge tone={a.succeeded ? "success" : "warning"}>
-                          {a.succeeded ? "ok" : "failed"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-[11px] text-ink-tertiary">
-                        {a.failureReason ?? ""}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
-                        {a.ipHash ? `${a.ipHash.slice(0, 8)}…` : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </Section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Section
-            eyebrow="Cameras"
-            title="Camera registry"
-            description="Registry only — the platform never streams video. Each entry links to the vendor app."
-            action={
-              <Link
-                href="/dashboard/security/cameras"
-                className="text-xs text-ink-tertiary hover:underline"
-              >
-                All cameras →
-              </Link>
-            }
-          >
-            {cameras.length === 0 ? (
-              <div className="rounded-md border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
-                No cameras registered. Add one from the camera registry.
-              </div>
-            ) : (
-              <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
-                {cameras.slice(0, 6).map((c) => (
-                  <li key={c.id}>
-                    <Link
-                      href={`/dashboard/security/cameras`}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-surface-hover"
-                    >
-                      <span className="flex flex-col min-w-0">
-                        <span className="text-sm text-ink truncate">
-                          {c.name}
-                        </span>
-                        <span className="text-[11px] text-ink-tertiary">
-                          {c.villaCode ?? c.projectName ?? "—"} ·{" "}
-                          {c.locationLabel}
-                        </span>
-                      </span>
-                      <Badge
-                        tone={c.status === "active" ? "success" : "neutral"}
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">When</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Outcome</th>
+                  <th scope="col">IP hash</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loginAttempts.slice(0, 6).map((a) => (
+                  <tr key={a.id}>
+                    <td className="mono text-[11px] text-ink-3 whitespace-nowrap">
+                      {a.createdAt.slice(0, 16).replace("T", " ")}
+                    </td>
+                    <td className="text-[12px]">{a.emailNormalized ?? "—"}</td>
+                    <td>
+                      <span
+                        className={`badge ${a.succeeded ? "badge-ok" : "badge-warn"}`}
                       >
-                        {c.status}
-                      </Badge>
-                    </Link>
-                  </li>
+                        {a.succeeded ? "ok" : "failed"}
+                      </span>
+                    </td>
+                    <td className="mono text-[11px] text-ink-4">
+                      {a.ipHash ? `${a.ipHash.slice(0, 8)}…` : "—"}
+                    </td>
+                  </tr>
                 ))}
-              </ul>
-            )}
-          </Section>
+              </tbody>
+            </table>
+          )}
+          <p className="mt-3 text-[11px] text-ink-4 leading-relaxed">
+            IP + user-agent are stored as salted SHA-256 hashes; raw values
+            never persist.{" "}
+            <Link
+              href="/dashboard/security/login-attempts"
+              className="text-ink-3 hover:underline"
+            >
+              All attempts →
+            </Link>
+          </p>
         </div>
 
-        <aside className="flex flex-col gap-4">
-          <Section eyebrow="Surfaces" title="Jump to">
-            <ul className="grid grid-cols-1 gap-2">
-              {[
-                {
-                  href: "/dashboard/security/auth",
-                  label: "Authentication",
-                },
-                {
-                  href: "/dashboard/security/mfa",
-                  label: "MFA enrolment",
-                },
-                {
-                  href: "/dashboard/security/login-attempts",
-                  label: "Login attempts",
-                },
-                {
-                  href: "/dashboard/operations?category=security",
-                  label: "Security task board",
-                },
-              ].map((l) => (
-                <li key={l.href}>
+        <div className="card card-pad">
+          <div className="gs-card-h">
+            <h3>Camera registry</h3>
+            <Link
+              href="/dashboard/security/cameras"
+              className="meta hover:underline"
+            >
+              ALL CAMERAS →
+            </Link>
+          </div>
+          {cameras.length === 0 ? (
+            <p className="text-[13px] text-ink-3">
+              No cameras registered. Add one from the camera registry.
+            </p>
+          ) : (
+            <ul className="clean">
+              {cameras.slice(0, 5).map((c) => (
+                <li key={c.id}>
                   <Link
-                    href={l.href}
-                    className="block rounded-2xl border border-line-soft bg-surface px-4 py-3 text-sm text-ink shadow-soft-card hover:shadow-elevated-card hover:border-line-strong transition-all"
+                    href="/dashboard/security/cameras"
+                    className="flex items-center justify-between gap-3 w-full hover:opacity-80"
                   >
-                    {l.label} <span aria-hidden>→</span>
+                    <span className="flex flex-col min-w-0">
+                      <span className="text-[13px] text-ink truncate">
+                        {c.name}
+                      </span>
+                      <span className="mono text-[10.5px] text-ink-4">
+                        {c.villaCode ?? c.projectName ?? "—"} · {c.locationLabel}
+                      </span>
+                    </span>
+                    <span
+                      className={`badge ${c.status === "active" ? "badge-ok" : "badge-soft"}`}
+                    >
+                      {c.status}
+                    </span>
                   </Link>
                 </li>
               ))}
             </ul>
-            <DashboardKpi
-              label="Patrols today"
-              value={String(todaysPatrols.length)}
-              status="neutral"
-              drillHref="/dashboard/operations?category=security"
-              hint="Security-category tasks"
-              className="mt-3"
-            />
-          </Section>
-
-          <Section eyebrow="AI" title="Security copilot">
-            {!copilotEnabled ? (
-              <Link
-                href="/dashboard/settings/ai-agents/security_copilot"
-                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
-              >
-                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                  Coming soon · Configure key
-                </span>
-                <p className="text-sm leading-relaxed opacity-90">
-                  The security-copilot agent ships with a dry-run
-                  default. Wire a provider key to flip it live; the
-                  overnight incident brief surfaces here.
-                </p>
-                <Badge tone="outline" className="self-start">
-                  Configure provider →
-                </Badge>
-              </Link>
-            ) : copilotOutputs.length === 0 ? (
-              <Link
-                href="/dashboard/ai/jobs?agent=security_copilot"
-                className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3 hover:opacity-95 transition-opacity"
-              >
-                <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                  No runs yet
-                </span>
-                <p className="text-sm leading-relaxed opacity-90">
-                  Trigger the security-copilot to brief the supervisor
-                  on overnight incidents and patrol gaps.
-                </p>
-                <Badge tone="outline" className="self-start">
-                  Run copilot →
-                </Badge>
-              </Link>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {copilotOutputs.map((o) => (
-                  <Link
-                    key={o.id}
-                    href={`/dashboard/ai`}
-                    className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-5 md:p-6 flex flex-col gap-2 hover:opacity-95 transition-opacity"
-                  >
-                    <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
-                      {new Date(o.createdAt).toLocaleDateString("en-US", {
-                        day: "numeric",
-                        month: "short",
-                        hour: "numeric",
-                        minute: "numeric",
-                      })}
-                    </span>
-                    <h4 className="text-sm font-medium line-clamp-2">
-                      {o.title}
-                    </h4>
-                    <p className="text-xs opacity-90 leading-relaxed line-clamp-3">
-                      {o.summary}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </Section>
-        </aside>
+          )}
+          <p className="mt-3 text-[11px] text-ink-4 leading-relaxed">
+            Registry only — the platform never streams video. Each entry links
+            to the vendor app.
+          </p>
+        </div>
       </div>
-    </div>
+
+      <div className="card card-pad mt-[18px]">
+        <div className="gs-card-h">
+          <h3>Security copilot</h3>
+          <span className="meta inline-flex items-center gap-2">
+            <span className="pulse-dot accent" aria-hidden />
+            {copilotEnabled ? "ENABLED" : "DRY-RUN"}
+          </span>
+        </div>
+        {!copilotEnabled ? (
+          <Link
+            href="/dashboard/settings/ai-agents/security_copilot"
+            className="block hover:opacity-90"
+          >
+            <p className="text-[13px] text-ink-3 leading-relaxed max-w-[640px]">
+              The security-copilot agent ships with a dry-run default. Wire a
+              provider key to flip it live; the overnight incident brief surfaces
+              here.
+            </p>
+            <Badge tone="outline" className="mt-3">
+              Configure provider →
+            </Badge>
+          </Link>
+        ) : copilotOutputs.length === 0 ? (
+          <Link
+            href="/dashboard/ai/jobs?agent=security_copilot"
+            className="block hover:opacity-90"
+          >
+            <p className="text-[13px] text-ink-3 leading-relaxed max-w-[640px]">
+              Trigger the security-copilot to brief the supervisor on overnight
+              incidents and patrol gaps.
+            </p>
+            <Badge tone="outline" className="mt-3">
+              Run copilot →
+            </Badge>
+          </Link>
+        ) : (
+          <ul className="clean">
+            {copilotOutputs.map((o) => (
+              <li key={o.id}>
+                <Link
+                  href="/dashboard/ai"
+                  className="flex flex-col gap-1 w-full hover:opacity-80"
+                >
+                  <span className="mono text-[10.5px] uppercase tracking-[0.04em] text-ink-4">
+                    {new Date(o.createdAt).toLocaleDateString("en-US", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "numeric",
+                      minute: "numeric",
+                    })}
+                  </span>
+                  <span className="text-[13.5px] text-ink line-clamp-2">
+                    {o.title}
+                  </span>
+                  <span className="text-[12px] text-ink-3 leading-relaxed line-clamp-2">
+                    {o.summary}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
   );
 }
