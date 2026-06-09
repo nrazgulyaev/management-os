@@ -277,6 +277,7 @@ async function queuePlanReminder(opts: {
   await db
     .insert(contractGroupRemindPrefs)
     .values({
+      organizationId,
       contractGroupId,
       autoRemindEnabled: false,
       lastRemindedAt: now,
@@ -451,6 +452,7 @@ export async function toggleAutoRemind(formData: FormData): Promise<ActionResult
 
   const db = getDb();
   if (!db) return failed("Database is not configured.");
+  const organizationId = await requireOrgId();
 
   // Guard against a dangling FK — the plan must exist.
   const [group] = await db
@@ -465,6 +467,7 @@ export async function toggleAutoRemind(formData: FormData): Promise<ActionResult
   await db
     .insert(contractGroupRemindPrefs)
     .values({
+      organizationId,
       contractGroupId: parsed.data.contractGroupId,
       autoRemindEnabled: enabled,
       updatedBy: ctx.appUser?.id ?? null,

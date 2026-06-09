@@ -15,6 +15,7 @@ import "server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { ownerThreads, ownerMessages } from "@/lib/db/schema/owner-threads";
+import { getOwnerOrgId } from "@/features/owner-portal/owner-context";
 import type { ThreadListItem, ThreadKind } from "@/components/owner-portal/thread-list";
 import type { ThreadMessage } from "@/components/owner-portal/thread-view";
 import type { MsgActorKind } from "@/components/owner-portal/msg-bubble";
@@ -84,6 +85,11 @@ export async function getOwnerInbox(ownerId: string): Promise<OwnerInboxResult> 
   const db = getDb();
   if (!db) return { threads: [], totalUnread: 0 };
 
+  // TENANCY 0158 — AND the owner's org onto the primary list read. When the
+  // org cannot be resolved (orphan owner) we fall back to the owner_id-only
+  // scope rather than hiding the owner's own threads.
+  const organizationId = await getOwnerOrgId(ownerId).catch(() => null);
+
   const rows = await db
     .select({
       id: ownerThreads.id,
@@ -94,7 +100,14 @@ export async function getOwnerInbox(ownerId: string): Promise<OwnerInboxResult> 
       status: ownerThreads.status,
     })
     .from(ownerThreads)
-    .where(eq(ownerThreads.ownerId, ownerId))
+    .where(
+      organizationId
+        ? and(
+            eq(ownerThreads.ownerId, ownerId),
+            eq(ownerThreads.organizationId, organizationId),
+          )
+        : eq(ownerThreads.ownerId, ownerId),
+    )
     .orderBy(desc(ownerThreads.lastMessageAt))
     .limit(100);
 

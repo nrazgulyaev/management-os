@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { waterfallRules } from "@/lib/db/schema/waterfall-rules";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { WaterfallRuleType } from "./waterfall-helpers";
 
 const ruleTypes = [
@@ -69,11 +70,13 @@ export async function createWaterfallRule(
   input: z.input<typeof createRuleSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createRuleSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(waterfallRules)
     .values({
+      organizationId,
       scope: parsed.scope,
       projectId: parsed.projectId ?? null,
       commitmentId: parsed.commitmentId ?? null,

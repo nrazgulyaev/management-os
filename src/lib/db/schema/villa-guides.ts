@@ -30,12 +30,13 @@ export const villaGuideSections = pgTable(
     villaId: uuid("villa_id").references(() => villas.id, {
       onDelete: "cascade",
     }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  villa → project.organization_id (else project, else default org). Not
-     *  threaded into queries yet; kept NULLABLE until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor from
+     *  requireOrgId() on section upsert-insert (thread-portal unit). */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     sectionKey: text("section_key").notNull(),
     title: text("title").notNull(),
     bodyMd: text("body_md"),

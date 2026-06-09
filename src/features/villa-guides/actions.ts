@@ -12,6 +12,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   idSchema,
   upsertEmergencyContactSchema,
@@ -76,9 +77,11 @@ export async function upsertGuideSectionAction(
         .where(eq(villaGuideSections.id, parsed.data.id));
       sectionId = parsed.data.id;
     } else {
+      const organizationId = await requireOrgId();
       const [row] = await db
         .insert(villaGuideSections)
         .values({
+          organizationId,
           villaId: parsed.data.villaId ?? null,
           projectId: parsed.data.projectId ?? null,
           sectionKey: parsed.data.sectionKey,

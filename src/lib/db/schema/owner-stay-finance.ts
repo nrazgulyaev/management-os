@@ -49,12 +49,13 @@ export const ownerStayFinanceLinks = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  villa → project.organization_id. Not threaded into queries yet; kept
-     *  NULLABLE until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor, copied from
+     *  the parent owner-stay request (else resolved via its project). */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     statementPeriodId: uuid("statement_period_id").references(
       () => statementPeriods.id,
       { onDelete: "set null" },

@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { ownerNotificationPrefs } from "@/lib/db/schema/owner-notification-prefs";
 import { requireOwnerWrite } from "@/features/owner-portal/require-owner-write";
+import { getOwnerOrgId } from "@/features/owner-portal/owner-context";
 import { recordAuditEvent } from "@/features/audit/services";
 import {
   DEFAULT_NOTIFICATION_PREFS,
@@ -106,9 +107,14 @@ export async function updateOwnerNotificationPrefsAction(
       .set({ ...data, updatedAt: new Date() })
       .where(eq(ownerNotificationPrefs.ownerId, auth.ownerId));
   } else {
+    // Org anchor (TENANCY 0158) — owner → ownership_shares → project.org.
+    const organizationId = await getOwnerOrgId(auth.ownerId);
+    if (!organizationId) {
+      return { ok: false, error: "Could not resolve your organisation." };
+    }
     await db
       .insert(ownerNotificationPrefs)
-      .values({ ownerId: auth.ownerId, ...data });
+      .values({ organizationId, ownerId: auth.ownerId, ...data });
   }
 
   await recordAuditEvent({

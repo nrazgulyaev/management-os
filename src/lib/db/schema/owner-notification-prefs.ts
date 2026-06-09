@@ -19,12 +19,14 @@ export const ownerNotificationPrefs = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  owner → ownership_shares → project.organization_id. Not threaded into
-     *  queries yet; kept NULLABLE until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor, backfilled
+     *  via owner → ownership_shares → project.organization_id. Threaded into
+     *  the prefs upsert insert path (thread-portal unit). */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     statementReady: boolean("statement_ready").notNull().default(true),
     maintenanceUpdates: boolean("maintenance_updates").notNull().default(true),
     qReviewReminder: boolean("q_review_reminder").notNull().default(true),

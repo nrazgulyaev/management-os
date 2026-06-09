@@ -24,12 +24,13 @@ export const contractGroupRemindPrefs = pgTable(
     contractGroupId: uuid("contract_group_id")
       .notNull()
       .references(() => contractGroups.id, { onDelete: "cascade" }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  contract_group → project.organization_id. Not threaded into queries
-     *  yet; kept NULLABLE until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor from the
+     *  reminder action's requireOrgId() (thread-portal unit). */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     autoRemindEnabled: boolean("auto_remind_enabled").notNull().default(false),
     lastRemindedAt: timestamp("last_reminded_at", { withTimezone: true }),
     updatedBy: uuid("updated_by").references(() => appUsers.id, {

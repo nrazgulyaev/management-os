@@ -93,12 +93,13 @@ export const ownerStayRequests = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  villa → project.organization_id. Not threaded into queries yet; kept
-     *  NULLABLE until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor, resolved from
+     *  villa → project.organization_id at request time (thread-portal unit). */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     requestedStart: date("requested_start").notNull(),
     requestedEnd: date("requested_end").notNull(),
     guestsCount: integer("guests_count"),

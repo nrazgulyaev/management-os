@@ -465,9 +465,27 @@ async function upsertLink(
       .where(eq(ownerStayFinanceLinks.id, existingLinkId));
     return existingLinkId;
   }
+  // Org anchor (TENANCY 0158) — copy the parent request's org when present,
+  // else resolve through the request's project (projects.organization_id is
+  // NOT NULL).
+  let organizationId = req.organizationId;
+  if (!organizationId && req.projectId) {
+    const [p] = await db
+      .select({ organizationId: projectsTable.organizationId })
+      .from(projectsTable)
+      .where(eq(projectsTable.id, req.projectId))
+      .limit(1);
+    organizationId = p?.organizationId ?? null;
+  }
+  if (!organizationId) {
+    throw new Error(
+      `Cannot resolve organization for owner-stay request ${req.id}.`,
+    );
+  }
   const [row] = await db
     .insert(ownerStayFinanceLinks)
     .values({
+      organizationId,
       ownerStayRequestId: req.id,
       ownerId: req.ownerId,
       villaId: req.villaId,

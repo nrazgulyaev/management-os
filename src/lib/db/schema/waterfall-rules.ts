@@ -29,13 +29,14 @@ export const waterfallRules = pgTable(
     projectId: uuid("project_id").references(() => projects.id),
     commitmentId: uuid("commitment_id").references(() => capitalCommitments.id),
 
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  project.organization_id (commitment-scoped rows fall back to the
-     *  default org). Not threaded into queries yet; kept NULLABLE until
-     *  app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor from
+     *  requireOrgId() on create (commitment-scoped rows still carry the
+     *  caller's org). thread-portal unit. */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
 
     ruleLabel: text("rule_label").notNull(),
     /**

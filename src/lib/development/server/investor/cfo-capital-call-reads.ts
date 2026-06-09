@@ -1,12 +1,13 @@
 import "server-only";
 
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   capitalCallAllocations,
   capitalCalls,
 } from "@/lib/db/schema/capital-calls";
 import { projects } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * W1B — CFO capital-calls list reader.
@@ -73,6 +74,8 @@ function toCardStatus(dbStatus: string): CfoCapitalCallStatus {
 export async function loadCfoCapitalCalls(): Promise<CfoCapitalCallRow[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY 0158 — scope the CFO list to the caller's org.
+  const organizationId = await requireOrgId();
 
   // One row per call with the project label. Allocation aggregates are
   // pulled separately and merged in-app to keep the join simple.
@@ -87,7 +90,12 @@ export async function loadCfoCapitalCalls(): Promise<CfoCapitalCallRow[]> {
     })
     .from(capitalCalls)
     .innerJoin(projects, eq(capitalCalls.projectId, projects.id))
-    .where(sql`${capitalCalls.status} <> 'cancelled'`)
+    .where(
+      and(
+        eq(capitalCalls.organizationId, organizationId),
+        sql`${capitalCalls.status} <> 'cancelled'`,
+      ),
+    )
     .orderBy(desc(capitalCalls.issuedAt));
 
   if (calls.length === 0) return [];

@@ -38,12 +38,14 @@ export const ownerInsights = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
-    /** TENANCY (migration 0152): nullable org anchor, backfilled via
-     *  owner → ownership_shares → project.organization_id. Not threaded into
-     *  queries yet; kept NULLABLE until app-layer scoping lands. */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    /** TENANCY (migration 0152 add, 0158 NOT NULL): org anchor, backfilled
+     *  via owner → ownership_shares → project.organization_id. Threaded into
+     *  the churn-action insert paths (thread-portal unit). */
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     /** Enum: occupancy_trend | adr_trend | maintenance_cost | guest_satisfaction | renewal_window | contract_milestone | other. */
     kind: text("kind").notNull(),
     /** Enum: info | watch | act — drives the ring colour. */

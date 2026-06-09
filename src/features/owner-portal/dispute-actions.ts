@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db/client";
 import { ownerThreads, ownerMessages } from "@/lib/db/schema/owner-threads";
 import { ownerStatements } from "@/lib/db/schema/finance";
 import { requireOwnerWrite } from "@/features/owner-portal/require-owner-write";
+import { getOwnerOrgId } from "@/features/owner-portal/owner-context";
 import {
   assertOwnerWritable,
   assertTransition,
@@ -89,10 +90,17 @@ export async function raiseStatementDisputeAction(
   }
   assertTransition(stmt.ownerState as OwnerStatementState, "disputed");
 
+  // Org anchor (TENANCY 0158) — owner → ownership_shares → project.org.
+  const organizationId = await getOwnerOrgId(auth.ownerId);
+  if (!organizationId) {
+    return { ok: false, error: "Could not resolve your organisation." };
+  }
+
   // 1) thread
   const [thread] = await db
     .insert(ownerThreads)
     .values({
+      organizationId,
       ownerId: auth.ownerId,
       subject: `Dispute · ${stmt.code}`,
       kind: "dispute",

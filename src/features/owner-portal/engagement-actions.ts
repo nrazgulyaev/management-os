@@ -136,6 +136,12 @@ export async function preApproveGuestAction(
     return { ok: false, error: "That villa is not in your portfolio." };
   }
 
+  // Org anchor (TENANCY 0158) — owner → ownership_shares → project.org.
+  const organizationId = await getOwnerOrgId(auth.ownerId);
+  if (!organizationId) {
+    return { ok: false, error: "Could not resolve your organisation." };
+  }
+
   const relationship = d.guestRelationship || null;
   const notes = d.notes || null;
 
@@ -144,6 +150,7 @@ export async function preApproveGuestAction(
   const [thread] = await db
     .insert(ownerThreads)
     .values({
+      organizationId,
       ownerId: auth.ownerId,
       subject,
       kind: "personal_stay_request",
@@ -193,6 +200,7 @@ export async function preApproveGuestAction(
   });
 
   await db.insert(ownerActivityLog).values({
+    organizationId,
     ownerId: auth.ownerId,
     kind: "message_received",
     relatedEntityType: "guest_preapproval",
@@ -246,6 +254,12 @@ export async function scheduleQReviewCallAction(
   }
   const topic = parsed.data.topic || null;
 
+  // Org anchor (TENANCY 0158) — owner → ownership_shares → project.org.
+  const organizationId = await getOwnerOrgId(auth.ownerId);
+  if (!organizationId) {
+    return { ok: false, error: "Could not resolve your organisation." };
+  }
+
   // Reuse an already-open q_review request thread rather than spawning dupes.
   const [existing] = await db
     .select({ id: ownerThreads.id })
@@ -268,6 +282,7 @@ export async function scheduleQReviewCallAction(
     const [thread] = await db
       .insert(ownerThreads)
       .values({
+        organizationId,
         ownerId: auth.ownerId,
         subject: "Quarterly review call",
         kind: "tax_question",
@@ -311,6 +326,7 @@ export async function scheduleQReviewCallAction(
     .where(eq(ownerThreads.id, threadId));
 
   await db.insert(ownerActivityLog).values({
+    organizationId,
     ownerId: auth.ownerId,
     kind: "q_review_scheduled",
     relatedEntityType: "owner_thread",
