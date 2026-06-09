@@ -847,7 +847,7 @@ export default async function BookingDetailPage({
         title={
           <>
             {b.guestName || "Guest"}{" "}
-            <span style={{ fontSize: 18, color: "var(--ink-3)" }}>
+            <span className="text-[18px] text-ink-3">
               · {b.villaName ?? b.villaCode ?? "—"}
             </span>
           </>
