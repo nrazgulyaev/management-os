@@ -25,6 +25,8 @@ import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
 import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { contractGroups, contractMilestones } from "@/lib/db/schema/sales";
+import { documents } from "@/lib/db/schema/documents";
+import { formatMoneyMinor } from "@/lib/money";
 import { recordAuditEvent } from "@/features/audit/services";
 
 const markPaidSchema = z.object({ milestoneId: z.string().uuid() });
@@ -51,10 +53,11 @@ export async function markBuyerInstallmentPaid(input: {
 
   // 2. Resolve the contract groups for those villas.
   const groups = await db
-    .select({ id: contractGroups.id })
+    .select({ id: contractGroups.id, villaId: contractGroups.villaId })
     .from(contractGroups)
     .where(inArray(contractGroups.villaId, unitIds));
   const groupIds = groups.map((g) => g.id);
+  const villaIdByGroupId = new Map(groups.map((g) => [g.id, g.villaId]));
   if (groupIds.length === 0) {
     return { ok: false, error: "No contract found for your villas." };
   }
@@ -104,6 +107,39 @@ export async function markBuyerInstallmentPaid(input: {
     })
     .where(eq(contractMilestones.id, milestone.id));
 
+  // Generate a RECEIPT into the buyer's document vault. We index a metadata-only
+  // `documents` row (no byte upload — same deferred-bytes pattern Dev OS invoices
+  // use) scoped to the villa and marked owner-visible so it lands in the buyer
+  // doc-vault "Payment receipts" group. Receipt generation must not fail the
+  // payment, so it is best-effort.
+  const villaId = villaIdByGroupId.get(milestone.contractGroupId) ?? null;
+  let receiptDocumentId: string | null = null;
+  if (villaId) {
+    try {
+      const receiptNumber = `RCP-${now.getUTCFullYear()}-${milestone.id.slice(0, 8).toUpperCase()}`;
+      const amountLabel = formatMoneyMinor(newPaid, "USD");
+      const [doc] = await db
+        .insert(documents)
+        .values({
+          title: `Receipt ${receiptNumber} — ${milestone.name} (${amountLabel})`,
+          documentType: "receipt",
+          entityType: "villa",
+          entityId: villaId,
+          // Owner-visible so the buyer doc vault surfaces it; no bytes attached.
+          visibility: "owner",
+          visibleToOwner: true,
+          status: "active",
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning({ id: documents.id });
+      receiptDocumentId = doc?.id ?? null;
+    } catch (err) {
+      // Receipt is a side-effect; never break the recorded payment.
+      console.error("[buyer-portal] receipt generation failed", err);
+    }
+  }
+
   await recordAuditEvent({
     // Buyers are supabase auth users, not app_users — keep actor null and
     // carry buyer identity in metadata.
@@ -125,9 +161,11 @@ export async function markBuyerInstallmentPaid(input: {
       contractGroupId: milestone.contractGroupId,
       channel: "buyer_portal",
       method: "manual_mark_paid",
+      receiptDocumentId,
     },
   });
 
   revalidatePath("/buyer-portal/payments");
+  revalidatePath("/buyer-portal/documents");
   return { ok: true, nowPaid: true };
 }

@@ -122,3 +122,5 @@ export * from "./villa-pool-state";
 export * from "./documents-app";
 // Warehouse receiving / QC-hold record (migration 0133).
 export * from "./material-receiving-holds";
+// Buyer-portal e-signature capture on contract groups (migration 0137).
+export * from "./contract-signatures";

@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { Home, Building, FileText, CreditCard, Folder } from "lucide-react";
+import {
+  Home,
+  Building,
+  FileText,
+  CreditCard,
+  Folder,
+  FileSignature,
+} from "lucide-react";
 
 /**
  * Server-side buyer portal shell. Distinct from `PortalShell` (investors)
@@ -20,6 +27,7 @@ export function BuyerShell({
     { href: "/buyer-portal/units", label: "My Villas", Icon: Building },
     { href: "/buyer-portal/reports", label: "Progress reports", Icon: FileText },
     { href: "/buyer-portal/payments", label: "Payments", Icon: CreditCard },
+    { href: "/buyer-portal/contract", label: "Contract", Icon: FileSignature },
     { href: "/buyer-portal/documents", label: "Documents", Icon: Folder },
   ];
   return (
