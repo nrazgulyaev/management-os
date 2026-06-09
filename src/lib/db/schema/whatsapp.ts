@@ -25,6 +25,7 @@ import { aiAssistantRuns } from "./ai";
 import { siteReports } from "./site-operations";
 import { projects } from "./projects";
 import { devNotificationDeliveryLog } from "./sales";
+import { organizations } from "./saas";
 
 export const whatsappPhoneNumbers = pgTable(
   "whatsapp_phone_numbers",
@@ -39,6 +40,11 @@ export const whatsappPhoneNumbers = pgTable(
     numberType: text("number_type").notNull(),
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
+    }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  project → projects.organization_id (else default). Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
 
     resolvedEntityType: text("resolved_entity_type"),
@@ -76,6 +82,7 @@ export const whatsappPhoneNumbers = pgTable(
       t.resolvedEntityId,
     ),
     index("whatsapp_phone_numbers_project_idx").on(t.projectId),
+    index("whatsapp_phone_numbers_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -89,6 +96,12 @@ export const whatsappMessages = pgTable(
 
     provider: text("provider").notNull(),
     externalMessageSid: text("external_message_sid"),
+
+    /** TENANCY (migration 0154): nullable org anchor. WhatsApp messages have no
+     *  clean local parent — backfilled to ARCONIQUE_DEFAULT only. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
 
     /** 'inbound' | 'outbound' */
     direction: text("direction").notNull(),
@@ -176,6 +189,7 @@ export const whatsappMessages = pgTable(
     index("whatsapp_messages_from_phone_idx").on(t.fromPhoneId),
     index("whatsapp_messages_to_phone_idx").on(t.toPhoneId),
     index("whatsapp_messages_occurred_idx").on(sql`${t.occurredAt} desc`),
+    index("whatsapp_messages_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -186,6 +200,11 @@ export const whatsappMessageTemplates = pgTable(
   "whatsapp_message_templates",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** TENANCY (migration 0154): nullable org anchor. Templates are catalog-like
+     *  with no tenant parent — backfilled to ARCONIQUE_DEFAULT only. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     templateKey: text("template_key").notNull().unique(),
     displayName: text("display_name").notNull(),
     description: text("description"),
@@ -226,6 +245,7 @@ export const whatsappMessageTemplates = pgTable(
     index("whatsapp_message_templates_event_idx").on(
       t.notificationEventType,
     ),
+    index("whatsapp_message_templates_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -238,6 +258,12 @@ export const whatsappWebhookEvents = pgTable(
   "whatsapp_webhook_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+
+    /** TENANCY (migration 0154): nullable org anchor. Raw webhook events have no
+     *  tenant parent at receipt — backfilled to ARCONIQUE_DEFAULT only. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
 
     provider: text("provider").notNull(),
     eventType: text("event_type").notNull(),
@@ -270,6 +296,7 @@ export const whatsappWebhookEvents = pgTable(
     ),
     index("whatsapp_webhook_events_status_idx").on(t.processingStatus),
     index("whatsapp_webhook_events_message_idx").on(t.relatedMessageId),
+    index("whatsapp_webhook_events_organization_idx").on(t.organizationId),
   ],
 );
 

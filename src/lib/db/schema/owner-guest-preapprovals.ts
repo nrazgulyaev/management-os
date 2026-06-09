@@ -13,6 +13,7 @@
 
 import { date, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { owners } from "./ownership";
+import { organizations } from "./saas";
 
 export type GuestPreapprovalStatus =
   | "requested"
@@ -28,6 +29,11 @@ export const ownerGuestPreapprovals = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  villa → project.organization_id (else owner share). Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** One of the owner's villas — ownership enforced in the action. */
     villaId: uuid("villa_id").notNull(),
     guestName: text("guest_name").notNull(),
@@ -51,6 +57,7 @@ export const ownerGuestPreapprovals = pgTable(
     index("owner_guest_preapprovals_owner_created_idx").on(t.ownerId, t.createdAt),
     index("owner_guest_preapprovals_owner_status_idx").on(t.ownerId, t.status),
     index("owner_guest_preapprovals_villa_arrive_idx").on(t.villaId, t.arriveOn),
+    index("owner_guest_preapprovals_organization_idx").on(t.organizationId),
   ],
 );
 

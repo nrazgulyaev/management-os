@@ -32,6 +32,7 @@ import { investors, distributions } from "./investor-capital";
 import { devCostCategories, devBankAccounts, devTransactions } from "./dev-finance";
 import { documents } from "./documents";
 import { projects } from "./projects";
+import { organizations } from "./saas";
 
 /**
  * One HITL draft per site report. Active analyses (draft / approved /
@@ -46,6 +47,11 @@ export const aiConstructionAnalyses = pgTable(
     siteReportId: uuid("site_report_id")
       .notNull()
       .references(() => siteReports.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  site_report → site_reports.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
 
     draftSummary: text("draft_summary").notNull(),
     draftSummaryTranslations: jsonb("draft_summary_translations")
@@ -91,6 +97,7 @@ export const aiConstructionAnalyses = pgTable(
     index("ai_construction_analyses_report_idx").on(t.siteReportId),
     index("ai_construction_analyses_status_idx").on(t.status),
     index("ai_construction_analyses_safety_idx").on(t.safetyStatus),
+    index("ai_construction_analyses_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -110,6 +117,11 @@ export const aiInvestorQaDrafts = pgTable(
     investorId: uuid("investor_id")
       .notNull()
       .references(() => investors.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  investor → investors.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
 
     question: text("question").notNull(),
     questionLanguage: text("question_language"),
@@ -146,6 +158,7 @@ export const aiInvestorQaDrafts = pgTable(
     index("ai_investor_qa_drafts_generated_idx").on(
       sql`${t.generatedAt} desc`,
     ),
+    index("ai_investor_qa_drafts_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -165,6 +178,11 @@ export const aiDistributionSuggestions = pgTable(
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  project → projects.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
 
     suggestedAmountUsdMinor: bigint("suggested_amount_usd_minor", {
       mode: "bigint",
@@ -254,6 +272,7 @@ export const aiDistributionSuggestions = pgTable(
     index("ai_distribution_suggestions_generated_idx").on(
       sql`${t.generatedAt} desc`,
     ),
+    index("ai_distribution_suggestions_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -274,6 +293,11 @@ export const aiDocumentExtractions = pgTable(
     documentId: uuid("document_id")
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  document → documents.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     documentType: text("document_type").notNull(),
 
     detectedLanguage: text("detected_language"),
@@ -359,6 +383,7 @@ export const aiDocumentExtractions = pgTable(
     index("ai_document_extractions_generated_idx").on(
       sql`${t.generatedAt} desc`,
     ),
+    index("ai_document_extractions_organization_idx").on(t.organizationId),
   ],
 );
 

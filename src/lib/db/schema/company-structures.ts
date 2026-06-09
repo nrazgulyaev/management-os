@@ -21,6 +21,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { projects } from "./projects";
 import { investors } from "./investor-capital";
+import { organizations } from "./saas";
 
 export const projectCompanyStructures = pgTable(
   "project_company_structures",
@@ -29,6 +30,11 @@ export const projectCompanyStructures = pgTable(
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  project → projects.organization_id. Not threaded into queries yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
 
     structureLabel: text("structure_label").notNull(),
     /**
@@ -67,6 +73,9 @@ export const projectCompanyStructures = pgTable(
   (t) => ({
     projectIdx: index("project_company_structures_project_idx").on(t.projectId),
     activeIdx: index("project_company_structures_active_idx").on(t.isActive),
+    organizationIdx: index("project_company_structures_organization_idx").on(
+      t.organizationId,
+    ),
   }),
 );
 
@@ -77,6 +86,11 @@ export const companyStructureShareholders = pgTable(
     structureId: uuid("structure_id")
       .notNull()
       .references(() => projectCompanyStructures.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  structure → project_company_structures.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
 
     /**
      * 'arconique' | 'investor' | 'klr_real_estate' | 'land_owner' | 'external_party'
@@ -109,6 +123,9 @@ export const companyStructureShareholders = pgTable(
     investorIdx: index("company_structure_shareholders_investor_idx").on(
       t.investorId,
     ),
+    organizationIdx: index(
+      "company_structure_shareholders_organization_idx",
+    ).on(t.organizationId),
   }),
 );
 

@@ -17,6 +17,7 @@ import { operationTasks } from "./operations";
 import { taskMaterialUsage } from "./inventory";
 import { inventoryMovements } from "./inventory";
 import { expenseLines } from "./finance";
+import { organizations } from "./saas";
 
 /**
  * v6 — Booking channels calendar sync, automation, and finance bridge.
@@ -41,6 +42,11 @@ export const channelCalendarFeeds = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  villa → project.organization_id (else feed.project_id). Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     feedName: text("feed_name").notNull(),
     feedUrl: text("feed_url").notNull(),
     feedType: text("feed_type").notNull().default("ical"),
@@ -58,6 +64,7 @@ export const channelCalendarFeeds = pgTable(
     index("ccf_villa_idx").on(t.villaId),
     index("ccf_status_idx").on(t.status),
     index("ccf_channel_idx").on(t.bookingChannelId),
+    index("channel_calendar_feeds_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -68,6 +75,11 @@ export const channelCalendarEvents = pgTable(
     feedId: uuid("feed_id")
       .notNull()
       .references(() => channelCalendarFeeds.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  feed → channel_calendar_feeds.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     externalUid: text("external_uid").notNull(),
     externalSummary: text("external_summary"),
     externalDescription: text("external_description"),
@@ -90,6 +102,7 @@ export const channelCalendarEvents = pgTable(
     index("cce_booking_idx").on(t.bookingId),
     index("cce_dates_idx").on(t.checkIn, t.checkOut),
     index("cce_status_idx").on(t.status),
+    index("channel_calendar_events_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -105,6 +118,11 @@ export const bookingConflicts = pgTable(
       () => channelCalendarEvents.id,
       { onDelete: "cascade" },
     ),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  villa → project.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     conflictType: text("conflict_type").notNull(),
     severity: text("severity").notNull().default("warning"),
     description: text("description").notNull(),
@@ -118,6 +136,7 @@ export const bookingConflicts = pgTable(
     index("bc_villa_idx").on(t.villaId),
     index("bc_status_idx").on(t.status),
     index("bc_booking_idx").on(t.bookingId),
+    index("booking_conflicts_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -127,6 +146,11 @@ export const bookingAutomationRules = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
     villaId: uuid("villa_id").references(() => villas.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  project (else villa → project).organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ruleName: text("rule_name").notNull(),
     triggerEvent: text("trigger_event").notNull(),
     taskCategory: text("task_category").notNull(),
@@ -146,6 +170,7 @@ export const bookingAutomationRules = pgTable(
     index("bar_trigger_idx").on(t.triggerEvent),
     index("bar_villa_idx").on(t.villaId),
     index("bar_project_idx").on(t.projectId),
+    index("booking_automation_rules_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -160,11 +185,19 @@ export const bookingAutomationRuns = pgTable(
       onDelete: "set null",
     }),
     taskId: uuid("task_id").references(() => operationTasks.id, { onDelete: "set null" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  booking → bookings.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     runStatus: text("run_status").notNull().default("created"),
     reason: text("reason"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("bar_run_booking_idx").on(t.bookingId)],
+  (t) => [
+    index("bar_run_booking_idx").on(t.bookingId),
+    index("booking_automation_runs_organization_idx").on(t.organizationId),
+  ],
 );
 
 export const financeMaterialUsageLinks = pgTable(
@@ -184,6 +217,11 @@ export const financeMaterialUsageLinks = pgTable(
     bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
     villaId: uuid("villa_id").references(() => villas.id, { onDelete: "set null" }),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  villa/project/booking → organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     ownerChargeable: boolean("owner_chargeable").notNull().default(true),
     status: text("status").notNull().default("pending"),
     reason: text("reason"),
@@ -195,6 +233,7 @@ export const financeMaterialUsageLinks = pgTable(
     uniqueIndex("fmul_usage_unique").on(t.taskMaterialUsageId),
     index("fmul_status_idx").on(t.status),
     index("fmul_expense_idx").on(t.expenseLineId),
+    index("finance_material_usage_links_organization_idx").on(t.organizationId),
   ],
 );
 

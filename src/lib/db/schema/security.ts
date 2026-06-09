@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 /**
  * Prompt 111 — Security baseline & operational hardening.
@@ -27,6 +28,11 @@ export const authMfaFactors = pgTable(
     appUserId: uuid("app_user_id")
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  app_user → app_users.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     factorType: text("factor_type").notNull().default("totp"),
     status: text("status").notNull().default("pending"),
     issuer: text("issuer").notNull().default("Arconique"),
@@ -47,6 +53,7 @@ export const authMfaFactors = pgTable(
   (t) => [
     index("auth_mfa_factors_user_idx").on(t.appUserId),
     index("auth_mfa_factors_status_idx").on(t.status),
+    index("auth_mfa_factors_organization_idx").on(t.organizationId),
     uniqueIndex("auth_mfa_factors_active_unique")
       .on(t.appUserId)
       .where(
@@ -62,6 +69,11 @@ export const authMfaRecoveryCodes = pgTable(
     appUserId: uuid("app_user_id")
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  app_user → app_users.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     codeHash: text("code_hash").notNull().unique(),
     status: text("status").notNull().default("active"),
     usedAt: timestamp("used_at", { withTimezone: true }),
@@ -69,7 +81,10 @@ export const authMfaRecoveryCodes = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("auth_mfa_recovery_codes_user_idx").on(t.appUserId)],
+  (t) => [
+    index("auth_mfa_recovery_codes_user_idx").on(t.appUserId),
+    index("auth_mfa_recovery_codes_organization_idx").on(t.organizationId),
+  ],
 );
 
 export const authLoginAttempts = pgTable(
@@ -79,6 +94,12 @@ export const authLoginAttempts = pgTable(
     emailNormalized: text("email_normalized"),
     appUserId: uuid("app_user_id").references(() => appUsers.id, {
       onDelete: "set null",
+    }),
+    /** TENANCY (migration 0154): nullable org anchor. Pre-auth throttling row —
+     *  backfilled from app_user.org where a user is known, else ARCONIQUE_DEFAULT
+     *  (may legitimately stay NULL). Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
     ipHash: text("ip_hash"),
     userAgentHash: text("user_agent_hash"),
@@ -102,6 +123,7 @@ export const authLoginAttempts = pgTable(
       t.appUserId,
       sql`${t.createdAt} DESC`,
     ),
+    index("auth_login_attempts_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -111,6 +133,11 @@ export const authSecurityEvents = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     appUserId: uuid("app_user_id").references(() => appUsers.id, {
       onDelete: "set null",
+    }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled from
+     *  app_user.org where a user is known, else ARCONIQUE_DEFAULT. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
     eventType: text("event_type").notNull(),
     severity: text("severity").notNull().default("info"),
@@ -134,6 +161,7 @@ export const authSecurityEvents = pgTable(
       t.severity,
       sql`${t.createdAt} DESC`,
     ),
+    index("auth_security_events_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -141,6 +169,12 @@ export const jobLocks = pgTable(
   "job_locks",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** TENANCY (migration 0154): nullable org anchor. job_locks are cron-mutex
+     *  infra with no tenant parent — backfilled to ARCONIQUE_DEFAULT only.
+     *  Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     jobKey: text("job_key").notNull().unique(),
     status: text("status").notNull().default("locked"),
     lockedBy: text("locked_by").notNull(),
@@ -154,6 +188,7 @@ export const jobLocks = pgTable(
   (t) => [
     index("job_locks_status_idx").on(t.status),
     index("job_locks_expires_idx").on(t.expiresAt),
+    index("job_locks_organization_idx").on(t.organizationId),
   ],
 );
 

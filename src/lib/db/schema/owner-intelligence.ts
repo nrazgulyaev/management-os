@@ -15,6 +15,7 @@ import { sql } from "drizzle-orm";
 import { projects, villas } from "./projects";
 import { bookings, guests } from "./bookings";
 import { owners } from "./ownership";
+import { organizations } from "./saas";
 
 /**
  * Prompt 101 — Owner Calendar & Villa Health Reports.
@@ -44,6 +45,11 @@ export const guestReviews = pgTable(
     }),
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
+    }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  villa → project.organization_id (else project_id). Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
     source: text("source").notNull(),
     externalReviewId: text("external_review_id"),
@@ -85,6 +91,7 @@ export const guestReviews = pgTable(
     index("guest_reviews_booking_idx").on(t.bookingId),
     index("guest_reviews_owner_visible_idx").on(t.ownerVisible),
     index("guest_reviews_status_idx").on(t.status),
+    index("guest_reviews_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -95,6 +102,11 @@ export const ownerCalendarPreferences = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  owner → ownership_shares → project.organization_id. Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     defaultCurrency: text("default_currency").notNull().default("USD"),
     showGuestNames: boolean("show_guest_names").notNull().default(true),
     showGuestCountry: boolean("show_guest_country")
@@ -118,6 +130,7 @@ export const ownerCalendarPreferences = pgTable(
   },
   (t) => [
     uniqueIndex("owner_calendar_preferences_owner_unique").on(t.ownerId),
+    index("owner_calendar_preferences_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -130,6 +143,11 @@ export const villaHealthSnapshots = pgTable(
       .references(() => villas.id, { onDelete: "cascade" }),
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
+    }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  villa → project.organization_id (else project_id). Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
     periodStart: date("period_start").notNull(),
     periodEnd: date("period_end").notNull(),
@@ -187,6 +205,7 @@ export const villaHealthSnapshots = pgTable(
     index("villa_health_snapshots_generated_idx").on(
       sql`${t.generatedAt} DESC`,
     ),
+    index("villa_health_snapshots_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -202,6 +221,12 @@ export const ownerVisibleEvents = pgTable(
     }),
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
+    }),
+    /** TENANCY (migration 0154): nullable org anchor, backfilled via
+     *  villa → project.organization_id (else project_id, else owner share).
+     *  Not threaded yet. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
     sourceType: text("source_type").notNull(),
     sourceId: uuid("source_id"),
@@ -230,6 +255,7 @@ export const ownerVisibleEvents = pgTable(
     ),
     index("owner_visible_events_source_idx").on(t.sourceType, t.sourceId),
     index("owner_visible_events_severity_idx").on(t.severity),
+    index("owner_visible_events_organization_idx").on(t.organizationId),
   ],
 );
 
