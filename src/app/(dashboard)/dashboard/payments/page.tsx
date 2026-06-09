@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { TableEmpty } from "@/components/ui/table-empty";
-import { Kpi } from "@/components/dashboard/primitives";
+import { Card, Kpi, SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -37,7 +37,7 @@ function money(minor: bigint, currency: string | null): string {
   return `${whole}.${String(frac).padStart(2, "0")} ${currency ?? ""}`.trim();
 }
 
-function fmtDateTime(d: Date | string): string {
+function fmtTime(d: Date | string): string {
   return new Date(d).toLocaleString("en-GB", {
     day: "numeric",
     month: "short",
@@ -64,46 +64,41 @@ export default async function PaymentsHub() {
     ),
   ]);
 
-  const activeProviders = providers.filter((p) => p.status === "active").length;
-
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
-        <div className="left">
-          <div className="crumb">
-            <Link href="/dashboard">Dashboard</Link> / <span>Payments</span>
-          </div>
-          <h1>Payments</h1>
-          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
-            Provider configuration, deposit collection and idempotent webhook
-            envelopes. Private credentials live encrypted and never surface in
-            the UI — only public config and status are shown here.
-          </p>
-        </div>
-        <div className="actions">
-          <Link href="/dashboard/payments/webhooks" className="btn btn-secondary btn-sm">
-            Webhooks →
-          </Link>
-          <Link href="/dashboard/payments/providers/new" className="btn btn-accent btn-sm">
-            + Add connection
-          </Link>
-        </div>
-      </div>
+      <SectionHeading
+        eyebrow="Payments · providers + webhooks"
+        title={
+          <>
+            Deposits &amp; <em>envelopes</em>.
+          </>
+        }
+        subtitle="Provider configuration and idempotent webhook events. Today the manual stub records deposits as pending; admins flip them to paid to gate conversion."
+        actions={
+          <>
+            <Link
+              href="/dashboard/payments/webhooks"
+              className="btn btn-secondary btn-sm"
+            >
+              Webhooks →
+            </Link>
+            <Link
+              href="/dashboard/payments/providers/new"
+              className="btn btn-accent btn-sm"
+            >
+              + Add connection
+            </Link>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
+      <div className="dist-kpis">
         <Kpi label="Pending deposits" value={String(m.pending)} sub="awaiting payment" />
         <Kpi
-          label="Paid deposits"
+          label="Paid"
           value={String(m.paid)}
-          sub="cleared"
+          sub="incl. manual"
           tone={m.paid > 0 ? "success" : undefined}
-        />
-        <Kpi label="Manually marked" value={String(m.manuallyMarkedPaid)} sub="admin override" />
-        <Kpi
-          label="Failed / expired"
-          value={String(m.failed)}
-          sub={m.failed > 0 ? "needs review" : "none"}
-          tone={m.failed > 0 ? "accent" : undefined}
         />
         <Kpi
           label="Collected"
@@ -111,105 +106,97 @@ export default async function PaymentsHub() {
           sub="total deposits"
           tone="gold"
         />
+        <Kpi
+          label="Failed / expired"
+          value={String(m.failed)}
+          sub={m.failed > 0 ? "needs review" : "none"}
+          tone={m.failed > 0 ? "warn" : undefined}
+        />
       </div>
 
       <DbStatusNotice />
 
-      {/* Providers */}
-      <div className="flex items-end justify-between mt-2 mb-3.5">
-        <h2 className="display text-[22px] font-normal">
-          Providers · <em>{activeProviders} active</em>
-        </h2>
-        <Link
-          href="/dashboard/payments/providers"
-          className="text-[12px] text-ink-3 hover:text-ink underline"
-        >
-          Manage connections →
-        </Link>
-      </div>
-      <div className="card p-0 overflow-hidden mb-[18px]">
-        <table className="data">
-          <thead>
-            <tr>
-              <th scope="col">Provider</th>
-              <th scope="col">Display name</th>
-              <th scope="col">Mode</th>
-              <th scope="col">Currencies</th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {providers.length === 0 ? (
-              <TableEmpty colSpan={5}>No providers configured. Wire Stripe, Wise, PayPal or the
-                  manual stub to start collecting payments.</TableEmpty>
-            ) : (
-              providers.map((p) => (
-                <tr key={p.id}>
-                  <td className="mono text-[12px]">{p.providerKey}</td>
-                  <td>{p.displayName}</td>
-                  <td>
-                    <Badge tone={p.mode === "live" ? "success" : "neutral"}>{p.mode}</Badge>
-                  </td>
-                  <td className="text-[12px] text-ink-3">
-                    {p.supportedCurrencies?.join(", ") ?? "—"}
-                  </td>
-                  <td>
-                    <Badge tone={PROVIDER_TONE[p.status] ?? "neutral"}>{p.status}</Badge>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="dist-2col mt-[18px]">
+        {/* Webhook envelopes */}
+        <Card padding="none" overflowHidden>
+          <div className="dist-card-h px-5 pt-[18px]">
+            <h3>Webhook envelopes</h3>
+            <span className="meta">Idempotent · recent</span>
+          </div>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Event</th>
+                <th scope="col">Provider</th>
+                <th scope="col">External ID</th>
+                <th scope="col">Received</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {webhooks.length === 0 ? (
+                <TableEmpty colSpan={5}>No webhook events yet. Live providers post idempotent envelopes
+                    here; the manual stub never writes.</TableEmpty>
+              ) : (
+                webhooks.map((e) => (
+                  <tr key={e.id}>
+                    <td className="mono text-[12px]">{e.eventType}</td>
+                    <td className="mono text-[12px]">{e.providerKey}</td>
+                    <td className="mono text-[11px] text-ink-3">{e.externalEventId ?? "—"}</td>
+                    <td className="mono text-[11px] text-ink-3 whitespace-nowrap">
+                      {fmtTime(e.createdAt)}
+                    </td>
+                    <td>
+                      <Badge tone={WEBHOOK_TONE[e.status] ?? "neutral"}>{e.status}</Badge>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </Card>
+
+        {/* Providers */}
+        <Card padding="default">
+          <div className="dist-card-h">
+            <h3>Providers</h3>
+            <Link
+              href="/dashboard/payments/providers"
+              className="meta hover:text-ink"
+            >
+              Manage →
+            </Link>
+          </div>
+          {providers.length === 0 ? (
+            <p className="text-[13px] text-ink-3 mt-0">
+              No providers configured. Wire Stripe, Xendit or the manual stub to
+              start collecting payments.
+            </p>
+          ) : (
+            <div className="dist-prov-list">
+              {providers.map((p) => (
+                <div key={p.id} className="dist-prov">
+                  <span className="dist-prov-logo">
+                    {p.providerKey.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="dist-prov-body">
+                    <span className="dist-prov-name">{p.displayName}</span>
+                    <span className="dist-prov-sub">
+                      {p.status === "active" ? "Active" : p.status} ·{" "}
+                      {p.mode}
+                    </span>
+                  </span>
+                  <Badge tone={PROVIDER_TONE[p.status] ?? "neutral"}>
+                    {p.status === "active" ? "On" : "Off"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
 
-      {/* Recent webhooks */}
-      <div className="flex items-end justify-between mt-8 mb-3.5">
-        <h2 className="display text-[22px] font-normal">
-          Webhooks · <em>recent</em>
-        </h2>
-        <Link
-          href="/dashboard/payments/webhooks"
-          className="text-[12px] text-ink-3 hover:text-ink underline"
-        >
-          Full history →
-        </Link>
-      </div>
-      <div className="card p-0 overflow-hidden">
-        <table className="data">
-          <thead>
-            <tr>
-              <th scope="col">When</th>
-              <th scope="col">Provider</th>
-              <th scope="col">Type</th>
-              <th scope="col">External ID</th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {webhooks.length === 0 ? (
-              <TableEmpty colSpan={5}>No webhook events yet. Live providers post idempotent envelopes
-                  here; the manual stub never writes.</TableEmpty>
-            ) : (
-              webhooks.map((e) => (
-                <tr key={e.id}>
-                  <td className="mono text-[11px] text-ink-3 whitespace-nowrap">
-                    {fmtDateTime(e.createdAt)}
-                  </td>
-                  <td className="mono text-[12px]">{e.providerKey}</td>
-                  <td className="text-[12px]">{e.eventType}</td>
-                  <td className="mono text-[11px] text-ink-3">{e.externalEventId ?? "—"}</td>
-                  <td>
-                    <Badge tone={WEBHOOK_TONE[e.status] ?? "neutral"}>{e.status}</Badge>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <p className="text-[11px] text-ink-4 mt-4 max-w-[720px]">
+      <p className="text-[11px] text-ink-4 mt-6 max-w-[720px]">
         Private credentials live in <code>config_private_encrypted</code> and
         never surface in any UI. Public config is in{" "}
         <code>config_public_json</code>. Webhooks are idempotent via{" "}

@@ -1,0 +1,177 @@
+/* =============================================================
+   Distribution & Payments cluster (mgmt-p3/Distribution and Payments.html)
+   — primitives for the /direct-bookings · /payments · /service-fulfilment
+   · /integrations redesign. Translated 1:1 from the mockup's `gs-*` inline
+   styles into product-scoped, tokenised classes. Reuses the chrome `.kpi`
+   / `.card` / `table.data` / `.badge` vocabulary; these cover only the
+   cluster-specific blocks (conversion funnel, card header w/ meta, the
+   1.6fr/1fr split, provider + conflict rows).
+   ============================================================= */
+
+/* 4-up KPI strip — mockup `.gs-kpis`. */
+[data-product] .dist-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+/* Split layout — mockup `.gs-2col` (main column + rail). */
+[data-product] .dist-2col {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+/* Card header with optional right-aligned meta — mockup `.gs-card-h`. */
+[data-product] .dist-card-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+[data-product] .dist-card-h h3 {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--ink);
+}
+[data-product] .dist-card-h .meta {
+  margin-left: auto;
+  font-family: var(--mono-font), ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Conversion funnel — mockup `.gs-funnel` / `.gs-step`. */
+[data-product] .dist-funnel {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+}
+[data-product] .dist-step {
+  flex: 1;
+  padding: 14px 16px;
+  background: var(--cream-warm, var(--paper));
+  border: 1px solid var(--line-soft, var(--line));
+  position: relative;
+}
+[data-product] .dist-step:first-child {
+  border-radius: var(--r-card, 14px) 0 0 var(--r-card, 14px);
+}
+[data-product] .dist-step:last-child {
+  border-radius: 0 var(--r-card, 14px) var(--r-card, 14px) 0;
+}
+[data-product] .dist-step + .dist-step {
+  border-left: 0;
+}
+[data-product] .dist-step .l {
+  font-family: var(--mono-font), ui-monospace, monospace;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+[data-product] .dist-step .v {
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 30px;
+  color: var(--ink);
+  margin-top: 4px;
+  line-height: 1;
+}
+[data-product] .dist-step .c {
+  font-family: var(--mono-font), ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--ink-4);
+  margin-top: 4px;
+}
+[data-product] .dist-step.hot {
+  background: color-mix(in oklab, var(--terra) 10%, var(--paper));
+  border-color: color-mix(in oklab, var(--terra) 30%, var(--line));
+}
+[data-product] .dist-step.hot .v {
+  color: var(--terra);
+}
+
+/* Provider / conflict rows — mockup `.gs-prov`. */
+[data-product] .dist-prov-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+[data-product] .dist-prov {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: var(--r-card, 14px);
+  background: var(--paper);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.18s ease;
+}
+[data-product] a.dist-prov:hover {
+  border-color: var(--line-strong, var(--ink-2));
+}
+[data-product] .dist-prov-logo {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--cream-deep, var(--cream));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display-font), Georgia, serif;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+[data-product] .dist-prov-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+[data-product] .dist-prov-name {
+  font-size: 13.5px;
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product] .dist-prov-sub {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  margin-top: 1px;
+}
+/* Left accent rail for conflict severity — mockup inline border-left. */
+[data-product] .dist-prov.danger {
+  border-left: 3px solid var(--danger);
+}
+[data-product] .dist-prov.warn {
+  border-left: 3px solid var(--warn);
+}
+
+@media (max-width: 1000px) {
+  [data-product] .dist-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  [data-product] .dist-2col {
+    grid-template-columns: 1fr;
+  }
+  [data-product] .dist-funnel {
+    flex-wrap: wrap;
+  }
+  [data-product] .dist-step {
+    flex: 1 1 calc(50% - 1px);
+  }
+}
+
+@media (max-width: 600px) {
+  [data-product] .dist-kpis {
+    grid-template-columns: 1fr;
+  }
+}

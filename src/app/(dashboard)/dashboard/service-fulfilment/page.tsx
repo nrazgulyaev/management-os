@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { TableEmpty } from "@/components/ui/table-empty";
-import { Kpi } from "@/components/dashboard/primitives";
+import { Card, Kpi, SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
   getFulfilmentMetrics,
+  listGuestServiceFulfilments,
   listServiceVendors,
 } from "@/features/service-fulfilment/services";
 import { formatFulfilmentAmountForAdmin } from "@/features/service-fulfilment/pricing-pure";
@@ -12,14 +13,55 @@ import { BridgePendingButton } from "@/components/service-fulfilment/buttons";
 export const metadata = { title: "Service fulfilment" };
 export const dynamic = "force-dynamic";
 
+const STATUS_TONE: Record<
+  string,
+  "accent" | "warning" | "success" | "info" | "neutral" | "danger"
+> = {
+  new: "accent",
+  triage: "accent",
+  awaiting_vendor: "warning",
+  vendor_confirmed: "info",
+  guest_confirmed: "info",
+  scheduled: "success",
+  in_progress: "info",
+  completed: "neutral",
+  cancelled: "neutral",
+  failed: "danger",
+  no_show: "danger",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  new: "New",
+  triage: "Triage",
+  awaiting_vendor: "Awaiting vendor",
+  vendor_confirmed: "Vendor confirmed",
+  guest_confirmed: "Guest confirmed",
+  scheduled: "Scheduled",
+  in_progress: "In progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  failed: "Failed",
+  no_show: "No-show",
+};
+
+function fmtEta(d: Date | null): string {
+  if (!d) return "—";
+  return new Date(d).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+}
+
 export default async function ServiceFulfilmentHub() {
-  const [m, vendors] = await Promise.all([
+  const [m, vendors, queue] = await Promise.all([
     getFulfilmentMetrics(),
     listServiceVendors({ status: "active" }),
+    listGuestServiceFulfilments({ limit: 14 }),
   ]);
 
-  const inProgress = m.newCount + m.triageCount + m.awaitingVendorCount;
-  const categories = new Set(vendors.map((v) => v.vendorType)).size;
   const rated = vendors.filter((v) => v.ratingAverage != null);
   const avgRating =
     rated.length > 0
@@ -27,45 +69,39 @@ export default async function ServiceFulfilmentHub() {
           rated.reduce((s, v) => s + Number(v.ratingAverage), 0) / rated.length
         ).toFixed(1)
       : "—";
+  const awaiting = m.awaitingVendorCount;
+  const triage = m.newCount + m.triageCount;
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
-        <div className="left">
-          <div className="crumb">
-            <Link href="/dashboard">Dashboard</Link> / <span>Service fulfilment</span>
-          </div>
-          <h1>Service fulfilment</h1>
-          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
-            Every service tracked from guest order to vendor invoice to the
-            finance bridge — without leaking guest contact info or owner finance
-            to vendors. Scorecards drive routing.
-          </p>
-        </div>
-        <div className="actions">
-          <Link href="/dashboard/service-fulfilment/invoices" className="btn btn-secondary btn-sm">
-            Invoices →
-          </Link>
-          <Link href="/dashboard/service-fulfilment/vendors" className="btn btn-accent btn-sm">
-            Vendors →
-          </Link>
-        </div>
-      </div>
+      <SectionHeading
+        eyebrow="Service fulfilment · vendor dispatch"
+        title={
+          <>
+            Request to <em>margin</em>.
+          </>
+        }
+        subtitle="Triage guest requests, dispatch vendors, track ETAs, capture invoices + ratings, bridge to finance — without leaking guest contact or owner finance to vendors."
+        actions={<BridgePendingButton />}
+      />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
-        <Kpi label="Active vendors" value={String(vendors.length)} sub={`${categories} categories`} />
+      <div className="dist-kpis">
         <Kpi
-          label="In progress"
-          value={String(inProgress)}
-          sub="new / triage / awaiting"
-          tone={inProgress > 0 ? "accent" : undefined}
+          label="Triage"
+          value={String(triage)}
+          sub="need routing"
+          tone={triage > 0 ? "accent" : undefined}
         />
-        <Kpi label="Scheduled today" value={String(m.scheduledTodayCount)} sub="dispatched" />
         <Kpi
-          label="Unbridged completed"
-          value={String(m.unbridgedCompletedCount)}
-          sub={m.unbridgedCompletedCount > 0 ? "bridge to finance" : "all bridged"}
-          tone={m.unbridgedCompletedCount > 0 ? "accent" : undefined}
+          label="Awaiting vendor"
+          value={String(awaiting)}
+          sub={`${m.unbridgedCompletedCount} unbridged`}
+          tone={awaiting > 0 ? "warn" : undefined}
+        />
+        <Kpi
+          label="Scheduled today"
+          value={String(m.scheduledTodayCount)}
+          sub="dispatched"
         />
         <Kpi
           label="Margin · completed"
@@ -75,19 +111,66 @@ export default async function ServiceFulfilmentHub() {
         />
       </div>
 
-      {/* Operate */}
-      <div className="rounded-md border border-line-soft bg-surface px-4 py-3 flex items-center gap-3 flex-wrap text-xs mt-[18px]">
-        <span className="text-ink-tertiary">
-          Bridge completed fulfilments to revenue + expense lines
-        </span>
-        <div className="ml-auto">
-          <BridgePendingButton />
+      {/* Triage queue */}
+      <Card padding="none" overflowHidden className="mb-[18px]">
+        <div className="dist-card-h px-5 pt-[18px]">
+          <h3>Triage queue</h3>
+          <span className="meta">{queue.length} open · newest first</span>
         </div>
-      </div>
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Request</th>
+              <th scope="col">Guest · villa</th>
+              <th scope="col">Vendor</th>
+              <th scope="col">ETA</th>
+              <th scope="col" className="num">Margin</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {queue.length === 0 ? (
+              <TableEmpty colSpan={6}>No open fulfilments. Guest service orders land here for triage.</TableEmpty>
+            ) : (
+              queue.map(({ fulfilment: f, service, vendor, villa }) => (
+                <tr key={f.id}>
+                  <td className="row-title">
+                    <Link
+                      href={`/dashboard/service-fulfilment/fulfilments/${f.id}`}
+                      className="hover:text-terra"
+                    >
+                      {service?.name ?? f.fulfilmentCode}
+                    </Link>
+                  </td>
+                  <td className="mono text-[12px]">{villa?.unitCode ?? "—"}</td>
+                  <td className={vendor ? "" : "text-ink-4"}>
+                    {vendor?.displayName ?? "—"}
+                  </td>
+                  <td className="mono text-[12px] text-ink-3">
+                    {fmtEta(f.scheduledFor)}
+                  </td>
+                  <td className="num mono text-[12px]">
+                    {f.marginMinor != null
+                      ? formatFulfilmentAmountForAdmin(f.marginMinor, f.currency)
+                      : "—"}
+                  </td>
+                  <td>
+                    <Badge tone={STATUS_TONE[f.status] ?? "neutral"}>
+                      {STATUS_LABEL[f.status] ?? f.status}
+                    </Badge>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </Card>
 
       {/* Vendor scorecards */}
-      <div className="flex items-end justify-between mt-6 mb-3.5">
-        <h2 className="display text-[22px] font-normal">Vendor scorecards</h2>
+      <div className="flex items-end justify-between mt-8 mb-3.5">
+        <h2 className="display text-[22px] font-normal">
+          Vendor scorecards · <em>{vendors.length}</em>
+        </h2>
         <Link
           href="/dashboard/service-fulfilment/vendors"
           className="text-[12px] text-ink-3 hover:text-ink underline"
@@ -95,7 +178,7 @@ export default async function ServiceFulfilmentHub() {
           All vendors →
         </Link>
       </div>
-      <div className="card p-0 overflow-hidden mb-[18px]">
+      <Card padding="none" overflowHidden className="mb-[18px]">
         <table className="data">
           <thead>
             <tr>
@@ -113,7 +196,7 @@ export default async function ServiceFulfilmentHub() {
             ) : (
               vendors.slice(0, 14).map((v) => (
                 <tr key={v.id}>
-                  <td>
+                  <td className="row-title">
                     <Link
                       href={`/dashboard/service-fulfilment/vendors/${v.id}`}
                       className="hover:text-terra"
@@ -137,7 +220,7 @@ export default async function ServiceFulfilmentHub() {
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       {/* Surfaces */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
