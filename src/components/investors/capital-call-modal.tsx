@@ -6,7 +6,7 @@
  * Destructive-style modal (default focus = Cancel) — issuing a
  * capital call commits LPs to wiring funds, so the wrong click is
  * costly. Renders the pro-rata preview from draftCapitalCall();
- * the allocations sum is asserted to equal totalIdr exactly.
+ * the allocations sum is asserted to equal totalUsd exactly.
  */
 
 import * as React from "react";
@@ -28,10 +28,9 @@ function fmt(amount: number): string {
 }
 
 export function CapitalCallModal({ open, onOpenChange, fundId, fundName, number, lps, onIssue }: CapitalCallModalProps) {
-  // Funds are USD-denominated. `totalIdr` is a legacy field name — the value
-  // is whole USD dollars (the issue action stores it as USD minor units). Do
-  // NOT apply any IDR conversion here; the label below reads "USD".
-  const [totalIdr, setTotalIdr] = React.useState(0);
+  // Funds are USD-denominated; this value is whole USD dollars (the issue
+  // action stores it as USD minor units).
+  const [totalUsd, setTotalUsd] = React.useState(0);
   const [purpose, setPurpose] = React.useState("");
   const [noticeAt, setNoticeAt] = React.useState(() => new Date().toISOString().slice(0, 10));
   const [dueAt, setDueAt] = React.useState(() => {
@@ -43,7 +42,7 @@ export function CapitalCallModal({ open, onOpenChange, fundId, fundName, number,
 
   React.useEffect(() => {
     if (!open) {
-      setTotalIdr(0);
+      setTotalUsd(0);
       setPurpose("");
     } else {
       const t = setTimeout(() => cancelRef.current?.focus(), 30);
@@ -54,16 +53,16 @@ export function CapitalCallModal({ open, onOpenChange, fundId, fundName, number,
   const draft = draftCapitalCall({
     fundId,
     number,
-    totalIdr,
+    totalUsd,
     purpose,
     noticeAt,
     dueAt,
     lps: lps.map((l) => ({ lpId: l.lpId, pctOfFund: l.pctOfFund })),
   });
   const lpsByName = React.useMemo(() => Object.fromEntries(lps.map((l) => [l.lpId, l.lpName])), [lps]);
-  const sumOk = draft.allocatedTotal === totalIdr;
-  const valid = totalIdr > 0 && purpose.trim().length > 0 && sumOk;
-  const dirty = totalIdr > 0 || purpose.length > 0;
+  const sumOk = draft.allocatedTotal === totalUsd;
+  const valid = totalUsd > 0 && purpose.trim().length > 0 && sumOk;
+  const dirty = totalUsd > 0 || purpose.length > 0;
 
   async function issue() {
     if (!valid) return;
@@ -92,8 +91,8 @@ export function CapitalCallModal({ open, onOpenChange, fundId, fundName, number,
               className="input"
               type="number"
               min={0}
-              value={totalIdr}
-              onChange={(e) => setTotalIdr(Number(e.target.value))}
+              value={totalUsd}
+              onChange={(e) => setTotalUsd(Number(e.target.value))}
             />
           </div>
           <div className="field">
@@ -120,7 +119,7 @@ export function CapitalCallModal({ open, onOpenChange, fundId, fundName, number,
           <header className="ccm-prev-head">
             <span className="ccm-prev-label mono">Pro-rata allocations</span>
             <span className={`ccm-prev-sum mono${sumOk ? " is-ok" : " is-bad"}`}>
-              {fmt(draft.allocatedTotal)} / {fmt(totalIdr)} USD
+              {fmt(draft.allocatedTotal)} / {fmt(totalUsd)} USD
             </span>
           </header>
           <ul className="ccm-prev-list">

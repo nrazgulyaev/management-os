@@ -2,14 +2,14 @@
  * Phase 2.4 dev-03 — Capital call issuer.
  *
  * Pro-rata allocation across LPs with rounding pinned so the sum
- * always equals `totalIdr` exactly (no drift). Returns the notice
+ * always equals `totalUsd` exactly (no drift). Returns the notice
  * payload that the call-reminder agent later enqueues.
  */
 
 export interface CapitalCallInput {
   fundId: string;
   number: number;
-  totalIdr: number;
+  totalUsd: number;
   purpose: string;
   noticeAt: string;
   dueAt: string;
@@ -24,12 +24,12 @@ export interface CapitalCallAllocation {
 export interface CapitalCallDraft {
   fundId: string;
   number: number;
-  totalIdr: number;
+  totalUsd: number;
   purpose: string;
   noticeAt: string;
   dueAt: string;
   allocations: CapitalCallAllocation[];
-  /** Sum across allocations — should equal totalIdr. */
+  /** Sum across allocations — should equal totalUsd. */
   allocatedTotal: number;
 }
 
@@ -37,10 +37,10 @@ export function draftCapitalCall(input: CapitalCallInput): CapitalCallDraft {
   const totalPct = input.lps.reduce((n, l) => n + l.pctOfFund, 0);
   const rough = input.lps.map((l) => ({
     lpId: l.lpId,
-    raw: totalPct > 0 ? (input.totalIdr * l.pctOfFund) / totalPct : 0,
+    raw: totalPct > 0 ? (input.totalUsd * l.pctOfFund) / totalPct : 0,
   }));
   const floored = rough.map((r) => ({ lpId: r.lpId, amount: Math.floor(r.raw) }));
-  let drift = input.totalIdr - floored.reduce((n, r) => n + r.amount, 0);
+  let drift = input.totalUsd - floored.reduce((n, r) => n + r.amount, 0);
   // Distribute drift to the LPs with the biggest fractional remainders.
   const orderedByFraction = rough
     .map((r, i) => ({ i, frac: r.raw - Math.floor(r.raw) }))
@@ -54,7 +54,7 @@ export function draftCapitalCall(input: CapitalCallInput): CapitalCallDraft {
   return {
     fundId: input.fundId,
     number: input.number,
-    totalIdr: input.totalIdr,
+    totalUsd: input.totalUsd,
     purpose: input.purpose,
     noticeAt: input.noticeAt,
     dueAt: input.dueAt,

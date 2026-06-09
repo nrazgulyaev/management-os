@@ -153,60 +153,106 @@ export async function issueCapitalCallAction(
       Number((committed * 1_000_000n) / totalCommitted) / 10_000,
   }));
 
-  // Determine the call sequence number for a deterministic ref.
-  const [countRow] = await db.execute(sql`
-    SELECT count(*)::int AS n FROM capital_calls WHERE project_id = ${parsed.projectId}
-  `);
-  const number =
-    Number((countRow as Record<string, unknown> | undefined)?.n ?? 0) + 1;
-
-  // Exact integer pro-rata over cents — sum always equals totalCents.
-  const draft = draftCapitalCall({
-    fundId: parsed.projectId,
-    number,
-    totalIdr: Number(totalCents),
-    purpose: parsed.purpose,
-    noticeAt: noticeAt.toISOString(),
-    dueAt: dueAt.toISOString(),
-    lps,
-  });
-
   // Build a project ref slug from the name (uppercase alnum, max 6).
   const slug =
     project.name
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "")
       .slice(0, 6) || "PROJ";
-  const ref = `CC-${slug}-${String(number).padStart(4, "0")}`;
 
-  const result = await db.transaction(async (tx) => {
-    const [call] = await tx
-      .insert(capitalCalls)
-      .values({
-        projectId: parsed.projectId,
-        ref,
-        kind: parsed.kind,
-        issuedAt: new Date(),
-        dueAt,
-        totalUsd: centsToNumericString(totalCents),
-        status: "issued",
-        notes: parsed.purpose,
-        createdByUserId: ctx.appUser?.id ?? null,
-      })
-      .returning({ id: capitalCalls.id, ref: capitalCalls.ref });
+  // The call sequence number is derived from COUNT(*)+1, which is racy
+  // against concurrent issues on the same project: two callers can compute
+  // the same number → the same ref → a UNIQUE violation on `capital_calls.ref`.
+  // Derive the number INSIDE the transaction and bound-retry the whole txn
+  // body on a Postgres unique_violation (SQLSTATE 23505), recomputing the
+  // count → ref each attempt so concurrent issues serialize onto distinct
+  // refs instead of throwing a raw collision error to the user.
+  const MAX_REF_ATTEMPTS = 5;
+  let result:
+    | {
+        id: string;
+        ref: string;
+        number: number;
+        allocationCount: number;
+        allocatedTotal: number;
+      }
+    | null = null;
 
-    if (draft.allocations.length > 0) {
-      await tx.insert(capitalCallAllocations).values(
-        draft.allocations.map((a) => ({
-          callId: call.id,
-          investorId: a.lpId,
-          allocatedUsd: centsToNumericString(BigInt(Math.round(a.amount))),
-        })),
-      );
+  for (let attempt = 0; attempt < MAX_REF_ATTEMPTS; attempt += 1) {
+    try {
+      result = await db.transaction(async (tx) => {
+        const [countRow] = await tx.execute(sql`
+          SELECT count(*)::int AS n FROM capital_calls WHERE project_id = ${parsed.projectId}
+        `);
+        const number =
+          Number((countRow as Record<string, unknown> | undefined)?.n ?? 0) + 1;
+        const ref = `CC-${slug}-${String(number).padStart(4, "0")}`;
+
+        // Exact integer pro-rata over cents — sum always equals totalCents.
+        const draft = draftCapitalCall({
+          fundId: parsed.projectId,
+          number,
+          totalUsd: Number(totalCents),
+          purpose: parsed.purpose,
+          noticeAt: noticeAt.toISOString(),
+          dueAt: dueAt.toISOString(),
+          lps,
+        });
+
+        const [call] = await tx
+          .insert(capitalCalls)
+          .values({
+            projectId: parsed.projectId,
+            ref,
+            kind: parsed.kind,
+            issuedAt: new Date(),
+            dueAt,
+            totalUsd: centsToNumericString(totalCents),
+            status: "issued",
+            notes: parsed.purpose,
+            createdByUserId: ctx.appUser?.id ?? null,
+          })
+          .returning({ id: capitalCalls.id, ref: capitalCalls.ref });
+
+        if (draft.allocations.length > 0) {
+          await tx.insert(capitalCallAllocations).values(
+            draft.allocations.map((a) => ({
+              callId: call.id,
+              investorId: a.lpId,
+              allocatedUsd: centsToNumericString(BigInt(Math.round(a.amount))),
+            })),
+          );
+        }
+
+        return {
+          id: call.id,
+          ref: call.ref,
+          number,
+          allocationCount: draft.allocations.length,
+          allocatedTotal: draft.allocatedTotal,
+        };
+      });
+      break;
+    } catch (err) {
+      // Retry only on a ref UNIQUE collision (Postgres unique_violation,
+      // SQLSTATE 23505); rethrow anything else immediately. The pg error
+      // carries `.code === "23505"` and its message also includes it — match
+      // both for robustness (mirrors the 23505 handling elsewhere in src).
+      const code = (err as { code?: unknown } | null)?.code;
+      const message = err instanceof Error ? err.message : String(err);
+      const isUniqueViolation = code === "23505" || message.includes("23505");
+      if (isUniqueViolation && attempt < MAX_REF_ATTEMPTS - 1) {
+        continue;
+      }
+      throw err;
     }
+  }
 
-    return { id: call.id, ref: call.ref };
-  });
+  if (!result) {
+    throw new Error(
+      "Could not allocate a unique capital-call reference after several attempts. Please retry.",
+    );
+  }
 
   await recordAuditEvent({
     actorUserId: ctx.appUser?.id ?? null,
@@ -220,19 +266,19 @@ export async function issueCapitalCallAction(
       kind: parsed.kind,
       totalUsdMinor: totalCents.toString(),
       dueAt: dueAt.toISOString(),
-      allocationCount: draft.allocations.length,
+      allocationCount: result.allocationCount,
     },
     metadata: {
       purpose: parsed.purpose,
-      allocatedTotalCents: draft.allocatedTotal,
+      allocatedTotalCents: result.allocatedTotal,
     },
   });
 
   return {
     id: result.id,
     ref: result.ref,
-    number,
+    number: result.number,
     totalUsdMinor: totalCents.toString(),
-    allocationCount: draft.allocations.length,
+    allocationCount: result.allocationCount,
   };
 }
