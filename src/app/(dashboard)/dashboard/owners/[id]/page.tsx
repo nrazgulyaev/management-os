@@ -24,6 +24,11 @@ import { RecordTimeline } from "@/components/ui/primitives";
 import { listCrmActivities } from "@/features/crm-activity/services";
 import { OwnerDetailTabs } from "./_detail-client";
 import { OwnerHeaderActions, OwnerInsightPanel } from "./_owner-actions-client";
+import { RecordTasks } from "@/components/crm-tasks/record-tasks";
+import {
+  listTasksForSubject,
+  listAssignableUsers,
+} from "@/features/crm-tasks/services";
 
 /**
  * Phase 2.1 PR 2 — Owner detail uses bricks B1 + B2 + B3 + B5 + B6.
@@ -48,6 +53,12 @@ export default async function OwnerDetailPage({
   const grants = await listAccessGrantsForOwner(id);
   const activeGrants = grants.filter((g) => g.status === "active");
   const canManage = await canManageEntity("owner");
+
+  // CRM follow-ups / reminders for this owner (HighLevel-style tasks).
+  const [crmTasks, assignableUsers] = await Promise.all([
+    listTasksForSubject("owner", id),
+    canManage ? listAssignableUsers() : Promise.resolve([]),
+  ]);
 
   // Retention-risk intelligence — run the (previously orphaned) engine over
   // this owner's real statements / anomalies / maintenance.
@@ -333,6 +344,16 @@ export default async function OwnerDetailPage({
     </div>
   );
 
+  const tasksPanel = (
+    <RecordTasks
+      subjectType="owner"
+      subjectId={owner.id}
+      tasks={crmTasks}
+      assignableUsers={assignableUsers}
+      canManage={canManage}
+    />
+  );
+
   const placeholderPanel = (label: string) => (
     <div className="flex flex-col gap-3 px-7 py-12 text-sm text-ink-tertiary">
       <p>{label} lands in Phase 2.2.</p>
@@ -390,6 +411,7 @@ export default async function OwnerDetailPage({
           { id: "overview", label: "Overview" },
           { id: "shares", label: "Shares", count: shares.length },
           { id: "churn", label: "Churn", count: churn?.breakdown.contributions.length },
+          { id: "tasks", label: "Tasks", count: crmTasks.filter((t) => t.status === "open").length || undefined },
           { id: "activity", label: "Activity", count: crmActivity.length || activity.length },
           { id: "statements", label: "Statements" },
           { id: "contacts", label: "Contacts" },
@@ -398,6 +420,7 @@ export default async function OwnerDetailPage({
           overview: overviewPanel,
           shares: sharesPanel,
           churn: churnPanel,
+          tasks: tasksPanel,
           activity: activityPanel,
           statements: placeholderPanel("Statements list"),
           contacts: placeholderPanel("Contacts"),

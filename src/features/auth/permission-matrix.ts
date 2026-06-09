@@ -65,6 +65,9 @@ export const ROLE_CAPABILITIES: Record<string, RoleKey[]> = {
   "owners.write": ["super_admin", "director", "finance_manager"],
   "shares.read": ["super_admin", "director", "finance_manager", "accountant"],
   "shares.write": ["super_admin", "director", "finance_manager"],
+  // crm follow-up tasks / reminders (any internal user can run their pipeline)
+  "crm_tasks.read": INTERNAL_ROLES,
+  "crm_tasks.write": INTERNAL_ROLES,
   // bookings / channels / guests
   "bookings.read": INTERNAL_ROLES,
   "bookings.write": [

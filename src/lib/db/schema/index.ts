@@ -134,3 +134,5 @@ export * from "./takeoff-measurements";
 export * from "./crm-activities";
 // CRM saved views + advanced filters (migration 0145, crm-saved-views-bulk).
 export * from "./crm-saved-views";
+// CRM tasks / follow-ups / reminders (migration 0146).
+export * from "./crm-tasks";
