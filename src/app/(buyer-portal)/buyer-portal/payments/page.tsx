@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Receipt } from "lucide-react";
 import { asc, eq, inArray } from "drizzle-orm";
 import { BuyerShell } from "@/components/buyer-portal/buyer-shell";
 import { getDb } from "@/lib/db/client";
@@ -13,6 +15,10 @@ import {
   type BuyerInvoice,
   type BuyerInvoiceState,
 } from "@/lib/buyer-portal/invoices";
+import {
+  getBuyerReceiptsByMilestone,
+  type BuyerReceipt,
+} from "@/lib/buyer-portal/receipts";
 import { MarkPaidButton } from "./_mark-paid-button";
 
 export const metadata: Metadata = { title: "Payments · Buyer Portal" };
@@ -177,6 +183,11 @@ export default async function BuyerPaymentsPage() {
     }
   }
 
+  // Receipts generated when a milestone was marked paid, keyed by milestone so a
+  // paid row can link straight to its receipt in the buyer doc vault.
+  const receiptByMilestone: Map<string, BuyerReceipt> =
+    await getBuyerReceiptsByMilestone(buyer.buyerId);
+
   return (
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>
       <section>
@@ -244,6 +255,7 @@ export default async function BuyerPaymentsPage() {
                         STATUS_PILL[m.status] ?? STATUS_PILL.pending;
                       const payable = PAYABLE_STATUSES.has(m.status);
                       const invoice = invoiceByMilestone.get(m.id);
+                      const receipt = receiptByMilestone.get(m.id);
                       return (
                         <li
                           key={m.id}
@@ -299,6 +311,21 @@ export default async function BuyerPaymentsPage() {
                                   due {invoice.dueDate}
                                 </span>
                               </div>
+                            )}
+                            {receipt && (
+                              <Link
+                                href="/buyer-portal/documents"
+                                className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-success hover:underline"
+                              >
+                                <Receipt
+                                  className="h-3 w-3"
+                                  strokeWidth={1.75}
+                                />
+                                {receipt.receiptNumber
+                                  ? `Receipt ${receipt.receiptNumber}`
+                                  : "Payment receipt"}{" "}
+                                — view in Documents
+                              </Link>
                             )}
                           </div>
                           <div className="flex items-center gap-4">

@@ -28,6 +28,7 @@ import { contractGroups, contractMilestones } from "@/lib/db/schema/sales";
 import { documents } from "@/lib/db/schema/documents";
 import { formatMoneyMinor } from "@/lib/money";
 import { recordAuditEvent } from "@/features/audit/services";
+import { receiptStoragePath } from "@/lib/buyer-portal/receipts";
 
 const markPaidSchema = z.object({ milestoneId: z.string().uuid() });
 
@@ -129,6 +130,12 @@ export async function markBuyerInstallmentPaid(input: {
           visibility: "owner",
           visibleToOwner: true,
           status: "active",
+          // No byte upload yet — but we stash a stable per-milestone sentinel in
+          // `storage_path` (bucket stays null, so the doc vault still shows "no
+          // file attached" rather than a dead download link). This is the
+          // milestone → receipt join the payments/contract surfaces read back
+          // via getBuyerReceiptsByMilestone, without needing a new column.
+          storagePath: receiptStoragePath(milestone.id),
           createdAt: now,
           updatedAt: now,
         })
