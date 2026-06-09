@@ -12,6 +12,8 @@ import {
   capitalCommitments,
   investorWallets,
 } from "@/lib/db/schema/investor-capital";
+import { projects } from "@/lib/db/schema/projects";
+import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 
 export const metadata: Metadata = {
   title: "Withdraw · Arconique Investor Portal",
@@ -28,7 +30,9 @@ export default async function WithdrawPage() {
     ? await db
         .select({
           id: capitalCommitments.id,
+          code: capitalCommitments.commitmentCode,
           projectId: capitalCommitments.projectId,
+          projectName: projects.name,
           walletId: investorWallets.id,
           cashBalanceMinor: investorWallets.cashBalanceMinor,
         })
@@ -37,12 +41,17 @@ export default async function WithdrawPage() {
           investorWallets,
           eq(investorWallets.commitmentId, capitalCommitments.id),
         )
+        .leftJoin(projects, eq(projects.id, capitalCommitments.projectId))
         .where(eq(capitalCommitments.investorId, session.investorId))
     : [];
 
-  const totalCash = commitments.reduce(
-    (acc, c) => acc + Number(c.cashBalanceMinor),
-    0,
+  const fundableCommitments = commitments.filter(
+    (c) => c.cashBalanceMinor > 0n && c.projectId,
+  );
+
+  const totalCashMinor = commitments.reduce(
+    (acc, c) => acc + c.cashBalanceMinor,
+    0n,
   );
 
   return (
@@ -70,41 +79,53 @@ export default async function WithdrawPage() {
           </p>
         </div>
 
-        {commitments.length === 0 ? (
-          <div className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
-            No commitments with cash available.
+        {fundableCommitments.length === 0 ? (
+          <div className="rounded-md border border-dashed border-line-soft bg-surface px-6 py-10 text-center">
+            <p className="text-sm font-medium text-ink-secondary">
+              No withdrawable cash
+            </p>
+            <p className="text-xs text-ink-tertiary mt-2 max-w-md mx-auto leading-relaxed">
+              A withdrawal needs spendable cash on a commitment — typically
+              available after a distribution settles. Check back after your next
+              distribution.
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {commitments.map((c) => (
+            {fundableCommitments.map((c) => (
               <div
                 key={c.id}
-                className="rounded-md border border-line-soft bg-surface p-5 space-y-3"
+                className="rounded-lg border border-line-soft bg-surface p-5 space-y-3"
               >
-                <div className="text-xs text-ink-tertiary">
-                  Commitment {c.id.slice(0, 8)} · cash $
-                  {(Number(c.cashBalanceMinor) / 100).toLocaleString()}
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="text-sm text-ink">
+                    <span className="font-mono text-ink-secondary">
+                      {c.code}
+                    </span>
+                    {c.projectName ? (
+                      <span className="text-ink-tertiary"> · {c.projectName}</span>
+                    ) : null}
+                  </div>
+                  <div className="text-sm font-medium tabular-nums text-ink">
+                    {formatUsdMinor(c.cashBalanceMinor)}{" "}
+                    <span className="text-xs font-normal text-ink-tertiary">
+                      cash
+                    </span>
+                  </div>
                 </div>
-                {Number(c.cashBalanceMinor) > 0 && c.projectId ? (
-                  <WithdrawRequestForm
-                    investorId={session.investorId}
-                    commitmentId={c.id}
-                    sourceProjectId={c.projectId}
-                    availableMinor={Number(c.cashBalanceMinor)}
-                  />
-                ) : (
-                  <p className="text-xs text-ink-tertiary">
-                    No cash currently available on this commitment.
-                  </p>
-                )}
+                <WithdrawRequestForm
+                  commitmentId={c.id}
+                  sourceProjectId={c.projectId as string}
+                  availableMinor={Number(c.cashBalanceMinor)}
+                />
               </div>
             ))}
           </div>
         )}
 
         <p className="text-[11px] text-ink-tertiary">
-          Total available across commitments: $
-          {(totalCash / 100).toLocaleString()}
+          Total spendable cash across commitments:{" "}
+          {formatUsdMinor(totalCashMinor)}
         </p>
       </div>
     </PortalShell>

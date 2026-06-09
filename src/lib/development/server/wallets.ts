@@ -56,6 +56,9 @@ export async function getWalletByCommitment(
       totalWithdrawnUsdMinor: toStr(w.totalWithdrawnUsdMinor),
       totalReinvestedUsdMinor: toStr(w.totalReinvestedUsdMinor),
       lastActivityAt: new Date(w.lastActivityAt).toISOString(),
+      cashBalanceMinor: toStr(w.cashBalanceMinor),
+      reinvestmentBalanceMinor: toStr(w.reinvestmentBalanceMinor),
+      pendingDistributionMinor: toStr(w.pendingDistributionMinor),
     },
     recentTransactions: tx.map(toWalletTxItem),
   };
