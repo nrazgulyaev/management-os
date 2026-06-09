@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { MethodStatementAddButton } from "@/components/development/method-statements/method-statement-add-button";
 import { getDb } from "@/lib/db/client";
@@ -18,13 +13,24 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "neutral"> = {
-  draft: "neutral",
+type MsTone = "ok" | "warn" | "info" | "ink";
+
+const STATUS_TONE: Record<string, MsTone> = {
+  draft: "info",
   under_review: "info",
-  approved: "info",
-  active: "success",
-  superseded: "neutral",
-  archived: "neutral",
+  approved: "ok",
+  active: "ok",
+  superseded: "ink",
+  archived: "ink",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  draft: "Draft",
+  under_review: "Under review",
+  approved: "Approved",
+  active: "Active",
+  superseded: "Superseded",
+  archived: "Archived",
 };
 
 export default async function MethodStatementsListPage() {
@@ -32,7 +38,6 @@ export default async function MethodStatementsListPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Method statements" />
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -44,29 +49,42 @@ export default async function MethodStatementsListPage() {
     4000,
   );
 
+  const active = rows.filter(
+    (m) => m.status === "active" || m.status === "approved",
+  ).length;
+  const underReview = rows.filter(
+    (m) => m.status === "under_review" || m.status === "draft",
+  ).length;
+  const categories = new Set(rows.map((m) => m.category)).size;
+  const superseded = rows.filter(
+    (m) => m.status === "superseded" || m.status === "archived",
+  ).length;
+
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Knowledge Base" },
-          { label: "Method statements" },
-        ]}
-        eyebrow={`${rows.length} method statement${rows.length === 1 ? "" : "s"}`}
-        title="Method statements / SOPs"
-        description="Step-by-step procedures used by site staff. JSONB procedure_steps allows structured rendering. Tools, materials, PPE, hazards all declared upfront."
-        actions={
-          <div className="flex gap-2">
-            <MethodStatementAddButton />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="flex items-end gap-[18px]">
+        <div className="flex-1 min-w-0">
+          <div className="label text-amber">
+            Knowledge · step-by-step procedures
           </div>
-        }
-      />
+          <h1 className="display text-[42px] mt-1.5 mb-0 font-medium">
+            Method <em>statements</em>.
+          </h1>
+          <p className="mt-2.5 mb-0 text-[15px] leading-[1.55] text-ink-3 max-w-[680px]">
+            Procedures site staff actually follow. Tools, materials, PPE and
+            hazards declared upfront; structured steps render from JSONB.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <MethodStatementAddButton />
+          <Link
+            href="/development-os/knowledge"
+            className="btn btn-dark btn-sm"
+          >
+            Knowledge base
+          </Link>
+        </div>
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -74,45 +92,82 @@ export default async function MethodStatementsListPage() {
           description="Add the first SOP to start building the procedural library."
         />
       ) : (
-        <Section eyebrow="Catalog" title="All method statements">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Title</TH>
-                <TH>Category</TH>
-                <TH>Version</TH>
-                <TH>Status</TH>
-                <TH>Effective</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {rows.map((m) => (
-                <TR key={m.id}>
-                  <TD className="font-mono text-xs">
-                    <Link
-                      href={`/development-os/method-statements/${encodeURIComponent(m.methodCode)}`}
-                      className="hover:underline"
-                    >
-                      {m.methodCode}
-                    </Link>
-                  </TD>
-                  <TD className="text-sm">{m.title}</TD>
-                  <TD>
-                    <Badge tone="neutral">{m.category}</Badge>
-                  </TD>
-                  <TD className="text-xs">v{m.versionNumber}</TD>
-                  <TD>
-                    <Badge tone={STATUS_TONE[m.status] ?? "neutral"}>
-                      {m.status}
-                    </Badge>
-                  </TD>
-                  <TD className="text-xs">{m.effectiveFrom ?? "—"}</TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Section>
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Kpi
+              label="Active"
+              value={String(active)}
+              sub="in force"
+              tone="success"
+            />
+            <Kpi
+              label="Under review"
+              value={String(underReview)}
+              sub="draft → approve"
+              tone="warn"
+            />
+            <Kpi
+              label="Categories"
+              value={String(categories)}
+              sub="trades"
+            />
+            <Kpi
+              label="Superseded"
+              value={String(superseded)}
+              sub="version history"
+            />
+          </div>
+
+          <Card padding="none" overflowHidden>
+            <div className="px-[22px] py-3.5 border-b border-line flex items-center">
+              <h3 className="display text-[19px] font-medium m-0">
+                All method statements
+              </h3>
+              <span className="mono ml-auto text-[11px] text-ink-3">
+                {rows.length} · CATALOG
+              </span>
+            </div>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Version</th>
+                  <th>Status</th>
+                  <th>Effective</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((m) => (
+                  <tr key={m.id}>
+                    <td className="mono text-[11px]">
+                      <Link
+                        href={`/development-os/method-statements/${encodeURIComponent(m.methodCode)}`}
+                        className="no-underline text-inherit hover:underline"
+                      >
+                        {m.methodCode}
+                      </Link>
+                    </td>
+                    <td>{m.title}</td>
+                    <td>
+                      <HandoffBadge>{m.category}</HandoffBadge>
+                    </td>
+                    <td className="mono">v{m.versionNumber}</td>
+                    <td>
+                      <HandoffBadge tone={STATUS_TONE[m.status] ?? "info"}>
+                        {STATUS_LABEL[m.status] ?? m.status}
+                      </HandoffBadge>
+                    </td>
+                    <td className="mono text-[11px] text-ink-4">
+                      {m.effectiveFrom ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
       )}
     </DevelopmentShell>
   );

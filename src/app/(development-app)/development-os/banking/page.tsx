@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, ArrowLeft } from "lucide-react";
 import { eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { bankConnections } from "@/lib/db/schema/banking";
@@ -19,24 +14,39 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "success" | "danger" | "warning" | "neutral"> =
-  {
-    active: "success",
-    error: "danger",
-    pending: "warning",
-    paused: "warning",
-    dry_run: "warning",
-    archived: "neutral",
-    connecting: "warning",
-  };
+const STATUS_TONE: Record<string, "ok" | "danger" | "warn" | "info"> = {
+  active: "ok",
+  error: "danger",
+  pending: "warn",
+  paused: "warn",
+  dry_run: "warn",
+  archived: "info",
+  connecting: "warn",
+};
+
+function isStale(lastSyncedAt: Date | null): boolean {
+  if (!lastSyncedAt) return false;
+  const ageMs = Date.now() - lastSyncedAt.getTime();
+  return ageMs > 2 * 24 * 60 * 60 * 1000; // > 2 days
+}
 
 export default async function BankingPage() {
   const db = getDb();
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Banking" />
-        <EmptyState title="Database not configured" description="Set DATABASE_URL." />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> / Banking
+            </div>
+            <h1>Bank connections.</h1>
+          </div>
+        </div>
+        <EmptyState
+          title="Database not configured"
+          description="Set DATABASE_URL."
+        />
       </DevelopmentShell>
     );
   }
@@ -50,89 +60,112 @@ export default async function BankingPage() {
     [] as Array<typeof bankConnections.$inferSelect>,
   );
 
+  const activeCount = rows.filter((r) => r.status === "active").length;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const syncedToday = rows.filter(
+    (r) => r.lastSyncedAt && r.lastSyncedAt.toISOString().slice(0, 10) === todayStr,
+  ).length;
+  const needsAttention = rows.filter(
+    (r) => r.status === "error" || r.status === "paused" || isStale(r.lastSyncedAt),
+  ).length;
+  const currencyCount = new Set(rows.map((r) => r.currency)).size;
+
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Banking" },
-        ]}
-        eyebrow={`${rows.length} connections · ${rows.filter((r) => r.status === "active").length} active`}
-        title="Bank connections"
-        description="Per-account integrations. Revolut + Wise sync via API; Mandiri + BCA + manual accounts ingest via CSV statement upload at /finance/transactions."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="primary">
-              <Link href="/development-os/banking/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                Add bank connection
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> / Bank
+            connections
           </div>
-        }
-      />
+          <h1>
+            Bank <em>connections</em>.
+          </h1>
+          <p className="mt-2 mb-0 text-[15px] text-[var(--ink-3)] max-w-[680px]">
+            Per-account integrations. Revolut + Wise sync via API; Mandiri, BCA
+            and manual accounts ingest via CSV statement upload at
+            /finance/transactions.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/banking/new"
+            className="btn btn-amber btn-sm"
+          >
+            + Add connection
+          </Link>
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            Command center
+          </Link>
+        </div>
+      </div>
 
-      <Section title="Connections">
+      <div className="cfo-kpis cfo-kpis-4">
+        <Kpi
+          label="Connections"
+          value={rows.length}
+          sub={`${activeCount} active`}
+          tone="success"
+        />
+        <Kpi label="Synced today" value={syncedToday} sub="API providers" />
+        <Kpi
+          label="Needs attention"
+          value={needsAttention}
+          sub="stale or errored"
+          tone={needsAttention > 0 ? "warn" : undefined}
+        />
+        <Kpi label="Currencies" value={currencyCount || "—"} sub="distinct" />
+      </div>
+
+      <Card padding="default">
+        <div className="cfo-card-head">
+          <h3 className="cfo-card-title">Connections</h3>
+          <span className="label">
+            {rows.length} · {activeCount} active
+          </span>
+        </div>
         {rows.length === 0 ? (
           <EmptyState
             title="No bank connections yet"
-            description="Click 'Add bank connection' to wire Revolut Business, Wise, Mandiri, BCA, or a manual account."
+            description="Click 'Add connection' to wire Revolut Business, Wise, Mandiri, BCA, or a manual account."
           />
         ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Provider</TH>
-                <TH>Account</TH>
-                <TH>Currency</TH>
-                <TH>Status</TH>
-                <TH>Last sync</TH>
-                <TH>Result</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {rows.map((c) => (
-                <TR key={c.id}>
-                  <TD>
-                    <Link
-                      href={`/development-os/banking/${c.id}`}
-                      className="hover:underline"
-                    >
-                      <Badge tone="outline">{c.provider}</Badge>
-                    </Link>
-                  </TD>
-                  <TD className="text-xs">
-                    <Link
-                      href={`/development-os/banking/${c.id}`}
-                      className="hover:underline"
-                    >
-                      {c.accountName ?? c.externalAccountId}
-                    </Link>
-                  </TD>
-                  <TD className="font-mono text-xs">{c.currency}</TD>
-                  <TD>
-                    <Badge tone={STATUS_TONE[c.status] ?? "neutral"}>
-                      {c.status}
-                    </Badge>
-                  </TD>
-                  <TD className="text-xs text-ink-secondary">
-                    {c.lastSyncedAt
-                      ? c.lastSyncedAt.toISOString().slice(0, 16).replace("T", " ")
-                      : "—"}
-                  </TD>
-                  <TD className="text-xs">{c.lastSyncStatus ?? "—"}</TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
+          <div className="fin-prov-list">
+            {rows.map((c) => {
+              const stale = isStale(c.lastSyncedAt);
+              const tone = stale ? "warn" : (STATUS_TONE[c.status] ?? "info");
+              const label =
+                c.accountName ?? c.externalAccountId ?? c.provider;
+              const initial = (label || "·").slice(0, 1).toUpperCase();
+              return (
+                <Link
+                  key={c.id}
+                  href={`/development-os/banking/${c.id}`}
+                  className="fin-prov"
+                >
+                  <span className="fin-prov-logo">{initial}</span>
+                  <span className="fin-prov-body">
+                    <span className="fin-prov-name">{label}</span>
+                    <span className="fin-prov-sub">
+                      {c.currency} · {c.provider}
+                      {c.lastSyncedAt
+                        ? ` · synced ${c.lastSyncedAt
+                            .toISOString()
+                            .slice(0, 16)
+                            .replace("T", " ")}`
+                        : " · never synced"}
+                      {c.lastSyncStatus ? ` · ${c.lastSyncStatus}` : ""}
+                    </span>
+                  </span>
+                  <HandoffBadge tone={tone}>
+                    {stale ? "Stale" : c.status}
+                  </HandoffBadge>
+                </Link>
+              );
+            })}
+          </div>
         )}
-      </Section>
+      </Card>
     </DevelopmentShell>
   );
 }

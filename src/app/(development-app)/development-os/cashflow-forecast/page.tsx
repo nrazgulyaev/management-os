@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listCashflowForecasts } from "@/lib/development/server/cashflow/cashflow-queries";
@@ -20,21 +15,28 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<
-  string,
-  "info" | "success" | "warning" | "danger" | "neutral"
-> = {
-  draft: "warning",
-  active: "success",
-  archived: "neutral",
-  superseded: "neutral",
+const STATUS_TONE: Record<string, "ok" | "warn" | "danger" | "info"> = {
+  draft: "warn",
+  active: "ok",
+  archived: "info",
+  superseded: "info",
 };
 
-function formatMoney(minor: bigint | null | undefined) {
+function formatMoney(minor: bigint | null | undefined): string {
   if (minor === null || minor === undefined) return "—";
   const n = Number(minor) / 100;
-  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`;
+  return `${sign}$${Math.round(abs)}`;
 }
+
+type MonthlyRow = {
+  month?: string;
+  net?: number;
+  cumulativeCash?: number;
+};
 
 export default async function CashflowForecastPage({
   searchParams,
@@ -46,8 +48,19 @@ export default async function CashflowForecastPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Cashflow forecast" />
-        <EmptyState title="Database not configured" description="Set DATABASE_URL." />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> / Cashflow
+              forecast
+            </div>
+            <h1>Cashflow forecast.</h1>
+          </div>
+        </div>
+        <EmptyState
+          title="Database not configured"
+          description="Set DATABASE_URL."
+        />
       </DevelopmentShell>
     );
   }
@@ -64,101 +77,203 @@ export default async function CashflowForecastPage({
     ),
     safeQuery(
       "cashflow projects",
-      db.select({ id: projects.id, name: projects.name }).from(projects).orderBy(asc(projects.name)),
+      db
+        .select({ id: projects.id, name: projects.name })
+        .from(projects)
+        .orderBy(asc(projects.name)),
       [],
       4000,
     ),
   ]);
   const activeCount = forecasts.filter((f) => f.status === "active").length;
 
+  // Chart + KPI strip derive from the headline forecast (active first,
+  // else the newest). Data wiring is preserved — only the read shape is
+  // reused for the visualization.
+  const headline = forecasts.find((f) => f.status === "active") ?? forecasts[0];
+  const months: MonthlyRow[] = Array.isArray(headline?.monthlyProjections)
+    ? (headline.monthlyProjections as MonthlyRow[])
+    : [];
+  const maxNetAbs = Math.max(
+    1,
+    ...months.map((m) => Math.abs(Number(m.net ?? 0))),
+  );
+  const trough = months.reduce<MonthlyRow | null>((lo, m) => {
+    const c = Number(m.cumulativeCash ?? 0);
+    if (lo === null || c < Number(lo.cumulativeCash ?? 0)) return m;
+    return lo;
+  }, null);
+  const totalGaps = forecasts.reduce(
+    (acc, f) =>
+      acc +
+      (Array.isArray(f.identifiedCashGaps)
+        ? (f.identifiedCashGaps as unknown[]).length
+        : 0),
+    0,
+  );
+
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Cashflow forecast" },
-        ]}
-        eyebrow={`${activeCount} active / ${forecasts.length} total`}
-        title="Monthly cashflow forecasts"
-        description="JSONB snapshots of month-by-month inflow / outflow / cumulative cash. Forecasts are immutable after save; the auto-generate cron creates a fresh draft on the 1st of each month — operator must promote to `active`."
-        actions={
-          <div className="flex items-center gap-2">
-            <GenerateForecastForm projects={projectList} />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> / Cashflow
+            forecast
           </div>
-        }
-      />
+          <h1>
+            Cashflow <em>forecast</em>.
+          </h1>
+          <p className="mt-2 mb-0 text-[15px] text-[var(--ink-3)] max-w-[680px]">
+            Net cashflow per month + cumulative cash on hand. JSONB snapshots
+            are immutable after save; the auto-generate cron creates a fresh
+            draft on the 1st — operator promotes to active.
+          </p>
+        </div>
+        <div className="actions">
+          <GenerateForecastForm projects={projectList} />
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            Command center
+          </Link>
+        </div>
+      </div>
+
+      <div className="cfo-kpis cfo-kpis-4">
+        <Kpi
+          label="Cash today"
+          value={formatMoney(headline ? 0n : null)}
+          sub="starting balance"
+          tone="success"
+        />
+        <Kpi
+          label="Peak required"
+          value={formatMoney(headline?.peakCapitalRequiredMinor)}
+          sub="capital draw"
+          tone="accent"
+        />
+        <Kpi
+          label="Trough · cumulative"
+          value={
+            trough ? formatMoney(BigInt(Math.round(Number(trough.cumulativeCash ?? 0)))) : "—"
+          }
+          sub={trough?.month ?? "—"}
+          tone="warn"
+        />
+        <Kpi
+          label="Ending cash"
+          value={formatMoney(headline?.endingCashMinor)}
+          sub={`${activeCount} active / ${forecasts.length} total`}
+        />
+      </div>
+
+      {headline && months.length > 0 && (
+        <Card padding="default" className="mb-[18px]">
+          <div className="cfo-card-head">
+            <h3 className="cfo-card-title">
+              Net + cumulative · {headline.forecastHorizonMonths} months
+            </h3>
+            <span className="label">{headline.forecastLabel} · USD</span>
+          </div>
+          <div className="fin-bars">
+            {months.map((m, i) => {
+              const net = Number(m.net ?? 0);
+              const h = Math.max(4, (Math.abs(net) / maxNetAbs) * 150);
+              const cls = net < 0 ? "fin-bar neg" : "fin-bar";
+              return (
+                <div className="fin-bar-col" key={`${m.month ?? i}`}>
+                  <i className={cls} style={{ height: `${h}px` }} />
+                  <span>{m.month ?? `M${i + 1}`}</span>
+                </div>
+              );
+            })}
+          </div>
+          {totalGaps > 0 && (
+            <div className="fin-note">
+              <strong className="text-[var(--danger)]">
+                {totalGaps} cash gap{totalGaps === 1 ? "" : "s"}
+              </strong>{" "}
+              identified across forecasts — review the rows below before
+              promoting a draft to active.
+            </div>
+          )}
+        </Card>
+      )}
 
       {forecasts.length === 0 ? (
         <EmptyState
           title="No forecasts yet"
           description="Generate via the auto-generate cron, or use the generateCashflowForecast server action."
-        
           action={
-            <Link href="/dashboard/jobs" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View jobs</Link>
+            <Link href="/dashboard/jobs" className="btn btn-secondary btn-sm">
+              View jobs
+            </Link>
           }
         />
       ) : (
-        <Section eyebrow="Forecasts" title="All forecasts (newest first)">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Label</TH>
-                <TH>Scope</TH>
-                <TH>Start</TH>
-                <TH>Horizon</TH>
-                <TH className="text-right">Peak required</TH>
-                <TH className="text-right">Ending cash</TH>
-                <TH>Status</TH>
-                <TH>Actions</TH>
-              </TR>
-            </THead>
-            <TBody>
+        <Card padding="default">
+          <div className="cfo-card-head">
+            <h3 className="cfo-card-title">All forecasts</h3>
+            <span className="label">newest first</span>
+          </div>
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Scope</th>
+                <th>Start</th>
+                <th>Horizon</th>
+                <th className="num">Peak required</th>
+                <th className="num">Ending cash</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
               {forecasts.map((f) => {
-                const gaps =
-                  Array.isArray(f.identifiedCashGaps)
-                    ? (f.identifiedCashGaps as Array<unknown>).length
-                    : 0;
+                const gaps = Array.isArray(f.identifiedCashGaps)
+                  ? (f.identifiedCashGaps as Array<unknown>).length
+                  : 0;
                 return (
-                  <TR key={f.id}>
-                    <TD className="text-sm">
+                  <tr key={f.id}>
+                    <td>
                       {f.forecastLabel}
                       {gaps > 0 && (
-                        <Badge tone="danger" className="ml-2">
-                          {gaps} gap{gaps === 1 ? "" : "s"}
-                        </Badge>
+                        <span className="ml-2">
+                          <HandoffBadge tone="danger">
+                            {gaps} gap{gaps === 1 ? "" : "s"}
+                          </HandoffBadge>
+                        </span>
                       )}
-                    </TD>
-                    <TD>
-                      <Badge tone="info">{f.scope}</Badge>
-                    </TD>
-                    <TD className="text-xs">{f.forecastStartMonth}</TD>
-                    <TD className="text-xs">{f.forecastHorizonMonths}m</TD>
-                    <TD className="text-right font-mono text-xs">
+                    </td>
+                    <td>
+                      <HandoffBadge tone="info">{f.scope}</HandoffBadge>
+                    </td>
+                    <td className="text-[var(--ink-3)]">
+                      {f.forecastStartMonth}
+                    </td>
+                    <td className="text-[var(--ink-3)]">
+                      {f.forecastHorizonMonths}m
+                    </td>
+                    <td className="num">
                       {formatMoney(f.peakCapitalRequiredMinor)}
-                    </TD>
-                    <TD className="text-right font-mono text-xs">
-                      {formatMoney(f.endingCashMinor)}
-                    </TD>
-                    <TD>
-                      <Badge tone={STATUS_TONE[f.status] ?? "neutral"}>
+                    </td>
+                    <td className="num">{formatMoney(f.endingCashMinor)}</td>
+                    <td>
+                      <HandoffBadge tone={STATUS_TONE[f.status] ?? "info"}>
                         {f.status}
-                      </Badge>
-                    </TD>
-                    <TD>
-                      <CashflowTransition forecastId={f.id} status={f.status} />
-                    </TD>
-                  </TR>
+                      </HandoffBadge>
+                    </td>
+                    <td>
+                      <CashflowTransition
+                        forecastId={f.id}
+                        status={f.status}
+                      />
+                    </td>
+                  </tr>
                 );
               })}
-            </TBody>
-          </Table>
-        </Section>
+            </tbody>
+          </table>
+        </Card>
       )}
     </DevelopmentShell>
   );
