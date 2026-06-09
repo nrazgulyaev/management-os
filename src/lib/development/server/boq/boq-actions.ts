@@ -10,6 +10,11 @@ import {
 } from "@/lib/db/schema/boq";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
+import { recordAuditEvent } from "@/features/audit/services";
+import {
+  diffBoqRevisions,
+  type BoqRevisionDiff,
+} from "../cabinets/qs-cabinet-queries";
 import { rollupBoqTotals } from "./boq-helpers";
 import {
   parseBoqCsv,
@@ -333,6 +338,191 @@ export async function exportBoqAsCsv(input: { boqDocumentId: string }) {
     currency: it.rateCurrency,
   }));
   return serializeBoqCsv({ sections: csvSections, items: csvItems });
+}
+
+const inlineAddSchema = z.object({
+  /** Target BOQ document (a "revision" in the QS desk vocabulary). */
+  boqDocumentId: z.string().uuid(),
+  /** Section resolved case-insensitively by code within the document. */
+  sectionCode: z.string().min(1),
+  itemCode: z.string().min(1),
+  description: z.string().min(1),
+  quantity: z.union([z.number(), z.string()]),
+  unitOfMeasure: z.string().min(1),
+  /** Unit rate in major units (e.g. 12.50); converted to minor here. */
+  unitRateMajor: z.union([z.number(), z.string()]),
+});
+
+/**
+ * QS-desk inline "New estimate line" — adds a single boq_item to the
+ * section matching `sectionCode` inside `boqDocumentId`. Wraps the
+ * existing atomic `addBoqItem` (which recomputes section + document
+ * subtotals) and audit-logs the insert. Section codes are resolved
+ * case-insensitively against the document's own sections; unknown codes
+ * throw so the operator fixes the code rather than silently mis-filing.
+ */
+export async function addBoqLineInline(
+  input: z.input<typeof inlineAddSchema>,
+) {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = inlineAddSchema.parse(input);
+  const db = requireDb();
+
+  const [doc] = await db
+    .select()
+    .from(boqDocuments)
+    .where(
+      and(
+        eq(boqDocuments.id, parsed.boqDocumentId),
+        eq(boqDocuments.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!doc) throw new Error("boq_document_not_found");
+
+  const sections = await db
+    .select({ id: boqSections.id, sectionCode: boqSections.sectionCode })
+    .from(boqSections)
+    .where(eq(boqSections.boqDocumentId, parsed.boqDocumentId));
+  const wanted = parsed.sectionCode.trim().toLowerCase();
+  const section = sections.find(
+    (s) => s.sectionCode.trim().toLowerCase() === wanted,
+  );
+  if (!section) {
+    throw new Error(`section_not_found: ${parsed.sectionCode}`);
+  }
+
+  const qtyNumber = Number(parsed.quantity);
+  if (!Number.isFinite(qtyNumber) || qtyNumber <= 0) {
+    throw new Error("quantity must be > 0");
+  }
+  const rateMajor = Number(parsed.unitRateMajor);
+  if (!Number.isFinite(rateMajor) || rateMajor < 0) {
+    throw new Error("unit_rate must be >= 0");
+  }
+  // USDT uses 6dp minor units; everything else uses 2dp (cents).
+  const minorMultiplier = doc.currency.toUpperCase() === "USDT" ? 1_000_000 : 100;
+  const unitRateMinor = BigInt(Math.round(rateMajor * minorMultiplier));
+
+  const item = await addBoqItem({
+    sectionId: section.id,
+    itemCode: parsed.itemCode.trim(),
+    description: parsed.description.trim(),
+    quantity: qtyNumber,
+    unitOfMeasure: parsed.unitOfMeasure.trim(),
+    unitRateMinor,
+    rateCurrency: doc.currency,
+  });
+
+  await recordAuditEvent({
+    action: "boq_item.create",
+    entityType: "boq_item",
+    entityId: item.id,
+    actorUserId: ctx.appUser?.id ?? null,
+    after: {
+      itemCode: item.itemCode,
+      description: item.description,
+      quantity: item.quantity,
+      unitRateMinor: item.unitRateMinor?.toString() ?? null,
+      totalMinor: item.totalMinor?.toString() ?? null,
+    },
+    metadata: {
+      boqDocumentId: parsed.boqDocumentId,
+      boqCode: doc.boqCode,
+      sectionCode: parsed.sectionCode,
+      source: "qs_cabinet_inline_add",
+    },
+  });
+
+  return item;
+}
+
+const diffSchema = z.object({
+  docAId: z.string().uuid(),
+  docBId: z.string().uuid(),
+});
+
+/**
+ * QS-desk "Compare REV" action — server-action wrapper around the
+ * `server-only` `diffBoqRevisions` reader so the client toolbar can
+ * invoke it. Internal-only; the underlying reader org-scopes both docs.
+ */
+export async function compareBoqRevisions(
+  input: z.input<typeof diffSchema>,
+): Promise<BoqRevisionDiff> {
+  await requireInternalUser();
+  const parsed = diffSchema.parse(input);
+  return diffBoqRevisions(parsed.docAId, parsed.docBId);
+}
+
+const deleteItemSchema = z.object({
+  boqItemId: z.string().uuid(),
+});
+
+/**
+ * QS-desk inline delete-line. Org-scoped: refuses to touch an item that
+ * does not belong to the caller's org. After deletion, recomputes the
+ * parent section + document subtotals atomically and audit-logs the
+ * removal (before-image captured for reversibility).
+ */
+export async function deleteBoqLine(input: z.input<typeof deleteItemSchema>) {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = deleteItemSchema.parse(input);
+  const db = requireDb();
+
+  const [item] = await db
+    .select()
+    .from(boqItems)
+    .where(
+      and(
+        eq(boqItems.id, parsed.boqItemId),
+        eq(boqItems.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!item) throw new Error("boq_item_not_found");
+
+  const [section] = await db
+    .select({ docId: boqSections.boqDocumentId })
+    .from(boqSections)
+    .where(eq(boqSections.id, item.sectionId))
+    .limit(1);
+
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(boqItems)
+      .where(
+        and(
+          eq(boqItems.id, parsed.boqItemId),
+          eq(boqItems.organizationId, organizationId),
+        ),
+      );
+    if (section) {
+      await recomputeBoqTotalsTx(tx, section.docId, organizationId);
+    }
+  });
+
+  await recordAuditEvent({
+    action: "boq_item.delete",
+    entityType: "boq_item",
+    entityId: item.id,
+    actorUserId: ctx.appUser?.id ?? null,
+    before: {
+      itemCode: item.itemCode,
+      description: item.description,
+      quantity: item.quantity,
+      unitRateMinor: item.unitRateMinor?.toString() ?? null,
+      totalMinor: item.totalMinor?.toString() ?? null,
+    },
+    metadata: {
+      sectionId: item.sectionId,
+      source: "qs_cabinet_inline_delete",
+    },
+  });
+
+  return { deletedId: item.id };
 }
 
 const transitionSchema = z.object({
