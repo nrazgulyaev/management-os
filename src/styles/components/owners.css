@@ -217,3 +217,107 @@
   text-transform: uppercase;
 }
 
+/* =============================================================
+   Owner-intelligence hub primitives (phase 2.6).
+
+   Mirror the mgmt-owner-intelligence mock's insights feed +
+   per-owner retention-risk rows. Shared with the Owners cabinet
+   so they live alongside .insight-card / .risk-pill rather than
+   in a page-local file. Token-only; no raw hex.
+
+   .oi-insight   — feed row: 36px icon tile + name/body, tinted
+                   left border by tone (up/down/flag/star).
+   .oi-risk-row  — per-subject retention row: name+meta, grade
+                   chip, right-aligned risk score + sub.
+   ============================================================= */
+/* Hub header sits flush above the KPI strip (strip carries the
+   18px gap), matching the mock's stacked page-header + kpi-row. */
+[data-product] .page-header.oi-header-flush { margin-bottom: 0; }
+
+[data-product] .oi-insight {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 12px;
+  padding: 13px 16px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 12px;
+}
+[data-product] .oi-insight.up   { border-left: 3px solid var(--ok); padding-left: 13px; }
+[data-product] .oi-insight.down { border-left: 3px solid var(--warn); padding-left: 13px; }
+[data-product] .oi-insight.flag { border-left: 3px solid var(--danger, var(--warn)); padding-left: 13px; }
+[data-product] .oi-insight.star { border-left: 3px solid var(--gold, var(--warn)); padding-left: 13px; }
+[data-product] .oi-insight .ic {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--display-font), Georgia, serif;
+  font-size: 16px;
+}
+[data-product] .oi-insight.up   .ic { background: color-mix(in oklab, var(--ok) 14%, transparent); color: var(--ok); }
+[data-product] .oi-insight.down .ic { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); }
+[data-product] .oi-insight.flag .ic { background: color-mix(in oklab, var(--danger, var(--warn)) 14%, transparent); color: var(--danger, var(--warn)); }
+[data-product] .oi-insight.star .ic { background: color-mix(in oklab, var(--gold, var(--warn)) 16%, transparent); color: var(--gold, var(--warn)); }
+[data-product] .oi-insight .nm {
+  font-size: 13.5px; font-weight: 500; color: var(--ink);
+}
+[data-product] .oi-insight .body {
+  font-size: 12px; color: var(--ink-3); margin-top: 3px; line-height: 1.5;
+}
+[data-product] .oi-insight .body strong { color: var(--ink); font-weight: 500; }
+
+/* Per-subject retention-risk row. The grade chip reuses the tier
+   semantics (ink / terra-tint / cream). Score colour follows the
+   level (low=ok, mid=warn, high=danger). */
+[data-product] .oi-risk-row {
+  display: grid;
+  grid-template-columns: 1fr 44px 80px;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 14px;
+  background: var(--paper, var(--panel));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 10px;
+}
+[data-product] .oi-risk-row.high { border-left: 3px solid var(--danger, var(--warn)); padding-left: 11px; background: color-mix(in oklab, var(--danger, var(--warn)) 5%, var(--paper, var(--panel))); }
+[data-product] .oi-risk-row.mid  { border-left: 3px solid var(--warn); padding-left: 11px; background: color-mix(in oklab, var(--warn) 5%, var(--paper, var(--panel))); }
+[data-product] .oi-risk-row .nm { font-size: 13px; color: var(--ink); font-weight: 500; }
+[data-product] .oi-risk-row .nm .meta {
+  display: block;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  color: var(--ink-4, var(--ink-3));
+  margin-top: 1px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+[data-product] .oi-risk-row .grade {
+  font-family: var(--mono-font), monospace;
+  font-size: 9.5px;
+  padding: 2px 0;
+  border-radius: 3px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+[data-product] .oi-risk-row .grade.a { background: var(--ink); color: var(--cream-warm, var(--paper)); }
+[data-product] .oi-risk-row .grade.b { background: color-mix(in oklab, var(--terra, var(--accent)) 18%, transparent); color: var(--terra, var(--accent)); }
+[data-product] .oi-risk-row .grade.c { background: var(--cream-deep, var(--bg-3)); color: var(--ink-3); }
+[data-product] .oi-risk-row .grade.d { background: color-mix(in oklab, var(--danger, var(--warn)) 16%, transparent); color: var(--danger, var(--warn)); }
+[data-product] .oi-risk-row .risk {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+[data-product] .oi-risk-row .risk.high { color: var(--danger, var(--warn)); }
+[data-product] .oi-risk-row .risk.mid  { color: var(--warn); }
+[data-product] .oi-risk-row .risk.low  { color: var(--ok); }
+[data-product] .oi-risk-row .risk .sub {
+  display: block;
+  font-size: 9.5px;
+  color: var(--ink-4, var(--ink-3));
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
@@ -44,6 +45,15 @@ function grade(score: number | null): string {
   if (score >= 55) return "C";
   return "D";
 }
+/** Health score → retention-risk score (0–1) + level, mirroring the
+ *  mock's per-owner risk column. Lower health ⇒ higher risk. */
+function risk(score: number | null): { value: string; level: "low" | "mid" | "high"; sub: string } {
+  if (score === null) return { value: "—", level: "mid", sub: "no data" };
+  const r = Math.max(0, Math.min(1, (100 - score) / 100));
+  const level: "low" | "mid" | "high" = r >= 0.6 ? "high" : r >= 0.4 ? "mid" : "low";
+  const sub = level === "high" ? "high" : level === "mid" ? "rising" : "low";
+  return { value: r.toFixed(2), level, sub };
+}
 function mean(xs: (number | null)[]): number | null {
   const v = xs.filter((x): x is number => x !== null);
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
@@ -55,6 +65,13 @@ function fmtDate(d: Date | string): string {
     timeZone: "UTC",
   });
 }
+
+type Insight = {
+  tone: "up" | "down" | "flag" | "star";
+  icon: string;
+  title: string;
+  body: ReactNode;
+};
 
 export default async function OwnerIntelligenceHub() {
   const { allowed } = await requireCabinetAccess("owners");
@@ -76,9 +93,10 @@ export default async function OwnerIntelligenceHub() {
     (a, b) => (num(b.healthScore) ?? -1) - (num(a.healthScore) ?? -1),
   );
 
-  const attention = snaps.filter(
+  const attentionSnaps = snaps.filter(
     (s) => s.healthStatus === "attention" || s.healthStatus === "watch",
-  ).length;
+  );
+  const attention = attentionSnaps.length;
   const avgHealth = mean(snaps.map((s) => num(s.healthScore)));
   const avgOcc = mean(snaps.map((s) => pct(num(s.occupancyRate))));
   const avgRating = mean(snaps.map((s) => num(s.averageReviewRating)));
@@ -93,18 +111,90 @@ export default async function OwnerIntelligenceHub() {
   const total = snaps.length || 1;
   const barVillas = snaps.slice(0, 16);
 
+  const codeFor = (id: string) =>
+    villaMap.get(id)?.code ?? id.slice(0, 8);
+
+  // Insights feed — derived from the live health + review signals.
+  const insights: Insight[] = [];
+  const topPerformer = snaps[0];
+  if (topPerformer && (num(topPerformer.healthScore) ?? 0) >= 70) {
+    insights.push({
+      tone: "up",
+      icon: "↗",
+      title: `${codeFor(topPerformer.villaId)} · strongest health (${(num(topPerformer.healthScore) ?? 0).toFixed(0)}/100)`,
+      body: (
+        <>
+          Leading the portfolio ·{" "}
+          <strong>grade {grade(num(topPerformer.healthScore))}</strong> · keep
+          the owner brief on occupancy and review momentum.
+        </>
+      ),
+    });
+  }
+  const perfectRating = snaps.find((s) => (num(s.averageReviewRating) ?? 0) >= 4.9);
+  if (perfectRating) {
+    insights.push({
+      tone: "star",
+      icon: "★",
+      title: `${codeFor(perfectRating.villaId)} · guest rating ${(num(perfectRating.averageReviewRating) ?? 0).toFixed(1)}`,
+      body: (
+        <>
+          Near-perfect reviews · <strong>referral opportunity</strong> · surface
+          at the next owner review.
+        </>
+      ),
+    });
+  }
+  for (const s of attentionSnaps.slice(0, 3)) {
+    const isAttention = s.healthStatus === "attention";
+    insights.push({
+      tone: isAttention ? "flag" : "down",
+      icon: isAttention ? "!" : "↘",
+      title: `${codeFor(s.villaId)} · ${isAttention ? "needs attention" : "on watch"} (${(num(s.healthScore) ?? 0).toFixed(0)}/100)`,
+      body: (
+        <>
+          {s.maintenanceTicketsOpen} open ticket
+          {s.maintenanceTicketsOpen === 1 ? "" : "s"} ·{" "}
+          {pct(num(s.occupancyRate)) !== null
+            ? `${(pct(num(s.occupancyRate)) as number).toFixed(0)}% occupancy`
+            : "occupancy unknown"}{" "}
+          · review the {isAttention ? "save plan" : "health drivers"}.
+        </>
+      ),
+    });
+  }
+  if (negativeReviews > 0) {
+    insights.push({
+      tone: "flag",
+      icon: "!",
+      title: `${negativeReviews} negative review${negativeReviews === 1 ? "" : "s"} on file`,
+      body: (
+        <>
+          Sentiment flagged across recent stays ·{" "}
+          <strong>respond before the next statement</strong>.
+        </>
+      ),
+    });
+  }
+  const activeInsights = insights.length;
+  const churnRisk = snaps.filter((s) => risk(num(s.healthScore)).level === "high").length;
+  const upgradeOpp = perfectRating ? 1 : 0;
+
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header oi-header-flush">
         <div className="left">
           <div className="crumb">
             <Link href="/dashboard">Dashboard</Link> / <span>Owner intelligence</span>
           </div>
-          <h1>Owner intelligence</h1>
+          <h1>
+            Insights <em className="text-terra italic">· {activeInsights} active</em>
+          </h1>
           <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
             Why your villa earned what it did — health snapshots, occupancy, and
-            review signals. The owner-side projection only ever sees the
-            owner-safe shape; guest contact info and access secrets stay internal.
+            review signals, scored into retention risk per villa. The owner-side
+            projection only ever sees the owner-safe shape; guest contact info
+            and access secrets stay internal.
           </p>
         </div>
         <div className="actions">
@@ -146,6 +236,80 @@ export default async function OwnerIntelligenceHub() {
 
       <DbStatusNotice />
 
+      {/* Hero body — insights feed + per-villa retention risk */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 mb-[18px]">
+        <div className="card p-5">
+          <h3 className="display-md flex items-baseline gap-2.5">
+            Insights <em className="text-terra text-[16px]">· today</em>
+          </h3>
+          <div className="label mt-1">
+            {churnRisk} churn-risk · {upgradeOpp} upgrade · derived 06:00
+          </div>
+          <div className="mt-3.5 flex flex-col gap-2.5">
+            {activeInsights === 0 ? (
+              <p className="text-[13px] text-ink-3 italic">
+                No insights yet — generate health snapshots to surface signals.
+              </p>
+            ) : (
+              insights.map((ins, i) => (
+                <div key={i} className={`oi-insight ${ins.tone}`}>
+                  <div className="ic" aria-hidden>
+                    {ins.icon}
+                  </div>
+                  <div>
+                    <div className="nm">{ins.title}</div>
+                    <div className="body">{ins.body}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="card p-5">
+          <h3 className="display-md flex items-baseline gap-2.5">
+            Retention risk <em className="text-terra text-[16px]">· per villa</em>
+          </h3>
+          <div className="label mt-1">Latest snapshot · health-scored</div>
+          <div className="mt-3.5 flex flex-col gap-[7px]">
+            {snaps.length === 0 ? (
+              <p className="text-[13px] text-ink-3 italic">No snapshots yet.</p>
+            ) : (
+              snaps.slice(0, 8).map((s) => {
+                const v = villaMap.get(s.villaId);
+                const score = num(s.healthScore);
+                const r = risk(score);
+                const g = grade(score).toLowerCase();
+                const occ = pct(num(s.occupancyRate));
+                return (
+                  <Link
+                    key={s.id}
+                    href={`/dashboard/owner-intelligence/health/${s.villaId}`}
+                    className={`oi-risk-row ${r.level === "high" ? "high" : r.level === "mid" ? "mid" : ""}`}
+                  >
+                    <div className="nm">
+                      {codeFor(s.villaId)}
+                      <span className="meta">
+                        {v?.project ?? "—"} ·{" "}
+                        {occ !== null ? `${occ.toFixed(0)}% occ` : "occ —"} ·{" "}
+                        {s.bookedNights} nts
+                      </span>
+                    </div>
+                    <span className={`grade ${["a", "b", "c", "d"].includes(g) ? g : "c"}`}>
+                      {grade(score)}
+                    </span>
+                    <span className={`risk ${r.level}`}>
+                      {r.value}
+                      <span className="sub">{r.sub}</span>
+                    </span>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* 2-up: status mix + per-villa score bars */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 mb-[18px]">
         <div className="card p-5">
@@ -158,7 +322,7 @@ export default async function OwnerIntelligenceHub() {
                   <span>{s.label}</span>
                   <span className="num">{s.count}</span>
                 </div>
-                <div className="h-1.5 rounded-full" style={{ background: "var(--cream-deep)" }}>
+                <div className="h-1.5 rounded-full bg-[var(--cream-deep)]">
                   <div
                     className="h-full rounded-full"
                     style={{ width: `${(s.count / total) * 100}%`, background: s.color }}
@@ -176,14 +340,14 @@ export default async function OwnerIntelligenceHub() {
             <p className="text-[13px] text-ink-3 italic mt-4">No snapshots yet.</p>
           ) : (
             <>
-              <div className="mt-3.5 flex items-end gap-1.5" style={{ height: 140 }}>
+              <div className="mt-3.5 flex items-end gap-1.5 h-[140px]">
                 {barVillas.map((s) => {
                   const score = num(s.healthScore) ?? 0;
                   const color = STATUS_BY_KEY[s.healthStatus]?.color ?? "var(--ink-3)";
                   return (
                     <div
                       key={s.id}
-                      title={`${villaMap.get(s.villaId)?.code ?? "villa"} · ${score.toFixed(0)}/100 · ${s.healthStatus}`}
+                      title={`${codeFor(s.villaId)} · ${score.toFixed(0)}/100 · ${s.healthStatus}`}
                       className="flex-1 rounded-t-[3px]"
                       style={{ height: `${Math.max(score, 3)}%`, background: color }}
                     />
