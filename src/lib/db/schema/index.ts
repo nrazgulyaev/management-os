@@ -130,3 +130,11 @@ export * from "./material-receiving-holds";
 export * from "./contract-signatures";
 // Estimator drawing-takeoff persistence + BOQ round-trip (migration 0140).
 export * from "./takeoff-measurements";
+// Unified CRM activity / timeline stream — owner|contact|lead|buyer (migration 0144).
+export * from "./crm-activities";
+// CRM saved views + advanced filters (migration 0145, crm-saved-views-bulk).
+export * from "./crm-saved-views";
+// CRM tasks / follow-ups / reminders (migration 0146).
+export * from "./crm-tasks";
+// Attio-style generic CRM tags + custom fields (migration 0147).
+export * from "./crm-custom-fields";

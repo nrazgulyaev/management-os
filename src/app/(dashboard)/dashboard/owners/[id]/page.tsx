@@ -20,8 +20,16 @@ import { DetailPage } from "@/components/dashboard/detail/detail-page";
 import { DetailHeader } from "@/components/dashboard/detail/detail-header";
 import { DetailActivity, type ActivityEntry } from "@/components/dashboard/detail/detail-activity";
 import { DetailRelated, type RelatedItem } from "@/components/dashboard/detail/detail-related";
+import { RecordTimeline } from "@/components/ui/primitives";
+import { listCrmActivities } from "@/features/crm-activity/services";
 import { OwnerDetailTabs } from "./_detail-client";
 import { OwnerHeaderActions, OwnerInsightPanel } from "./_owner-actions-client";
+import { RecordTasks } from "@/components/crm-tasks/record-tasks";
+import {
+  listTasksForSubject,
+  listAssignableUsers,
+} from "@/features/crm-tasks/services";
+import { CrmAnnotationsPanel } from "@/components/crm/crm-annotations-panel";
 
 /**
  * Phase 2.1 PR 2 — Owner detail uses bricks B1 + B2 + B3 + B5 + B6.
@@ -46,6 +54,12 @@ export default async function OwnerDetailPage({
   const grants = await listAccessGrantsForOwner(id);
   const activeGrants = grants.filter((g) => g.status === "active");
   const canManage = await canManageEntity("owner");
+
+  // CRM follow-ups / reminders for this owner (HighLevel-style tasks).
+  const [crmTasks, assignableUsers] = await Promise.all([
+    listTasksForSubject("owner", id),
+    canManage ? listAssignableUsers() : Promise.resolve([]),
+  ]);
 
   // Retention-risk intelligence — run the (previously orphaned) engine over
   // this owner's real statements / anomalies / maintenance.
@@ -101,10 +115,14 @@ export default async function OwnerDetailPage({
   // intervention feed (all on top of the same retention engine).
   const churn = await getOwnerChurnView(id, villaIds).catch(() => null);
 
-  // PR 2 — synthetic activity timeline. The dedicated
-  // `src/features/activity/get-activity.ts` resolver lands in 2.2;
-  // until then we surface the few existing signals (shares + grants)
-  // as a hand-rolled timeline so the brick has real content.
+  // CRM ACTIVITY TIMELINE (#169) — the real unified feed. Reads the
+  // org-scoped `crm_activities` stream (notes, status changes, calls,
+  // emails) recorded by operators across the platform. When it is empty
+  // (e.g. demo mode, or a brand-new owner) we still surface the few
+  // structural signals (shares + grants) below so the brick is never
+  // blank — but the live stream is the primary content.
+  const crmActivity = await listCrmActivities("owner", id).catch(() => []);
+
   const shareEntries: ActivityEntry[] = shares.slice(0, 3).map((s) => ({
     id: `share-${s.id}`,
     when: `SHARE · ${s.startsOn}`,
@@ -208,6 +226,15 @@ export default async function OwnerDetailPage({
         </div>
       </Card>
 
+      {/* CRM-CUSTOM-FIELDS-TAGS — editable tags chip-row + custom-fields. */}
+      <Card style={{ padding: 20 }}>
+        <CrmAnnotationsPanel
+          subjectType="owner"
+          subjectId={owner.id}
+          canManage={canManage}
+        />
+      </Card>
+
       <section>
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
           <div>
@@ -305,7 +332,11 @@ export default async function OwnerDetailPage({
 
   const activityPanel = (
     <div className="flex flex-col gap-3 px-7 py-6">
-      {activity.length === 0 ? (
+      {crmActivity.length > 0 ? (
+        <Card style={{ padding: 20 }}>
+          <RecordTimeline activities={crmActivity} />
+        </Card>
+      ) : activity.length === 0 ? (
         <p className="text-sm text-ink-tertiary">No recent activity.</p>
       ) : (
         <Card style={{ padding: 20 }}>
@@ -321,6 +352,16 @@ export default async function OwnerDetailPage({
     <div className="flex flex-col gap-3 px-7 py-12 text-sm text-ink-tertiary">
       <p>Churn intelligence is unavailable in demo mode (no database).</p>
     </div>
+  );
+
+  const tasksPanel = (
+    <RecordTasks
+      subjectType="owner"
+      subjectId={owner.id}
+      tasks={crmTasks}
+      assignableUsers={assignableUsers}
+      canManage={canManage}
+    />
   );
 
   const placeholderPanel = (label: string) => (
@@ -380,7 +421,8 @@ export default async function OwnerDetailPage({
           { id: "overview", label: "Overview" },
           { id: "shares", label: "Shares", count: shares.length },
           { id: "churn", label: "Churn", count: churn?.breakdown.contributions.length },
-          { id: "activity", label: "Activity", count: activity.length },
+          { id: "tasks", label: "Tasks", count: crmTasks.filter((t) => t.status === "open").length || undefined },
+          { id: "activity", label: "Activity", count: crmActivity.length || activity.length },
           { id: "statements", label: "Statements" },
           { id: "contacts", label: "Contacts" },
         ]}
@@ -388,6 +430,7 @@ export default async function OwnerDetailPage({
           overview: overviewPanel,
           shares: sharesPanel,
           churn: churnPanel,
+          tasks: tasksPanel,
           activity: activityPanel,
           statements: placeholderPanel("Statements list"),
           contacts: placeholderPanel("Contacts"),

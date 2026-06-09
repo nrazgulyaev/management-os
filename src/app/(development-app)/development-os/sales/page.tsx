@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { LeadPipelineBoard } from "@/components/development/sales/lead-pipeline-board";
+import { SalesPipelineViews } from "@/components/development/sales/sales-pipeline-views";
 import { LeadPipelineMetricsStrip } from "@/components/development/sales/lead-pipeline-metrics";
 import { LeadModalForm } from "@/components/development/sales/lead-modal-form";
 import { ExportButton } from "@/components/development/bulk-import/export-button";
@@ -189,7 +189,7 @@ export default async function SalesPage() {
             : "Database not configured"
         }
         title="Sales pipeline"
-        description="Live pipeline backed by the contacts foundation. Drag-and-drop is intentionally disabled — status changes flow through the lead detail to keep the audit trail clean."
+        description="Live pipeline backed by the contacts foundation. Switch to the Pipeline view to drag a lead between stages — moves are FSM-guarded (one step at a time) and audit-logged."
         actions={
           <div className="flex items-center gap-2">
             <LeadModalForm
@@ -241,9 +241,9 @@ export default async function SalesPage() {
           <Section
             eyebrow="Pipeline"
             title="Lead board"
-            description="Filter by project, source, or agent. Click a card to open the lead workspace and review AI-drafted replies before sending."
+            description="List view: filter by project, source, or agent. Pipeline view: drag a card between stages to advance the lead. Click a card to open the workspace and review AI-drafted replies before sending."
           >
-            <LeadPipelineBoard
+            <SalesPipelineViews
               leads={leads}
               pendingDraftsByRoleId={pendingDrafts}
               filterOptions={{

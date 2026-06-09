@@ -15,12 +15,19 @@ import { unitTypes } from "@/lib/db/schema/development";
 import { findOrCreateContact, getActiveLeadRole } from "./contacts";
 import { LEAD_STATUSES, type LeadStatus } from "./leads";
 import {
+  isLeadStatus,
+  leadTransitionError,
+} from "./lead-stage-machine";
+import {
   generateLeadWelcomeDraft,
   regenerateLeadWelcomeDraft,
   SALES_ASSISTANT_KEY,
 } from "@/lib/ai/agents/sales-assistant";
 import { contacts } from "@/lib/db/schema/contacts";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
+import { recordCrmActivity } from "@/features/crm-activity/services";
+import { requireInternalUser } from "@/features/auth/permissions";
+import { recordAuditEvent } from "@/features/audit/services";
 
 const createLeadSchema = z
   .object({
@@ -349,6 +356,15 @@ export async function updateLeadStatus(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  // Capture the prior state so the activity record can show from → to.
+  const [before] = await db
+    .select({ contactId: contactRoles.contactId, status: contactRoles.status })
+    .from(contactRoles)
+    .where(eq(contactRoles.id, parsed.data.contactRoleId))
+    .limit(1);
+  if (!before) return { ok: false, error: "Lead not found." };
+  const fromStatus = before.status;
+
   const isTerminal = parsed.data.newStatus === "lost" || parsed.data.newStatus === "contract_signed";
   await db
     .update(contactRoles)
@@ -366,13 +382,7 @@ export async function updateLeadStatus(
     .where(eq(contactRoles.id, parsed.data.contactRoleId));
 
   await db.insert(contactInteractions).values({
-    contactId: (
-      await db
-        .select({ contactId: contactRoles.contactId })
-        .from(contactRoles)
-        .where(eq(contactRoles.id, parsed.data.contactRoleId))
-        .limit(1)
-    )[0].contactId,
+    contactId: before.contactId,
     interactionType: "system_event",
     direction: "internal_note",
     occurredAt: new Date(),
@@ -382,8 +392,133 @@ export async function updateLeadStatus(
     reviewStatus: "not_required",
   });
 
+  // CRM ACTIVITY TIMELINE (#169) — auto-record the status change onto the
+  // unified feed (both the lead role's own stream and the contact-level
+  // stream so it surfaces on either surface). Best-effort, org-scoped,
+  // audit-logged inside recordCrmActivity.
+  const statusTitle = `Status → ${parsed.data.newStatus.replace(/_/g, " ")}`;
+  const statusMeta = { fromStatus, toStatus: parsed.data.newStatus };
+  await recordCrmActivity({
+    subjectType: "lead",
+    subjectId: parsed.data.contactRoleId,
+    kind: "status_change",
+    title: statusTitle,
+    body: parsed.data.notes ?? null,
+    metadata: statusMeta,
+  });
+  await recordCrmActivity({
+    subjectType: "contact",
+    subjectId: before.contactId,
+    kind: "status_change",
+    title: statusTitle,
+    body: parsed.data.notes ?? null,
+    metadata: statusMeta,
+  });
+
   revalidatePath(`${DEVELOPMENT_APP_PATH}/sales`);
   return { ok: true };
+}
+
+// -----------------------------------------------------------------------------
+// Pipeline Kanban — guarded stage move (drag a card between columns)
+// -----------------------------------------------------------------------------
+
+const moveStageSchema = z.object({
+  contactRoleId: z.string().uuid(),
+  toStatus: z.enum(LEAD_STATUSES as unknown as [LeadStatus, ...LeadStatus[]]),
+});
+
+export type MoveLeadStageResult =
+  | { ok: true; fromStatus: LeadStatus; toStatus: LeadStatus }
+  | { ok: false; error: string };
+
+/**
+ * Moves a lead one stage along the sales funnel — the persistence path behind
+ * the Pipeline Kanban drag-and-drop. Org-scoped (`requireInternalUser`),
+ * FSM-guarded (no skipping stages — see `lead-stage-machine`), and
+ * audit-logged. Reuses the same `contact_roles.status` model + interaction log
+ * as `updateLeadStatus`; it does NOT introduce a new pipeline table.
+ */
+export async function moveLeadStage(
+  input: z.input<typeof moveStageSchema>,
+): Promise<MoveLeadStageResult> {
+  // Org-scope + internal-access gate. Throws AuthorizationError for
+  // non-internal / cross-org callers.
+  const ctx = await requireInternalUser();
+
+  const parsed = moveStageSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid input." };
+  }
+
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+
+  // Load the current stage so we can enforce the FSM (and audit the diff).
+  const rows = await db
+    .select({
+      contactId: contactRoles.contactId,
+      status: contactRoles.status,
+    })
+    .from(contactRoles)
+    .where(eq(contactRoles.id, parsed.data.contactRoleId))
+    .limit(1);
+  const current = rows[0];
+  if (!current) return { ok: false, error: "Lead not found." };
+
+  if (!isLeadStatus(current.status)) {
+    return {
+      ok: false,
+      error: `Lead is in an unrecognized stage ('${current.status}').`,
+    };
+  }
+  const fromStatus = current.status;
+  const toStatus = parsed.data.toStatus;
+
+  // Guarded transition — no skipping stages, no moving out of a closed stage.
+  const guardError = leadTransitionError(fromStatus, toStatus);
+  if (guardError) return { ok: false, error: guardError };
+
+  const isTerminal = toStatus === "lost" || toStatus === "contract_signed";
+  await db
+    .update(contactRoles)
+    .set({
+      status: toStatus,
+      endedAt: isTerminal ? new Date() : null,
+      endReason: isTerminal
+        ? toStatus === "lost"
+          ? "lost"
+          : "converted"
+        : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(contactRoles.id, parsed.data.contactRoleId));
+
+  // Mirror the status change into the interaction timeline (same shape as
+  // updateLeadStatus) so the lead workspace audit trail stays consistent.
+  await db.insert(contactInteractions).values({
+    contactId: current.contactId,
+    interactionType: "system_event",
+    direction: "internal_note",
+    occurredAt: new Date(),
+    subject: `Stage ${fromStatus} → ${toStatus}`,
+    body: `Pipeline card dragged from '${fromStatus}' to '${toStatus}'.`,
+    relatedRoleId: parsed.data.contactRoleId,
+    reviewStatus: "not_required",
+  });
+
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "lead.stage_move",
+    entityType: "contact_role",
+    entityId: parsed.data.contactRoleId,
+    before: { status: fromStatus },
+    after: { status: toStatus },
+    metadata: { via: "pipeline_kanban", terminal: isTerminal },
+  });
+
+  revalidatePath(`${DEVELOPMENT_APP_PATH}/sales`);
+  return { ok: true, fromStatus, toStatus };
 }
 
 // -----------------------------------------------------------------------------

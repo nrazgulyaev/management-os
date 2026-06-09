@@ -79,7 +79,10 @@ export const MGMT_DASHBOARD_NAV: DashboardNavGroup[] = [
   {
     title: "WORKSPACE",
     icon: "home",
-    items: [{ href: "/dashboard", label: "Overview" }],
+    items: [
+      { href: "/dashboard", label: "Overview" },
+      { href: "/dashboard/tasks", label: "My tasks" },
+    ],
   },
   {
     title: "PORTFOLIO",

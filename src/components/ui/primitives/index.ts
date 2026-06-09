@@ -155,6 +155,11 @@ export type {
 export { CommsPanel } from "./comms-panel";
 export type { CommsPanelProps, CommsHeader, CommsItem } from "./comms-panel";
 
+// CRM ACTIVITY TIMELINE (#169) — unified chronological activity feed for a
+// single CRM subject (owner|contact|lead|buyer). Driven by CrmActivityView.
+export { RecordTimeline } from "./record-timeline";
+export type { RecordTimelineProps } from "./record-timeline";
+
 // ============================================================
 // Arconique OS redesign — primitives from
 // design_handoff_arconique_os/COMPONENTS.md. 8 new files; the
