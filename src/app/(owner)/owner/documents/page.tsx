@@ -41,9 +41,11 @@ export default async function OwnerDocumentsPage() {
         eyebrow="Your archive"
         title="Documents"
         subtitle={
-          totalDocs === 0
-            ? "Operator-shared documents for your villas appear here — management agreements, tax filings, statement archives, and insurance certificates."
-            : `${totalDocs} ${totalDocs === 1 ? "document" : "documents"} on file across your villas. Monthly statement PDFs also live on the Statements page.`
+          <span className="owner-narr block mt-0 max-w-[640px]">
+            {totalDocs === 0
+              ? "Operator-shared documents for your villas appear here — management agreements, tax filings, statement archives, and insurance certificates. All downloadable; all hash-signed where applicable."
+              : `${totalDocs} ${totalDocs === 1 ? "document" : "documents"} across contracts, tax, and statements. All downloadable; all hash-signed where applicable.`}
+          </span>
         }
       />
 
@@ -67,9 +69,7 @@ export default async function OwnerDocumentsPage() {
           {groups.map((g) => (
             <DocGroup key={g.key} title={g.title} helper={g.helper}>
               {g.documents.length === 0 ? (
-                <p className="dr-sub mono" style={{ padding: "10px 4px", color: "var(--ink-4)" }}>
-                  Nothing on file yet.
-                </p>
+                <p className="dr-sub mono px-1 py-2.5">Nothing on file yet.</p>
               ) : (
                 g.documents.map((d) => (
                   <DocRow
@@ -78,6 +78,7 @@ export default async function OwnerDocumentsPage() {
                     sub={subFor(d)}
                     kind={d.kind}
                     status={d.status}
+                    when={d.when}
                     fileUrl={d.fileUrl}
                   />
                 ))

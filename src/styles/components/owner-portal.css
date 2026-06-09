@@ -1638,118 +1638,162 @@
 
 /* ---------------------------------------------------------------
  * Phase 2.3 owner-06 — Owner documents primitives
+ * Mirrors cabinets/owner-p1/06-documents.html: each .doc-row is its
+ * own paper card (not a divided list), grouped under a Newsreader 22px
+ * heading. Grid: icon plate · name+sub · kind pill · date · status.
  * --------------------------------------------------------------- */
 
-[data-product="owner"] .doc-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+[data-product="owner"] .doc-group { margin-top: 24px; }
+[data-product="owner"] .doc-group:first-child { margin-top: 0; }
 [data-product="owner"] .doc-group .dg-head {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  margin-bottom: 14px;
 }
 [data-product="owner"] .doc-group .dg-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-text);
-  font-family: var(--font-mono);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 [data-product="owner"] .doc-group .dg-helper {
-  font-size: 12px;
-  color: var(--c-text-muted);
+  font-size: 13px;
+  color: var(--ink-3);
 }
 [data-product="owner"] .doc-group .dg-rows {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--c-border);
-  border-radius: 12px;
-  background: var(--c-surface);
-  overflow: hidden;
+  gap: 8px;
 }
 
 [data-product="owner"] .doc-row {
   display: grid;
-  grid-template-columns: 24px 1fr auto auto auto;
+  grid-template-columns: 48px 1fr 100px 120px auto;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--c-border);
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
   text-decoration: none;
-  color: var(--c-text);
-  background: transparent;
+  color: inherit;
   text-align: left;
+  width: 100%;
   cursor: pointer;
-  font-size: 13px;
-  border-left: 0;
-  border-right: 0;
-  border-top: 0;
+  transition: border-color 0.18s ease;
 }
-[data-product="owner"] .doc-row:last-child { border-bottom: 0; }
-[data-product="owner"] .doc-row:hover { background: var(--c-bg-muted); }
+[data-product="owner"] .doc-row:hover { border-color: var(--ink-2); }
 [data-product="owner"] .doc-row.doc-row-static { cursor: default; }
+[data-product="owner"] .doc-row.doc-row-static:hover { border-color: var(--line-soft); }
 [data-product="owner"] .doc-row .dr-icon {
-  width: 22px;
-  height: 22px;
+  width: 36px;
+  height: 42px;
   border-radius: 6px;
-  background: var(--c-bg-muted);
-  display: grid;
-  place-items: center;
-  color: var(--c-text-muted);
-  font-size: 12px;
+  background: var(--cream-deep);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  font-size: 16px;
 }
 [data-product="owner"] .doc-row .dr-icon-bundle {
-  background: rgba(192,132,86,0.12);
-  color: #8b5a30;
+  background: color-mix(in oklab, var(--gold) 16%, transparent);
+  color: #8c6f33;
 }
 [data-product="owner"] .doc-row .dr-main {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 [data-product="owner"] .doc-row .dr-name {
-  color: var(--c-text);
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--ink);
+  line-height: 1.25;
 }
 [data-product="owner"] .doc-row .dr-sub {
-  font-size: 11px;
-  color: var(--c-text-muted);
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
 [data-product="owner"] .doc-row .dr-kind {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--cream-deep);
+  color: var(--ink-3);
+  text-align: center;
+}
+[data-product="owner"] .doc-row .dr-when {
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  text-align: right;
+}
+/* Status pill — owner-scoped (the .badge-* color variants in
+   primitives.css are management/development scoped, so the owner
+   cabinet gets its own pill family with the same 12%/35% semantics). */
+[data-product="owner"] .doc-row .dr-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--r-pill, 999px);
+  font-family: var(--mono-font), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+[data-product="owner"] .doc-row .dr-status-signed,
+[data-product="owner"] .doc-row .dr-status-current {
+  background: color-mix(in oklab, var(--ok) 12%, transparent);
+  color: var(--ok);
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+}
+[data-product="owner"] .doc-row .dr-status-pending {
+  background: color-mix(in oklab, var(--gold) 14%, transparent);
+  color: #8c6f33;
+  border-color: color-mix(in oklab, var(--gold) 35%, transparent);
+}
+[data-product="owner"] .doc-row .dr-status-expired {
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 35%, transparent);
+}
+[data-product="owner"] .doc-row .dr-cta {
+  font-family: var(--mono-font), monospace;
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 3px 8px;
+  color: var(--ink-2);
+  background: var(--cream-warm);
+  padding: 5px 12px;
   border-radius: 999px;
-  border: 1px solid var(--c-border);
-  color: var(--c-text-muted);
-  background: var(--c-bg-muted);
+  border: 1px solid var(--line);
 }
-[data-product="owner"] .doc-row .dr-status {
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--c-text-muted);
-}
-[data-product="owner"] .doc-row .dr-status-signed  { color: #4a7c59; }
-[data-product="owner"] .doc-row .dr-status-pending { color: #c79633; }
-[data-product="owner"] .doc-row .dr-status-expired { color: #b04a3a; }
-[data-product="owner"] .doc-row .dr-cta {
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--c-text);
-  background: var(--c-bg-muted);
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--c-border);
+
+/* Mobile: collapse the 5-col grid to icon + body, dropping the
+   kind/date/status columns into the body stack (mobile-pass docs). */
+@media (max-width: 640px) {
+  [data-product="owner"] .doc-row {
+    grid-template-columns: 48px 1fr auto;
+    gap: 12px;
+  }
+  [data-product="owner"] .doc-row .dr-kind,
+  [data-product="owner"] .doc-row .dr-when { display: none; }
 }
 
 /* ---------------------------------------------------------------
