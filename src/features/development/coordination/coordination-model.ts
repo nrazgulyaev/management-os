@@ -83,6 +83,46 @@ export function nextSubmittalStatuses(
   return SUBMITTAL_FSM[from];
 }
 
+/**
+ * True once a submittal has cleared design-team review. The
+ * SUBMITTAL → PROCUREMENT gate keys off this: an approved (or
+ * approved-as-noted) submittal unblocks the gated purchase request.
+ */
+export const SUBMITTAL_APPROVED_STATUSES: readonly SubmittalStatus[] = [
+  "approved",
+  "approved_as_noted",
+] as const;
+
+export function isSubmittalApproved(status: SubmittalStatus): boolean {
+  return SUBMITTAL_APPROVED_STATUSES.includes(status);
+}
+
+/**
+ * RFI finite-state machine. The RFI row stores no explicit status column —
+ * status is derived from timestamps (open → answered → closed). This FSM is
+ * the *guard*: open may be answered or closed; answered may only be closed;
+ * closed is terminal. No skipping, no re-opening (v1), mirroring the submittal
+ * machine so both kinds are equally guarded.
+ */
+export type RfiFsmStatus = "open" | "answered" | "closed";
+
+const RFI_FSM: Record<RfiFsmStatus, readonly RfiFsmStatus[]> = {
+  open: ["answered", "closed"],
+  answered: ["closed"],
+  closed: [],
+};
+
+export function canTransitionRfi(
+  from: RfiFsmStatus,
+  to: RfiFsmStatus,
+): boolean {
+  return RFI_FSM[from].includes(to);
+}
+
+export function nextRfiStatuses(from: RfiFsmStatus): readonly RfiFsmStatus[] {
+  return RFI_FSM[from];
+}
+
 export function submittalStatusTone(status: SubmittalStatus): BadgeTone {
   switch (status) {
     case "approved":

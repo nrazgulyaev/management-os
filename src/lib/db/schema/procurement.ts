@@ -25,6 +25,7 @@ import { projects, villas } from "./projects";
 import { vendors, materialPurchaseOrders } from "./site-operations";
 import { documents } from "./documents";
 import { organizations } from "./saas";
+import { submittals } from "./submittals";
 
 export const devOsPurchaseRequests = pgTable(
   "dev_os_purchase_requests",
@@ -82,6 +83,17 @@ export const devOsPurchaseRequests = pgTable(
       { onDelete: "set null" },
     ),
 
+    /**
+     * Coordination depth (migration 0139) — SUBMITTAL → PROCUREMENT gate.
+     * When set, this PR is gated by a material/shop-drawing submittal: it
+     * cannot reach `po_created` until that submittal is approved. NULL = the
+     * PR is ungated (legacy + non-material requests).
+     */
+    gatingSubmittalId: uuid("gating_submittal_id").references(
+      () => submittals.id,
+      { onDelete: "set null" },
+    ),
+
     notes: text("notes"),
 
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -96,6 +108,9 @@ export const devOsPurchaseRequests = pgTable(
     index("dev_os_purchase_requests_status_idx").on(t.status),
     index("dev_os_purchase_requests_required_idx").on(t.requiredByDate),
     index("dev_os_purchase_requests_requested_by_idx").on(t.requestedBy),
+    index("dev_os_purchase_requests_gating_submittal_idx").on(
+      t.gatingSubmittalId,
+    ),
   ],
 );
 
