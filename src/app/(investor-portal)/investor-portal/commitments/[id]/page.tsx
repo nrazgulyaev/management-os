@@ -48,6 +48,7 @@ export default async function CommitmentDetailPage({
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle={strings.navCommitments}
     >
       <div>
         <Link

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Card } from "@/components/dashboard/primitives";
+import { Card, Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { Button } from "@/components/ui/button";
@@ -147,6 +147,30 @@ export default async function OwnerDetailPage({
   }));
   const activity: ActivityEntry[] = [...shareEntries, ...grantEntries];
 
+  // Onboarded-ago label for the overview KPI strip (mock: "14m ago").
+  const onboardedDate = new Date(owner.createdAt);
+  const onboardedMonths = Number.isNaN(onboardedDate.getTime())
+    ? null
+    : Math.max(
+        0,
+        Math.round(
+          (Date.now() - onboardedDate.getTime()) / (30 * 86_400_000),
+        ),
+      );
+  const onboardedLabel =
+    onboardedMonths === null
+      ? "—"
+      : onboardedMonths < 1
+        ? "this month"
+        : `${onboardedMonths}m ago`;
+  const onboardedSub = Number.isNaN(onboardedDate.getTime())
+    ? undefined
+    : onboardedDate.toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      });
+  const activeShareCount = shares.filter((s) => s.status === "active").length;
+
   const overviewPanel = (
     <div className="flex flex-col gap-8 px-7 py-6">
       {/* Rich AI insight card — the worst retention signal with
@@ -154,6 +178,29 @@ export default async function OwnerDetailPage({
       {insight && (
         <OwnerInsightPanel ownerId={id} insight={insight} canManage={canManage} />
       )}
+
+      {/* KPI strip — mirrors the mgmt-p1 owner-detail mock (commission,
+          villas/shares, portal grants, onboarded). Derived from the
+          already-fetched detail data; no extra round-trip. */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-[10px]">
+        <Kpi
+          label="Commission rate"
+          value={commissionPct > 0 ? `${commissionPct}%` : "—"}
+          sub="lead share"
+        />
+        <Kpi
+          label="Villas"
+          value={String(ownerVillas.length)}
+          sub={`${activeShareCount} active share${activeShareCount === 1 ? "" : "s"}`}
+        />
+        <Kpi
+          label="Portal grants"
+          value={String(activeGrants.length)}
+          sub={activeGrants.length > 0 ? "active" : "none yet"}
+          tone={activeGrants.length > 0 ? "success" : undefined}
+        />
+        <Kpi label="Onboarded" value={onboardedLabel} sub={onboardedSub} />
+      </div>
       {risk && (
         <Card style={{ padding: 20 }}>
           <div className="flex flex-wrap items-center gap-3 mb-3">
@@ -208,23 +255,34 @@ export default async function OwnerDetailPage({
           </div>
         </section>
       )}
-      <Card style={{ padding: 20 }}>
+      {/* Profile — the source-of-truth record, mock's label/value grid. */}
+      <Card padding="default">
         <div className="flex flex-wrap items-center gap-2 mb-4">
+          <h3 className="text-display text-[18px] text-ink font-normal mr-auto">
+            Profile
+          </h3>
           <SourceBadge source={owner.source} />
           <Badge tone={owner.status === "active" ? "success" : "neutral"}>
             {owner.status}
           </Badge>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
-          <SummaryCell label="Email" value={owner.email ?? "—"} />
-          <SummaryCell label="Phone" value={owner.phone ?? "—"} />
-          <SummaryCell label="Tax residency" value={owner.taxResidency ?? "—"} />
-          <SummaryCell
-            label="Active shares"
-            value={shares.length.toString()}
-            hint={`${activeGrants.length} portal grant${activeGrants.length === 1 ? "" : "s"}`}
+        <dl className="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-x-3 gap-y-[10px] text-[13.5px]">
+          <ProfileRow label="Legal name" value={owner.legalName ?? owner.displayName} />
+          <ProfileRow label="Type" value={owner.type.replace("_", " ")} />
+          <ProfileRow
+            label="Primary contact"
+            value={[owner.email, owner.phone].filter(Boolean).join(" · ") || "—"}
           />
-        </div>
+          <ProfileRow label="Tax residency" value={owner.taxResidency ?? "—"} />
+          <ProfileRow
+            label="Commission"
+            value={commissionPct > 0 ? `${commissionPct}% of net · lead share` : "—"}
+          />
+          <ProfileRow
+            label="Portal access"
+            value={`${activeGrants.length} active grant${activeGrants.length === 1 ? "" : "s"}`}
+          />
+        </dl>
       </Card>
 
       {/* CRM-CUSTOM-FIELDS-TAGS — editable tags chip-row + custom-fields. */}
@@ -461,22 +519,15 @@ export default async function OwnerDetailPage({
   );
 }
 
-function SummaryCell({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
+/** A label/value pair in the owner-detail Profile grid (mock pattern:
+ *  mono uppercase label in the left column, plain value on the right). */
+function ProfileRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0">
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
+    <>
+      <dt className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
         {label}
-      </div>
-      <div className="text-base text-ink mt-1">{value}</div>
-      {hint && <div className="text-[11px] text-ink-tertiary mt-0.5">{hint}</div>}
-    </div>
+      </dt>
+      <dd className="text-ink m-0">{value}</dd>
+    </>
   );
 }

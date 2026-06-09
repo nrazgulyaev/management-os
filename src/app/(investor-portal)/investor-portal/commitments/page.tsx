@@ -28,19 +28,21 @@ export default async function CommitmentsPage() {
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle={strings.navCommitments}
     >
-      <div>
-        <h1 className="font-display text-3xl text-ink">
+      <div className="mb-[22px]">
+        <div className="label">Commitments</div>
+        <h2 className="display mt-1.5 text-[29px] font-medium tracking-[-0.02em] text-ink">
           {strings.navCommitments}
-        </h1>
-        <p className="text-sm text-ink-secondary mt-1">
+        </h2>
+        <p className="mt-1 text-[13.5px] text-ink-3">
           {commitments.length} commitment{commitments.length === 1 ? "" : "s"}{" "}
           across all projects
         </p>
       </div>
 
       {commitments.length === 0 ? (
-        <div className="rounded-md border border-dashed border-line-soft bg-surface px-6 py-10 text-center">
+        <div className="rounded-[18px] border border-dashed border-line bg-panel px-6 py-10 text-center">
           <p className="text-sm font-medium text-ink-secondary">
             {strings.dashNoCommitments}
           </p>
@@ -50,23 +52,23 @@ export default async function CommitmentsPage() {
           </p>
         </div>
       ) : (
-        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-[11px] uppercase tracking-wide text-ink-tertiary">
-              <tr>
-                <th className="px-4 py-2 text-left">Code</th>
-                <th className="px-4 py-2 text-left">{strings.project}</th>
-                <th className="px-4 py-2 text-right">Committed</th>
-                <th className="px-4 py-2 text-right">Drawn</th>
-                <th className="px-4 py-2 text-right">In wallet</th>
-                <th className="px-4 py-2 text-right">Profit %</th>
-                <th className="px-4 py-2 text-left">{strings.status}</th>
+        <div className="overflow-hidden rounded-[18px] border border-line bg-panel shadow-soft-card">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-line font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
+                <th className="px-4 pb-2.5 pt-3.5 text-left font-medium">Code</th>
+                <th className="px-4 pb-2.5 pt-3.5 text-left font-medium">{strings.project}</th>
+                <th className="px-4 pb-2.5 pt-3.5 text-right font-medium">Committed</th>
+                <th className="px-4 pb-2.5 pt-3.5 text-right font-medium">Drawn</th>
+                <th className="px-4 pb-2.5 pt-3.5 text-right font-medium">In wallet</th>
+                <th className="px-4 pb-2.5 pt-3.5 text-right font-medium">Profit %</th>
+                <th className="px-4 pb-2.5 pt-3.5 text-left font-medium">{strings.status}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line-soft">
+            <tbody className="divide-y divide-line-soft text-[13.5px] text-ink-2">
               {commitments.map((c) => (
-                <tr key={c.id} className="hover:bg-muted">
-                  <td className="px-4 py-3 font-mono text-xs">
+                <tr key={c.id} className="hover:bg-bg-3">
+                  <td className="px-4 py-3.5 font-mono text-xs text-ink">
                     <Link
                       href={`/investor-portal/commitments/${c.id}`}
                       className="hover:underline"
@@ -74,12 +76,12 @@ export default async function CommitmentsPage() {
                       {c.commitmentCode}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     {c.projectName ?? (
                       <span className="text-ink-tertiary">Multi-project</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3.5 text-right font-mono tabular-nums">
                     {formatCurrencyMinor(
                       BigInt(c.committedAmountMinor),
                       c.committedCurrency,
@@ -88,19 +90,19 @@ export default async function CommitmentsPage() {
                       ≈ {formatUsdMinor(BigInt(c.committedAmountUsdMinor))}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3.5 text-right font-mono tabular-nums">
                     {formatUsdMinor(BigInt(c.drawnUsdMinor))}
                     <div className="text-[10px] text-ink-tertiary">
                       {c.drawnPercent.toFixed(1)}%
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3.5 text-right font-mono tabular-nums">
                     {formatUsdMinor(BigInt(c.walletAvailableUsdMinor))}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3.5 text-right font-mono tabular-nums">
                     {Number(c.profitSharePercent).toFixed(1)}%
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <Badge
                       tone={
                         c.status === "active"

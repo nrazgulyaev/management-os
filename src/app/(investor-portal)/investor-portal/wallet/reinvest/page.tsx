@@ -60,6 +60,7 @@ export default async function ReinvestPage() {
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle="Reinvest"
     >
       <div className="space-y-6">
         <Link

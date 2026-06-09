@@ -126,7 +126,25 @@ export default async function OwnersPage() {
 
   const activeCount = owners.filter((o) => o.status === "active").length;
   const onboardingCount = owners.filter((o) => o.status === "onboarding").length;
-  const archivedCount = owners.filter((o) => o.status === "archived").length;
+
+  // KPI strip mirrors the mgmt-p1 owners mock: active count, retention
+  // flags, YTD net paid (summed), portal engagement. All derived from the
+  // already-fetched owner rows — no extra round-trip.
+  const flaggedCount = owners.filter((o) => o.riskLevel === "flag").length;
+  const watchCount = owners.filter((o) => o.riskLevel === "watch").length;
+  const ytdNetTotalMinor = owners.reduce((sum, o) => sum + o.ytdNetMinor, 0n);
+  const ytdNetLabel =
+    ytdNetTotalMinor > 0n
+      ? formatMoneyMinor(ytdNetTotalMinor, "USD", { compact: true })
+      : "—";
+  const reachableOwners = owners.filter(
+    (o) => o.portalStatus === "active" || o.portalStatus === "invited",
+  ).length;
+  const portalActive = owners.filter((o) => o.portalStatus === "active").length;
+  const portalEngagement =
+    reachableOwners > 0
+      ? `${Math.round((portalActive / reachableOwners) * 100)}%`
+      : "—";
 
   const rows: OwnerRowVM[] = owners.map((o) => ({
     id: o.id,
@@ -188,23 +206,36 @@ export default async function OwnersPage() {
 
       {owners.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
-          <Kpi label="Owners · total" value={String(owners.length)} sub="stakeholders" />
           <Kpi
-            label="Active"
+            label="Active owners"
             value={String(activeCount)}
-            sub="participating"
-            tone={activeCount > 0 ? "success" : undefined}
+            sub={
+              onboardingCount > 0
+                ? `${onboardingCount} onboarding`
+                : `of ${owners.length} total`
+            }
+            tone="accent"
           />
           <Kpi
-            label="Onboarding"
-            value={onboardingCount > 0 ? String(onboardingCount) : "—"}
-            sub="in setup"
-            tone={onboardingCount > 0 ? "gold" : undefined}
+            label="Retention flags"
+            value={flaggedCount > 0 ? String(flaggedCount) : "—"}
+            sub={
+              flaggedCount > 0 || watchCount > 0
+                ? `${flaggedCount} flag · ${watchCount} watch`
+                : "all healthy"
+            }
+            tone={flaggedCount > 0 ? "gold" : undefined}
           />
           <Kpi
-            label="Archived"
-            value={archivedCount > 0 ? String(archivedCount) : "—"}
-            sub="inactive"
+            label="YTD net paid"
+            value={ytdNetLabel}
+            sub={`across ${owners.length} owner${owners.length === 1 ? "" : "s"}`}
+          />
+          <Kpi
+            label="Portal engagement"
+            value={portalEngagement}
+            sub={`${portalActive} of ${reachableOwners} reachable active`}
+            tone={portalActive > 0 ? "success" : undefined}
           />
         </div>
       )}

@@ -22,6 +22,7 @@ export default async function PortalDocumentsPage() {
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle={strings.navDocuments}
     >
       <div>
         <h1 className="font-display text-3xl text-ink">

@@ -28,8 +28,10 @@ export function QuickActionGrid({ actions, className }: QuickActionGridProps) {
       {actions.map((a) => (
         <Link className="qa-card" key={a.id} href={a.href}>
           {a.icon && <span className="qa-icon" aria-hidden>{a.icon}</span>}
-          <span className="qa-label">{a.label}</span>
-          <span className="qa-ctx">{a.context}</span>
+          <span className="qa-body">
+            <span className="qa-label">{a.label}</span>
+            <span className="qa-ctx">{a.context}</span>
+          </span>
         </Link>
       ))}
     </div>

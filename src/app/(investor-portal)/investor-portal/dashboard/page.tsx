@@ -148,6 +148,7 @@ export default async function DashboardPage() {
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle={strings.navDashboard}
     >
       <div className="flex flex-col gap-8 md:gap-10">
         <InvestorHeroGreetingAI
@@ -241,10 +242,10 @@ export default async function DashboardPage() {
 
         <section>
           <div className="label">Portfolio</div>
-          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+          <h2 className="display mb-1 mt-1.5 text-[22px] font-medium">
             {strings.dashActiveCommitments}
           </h2>
-          <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+          <p className="mb-3.5 text-[13px] text-ink-3">
             Each card opens the commitment detail with capital-call history + distribution ledger.
           </p>
           {commitments.length === 0 ? (
@@ -264,34 +265,34 @@ export default async function DashboardPage() {
                 <Link
                   key={c.id}
                   href={`/investor-portal/commitments/${c.id}`}
-                  className="block rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card hover:shadow-elevated-card hover:border-line-strong transition-all"
+                  className="block rounded-[14px] border border-line bg-panel p-5 shadow-soft-card transition-all hover:border-line-strong hover:shadow-elevated-card"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-tertiary">
                       {c.commitmentCode}
                     </span>
                     <span
-                      className={`text-[11px] px-2 py-0.5 rounded-full ${
+                      className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] ${
                         c.status === "active"
-                          ? "bg-success-weak text-success"
+                          ? "bg-amber/[0.13] text-amber-deep"
                           : c.status === "fully_called"
-                            ? "bg-info-weak text-info"
+                            ? "bg-steel/[0.12] text-steel"
                             : "bg-muted text-ink-secondary"
                       }`}
                     >
                       {COMMITMENT_STATUS_LABEL[c.status]}
                     </span>
                   </div>
-                  <div className="font-medium text-ink text-base">
+                  <div className="font-display text-base font-medium tracking-[-0.01em] text-ink">
                     {c.projectName ?? "Multi-project"}
                   </div>
                   <div className="text-xs text-ink-tertiary mt-1 tabular-nums">
                     {formatUsdMinor(BigInt(c.committedAmountUsdMinor))}{" "}
                     committed · {c.drawnPercent.toFixed(1)}% drawn
                   </div>
-                  <div className="mt-3 h-1 bg-canvas rounded-full overflow-hidden">
+                  <div className="mt-3 h-[7px] overflow-hidden rounded-[4px] bg-line-soft">
                     <div
-                      className="h-full bg-ink"
+                      className="h-full rounded-[4px] bg-amber"
                       style={{
                         width: `${Math.min(100, c.drawnPercent)}%`,
                       }}

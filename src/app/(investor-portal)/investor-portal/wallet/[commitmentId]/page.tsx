@@ -49,6 +49,7 @@ export default async function PortalWalletPage({
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle="Wallet"
     >
       <div>
         <Link

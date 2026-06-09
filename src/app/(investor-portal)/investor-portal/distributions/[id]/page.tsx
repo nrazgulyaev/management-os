@@ -41,6 +41,7 @@ export default async function PortalDistributionDetailPage({
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle="Distribution"
     >
       <div>
         <Link
