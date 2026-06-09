@@ -25,6 +25,7 @@ import {
 import { loadInvestorGpPosition } from "@/lib/investor-portal/gp-economics-queries";
 import { buildLpGpEconomics } from "@/features/investors/lp-gp-economics";
 import { InvestorCopilotPanel } from "@/components/investor-portal/investor-copilot-panel";
+import { FundAnalyticsStrip } from "@/components/investor-portal/fund-analytics-strip";
 
 /**
  * Mega-Sprint / Phase 12 — Investor Portal Dashboard on the Sprint-4
@@ -161,6 +162,8 @@ export default async function DashboardPage() {
           aiPromptPlaceholder="What changed in my position this quarter?"
           askHref="#investor-copilot"
         />
+
+        <FundAnalyticsStrip currency={data.primaryCurrency} />
 
         <DistributionWaterfall
           stages={stages}
