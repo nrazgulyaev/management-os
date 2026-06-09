@@ -138,10 +138,17 @@ export async function run(
     // magnitude_usd stores the signed total drift in line currency,
     // MAJOR units (the column is numeric, not a money column).
     const magnitudeMajor = f.magnitudeMajor;
+    // magnitude_pct is numeric(6,3) → max ±999.999. computeVariance.pct is
+    // unbounded, so a line whose actual total is >~10× plan (exactly the kind
+    // of overrun this agent exists to flag) would overflow the column and
+    // abort the entire run. Clamp at the write boundary — beyond 1000% the
+    // exact figure is immaterial; the in-memory f.magnitudePct (used by the
+    // VarianceCard display path) keeps its true value.
+    const storedPct = Math.max(-999.999, Math.min(999.999, f.magnitudePct));
     await db.insert(varianceReviews).values({
       lineId: f.lineId,
       kind: f.kind,
-      magnitudePct: f.magnitudePct.toFixed(3),
+      magnitudePct: storedPct.toFixed(3),
       magnitudeUsd: magnitudeMajor.toFixed(2),
     });
     flagged += 1;
