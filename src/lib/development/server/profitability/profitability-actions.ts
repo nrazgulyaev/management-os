@@ -44,11 +44,30 @@ const allocateSchema = z.object({
  * with `is_current=true`, then demotes the prior current allocation
  * (if any) inside the same transaction. Partial unique index prevents
  * two current allocations per asset (defense in depth).
+ *
+ * Internal-gated public entry point. The actual write lives in
+ * `writeUnitAllocation` so the aggregation engine + cron (which run with
+ * no request auth session) can reuse it through a `system` context
+ * without tripping `requireInternalUser`.
  */
 export async function recomputeUnitAllocation(
   input: z.input<typeof allocateSchema>,
 ) {
   const ctx = await requireInternalUser();
+  return writeUnitAllocation(input, ctx.appUser?.id ?? null);
+}
+
+/**
+ * Pure write path for a single asset's allocation — NO auth gate. Callers
+ * are responsible for permission-gating before they reach here:
+ *   - `recomputeUnitAllocation` (operator action) gates with requireInternalUser
+ *   - the aggregation engine gates at the manual action / cron boundary
+ * `computedBy` is the actor id (null for cron/system runs).
+ */
+export async function writeUnitAllocation(
+  input: z.input<typeof allocateSchema>,
+  computedBy: string | null,
+) {
   const parsed = allocateSchema.parse(input);
   const db = requireDb();
 
@@ -107,7 +126,7 @@ export async function recomputeUnitAllocation(
             ? BigInt(parsed.expectedSalePrice)
             : null,
         marginPercentage: margin != null ? String(margin.toFixed(4)) : null,
-        computedBy: ctx.appUser?.id ?? null,
+        computedBy,
         computationMethod: "automatic",
         isCurrent: true,
         notes: parsed.notes ?? null,
