@@ -32,13 +32,15 @@ export const milestones = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     /**
-     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
-     * project_id -> projects.organization_id. Not yet threaded into queries
-     * and not DB-enforced NOT NULL; the app still org-scopes via project_id.
+     * TENANCY (migration 0150 add + backfill; 0156 NOT NULL cutover) — org
+     * column, threaded into the insert (project-milestone-actions.createMilestone)
+     * and DB-enforced NOT NULL.
      */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
@@ -81,13 +83,15 @@ export const milestoneDependencies = pgTable(
     /** Enum: fs | ss | ff | sf — finish-to-start, start-to-start, finish-to-finish, start-to-finish. */
     kind: text("kind").notNull(),
     /**
-     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
-     * from_milestone_id -> milestones.organization_id. Not yet threaded into
-     * queries and not DB-enforced NOT NULL.
+     * TENANCY (migration 0150 add + backfill; 0156 NOT NULL cutover) — org
+     * column, copied from the parent milestone's org in
+     * project-milestone-actions.createMilestone and DB-enforced NOT NULL.
      */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
   },
   (t) => [
     primaryKey({ columns: [t.fromMilestoneId, t.toMilestoneId] }),

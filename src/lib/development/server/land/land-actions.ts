@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireDb } from "@/lib/db/client";
@@ -13,6 +13,7 @@ import {
 import { projects } from "@/lib/db/schema/projects";
 import {} from "@/lib/db/schema/dev-finance";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Land profile + payment lifecycle actions. All mutations atomic via
@@ -44,10 +45,12 @@ export async function upsertLandProfile(
 ): Promise<{ id: string }> {
   const parsed = upsertProfileSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [row] = await db
     .insert(landProfiles)
     .values({
+      organizationId,
       projectId: parsed.projectId,
       acquisitionMode: parsed.acquisitionMode,
       acquisitionDate: parsed.acquisitionDate ?? null,
@@ -245,10 +248,17 @@ export async function addLandTransactionCost(
 
 export async function getLandProfileByProject(projectId: string) {
   const db = requireDb();
+  // TENANCY — scope to the caller's org (in addition to project_id).
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(landProfiles)
-    .where(eq(landProfiles.projectId, projectId))
+    .where(
+      and(
+        eq(landProfiles.organizationId, organizationId),
+        eq(landProfiles.projectId, projectId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

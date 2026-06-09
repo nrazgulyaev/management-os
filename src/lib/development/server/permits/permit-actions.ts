@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/schema/permits";
 import { projects } from "@/lib/db/schema/projects";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Permit lifecycle actions. Status transitions are enforced loosely —
@@ -58,10 +59,12 @@ export async function createPermit(
 ): Promise<{ id: string }> {
   const parsed = createSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [row] = await db
     .insert(projectPermits)
     .values({
+      organizationId,
       projectId: parsed.projectId,
       permitType: parsed.permitType,
       permitLabel: parsed.permitLabel,
@@ -144,10 +147,17 @@ export async function attachPermitDocument(
 
 export async function listPermitsByProject(projectId: string) {
   const db = requireDb();
+  // TENANCY — scope to the caller's org (in addition to project_id).
+  const organizationId = await requireOrgId();
   return await db
     .select()
     .from(projectPermits)
-    .where(eq(projectPermits.projectId, projectId))
+    .where(
+      and(
+        eq(projectPermits.organizationId, organizationId),
+        eq(projectPermits.projectId, projectId),
+      ),
+    )
     .orderBy(asc(projectPermits.permitType));
 }
 
@@ -169,10 +179,17 @@ export async function listExpiringPermits(daysAhead: number) {
 
 export async function getPermit(permitId: string) {
   const db = requireDb();
+  // TENANCY — scope the detail read to the caller's org.
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(projectPermits)
-    .where(eq(projectPermits.id, permitId))
+    .where(
+      and(
+        eq(projectPermits.organizationId, organizationId),
+        eq(projectPermits.id, permitId),
+      ),
+    )
     .limit(1);
   if (!row) return null;
   const docs = await db

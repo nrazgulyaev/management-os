@@ -29,13 +29,15 @@ export const varianceReviews = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     /**
-     * TENANCY (migration 0150) — NULLABLE org column, backfilled via
-     * line_id -> boq_items.organization_id (boq_items carries org from 0072).
-     * Not yet threaded into queries and not DB-enforced NOT NULL.
+     * TENANCY (migration 0150 add + backfill; 0156 NOT NULL cutover) — org
+     * column, threaded into the insert (variance-detector.run, sourced from
+     * the agent's organizationId input) and DB-enforced NOT NULL.
      */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     lineId: uuid("line_id")
       .notNull()
       .references(() => boqItems.id, { onDelete: "cascade" }),

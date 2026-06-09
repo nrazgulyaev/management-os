@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireDb } from "@/lib/db/client";
 import { rfis } from "@/lib/db/schema/rfis";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { recordAuditEvent } from "@/features/audit/services";
 import { route as routeRfi } from "@/features/ai-agents/projects/rfi-router";
 import {
@@ -47,6 +48,7 @@ export async function composeRfi(
   input: z.input<typeof composeSchema>,
 ): Promise<ComposeRfiResult> {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = composeSchema.parse(input);
   const db = requireDb();
 
@@ -70,6 +72,7 @@ export async function composeRfi(
       [row] = await db
         .insert(rfis)
         .values({
+          organizationId,
           projectId: parsed.projectId,
           ref,
           question: parsed.question,

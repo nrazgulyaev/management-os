@@ -2614,7 +2614,7 @@ async function main() {
   // Bali / Indonesia values.
   console.log("\n— Stage 4.A seeding —");
   const stageProjects = await sql`
-    SELECT id, slug, name FROM projects
+    SELECT id, slug, name, organization_id FROM projects
     WHERE slug IN ('eternal-villas', 'enso-villas', 'ahau-gardens')
     ORDER BY slug
   `;
@@ -2643,8 +2643,8 @@ async function main() {
     const spec = landProfileSpecs[proj.slug];
     if (!spec) continue;
     const lp = await sql`
-      INSERT INTO land_profiles (project_id, acquisition_mode, lease_expiry_date, lease_tenure_years, total_land_size_sqm, due_diligence_status)
-      VALUES (${proj.id}, ${spec.mode}, ${spec.expires}, ${spec.years}, ${spec.sqm}, 'completed')
+      INSERT INTO land_profiles (project_id, organization_id, acquisition_mode, lease_expiry_date, lease_tenure_years, total_land_size_sqm, due_diligence_status)
+      VALUES (${proj.id}, ${proj.organization_id}, ${spec.mode}, ${spec.expires}, ${spec.years}, ${spec.sqm}, 'completed')
       ON CONFLICT (project_id) DO UPDATE SET acquisition_mode = EXCLUDED.acquisition_mode, updated_at = now()
       RETURNING id
     `;
@@ -2682,8 +2682,8 @@ async function main() {
     const exists = await sql`SELECT id FROM project_permits WHERE project_id = ${proj.id} AND permit_type = ${p.type} AND permit_label = ${p.label} LIMIT 1`;
     if (exists.length > 0) continue;
     await sql`
-      INSERT INTO project_permits (project_id, permit_type, permit_label, status, received_at, expires_at, target_approval_date, permit_number, issuing_authority, currency)
-      VALUES (${proj.id}, ${p.type}, ${p.label}, ${p.status}, ${p.received ?? null}, ${p.expires ?? null}, ${p.target ?? null}, ${p.num ?? null}, 'Bali Provincial Office', 'IDR')
+      INSERT INTO project_permits (project_id, organization_id, permit_type, permit_label, status, received_at, expires_at, target_approval_date, permit_number, issuing_authority, currency)
+      VALUES (${proj.id}, ${proj.organization_id}, ${p.type}, ${p.label}, ${p.status}, ${p.received ?? null}, ${p.expires ?? null}, ${p.target ?? null}, ${p.num ?? null}, 'Bali Provincial Office', 'IDR')
     `;
     permitsCnt += 1;
   }
