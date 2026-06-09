@@ -104,6 +104,7 @@
 [data-product="development"] .badge-warn  { color: var(--warn); border-color: rgba(230,162,60,0.4); background: rgba(230,162,60,0.10); }
 [data-product="development"] .badge-danger{ color: var(--danger); border-color: rgba(215,70,77,0.4); background: rgba(215,70,77,0.10); }
 [data-product="development"] .badge-steel { color: var(--steel-soft); border-color: rgba(125,157,191,0.4); background: rgba(125,157,191,0.10); }
+[data-product="development"] .badge-info  { color: var(--steel); border-color: rgba(61,90,122,0.4); background: rgba(61,90,122,0.10); }
 [data-product="development"] .badge-soft  { color: var(--ink-2); border-color: var(--line-2); background: var(--bg-3); }
 
 /* Chips */
