@@ -311,11 +311,11 @@ export function OwnersListClient({
                 <TD>
                   <Link
                     href={`/dashboard/owners/${o.id}`}
-                    className="text-ink font-medium hover:text-accent"
+                    className="text-display text-[14.5px] text-ink hover:text-accent"
                   >
                     {o.displayName}
                   </Link>
-                  <div className="text-xs text-ink-tertiary mt-0.5">
+                  <div className="text-xs text-ink-tertiary mt-0.5 font-mono">
                     {o.legalName && o.legalName !== o.displayName
                       ? o.legalName
                       : o.type.replace("_", " ")}
@@ -330,7 +330,7 @@ export function OwnersListClient({
                 <TD>
                   <TierRing tier={o.tier} verbose />
                 </TD>
-                <TD className="text-right font-mono text-sm text-ink">{o.ytdNetLabel}</TD>
+                <TD className="text-right font-mono text-sm font-medium text-terra">{o.ytdNetLabel}</TD>
                 <TD>
                   <RiskPill
                     level={o.riskLevel}

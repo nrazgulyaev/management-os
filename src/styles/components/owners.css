@@ -8,25 +8,46 @@
    .villa-mini     — compact villa chip (side panel + cross-cabinet)
    ============================================================= */
 
+/* Tier ring — tinted pill with a ringed dot + the tier word, per the
+   mgmt-p1 owners mock (.tier-ring.t-platinum / -gold / -silver). The pill
+   background carries the tier colour at low saturation. */
 [data-product] .tier-ring {
   display: inline-flex; align-items: center; gap: 6px;
-}
-[data-product] .tier-ring .ring {
-  width: 14px; height: 14px;
-  border-radius: 999px;
-  display: inline-block;
-  box-shadow: inset 0 0 0 2px var(--paper, var(--panel));
-}
-[data-product] .tier-ring.platinum .ring { background: var(--ink); }
-[data-product] .tier-ring.gold .ring { background: var(--gold, var(--warn)); }
-[data-product] .tier-ring.silver .ring { background: var(--cream-deep, var(--bg-3)); box-shadow: inset 0 0 0 2px var(--paper, var(--panel)), 0 0 0 1px var(--line); }
-[data-product] .tier-ring .lbl {
+  padding: 2px 9px 2px 5px;
+  border-radius: var(--r-pill, 999px);
   font-family: var(--mono-font), monospace;
-  font-size: 10.5px;
+  font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink-3);
 }
+[data-product] .tier-ring .ring {
+  width: 12px; height: 12px;
+  border-radius: 999px;
+  display: inline-block;
+  border: 2px solid;
+}
+[data-product] .tier-ring .lbl {
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+[data-product] .tier-ring.platinum {
+  background: color-mix(in oklab, var(--ink) 6%, transparent);
+  color: var(--ink);
+}
+[data-product] .tier-ring.platinum .ring { border-color: var(--ink); background: var(--ink); }
+[data-product] .tier-ring.gold {
+  background: color-mix(in oklab, var(--gold, var(--warn)) 14%, transparent);
+  color: var(--gold, var(--warn));
+}
+[data-product] .tier-ring.gold .ring { border-color: var(--gold, var(--warn)); background: var(--gold, var(--warn)); }
+[data-product] .tier-ring.silver {
+  background: var(--cream-deep, var(--bg-3));
+  color: var(--ink-2);
+}
+[data-product] .tier-ring.silver .ring { border-color: var(--ink-3); background: var(--cream, var(--bg)); }
 
 [data-product] .risk-pill {
   display: inline-flex; align-items: center; gap: 6px;
@@ -48,24 +69,27 @@
   letter-spacing: 0.04em;
   margin-left: 4px;
 }
+/* Levels mirror the mock: Healthy=green, Watch=gold, Flag=warn (amber).
+   Borders stay near-transparent so the pills read as soft tints, not
+   hard alert chips. */
 [data-product] .risk-pill.ok {
-  background: color-mix(in oklab, var(--ok) 12%, transparent);
-  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+  background: color-mix(in oklab, var(--ok) 10%, transparent);
+  border-color: color-mix(in oklab, var(--ok) 28%, transparent);
   color: var(--ok);
 }
 [data-product] .risk-pill.ok .dot { background: var(--ok); }
 [data-product] .risk-pill.watch {
-  background: color-mix(in oklab, var(--warn) 12%, transparent);
-  border-color: color-mix(in oklab, var(--warn) 35%, transparent);
+  background: color-mix(in oklab, var(--gold, var(--warn)) 14%, transparent);
+  border-color: color-mix(in oklab, var(--gold, var(--warn)) 30%, transparent);
+  color: var(--gold, var(--warn));
+}
+[data-product] .risk-pill.watch .dot { background: var(--gold, var(--warn)); }
+[data-product] .risk-pill.flag {
+  background: color-mix(in oklab, var(--warn) 14%, transparent);
+  border-color: color-mix(in oklab, var(--warn) 30%, transparent);
   color: var(--warn);
 }
-[data-product] .risk-pill.watch .dot { background: var(--warn); }
-[data-product] .risk-pill.flag {
-  background: color-mix(in oklab, var(--danger) 12%, transparent);
-  border-color: color-mix(in oklab, var(--danger) 35%, transparent);
-  color: var(--danger);
-}
-[data-product] .risk-pill.flag .dot { background: var(--danger); }
+[data-product] .risk-pill.flag .dot { background: var(--warn); }
 
 [data-product] .portal-dot {
   display: inline-flex; align-items: center; gap: 6px;
@@ -76,54 +100,79 @@
   display: inline-block;
 }
 [data-product] .portal-dot.active .dot { background: var(--ok); }
-[data-product] .portal-dot.invited .dot { background: var(--warn); }
+[data-product] .portal-dot.invited .dot { background: var(--gold, var(--warn)); }
 [data-product] .portal-dot.not-invited .dot { background: var(--line-strong, var(--line)); }
 [data-product] .portal-dot .lbl {
   font-family: var(--mono-font), monospace;
   font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-/* InsightCard */
-[data-product] .insight-card {
-  display: flex; flex-direction: column; gap: 10px;
-  padding: 16px 18px;
-  background: var(--paper, var(--panel));
-  border: 1px solid var(--line-soft, var(--line));
-  border-radius: 14px;
-}
-[data-product] .insight-card.level-flag {
-  background: color-mix(in oklab, var(--danger) 5%, var(--paper, var(--panel)));
-  border-color: color-mix(in oklab, var(--danger) 30%, transparent);
-}
-[data-product] .insight-card.level-watch {
-  background: color-mix(in oklab, var(--warn) 5%, var(--paper, var(--panel)));
-  border-color: color-mix(in oklab, var(--warn) 30%, transparent);
-}
-[data-product] .insight-card .ic-head {
-  display: flex; align-items: center; gap: 10px;
-}
-[data-product] .insight-card .ic-kind {
-  font-family: var(--mono-font), monospace;
-  font-size: 10.5px;
-  color: var(--ink-3);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-}
-[data-product] .insight-card .ic-when {
-  margin-left: auto;
-  font-size: 10.5px;
   color: var(--ink-3);
 }
-[data-product] .insight-card .ic-body {
-  font-size: 13.5px;
+/* Mock colours the label to match the dot for active/invited. */
+[data-product] .portal-dot.active .lbl { color: var(--ok); }
+[data-product] .portal-dot.invited .lbl { color: var(--gold, var(--warn)); }
+
+/* InsightCard — the AI-flagged retention panel from the owners mock:
+   warm paper→cream gradient, a soft accent radial glow top-right, an
+   accent eyebrow, a Newsreader headline, body copy, a mono run/meta
+   line and the Schedule-call / Dismiss CTAs. */
+[data-product] .insight-card {
+  display: flex; flex-direction: column;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, var(--paper, var(--panel)), var(--cream-warm, var(--bg-2)));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+}
+[data-product] .insight-card::before {
+  content: "";
+  position: absolute; top: 0; right: 0;
+  width: 60px; height: 60px;
+  background: radial-gradient(circle at top right, color-mix(in oklab, var(--accent) 18%, transparent), transparent);
+  pointer-events: none;
+}
+[data-product] .insight-card.level-flag {
+  border-color: color-mix(in oklab, var(--warn) 30%, transparent);
+}
+[data-product] .insight-card.level-watch {
+  border-color: color-mix(in oklab, var(--gold, var(--warn)) 30%, transparent);
+}
+[data-product] .insight-card .ic-eyebrow {
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+[data-product] .insight-card .ic-head {
+  margin: 6px 0 4px;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.3;
   color: var(--ink);
+}
+[data-product] .insight-card .ic-body {
+  margin: 0;
+  font-family: var(--sans-font);
+  font-size: 12.5px;
+  color: var(--ink-2);
   line-height: 1.55;
+}
+[data-product] .insight-card .ic-meta {
+  margin-top: 10px;
+  font-family: var(--mono-font), monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
 }
 [data-product] .insight-card .ic-actions {
   display: flex; gap: 6px; flex-wrap: wrap;
+  margin-top: 12px;
 }
 
 /* VillaMini */
