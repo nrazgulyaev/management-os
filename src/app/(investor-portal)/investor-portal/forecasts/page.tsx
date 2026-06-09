@@ -36,17 +36,17 @@ export default async function PortalForecastsPage() {
       <div className="space-y-6">
         <Link
           href="/investor-portal/dashboard"
-          className="inline-flex items-center gap-1 text-sm text-stone-600 hover:text-stone-900"
+          className="inline-flex items-center gap-1 text-sm text-ink-secondary hover:text-ink"
         >
           <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           Back
         </Link>
 
         <div>
-          <h1 className="font-display text-3xl text-stone-900">
+          <h1 className="font-display text-3xl text-ink">
             Distribution forecast
           </h1>
-          <p className="text-sm text-stone-600 mt-1">
+          <p className="text-sm text-ink-secondary mt-1">
             Projected cash distributions over the next{" "}
             {result.forecast.quarters.length} quarters, based on{" "}
             {result.completedCount} completed distribution
@@ -54,23 +54,23 @@ export default async function PortalForecastsPage() {
           </p>
         </div>
 
-        <div className="bg-stone-50 border border-stone-200 rounded-md p-5">
+        <div className="bg-muted border border-line-soft rounded-md p-5">
           <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="w-5 h-5 text-stone-700" strokeWidth={1.75} />
-            <span className="font-display text-xl text-stone-900">
+            <TrendingUp className="w-5 h-5 text-ink-secondary" strokeWidth={1.75} />
+            <span className="font-display text-xl text-ink">
               {formatUsdMinor(result.forecast.totalProjectedMinor)}
             </span>
           </div>
-          <p className="text-xs text-stone-600">
+          <p className="text-xs text-ink-secondary">
             Total projected over the forecast horizon. Forecasts are
             indicative — actual distributions depend on project
             performance, capital-return priority, and Director discretion.
           </p>
         </div>
 
-        <div className="border border-stone-200 rounded-md overflow-hidden">
+        <div className="border border-line-soft rounded-md overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-stone-50 text-stone-700">
+            <thead className="bg-muted text-ink-secondary">
               <tr>
                 <th className="text-left px-3 py-2">Period</th>
                 <th className="text-right px-3 py-2">Projected</th>
@@ -81,7 +81,7 @@ export default async function PortalForecastsPage() {
               {result.forecast.quarters.map((q, idx) => (
                 <tr
                   key={`${q.year}-Q${q.quarter}`}
-                  className={idx % 2 === 0 ? "bg-white" : "bg-stone-50"}
+                  className={idx % 2 === 0 ? "bg-surface" : "bg-muted"}
                 >
                   <td className="px-3 py-2 font-mono">
                     Q{q.quarter} {q.year}
@@ -89,7 +89,7 @@ export default async function PortalForecastsPage() {
                   <td className="px-3 py-2 text-right tabular-nums">
                     {formatUsdMinor(q.projectedAmountMinor)}
                   </td>
-                  <td className="px-3 py-2 text-xs text-stone-600">
+                  <td className="px-3 py-2 text-xs text-ink-secondary">
                     {CONFIDENCE_LABEL[q.confidence] ?? q.confidence}
                   </td>
                 </tr>
@@ -98,7 +98,7 @@ export default async function PortalForecastsPage() {
           </table>
         </div>
 
-        <p className="text-xs text-stone-500 leading-relaxed">
+        <p className="text-xs text-ink-tertiary leading-relaxed">
           As of {new Date(result.asOf).toISOString().slice(0, 10)}.
           The forecast uses a rolling average over your completed
           distributions; with ≥4 completed distributions, the highest

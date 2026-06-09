@@ -37,28 +37,28 @@ export default async function PortalRequestsPage() {
       <div className="space-y-6">
         <Link
           href="/investor-portal/dashboard"
-          className="inline-flex items-center gap-1 text-sm text-stone-600 hover:text-stone-900"
+          className="inline-flex items-center gap-1 text-sm text-ink-secondary hover:text-ink"
         >
           <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           Back
         </Link>
 
         <div>
-          <h2 className="font-display text-2xl tracking-wide text-stone-900 mb-1">
+          <h2 className="font-display text-2xl tracking-wide text-ink mb-1">
             My requests
           </h2>
-          <p className="text-sm text-stone-600">
+          <p className="text-sm text-ink-secondary">
             Withdrawal, reinvest, transfer requests you've submitted. Each
             requires Arconique team review and explicit execution.
           </p>
         </div>
 
         {requests.length === 0 ? (
-          <div className="rounded-md border border-dashed border-stone-300 bg-white px-6 py-10 text-center">
-            <p className="text-sm font-medium text-stone-700">
+          <div className="rounded-md border border-dashed border-line-soft bg-surface px-6 py-10 text-center">
+            <p className="text-sm font-medium text-ink-secondary">
               No requests yet
             </p>
-            <p className="text-xs text-stone-500 mt-2 max-w-md mx-auto leading-relaxed">
+            <p className="text-xs text-ink-tertiary mt-2 max-w-md mx-auto leading-relaxed">
               Submit a withdrawal, reinvestment, or transfer request from the
               Wallet tab. The Arconique team reviews every request before
               execution.
@@ -69,20 +69,20 @@ export default async function PortalRequestsPage() {
             {requests.map((r) => (
               <li
                 key={r.id}
-                className="rounded-md border border-stone-300 bg-white p-4 flex items-center justify-between gap-4"
+                className="rounded-md border border-line-soft bg-surface p-4 flex items-center justify-between gap-4"
               >
                 <div>
-                  <div className="text-sm font-medium text-stone-900">
+                  <div className="text-sm font-medium text-ink">
                     <span className="font-mono">{r.requestCode}</span> ·{" "}
                     {r.requestType.replace(/_/g, " ")}
                   </div>
-                  <div className="text-xs text-stone-500 mt-0.5">
+                  <div className="text-xs text-ink-tertiary mt-0.5">
                     ${(Number(r.requestedAmountMinor) / 100).toLocaleString()}{" "}
                     {r.currency} · submitted{" "}
                     {new Date(r.submittedAt).toLocaleDateString()}
                   </div>
                 </div>
-                <span className="text-xs uppercase tracking-wide text-stone-700">
+                <span className="text-xs uppercase tracking-wide text-ink-secondary">
                   {r.status.replace(/_/g, " ")}
                 </span>
               </li>

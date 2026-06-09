@@ -56,24 +56,24 @@ export default async function ReinvestPage() {
       <div className="space-y-6">
         <Link
           href="/investor-portal/dashboard"
-          className="inline-flex items-center gap-1 text-sm text-stone-600 hover:text-stone-900"
+          className="inline-flex items-center gap-1 text-sm text-ink-secondary hover:text-ink"
         >
           <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           Back
         </Link>
 
         <div>
-          <h2 className="font-display text-2xl tracking-wide text-stone-900 mb-1">
+          <h2 className="font-display text-2xl tracking-wide text-ink mb-1">
             Reinvest
           </h2>
-          <p className="text-sm text-stone-600">
+          <p className="text-sm text-ink-secondary">
             Move cash from one of your existing commitments into another
             Arconique project. Operator review + execution required.
           </p>
         </div>
 
         {commitments.length === 0 || allProjects.length === 0 ? (
-          <div className="rounded-md border border-stone-300 bg-white p-6 text-sm text-stone-600">
+          <div className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
             No commitments or projects available.
           </div>
         ) : (
@@ -81,9 +81,9 @@ export default async function ReinvestPage() {
             {commitments.map((c) => (
               <div
                 key={c.id}
-                className="rounded-md border border-stone-300 bg-white p-5 space-y-3"
+                className="rounded-md border border-line-soft bg-surface p-5 space-y-3"
               >
-                <div className="text-xs text-stone-500">
+                <div className="text-xs text-ink-tertiary">
                   Source: commitment {c.id.slice(0, 8)} · cash $
                   {(Number(c.cashBalanceMinor) / 100).toLocaleString()}
                 </div>
@@ -95,7 +95,7 @@ export default async function ReinvestPage() {
                     targetProjects={allProjects}
                   />
                 ) : (
-                  <p className="text-xs text-stone-500">
+                  <p className="text-xs text-ink-tertiary">
                     No cash currently available on this commitment.
                   </p>
                 )}

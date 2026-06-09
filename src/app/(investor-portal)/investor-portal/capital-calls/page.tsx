@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
+import { Badge } from "@/components/ui/badge";
 import {
   getMyCapitalCalls,
   type LpCapitalCallListItem,
@@ -17,17 +18,17 @@ export const dynamic = "force-dynamic";
 
 function statusBadge(call: LpCapitalCallListItem): {
   label: string;
-  className: string;
+  tone: "success" | "danger" | "warning";
 } {
   if (call.isPaid) {
-    return { label: "Paid", className: "bg-emerald-100 text-emerald-800" };
+    return { label: "Paid", tone: "success" };
   }
   const overdue =
     !call.isPaid && new Date(call.dueAt).getTime() < Date.now();
   if (overdue) {
-    return { label: "Overdue", className: "bg-red-100 text-red-800" };
+    return { label: "Overdue", tone: "danger" };
   }
-  return { label: "Outstanding", className: "bg-amber-100 text-amber-800" };
+  return { label: "Outstanding", tone: "warning" };
 }
 
 export default async function CapitalCallsPage() {
@@ -46,18 +47,18 @@ export default async function CapitalCallsPage() {
       investorCode={session.investorCode}
     >
       <div>
-        <h1 className="font-display text-3xl text-stone-900">Capital calls</h1>
-        <p className="text-sm text-stone-600 mt-1">
+        <h1 className="font-display text-3xl text-ink">Capital calls</h1>
+        <p className="text-sm text-ink-secondary mt-1">
           {outstanding.length} outstanding · {historical.length} settled
         </p>
       </div>
 
       {calls.length === 0 ? (
-        <div className="rounded-md border border-dashed border-stone-300 bg-white px-6 py-10 text-center">
-          <p className="text-sm font-medium text-stone-700">
+        <div className="rounded-md border border-dashed border-line-soft bg-surface px-6 py-10 text-center">
+          <p className="text-sm font-medium text-ink-secondary">
             No capital calls yet
           </p>
-          <p className="text-xs text-stone-500 mt-2 max-w-md mx-auto leading-relaxed">
+          <p className="text-xs text-ink-tertiary mt-2 max-w-md mx-auto leading-relaxed">
             When Arconique issues a capital call against one of your
             commitments, your pro-rata share will appear here with the amount
             due, the due date, and a way to confirm your wire.
@@ -92,17 +93,17 @@ function Section({
 }) {
   return (
     <section>
-      <h2 className="text-sm uppercase tracking-wide text-stone-500 mb-3">
+      <h2 className="text-sm uppercase tracking-wide text-ink-tertiary mb-3">
         {title}
       </h2>
       {calls.length === 0 ? (
-        <div className="rounded-md border border-stone-200 bg-white p-6 text-sm text-stone-600">
+        <div className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
           {emptyLabel}
         </div>
       ) : (
-        <div className="rounded-lg border border-stone-200 bg-white overflow-hidden">
+        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-stone-50 text-[11px] uppercase tracking-wide text-stone-500">
+            <thead className="bg-muted text-[11px] uppercase tracking-wide text-ink-tertiary">
               <tr>
                 <th className="px-4 py-2 text-left">Reference</th>
                 <th className="px-4 py-2 text-left">Project</th>
@@ -111,11 +112,11 @@ function Section({
                 <th className="px-4 py-2 text-left">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-line-soft">
               {calls.map((c) => {
                 const badge = statusBadge(c);
                 return (
-                  <tr key={c.allocationId} className="hover:bg-stone-50">
+                  <tr key={c.allocationId} className="hover:bg-muted">
                     <td className="px-4 py-3 font-mono text-xs">
                       <Link
                         href={`/investor-portal/capital-calls/${c.allocationId}`}
@@ -123,13 +124,13 @@ function Section({
                       >
                         {c.ref}
                       </Link>
-                      <div className="text-[10px] text-stone-500 capitalize">
+                      <div className="text-[10px] text-ink-tertiary capitalize">
                         {c.kind.replace(/_/g, " ")}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       {c.projectName ?? (
-                        <span className="text-stone-500">—</span>
+                        <span className="text-ink-tertiary">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
@@ -139,11 +140,7 @@ function Section({
                       {new Date(c.dueAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`text-[11px] px-2 py-0.5 rounded-full ${badge.className}`}
-                      >
-                        {badge.label}
-                      </span>
+                      <Badge tone={badge.tone}>{badge.label}</Badge>
                     </td>
                   </tr>
                 );

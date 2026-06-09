@@ -9,6 +9,7 @@ import {
 } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
+import { Badge } from "@/components/ui/badge";
 import {
   DISTRIBUTION_STATUS_LABEL,
   DISTRIBUTION_TYPE_LABEL,
@@ -44,15 +45,15 @@ export default async function PortalDistributionDetailPage({
       <div>
         <Link
           href="/investor-portal/distributions"
-          className="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-stone-900 mb-3"
+          className="inline-flex items-center gap-1 text-xs text-ink-tertiary hover:text-ink mb-3"
         >
           <ArrowLeft className="w-3 h-3" /> {strings.navDistributions}
         </Link>
-        <h1 className="font-display text-2xl text-stone-900">
+        <h1 className="font-display text-2xl text-ink">
           {DISTRIBUTION_TYPE_LABEL[distribution.distributionType]} #
           {distribution.distributionNumber}
         </h1>
-        <p className="text-sm text-stone-600 mt-1">
+        <p className="text-sm text-ink-secondary mt-1">
           {distribution.projectName ?? "Company-wide"} · effective{" "}
           {distribution.effectiveDate}
         </p>
@@ -89,21 +90,15 @@ export default async function PortalDistributionDetailPage({
         />
       </section>
 
-      <div className="text-xs text-stone-500">
+      <div className="text-xs text-ink-tertiary flex items-center gap-2">
         Status:{" "}
-        <span
-          className={`px-2 py-0.5 rounded-full ${
-            distribution.status === "completed"
-              ? "bg-emerald-100 text-emerald-800"
-              : "bg-amber-100 text-amber-800"
-          }`}
-        >
+        <Badge tone={distribution.status === "completed" ? "success" : "warning"}>
           {DISTRIBUTION_STATUS_LABEL[distribution.status]}
-        </span>
+        </Badge>
       </div>
 
       {myAllocation && myAllocation.status === "executed" && (
-        <p className="text-sm text-stone-600">
+        <p className="text-sm text-ink-secondary">
           This allocation was credited to your wallet on{" "}
           {myAllocation.executedAt
             ? new Date(myAllocation.executedAt).toLocaleString()
@@ -111,7 +106,7 @@ export default async function PortalDistributionDetailPage({
           . You can{" "}
           <Link
             href={`/investor-portal/wallet/${myAllocation.commitmentId}`}
-            className="underline hover:text-stone-900"
+            className="underline hover:text-ink"
           >
             view your wallet ledger
           </Link>{" "}
@@ -124,11 +119,11 @@ export default async function PortalDistributionDetailPage({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-4">
-      <div className="text-[11px] uppercase tracking-wide text-stone-500">
+    <div className="rounded-lg border border-line-soft bg-surface p-4">
+      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
         {label}
       </div>
-      <div className="text-xl font-medium tabular-nums text-stone-900 mt-1">
+      <div className="text-xl font-medium tabular-nums text-ink mt-1">
         {value}
       </div>
     </div>

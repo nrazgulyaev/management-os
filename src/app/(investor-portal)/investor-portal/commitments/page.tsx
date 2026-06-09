@@ -5,6 +5,7 @@ import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getMyCommitments } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
+import { Badge } from "@/components/ui/badge";
 import {
   COMMITMENT_STATUS_LABEL,
   formatCurrencyMinor,
@@ -29,29 +30,29 @@ export default async function CommitmentsPage() {
       investorCode={session.investorCode}
     >
       <div>
-        <h1 className="font-display text-3xl text-stone-900">
+        <h1 className="font-display text-3xl text-ink">
           {strings.navCommitments}
         </h1>
-        <p className="text-sm text-stone-600 mt-1">
+        <p className="text-sm text-ink-secondary mt-1">
           {commitments.length} commitment{commitments.length === 1 ? "" : "s"}{" "}
           across all projects
         </p>
       </div>
 
       {commitments.length === 0 ? (
-        <div className="rounded-md border border-dashed border-stone-300 bg-white px-6 py-10 text-center">
-          <p className="text-sm font-medium text-stone-700">
+        <div className="rounded-md border border-dashed border-line-soft bg-surface px-6 py-10 text-center">
+          <p className="text-sm font-medium text-ink-secondary">
             {strings.dashNoCommitments}
           </p>
-          <p className="text-xs text-stone-500 mt-2 max-w-md mx-auto leading-relaxed">
+          <p className="text-xs text-ink-tertiary mt-2 max-w-md mx-auto leading-relaxed">
             Once Arconique attaches a capital commitment to your account, it
             will appear here with drawn-percent + wallet position + status.
           </p>
         </div>
       ) : (
-        <div className="rounded-lg border border-stone-200 bg-white overflow-hidden">
+        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-stone-50 text-[11px] uppercase tracking-wide text-stone-500">
+            <thead className="bg-muted text-[11px] uppercase tracking-wide text-ink-tertiary">
               <tr>
                 <th className="px-4 py-2 text-left">Code</th>
                 <th className="px-4 py-2 text-left">{strings.project}</th>
@@ -62,9 +63,9 @@ export default async function CommitmentsPage() {
                 <th className="px-4 py-2 text-left">{strings.status}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-line-soft">
               {commitments.map((c) => (
-                <tr key={c.id} className="hover:bg-stone-50">
+                <tr key={c.id} className="hover:bg-muted">
                   <td className="px-4 py-3 font-mono text-xs">
                     <Link
                       href={`/investor-portal/commitments/${c.id}`}
@@ -75,7 +76,7 @@ export default async function CommitmentsPage() {
                   </td>
                   <td className="px-4 py-3">
                     {c.projectName ?? (
-                      <span className="text-stone-500">Multi-project</span>
+                      <span className="text-ink-tertiary">Multi-project</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
@@ -83,13 +84,13 @@ export default async function CommitmentsPage() {
                       BigInt(c.committedAmountMinor),
                       c.committedCurrency,
                     )}
-                    <div className="text-[10px] text-stone-500">
+                    <div className="text-[10px] text-ink-tertiary">
                       ≈ {formatUsdMinor(BigInt(c.committedAmountUsdMinor))}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {formatUsdMinor(BigInt(c.drawnUsdMinor))}
-                    <div className="text-[10px] text-stone-500">
+                    <div className="text-[10px] text-ink-tertiary">
                       {c.drawnPercent.toFixed(1)}%
                     </div>
                   </td>
@@ -100,19 +101,19 @@ export default async function CommitmentsPage() {
                     {Number(c.profitSharePercent).toFixed(1)}%
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`text-[11px] px-2 py-0.5 rounded-full ${
+                    <Badge
+                      tone={
                         c.status === "active"
-                          ? "bg-emerald-100 text-emerald-800"
+                          ? "success"
                           : c.status === "closed"
-                            ? "bg-stone-100 text-stone-700"
+                            ? "neutral"
                             : c.status === "fully_called"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-amber-100 text-amber-800"
-                      }`}
+                              ? "info"
+                              : "warning"
+                      }
                     >
                       {COMMITMENT_STATUS_LABEL[c.status]}
-                    </span>
+                    </Badge>
                   </td>
                 </tr>
               ))}
