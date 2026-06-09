@@ -1,6 +1,9 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import {
+  Kpi,
+  SectionHeading,
+  Card,
+  HandoffBadge,
+} from "@/components/dashboard/primitives";
 import { listCurrentReadiness } from "@/features/readiness/services";
 import { listVillas } from "@/features/villas/services";
 import { listArrivals } from "@/features/front-office/services";
@@ -9,16 +12,31 @@ import { ReadinessSetForm } from "@/components/readiness/readiness-set-form";
 export const metadata = { title: "Readiness" };
 export const dynamic = "force-dynamic";
 
-const TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
-  ready: "success",
+const TONES: Record<string, "ok" | "info" | "warn" | "danger" | "ink"> = {
+  ready: "ok",
   occupied: "info",
-  cleaning: "warning",
+  cleaning: "warn",
   inspection: "info",
-  dirty: "warning",
+  dirty: "warn",
   out_of_order: "danger",
   maintenance_block: "danger",
-  unknown: "neutral",
+  unknown: "ink",
 };
+
+const READY_STATUSES = new Set(["ready", "occupied", "cleaning", "inspection"]);
+const CLEANING_STATUSES = new Set(["cleaning", "dirty"]);
+const BLOCKED_STATUSES = new Set(["out_of_order", "maintenance_block"]);
+
+function fmtSince(iso: string): string {
+  return new Date(iso)
+    .toLocaleString("en-GB", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    .replace(",", "");
+}
 
 export default async function ReadinessPage() {
   const [current, villaList, arrivals] = await Promise.all([
@@ -31,103 +49,141 @@ export default async function ReadinessPage() {
 
   // V9D — surface arrivals whose villa is not in a "ready" / "occupied" /
   // "cleaning" / "inspection" state.
-  const READY_STATUSES = new Set([
-    "ready",
-    "occupied",
-    "cleaning",
-    "inspection",
-  ]);
   const arrivalsNotReady = arrivals.filter(
     (a) => !READY_STATUSES.has(a.readinessStatus),
   );
 
+  // KPIs over the current readiness set.
+  const tracked = current.length;
+  const readyCount = current.filter((c) => c.readinessStatus === "ready").length;
+  const cleaningCount = current.filter((c) =>
+    CLEANING_STATUSES.has(c.readinessStatus),
+  ).length;
+  const blockedCount = current.filter((c) =>
+    BLOCKED_STATUSES.has(c.readinessStatus),
+  ).length;
+
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Readiness" }]}
-        title="Villa readiness"
-        description="Append-only timeline. The current row per villa is shown here. Setting a new state closes the previous one — see history on the villa detail page."
+    <>
+      <SectionHeading
+        eyebrow="Front office · append-only timeline"
+        title={
+          <>
+            Is the villa <em>ready</em>?
+          </>
+        }
+        subtitle="The current state per villa. Setting a new state closes the previous one — full history lives on the villa detail page."
       />
 
       {arrivalsNotReady.length > 0 && (
-        <Section
-          eyebrow="Heads up"
-          title={`${arrivalsNotReady.length} arrival${arrivalsNotReady.length === 1 ? "" : "s"} today, villa not ready`}
-          description="Confirm cleaning + inspection before guest arrival. The risk scanner queues a notification per arrival."
-        >
-          <div className="rounded-md border border-warning/40 bg-warning-weak/30 p-4">
-            <ul className="text-sm divide-y divide-line-soft">
-              {arrivalsNotReady.map((a) => (
-                <li key={a.bookingId} className="py-2 flex items-center justify-between gap-3">
-                  <span className="font-mono text-[11px] text-ink-tertiary">
-                    {a.bookingCode}
-                  </span>
-                  <span className="text-ink">{a.villaCode ?? "—"}</span>
-                  <Badge tone="warning">{a.readinessStatus}</Badge>
-                </li>
-              ))}
-            </ul>
+        <Card padding="default" className="rd-alert mb-[18px]">
+          <div className="av-card-h">
+            <h3>
+              ⚠ {arrivalsNotReady.length} arrival
+              {arrivalsNotReady.length === 1 ? "" : "s"} today — villa not ready
+            </h3>
           </div>
-        </Section>
+          <p className="text-[13px] text-ink-3 m-0 mb-3">
+            Confirm cleaning + inspection before guest arrival. The risk scanner
+            queues a notification per arrival.
+          </p>
+          <table className="data">
+            <tbody>
+              {arrivalsNotReady.map((a) => (
+                <tr key={a.bookingId}>
+                  <td className="mono text-[11px] text-ink-3">{a.bookingCode}</td>
+                  <td className="row-title">{a.villaCode ?? "—"}</td>
+                  <td>
+                    <HandoffBadge tone={TONES[a.readinessStatus] ?? "warn"}>
+                      {a.readinessStatus}
+                    </HandoffBadge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       )}
 
-      <Section eyebrow="Current state" title={`${current.length} villas tracked`}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-[18px]">
+        <Kpi label="Villas tracked" value={String(tracked)} sub="current state" />
+        <Kpi
+          label="Ready"
+          value={String(readyCount)}
+          sub="bookable"
+          tone={readyCount > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Cleaning"
+          value={String(cleaningCount)}
+          sub="turnover today"
+          tone={cleaningCount > 0 ? "warn" : undefined}
+        />
+        <Kpi
+          label="OOO / maint"
+          value={String(blockedCount)}
+          sub="blocked"
+          tone={blockedCount > 0 ? "danger" : undefined}
+        />
+      </div>
+
+      <Card padding="default" className="mb-[18px]">
+        <div className="av-card-h">
+          <h3>Current state · {tracked} villas</h3>
+          <span className="meta">APPEND-ONLY</span>
+        </div>
         {current.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
+          <p className="text-[13px] text-ink-3 italic m-0 py-4">
             No readiness rows yet. Use the form below to set the first state.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
-                <tr>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Project</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-left px-3 py-2">Since</th>
-                  <th className="text-left px-3 py-2">Notes</th>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Villa</th>
+                <th scope="col">Project</th>
+                <th scope="col">Status</th>
+                <th scope="col">Since</th>
+                <th scope="col">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {current.map((c) => (
+                <tr key={c.villaId}>
+                  <td className="row-title">{c.villaCode ?? "—"}</td>
+                  <td className="text-[13px] text-ink-3">{c.projectName ?? "—"}</td>
+                  <td>
+                    <HandoffBadge tone={TONES[c.readinessStatus] ?? "ink"}>
+                      {c.readinessStatus}
+                    </HandoffBadge>
+                  </td>
+                  <td className="mono text-[11px] text-ink-3">
+                    {fmtSince(c.effectiveFrom)}
+                  </td>
+                  <td className="text-[12px] text-ink-3">{c.notes ?? "—"}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-line-soft">
-                {current.map((c) => (
-                  <tr key={c.villaId}>
-                    <td className="px-3 py-2 text-ink font-medium">{c.villaCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{c.projectName ?? "—"}</td>
-                    <td className="px-3 py-2">
-                      <Badge tone={TONES[c.readinessStatus] ?? "neutral"}>
-                        {c.readinessStatus}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">
-                      {c.effectiveFrom.slice(0, 16).replace("T", " ")}
-                    </td>
-                    <td className="px-3 py-2 text-ink-tertiary text-xs">
-                      {c.notes ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
-      </Section>
+      </Card>
 
-      <Section
-        eyebrow="Update"
-        title="Set readiness"
-        description={
-          villasWithoutState.length > 0
-            ? `${villasWithoutState.length} villa(s) have no readiness state yet — start with one of those.`
-            : "Update an existing villa's readiness state."
-        }
-      >
+      <h2 className="display text-[22px] font-normal mt-8 mb-1.5" id="set">
+        Set readiness
+      </h2>
+      <p className="text-[13px] text-ink-3 mb-3.5 max-w-[680px]">
+        {villasWithoutState.length > 0
+          ? `${villasWithoutState.length} villa(s) have no readiness state yet — start with one of those.`
+          : "Update an existing villa's readiness state."}
+      </p>
+      <Card padding="default">
         <ReadinessSetForm
           villas={villaList.map((v) => ({
             id: v.id,
             label: `${v.unitCode} · ${v.projectName}`,
           }))}
         />
-      </Section>
-    </div>
+      </Card>
+    </>
   );
 }

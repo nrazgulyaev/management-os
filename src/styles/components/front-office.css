@@ -383,3 +383,174 @@
   font-size: 10px;
   color: var(--ink-4);
 }
+
+/* =============================================================
+   Availability & Intelligence cluster (mgmt-p3/Availability and
+   Intelligence.html) — primitives for /availability · /readiness
+   · /digests. Translated 1:1 from the mockup's `gs-*` inline blocks
+   into product-scoped, tokenised classes. Reuses the chrome
+   `.kpi` / `.card` / `table.data` vocabulary; these cover the
+   cluster-only blocks (the day board, the calendar legend, the
+   readiness alert callout and the digest feed).
+   ============================================================= */
+
+/* Card header — display h3 + right-aligned mono meta. Mockup
+   `.gs-card-h`. */
+[data-product="management"] .av-card-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+[data-product="management"] .av-card-h h3 {
+  margin: 0;
+  font-family: var(--display-font);
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--ink);
+}
+[data-product="management"] .av-card-h .meta {
+  margin-left: auto;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+/* 7-day occupancy board — mockup `.gs-cal`. A villa-name column +
+   N day columns; each cell is a tinted state square. */
+[data-product="management"] .av-board {
+  display: grid;
+  gap: 4px;
+}
+[data-product="management"] .av-board .av-hd {
+  font-family: var(--mono-font);
+  font-size: 10px;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 6px 4px;
+  text-align: center;
+}
+[data-product="management"] .av-board .av-vn {
+  font-size: 12px;
+  color: var(--ink);
+  padding: 8px 6px;
+  display: flex;
+  align-items: center;
+  font-family: var(--mono-font);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-product="management"] .av-board .av-cell {
+  height: 30px;
+  border-radius: 5px;
+  background: var(--mint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-family: var(--mono-font);
+  color: var(--ink-2);
+}
+[data-product="management"] .av-board .av-cell.av-free  { background: var(--cream-deep); }
+[data-product="management"] .av-board .av-cell.av-book  { background: var(--sky-deep); color: var(--ink); }
+[data-product="management"] .av-board .av-cell.av-owner { background: var(--butter-deep); }
+[data-product="management"] .av-board .av-cell.av-maint { background: var(--peach-deep); }
+[data-product="management"] .av-board .av-cell.av-ooo   {
+  background: color-mix(in oklab, var(--danger) 40%, var(--cream));
+  color: var(--inverted-fg);
+}
+
+/* Legend strip under the board — mockup `.gs-leg`. */
+[data-product="management"] .av-leg {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+[data-product="management"] .av-leg span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+[data-product="management"] .av-leg i {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  display: inline-block;
+}
+[data-product="management"] .av-leg .av-sw-book  { background: var(--sky-deep); }
+[data-product="management"] .av-leg .av-sw-owner { background: var(--butter-deep); }
+[data-product="management"] .av-leg .av-sw-maint { background: var(--peach-deep); }
+[data-product="management"] .av-leg .av-sw-ooo   { background: color-mix(in oklab, var(--danger) 40%, var(--cream)); }
+[data-product="management"] .av-leg .av-sw-free  { background: var(--cream-deep); }
+
+/* Readiness "arrivals not ready" callout — warn-tinted card surface
+   from the mockup. */
+[data-product="management"] .rd-alert {
+  border-color: color-mix(in oklab, var(--warn) 35%, var(--line));
+  background: color-mix(in oklab, var(--warn) 6%, var(--paper));
+}
+[data-product="management"] .rd-alert h3 { font-size: 17px; }
+
+/* Digest feed — mockup `.gs-dig` / `.gs-digc`. A stacked list of
+   forest-iconned cards; unread cards lift onto cream-warm. */
+[data-product="management"] .dig-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+[data-product="management"] .dig-card {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+  background: var(--paper);
+  padding: 15px 17px;
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  text-decoration: none;
+  color: var(--ink);
+}
+[data-product="management"] .dig-card:hover { border-color: var(--line-strong); }
+[data-product="management"] .dig-card.is-unread {
+  background: var(--cream-warm);
+  border-color: var(--line);
+}
+[data-product="management"] .dig-card .dig-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: var(--forest);
+  color: var(--gold-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+[data-product="management"] .dig-card.is-read .dig-ico {
+  background: var(--cream-deep);
+  color: var(--ink-3);
+}
+[data-product="management"] .dig-card .dig-body { flex: 1; min-width: 0; }
+[data-product="management"] .dig-card .dig-t {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 500;
+}
+[data-product="management"] .dig-card .dig-m {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  margin-top: 3px;
+  line-height: 1.45;
+}
+[data-product="management"] .dig-card .dig-d {
+  font-family: var(--mono-font);
+  font-size: 10.5px;
+  color: var(--ink-4);
+  margin-top: 6px;
+}

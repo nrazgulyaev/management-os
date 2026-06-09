@@ -1,15 +1,22 @@
 import Link from "next/link";
-import { Inbox } from "lucide-react";
-import { SectionHeading, Card, HandoffBadge } from "@/components/dashboard/primitives";
+import {
+  Kpi,
+  SectionHeading,
+  Card,
+  HandoffBadge,
+} from "@/components/dashboard/primitives";
 import type { DigestListRow } from "@/features/digests/queries";
 
 /**
  * DAILY-DIGEST-SPRINT-1 P4.2 — shared digest list view.
  *
- * Used by both /dashboard/digests and /development-os/digests so the
- * UX stays identical (same user sees the same notifications regardless
- * of which OS they're in). Each route's page.tsx provides the OS-
- * specific shell + back-link target.
+ * Used by /dashboard/digests (Mgmt OS). Each route's page.tsx
+ * provides the OS-specific shell + back-link target via `basePath`.
+ *
+ * Redesigned (mgmt-p3 "Availability & Intelligence" cluster) to the
+ * agent-digest feed: a `.section-heading`, a 4-up KPI strip, an
+ * All/Unread filter, and the `.dig-feed` card list — forest-iconned
+ * cards with unread rows lifted onto cream-warm.
  */
 
 export interface DigestListViewProps {
@@ -21,9 +28,8 @@ export interface DigestListViewProps {
    * `null` = "All", `"unread"` = unread only.
    */
   filter: "all" | "unread";
-  /** OS-specific URL prefix, e.g. "/dashboard/digests" or
-   *  "/development-os/digests". Used to build detail-page links + the
-   *  filter tab URLs. */
+  /** OS-specific URL prefix, e.g. "/dashboard/digests". Used to build
+   *  detail-page links + the filter tab URLs. */
   basePath: string;
 }
 
@@ -33,18 +39,31 @@ const TYPE_TONE: Record<string, "ok" | "warn" | "danger" | "ink"> = {
   info: "ink",
 };
 
-function timeAgo(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const seconds = Math.max(1, Math.floor((now - then) / 1000));
-  if (seconds < 60) return `${seconds}s ago`;
-  const mins = Math.floor(seconds / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return iso.slice(0, 10);
+/** Newest-first relative stamp matching the mock's "today 07:00"
+ *  cadence — recent rows read as a clock time, older as a date. */
+function digestStamp(iso: string): string {
+  const then = new Date(iso);
+  const now = new Date();
+  const sameDay =
+    then.getFullYear() === now.getFullYear() &&
+    then.getMonth() === now.getMonth() &&
+    then.getDate() === now.getDate();
+  const time = then.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (sameDay) return `today ${time}`;
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    then.getFullYear() === yesterday.getFullYear() &&
+    then.getMonth() === yesterday.getMonth() &&
+    then.getDate() === yesterday.getDate();
+  if (isYesterday) return `yest ${time}`;
+  return (
+    then.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) +
+    ` ${time}`
+  );
 }
 
 export function DigestListView({
@@ -55,96 +74,86 @@ export function DigestListView({
   basePath,
 }: DigestListViewProps) {
   return (
-    <div className="mx-auto max-w-4xl w-full px-6 py-8 flex flex-col gap-6">
+    <>
       <SectionHeading
-        eyebrow="Inbox"
-        title="Daily digests"
-        subtitle={
-          totalCount === 0
-            ? "Your daily digest will appear here each morning."
-            : `${totalCount} digest${totalCount === 1 ? "" : "s"} · ${unreadCount} unread`
+        eyebrow="Intelligence · agent digests"
+        title={
+          <>
+            Your <em>morning brief</em>.
+          </>
+        }
+        subtitle="End-of-day and morning digests from the agent team, written to your notifications. Newest first; unread highlighted."
+        actions={
+          <div className="flex items-center gap-2">
+            <Link
+              href={basePath}
+              className={`chip${filter === "all" ? " chip-active" : ""}`}
+            >
+              All
+            </Link>
+            <Link
+              href={`${basePath}?filter=unread`}
+              className={`chip${filter === "unread" ? " chip-active" : ""}`}
+            >
+              Unread
+            </Link>
+          </div>
         }
       />
 
-      <nav className="flex items-center gap-1 border-b border-line-soft">
-        <Link
-          href={basePath}
-          aria-current={filter === "all" ? "page" : undefined}
-          className={`px-3 py-2 text-sm border-b-2 -mb-px ${
-            filter === "all"
-              ? "border-ink text-ink"
-              : "border-transparent text-ink-tertiary hover:text-ink"
-          }`}
-        >
-          All ({totalCount})
-        </Link>
-        <Link
-          href={`${basePath}?filter=unread`}
-          aria-current={filter === "unread" ? "page" : undefined}
-          className={`px-3 py-2 text-sm border-b-2 -mb-px ${
-            filter === "unread"
-              ? "border-ink text-ink"
-              : "border-transparent text-ink-tertiary hover:text-ink"
-          }`}
-        >
-          Unread ({unreadCount})
-        </Link>
-      </nav>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-[18px]">
+        <Kpi
+          label="Unread"
+          value={String(unreadCount)}
+          sub="across all agents"
+          tone={unreadCount > 0 ? "accent" : undefined}
+        />
+        <Kpi label="Total" value={String(totalCount)} sub="digests" />
+        <Kpi
+          label="Read"
+          value={String(Math.max(0, totalCount - unreadCount))}
+          sub="cleared"
+          tone={totalCount - unreadCount > 0 ? "success" : undefined}
+        />
+        <Kpi label="Next brief" value="07:00" sub="daily-digest cron" />
+      </div>
 
       {digests.length === 0 ? (
-        <Card style={{ padding: 48, textAlign: "center" }}>
-          <Inbox
-            className="w-8 h-8 mx-auto text-ink-tertiary mb-3"
-            strokeWidth={1.5}
-          />
-          <p className="text-sm text-ink-tertiary">
+        <Card padding="lg" className="text-center">
+          <p className="text-[13px] text-ink-3 m-0">
             {filter === "unread"
               ? "Nothing unread."
               : "Your daily digest will appear here each morning."}
           </p>
         </Card>
       ) : (
-        <Card style={{ padding: 0 }}>
-          <ul className="divide-y divide-line-soft">
-            {digests.map((d) => (
-              <li
+        <div className="dig-feed">
+          {digests.map((d) => {
+            const unread = !d.readAt;
+            return (
+              <Link
                 key={d.id}
-                className={d.readAt ? "" : "bg-muted/30"}
+                href={`${basePath}/${d.id}`}
+                className={`dig-card ${unread ? "is-unread" : "is-read"}`}
               >
-                <Link
-                  href={`${basePath}/${d.id}`}
-                  className="block px-5 py-4 hover:bg-muted/50"
-                >
-                  <div className="flex items-start gap-3">
-                    {!d.readAt && (
-                      <span
-                        className="w-2 h-2 rounded-full bg-ink mt-2 shrink-0"
-                        aria-label="unread"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`text-sm ${d.readAt ? "text-ink-secondary" : "text-ink font-medium"} truncate`}
-                        >
-                          {d.title}
-                        </span>
-                        <HandoffBadge tone={TYPE_TONE[d.type] ?? "ink"}>{d.type}</HandoffBadge>
-                        <span className="text-[11px] text-ink-tertiary">
-                          {timeAgo(d.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-ink-tertiary mt-1 line-clamp-2 break-words">
-                        {d.bodyPreview}
-                      </p>
-                    </div>
+                <span className="dig-ico" aria-hidden>
+                  {unread ? "✦" : "○"}
+                </span>
+                <div className="dig-body">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="dig-t">{d.title}</span>
+                    <HandoffBadge tone={TYPE_TONE[d.type] ?? "ink"}>
+                      {d.type}
+                    </HandoffBadge>
                   </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
+                  <div className="dig-m line-clamp-2">{d.bodyPreview}</div>
+                  <div className="dig-d">{digestStamp(d.createdAt)}</div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       )}
-    </div>
+    </>
   );
 }
