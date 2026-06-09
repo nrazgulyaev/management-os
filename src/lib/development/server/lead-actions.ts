@@ -21,6 +21,7 @@ import {
 } from "@/lib/ai/agents/sales-assistant";
 import { contacts } from "@/lib/db/schema/contacts";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
+import { recordCrmActivity } from "@/features/crm-activity/services";
 
 const createLeadSchema = z
   .object({
@@ -349,6 +350,15 @@ export async function updateLeadStatus(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  // Capture the prior state so the activity record can show from → to.
+  const [before] = await db
+    .select({ contactId: contactRoles.contactId, status: contactRoles.status })
+    .from(contactRoles)
+    .where(eq(contactRoles.id, parsed.data.contactRoleId))
+    .limit(1);
+  if (!before) return { ok: false, error: "Lead not found." };
+  const fromStatus = before.status;
+
   const isTerminal = parsed.data.newStatus === "lost" || parsed.data.newStatus === "contract_signed";
   await db
     .update(contactRoles)
@@ -366,13 +376,7 @@ export async function updateLeadStatus(
     .where(eq(contactRoles.id, parsed.data.contactRoleId));
 
   await db.insert(contactInteractions).values({
-    contactId: (
-      await db
-        .select({ contactId: contactRoles.contactId })
-        .from(contactRoles)
-        .where(eq(contactRoles.id, parsed.data.contactRoleId))
-        .limit(1)
-    )[0].contactId,
+    contactId: before.contactId,
     interactionType: "system_event",
     direction: "internal_note",
     occurredAt: new Date(),
@@ -380,6 +384,29 @@ export async function updateLeadStatus(
     body: parsed.data.notes ?? `Lead moved to ${parsed.data.newStatus}.`,
     relatedRoleId: parsed.data.contactRoleId,
     reviewStatus: "not_required",
+  });
+
+  // CRM ACTIVITY TIMELINE (#169) — auto-record the status change onto the
+  // unified feed (both the lead role's own stream and the contact-level
+  // stream so it surfaces on either surface). Best-effort, org-scoped,
+  // audit-logged inside recordCrmActivity.
+  const statusTitle = `Status → ${parsed.data.newStatus.replace(/_/g, " ")}`;
+  const statusMeta = { fromStatus, toStatus: parsed.data.newStatus };
+  await recordCrmActivity({
+    subjectType: "lead",
+    subjectId: parsed.data.contactRoleId,
+    kind: "status_change",
+    title: statusTitle,
+    body: parsed.data.notes ?? null,
+    metadata: statusMeta,
+  });
+  await recordCrmActivity({
+    subjectType: "contact",
+    subjectId: before.contactId,
+    kind: "status_change",
+    title: statusTitle,
+    body: parsed.data.notes ?? null,
+    metadata: statusMeta,
   });
 
   revalidatePath(`${DEVELOPMENT_APP_PATH}/sales`);

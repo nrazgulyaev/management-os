@@ -22,6 +22,8 @@ import {
 } from "@/lib/development/server/interactions";
 import { getContactById } from "@/lib/development/server/contacts";
 import { getLeadSalesSnapshot } from "@/lib/development/server/contact-sales";
+import { RecordTimeline } from "@/components/ui/primitives";
+import { listCrmActivities } from "@/features/crm-activity/services";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Lead · Development OS" };
@@ -43,13 +45,23 @@ export default async function LeadDetailPage({
   const lead = await getLeadDetail(contactRoleId);
   if (!lead) notFound();
 
-  const [contact, interactions, pendingDrafts, salesSnapshot] =
+  const [contact, interactions, pendingDrafts, salesSnapshot, crmContact, crmLead] =
     await Promise.all([
       getContactById(lead.contactId),
       getContactInteractions(lead.contactId),
       getPendingDraftsForContact(lead.contactId),
       getLeadSalesSnapshot(lead.contactId),
+      // CRM ACTIVITY TIMELINE (#169) — unified feed for this relationship.
+      // Both the contact-level stream and this lead role's own stream
+      // (status changes are recorded against the role) are merged, newest
+      // first, into one timeline.
+      listCrmActivities("contact", lead.contactId).catch(() => []),
+      listCrmActivities("lead", lead.roleId).catch(() => []),
     ]);
+
+  const crmActivity = [...crmContact, ...crmLead].sort((a, b) =>
+    a.occurredAt < b.occurredAt ? 1 : a.occurredAt > b.occurredAt ? -1 : 0,
+  );
 
   const Channel = lead.preferredCommunicationChannel
     ? channelIcon[lead.preferredCommunicationChannel] ?? Mail
@@ -122,6 +134,22 @@ export default async function LeadDetailPage({
             </div>
           </aside>
         </div>
+      ),
+    },
+    {
+      value: "activity",
+      label: "Activity",
+      badge: crmActivity.length > 0 ? `${crmActivity.length}` : undefined,
+      content: (
+        <Section
+          eyebrow="CRM"
+          title="Activity timeline"
+        >
+          <RecordTimeline
+            activities={crmActivity}
+            emptyLabel="No CRM activity yet — status changes and notes will appear here."
+          />
+        </Section>
       ),
     },
     {

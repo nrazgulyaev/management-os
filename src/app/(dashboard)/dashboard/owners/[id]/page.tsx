@@ -20,6 +20,8 @@ import { DetailPage } from "@/components/dashboard/detail/detail-page";
 import { DetailHeader } from "@/components/dashboard/detail/detail-header";
 import { DetailActivity, type ActivityEntry } from "@/components/dashboard/detail/detail-activity";
 import { DetailRelated, type RelatedItem } from "@/components/dashboard/detail/detail-related";
+import { RecordTimeline } from "@/components/ui/primitives";
+import { listCrmActivities } from "@/features/crm-activity/services";
 import { OwnerDetailTabs } from "./_detail-client";
 import { OwnerHeaderActions, OwnerInsightPanel } from "./_owner-actions-client";
 
@@ -101,10 +103,14 @@ export default async function OwnerDetailPage({
   // intervention feed (all on top of the same retention engine).
   const churn = await getOwnerChurnView(id, villaIds).catch(() => null);
 
-  // PR 2 — synthetic activity timeline. The dedicated
-  // `src/features/activity/get-activity.ts` resolver lands in 2.2;
-  // until then we surface the few existing signals (shares + grants)
-  // as a hand-rolled timeline so the brick has real content.
+  // CRM ACTIVITY TIMELINE (#169) — the real unified feed. Reads the
+  // org-scoped `crm_activities` stream (notes, status changes, calls,
+  // emails) recorded by operators across the platform. When it is empty
+  // (e.g. demo mode, or a brand-new owner) we still surface the few
+  // structural signals (shares + grants) below so the brick is never
+  // blank — but the live stream is the primary content.
+  const crmActivity = await listCrmActivities("owner", id).catch(() => []);
+
   const shareEntries: ActivityEntry[] = shares.slice(0, 3).map((s) => ({
     id: `share-${s.id}`,
     when: `SHARE · ${s.startsOn}`,
@@ -305,7 +311,11 @@ export default async function OwnerDetailPage({
 
   const activityPanel = (
     <div className="flex flex-col gap-3 px-7 py-6">
-      {activity.length === 0 ? (
+      {crmActivity.length > 0 ? (
+        <Card style={{ padding: 20 }}>
+          <RecordTimeline activities={crmActivity} />
+        </Card>
+      ) : activity.length === 0 ? (
         <p className="text-sm text-ink-tertiary">No recent activity.</p>
       ) : (
         <Card style={{ padding: 20 }}>
@@ -380,7 +390,7 @@ export default async function OwnerDetailPage({
           { id: "overview", label: "Overview" },
           { id: "shares", label: "Shares", count: shares.length },
           { id: "churn", label: "Churn", count: churn?.breakdown.contributions.length },
-          { id: "activity", label: "Activity", count: activity.length },
+          { id: "activity", label: "Activity", count: crmActivity.length || activity.length },
           { id: "statements", label: "Statements" },
           { id: "contacts", label: "Contacts" },
         ]}

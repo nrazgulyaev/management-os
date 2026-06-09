@@ -130,3 +130,5 @@ export * from "./material-receiving-holds";
 export * from "./contract-signatures";
 // Estimator drawing-takeoff persistence + BOQ round-trip (migration 0140).
 export * from "./takeoff-measurements";
+// Unified CRM activity / timeline stream — owner|contact|lead|buyer (migration 0144).
+export * from "./crm-activities";

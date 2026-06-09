@@ -7,6 +7,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { owners } from "@/lib/db/schema/ownership";
 import { recordAuditEvent } from "@/features/audit/services";
+import { recordCrmActivity } from "@/features/crm-activity/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
 import { createOwnerSchema } from "./schema";
@@ -146,6 +147,15 @@ async function transition(
     entityId: id,
     before: { status: before.status },
     after: { status: next },
+  });
+  // CRM ACTIVITY TIMELINE (#169) — surface owner archive/unarchive on the
+  // unified relationship feed. Best-effort, org-scoped, audit-logged inside.
+  await recordCrmActivity({
+    subjectType: "owner",
+    subjectId: id,
+    kind: "status_change",
+    title: `Status → ${next}`,
+    metadata: { fromStatus: before.status, toStatus: next },
   });
   revalidatePath("/dashboard/owners");
   revalidatePath(`/dashboard/owners/${id}`);
