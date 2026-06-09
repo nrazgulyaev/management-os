@@ -1249,7 +1249,7 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--c-border);
-  border-radius: 12px;
+  border-radius: var(--r-card-lg, 22px);
   background: var(--c-surface);
   overflow: hidden;
 }
@@ -1260,11 +1260,13 @@
   background: var(--c-bg-muted);
 }
 [data-product="owner"] .month-calendar .mc-weekday {
-  padding: 8px 10px;
+  padding: 10px 12px;
+  font-family: var(--mono-font), monospace;
   font-size: 10px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--c-text-muted);
+  color: var(--ink-4);
+  text-align: center;
 }
 [data-product="owner"] .month-calendar .mc-grid {
   display: grid;
@@ -1367,6 +1369,54 @@
 }
 [data-product="owner"] .pipeline-list .pl-state-confirmed { color: #4a7c59; border-color: rgba(74,124,89,0.4); background: rgba(74,124,89,0.08); }
 [data-product="owner"] .pipeline-list .pl-state-requested { color: #c79633; border-color: rgba(199,150,51,0.4); background: rgba(199,150,51,0.08); }
+
+/* Calendar lede — sans 16px ink-3, matching 04-calendar.html .ow-sub
+   (the narrative subtitle under the page title). */
+[data-product="owner"] .owner-cal-sub {
+  margin: 14px 0 0;
+  font-family: var(--sans-font);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink-3);
+  max-width: 680px;
+}
+
+/* Masked-names legend line under the month grid (04-calendar.html footer
+   key). Calm mono caption, centred, ink-3. */
+[data-product="owner"] .owner-cal-legend {
+  margin: 0;
+  text-align: center;
+  font-family: var(--mono-font), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  line-height: 1.6;
+}
+
+/* "How it works" rail note — the cream explainer card from the
+   04-calendar.html sidebar (.ow-card on var(--cream)). */
+[data-product="owner"] .owner-note {
+  background: var(--cream);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card-lg, 22px);
+  padding: 20px 22px;
+}
+[data-product="owner"] .owner-note-title {
+  margin: 0 0 8px;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+[data-product="owner"] .owner-note-body {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+[data-product="owner"] .owner-note-body strong { color: var(--ink); font-weight: 500; }
 
 /* ---------------------------------------------------------------
  * Phase 2.3 owner-05 — Owner inbox primitives
