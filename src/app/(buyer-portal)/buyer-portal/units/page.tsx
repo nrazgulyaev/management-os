@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { BuyerShell } from "@/components/buyer-portal/buyer-shell";
 import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
 import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
+import { villas } from "@/lib/db/schema/projects";
 
 export const metadata: Metadata = { title: "My villas · Buyer Portal" };
 export const dynamic = "force-dynamic";
@@ -17,10 +18,31 @@ export default async function BuyerUnitsPage() {
   if (!db) redirect("/buyer-portal/login");
   const buyer = session;
 
+  // Scoped to this buyer + portal-visible only (mirrors the detail-page gate).
   const assignments = await db
     .select()
     .from(buyerUnitAssignments)
-    .where(eq(buyerUnitAssignments.buyerId, buyer.buyerId));
+    .where(
+      and(
+        eq(buyerUnitAssignments.buyerId, buyer.buyerId),
+        eq(buyerUnitAssignments.isVisibleInPortal, true),
+      ),
+    );
+
+  // Batch villa labels so rows show the real name, not an opaque UUID slice.
+  const unitIds = [...new Set(assignments.map((a) => a.unitId))];
+  const villaRows =
+    unitIds.length > 0
+      ? await db
+          .select({
+            id: villas.id,
+            unitCode: villas.unitCode,
+            name: villas.name,
+          })
+          .from(villas)
+          .where(inArray(villas.id, unitIds))
+      : [];
+  const villaById = new Map(villaRows.map((v) => [v.id, v]));
 
   return (
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>
@@ -36,22 +58,25 @@ export default async function BuyerUnitsPage() {
       </section>
 
       <ul className="space-y-3">
-        {assignments.map((a) => (
+        {assignments.map((a) => {
+          const v = villaById.get(a.unitId);
+          const label =
+            v?.name ?? v?.unitCode ?? `Villa ${a.unitId.slice(0, 8)}`;
+          return (
           <li
             key={a.id}
             className="rounded-lg border border-line-soft bg-surface p-5 space-y-2"
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-mono text-ink">
-                  Villa {a.unitId.slice(0, 8)}
-                </div>
+                <div className="text-sm font-medium text-ink">{label}</div>
                 <div className="text-xs text-ink-tertiary capitalize">
-                  Status: {a.status.replace(/_/g, " ")}
+                  {v?.unitCode ? `${v.unitCode} · ` : ""}Status:{" "}
+                  {a.status.replace(/_/g, " ")}
                 </div>
               </div>
               <Link
-                href={`/buyer-portal/dashboard`}
+                href={`/buyer-portal/units/${a.unitId}`}
                 className="text-sm text-ink-secondary underline hover:text-ink transition-colors"
               >
                 Details
@@ -63,7 +88,8 @@ export default async function BuyerUnitsPage() {
               {a.handedOverAt && ` · handed over ${a.handedOverAt}`}
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </BuyerShell>
   );
