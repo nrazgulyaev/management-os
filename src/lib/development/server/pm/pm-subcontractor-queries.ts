@@ -131,7 +131,7 @@ export async function loadActiveSubcontractors(
         projectName: r.projectName ?? null,
         status,
         statusLabel: statusLabel(status),
-        href: `/development-os/work-packages/${r.packageId}`,
+        href: `/development-os/projects`,
       };
     });
 }

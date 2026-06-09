@@ -96,7 +96,7 @@ export default async function IntegrationsHubPage() {
       icon: <Mail className="w-5 h-5" />,
       status: resendReady ? "ready" : "needs-config",
       scope: "platform",
-      configureHref: "/dashboard/settings/integrations/resend",
+      configureHref: "/dashboard/settings",
       detail: resendReady
         ? "Platform API key set. Per-org from-email override ships soon."
         : "Set RESEND_API_KEY + RESEND_FROM_EMAIL env. Currently emails fall back to NOTIFICATIONS_DRY_RUN.",
@@ -124,7 +124,7 @@ export default async function IntegrationsHubPage() {
       icon: <Plug className="w-5 h-5" />,
       status: "needs-config",
       scope: "per-org",
-      configureHref: "/dashboard/integrations/channels",
+      configureHref: "/dashboard/channels",
       detail:
         "OAuth flow exists in /integrations/channels. Operator-flagged: 'cannot add new channel' — shipping verification + UI fix soon.",
       fallbackHint:
@@ -219,9 +219,9 @@ export default async function IntegrationsHubPage() {
       icon: <Workflow className="w-5 h-5" />,
       status: cronSecretReady ? "ready" : "not-available",
       scope: "platform",
-      configureHref: "/development-os/jobs",
+      configureHref: "/dashboard/jobs",
       detail: cronSecretReady
-        ? "CRON_SECRET set. Last-run telemetry visible at /development-os/jobs."
+        ? "CRON_SECRET set. Last-run telemetry visible at /dashboard/jobs."
         : "Set CRON_SECRET to enable scheduled jobs.",
     },
     {

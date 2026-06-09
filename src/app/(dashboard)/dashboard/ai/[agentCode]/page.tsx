@@ -191,7 +191,7 @@ export default async function AgentDetailPage({
               { key: "Languages", value: "EN, ID, RU" },
               { key: "Knowledge base", value: "12 docs · sync 4h ago" },
             ]}
-            editHref={`/dashboard/ai/${agentCode}/settings`}
+            editHref={`/dashboard/settings/ai-agents/${underscored}`}
           />
         </aside>
       </div>

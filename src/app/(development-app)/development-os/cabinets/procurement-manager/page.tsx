@@ -300,7 +300,7 @@ export default async function ProcurementManagerPage() {
               title="No open purchase requests"
               hint="DEMO-1 didn't seed procurement data for this org. Create your first PR to start the procure-to-pay flow."
               cta={{
-                href: "/development-os/procurement/requests/new",
+                href: "/development-os/procurement/purchase-requests/new",
                 label: "Create first PR →",
               }}
             />

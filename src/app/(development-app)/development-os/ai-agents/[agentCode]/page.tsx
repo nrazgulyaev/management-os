@@ -97,7 +97,7 @@ export default async function DevAgentDetailPage({
               { key: "Channels", value: "Internal only" },
               { key: "Knowledge", value: "Project memory" },
             ]}
-            editHref={`/development-os/ai-agents/${agentCode}/settings`}
+            editHref={`/development-os/settings/ai-usage`}
           />
         </aside>
       </div>

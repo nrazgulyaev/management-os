@@ -36,7 +36,7 @@ export default function FeaturesDevelopmentOSPage() {
         bgImageSrc="/landing/hero-construction-sunrise.webp"
         headline="Everything that builds the next villa."
         subhead="Six core capabilities. One development OS. From BOQ to investor distributions."
-        primaryCta={{ label: "Start 14-day trial", href: "/onboarding" }}
+        primaryCta={{ label: "Start 14-day trial", href: "/signup" }}
         secondaryCta={{ label: "See pricing", href: "/pricing" }}
       />
 
@@ -238,7 +238,7 @@ export default function FeaturesDevelopmentOSPage() {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <ActionPillButton
                 label="Start trial"
-                href="/onboarding"
+                href="/signup"
                 variant="primary"
                 arrow
                 size="lg"

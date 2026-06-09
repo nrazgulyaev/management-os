@@ -451,7 +451,7 @@ export default async function SecurityCabinetPage() {
                 {cameras.slice(0, 6).map((c) => (
                   <li key={c.id}>
                     <Link
-                      href={`/dashboard/security/cameras/${c.id}`}
+                      href={`/dashboard/security/cameras`}
                       className="flex items-center justify-between px-4 py-3 hover:bg-surface-hover"
                     >
                       <span className="flex flex-col min-w-0">
@@ -556,7 +556,7 @@ export default async function SecurityCabinetPage() {
                 {copilotOutputs.map((o) => (
                   <Link
                     key={o.id}
-                    href={`/dashboard/ai/outputs/${o.outputCode}`}
+                    href={`/dashboard/ai`}
                     className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-5 md:p-6 flex flex-col gap-2 hover:opacity-95 transition-opacity"
                   >
                     <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">

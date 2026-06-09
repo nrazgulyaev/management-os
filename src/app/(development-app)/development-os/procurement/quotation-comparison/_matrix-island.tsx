@@ -298,7 +298,7 @@ export function QuotationMatrixIsland({
             )}
             {result.successCount > 0 && (
               <Link
-                href="/development-os/procurement/purchase-orders"
+                href="/development-os/cabinets/procurement-manager/pos"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline self-start"
               >
                 Open purchase orders
