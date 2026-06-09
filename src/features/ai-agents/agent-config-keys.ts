@@ -33,6 +33,35 @@ export const CONFIGURABLE_AGENTS = [
 
 export type ConfigurableAgentKey = (typeof CONFIGURABLE_AGENTS)[number];
 
+// ---------------------------------------------------------------------------
+// Block 03 — no-code agent runtime knobs (pure constants/types).
+//
+// Kept here (not in agent-config-actions.ts) so client components + the
+// "use server" actions module can both import without dragging in the
+// server-only chain. A "use server" file may only export async functions,
+// so the const default lives here.
+// ---------------------------------------------------------------------------
+
+/**
+ * No-code autonomy mode:
+ *   auto — AI may draft AND send replies (still audit-logged).
+ *   semi — AI drafts; a human reviews + sends (HITL). DEFAULT.
+ *   off  — no AI drafting at all.
+ */
+export type AgentMode = "auto" | "semi" | "off";
+
+export interface KnowledgeSources {
+  conversation: boolean;
+  project_memory: boolean;
+  templates: boolean;
+}
+
+export const DEFAULT_KNOWLEDGE_SOURCES: KnowledgeSources = {
+  conversation: true,
+  project_memory: true,
+  templates: true,
+};
+
 export interface AgentDescription {
   label: string;
   blurb: string;

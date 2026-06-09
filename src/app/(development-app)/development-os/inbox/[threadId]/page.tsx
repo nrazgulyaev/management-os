@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,11 @@ import {
   listThreadMessages,
 } from "@/lib/messaging/queries";
 import {
-  sendReplyAction,
   updateThreadStatusAction,
   markThreadReadAction,
 } from "@/lib/messaging/inbox-actions";
 import type { MessagingChannel } from "@/lib/db/schema/messaging";
+import { InboxAiComposer } from "./inbox-ai-composer";
 
 export const metadata: Metadata = { title: "Thread · Inbox" };
 export const dynamic = "force-dynamic";
@@ -164,63 +164,16 @@ export default async function ThreadDetailPage({
       {primaryChannel && primaryChannel !== "internal_note" && (
         <Section
           title="Reply"
-          description={`Sends via ${CHANNEL_LABELS[primaryChannel]} using credentials from the env. Failed sends are logged with status=failed and surface in the conversation above.`}
+          description={`AI can draft the next reply for you to review (HITL); sends via ${CHANNEL_LABELS[primaryChannel]} using credentials from the env. The inbox agent's mode (auto · semi · off) is managed in Settings → AI agents → Agent Inbox. Failed sends surface in the conversation above.`}
         >
-          <form
-            action={sendReplyAction}
-            className="space-y-3 rounded-md border border-line-soft bg-surface p-3"
-            data-testid="messaging-reply-form"
-          >
-            <input type="hidden" name="threadId" value={threadId} />
-            <input
-              type="hidden"
-              name="channel"
-              value={primaryChannel}
-            />
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-ink-secondary text-xs uppercase tracking-wide">
-                Recipient ({primaryChannel})
-              </span>
-              <input
-                type="text"
-                name="recipientExternalId"
-                defaultValue={recipient}
-                required
-                className="rounded-md border border-line-soft bg-surface px-3 py-2"
-              />
-            </label>
-            {primaryChannel === "email" && (
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="text-ink-secondary text-xs uppercase tracking-wide">
-                  Subject
-                </span>
-                <input
-                  type="text"
-                  name="subject"
-                  defaultValue={thread.subject ?? ""}
-                  className="rounded-md border border-line-soft bg-surface px-3 py-2"
-                />
-              </label>
-            )}
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-ink-secondary text-xs uppercase tracking-wide">
-                Message
-              </span>
-              <textarea
-                name="text"
-                required
-                rows={4}
-                placeholder="Write your reply…"
-                className="rounded-md border border-line-soft bg-surface px-3 py-2 font-sans"
-              />
-            </label>
-            <div className="flex justify-end">
-              <Button type="submit" variant="primary">
-                <Send className="w-4 h-4" strokeWidth={1.75} />
-                Send
-              </Button>
-            </div>
-          </form>
+          <InboxAiComposer
+            threadId={threadId}
+            channel={primaryChannel}
+            channelLabel={CHANNEL_LABELS[primaryChannel]}
+            defaultRecipient={recipient}
+            defaultSubject={thread.subject ?? null}
+            hasMessages={messages.length > 0}
+          />
         </Section>
       )}
 

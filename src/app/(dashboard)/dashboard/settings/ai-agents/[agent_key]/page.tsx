@@ -30,6 +30,11 @@ import { getFeatureForOrg } from "@/lib/billing/gating";
 import { ToggleAgentButton } from "../toggle-agent-button";
 import { CustomPromptForm } from "./custom-prompt-form";
 import { ProviderConfigForm } from "./provider-config-form";
+import { AgentConfigForm } from "./agent-config-form";
+import type {
+  AgentMode,
+  KnowledgeSources,
+} from "@/features/ai-agents/agent-config-keys";
 
 export const metadata: Metadata = { title: "AI agent detail · Settings" };
 export const dynamic = "force-dynamic";
@@ -112,6 +117,19 @@ export default async function AiAgentDetailPage({
   const planAllows = planFlag.enabled;
   const isEnabled =
     planAllows && (!override || override.isEnabled);
+  // Block 03 — resolve the no-code config knobs from the override row.
+  const rawMode = override?.agentMode;
+  const currentMode: AgentMode =
+    rawMode === "auto" || rawMode === "off" ? rawMode : "semi";
+  const rawSources = override?.knowledgeSources as
+    | Partial<KnowledgeSources>
+    | null
+    | undefined;
+  const currentSources: KnowledgeSources = {
+    conversation: rawSources?.conversation !== false,
+    project_memory: rawSources?.project_memory !== false,
+    templates: rawSources?.templates !== false,
+  };
   const canonicalPrompt =
     agentKey in RUN_NOW_AGENTS
       ? RUN_NOW_AGENTS[agentKey as keyof typeof RUN_NOW_AGENTS].kickoffPrompt
@@ -192,6 +210,20 @@ export default async function AiAgentDetailPage({
             )}
           </div>
         </div>
+      </Section>
+
+      <Section
+        eyebrow="Behaviour"
+        title="No-code agent config"
+        description="Tune how this agent behaves without touching the prompt. Mode controls autonomy (auto sends on its own · semi drafts for review · off disables AI); tone shapes the writing style; knowledge sources govern what the drafter may ground on. The Agent Inbox agent's mode + tone + sources drive the AI-draft loop in the unified inbox."
+      >
+        <AgentConfigForm
+          agentKey={agentKey}
+          currentMode={currentMode}
+          currentTone={override?.tone ?? null}
+          currentSources={currentSources}
+          drivesInbox={agentKey === "inbox"}
+        />
       </Section>
 
       <Section
