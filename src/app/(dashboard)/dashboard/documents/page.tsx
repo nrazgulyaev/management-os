@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/ui/page-header";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { DocumentAddButton } from "@/components/documents/document-add-button";
@@ -21,19 +20,47 @@ export default async function DocumentsPage() {
   ]);
   const source = isDbConfigured() ? "db" : "mock";
 
+  const active = docs.filter((d) => d.status === "active");
+  const expired = active.filter((d) => d.expired).length;
+  const expiringSoon = active.filter((d) => d.expiringSoon).length;
+  const awaitingSig = active.filter(
+    (d) =>
+      d.signatureStatus &&
+      d.signatureStatus !== "signed" &&
+      d.signatureStatus !== "countersigned" &&
+      d.signatureStatus !== "declined" &&
+      d.signatureStatus !== "cancelled",
+  ).length;
+  const renewalCount = expired + expiringSoon;
+
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[{ label: "Documents" }]}
-        title="Documents"
-        description="Browse by category, preview and sign, request e-signatures, generate from templates, and feed documents to the AI knowledge base."
-        actions={
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="mono text-[10.5px] uppercase tracking-wide text-ink-tertiary">
+              workspace / documents
+            </p>
+            <h1 className="mt-1.5 text-display text-[30px] font-normal leading-tight text-ink">
+              Documents
+              {renewalCount > 0 && (
+                <span className="italic font-normal text-terra">
+                  {" "}
+                  · {renewalCount} expiring soon
+                </span>
+              )}
+            </h1>
+            <p className="mt-1 text-sm text-ink-tertiary">
+              {counts.all} docs · {expired} expired · {expiringSoon} expiring
+              &lt; 30d · {awaitingSig} awaiting signature
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <SourceBadge source={source} />
             <DocumentAddButton />
           </div>
-        }
-      />
+        </div>
+      </header>
       <DbStatusNotice />
 
       <DocumentsApp docs={docs} templates={templates} counts={counts} />

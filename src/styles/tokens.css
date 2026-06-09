@@ -265,6 +265,7 @@
   --color-paper:           var(--paper, #FFFCF7);
   --color-cream:           var(--cream, #F4EFE6);
   --color-cream-warm:      var(--cream-warm, #FAF7F1);
+  --color-cream-deep:      var(--cream-deep, #ECE5D5);
   --color-forest:          var(--forest, #1F3A33);
   --color-amber:           var(--amber, #FF6B35);
   --color-amber-soft:      var(--amber-soft, #FFB088);
