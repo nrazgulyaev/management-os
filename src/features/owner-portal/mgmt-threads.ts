@@ -268,8 +268,6 @@ export async function getOwnerGroundingContext(
          LIMIT 6
       `),
     );
-    let ytdSentMinor = 0;
-    const yearPrefix = String(new Date().getUTCFullYear());
     for (const s of stmts.slice(0, 4)) {
       const usd =
         s.net_usd_minor != null
@@ -283,15 +281,22 @@ export async function getOwnerGroundingContext(
         `Statement ${s.statement_code} (${period}): status ${s.status}, net to owner ${usd}${paid}.`,
       );
     }
-    for (const s of stmts) {
-      if (
-        s.status === "sent" &&
-        s.net_usd_minor != null &&
-        (s.period_month ?? "").startsWith(yearPrefix)
-      ) {
-        ytdSentMinor += Number(s.net_usd_minor);
-      }
-    }
+    // YTD distributed must aggregate ALL sent statements this calendar year —
+    // NOT just the 6 fetched above. Summing the display window undercounts an
+    // owner with >6 statements/year (monthly past June, or multi-villa), and
+    // this figure is fed to the LLM as authoritative, so a low number could
+    // surface in an owner-facing draft. Dedicated aggregate over the year.
+    const ytdRows = rowsOf<{ ytd: string | null }>(
+      await db.execute(sql`
+        SELECT COALESCE(SUM(s.net_to_owner_usd_minor), 0)::text AS ytd
+          FROM owner_statements s
+         WHERE s.owner_id = ${ownerId}::uuid
+           AND s.status = 'sent'
+           AND s.net_to_owner_usd_minor IS NOT NULL
+           AND EXTRACT(YEAR FROM s.period_month) = ${new Date().getUTCFullYear()}
+      `),
+    );
+    const ytdSentMinor = Number(ytdRows[0]?.ytd ?? 0);
     if (ytdSentMinor > 0) {
       facts.push(
         `YTD distributed (sent statements): $${(ytdSentMinor / 100).toLocaleString(
