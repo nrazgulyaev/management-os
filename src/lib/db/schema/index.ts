@@ -126,3 +126,5 @@ export * from "./documents-app";
 export * from "./material-receiving-holds";
 // Buyer-portal e-signature capture on contract groups (migration 0137).
 export * from "./contract-signatures";
+// Estimator drawing-takeoff persistence + BOQ round-trip (migration 0140).
+export * from "./takeoff-measurements";
