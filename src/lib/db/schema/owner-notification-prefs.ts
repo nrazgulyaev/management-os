@@ -8,8 +8,9 @@
  * Per docs/audits/2026-05-27-phase-2-data-wiring-scope.md § Owner Portal.
  */
 
-import { boolean, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { owners } from "./ownership";
+import { organizations } from "./saas";
 
 export const ownerNotificationPrefs = pgTable(
   "owner_notification_prefs",
@@ -18,6 +19,12 @@ export const ownerNotificationPrefs = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  owner → ownership_shares → project.organization_id. Not threaded into
+     *  queries yet; kept NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     statementReady: boolean("statement_ready").notNull().default(true),
     maintenanceUpdates: boolean("maintenance_updates").notNull().default(true),
     qReviewReminder: boolean("q_review_reminder").notNull().default(true),
@@ -29,7 +36,10 @@ export const ownerNotificationPrefs = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [unique("owner_notification_prefs_owner_uniq").on(t.ownerId)],
+  (t) => [
+    unique("owner_notification_prefs_owner_uniq").on(t.ownerId),
+    index("owner_notification_prefs_organization_idx").on(t.organizationId),
+  ],
 );
 
 export type OwnerNotificationPrefs = typeof ownerNotificationPrefs.$inferSelect;

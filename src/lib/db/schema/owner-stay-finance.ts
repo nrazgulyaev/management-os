@@ -11,6 +11,7 @@ import { ownerStayRequests } from "./owner-stays";
 import { owners } from "./ownership";
 import { projects, villas } from "./projects";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 import {
   expenseLines,
   managementFeeLines,
@@ -47,6 +48,12 @@ export const ownerStayFinanceLinks = pgTable(
       .references(() => villas.id, { onDelete: "cascade" }),
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
+    }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  villa → project.organization_id. Not threaded into queries yet; kept
+     *  NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
     }),
     statementPeriodId: uuid("statement_period_id").references(
       () => statementPeriods.id,
@@ -87,6 +94,7 @@ export const ownerStayFinanceLinks = pgTable(
     index("owner_stay_finance_links_owner_idx").on(t.ownerId),
     index("owner_stay_finance_links_status_idx").on(t.bridgeStatus),
     index("owner_stay_finance_links_period_idx").on(t.statementPeriodId),
+    index("owner_stay_finance_links_organization_idx").on(t.organizationId),
   ],
 );
 

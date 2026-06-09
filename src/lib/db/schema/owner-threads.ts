@@ -16,6 +16,7 @@
 
 import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { owners } from "./ownership";
+import { organizations } from "./saas";
 
 export type OwnerThreadKind =
   | "general"
@@ -36,6 +37,12 @@ export const ownerThreads = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  owner → ownership_shares → project.organization_id. Not threaded into
+     *  queries yet; kept NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     subject: text("subject").notNull(),
     /** Enum: general | dispute | personal_stay_request | maintenance_question | tax_question | onboarding | offboarding | other. */
     kind: text("kind").notNull().default("general"),
@@ -53,6 +60,7 @@ export const ownerThreads = pgTable(
   (t) => [
     index("owner_threads_owner_last_msg_idx").on(t.ownerId, t.lastMessageAt),
     index("owner_threads_status_last_msg_idx").on(t.status, t.lastMessageAt),
+    index("owner_threads_organization_idx").on(t.organizationId),
   ],
 );
 

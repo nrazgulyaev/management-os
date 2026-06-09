@@ -15,6 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { contractGroups } from "./sales";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export const contractGroupRemindPrefs = pgTable(
   "contract_group_remind_prefs",
@@ -23,6 +24,12 @@ export const contractGroupRemindPrefs = pgTable(
     contractGroupId: uuid("contract_group_id")
       .notNull()
       .references(() => contractGroups.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  contract_group → project.organization_id. Not threaded into queries
+     *  yet; kept NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     autoRemindEnabled: boolean("auto_remind_enabled").notNull().default(false),
     lastRemindedAt: timestamp("last_reminded_at", { withTimezone: true }),
     updatedBy: uuid("updated_by").references(() => appUsers.id, {
@@ -37,6 +44,7 @@ export const contractGroupRemindPrefs = pgTable(
   },
   (t) => [
     index("contract_group_remind_prefs_group_uq").on(t.contractGroupId),
+    index("contract_group_remind_prefs_organization_idx").on(t.organizationId),
   ],
 );
 

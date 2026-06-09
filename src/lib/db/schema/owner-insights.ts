@@ -12,6 +12,7 @@
 import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { owners } from "./ownership";
 import { appUsers } from "./identity";
+import { organizations } from "./saas";
 
 export type OwnerInsightKind =
   | "occupancy_trend"
@@ -37,6 +38,12 @@ export const ownerInsights = pgTable(
     ownerId: uuid("owner_id")
       .notNull()
       .references(() => owners.id, { onDelete: "cascade" }),
+    /** TENANCY (migration 0152): nullable org anchor, backfilled via
+     *  owner → ownership_shares → project.organization_id. Not threaded into
+     *  queries yet; kept NULLABLE until app-layer scoping lands. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** Enum: occupancy_trend | adr_trend | maintenance_cost | guest_satisfaction | renewal_window | contract_milestone | other. */
     kind: text("kind").notNull(),
     /** Enum: info | watch | act — drives the ring colour. */
@@ -54,6 +61,7 @@ export const ownerInsights = pgTable(
   (t) => [
     index("owner_insights_owner_fired_idx").on(t.ownerId, t.firedAt),
     index("owner_insights_level_fired_idx").on(t.level, t.firedAt),
+    index("owner_insights_organization_idx").on(t.organizationId),
   ],
 );
 
