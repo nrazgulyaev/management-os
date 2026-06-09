@@ -196,10 +196,98 @@
 }
 [data-product="management"] .kpi.accent .v { color: var(--terra); }
 [data-product="development"] .kpi.accent .v { color: var(--amber); }
-[data-product] .kpi.success .v { color: var(--ok); }
+[data-product] .kpi.success .v,
+[data-product] .kpi.ok .v { color: var(--ok); }
 [data-product] .kpi.warn .v { color: var(--warn); }
 [data-product] .kpi.danger .v { color: var(--danger); }
 [data-product="management"] .kpi.gold .v { color: var(--gold); }
+[data-product="development"] .kpi.gold .v { color: var(--gold, var(--amber)); }
+
+/* Section heading — eyebrow (terra .label) + Newsreader 38px display
+   title (with optional `<em>` accent) + 15px lead paragraph. The
+   mgmt-p3 cluster (Jobs / Notifications / Audit / Settings) opens on
+   this block instead of the crumbed `.page-header`. */
+[data-product] .section-heading { margin-bottom: 22px; }
+[data-product] .section-heading .eyebrow { margin-bottom: 8px; color: var(--terra, var(--accent)); }
+[data-product] .section-heading h1,
+[data-product] .section-heading h2 {
+  margin: 0;
+  font-family: var(--display-font), Georgia, serif;
+  font-weight: 400;
+  font-size: 38px;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+[data-product="development"] .section-heading h1,
+[data-product="development"] .section-heading h2 { font-weight: 500; letter-spacing: -0.025em; }
+[data-product] .section-heading p {
+  margin: 10px 0 0;
+  color: var(--ink-3);
+  font-size: 15px;
+  max-width: 680px;
+  line-height: 1.55;
+}
+
+/* Card padding presets — the handoff `.card-pad` (20) / `.card-pad-lg`
+   (28). Lets `.card` host the gs-card header + table directly. */
+[data-product] .card-pad { padding: 20px; }
+[data-product] .card-pad-lg { padding: 28px; }
+
+/* gs-card-h — card header row: Newsreader 20px title + right-aligned
+   mono meta. Shared by every card in the mgmt-p3 cluster. */
+[data-product] .gs-card-h { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
+[data-product] .gs-card-h h3 { margin: 0; font-family: var(--display-font), Georgia, serif; font-weight: 400; font-size: 20px; color: var(--ink); }
+[data-product] .gs-card-h .meta { margin-left: auto; font-family: var(--mono-font), monospace; font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.04em; }
+
+/* ============================================================
+   mgmt-p3 · Security & System cluster page layouts.
+   Bespoke section layouts for the Security / Jobs / Notifications
+   / Settings cabinets — the KPI row, the two-column split, the
+   security hero band, the mini auth-event bar chart, the event
+   timeline and the config-health grid. All tokenised; no raw hex.
+   ============================================================ */
+[data-product] .gs-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+[data-product] .gs-2col { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: start; }
+
+/* security hero — forest band with a terra glow + gold-soft em accent */
+[data-product] .gs-hero { background: var(--forest); color: var(--cream-warm); border-radius: var(--r-hero); padding: 24px 26px; margin-bottom: 18px; position: relative; overflow: hidden; }
+[data-product] .gs-hero .glow { position: absolute; inset: 0; background: radial-gradient(55% 60% at 100% 0%, color-mix(in oklab, var(--terra) 45%, transparent), transparent 65%); }
+[data-product] .gs-hero .lab { font-family: var(--mono-font), monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; color: color-mix(in oklab, var(--cream-warm) 60%, transparent); position: relative; }
+[data-product] .gs-hero h2 { margin: 8px 0 0; font-family: var(--display-font), Georgia, serif; font-weight: 400; font-size: 28px; position: relative; }
+[data-product] .gs-hero h2 em { font-style: italic; color: var(--gold-soft); }
+
+/* mini bar chart — daily auth-event cadence */
+[data-product] .gs-bars { display: flex; align-items: flex-end; gap: 8px; height: 120px; margin-top: 8px; }
+[data-product] .gs-bars .b { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+[data-product] .gs-bars .b > i { width: 100%; border-radius: 4px 4px 0 0; background: var(--terra); display: block; }
+[data-product] .gs-bars .b.q > i { background: var(--cream-deep); }
+[data-product] .gs-bars .b span { font-family: var(--mono-font), monospace; font-size: 10px; color: var(--ink-4); }
+
+/* event timeline — time · dot · title/meta */
+[data-product] .gs-tl { display: flex; flex-direction: column; }
+[data-product] .gs-tl .ev { display: grid; grid-template-columns: 52px 14px 1fr; gap: 10px; padding: 9px 0; align-items: start; }
+[data-product] .gs-tl .ev .t { font-family: var(--mono-font), monospace; font-size: 11px; color: var(--ink-4); }
+[data-product] .gs-tl .ev .d { width: 9px; height: 9px; border-radius: 999px; margin-top: 3px; background: var(--ink-4); }
+[data-product] .gs-tl .ev .d.alert { background: var(--danger); }
+[data-product] .gs-tl .ev .d.warn { background: var(--warn); }
+[data-product] .gs-tl .ev .d.ok { background: var(--ok); }
+[data-product] .gs-tl .ev .ti { font-size: 13px; color: var(--ink); }
+[data-product] .gs-tl .ev .mn { font-family: var(--mono-font), monospace; font-size: 10.5px; color: var(--ink-3); margin-top: 1px; }
+
+/* config-health grid — Settings env/health status cards */
+[data-product] .gs-cfg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+[data-product] .gs-cfg .c { border: 1px solid var(--line-soft); border-radius: var(--r-card); background: var(--paper); padding: 14px; display: flex; gap: 12px; align-items: flex-start; }
+[data-product] .gs-cfg .c .ic { width: 32px; height: 32px; border-radius: 8px; background: var(--cream-deep); color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+[data-product] .gs-cfg .c .nm { font-size: 13.5px; color: var(--ink); display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+[data-product] .gs-cfg .c .hi { font-size: 11px; color: var(--ink-3); margin-top: 4px; line-height: 1.45; }
+
+/* ≤900: collapse the 4-up KPI strip to 2-up, two-col stacks to one */
+@media (max-width: 900px) {
+  [data-product] .gs-kpis { grid-template-columns: repeat(2, 1fr); }
+  [data-product] .gs-2col { grid-template-columns: 1fr; }
+  [data-product] .gs-cfg { grid-template-columns: 1fr; }
+}
 
 /* Mobile — hide desktop sidebar (HF-12 MobileTabbar takes over).
  *

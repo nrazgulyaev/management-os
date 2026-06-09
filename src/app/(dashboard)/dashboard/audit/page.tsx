@@ -1,7 +1,4 @@
-import Link from "next/link";
 import { TableEmpty } from "@/components/ui/table-empty";
-import { Kpi } from "@/components/dashboard/primitives";
-import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listAuditEvents } from "@/features/audit/services";
@@ -11,11 +8,12 @@ import { CabinetGate } from "@/components/keystone/cabinet-gate";
 export const metadata = { title: "Audit log" };
 export const dynamic = "force-dynamic";
 
-const actionTone: Record<string, "neutral" | "success" | "warning" | "danger"> = {
-  create: "success",
-  update: "neutral",
-  archive: "warning",
-  unarchive: "success",
+/** Handoff `.badge` tone class per action class (mgmt-p3 audit mockup). */
+const actionBadge: Record<string, string> = {
+  create: "badge-ok",
+  update: "",
+  archive: "badge-warn",
+  unarchive: "badge-ok",
 };
 
 function classify(
@@ -46,38 +44,54 @@ export default async function AuditPage() {
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
-        <div className="left">
-          <div className="crumb">
-            <Link href="/dashboard">Dashboard</Link> / <span>Audit log</span>
-          </div>
-          <h1>Audit log</h1>
-          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
-            Append-only record of meaningful mutations — every server action,
-            finance write, and AI invocation. The 200 most recent entries are
+      <div className="section-heading flex items-end gap-[18px]">
+        <div className="flex-1 min-w-0">
+          <div className="eyebrow label">System · append-only record</div>
+          <h1>
+            Every <em>mutation</em>, traced.
+          </h1>
+          <p>
+            Append-only record of meaningful changes across projects, villas,
+            owners, bookings, channels, guests, shares and documents — every
+            server action, finance write and AI invocation. 200 most recent
             shown.
           </p>
         </div>
-        <div className="actions">
+        <div className="flex gap-2 flex-wrap">
           <SourceBadge source={source} />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
-        <Kpi label="Events · 24h" value={String(events24h)} sub={`${events.length} visible`} />
-        <Kpi
-          label="Finance writes"
-          value={String(financeWrites)}
-          sub="signed mutations"
-          tone={financeWrites > 0 ? "success" : undefined}
-        />
-        <Kpi label="AI invocations" value={String(aiInvocations)} sub="agent + copilot" />
-        <Kpi label="Distinct actors" value={String(actors)} sub="users + system" tone="gold" />
+      <div className="gs-kpis">
+        <div className="kpi">
+          <div className="label">Events · 24h</div>
+          <div className="v">{events24h}</div>
+          <div className="sub">{events.length} visible</div>
+        </div>
+        <div className={`kpi${financeWrites > 0 ? " ok" : ""}`}>
+          <div className="label">Finance writes</div>
+          <div className="v">{financeWrites}</div>
+          <div className="sub">signed mutations</div>
+        </div>
+        <div className="kpi">
+          <div className="label">AI invocations</div>
+          <div className="v">{aiInvocations}</div>
+          <div className="sub">agent + copilot</div>
+        </div>
+        <div className="kpi gold">
+          <div className="label">Distinct actors</div>
+          <div className="v">{actors}</div>
+          <div className="sub">users + system</div>
+        </div>
       </div>
 
       <DbStatusNotice />
 
-      <div className="card p-0 overflow-hidden mt-[18px]">
+      <div className="card card-pad mt-[18px]">
+        <div className="gs-card-h">
+          <h3>Recent activity</h3>
+          <span className="meta">{events.length} ENTRIES</span>
+        </div>
         <table className="data">
           <thead>
             <tr>
@@ -94,7 +108,7 @@ export default async function AuditPage() {
             ) : (
               events.map((e) => {
                 const c = classify(e.action);
-                const tone = actionTone[c] ?? "neutral";
+                const badgeClass = actionBadge[c] ?? "";
                 const after = (e.after ?? null) as Record<string, unknown> | null;
                 const before = (e.before ?? null) as Record<string, unknown> | null;
                 const summary =
@@ -133,9 +147,9 @@ export default async function AuditPage() {
                       )}
                     </td>
                     <td>
-                      <Badge tone={tone}>{e.action}</Badge>
+                      <span className={`badge ${badgeClass}`.trim()}>{e.action}</span>
                     </td>
-                    <td className="text-[13px] text-ink-secondary">
+                    <td className="text-[13px] text-ink-2">
                       {e.entityType}
                       {e.entityId && (
                         <span className="ml-2 mono text-[11px] text-ink-4">

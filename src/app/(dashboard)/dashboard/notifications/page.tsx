@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { TableEmpty } from "@/components/ui/table-empty";
-import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { NotificationStatusPill } from "@/components/jobs/job-status-pill";
@@ -45,20 +44,24 @@ export default async function NotificationsPage({
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
-        <div className="left">
-          <div className="crumb">
-            <Link href="/dashboard">Dashboard</Link> / <span>Notifications</span>
-          </div>
-          <h1>Notification queue</h1>
-          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
-            In-app inbox + durable delivery queue. The inbox always works; email /
-            SMS / WhatsApp ship when Resend / Twilio is configured and dry-run is
-            off.
+      <div className="section-heading flex items-end gap-[18px]">
+        <div className="flex-1 min-w-0">
+          <div className="eyebrow label">System · delivery inbox</div>
+          <h1>
+            What&apos;s been <em>sent</em>.
+          </h1>
+          <p>
+            Queued, sent and failed notification envelopes across email and
+            in-app channels. The inbox always works; email / SMS / WhatsApp ship
+            when Resend / Twilio is configured and dry-run is off. Idempotent —
+            re-runs never double-send.
           </p>
         </div>
-        <div className="actions">
-          <Link href="/dashboard/notifications/deliveries" className="btn btn-secondary btn-sm">
+        <div className="flex gap-2 flex-wrap">
+          <Link
+            href="/dashboard/notifications/deliveries"
+            className="btn btn-secondary btn-sm"
+          >
             Deliveries →
           </Link>
           <Link
@@ -68,32 +71,36 @@ export default async function NotificationsPage({
             Inbox
             {unreadCount > 0 && <Badge tone="warning">{unreadCount}</Badge>}
           </Link>
-          <Link href="/dashboard/notifications/preferences" className="btn btn-accent btn-sm">
+          <Link
+            href="/dashboard/notifications/preferences"
+            className="btn btn-accent btn-sm"
+          >
             Preferences
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
-        <Kpi
-          label="Unread"
-          value={String(unreadCount)}
-          sub="your inbox"
-          tone={unreadCount > 0 ? "accent" : undefined}
-        />
-        <Kpi label="Queued" value={String(queued)} sub="pending delivery" />
-        <Kpi
-          label="Sent"
-          value={String(sent)}
-          sub="delivered"
-          tone={sent > 0 ? "success" : undefined}
-        />
-        <Kpi
-          label="Failed"
-          value={String(failed)}
-          sub={failed > 0 ? "need retry" : "none"}
-          tone={failed > 0 ? "accent" : undefined}
-        />
+      <div className="gs-kpis">
+        <div className="kpi accent">
+          <div className="label">Queued</div>
+          <div className="v">{queued}</div>
+          <div className="sub">pending delivery</div>
+        </div>
+        <div className={`kpi${sent > 0 ? " ok" : ""}`}>
+          <div className="label">Sent</div>
+          <div className="v">{sent}</div>
+          <div className="sub">delivered</div>
+        </div>
+        <div className={`kpi${failed > 0 ? " warn" : ""}`}>
+          <div className="label">Failed</div>
+          <div className="v">{failed}</div>
+          <div className="sub">{failed > 0 ? "need retry" : "none"}</div>
+        </div>
+        <div className={`kpi${unreadCount > 0 ? " accent" : ""}`}>
+          <div className="label">Unread</div>
+          <div className="v">{unreadCount}</div>
+          <div className="sub">your inbox</div>
+        </div>
       </div>
 
       <DbStatusNotice />
@@ -130,8 +137,11 @@ export default async function NotificationsPage({
         ))}
       </div>
 
-      <h2 className="display text-[22px] font-normal mt-6 mb-3.5">Recent notifications</h2>
-      <div className="card p-0 overflow-hidden">
+      <div className="card card-pad mt-[18px]">
+        <div className="gs-card-h">
+          <h3>Recent envelopes</h3>
+          <span className="meta">{rows.length} VISIBLE</span>
+        </div>
         <table className="data">
           <thead>
             <tr>
