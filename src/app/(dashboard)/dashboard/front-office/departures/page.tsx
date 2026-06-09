@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
+import { Card } from "@/components/dashboard/primitives";
 import { listDepartures } from "@/features/front-office/services";
 import { CheckOutButton } from "@/components/front-office/check-in-out-buttons";
 
@@ -30,51 +31,49 @@ export default async function DeparturesPage({
 
       <Section eyebrow="Today" title={`${rows.length} departing`}>
         {rows.length === 0 ? (
-          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
-            No departures scheduled.
-          </p>
+          <p className="empty m-0 text-sm text-ink-3">No departures scheduled.</p>
         ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Booking</th>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Guest</th>
-                  <th className="text-left px-3 py-2">Expected checkout</th>
-                  <th className="text-left px-3 py-2">Cleaning</th>
-                  <th className="text-left px-3 py-2">Late checkout</th>
-                  <th className="text-left px-3 py-2">Same-day arrival</th>
-                  <th className="text-left px-3 py-2">Action</th>
+                  <th>Booking</th>
+                  <th>Villa</th>
+                  <th>Guest</th>
+                  <th>Expected checkout</th>
+                  <th>Cleaning</th>
+                  <th>Late checkout</th>
+                  <th>Same-day arrival</th>
+                  <th>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {rows.map((r) => (
                   <tr key={r.bookingId}>
-                    <td className="px-3 py-2 text-ink font-medium">{r.bookingCode}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{r.villaCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{r.guestDisplay}</td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">
+                    <td className="row-title">{r.bookingCode}</td>
+                    <td className="text-ink-2">{r.villaCode ?? "—"}</td>
+                    <td className="text-ink-2">{r.guestDisplay}</td>
+                    <td className="num text-ink-3">
                       {r.expectedCheckoutAt ? r.expectedCheckoutAt.slice(0, 16).replace("T", " ") : "—"}
                     </td>
-                    <td className="px-3 py-2">
+                    <td>
                       {r.cleaningTaskStatus ? (
                         <Badge tone="info">{r.cleaningTaskStatus}</Badge>
                       ) : (
-                        <span className="text-ink-tertiary text-xs">—</span>
+                        <span className="text-ink-3 text-xs">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-2">
+                    <td>
                       {r.lateCheckoutRequestStatus ? (
                         <Badge tone="warning">{r.lateCheckoutRequestStatus}</Badge>
                       ) : (
-                        <span className="text-ink-tertiary text-xs">—</span>
+                        <span className="text-ink-3 text-xs">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-ink-tertiary text-xs">
+                    <td className="text-ink-3 text-xs">
                       {r.nextArrivalBookingId ? "yes" : "—"}
                     </td>
-                    <td className="px-3 py-2">
+                    <td>
                       <CheckOutButton
                         bookingId={r.bookingId}
                         bookingStatus={r.bookingStatus}
@@ -84,7 +83,7 @@ export default async function DeparturesPage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
       </Section>
     </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
+import { Card } from "@/components/dashboard/primitives";
 import { listArrivals } from "@/features/front-office/services";
 import { CheckInButton } from "@/components/front-office/check-in-out-buttons";
 import { CheckinApproveButton } from "@/components/front-office/checkin-approve-button";
@@ -48,55 +49,53 @@ export default async function ArrivalsPage({
 
       <Section eyebrow="Today" title={`${rows.length} arriving`}>
         {rows.length === 0 ? (
-          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
-            No arrivals scheduled.
-          </p>
+          <p className="empty m-0 text-sm text-ink-3">No arrivals scheduled.</p>
         ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Booking</th>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Guest</th>
-                  <th className="text-right px-3 py-2">Pax</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-left px-3 py-2">Readiness</th>
-                  <th className="text-left px-3 py-2">Service</th>
-                  <th className="text-left px-3 py-2">Check-in</th>
-                  <th className="text-left px-3 py-2">Action</th>
+                  <th>Booking</th>
+                  <th>Villa</th>
+                  <th>Guest</th>
+                  <th className="num">Pax</th>
+                  <th>Status</th>
+                  <th>Readiness</th>
+                  <th>Service</th>
+                  <th>Check-in</th>
+                  <th>Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {rows.map((r) => {
                   const cstatus = checkinMap[r.bookingId];
                   const idDoc = guestIdMap[r.bookingId];
                   return (
                     <tr key={r.bookingId}>
-                      <td className="px-3 py-2 text-ink font-medium">{r.bookingCode}</td>
-                      <td className="px-3 py-2 text-ink-secondary">
-                        {r.villaCode ?? "—"} · <span className="text-ink-tertiary">{r.projectName ?? ""}</span>
+                      <td className="row-title">{r.bookingCode}</td>
+                      <td className="text-ink-2">
+                        {r.villaCode ?? "—"} · <span className="text-ink-3">{r.projectName ?? ""}</span>
                       </td>
-                      <td className="px-3 py-2 text-ink-secondary">{r.guestDisplay}</td>
-                      <td className="px-3 py-2 text-right text-ink-tertiary tabular-nums">{r.guestsCount}</td>
-                      <td className="px-3 py-2">
+                      <td className="text-ink-2">{r.guestDisplay}</td>
+                      <td className="num text-ink-3">{r.guestsCount}</td>
+                      <td>
                         <Badge tone={r.bookingStatus === "confirmed" ? "info" : "neutral"}>
                           {r.bookingStatus}
                         </Badge>
                       </td>
-                      <td className="px-3 py-2">
+                      <td>
                         <Badge tone={READINESS_TONES[r.readinessStatus] ?? "neutral"}>
                           {r.readinessStatus}
                         </Badge>
                       </td>
-                      <td className="px-3 py-2">
+                      <td>
                         {r.hasOpenServiceRequest ? (
                           <Badge tone="warning">open SR</Badge>
                         ) : (
-                          <span className="text-ink-tertiary text-xs">—</span>
+                          <span className="text-ink-3 text-xs">—</span>
                         )}
                       </td>
-                      <td className="px-3 py-2">
+                      <td>
                         <div className="flex flex-col gap-1.5">
                           {cstatus === "submitted" ? (
                             <Badge tone="warning">awaiting review</Badge>
@@ -107,14 +106,14 @@ export default async function ArrivalsPage({
                           ) : cstatus === "in_progress" ? (
                             <Badge tone="info">in progress</Badge>
                           ) : (
-                            <span className="text-ink-tertiary text-xs">—</span>
+                            <span className="text-ink-3 text-xs">—</span>
                           )}
                           {(cstatus === "submitted" || idDoc) && (
                             <GuestIdReview bookingId={r.bookingId} idDoc={idDoc} />
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-2">
+                      <td>
                         <div className="flex flex-col gap-1.5 items-start">
                           {cstatus === "submitted" ? (
                             <CheckinApproveButton
@@ -127,7 +126,7 @@ export default async function ArrivalsPage({
                           )}
                           <Link
                             href={`/dashboard/front-office/checkin/${r.bookingId}`}
-                            className="text-[11px] text-ink-tertiary hover:text-ink underline"
+                            className="text-[11px] text-ink-3 hover:text-ink underline"
                           >
                             Guided check-in →
                           </Link>
@@ -138,7 +137,7 @@ export default async function ArrivalsPage({
                 })}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
       </Section>
     </div>

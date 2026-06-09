@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
+import { Card } from "@/components/dashboard/primitives";
 import { listCheckinCheckoutRequests } from "@/features/front-office/services";
 import { CheckinCheckoutRequestRowActions } from "@/components/front-office/request-row-actions";
 
@@ -40,46 +41,44 @@ export default async function RequestsPage({
 
       <Section eyebrow="Inbox" title={`${rows.length} requests`}>
         {rows.length === 0 ? (
-          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
-            No requests.
-          </p>
+          <p className="empty m-0 text-sm text-ink-3">No requests.</p>
         ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Booking</th>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Type</th>
-                  <th className="text-left px-3 py-2">Requested time</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-left px-3 py-2">Fee</th>
-                  <th className="text-right px-3 py-2">Action</th>
+                  <th>Booking</th>
+                  <th>Villa</th>
+                  <th>Type</th>
+                  <th>Requested time</th>
+                  <th>Status</th>
+                  <th className="num">Fee</th>
+                  <th className="num">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {rows.map((r) => (
                   <tr key={r.id}>
-                    <td className="px-3 py-2 text-ink font-medium">{r.bookingCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{r.villaCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{r.requestType.replace(/_/g, " ")}</td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">
+                    <td className="row-title">{r.bookingCode ?? "—"}</td>
+                    <td className="text-ink-2">{r.villaCode ?? "—"}</td>
+                    <td className="text-ink-2">{r.requestType.replace(/_/g, " ")}</td>
+                    <td className="num text-ink-3">
                       {r.requestedTime ? r.requestedTime.slice(0, 16).replace("T", " ") : "—"}
                     </td>
-                    <td className="px-3 py-2">
+                    <td>
                       <Badge tone={STATUS_TONES[r.status] ?? "neutral"}>{r.status}</Badge>
                     </td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">
+                    <td className="num text-ink-3">
                       {r.feeAmountMinor != null ? `${(r.feeAmountMinor / 100).toFixed(2)} ${r.currency ?? ""}` : "—"}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="num">
                       <CheckinCheckoutRequestRowActions id={r.id} status={r.status} />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
       </Section>
     </div>

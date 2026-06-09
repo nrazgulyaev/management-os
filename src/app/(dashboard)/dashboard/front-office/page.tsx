@@ -254,7 +254,7 @@ export default async function FrontOfficeTodayPage() {
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 0 }}>
+      <div className="page-header mb-0">
         <div className="left">
           <div className="crumb">
             <Link href="/dashboard">Dashboard</Link> / <span>Front office · today</span>
@@ -277,6 +277,30 @@ export default async function FrontOfficeTodayPage() {
           </button>
           <Link href="/dashboard/bookings/new" className="btn btn-primary btn-sm">
             + Walk-in
+          </Link>
+        </div>
+      </div>
+
+      {/* Shift band — operator + live shift roll-up (cabinet mock signature) */}
+      <div className="fo-shiftbar mt-[18px]">
+        <div className="fo-shift-main">
+          <div className="fo-shift-nm">Reception · today</div>
+          <div className="fo-shift-sub">
+            {arrivals.length} arriving · {inHouse.length} in-house ·{" "}
+            {departures.length} leaving · {flags} flag{flags === 1 ? "" : "s"}
+          </div>
+        </div>
+        <div className="fo-shift-actions">
+          {flags > 0 ? (
+            <span className="badge">{flags} need attention</span>
+          ) : (
+            <span className="badge">all clear</span>
+          )}
+          <Link
+            href="/dashboard/front-office/requests"
+            className="btn btn-secondary btn-sm"
+          >
+            Request inbox
           </Link>
         </div>
       </div>

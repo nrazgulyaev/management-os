@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { retryConnectionSyncAction } from "@/features/channels/manager-actions";
 import type { ConnectionSyncHealth } from "@/features/channels/manager";
 
@@ -18,12 +16,11 @@ const CHANNEL_LABELS: Record<string, string> = {
   direct: "Direct",
 };
 
-const healthTone: Record<ConnectionSyncHealth["health"], "success" | "warning" | "danger"> =
-  {
-    ok: "success",
-    warn: "warning",
-    down: "danger",
-  };
+const healthTone: Record<ConnectionSyncHealth["health"], "ok" | "warn" | "danger"> = {
+  ok: "ok",
+  warn: "warn",
+  down: "danger",
+};
 
 const healthLabel: Record<ConnectionSyncHealth["health"], string> = {
   ok: "Healthy",
@@ -61,80 +58,93 @@ export function SyncHealth({ rows }: { rows: ConnectionSyncHealth[] }) {
 
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-ink-tertiary">
-        No channel connections yet. Connect a villa to a channel to track sync health here.
-      </p>
+      <div className="empty">
+        <div className="title">No channel connections yet</div>
+        <div className="copy">
+          Connect a villa to a channel to track per-connection sync health and retries
+          here.
+        </div>
+      </div>
     );
   }
 
   return (
-    <Table>
-      <THead>
-        <TR>
-          <TH>Connection</TH>
-          <TH>Channel</TH>
-          <TH>Health</TH>
-          <TH>Last inventory sync</TH>
-          <TH>Last reservation pull</TH>
-          <TH className="text-right">Retry</TH>
-        </TR>
-      </THead>
-      <TBody>
-        {rows.map((r) => {
-          const msg = msgById[r.connectionId];
-          return (
-            <TR key={r.connectionId}>
-              <TD className="text-ink">
-                <div className="font-medium">{r.villaName ?? "—"}</div>
-                <div className="font-mono text-[11px] text-ink-tertiary">
-                  {r.unitCode ?? r.connectionId.slice(0, 8)}
-                </div>
-              </TD>
-              <TD className="text-ink-secondary">
-                {CHANNEL_LABELS[r.channel] ?? r.channel}
-              </TD>
-              <TD>
-                <Badge tone={healthTone[r.health]}>{healthLabel[r.health]}</Badge>
-                {r.recentFailures > 0 && (
-                  <span className="ml-2 text-[11px] text-ink-tertiary">
-                    {r.recentFailures} fail{r.recentFailures === 1 ? "" : "s"}/7d
-                  </span>
-                )}
-              </TD>
-              <TD className="text-xs text-ink-secondary">
-                {fmtTime(r.lastInventorySyncAt)}
-                {r.lastInventorySyncError && (
-                  <div className="text-[11px] text-danger">{r.lastInventorySyncError}</div>
-                )}
-              </TD>
-              <TD className="text-xs text-ink-secondary">
-                {fmtTime(r.lastReservationSyncAt)}
-                {r.lastReservationSyncError && (
-                  <div className="text-[11px] text-danger">{r.lastReservationSyncError}</div>
-                )}
-              </TD>
-              <TD className="text-right">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  disabled={pending && busyId === r.connectionId}
-                  onClick={() => retry(r.connectionId)}
-                >
-                  {pending && busyId === r.connectionId ? "Retrying…" : "Retry sync"}
-                </Button>
-                {msg && (
-                  <div
-                    className={"mt-1 text-[11px] " + (msg.ok ? "text-success" : "text-danger")}
-                  >
-                    {msg.text}
-                  </div>
-                )}
-              </TD>
-            </TR>
-          );
-        })}
-      </TBody>
-    </Table>
+    <div className="card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Connection</th>
+              <th>Channel</th>
+              <th>Health</th>
+              <th>Last inventory sync</th>
+              <th>Last reservation pull</th>
+              <th className="num">Retry</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const msg = msgById[r.connectionId];
+              return (
+                <tr key={r.connectionId}>
+                  <td>
+                    <div className="row-title">{r.villaName ?? "—"}</div>
+                    <div className="font-mono text-[11px] text-ink-4">
+                      {r.unitCode ?? r.connectionId.slice(0, 8)}
+                    </div>
+                  </td>
+                  <td className="text-ink-2">{CHANNEL_LABELS[r.channel] ?? r.channel}</td>
+                  <td>
+                    <HandoffBadge tone={healthTone[r.health]}>
+                      {healthLabel[r.health]}
+                    </HandoffBadge>
+                    {r.recentFailures > 0 && (
+                      <span className="ml-2 font-mono text-[11px] text-ink-3">
+                        {r.recentFailures} fail{r.recentFailures === 1 ? "" : "s"}/7d
+                      </span>
+                    )}
+                  </td>
+                  <td className="text-[12.5px] text-ink-2">
+                    {fmtTime(r.lastInventorySyncAt)}
+                    {r.lastInventorySyncError && (
+                      <div className="text-[11px] text-danger">
+                        {r.lastInventorySyncError}
+                      </div>
+                    )}
+                  </td>
+                  <td className="text-[12.5px] text-ink-2">
+                    {fmtTime(r.lastReservationSyncAt)}
+                    {r.lastReservationSyncError && (
+                      <div className="text-[11px] text-danger">
+                        {r.lastReservationSyncError}
+                      </div>
+                    )}
+                  </td>
+                  <td className="num">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      disabled={pending && busyId === r.connectionId}
+                      onClick={() => retry(r.connectionId)}
+                    >
+                      {pending && busyId === r.connectionId ? "Retrying…" : "Retry sync"}
+                    </button>
+                    {msg && (
+                      <div
+                        className={
+                          "mt-1 text-[11px] " + (msg.ok ? "text-ok" : "text-danger")
+                        }
+                      >
+                        {msg.text}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

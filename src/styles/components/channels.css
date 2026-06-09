@@ -104,6 +104,21 @@
   border-top: 1px solid var(--line-soft, var(--line));
 }
 
+/* Range-select highlight for ChannelGrid cells (emitted by
+ * components/channels/channel-grid.tsx via the `selected` class). */
+[data-product="management"] .cg-cell.selected {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* Token-keyed channel dot + legend swatch tones — lets pages drive the
+ * .cg-row dot / .cg-legend .sw color via a class instead of an inline
+ * --ch / --c CSS variable. */
+[data-product="management"] .cg-row.ch-terra .label .ch { background: var(--terra); }
+[data-product="management"] .cg-legend .sw.sw-ink  { background: var(--ink); }
+[data-product="management"] .cg-legend .sw.sw-ok   { background: var(--ok); }
+[data-product="management"] .cg-legend .sw.sw-warn { background: var(--warn); }
+
 [data-product="management"] .listing-matcher {
   display: flex;
   flex-direction: column;

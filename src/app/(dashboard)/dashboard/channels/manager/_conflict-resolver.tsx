@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { formatMoneyMinor } from "@/lib/money";
 import { resolveDoubleBookingAction } from "@/features/channels/manager-actions";
 import type { DoubleBookingConflict } from "@/features/channels/manager";
@@ -34,15 +33,18 @@ export function ConflictResolver({ conflicts }: { conflicts: DoubleBookingConfli
 
   if (conflicts.length === 0) {
     return (
-      <p className="text-sm text-ink-tertiary">
-        No cross-channel double-bookings detected. Overlapping stays on the same villa
-        from different channels would surface here for resolution.
-      </p>
+      <div className="empty">
+        <div className="title">No double-bookings</div>
+        <div className="copy">
+          Overlapping stays on the same villa from different channels would surface
+          here for resolution. Conflicts never auto-resolve.
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3.5">
       {conflicts.map((c) => {
         const done = resolved.has(c.conflictKey);
         const busy = pending && busyKey === c.conflictKey;
@@ -50,48 +52,44 @@ export function ConflictResolver({ conflicts }: { conflicts: DoubleBookingConfli
           <article
             key={c.conflictKey}
             className={
-              "rounded-md border p-4 " +
-              (done
-                ? "border-success/40 bg-success-weak/15"
-                : "border-warning/40 bg-warning-weak/15")
+              "card card-pad " +
+              (done ? "!border-ok/40" : "!border-warning/40")
             }
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-ink">{c.villaName}</span>
-                <span className="font-mono text-[11px] text-ink-tertiary">{c.unitCode}</span>
-                <Badge tone={done ? "success" : "warning"}>
+              <div className="flex items-center gap-2.5">
+                <span className="font-display text-[15px] text-ink">{c.villaName}</span>
+                <span className="font-mono text-[11px] text-ink-3">{c.unitCode}</span>
+                <HandoffBadge tone={done ? "ok" : "warn"}>
                   {done ? "Resolved" : "Double-booked"}
-                </Badge>
+                </HandoffBadge>
               </div>
-              <span className="text-xs text-ink-tertiary">
-                Overlap {c.overlapStart} → {c.overlapEnd} · {c.overlapNights} night
+              <span className="font-mono text-[11px] text-ink-3">
+                overlap {c.overlapStart} → {c.overlapEnd} · {c.overlapNights} night
                 {c.overlapNights === 1 ? "" : "s"}
               </span>
             </div>
 
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="mt-3.5 grid gap-2.5 md:grid-cols-2">
               {c.bookings.map((b) => (
-                <div
+                <label
                   key={b.bookingId}
-                  className="rounded border border-line-soft bg-surface p-3"
+                  className="flex flex-col gap-1 rounded-[10px] border border-line-soft bg-paper p-3.5"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs text-ink">{b.bookingCode}</span>
-                    <Badge tone="neutral">{b.channelName}</Badge>
+                    <HandoffBadge>{b.channelName}</HandoffBadge>
                   </div>
-                  <div className="mt-1 text-xs text-ink-secondary">
+                  <div className="font-mono text-[11px] text-ink-3">
                     {b.checkIn} → {b.checkOut}
                   </div>
-                  <div className="mt-0.5 text-xs text-ink-tertiary">
+                  <div className="font-mono text-[11px] text-ink-3">
                     {formatMoneyMinor(BigInt(b.grossAmountMinor), b.currency)} · {b.status}
                   </div>
                   {!done && (
-                    <Button
+                    <button
                       type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="mt-2"
+                      className="btn btn-secondary btn-sm mt-2"
                       disabled={busy}
                       onClick={() =>
                         resolve(
@@ -102,17 +100,22 @@ export function ConflictResolver({ conflicts }: { conflicts: DoubleBookingConfli
                       }
                     >
                       {busy ? "Resolving…" : "Keep this — close the other"}
-                    </Button>
+                    </button>
                   )}
-                </div>
+                </label>
               ))}
             </div>
 
+            <div className="mt-3.5 rounded-[10px] bg-cream-warm px-3.5 py-3 font-mono text-[11px] leading-relaxed text-ink-3">
+              Resolving keeps the chosen booking and cancels the other, reopening its
+              nights. The OTA block is re-synced atomically — no silent partial state.
+            </div>
+
             {errorByKey[c.conflictKey] && (
-              <p className="mt-2 text-xs text-danger">{errorByKey[c.conflictKey]}</p>
+              <p className="mt-2 text-[11px] text-danger">{errorByKey[c.conflictKey]}</p>
             )}
             {done && (
-              <p className="mt-2 text-xs text-success">
+              <p className="mt-2 text-[11px] text-ok">
                 Winner kept; the other booking was cancelled and its nights reopened.
               </p>
             )}

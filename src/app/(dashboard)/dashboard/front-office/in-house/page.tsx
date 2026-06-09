@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
+import { Card } from "@/components/dashboard/primitives";
 import { listInHouseGuests } from "@/features/front-office/services";
 
 export const metadata = { title: "In-house" };
@@ -22,46 +23,44 @@ export default async function InHousePage() {
 
       <Section eyebrow="Right now" title={`${rows.length} stays`}>
         {rows.length === 0 ? (
-          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
-            No in-house stays.
-          </p>
+          <p className="empty m-0 text-sm text-ink-3">No in-house stays.</p>
         ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Booking</th>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Guest</th>
-                  <th className="text-left px-3 py-2">Stay</th>
-                  <th className="text-right px-3 py-2">Open SR</th>
-                  <th className="text-right px-3 py-2">Open MT</th>
+                  <th>Booking</th>
+                  <th>Villa</th>
+                  <th>Guest</th>
+                  <th>Stay</th>
+                  <th className="num">Open SR</th>
+                  <th className="num">Open MT</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {rows.map((r) => (
                   <tr key={r.bookingId}>
-                    <td className="px-3 py-2 text-ink font-medium">{r.bookingCode}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{r.villaCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{r.guestDisplay}</td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">
+                    <td className="row-title">{r.bookingCode}</td>
+                    <td className="text-ink-2">{r.villaCode ?? "—"}</td>
+                    <td className="text-ink-2">{r.guestDisplay}</td>
+                    <td className="num text-ink-3">
                       {r.checkInDate} → {r.checkOutDate}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="num">
                       {r.openServiceRequests > 0 ? (
                         <Badge tone="warning">{r.openServiceRequests}</Badge>
                       ) : (
-                        <span className="text-ink-tertiary tabular-nums">0</span>
+                        <span className="text-ink-3">0</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right text-ink-tertiary tabular-nums">
+                    <td className="num text-ink-3">
                       {r.openMaintenanceTickets}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
       </Section>
     </div>

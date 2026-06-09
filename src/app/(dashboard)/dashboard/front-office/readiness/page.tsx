@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/dashboard/primitives";
 import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
 import { CheckInButton } from "@/components/front-office/check-in-out-buttons";
 import {
@@ -148,23 +149,23 @@ function ReadinessTable({
   rows: Awaited<ReturnType<typeof listArrivalReadiness>>;
 }) {
   return (
-    <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+    <Card padding="none" overflowHidden>
+      <table className="data">
+        <thead>
           <tr>
-            <th className="text-left px-3 py-2">Booking</th>
-            <th className="text-left px-3 py-2">Villa</th>
-            <th className="text-left px-3 py-2">Guest</th>
-            <th className="text-right px-3 py-2">Pax</th>
-            <th className="text-left px-3 py-2">Readiness</th>
-            <th className="text-left px-3 py-2">Blockers</th>
-            <th className="text-left px-3 py-2">Action</th>
+            <th>Booking</th>
+            <th>Villa</th>
+            <th>Guest</th>
+            <th className="num">Pax</th>
+            <th>Readiness</th>
+            <th>Blockers</th>
+            <th>Action</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-line-soft">
+        <tbody>
           {rows.map((r) => (
             <tr key={r.bookingId}>
-              <td className="px-3 py-2 text-ink font-medium">
+              <td className="row-title">
                 <Link
                   href={`/dashboard/front-office/arrivals?focus=${encodeURIComponent(r.bookingId)}`}
                   className="hover:underline"
@@ -172,29 +173,29 @@ function ReadinessTable({
                   {r.bookingCode}
                 </Link>
               </td>
-              <td className="px-3 py-2 text-ink-secondary">
+              <td className="text-ink-2">
                 {r.villaCode ?? "—"}
                 {r.projectName && (
-                  <span className="text-ink-tertiary"> · {r.projectName}</span>
+                  <span className="text-ink-3"> · {r.projectName}</span>
                 )}
               </td>
-              <td className="px-3 py-2 text-ink-secondary">
+              <td className="text-ink-2">
                 {r.guestDisplay}
               </td>
-              <td className="px-3 py-2 text-right text-ink-tertiary tabular-nums">
+              <td className="num text-ink-3">
                 {r.guestsCount}
               </td>
-              <td className="px-3 py-2">
+              <td>
                 <Badge tone={READINESS_TONES[r.readinessStatus]}>
                   {readinessLabel(r.readinessStatus)}
                 </Badge>
               </td>
-              <td className="px-3 py-2 text-xs text-ink-secondary">
+              <td className="text-xs text-ink-2">
                 {r.blockerSummary ?? (
-                  <span className="text-ink-tertiary">—</span>
+                  <span className="text-ink-3">—</span>
                 )}
               </td>
-              <td className="px-3 py-2">
+              <td>
                 <CheckInButton
                   bookingId={r.bookingId}
                   bookingStatus={r.bookingStatus}
@@ -204,6 +205,6 @@ function ReadinessTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </Card>
   );
 }
