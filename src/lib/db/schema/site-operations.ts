@@ -485,6 +485,20 @@ export const materialPurchaseOrders = pgTable(
     /** 'draft' | 'ordered' | 'partially_delivered' | 'fully_delivered' | 'cancelled' */
     status: text("status").notNull().default("ordered"),
 
+    // Money lifecycle (migration 0125). Distinct from the delivery `status`.
+    /** 'unpaid' | 'partially_paid' | 'paid' */
+    paymentStatus: text("payment_status").notNull().default("unpaid"),
+    /** Accumulated MANUAL payments against this PO, USD minor units. */
+    paidAmountUsdMinor: bigint("paid_amount_usd_minor", {
+      mode: "bigint",
+    })
+      .notNull()
+      .default(0n),
+    /** Set when draft → ordered (order placed). */
+    placedAt: timestamp("placed_at", { withTimezone: true }),
+    /** PO-level receipt confirmation (money milestone). */
+    receivedAt: timestamp("received_at", { withTimezone: true }),
+
     totalAmountUsdMinor: bigint("total_amount_usd_minor", {
       mode: "bigint",
     }).notNull(),
@@ -513,6 +527,7 @@ export const materialPurchaseOrders = pgTable(
     index("material_pos_project_idx").on(t.projectId),
     index("material_pos_vendor_idx").on(t.vendorId),
     index("material_pos_status_idx").on(t.status),
+    index("material_pos_payment_status_idx").on(t.paymentStatus),
     index("material_pos_expected_delivery_idx").on(t.expectedDeliveryDate),
   ],
 );
