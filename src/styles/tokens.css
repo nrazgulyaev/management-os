@@ -267,7 +267,12 @@
   --color-cream-warm:      var(--cream-warm, #FAF7F1);
   --color-forest:          var(--forest, #1F3A33);
   --color-amber:           var(--amber, #FF6B35);
+  --color-amber-soft:      var(--amber-soft, #FFB088);
+  --color-amber-deep:      var(--amber-deep, #D8541F);
   --color-carbon:          var(--carbon, #14130E);
+  --color-steel:           var(--steel, #3D5A7A);
+  --color-steel-soft:      var(--steel-soft, #7E9DBF);
+  --color-lime:            var(--lime, #C9DC4A);
   --color-ok:              var(--ok, #4F7A5D);
 
   /* Olive / sea / sand — no Layer B equivalent. Used by chart
@@ -415,6 +420,69 @@
   --ok:           #4F7A5D;
 }
 
+/* Nested-scope Development palette fallback — applies the Dev OS
+   engineering palette tokens to a *nested* `<div data-product="development">`
+   (the LP investor portal sets this on the route-group root, not on
+   `:root`). Lower specificity than the `:root[data-product="development"]`
+   block above, so the canonical dev host still wins; this only fills in
+   the dev palette vars for surfaces stamped on a non-dev host (e.g. the
+   investor portal reached via impersonation on the management host).
+   These mirror the `:root` dev values exactly, so the Dev OS app shell
+   (which also nests this attribute) is unaffected. */
+[data-product="development"] {
+  --bg:         #F1ECE0;
+  --bg-2:       #F8F4EA;
+  --bg-3:       #FFFCF4;
+  --panel:      #FFFFFF;
+  --line:       #E5DECC;
+  --line-2:     #D8CFB7;
+  --line-3:     #BAAF92;
+  --ink:        #14130E;
+  --ink-2:      #3D3B33;
+  --ink-3:      #6E6B5E;
+  --ink-4:      #95917F;
+  --carbon:     #14130E;
+  --amber:      #FF6B35;
+  --amber-soft: #FFB088;
+  --amber-deep: #D8541F;
+  --steel:      #3D5A7A;
+  --steel-soft: #7E9DBF;
+  --lime:       #C9DC4A;
+  --warn:       #C58A2E;
+  --danger:     #C2474E;
+  --ok:         #4F8A5D;
+  --accent:       var(--amber);
+  --accent-deep:  var(--amber-deep);
+  --accent-soft:  var(--amber-soft);
+  --on-accent:    var(--carbon);
+  --r-card:       14px;
+  --r-card-lg:    18px;
+  --r-hero:       22px;
+}
+
+/* Investor-portal-only — map the cross-product generic aliases
+   (--canvas / --surface / --muted / ink scale / semantics / lines) onto
+   the dev palette so the portal's many `bg-canvas` / `bg-surface` /
+   `text-ink-secondary` utilities resolve to the engineering surfaces.
+   Scoped to the portal root marker so the Dev OS cabinets keep their own
+   resolution of these aliases. */
+[data-product="development"][data-surface="investor-portal"],
+[data-product="development"] [data-surface="investor-portal"] {
+  --canvas:        #F1ECE0;
+  --surface:       #FFFFFF;
+  --muted:         #F8F4EA;
+  --inset:         #ECE6D5;
+  --line-soft:     #ECE6D5;
+  --line-strong:   #BAAF92;
+  --ink-secondary: #3D3B33;
+  --ink-tertiary:  #6E6B5E;
+  --ink-inverse:   #F4EFE6;
+  --success:       #4F8A5D;
+  --warning:       #C58A2E;
+  --danger:        #C2474E;
+  --info:          #3D5A7A;
+}
+
 /* ============================================================
    _handoff/ Task 1 — utility classes from the prototypes.
 
@@ -434,7 +502,8 @@
   --display-font: var(--font-newsreader);
   --mono-font: var(--font-jetbrains);
 }
-:root[data-product="development"] {
+:root[data-product="development"],
+[data-product="development"] {
   --display-font: var(--font-space);
   --mono-font: var(--font-plex);
 }

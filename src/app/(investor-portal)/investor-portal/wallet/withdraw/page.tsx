@@ -59,6 +59,7 @@ export default async function WithdrawPage() {
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle="Withdraw"
     >
       <div className="space-y-6">
         <Link

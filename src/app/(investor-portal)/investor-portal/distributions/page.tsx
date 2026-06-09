@@ -29,6 +29,7 @@ export default async function PortalDistributionsPage() {
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle={strings.navDistributions}
     >
       <PageHeader
         title={strings.navDistributions}

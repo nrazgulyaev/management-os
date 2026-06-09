@@ -44,6 +44,7 @@ export default async function CapitalCallDetailPage({
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle="Capital call"
     >
       <div>
         <Link

@@ -32,6 +32,7 @@ export default async function PortalForecastsPage() {
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle="Forecasts"
     >
       <div className="space-y-6">
         <Link

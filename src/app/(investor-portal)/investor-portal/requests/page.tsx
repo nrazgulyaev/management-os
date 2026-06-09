@@ -50,6 +50,7 @@ export default async function PortalRequestsPage() {
       strings={strings}
       investorName={session.investorLegalName}
       investorCode={session.investorCode}
+      pageTitle="My requests"
     >
       <div className="space-y-6">
         <Link
