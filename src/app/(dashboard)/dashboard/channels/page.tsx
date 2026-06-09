@@ -90,6 +90,9 @@ export default async function ChannelsPage() {
         </div>
         <div className="actions">
           <SourceBadge source={source} />
+          <Link href="/dashboard/channels/manager" className="btn btn-secondary btn-sm">
+            Channel manager →
+          </Link>
           <Link href="/dashboard/integrations/calendar-feeds" className="btn btn-secondary btn-sm">
             Calendar feeds →
           </Link>
