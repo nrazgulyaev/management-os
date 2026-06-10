@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { getInvestorSession } from "@/lib/investor-portal/session";
 import {
   getMyCommitment,
@@ -12,6 +11,14 @@ import {
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
 import { Badge } from "@/components/ui/badge";
+import {
+  PortalCard,
+  PortalDetailHeader,
+  PortalKpi,
+  PortalSectionTitle,
+  PortalTableCard,
+  PortalTh,
+} from "@/components/investor-portal/portal-primitives";
 import {
   DRAWDOWN_STATUS_LABEL,
   WALLET_TX_TYPE_LABEL,
@@ -50,23 +57,34 @@ export default async function CommitmentDetailPage({
       investorCode={session.investorCode}
       pageTitle={strings.navCommitments}
     >
-      <div>
-        <Link
-          href="/investor-portal/commitments"
-          className="inline-flex items-center gap-1 text-xs text-ink-tertiary hover:text-ink mb-3"
-        >
-          <ArrowLeft className="w-3 h-3" /> {strings.navCommitments}
-        </Link>
-        <h1 className="font-display text-2xl text-ink">
-          {commitment.projectName ?? "Multi-project commitment"}
-        </h1>
-        <p className="text-sm text-ink-secondary mt-1 font-mono">
-          {commitment.commitmentCode}
-        </p>
-      </div>
+      <PortalDetailHeader
+        backHref="/investor-portal/commitments"
+        backLabel={strings.navCommitments}
+        title={commitment.projectName ?? "Multi-project commitment"}
+        sub={
+          <span className="font-mono text-ink-3">
+            {commitment.commitmentCode}
+          </span>
+        }
+        badge={
+          <Badge
+            tone={
+              commitment.status === "active"
+                ? "success"
+                : commitment.status === "closed"
+                  ? "neutral"
+                  : commitment.status === "fully_called"
+                    ? "info"
+                    : "warning"
+            }
+          >
+            {commitment.status.replace(/_/g, " ")}
+          </Badge>
+        }
+      />
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <PortalKpi
           label="Committed"
           value={formatCurrencyMinor(
             BigInt(commitment.committedAmountMinor),
@@ -74,17 +92,17 @@ export default async function CommitmentDetailPage({
           )}
           hint={`≈ ${formatUsdMinor(BigInt(commitment.committedAmountUsdMinor))}`}
         />
-        <Stat
+        <PortalKpi
           label="Profit share"
           value={`${Number(commitment.profitSharePercent).toFixed(2)}%`}
           hint={`Priority ${commitment.capitalReturnPriority}`}
         />
-        <Stat
+        <PortalKpi
           label="Drawn"
           value={formatUsdMinor(BigInt(commitment.drawnUsdMinor))}
           hint={`${commitment.drawnPercent.toFixed(1)}% of committed`}
         />
-        <Stat
+        <PortalKpi
           label="In wallet"
           value={formatUsdMinor(BigInt(commitment.walletAvailableUsdMinor))}
           hint={
@@ -95,146 +113,131 @@ export default async function CommitmentDetailPage({
         />
       </section>
 
-      <section>
-        <h2 className="text-sm uppercase tracking-wide text-ink-tertiary mb-3">
-          Drawdowns
-        </h2>
+      <section className="mt-5">
         {drawdowns.length === 0 ? (
-          <div className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
-            No drawdowns recorded yet.
-          </div>
+          <PortalCard>
+            <PortalSectionTitle title="Drawdowns" className="mb-0" />
+            <p className="mt-3 text-sm text-ink-3">No drawdowns recorded yet.</p>
+          </PortalCard>
         ) : (
-          <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted text-[11px] uppercase tracking-wide text-ink-tertiary">
-                <tr>
-                  <th className="px-4 py-2 text-left">#</th>
-                  <th className="px-4 py-2 text-right">{strings.amount}</th>
-                  <th className="px-4 py-2 text-right">USD</th>
-                  <th className="px-4 py-2 text-left">Due</th>
-                  <th className="px-4 py-2 text-left">Received</th>
-                  <th className="px-4 py-2 text-left">{strings.status}</th>
+          <PortalTableCard title="Drawdowns">
+            <thead>
+              <tr>
+                <PortalTh>#</PortalTh>
+                <PortalTh align="right">{strings.amount}</PortalTh>
+                <PortalTh align="right">USD</PortalTh>
+                <PortalTh>Due</PortalTh>
+                <PortalTh>Received</PortalTh>
+                <PortalTh>{strings.status}</PortalTh>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line-soft text-[13.5px] text-ink-2">
+              {drawdowns.map((d) => (
+                <tr key={d.id}>
+                  <td className="px-4 py-3.5 font-mono text-xs font-semibold text-ink">
+                    #{d.drawdownNumber}
+                  </td>
+                  <td className="px-4 py-3.5 text-right font-mono tabular-nums">
+                    {formatCurrencyMinor(BigInt(d.amountMinor), d.currency)}
+                  </td>
+                  <td className="px-4 py-3.5 text-right font-mono tabular-nums">
+                    {formatUsdMinor(BigInt(d.amountUsdMinor))}
+                  </td>
+                  <td className="px-4 py-3.5">{d.dueDate}</td>
+                  <td className="px-4 py-3.5">
+                    {d.receivedAt
+                      ? new Date(d.receivedAt).toLocaleDateString()
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <Badge
+                      tone={
+                        d.status === "received"
+                          ? "success"
+                          : d.status === "overdue"
+                            ? "danger"
+                            : "warning"
+                      }
+                    >
+                      {DRAWDOWN_STATUS_LABEL[d.status]}
+                    </Badge>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-line-soft">
-                {drawdowns.map((d) => (
-                  <tr key={d.id}>
-                    <td className="px-4 py-3 font-mono text-xs">
-                      #{d.drawdownNumber}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {formatCurrencyMinor(BigInt(d.amountMinor), d.currency)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {formatUsdMinor(BigInt(d.amountUsdMinor))}
-                    </td>
-                    <td className="px-4 py-3 text-xs">{d.dueDate}</td>
-                    <td className="px-4 py-3 text-xs">
-                      {d.receivedAt
-                        ? new Date(d.receivedAt).toLocaleDateString()
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        tone={
-                          d.status === "received"
-                            ? "success"
-                            : d.status === "overdue"
-                              ? "danger"
-                              : "warning"
-                        }
-                      >
-                        {DRAWDOWN_STATUS_LABEL[d.status]}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </PortalTableCard>
         )}
       </section>
 
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm uppercase tracking-wide text-ink-tertiary">
-            Wallet activity
-          </h2>
-          <Link
-            href={`/investor-portal/wallet/${commitment.id}`}
-            className="text-xs text-ink-secondary hover:text-ink"
-          >
-            View full ledger →
-          </Link>
-        </div>
+      <section className="mt-5">
         {!walletBundle.wallet ||
         walletBundle.recentTransactions.length === 0 ? (
-          <div className="rounded-md border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
-            No wallet activity yet — funds will appear once your first
-            drawdown is confirmed.
-          </div>
+          <PortalCard>
+            <PortalSectionTitle
+              title="Wallet activity"
+              className="mb-0"
+              action={
+                <Link
+                  href={`/investor-portal/wallet/${commitment.id}`}
+                  className="text-[12.5px] font-semibold text-amber-deep"
+                >
+                  View full ledger →
+                </Link>
+              }
+            />
+            <p className="mt-3 text-sm text-ink-3">
+              No wallet activity yet — funds will appear once your first
+              drawdown is confirmed.
+            </p>
+          </PortalCard>
         ) : (
-          <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted text-[11px] uppercase tracking-wide text-ink-tertiary">
-                <tr>
-                  <th className="px-4 py-2 text-left">When</th>
-                  <th className="px-4 py-2 text-left">{strings.type}</th>
-                  <th className="px-4 py-2 text-right">{strings.amount} (USD)</th>
-                  <th className="px-4 py-2 text-right">After</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line-soft">
-                {walletBundle.recentTransactions.map((t) => {
-                  const amt = BigInt(t.amountUsdMinor);
-                  return (
-                    <tr key={t.id}>
-                      <td className="px-4 py-3 text-xs">
-                        {new Date(t.occurredAt).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        {WALLET_TX_TYPE_LABEL[t.transactionType]}
-                      </td>
-                      <td
-                        className={`px-4 py-3 text-right tabular-nums ${amt < 0n ? "text-danger" : "text-success"}`}
-                      >
-                        {formatUsdMinor(amt)}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {formatUsdMinor(
-                          BigInt(t.balanceAvailableAfterUsdMinor),
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <PortalTableCard
+            title="Wallet activity"
+            action={
+              <Link
+                href={`/investor-portal/wallet/${commitment.id}`}
+                className="text-[12.5px] font-semibold text-amber-deep"
+              >
+                View full ledger →
+              </Link>
+            }
+          >
+            <thead>
+              <tr>
+                <PortalTh>When</PortalTh>
+                <PortalTh>{strings.type}</PortalTh>
+                <PortalTh align="right">{strings.amount} (USD)</PortalTh>
+                <PortalTh align="right">After</PortalTh>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line-soft text-[13.5px] text-ink-2">
+              {walletBundle.recentTransactions.map((t) => {
+                const amt = BigInt(t.amountUsdMinor);
+                return (
+                  <tr key={t.id}>
+                    <td className="px-4 py-3.5 text-xs">
+                      {new Date(t.occurredAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      {WALLET_TX_TYPE_LABEL[t.transactionType]}
+                    </td>
+                    <td
+                      className={`px-4 py-3.5 text-right font-mono font-semibold tabular-nums ${amt < 0n ? "text-ink-2" : "text-ok"}`}
+                    >
+                      {formatUsdMinor(amt)}
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-mono tabular-nums text-ink-3">
+                      {formatUsdMinor(
+                        BigInt(t.balanceAvailableAfterUsdMinor),
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </PortalTableCard>
         )}
       </section>
     </PortalShell>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-line-soft bg-surface p-4">
-      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-        {label}
-      </div>
-      <div className="text-xl font-medium tabular-nums text-ink mt-1">
-        {value}
-      </div>
-      {hint && <div className="text-[11px] text-ink-tertiary mt-1">{hint}</div>}
-    </div>
   );
 }

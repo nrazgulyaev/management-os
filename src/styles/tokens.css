@@ -277,6 +277,9 @@
   --color-amber-soft:      var(--amber-soft, #FFB088);
   --color-amber-deep:      var(--amber-deep, #D8541F);
   --color-carbon:          var(--carbon, #14130E);
+  /* --carbon-2 (#22211B) drives the investor-portal alert band's carbon
+     gradient (`from-carbon-2 to-carbon`) — the LP mock's `.alert`. */
+  --color-carbon-2:        var(--carbon-2, #22211B);
   --color-steel:           var(--steel, #3D5A7A);
   --color-steel-soft:      var(--steel-soft, #7E9DBF);
   --color-lime:            var(--lime, #C9DC4A);
@@ -377,6 +380,7 @@
   --ink-3:      #6E6B5E;
   --ink-4:      #95917F;
   --carbon:     #14130E;
+  --carbon-2:   #22211B;
   --amber:      #FF6B35;
   --amber-soft: #FFB088;
   --amber-deep: #D8541F;
@@ -692,6 +696,7 @@
   --ink-3:      #6E6B5E;
   --ink-4:      #95917F;
   --carbon:     #14130E;
+  --carbon-2:   #22211B;
   --amber:      #FF6B35;
   --amber-soft: #FFB088;
   --amber-deep: #D8541F;
@@ -705,6 +710,9 @@
   --accent-deep:  var(--amber-deep);
   --accent-soft:  var(--amber-soft);
   --on-accent:    var(--carbon);
+  /* Amber hero-KPI gradient — the investor-portal wallet
+     "available to withdraw" tile (mock .kpi.amber). */
+  --gradient-amber-hero: linear-gradient(140deg, #FF7A47 0%, #E8551F 100%);
   --r-card:       14px;
   --r-card-lg:    18px;
   --r-hero:       22px;

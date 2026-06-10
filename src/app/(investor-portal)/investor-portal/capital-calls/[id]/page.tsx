@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { Download } from "lucide-react";
 import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
 import { ConfirmWireForm } from "@/components/investor-portal/confirm-wire-form";
 import { Badge } from "@/components/ui/badge";
+import {
+  PortalBreakdownRow,
+  PortalCard,
+  PortalDetailHeader,
+  PortalKpi,
+  PortalSectionTitle,
+} from "@/components/investor-portal/portal-primitives";
 import {
   getMyCapitalCall,
   getMyCapitalCallBreakdown,
@@ -36,8 +43,7 @@ export default async function CapitalCallDetailPage({
   const allocated = BigInt(call.allocatedUsdMinor);
   const received = BigInt(call.receivedUsdMinor);
   const outstanding = allocated > received ? allocated - received : 0n;
-  const overdue =
-    !call.isPaid && new Date(call.dueAt).getTime() < Date.now();
+  const overdue = !call.isPaid && new Date(call.dueAt).getTime() < Date.now();
 
   return (
     <PortalShell
@@ -46,53 +52,29 @@ export default async function CapitalCallDetailPage({
       investorCode={session.investorCode}
       pageTitle="Capital call"
     >
-      <div>
-        <Link
-          href="/investor-portal/capital-calls"
-          className="inline-flex items-center gap-1 text-xs text-ink-tertiary hover:text-ink mb-3"
-        >
-          <ArrowLeft className="w-3 h-3" /> Capital calls
-        </Link>
-        <h1 className="font-display text-2xl text-ink">
-          {call.projectName ?? "Capital call"}
-        </h1>
-        <p className="text-sm text-ink-secondary mt-1 font-mono">
-          {call.ref} · <span className="capitalize">{call.kind.replace(/_/g, " ")}</span>
-        </p>
-      </div>
-
-      {/* Lifecycle — Issued → Wire confirmed → Reconciled by Arconique. */}
-      <section className="rounded-lg border border-line-soft bg-surface p-5">
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <h2 className="text-sm uppercase tracking-wide text-ink-tertiary">
-            Wire status
-          </h2>
-          <Badge
-            tone={
-              call.isPaid
-                ? "success"
-                : overdue
-                  ? "danger"
-                  : "warning"
-            }
-          >
+      <PortalDetailHeader
+        backHref="/investor-portal/capital-calls"
+        backLabel="Capital calls"
+        title={call.projectName ?? "Capital call"}
+        sub={
+          <span className="font-mono text-ink-3">
+            {call.ref} ·{" "}
+            <span className="capitalize">{call.kind.replace(/_/g, " ")}</span>
+          </span>
+        }
+        badge={
+          <Badge tone={call.isPaid ? "success" : overdue ? "danger" : "warning"}>
             {call.isPaid
               ? "Wire confirmed"
               : overdue
                 ? "Overdue"
                 : "Awaiting your wire"}
           </Badge>
-        </div>
-        <WireStepper isPaid={call.isPaid} />
-        <p className="text-[11px] text-ink-tertiary mt-3">
-          Manual settlement: confirming your wire records that you have sent the
-          funds. Arconique finance reconciles it against the incoming bank
-          transfer — no payment is captured in the portal.
-        </p>
-      </section>
+        }
+      />
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <PortalKpi
           label="Your share"
           value={formatUsdMinor(allocated)}
           hint={
@@ -100,104 +82,139 @@ export default async function CapitalCallDetailPage({
               ? `${breakdown.mySharePercent.toFixed(2)}% of the call`
               : undefined
           }
+          tone={call.isPaid ? "default" : "amber"}
         />
-        <Stat
+        <PortalKpi
           label="Confirmed"
           value={formatUsdMinor(received)}
           hint={call.isPaid ? "Wire confirmed" : "Not yet confirmed"}
         />
-        <Stat label="Outstanding" value={formatUsdMinor(outstanding)} />
-        <Stat
+        <PortalKpi
+          label="Outstanding"
+          value={formatUsdMinor(outstanding)}
+        />
+        <PortalKpi
           label="Due"
           value={new Date(call.dueAt).toLocaleDateString()}
-          hint={
-            call.isPaid ? "Settled" : overdue ? "Overdue" : "Awaiting wire"
-          }
+          hint={call.isPaid ? "Settled" : overdue ? "Overdue" : "Awaiting wire"}
         />
       </section>
 
-      <section>
-        <h2 className="text-sm uppercase tracking-wide text-ink-tertiary mb-3">
-          Pro-rata breakdown
-        </h2>
-        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
-          <table className="w-full text-sm">
-            <tbody className="divide-y divide-line-soft">
-              <Row
-                label="Total call"
-                value={
-                  breakdown
-                    ? formatUsdMinor(BigInt(breakdown.callTotalUsdMinor))
-                    : "—"
-                }
-              />
-              <Row
-                label="Investors on this call"
-                value={breakdown ? String(breakdown.investorCount) : "—"}
-              />
-              <Row
-                label="Your pro-rata share"
-                value={
-                  breakdown
-                    ? `${breakdown.mySharePercent.toFixed(2)}%`
-                    : "—"
-                }
-              />
-              <Row label="Your amount" value={formatUsdMinor(allocated)} />
-              <Row
-                label="Confirmed across all investors"
-                value={
-                  breakdown
-                    ? formatUsdMinor(BigInt(breakdown.callReceivedUsdMinor))
-                    : "—"
-                }
-              />
-              <Row
-                label="Issued"
-                value={new Date(call.issuedAt).toLocaleDateString()}
-              />
-              {call.wireRef && (
-                <Row
-                  label="Your wire reference"
-                  value={call.wireRef}
-                  mono
-                />
-              )}
-              {call.receivedAt && (
-                <Row
-                  label="Confirmed at"
-                  value={new Date(call.receivedAt).toLocaleString()}
-                />
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <div className="mt-5 grid grid-cols-1 items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
+        {/* Wire lifecycle + pro-rata breakdown */}
+        <div className="flex flex-col gap-5">
+          <PortalCard>
+            <PortalSectionTitle title="Wire status" />
+            <WireStepper isPaid={call.isPaid} />
+            <p className="mt-3.5 text-[11px] leading-relaxed text-ink-4">
+              Manual settlement: confirming your wire records that you have sent
+              the funds. Arconique finance reconciles it against the incoming
+              bank transfer — no payment is captured in the portal.
+            </p>
+          </PortalCard>
 
-      <section>
-        <h2 className="text-sm uppercase tracking-wide text-ink-tertiary mb-3">
-          {call.isPaid ? "Wire" : "Confirm your wire"}
-        </h2>
-        {call.isPaid ? (
-          <div className="rounded-md border border-success/40 bg-success-weak px-4 py-3 text-sm text-success">
-            Your wire of {formatUsdMinor(allocated)} has been confirmed
-            {call.wireRef ? (
-              <>
-                {" "}
-                (ref <span className="font-mono">{call.wireRef}</span>)
-              </>
-            ) : null}
-            . No further action is required.
-          </div>
-        ) : (
-          <div className="rounded-lg border border-line-soft bg-surface p-5">
-            <ConfirmWireForm
-              allocationId={call.allocationId}
-              allocatedLabel={formatUsdMinor(allocated)}
+          <PortalCard>
+            <PortalSectionTitle title="Pro-rata breakdown" />
+            <PortalBreakdownRow
+              label="Total call"
+              value={
+                breakdown
+                  ? formatUsdMinor(BigInt(breakdown.callTotalUsdMinor))
+                  : "—"
+              }
             />
-          </div>
-        )}
-      </section>
+            <PortalBreakdownRow
+              label="Investors on this call"
+              value={breakdown ? String(breakdown.investorCount) : "—"}
+            />
+            <PortalBreakdownRow
+              label="Your pro-rata share"
+              value={
+                breakdown ? `${breakdown.mySharePercent.toFixed(2)}%` : "—"
+              }
+            />
+            <PortalBreakdownRow
+              label="Confirmed across all investors"
+              value={
+                breakdown
+                  ? formatUsdMinor(BigInt(breakdown.callReceivedUsdMinor))
+                  : "—"
+              }
+            />
+            <PortalBreakdownRow
+              label="Issued"
+              value={new Date(call.issuedAt).toLocaleDateString()}
+            />
+            {call.wireRef ? (
+              <PortalBreakdownRow
+                label="Your wire reference"
+                value={<span className="font-mono text-xs">{call.wireRef}</span>}
+              />
+            ) : null}
+            {call.receivedAt ? (
+              <PortalBreakdownRow
+                label="Confirmed at"
+                value={new Date(call.receivedAt).toLocaleString()}
+              />
+            ) : null}
+            <hr className="my-3.5 border-0 border-t border-line-soft" />
+            <PortalBreakdownRow
+              label="Your amount"
+              value={formatUsdMinor(allocated)}
+              emphasis
+            />
+          </PortalCard>
+        </div>
+
+        {/* Pay / confirm wire panel */}
+        <PortalCard>
+          <PortalSectionTitle
+            title={call.isPaid ? "Wire" : "Confirm your wire"}
+          />
+          {call.isPaid ? (
+            <div className="rounded-[10px] border border-success/40 bg-success-weak px-4 py-3 text-sm text-success">
+              Your wire of {formatUsdMinor(allocated)} has been confirmed
+              {call.wireRef ? (
+                <>
+                  {" "}
+                  (ref <span className="font-mono">{call.wireRef}</span>)
+                </>
+              ) : null}
+              . No further action is required.
+            </div>
+          ) : (
+            <>
+              <p className="mb-4 text-[13px] leading-relaxed text-ink-3">
+                Wire your pro-rata share of{" "}
+                <span className="tnum font-semibold text-ink">
+                  {formatUsdMinor(allocated)}
+                </span>{" "}
+                using the project SPV requisites, then confirm the transfer
+                reference below.
+              </p>
+              <ConfirmWireForm
+                allocationId={call.allocationId}
+                allocatedLabel={formatUsdMinor(allocated)}
+              />
+              <p className="mt-3 flex items-center gap-2 rounded-lg border border-line-soft bg-bg-2 px-[14px] py-2.5 text-[12px] leading-relaxed text-ink-3">
+                <Download
+                  className="h-[15px] w-[15px] flex-none text-ink-4"
+                  strokeWidth={2}
+                />
+                SPV wire requisites are included in your subscription
+                agreement under{" "}
+                <Link
+                  href="/investor-portal/documents"
+                  className="font-semibold text-amber-deep hover:underline"
+                >
+                  Documents
+                </Link>
+                .
+              </p>
+            </>
+          )}
+        </PortalCard>
+      </div>
     </PortalShell>
   );
 }
@@ -206,40 +223,42 @@ function WireStepper({ isPaid }: { isPaid: boolean }) {
   // Two LP-visible steps. The 3rd (reconciliation) is an Arconique-side
   // action shown as "Next" until confirmed — the portal never asserts it.
   const steps = [
-    { label: "Issued", done: true },
+    { label: "Issued", done: true, active: false },
     { label: "Wire confirmed", done: isPaid, active: !isPaid },
     {
       label: "Reconciled by Arconique",
       done: false,
       active: isPaid,
-      muted: true,
     },
   ];
   return (
-    <ol className="flex items-center gap-2 overflow-x-auto" aria-label="Wire lifecycle">
+    <ol
+      className="flex items-center gap-2 overflow-x-auto"
+      aria-label="Wire lifecycle"
+    >
       {steps.map((s, i) => (
         <li key={s.label} className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
             <span
               className={[
-                "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium",
+                "flex h-5 w-5 items-center justify-center rounded-full font-mono text-[10px] font-medium",
                 s.done
-                  ? "bg-success text-white"
+                  ? "bg-ok text-white"
                   : s.active
-                    ? "bg-ink text-ink-inverse"
-                    : "bg-muted text-ink-tertiary",
+                    ? "bg-carbon text-ink-inverse"
+                    : "bg-bg-2 text-ink-4",
               ].join(" ")}
             >
               {s.done ? "✓" : i + 1}
             </span>
             <span
               className={[
-                "text-[11px] whitespace-nowrap",
+                "whitespace-nowrap text-[11px]",
                 s.active
-                  ? "text-ink font-medium"
+                  ? "font-medium text-ink"
                   : s.done
-                    ? "text-ink-secondary"
-                    : "text-ink-tertiary",
+                    ? "text-ink-2"
+                    : "text-ink-4",
               ].join(" ")}
             >
               {s.label}
@@ -249,7 +268,7 @@ function WireStepper({ isPaid }: { isPaid: boolean }) {
             <span
               className={[
                 "h-px w-6",
-                s.done ? "bg-success" : "bg-line-soft",
+                s.done ? "bg-ok" : "bg-line-soft",
               ].join(" ")}
               aria-hidden
             />
@@ -257,48 +276,5 @@ function WireStepper({ isPaid }: { isPaid: boolean }) {
         </li>
       ))}
     </ol>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-line-soft bg-surface p-4">
-      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-        {label}
-      </div>
-      <div className="text-xl font-medium tabular-nums text-ink mt-1">
-        {value}
-      </div>
-      {hint && <div className="text-[11px] text-ink-tertiary mt-1">{hint}</div>}
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <tr>
-      <td className="px-4 py-3 text-ink-secondary">{label}</td>
-      <td
-        className={`px-4 py-3 text-right tabular-nums text-ink ${mono ? "font-mono text-xs" : ""}`}
-      >
-        {value}
-      </td>
-    </tr>
   );
 }
