@@ -156,6 +156,12 @@ export default async function DevelopmentOverviewPage() {
         subtitle="Live counts from the active projects table. Risk radar and site activity feeds populate as project data accumulates."
         actions={
           <>
+            <Link
+              href="/development-os/workspace/role"
+              className="btn btn-dark btn-sm"
+            >
+              Role views
+            </Link>
             <button
               className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
               disabled
@@ -174,7 +180,7 @@ export default async function DevelopmentOverviewPage() {
       />
 
       {/* KPI hero strip — 5 PM-tuned figures (mock `.kpi-hero`). */}
-      <div className="grid grid-cols-5 gap-3.5 mb-[18px]">
+      <div className="grid grid-cols-2 min-[600px]:grid-cols-3 min-[900px]:grid-cols-5 gap-3.5 mb-[18px]">
         <Kpi
           label="Active projects"
           value={kpis && kpis.activeProjects > 0 ? String(kpis.activeProjects) : "—"}
@@ -371,7 +377,14 @@ export default async function DevelopmentOverviewPage() {
             <tbody>
               {projects.map((p) => (
                 <tr key={p.projectId}>
-                  <td className="display font-medium text-ink">{p.name}</td>
+                  <td className="display font-medium text-ink">
+                    <Link
+                      href={`/development-os/workspace/project/${p.projectId}`}
+                      className="hover:underline"
+                    >
+                      {p.name}
+                    </Link>
+                  </td>
                   <td className="mono">{p.projectCode}</td>
                   <td className="num">{p.villaCount}</td>
                   <td>
