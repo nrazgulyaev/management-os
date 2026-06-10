@@ -282,6 +282,13 @@ export const contractGroups = pgTable(
   "contract_groups",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * Tenancy (migration 0162). NULLABLE — backfilled via project->org and
+     * scoped at the action layer; not yet enforced NOT NULL.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     contactId: uuid("contact_id")
       .notNull()
       .references(() => contacts.id, { onDelete: "restrict" }),
@@ -342,6 +349,7 @@ export const contractGroups = pgTable(
     index("contract_groups_contact_idx").on(t.contactId),
     index("contract_groups_project_status_idx").on(t.projectId, t.status),
     index("contract_groups_reservation_idx").on(t.reservationId),
+    index("contract_groups_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -395,6 +403,13 @@ export const contractMilestones = pgTable(
   "contract_milestones",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * Tenancy (migration 0162). NULLABLE — backfilled via
+     * contract_group->org and scoped at the action layer; not yet NOT NULL.
+     */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     contractGroupId: uuid("contract_group_id")
       .notNull()
       .references(() => contractGroups.id, { onDelete: "cascade" }),
@@ -443,6 +458,7 @@ export const contractMilestones = pgTable(
   (t) => [
     index("contract_milestones_group_seq_idx").on(t.contractGroupId, t.sequence),
     index("contract_milestones_status_due_idx").on(t.status, t.expectedDueDate),
+    index("contract_milestones_organization_idx").on(t.organizationId),
   ],
 );
 

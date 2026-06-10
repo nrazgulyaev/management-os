@@ -13,6 +13,7 @@ import { materialPurchaseOrders, materialPoLines } from "@/lib/db/schema/site-op
 import { submittals } from "@/lib/db/schema/submittals";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
+import { recordAuditEvent } from "@/features/audit/services";
 import { isSubmittalApproved } from "@/features/development/coordination/coordination-model";
 import type { SubmittalStatus } from "@/lib/db/schema/submittals";
 import {
@@ -76,6 +77,22 @@ export async function createPurchaseRequest(
       notes: parsed.notes ?? null,
     })
     .returning({ id: devOsPurchaseRequests.id });
+
+  await recordAuditEvent({
+    organizationId,
+    actorUserId: meId,
+    action: "procurement.pr.create",
+    entityType: "purchase_request",
+    entityId: row.id,
+    after: {
+      requestCode,
+      projectId: parsed.projectId,
+      materialName: parsed.materialName,
+      urgency: parsed.urgency,
+    },
+    metadata: { projectId: parsed.projectId },
+  });
+
   return { id: row.id, requestCode };
 }
 
@@ -107,10 +124,17 @@ export async function transitionPurchaseRequest(
   const organizationId = await requireOrgId();
   const db = requireDb();
   return await db.transaction(async (tx) => {
+    // SECURITY: scope the PR load to the caller org so a foreign request id
+    // cannot be transitioned.
     const [pr] = await tx
       .select()
       .from(devOsPurchaseRequests)
-      .where(eq(devOsPurchaseRequests.id, parsed.requestId))
+      .where(
+        and(
+          eq(devOsPurchaseRequests.id, parsed.requestId),
+          eq(devOsPurchaseRequests.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!pr) throw new Error("Purchase request not found");
 
@@ -178,6 +202,21 @@ export async function transitionPurchaseRequest(
           eq(devOsPurchaseRequests.organizationId, organizationId),
         ),
       );
+
+    await recordAuditEvent({
+      organizationId,
+      actorUserId: meId,
+      action: "procurement.pr.transition",
+      entityType: "purchase_request",
+      entityId: pr.id,
+      before: { status: pr.status },
+      after: { status: parsed.newStatus },
+      metadata: {
+        requestCode: pr.requestCode,
+        rejectionReason: parsed.rejectionReason ?? null,
+      },
+    });
+
     return { ok: true as const };
   });
 }
@@ -209,10 +248,25 @@ export async function addQuotation(
   input: z.input<typeof addQuotationSchema>,
 ): Promise<{ id: string }> {
   const parsed = addQuotationSchema.parse(input);
-  await requireInternalUser();
+  const me = await requireInternalUser();
+  const meId = me.appUser?.id ?? null;
   const organizationId = await requireOrgId();
   const db = requireDb();
   return await db.transaction(async (tx) => {
+    // SECURITY (confused-deputy): the parent PR must belong to the caller org,
+    // otherwise a foreign PR id could get a quotation attached + status bumped.
+    const [parentPr] = await tx
+      .select({ id: devOsPurchaseRequests.id })
+      .from(devOsPurchaseRequests)
+      .where(
+        and(
+          eq(devOsPurchaseRequests.id, parsed.purchaseRequestId),
+          eq(devOsPurchaseRequests.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!parentPr) throw new Error("Purchase request not found");
+
     const [q] = await tx
       .insert(procurementQuotations)
       .values({
@@ -252,6 +306,22 @@ export async function addQuotation(
           eq(devOsPurchaseRequests.organizationId, organizationId),
         ),
       );
+
+    await recordAuditEvent({
+      organizationId,
+      actorUserId: meId,
+      action: "procurement.quotation.add",
+      entityType: "procurement_quotation",
+      entityId: q.id,
+      after: {
+        purchaseRequestId: parsed.purchaseRequestId,
+        vendorId: parsed.vendorId,
+        totalAmountMinor: toBig(parsed.totalAmountMinor).toString(),
+        currency: parsed.currency,
+      },
+      metadata: { lineCount: parsed.lines?.length ?? 0 },
+    });
+
     return { id: q.id };
   });
 }
@@ -280,20 +350,34 @@ export async function selectQuotation(
   const organizationId = await requireOrgId();
   const db = requireDb();
   return await db.transaction(async (tx) => {
+    // SECURITY (confused-deputy): scope the quotation load to the caller org so
+    // a foreign quotation id cannot drive a PO write into this org.
     const [q] = await tx
       .select()
       .from(procurementQuotations)
-      .where(eq(procurementQuotations.id, parsed.quotationId))
+      .where(
+        and(
+          eq(procurementQuotations.id, parsed.quotationId),
+          eq(procurementQuotations.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!q) throw new Error("Quotation not found");
     if (q.status !== "received" && q.status !== "under_review") {
       throw new Error(`Cannot select quotation in '${q.status}' state`);
     }
 
+    // The parent PR must also belong to the caller org (defense in depth — the
+    // quotation already shares the org, but the PO inherits pr.projectId).
     const [pr] = await tx
       .select()
       .from(devOsPurchaseRequests)
-      .where(eq(devOsPurchaseRequests.id, q.purchaseRequestId))
+      .where(
+        and(
+          eq(devOsPurchaseRequests.id, q.purchaseRequestId),
+          eq(devOsPurchaseRequests.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!pr) throw new Error("Purchase request missing");
 
@@ -385,6 +469,28 @@ export async function selectQuotation(
         ),
       );
 
+    await recordAuditEvent({
+      organizationId,
+      actorUserId: meId,
+      action: "procurement.quotation.select",
+      entityType: "procurement_quotation",
+      entityId: q.id,
+      before: { status: q.status },
+      after: {
+        status: "selected",
+        poId: po.id,
+        poCode,
+        totalAmountMinor: BigInt(q.totalAmountMinor).toString(),
+        currency: q.currency,
+      },
+      metadata: {
+        purchaseRequestId: pr.id,
+        requestCode: pr.requestCode,
+        vendorId: q.vendorId,
+        selectionReason: parsed.selectionReason ?? null,
+      },
+    });
+
     return { ok: true as const, poId: po.id, poCode };
   });
 }
@@ -398,31 +504,47 @@ export async function listPurchaseRequests(opts?: {
   status?: string;
   limit?: number;
 }) {
+  // SECURITY: was an unscoped IDOR read — now auth-gated + org-scoped.
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
-  const conditions = [];
+  const conditions = [eq(devOsPurchaseRequests.organizationId, organizationId)];
   if (opts?.projectId) conditions.push(eq(devOsPurchaseRequests.projectId, opts.projectId));
   if (opts?.status) conditions.push(eq(devOsPurchaseRequests.status, opts.status));
-  const where = conditions.length > 0 ? and(...conditions) : sql`true`;
   return await db
     .select()
     .from(devOsPurchaseRequests)
-    .where(where)
+    .where(and(...conditions))
     .orderBy(desc(devOsPurchaseRequests.createdAt))
     .limit(opts?.limit ?? 100);
 }
 
 export async function getPurchaseRequest(requestId: string) {
+  // SECURITY: was an unscoped IDOR read — now auth-gated + org-scoped so a
+  // foreign request id (and its quotations) cannot be read.
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [pr] = await db
     .select()
     .from(devOsPurchaseRequests)
-    .where(eq(devOsPurchaseRequests.id, requestId))
+    .where(
+      and(
+        eq(devOsPurchaseRequests.id, requestId),
+        eq(devOsPurchaseRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!pr) return null;
   const quotations = await db
     .select()
     .from(procurementQuotations)
-    .where(eq(procurementQuotations.purchaseRequestId, requestId))
+    .where(
+      and(
+        eq(procurementQuotations.purchaseRequestId, requestId),
+        eq(procurementQuotations.organizationId, organizationId),
+      ),
+    )
     .orderBy(procurementQuotations.totalAmountMinor);
   return { request: pr, quotations };
 }

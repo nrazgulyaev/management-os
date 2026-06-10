@@ -380,6 +380,7 @@ export async function transitionCoordinationItem(
   input: z.input<typeof transitionSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
   const kind = parsed.itemKind as (typeof COORDINATION_ITEM_KINDS)[number];
@@ -395,10 +396,11 @@ export async function transitionCoordinationItem(
       throw new Error(`Illegal RFI transition target: ${parsed.to}`);
     }
     const now = new Date();
+    // SECURITY: scope by caller org so a foreign RFI id cannot be transitioned.
     const [current] = await db
       .select({ respondedAt: rfis.respondedAt, resolvedAt: rfis.resolvedAt })
       .from(rfis)
-      .where(eq(rfis.id, parsed.itemId))
+      .where(and(eq(rfis.id, parsed.itemId), eq(rfis.organizationId, organizationId)))
       .limit(1);
     if (!current) throw new Error("RFI not found");
 
@@ -417,7 +419,7 @@ export async function transitionCoordinationItem(
     const [row] = await db
       .update(rfis)
       .set(updates)
-      .where(eq(rfis.id, parsed.itemId))
+      .where(and(eq(rfis.id, parsed.itemId), eq(rfis.organizationId, organizationId)))
       .returning();
 
     await recordAuditEvent({
@@ -438,10 +440,17 @@ export async function transitionCoordinationItem(
     throw new Error(`Unknown submittal status: ${parsed.to}`);
   }
   const to = parsed.to as SubmittalStatus;
+  // SECURITY: scope by caller org so a foreign submittal id cannot be
+  // transitioned (submittals carries organization_id).
   const [current] = await db
     .select({ status: submittals.status })
     .from(submittals)
-    .where(eq(submittals.id, parsed.itemId))
+    .where(
+      and(
+        eq(submittals.id, parsed.itemId),
+        eq(submittals.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!current) throw new Error("Submittal not found");
   const from = current.status as SubmittalStatus;
@@ -462,7 +471,12 @@ export async function transitionCoordinationItem(
   const [row] = await db
     .update(submittals)
     .set(updates)
-    .where(eq(submittals.id, parsed.itemId))
+    .where(
+      and(
+        eq(submittals.id, parsed.itemId),
+        eq(submittals.organizationId, organizationId),
+      ),
+    )
     .returning();
 
   await recordAuditEvent({
@@ -482,7 +496,12 @@ export async function transitionCoordinationItem(
     const gated = await db
       .select({ id: devOsPurchaseRequests.id, code: devOsPurchaseRequests.requestCode })
       .from(devOsPurchaseRequests)
-      .where(eq(devOsPurchaseRequests.gatingSubmittalId, parsed.itemId));
+      .where(
+        and(
+          eq(devOsPurchaseRequests.gatingSubmittalId, parsed.itemId),
+          eq(devOsPurchaseRequests.organizationId, organizationId),
+        ),
+      );
     if (gated.length > 0) {
       await recordAuditEvent({
         actorUserId: ctx.appUser?.id ?? null,
