@@ -137,6 +137,13 @@ export async function receivePurchaseOrder(
 
       // a) Bump delivered quantity (never exceed ordered).
       const newDelivered = Math.min(ordered, alreadyDelivered + receivedQty);
+      // SECURITY (over-credit): the stock movement + balance credit must use
+      // the CLAMPED delta actually applied to quantity_delivered, never the
+      // raw receivedQty — otherwise a caller can over-receive a line past its
+      // ordered qty and inflate on-hand stock. When the line was already full
+      // (or this receipt overshoots), the credited delta collapses to <= the
+      // remaining-to-deliver amount.
+      const creditedQty = newDelivered - alreadyDelivered;
       await tx
         .update(materialPoLines)
         .set({ quantityDelivered: newDelivered.toFixed(4) })
@@ -148,8 +155,10 @@ export async function receivePurchaseOrder(
         );
 
       // b) Stock movement only for QC-passed lines with a matched SKU +
-      //    a target warehouse location.
+      //    a target warehouse location. Nothing to credit when the clamp
+      //    already absorbed the whole receipt (line was full).
       if (inLine.qcStatus !== "pass") continue;
+      if (creditedQty <= 0) continue;
 
       const [item] = await tx
         .select({
@@ -184,7 +193,7 @@ export async function receivePurchaseOrder(
         organizationId,
         movementCode,
         itemId: item.id,
-        quantity: receivedQty.toFixed(4),
+        quantity: creditedQty.toFixed(4),
         movementType: "received",
         toLocationId: parsed.locationId,
         relatedPoId: parsed.poId,
@@ -210,7 +219,7 @@ export async function receivePurchaseOrder(
         await tx
           .update(devOsInventoryStockBalances)
           .set({
-            quantityOnHand: sql`${devOsInventoryStockBalances.quantityOnHand} + ${receivedQty}`,
+            quantityOnHand: sql`${devOsInventoryStockBalances.quantityOnHand} + ${creditedQty}`,
             lastMovementAt: new Date(),
           })
           .where(
@@ -224,7 +233,7 @@ export async function receivePurchaseOrder(
           organizationId,
           itemId: item.id,
           locationId: parsed.locationId,
-          quantityOnHand: receivedQty.toFixed(4),
+          quantityOnHand: creditedQty.toFixed(4),
           quantityReserved: "0",
           lastMovementAt: new Date(),
         });

@@ -148,9 +148,18 @@ export async function dispatchPick(
       }
     }
 
+    // Movement-type mapping fix: `issued_to_site` (and `transferred`)
+    // REQUIRE both a from- AND a to-location (see applyMovementToBalance),
+    // so a pick to a project/villa — which has no destination inventory
+    // location — used to ALWAYS throw "both from and to location required".
+    // Only a `location:` destination is a true location-to-location move;
+    // a project/villa pick is stock leaving the warehouse for on-site
+    // consumption, which is a debit-only `used` movement tagged with the
+    // project/villa for traceability. The source balance is still
+    // decremented atomically by recordInventoryMovement.
     const movement = await recordInventoryMovement({
       itemId: parsed.itemId,
-      movementType: "issued_to_site",
+      movementType: kind === "location" ? "issued_to_site" : "used",
       quantity: parsed.quantity,
       fromLocationId: parsed.fromLocationId,
       toLocationId: kind === "location" ? destId : null,

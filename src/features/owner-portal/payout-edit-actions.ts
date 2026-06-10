@@ -43,11 +43,34 @@ import type {
 const COOKIE_NAME = "__arconique_owner_payout_chal";
 const CODE_TTL_SECONDS = 600; // 10 minutes
 const HASH_SALT = "arconique.owner.payout.challenge.v1";
+/**
+ * Brute-force guard: a 6-digit code is a 1-in-1,000,000 space, so without a
+ * cap an attacker could try every code inside the 10-minute window. Cap the
+ * wrong-code attempts per issued challenge; once exhausted the cookie is
+ * burned and the owner must request a fresh code (which regenerates the
+ * secret, resetting the space). 5 tries keeps the legit fat-finger UX while
+ * making the search statistically hopeless.
+ */
+const MAX_CODE_ATTEMPTS = 5;
 
 function hashChallenge(ownerId: string, code: string, expEpoch: number): string {
   return createHash("sha256")
     .update(`${HASH_SALT}:${ownerId}:${code}:${expEpoch}`)
     .digest("hex");
+}
+
+function burnChallengeCookie(
+  store: Awaited<ReturnType<typeof cookies>>,
+): void {
+  store.set({
+    name: COOKIE_NAME,
+    value: "",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
 }
 
 /** Pre-fill data for the edit form (no secrets — masked tail only). */
@@ -107,7 +130,12 @@ export async function requestPayoutEditCodeAction(): Promise<PayoutCodeState> {
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
   const expEpoch = Math.floor(Date.now() / 1000) + CODE_TTL_SECONDS;
-  const payload = `${auth.ownerId}.${expEpoch}.${hashChallenge(
+  // Payload: ownerId.expEpoch.remainingAttempts.hash — remainingAttempts is
+  // the brute-force budget for THIS issued code and is decremented on each
+  // wrong guess (see updatePayoutMethodAction). It is not covered by the
+  // hash (it isn't a secret), but the cookie is httpOnly + owner-bound so a
+  // client can't tamper it to widen the budget.
+  const payload = `${auth.ownerId}.${expEpoch}.${MAX_CODE_ATTEMPTS}.${hashChallenge(
     auth.ownerId,
     code,
     expEpoch,
@@ -181,17 +209,65 @@ export async function updatePayoutMethodAction(
   if (!raw) {
     return { ok: false, error: "Your confirmation step expired — request a new code." };
   }
-  const [cookieOwnerId, expStr, cookieHash] = raw.split(".");
+  const [cookieOwnerId, expStr, attemptsStr, cookieHash] = raw.split(".");
   const expEpoch = Number(expStr);
+  const remainingAttempts = Number(attemptsStr);
   if (
     cookieOwnerId !== auth.ownerId ||
     !Number.isFinite(expEpoch) ||
+    !Number.isFinite(remainingAttempts) ||
     expEpoch < Math.floor(Date.now() / 1000)
   ) {
     return { ok: false, error: "Your confirmation step expired — request a new code." };
   }
+  // Brute-force guard: if the budget for this challenge is already spent,
+  // invalidate it and force a fresh code instead of accepting another guess.
+  if (remainingAttempts <= 0) {
+    burnChallengeCookie(store);
+    await recordAuditEvent({
+      actorUserId: auth.appUserId,
+      action: "owner.payout.edit_code_locked",
+      entityType: "owner",
+      entityId: auth.ownerId,
+      after: { reason: "max_attempts_exhausted" },
+    });
+    return {
+      ok: false,
+      error: "Too many incorrect codes — request a new code to try again.",
+    };
+  }
   if (hashChallenge(auth.ownerId, d.code, expEpoch) !== cookieHash) {
-    return { ok: false, error: "That code didn't match. Try again." };
+    const left = remainingAttempts - 1;
+    if (left <= 0) {
+      // Last wrong guess — burn the cookie so the next attempt must start
+      // over with a freshly generated secret.
+      burnChallengeCookie(store);
+      await recordAuditEvent({
+        actorUserId: auth.appUserId,
+        action: "owner.payout.edit_code_locked",
+        entityType: "owner",
+        entityId: auth.ownerId,
+        after: { reason: "max_attempts_exhausted" },
+      });
+      return {
+        ok: false,
+        error: "Too many incorrect codes — request a new code to try again.",
+      };
+    }
+    // Persist the decremented budget back to the cookie (same expiry).
+    store.set({
+      name: COOKIE_NAME,
+      value: `${auth.ownerId}.${expEpoch}.${left}.${cookieHash}`,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: Math.max(1, expEpoch - Math.floor(Date.now() / 1000)),
+    });
+    return {
+      ok: false,
+      error: `That code didn't match. ${left} attempt${left === 1 ? "" : "s"} left.`,
+    };
   }
 
   const last4 = d.accountNumber.replace(/\s+/g, "").slice(-4);
@@ -235,15 +311,7 @@ export async function updatePayoutMethodAction(
   }
 
   // Burn the challenge — single use.
-  store.set({
-    name: COOKIE_NAME,
-    value: "",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  });
+  burnChallengeCookie(store);
 
   await recordAuditEvent({
     actorUserId: auth.appUserId,
