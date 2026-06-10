@@ -9,6 +9,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listInstallmentPlans } from "@/lib/development/server/installments";
 import { InstallmentDesk } from "@/components/development/installments/installment-desk";
+import { InstallmentDeskKpis } from "@/components/development/installments/installment-desk-kpis";
 
 export const metadata: Metadata = { title: "Installments · Development OS" };
 export const dynamic = "force-dynamic";
@@ -39,6 +40,16 @@ export default async function InstallmentsPage() {
   const overduePlans = rows.filter((r) => r.overdueCount > 0).length;
   const autoOn = rows.filter((r) => r.autoRemindEnabled).length;
 
+  // KPI strip aggregates (mock: Contracted / Due / Overdue / Auto-remind).
+  // Money summed as USD MINOR bigint to avoid float drift, then stringified.
+  const contractedTotal = rows
+    .reduce((sum, r) => sum + BigInt(r.totalContractValueUsdMinor), 0n)
+    .toString();
+  const outstandingTotal = rows
+    .reduce((sum, r) => sum + BigInt(r.outstandingUsdMinor), 0n)
+    .toString();
+  const overduePayments = rows.reduce((sum, r) => sum + r.overdueCount, 0);
+
   return (
     <DevelopmentShell>
       <PageHeader
@@ -66,9 +77,20 @@ export default async function InstallmentsPage() {
           description="Plans appear once a reservation converts to a contract group with a milestone schedule."
         />
       ) : (
-        <Section eyebrow="Payment desk" title={`${rows.length} installment plan${rows.length === 1 ? "" : "s"}`}>
-          <InstallmentDesk plans={rows} />
-        </Section>
+        <>
+          <Section eyebrow="At a glance" title="Receivables">
+            <InstallmentDeskKpis
+              contractedUsdMinor={contractedTotal}
+              outstandingUsdMinor={outstandingTotal}
+              overdueCount={overduePayments}
+              autoRemindOn={autoOn}
+            />
+          </Section>
+
+          <Section eyebrow="Payment desk" title={`${rows.length} installment plan${rows.length === 1 ? "" : "s"}`}>
+            <InstallmentDesk plans={rows} />
+          </Section>
+        </>
       )}
     </DevelopmentShell>
   );
