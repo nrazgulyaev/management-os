@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
-import { DevelopmentShell } from "@/components/development/development-shell";
 import { listContent } from "@/lib/development/server/content/content-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -12,6 +9,20 @@ import { ContentStatusControl } from "./_status-control";
 
 export const metadata: Metadata = { title: "Content pipeline · Marketing" };
 export const dynamic = "force-dynamic";
+
+/**
+ * Dev OS content pipeline — pixel redesign to cabinets/new/dev-marketing.html
+ * (§01 right column · 3-lane content pipeline kanban). Replaces the legacy
+ * PageHeader/Section/Badge shell + bg-stone grid with the handoff design
+ * system (SectionHeading + .pipe lanes + .pipe-card cards), scoped to the
+ * engineering palette under data-product="development". Data wiring preserved
+ * verbatim:
+ *   - listContent({ limit: 500 }) → cards bucketed by content_status
+ *   - getCurrentAppUser()         → gate the wired ContentStatusControl
+ *   - ContentStatusControl        → transitionContentStatus (unchanged)
+ * The board keeps all six real workflow lanes (the mock's 3-lane sketch is a
+ * subset) so no live status bucket is dropped.
+ */
 
 const KANBAN_COLUMNS: Array<{ status: string; label: string }> = [
   { status: "draft", label: "Draft" },
@@ -34,67 +45,94 @@ export default async function ContentPipelinePage() {
   }
 
   return (
-    <DevelopmentShell>
-      <PageHeader
-        title="Content pipeline"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Marketing" },
-          { label: "Content" },
-        ]}
-        description={`${rows.length} content piece(s) across the pipeline.`}
+    <>
+      <SectionHeading
+        eyebrow="marketing / content"
+        title={
+          <>
+            Content pipeline{" "}
+            <span className="text-amber italic">· {rows.length}</span>
+          </>
+        }
+        subtitle={`${rows.length} content piece(s) across the pipeline.`}
+        actions={
+          <Link
+            href="/development-os/marketing/content/new"
+            prefetch={false}
+            className="btn btn-amber btn-sm"
+          >
+            + Content
+          </Link>
+        }
       />
-      <Section title="Kanban board">
-        {rows.length === 0 ? (
-          <EmptyState
-            title="No content yet"
-            description="Briefs and content pieces will appear here as they flow through the pipeline."
-          
+
+      {rows.length === 0 ? (
+        <EmptyState
+          title="No content yet"
+          description="Briefs and content pieces will appear here as they flow through the pipeline."
           action={
-            <Link href="/development-os/marketing/connections" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">Configure connections</Link>
+            <Link
+              href="/development-os/marketing/connections"
+              prefetch={false}
+              className="btn btn-dark btn-sm"
+            >
+              Configure connections
+            </Link>
           }
         />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {KANBAN_COLUMNS.map((col) => (
-              <div
-                key={col.status}
-                className="rounded-md border border-line-soft bg-surface p-3"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-label">{col.label}</span>
-                  <Badge tone="neutral">{byStatus[col.status].length}</Badge>
-                </div>
-                <ul className="space-y-2">
-                  {byStatus[col.status].slice(0, 20).map((c) => (
-                    <li key={c.id} className="text-xs">
-                      <Link
-                        href={`/development-os/marketing/content/${c.contentCode}`}
-                        className="hover:underline block py-1"
-                      >
-                        <span className="font-mono text-[10px] text-ink-tertiary block">
-                          {c.contentCode}
-                        </span>
-                        <span className="block">{c.title}</span>
-                        <span className="text-ink-tertiary text-[10px]">
-                          {c.contentType}
-                        </span>
-                      </Link>
-                      {me?.id && (
-                        <ContentStatusControl
-                          contentCode={c.contentCode}
-                          status={c.status}
-                          userId={me.id}
-                        />
-                      )}
-                    </li>
-                  ))}
-                </ul>
+      ) : (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {KANBAN_COLUMNS.map((col) => (
+            <div
+              key={col.status}
+              className="bg-surface border border-line-soft rounded-lg px-3 py-2.5 min-h-[160px]"
+            >
+              <div className="flex items-center justify-between font-mono text-[9.5px] uppercase tracking-[0.14em] text-ink-tertiary mb-2">
+                <span>{col.label}</span>
+                <span className="text-ink font-medium tabular-nums">
+                  {byStatus[col.status].length}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </Section>
-    </DevelopmentShell>
+              <div className="flex flex-col gap-1.5">
+                {byStatus[col.status].slice(0, 20).map((c) => (
+                  <div
+                    key={c.id}
+                    className="bg-muted rounded-[5px] px-2.5 py-2 text-[11.5px] text-ink-secondary leading-snug"
+                  >
+                    <Link
+                      href={`/development-os/marketing/content/${c.contentCode}`}
+                      prefetch={false}
+                      className="block"
+                    >
+                      <span className="font-mono text-[9.5px] text-ink-tertiary block">
+                        {c.contentCode}
+                      </span>
+                      <strong className="block text-ink font-medium mb-px">
+                        {c.title}
+                      </strong>
+                      <span className="font-mono text-[9.5px] text-ink-tertiary">
+                        {c.contentType}
+                      </span>
+                    </Link>
+                    {me?.id && (
+                      <ContentStatusControl
+                        contentCode={c.contentCode}
+                        status={c.status}
+                        userId={me.id}
+                      />
+                    )}
+                  </div>
+                ))}
+                {byStatus[col.status].length === 0 && (
+                  <div className="text-[11px] text-ink-tertiary italic">
+                    Empty
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
