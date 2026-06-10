@@ -1,0 +1,148 @@
+/* =============================================================
+   src/styles/components/platform.css
+
+   pixel-platform-console — [data-product="platform"] chrome
+   gap-fills for the dark operator console (cabinets/super-admin/
+   Platform Console.html).
+
+   The shared chrome classes (.card / .kpi / .btn-* variants /
+   .badge-* tones / table.data header+hover) are only defined for
+   the management / development / subscription scopes in
+   primitives.css + shell.css, so under the platform palette they
+   fell back to browser defaults (cards with no surface, KPI tiles
+   with no chrome, secondary/ghost/primary buttons rendering as
+   bare text, badge tones losing their semantic color). This file
+   resolves each onto the carbon + cool-blue token scale.
+
+   MUST be imported after primitives.css / shell.css / modal.css:
+   the /platform group is nested inside a product host whose
+   `:root[data-product]` also matches these elements, so equal-
+   specificity product rules are tie-broken by source order.
+
+   Token-only — no raw hex (acceptance: "All values are Layer-B
+   tokens/utilities").
+   ============================================================= */
+
+/* ---------- Cards & surfaces ---------- */
+[data-product="platform"] .card {
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card-lg, 18px);
+}
+[data-product="platform"] .card-tight { border-radius: var(--r-card, 14px); }
+[data-product="platform"] .ring { border: 1px solid var(--line); }
+[data-product="platform"] .panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-hero, 22px);
+}
+
+/* ---------- KPI tiles (mock generic .kpi recipe) ---------- */
+[data-product="platform"] .kpi {
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card, 14px);
+  padding: 16px 18px;
+}
+[data-product="platform"] .kpi.accent .v { color: var(--accent); }
+
+/* ---------- Buttons ---------- */
+/* Primary on a dark console = light ink button with carbon text. */
+[data-product="platform"] .btn-primary {
+  background: var(--ink);
+  color: var(--inverted-bg);
+}
+[data-product="platform"] .btn-primary:hover {
+  background: color-mix(in srgb, var(--ink) 86%, var(--bg));
+}
+[data-product="platform"] .btn-secondary {
+  background: var(--bg-3);
+  color: var(--ink);
+  border-color: var(--line-2);
+}
+[data-product="platform"] .btn-secondary:hover {
+  background: color-mix(in srgb, var(--bg-3) 88%, var(--ink));
+  border-color: var(--line-strong);
+}
+[data-product="platform"] .btn-ghost {
+  background: transparent;
+  color: var(--ink-2);
+}
+[data-product="platform"] .btn-ghost:hover {
+  background: var(--bg-3);
+  color: var(--ink);
+}
+
+/* ---------- Badge tones (mock generic 12% fill / 35% border) ---------- */
+[data-product="platform"] .badge-ok {
+  background: color-mix(in oklab, var(--ok) 12%, transparent);
+  color: var(--ok);
+  border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+}
+[data-product="platform"] .badge-warn {
+  background: color-mix(in oklab, var(--warn) 12%, transparent);
+  color: var(--warn);
+  border-color: color-mix(in oklab, var(--warn) 35%, transparent);
+}
+[data-product="platform"] .badge-danger {
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 35%, transparent);
+}
+[data-product="platform"] .badge-info {
+  background: color-mix(in oklab, var(--info) 12%, transparent);
+  color: var(--info);
+  border-color: color-mix(in oklab, var(--info) 35%, transparent);
+}
+[data-product="platform"] .badge-accent {
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 35%, transparent);
+}
+[data-product="platform"] .badge-gold {
+  background: color-mix(in oklab, var(--gold) 12%, transparent);
+  color: var(--gold);
+  border-color: color-mix(in oklab, var(--gold) 35%, transparent);
+}
+[data-product="platform"] .badge-ink {
+  background: var(--ink);
+  color: var(--inverted-bg);
+  border-color: var(--ink);
+}
+[data-product="platform"] .badge-soft {
+  background: var(--bg-3);
+  color: var(--ink-2);
+  border-color: var(--line-soft);
+}
+
+/* ---------- table.data — dark console header + hover ----------
+   The generic recipe paints th with --cream-warm, which the platform
+   palette resolves to the same carbon as the card surface (no band,
+   invisible hover). The mock keeps the platform thead transparent and
+   relies on the mono uppercase label + rule line; row hover steps up
+   to the next surface so it reads on a .card panel. */
+[data-product="platform"] table.data th {
+  background: transparent;
+  border-bottom-color: var(--line-2);
+}
+[data-product="platform"] table.data tbody tr:hover {
+  background: var(--bg-3);
+}
+
+/* ---------- Chips (mock generic .chip on the dark scale) ---------- */
+[data-product="platform"] .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+[data-product="platform"] .chip-active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}

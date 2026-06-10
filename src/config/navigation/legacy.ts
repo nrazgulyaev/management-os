@@ -326,18 +326,20 @@ export const dashboardNav: NavGroup[] = [
   },
 ];
 
-// Owner cabinet nav — mirrors the 7 owner-p1 prototype screens
-// (home / villas / calendar / statements / documents / inbox / settings).
-// The standalone /owner/bookings, /owner/revenue and /owner/stays routes
-// still exist but are folded into Calendar + Statements per the prototype,
-// so they're intentionally not top-level nav items.
+// Owner cabinet nav — order + labels mirror the owner top-nav mock
+// (cc-functional-handoff/cabinets/owner-p1/owner-topnav.html):
+// Home · Statements · Villas · Calendar · Inbox · Documents · Settings.
+// "Settings" intentionally keeps routing to the existing /owner/preferences
+// page. The standalone /owner/bookings, /owner/revenue and /owner/stays
+// routes still exist but are folded into Calendar + Statements per the
+// prototype, so they're intentionally not top-level nav items.
 export const ownerNav: NavItem[] = [
-  { href: "/owner", label: "Portfolio", icon: LayoutDashboard },
-  { href: "/owner/villas", label: "My villas", icon: Home },
-  { href: "/owner/calendar", label: "Calendar", icon: CalendarRange },
+  { href: "/owner", label: "Home", icon: Home },
   { href: "/owner/statements", label: "Statements", icon: FileText },
-  { href: "/owner/documents", label: "Documents", icon: FileText },
+  { href: "/owner/villas", label: "Villas", icon: Building2 },
+  { href: "/owner/calendar", label: "Calendar", icon: CalendarRange },
   { href: "/owner/inbox", label: "Inbox", icon: BellRing },
+  { href: "/owner/documents", label: "Documents", icon: FileText },
   { href: "/owner/preferences", label: "Settings", icon: Settings },
 ];
 

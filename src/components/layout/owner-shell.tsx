@@ -8,6 +8,18 @@ import { ownerNav } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { LogOut } from "lucide-react";
 import { stopImpersonating } from "@/features/owner-portal/impersonation-actions";
+import { signOutAction } from "@/features/auth/actions";
+
+/**
+ * Active-state matcher for the owner top-nav.
+ * "/owner" (Home) only highlights on the exact route; every other item
+ * highlights on its route and any nested route under it
+ * (e.g. /owner/statements/[id] → Statements).
+ */
+function isOwnerNavActive(href: string, pathname: string): boolean {
+  if (href === "/owner") return pathname === "/owner";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export interface OwnerShellOwnerContext {
   name: string;
@@ -70,23 +82,25 @@ export function OwnerShell({
       )}
       <header className="sticky top-0 z-40 border-b border-line-soft bg-canvas/90 backdrop-blur">
         <div className="max-w-[1120px] mx-auto flex items-center justify-between px-6 md:px-8 h-16">
-          <Logo subtitle="Owner Portal" title="Arconique Owner Portal" />
-          <nav className="hidden md:flex items-center gap-1">
+          <Logo
+            href="/owner"
+            subtitle="Owner"
+            title="Arconique Owner Portal"
+          />
+          <nav className="hidden lg:flex items-center gap-1">
             {ownerNav.map((item) => {
-              const active =
-                item.href === "/owner"
-                  ? pathname === "/owner"
-                  : pathname.startsWith(item.href);
+              const active = isOwnerNavActive(item.href, pathname);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "px-3 py-2 rounded-sm text-sm whitespace-nowrap transition-colors",
+                    "relative px-3 py-2 rounded-sm text-sm whitespace-nowrap transition-colors",
                     active
-                      ? "text-ink"
+                      ? "text-ink font-medium after:absolute after:left-3 after:right-3 after:-bottom-[14px] after:h-[2px] after:rounded-full after:bg-terra"
                       : "text-ink-secondary hover:text-ink"
                   )}
+                  aria-current={active ? "page" : undefined}
                 >
                   {item.label}
                 </Link>
@@ -94,7 +108,7 @@ export function OwnerShell({
             })}
           </nav>
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex flex-col text-right leading-tight">
+            <div className="hidden lg:flex flex-col text-right leading-tight">
               <span className="text-sm text-ink">{ownerContext.name}</span>
               <span className="text-[11px] text-ink-tertiary">
                 {ownerContext.villasCount}{" "}
@@ -104,21 +118,22 @@ export function OwnerShell({
             <div className="h-9 w-9 rounded-full bg-gold/90 text-ink-inverse text-sm font-medium inline-flex items-center justify-center">
               {ownerContext.initials}
             </div>
-            <button
-              aria-label="Sign out"
-              className="h-9 w-9 rounded-full border border-line-soft bg-surface hover:bg-muted inline-flex items-center justify-center text-ink-secondary transition-colors"
-            >
-              <LogOut className="w-4 h-4" strokeWidth={1.75} />
-            </button>
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                aria-label="Sign out"
+                title="Sign out"
+                className="h-9 w-9 rounded-full border border-line-soft bg-surface hover:bg-muted inline-flex items-center justify-center text-ink-secondary transition-colors"
+              >
+                <LogOut className="w-4 h-4" strokeWidth={1.75} />
+              </button>
+            </form>
           </div>
         </div>
-        <nav className="md:hidden border-t border-line-soft overflow-x-auto no-scrollbar">
+        <nav className="lg:hidden border-t border-line-soft overflow-x-auto no-scrollbar">
           <div className="flex gap-1 px-4 py-2">
             {ownerNav.map((item) => {
-              const active =
-                item.href === "/owner"
-                  ? pathname === "/owner"
-                  : pathname.startsWith(item.href);
+              const active = isOwnerNavActive(item.href, pathname);
               return (
                 <Link
                   key={item.href}
@@ -129,6 +144,7 @@ export function OwnerShell({
                       ? "bg-ink text-ink-inverse"
                       : "text-ink-secondary bg-muted"
                   )}
+                  aria-current={active ? "page" : undefined}
                 >
                   {item.label}
                 </Link>
