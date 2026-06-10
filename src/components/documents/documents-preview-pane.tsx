@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 import type { DocAppRow } from "@/features/documents/app-services";
 import {
   markDocumentSignedAction,
-  setDocumentAiFedAction,
   deleteDocumentAppAction,
 } from "@/features/documents/app-actions";
+import { DocumentAiFeedModal } from "./documents-ai-feed";
 import { SignatureRequestButton } from "./documents-signature-modals";
 import { VersionCompareButton } from "./documents-version-modals";
 
@@ -87,6 +87,7 @@ export function DocumentPreviewPane({
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const [aiFeedOpen, setAiFeedOpen] = React.useState(false);
   const [detail, setDetail] = React.useState<{
     versions: VersionRow[];
     signatures: SignatureRow[];
@@ -310,14 +311,14 @@ export function DocumentPreviewPane({
             <Button
               variant="secondary"
               size="sm"
-              disabled={pending}
-              onClick={() =>
-                run(() =>
-                  setDocumentAiFedAction({ documentId: doc.id, fed: !isFed }),
-                )
+              onClick={() => setAiFeedOpen(true)}
+              title={
+                isFed
+                  ? "In agent knowledge — feed to another agent or remove"
+                  : "Feed this document to an AI agent's knowledge base"
               }
             >
-              {isFed ? "Remove from AI" : "Feed to AI agent"}
+              {isFed ? "Manage AI knowledge" : "Feed to AI agent"}
             </Button>
             <Button
               variant="ghost"
@@ -391,6 +392,17 @@ export function DocumentPreviewPane({
           )}
         </div>
       </div>
+
+      <DocumentAiFeedModal
+        doc={{
+          id: doc.id,
+          title: doc.title,
+          mimeType: doc.mimeType,
+          hasFile: doc.hasFile,
+        }}
+        open={aiFeedOpen}
+        onOpenChange={setAiFeedOpen}
+      />
 
       <ConfirmModal
         open={confirmDelete}

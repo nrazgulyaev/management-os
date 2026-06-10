@@ -155,3 +155,15 @@
 **Контент потерян при супersession:** billing-консоль · support-inbox · plans-редактор · rollout-матрица флагов · per-org AI-spend.
 
 **Системные дыры:** пакет в .gitignore (агенты/CI/свежий клон не видят) · Platform Console рендерится без тёмной темы (data-product=management) · investor/buyer-логины без AuthShell · ни одного visual-baseline для кабинетов.
+
+## 12. Волна 2 выполнена (2026-06-10, PR #208–#210)
+
+| PR | Что закрыто |
+|---|---|
+| **#208** | CFO transactions полный паритет (все колонки мока оказались с реальным storage; Profit KPI, чипы, поиск, breakdown-rail + баг-фикс Tax-статуса); **Налоги ID + миграция 0164** (PPN Keluaran/Masukan/netto + PPh, DJP-референсы, File taxes, закрытие периода блокируется неподанными декларациями, cron больше не перезаписывает поданные); warehouse gap-fill (поиск стока, поиск движений, живая занятость бинов — 0165 не понадобилась) |
+| **#209** | Keystone: матрица «кто что видит» (15 ролей × 22 кабинета, подсветка своей роли, исправлен lockout); ролевой dev-лендинг «Acting as» (pm/cfo/warehouse/supervisor — честно из своих запросов); project drill-in углублён (budget/вехи/координация + карта суб-роутов); marketing /performance + первый UI над recordCampaignCost |
+| **#210** | Front-office: watch с legacy на DS, чек-ин на вертикальный 4-степпер (CSS существовал, потребителей не было), KPI-стрипы на 5 суб-страницах; pricing rule-sets: редактор завершён (6 типов правил, lifecycle, archive, preview-link), calendar/channel-push/logs на DS; documents: legacy флаг-only «Feed to AI» заменён на реальный поток, ✦-кнопка на строках |
+
+**Честные пропуски волны 2:** Coretax-файл e-Faktur, NPWP-валидация, bukti potong (нужен отдельный дизайн-пасс) · revenue-колонка в rep-скорборде (нет колонки) · per-rule enable/disable и drag-reorder приоритета (нет экшенов) · A/B креативы кампаний (нет таблицы) · feed-to-AI в форме загрузки (createDocumentAction redirect'ит без id — нужен 1 правка в features/documents/actions.ts) · cookie-персист роли · capacity-гейджи бинов.
+
+**Остаток (волна 3):** billing-консоль + support-inbox (сначала дизайн — superseded-моки как старт) · investor/guest pixel-волны (#47/#48) · mobile 390px pass (#46) · оставшиеся present-not-pixel глубокие страницы (direct-bookings detail, guest-services deep, settings deep и пр.) · visual-baselines кабинетов · 06:00 push.

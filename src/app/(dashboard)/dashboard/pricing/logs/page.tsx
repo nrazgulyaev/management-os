@@ -1,6 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listQuoteLogs } from "@/features/dynamic-pricing/services";
 
 export const metadata = { title: "Quote logs" };
@@ -9,65 +8,76 @@ export const dynamic = "force-dynamic";
 export default async function QuoteLogsPage() {
   const rows = await listQuoteLogs({ limit: 200 });
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Dynamic pricing", href: "/dashboard/pricing" },
-          { label: "Logs" },
-        ]}
-        title="Quote logs"
-        description="Public + admin quote events. IP / user-agent are stored hashed only."
-      />
-      <Section eyebrow="History" title={`${rows.length} entries`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">When</th>
-                <th className="px-4 py-3">Channel</th>
-                <th className="px-4 py-3">Range</th>
-                <th className="px-4 py-3">Available</th>
-                <th className="px-4 py-3">Reason</th>
-                <th className="px-4 py-3">Total</th>
-                <th className="px-4 py-3">Source</th>
+    <>
+      <div className="page-header !mb-0 !pb-[18px]">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/pricing">Dynamic pricing</Link> / <span>Logs</span>
+          </div>
+          <h1>Quote logs</h1>
+          <p className="text-[13.5px] text-ink-3 mt-2 max-w-[720px]">
+            Public + admin quote events. IP / user-agent are stored hashed only.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/dashboard/pricing/quote" className="btn btn-secondary btn-sm">
+            Quote tester
+          </Link>
+        </div>
+      </div>
+
+      <div className="flex items-baseline justify-between mt-[18px] mb-2.5">
+        <span className="label text-[9.5px]">History</span>
+        <span className="font-mono text-[11px] text-ink-4">
+          {rows.length} entr{rows.length === 1 ? "y" : "ies"}
+        </span>
+      </div>
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Channel</th>
+                <th>Range</th>
+                <th>Available</th>
+                <th>Reason</th>
+                <th className="num">Total</th>
+                <th>Source</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-ink-tertiary">
+                  <td colSpan={7} className="text-center text-ink-3 py-6">
                     No quote logs yet.
                   </td>
                 </tr>
               )}
               {rows.map((l) => (
-                <tr key={l.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 font-mono text-[11px]">
-                    {l.createdAt.toISOString()}
-                  </td>
-                  <td className="px-4 py-3 text-xs">{l.channelKey}</td>
-                  <td className="px-4 py-3 text-xs">
+                <tr key={l.id}>
+                  <td className="font-mono text-[11px]">{l.createdAt.toISOString()}</td>
+                  <td className="text-[12.5px]">{l.channelKey}</td>
+                  <td className="font-mono text-[11px]">
                     {l.checkIn} → {l.checkOut} · {l.nights}n
                   </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={l.available ? "success" : "warning"}>
+                  <td>
+                    <HandoffBadge tone={l.available ? "ok" : "warn"}>
                       {l.available ? "yes" : "no"}
-                    </Badge>
+                    </HandoffBadge>
                   </td>
-                  <td className="px-4 py-3 text-xs">{l.reason ?? "—"}</td>
-                  <td className="px-4 py-3 font-mono text-xs">
+                  <td className="text-[12.5px]">{l.reason ?? "—"}</td>
+                  <td className="num font-mono text-[11px]">
                     {(l.totalMinor / 100n).toString()}.
                     {String(l.totalMinor % 100n).padStart(2, "0")} {l.currency}
                   </td>
-                  <td className="px-4 py-3 text-xs">
-                    {l.publicQuote ? "public" : "admin"}
-                  </td>
+                  <td className="text-[12.5px]">{l.publicQuote ? "public" : "admin"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </Section>
-    </div>
+      </div>
+    </>
   );
 }

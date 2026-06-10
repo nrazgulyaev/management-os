@@ -26,6 +26,26 @@ export default function NewRuleSetPage() {
           <div className="label text-[9.5px] mb-3.5">Configure · rule set</div>
           <CreateRuleSetForm />
         </div>
+
+        <div className="card card-pad">
+          <div className="label text-[9.5px] mb-3.5">How scope resolves</div>
+          <ol className="m-0 pl-[18px] text-[13px] text-ink-2 leading-relaxed flex flex-col gap-2">
+            <li>
+              <strong className="text-ink">Villa</strong> sets beat{" "}
+              <strong className="text-ink">project</strong> sets beat{" "}
+              <strong className="text-ink">global</strong> sets for any given villa.
+            </li>
+            <li>Within a tier, the lowest priority number wins.</li>
+            <li>
+              Rates are minor units: <span className="font-mono text-[11.5px]">50000</span> ={" "}
+              <span className="font-mono text-[11.5px]">500.00</span> in the set currency.
+            </li>
+            <li>
+              Modifier rules (day-of-week, occupancy, lead-time, channel, min-stay,
+              stop-sell) are added on the detail page after creation.
+            </li>
+          </ol>
+        </div>
       </div>
     </>
   );
