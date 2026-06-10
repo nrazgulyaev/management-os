@@ -179,3 +179,14 @@
 **Миграции волны 3:** 0165 (support_threads/support_messages) — выполнить `npm run db:migrate`.
 
 **Осталось (волна 4 / отдельные решения):** billing-консоль (нужен PSP/Stripe — отложено до launch по решению фаундера) · guest pixel-волна #47 (по аудиту 11/12 уже ок) · mobile 390px pass + visual-baselines (нужен запущенный браузер/стейджинг) · 06:00 push (notification-инфра) · roles/matrix внутренний рестайл · Coretax-экспорт/NPWP/bukti potong (дизайн-пасс).
+
+## 14. Волна 4 выполнена (2026-06-10, PR #214) — бэклог закрыт
+
+| Блок | Что построено |
+|---|---|
+| **Billing-консоль** (superseded-мок 04) | /platform/billing + /[orgCode]: MRR/paying/comped/ARPU, per-org план+состояние+история подписки+аудит-трейл; честная плашка «Payments not connected» вместо фейковых инвойсов/refunds/dunning (разблокируются с PSP на launch) |
+| **Visual + 390px харнесс** (queue #46 + baselines) | tests/visual/cabinets.spec.ts: 15 ключевых экранов × (1366 + 390), реальная авторизация (3 персоны через storage state), bounce-guard от тихих редиректов, маскирование волатильного; baselines генерируются локально по runbook в README — без кредов прогон честно скипается |
+| **06:00 push** (mock §04) | /api/cron/owner-intel-daily (22:00 UTC = 06:00 WITA): per-org утренний дайджест (churn-владельцы + villas-attention) одним in-app уведомлением через ADR-0010 спайн, dedupe per org/day, регистрация в jobs-реестре (виден на /dashboard/jobs); copy «refreshed 06:00» теперь показывает реальный последний запуск. Драйв-бай фикс: owner_statement_auto_ack отсутствовал в KNOWN_JOBS — его cron падал на каждом запуске |
+| **Coretax/NPWP/bukti potong** | NPWP-валидация (15/16-значный формат, 13 тестов) на 3 вендорских формах (только для ID-региона); e-Faktur CSV-export **draft** с дисклеймером (без претензии на сертифицированный формат); реестр bukti potong per-counterparty + печатная форма-draft (официальные номера выдаёт DJP — не выдумываем) |
+
+**Известные хвосты, зафиксированные агентами:** role-fan-out в delivery worker не фильтрует по org (pre-existing tenancy-гэп — кросс-org director увидит чужие дайджесты в инбоксе) · сертифицированный Coretax-формат/API · PSP-разблокировка billing.

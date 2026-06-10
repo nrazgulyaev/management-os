@@ -12,8 +12,10 @@ import { cn } from "@/lib/utils";
  * Mirrors the `cabinets/super-admin/Platform Console.html` mock chrome:
  * brand mark, an "Operator" workspace card, then grouped nav (Customers /
  * Platform). Every entry maps to a real `(platform-app)` route — no dead
- * links (the mock's "Billing · Stripe" item has no live route yet, so it
- * is intentionally absent; "Support" went live with migration 0165).
+ * links (the mock's "Billing · Stripe" item now maps to /platform/billing,
+ * the honest pre-PSP billing console — plans / MRR / comp grants only,
+ * invoices + payments unlock when Xendit/Stripe land at launch; "Support"
+ * went live with migration 0165).
  *
  * All colors are the cross-product alias utilities (bg-surface / bg-muted /
  * text-ink-* / border-line-soft / border-accent) which the
@@ -49,6 +51,7 @@ const NAV: NavGroup[] = [
   {
     label: "Platform",
     items: [
+      { href: "/platform/billing", label: "Billing" },
       { href: "/platform/agents", label: "AI agents" },
       { href: "/platform/feature-flags", label: "Feature flags" },
       { href: "/platform/users", label: "Users" },

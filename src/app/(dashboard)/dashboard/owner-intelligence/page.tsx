@@ -11,6 +11,7 @@ import type { VillaHealthSnapshot } from "@/lib/db/schema/owner-intelligence";
 import { requireCabinetAccess } from "@/features/keystone/access";
 import { CabinetGate } from "@/components/keystone/cabinet-gate";
 import { listOwnerIntel, type OwnerIntelRow } from "@/features/owners/owner-intel-service";
+import { getLastRunByJobKey } from "@/features/jobs/services";
 import { IntelViewSwitcher } from "./_views";
 import { QuickCallButton } from "./_quick-call";
 
@@ -79,12 +80,30 @@ type Insight = {
 export default async function OwnerIntelligenceHub() {
   const { allowed } = await requireCabinetAccess("owners");
   if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
-  const [snapshots, reviews, villas, ownerRows] = await Promise.all([
+  const [snapshots, reviews, villas, ownerRows, lastDigestRun] = await Promise.all([
     listOwnerVillaHealthSnapshots(),
     listAdminReviews({ limit: 100 }),
     listVillas(),
     listOwnerIntel().catch(() => [] as Awaited<ReturnType<typeof listOwnerIntel>>),
+    // INSIGHTS-PUSH-0600 — last run of the morning-digest job, so the
+    // "06:00" copy reflects reality instead of asserting it.
+    getLastRunByJobKey("owner_intel_daily").catch(() => null),
   ]);
+
+  // Honest digest stamp: show the real last run (06:00 WITA cron or a
+  // manual run), or say it hasn't run yet — never fake a timestamp.
+  const digestStamp =
+    lastDigestRun && (lastDigestRun.status === "success" || lastDigestRun.status === "partial_success")
+      ? `digest sent ${new Date(lastDigestRun.startedAt).toLocaleString("en-GB", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Asia/Makassar",
+        })} WITA`
+      : lastDigestRun
+        ? "last 06:00 digest run did not complete"
+        : "06:00 digest not yet run";
 
   const RISK_ORDER: Record<OwnerIntelRow["riskLevel"], number> = { flag: 0, watch: 1, ok: 2 };
   const ownersByRisk = [...ownerRows].sort(
@@ -264,7 +283,7 @@ export default async function OwnerIntelligenceHub() {
             Insights <em className="text-terra text-[16px]">· today</em>
           </h3>
           <div className="label mt-1">
-            {churnRisk} churn-risk · {upgradeOpp} upgrade · derived 06:00
+            {churnRisk} churn-risk · {upgradeOpp} upgrade · {digestStamp}
           </div>
           <div className="mt-3.5 flex flex-col gap-2.5">
             {activeInsights === 0 ? (

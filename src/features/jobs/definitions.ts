@@ -260,6 +260,24 @@ export const DEFAULT_JOB_DEFINITIONS: JobDefinitionSeed[] = [
     config: null,
   },
   {
+    // INSIGHTS-PUSH-0600 — morning owner-intelligence digest. Route:
+    // /api/cron/owner-intel-daily. Per org: owners at churn risk
+    // (flag/watch via listOwnerIntel) + villas on watch/attention from
+    // the latest health snapshots → ONE in-app digest to the director
+    // role, deduped per org per day; empty orgs are skipped. Vercel
+    // crons are UTC-only, so 22:00 UTC = 06:00 WITA (Asia/Makassar).
+    key: "owner_intel_daily",
+    name: "Owner intelligence — 06:00 morning digest",
+    description:
+      "Per-org morning digest: owners at churn risk + villas needing attention from the latest health snapshots. Queues one in-app notification per org per day to the director role (deduped); orgs with nothing to report are skipped. 22:00 UTC = 06:00 WITA.",
+    jobType: "owner_intelligence",
+    scheduleCron: "0 22 * * *",
+    enabled: true,
+    timeoutSeconds: 120,
+    maxRetries: 0,
+    config: null,
+  },
+  {
     // phase-2a PR 3 — maintenance SLA breach scan. Route:
     // /api/cron/maintenance-sla-scan. Walks open maintenance tickets,
     // recomputes computeSlaStatus against the p0-p3 target windows, and

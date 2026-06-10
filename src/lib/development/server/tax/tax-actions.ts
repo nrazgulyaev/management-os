@@ -8,6 +8,7 @@ import { devTransactions } from "@/lib/db/schema/dev-finance";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
 import { recordAuditEvent } from "@/features/audit/services";
+import { taxDirectionKind } from "@/lib/development/server/tax/tax-kind";
 
 /**
  * Tax module actions. Tax types are operator-configurable (NOT
@@ -147,28 +148,10 @@ const generateReportSchema = z.object({
   periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
-/**
- * ID-TAX (0164) — direction classification for a tax type.
- *
- * `tax_types` has no structural category column, so the ONLY honest
- * signal for "is this a VAT / a withholding tax" is the operator-set
- * type_key + display_name (seeded keys: 'ppn_indonesia',
- * 'pph23_withholding', 'lease_tax_bali', 'corporate_income_tax').
- * The match is documented + conservative: anything not recognisably
- * VAT/withholding stays 'general' (one direction-less report — exactly
- * the pre-0164 behaviour).
- */
-type TaxDirectionKind = "vat" | "withholding" | "general";
-
-function taxDirectionKind(t: {
-  typeKey: string;
-  displayName: string;
-}): TaxDirectionKind {
-  const key = `${t.typeKey} ${t.displayName}`.toLowerCase();
-  if (key.includes("ppn") || key.includes("vat")) return "vat";
-  if (key.includes("pph") || key.includes("withhold")) return "withholding";
-  return "general";
-}
+// ID-TAX direction classification for a tax type lives in
+// src/lib/development/server/tax/tax-kind.ts (extracted for the compliance
+// trio so the e-Faktur export + bukti potong register match this file
+// exactly — a "use server" module may only export async functions).
 
 /**
  * ID-TAX (0164) — VAT direction is derived from dev_transactions.direction:
