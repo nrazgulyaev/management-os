@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { SectionHeading, HandoffBadge } from "@/components/dashboard/primitives";
+import {
+  SectionHeading,
+  Kpi,
+  HandoffBadge,
+} from "@/components/dashboard/primitives";
 import { formatMoneyMinor } from "@/lib/money";
 import {
   getCampaignByCode,
   listCampaignCosts,
 } from "@/lib/development/server/campaigns/campaign-queries";
+import { countLeadsForCampaign } from "@/lib/development/server/marketing/manager-performance-queries";
+import { safeQuery } from "@/lib/development/safe-query";
+import { CampaignStatusControl } from "../_status-control";
 
 export const metadata: Metadata = { title: "Campaign · Marketing" };
 export const dynamic = "force-dynamic";
@@ -20,7 +27,14 @@ export const dynamic = "force-dynamic";
  * data-product="development". Data wiring preserved verbatim:
  *   - getCampaignByCode(code)        → header, budget, metrics K/V
  *   - listCampaignCosts(campaign.id) → daily-impressions chart + spend roll-up
- * No new fetch; the chart + metrics are derived from the existing cost rows.
+ * Gap-close additions (mock §01 kpi-row + §03 actions):
+ *   - Kpi strip (spend / budget / leads / clicks / conversions) over the
+ *     same cost rows + countLeadsForCampaign (leads.campaign_id).
+ *   - CampaignStatusControl in the header — the same wired
+ *     transitionCampaignStatus select the campaigns index uses (covers the
+ *     mock's "Pause campaign" action honestly).
+ * A/B creative variants are NOT rendered: campaign-level creatives have no
+ * backing table (content_variants belongs to content pieces).
  */
 
 const STATUS_TONE: Record<string, "ok" | "warn" | "info" | "soft"> = {
@@ -41,7 +55,10 @@ export default async function CampaignDetailPage({
   const { code } = await params;
   const campaign = await getCampaignByCode(code);
   if (!campaign) notFound();
-  const costs = await listCampaignCosts(campaign.id);
+  const [costs, leadCount] = await Promise.all([
+    listCampaignCosts(campaign.id),
+    safeQuery("campaignLeadCount", countLeadsForCampaign(campaign.id), 0),
+  ]);
 
   const totalCost = costs.reduce((a, c) => a + Number(c.costMinor), 0);
   const budget = Number(campaign.totalBudgetMinor);
@@ -102,13 +119,19 @@ export default async function CampaignDetailPage({
         }
         subtitle={campaign.campaignObjective}
         actions={
-          <Link
-            href="/development-os/marketing/campaigns"
-            prefetch={false}
-            className="btn btn-dark btn-sm"
-          >
-            ← Back
-          </Link>
+          <>
+            <CampaignStatusControl
+              campaignCode={campaign.campaignCode}
+              status={campaign.status}
+            />
+            <Link
+              href="/development-os/marketing/campaigns"
+              prefetch={false}
+              className="btn btn-dark btn-sm"
+            >
+              ← Back
+            </Link>
+          </>
         }
       />
 
@@ -141,6 +164,47 @@ export default async function CampaignDetailPage({
         <span>
           burn <strong className="text-ink-secondary">{burnPct.toFixed(1)}%</strong>
         </span>
+      </div>
+
+      {/* KPI strip — mock §01 kpi-row, derived from the same cost rows +
+          the attributed-lead count. */}
+      <div className="grid grid-cols-2 gap-3 mb-[18px] sm:grid-cols-3 lg:grid-cols-5">
+        <Kpi
+          label="Spent"
+          value={formatMoneyMinor(totalCost, campaign.currency, {
+            compact: true,
+          })}
+          sub={`${burnPct.toFixed(0)}% of budget`}
+          tone={burnPct > 100 ? "danger" : undefined}
+        />
+        <Kpi
+          label="Budget"
+          value={formatMoneyMinor(budget, campaign.currency, {
+            compact: true,
+          })}
+          sub={
+            budget > 0
+              ? `${formatMoneyMinor(Math.max(budget - totalCost, 0), campaign.currency, { compact: true })} remaining`
+              : "no budget set"
+          }
+        />
+        <Kpi
+          label="Leads"
+          value={String(leadCount)}
+          sub="attributed to this campaign"
+          tone={leadCount > 0 ? "accent" : undefined}
+        />
+        <Kpi
+          label="Clicks"
+          value={totals.clicks.toLocaleString()}
+          sub={ctr ? `CTR ${ctr}%` : `${totals.impressions.toLocaleString()} impressions`}
+        />
+        <Kpi
+          label="Conversions"
+          value={totals.conversions.toLocaleString()}
+          sub={costPerLead ? `cost/lead ${costPerLead}` : undefined}
+          tone={totals.conversions > 0 ? "success" : undefined}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-x-7 gap-y-6 lg:grid-cols-[1.3fr_1fr]">

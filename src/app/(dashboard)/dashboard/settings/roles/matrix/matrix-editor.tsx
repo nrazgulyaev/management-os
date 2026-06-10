@@ -25,11 +25,20 @@ export type InitialOverride = {
 export function MatrixEditor({
   initialOverrides,
   readOnly,
+  viewerRoles = [],
 }: {
   initialOverrides: InitialOverride[];
   /** When the viewer lacks roles.assign — render but disable the toggles. */
   readOnly: boolean;
+  /**
+   * The current user's role(s) that appear as matrix columns — those
+   * columns get the accent highlight + a "you" tag (mock: «твоя колонка
+   * подсвечена»). Empty for super-admins / demo mode (always all-access,
+   * not shown as a column).
+   */
+  viewerRoles?: RoleKey[];
 }) {
+  const viewerRoleSet = useMemo(() => new Set<RoleKey>(viewerRoles), [viewerRoles]);
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -145,16 +154,27 @@ export function MatrixEditor({
               <th className="sticky left-0 z-10 bg-surface px-4 py-3 text-left text-[11px] uppercase tracking-widest text-ink-tertiary">
                 Cabinet
               </th>
-              {MATRIX_ROLES.map((r) => (
-                <th
-                  key={r}
-                  className="px-3 py-3 text-center text-[11px] font-medium text-ink-secondary align-bottom"
-                >
-                  <span className="block whitespace-nowrap [writing-mode:vertical-rl] rotate-180 mx-auto h-24 leading-none">
-                    {roleLabel(r)}
-                  </span>
-                </th>
-              ))}
+              {MATRIX_ROLES.map((r) => {
+                const isViewer = viewerRoleSet.has(r);
+                return (
+                  <th
+                    key={r}
+                    className={cn(
+                      "px-3 py-3 text-center text-[11px] font-medium align-bottom",
+                      isViewer ? "bg-accent/10 text-accent" : "text-ink-secondary",
+                    )}
+                  >
+                    {isViewer && (
+                      <span className="mb-1.5 inline-block rounded-full bg-accent px-1.5 py-px text-[9px] font-semibold uppercase tracking-wider text-on-accent">
+                        you
+                      </span>
+                    )}
+                    <span className="block whitespace-nowrap [writing-mode:vertical-rl] rotate-180 mx-auto h-24 leading-none">
+                      {roleLabel(r)}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-line-soft">
@@ -172,7 +192,13 @@ export function MatrixEditor({
                   const def = defaultAccess(c.key, r);
                   const overridden = on !== def;
                   return (
-                    <td key={r} className="px-3 py-2 text-center">
+                    <td
+                      key={r}
+                      className={cn(
+                        "px-3 py-2 text-center",
+                        viewerRoleSet.has(r) && "bg-accent/5",
+                      )}
+                    >
                       <button
                         type="button"
                         aria-pressed={on}
@@ -199,11 +225,34 @@ export function MatrixEditor({
         </table>
       </div>
 
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-secondary">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex h-4 w-4 items-center justify-center rounded-sm border border-success/40 bg-success/15 text-success">
+            <Check className="h-3 w-3" />
+          </span>
+          Visible — role sees the cabinet
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block h-4 w-4 rounded-sm border border-line-soft bg-canvas" />
+          Hidden — cabinet is gated off
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block h-4 w-4 rounded-sm border border-line-soft bg-canvas ring-2 ring-warning/50" />
+          Differs from the built-in default
+        </span>
+        {viewerRoles.length > 0 && (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-4 w-4 rounded-sm bg-accent/10 border border-accent/30" />
+            Your role&apos;s column
+          </span>
+        )}
+      </div>
+
       <p className="text-xs text-ink-tertiary leading-relaxed">
         A checked cell means the role can <strong>see</strong> that cabinet (its
-        read access). Cells outlined in amber differ from the built-in default.
-        super_admin always has full access and is not shown. Saving stores only
-        the cells that deviate from the defaults.
+        read access) — the same rule that filters the sidebar and gates each
+        cabinet route. Super admin always has full access and is not shown.
+        Saving stores only the cells that deviate from the defaults.
       </p>
     </div>
   );
