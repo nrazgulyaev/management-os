@@ -3,10 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { eq, inArray } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { milestones as milestonesTable, milestoneDependencies } from "@/lib/db/schema/milestones";
@@ -171,35 +168,54 @@ export default async function MilestonesPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: detail.project.name, href: `/development-os/projects/${slug}` },
-          { label: "Milestones" },
-        ]}
-        eyebrow={`${initial.length} milestones · gantt-lite editor`}
-        title="Milestones"
-        description={
-          hasPersisted
-            ? "Flat list with status + dependency indicator. Add, re-status, and delete milestones — changes persist to the milestones table and feed the schedule-variance detector above. Don't build a real Gantt for <30 milestones per project."
-            : "No authored milestones yet — this preview is synthesized from project phases. Click “+ Add milestone” to author the first real milestone; once saved this list reads the milestones table. Don't build a real Gantt for <30 milestones per project."
-        }
-        actions={
-          <Button asChild variant="secondary">
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Dev OS</Link>
+            <span>/</span>
+            <Link href="/development-os/projects">Projects</Link>
+            <span>/</span>
             <Link href={`/development-os/projects/${slug}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back to project
+              {detail.project.name}
             </Link>
-          </Button>
-        }
-      />
+            <span>/</span>
+            <span>Milestones</span>
+          </div>
+          <h1>Milestones</h1>
+          <div className="page-header-meta">
+            <span>{initial.length} MILESTONES</span>
+            <span>·</span>
+            <span>GANTT-LITE EDITOR</span>
+          </div>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}`}
+            className="btn btn-dark btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back to project
+          </Link>
+        </div>
+      </header>
+
+      <p className="text-ink-3 text-sm max-w-3xl -mt-4 leading-relaxed">
+        {hasPersisted
+          ? "Flat list with status + dependency indicator. Add, re-status, and delete milestones — changes persist to the milestones table and feed the schedule-variance detector below. Don't build a real Gantt for <30 milestones per project."
+          : "No authored milestones yet — this preview is synthesized from project phases. Click “+ Add milestone” to author the first real milestone; once saved this list reads the milestones table. Don't build a real Gantt for <30 milestones per project."}
+      </p>
+
       {weeklyReport && (
-        <Section
-          eyebrow="AI · weekly-report-composer"
-          title="This week"
-          description="Auto-assembled from the past 7 days of milestones, BOQ movement, RFIs, and site reports. The Friday cron drafts the investor-facing version with an LLM polish on top of this deterministic base."
-        >
+        <section>
+          <div className="section-heading">
+            <div className="label eyebrow">AI · weekly-report-composer</div>
+            <h2>This week</h2>
+            <p>
+              Auto-assembled from the past 7 days of milestones, BOQ movement,
+              RFIs, and site reports. The Friday cron drafts the investor-facing
+              version with an LLM polish on top of this deterministic base.
+            </p>
+          </div>
           <WeeklyReportCard
             weekStart={weeklyReport.weekStart}
             weekEnding={weeklyReport.weekEnding}
@@ -209,54 +225,59 @@ export default async function MilestonesPage({
             aiNote={weeklyReport.aiNote}
             isQuiet={weeklyReport.isQuiet}
           />
-        </Section>
+        </section>
       )}
+
       {variance && variance.scanned > 0 && (
-        <Section
-          eyebrow="schedule-variance-detector · deterministic"
-          title="Schedule variance"
-        >
+        <section>
+          <div className="section-heading">
+            <div className="label eyebrow">
+              schedule-variance-detector · deterministic
+            </div>
+            <h2>Schedule variance</h2>
+          </div>
           {variance.flags.length === 0 ? (
-            <p className="text-sm text-ink-secondary">
+            <p className="text-sm text-ink-3">
               No milestones are slipping past their conservative thresholds
               ({variance.scanned} scanned). Amber flags slip of 7–20 days,
               red flags 21+ days, including slip propagated through
               finish-to-start dependencies.
             </p>
           ) : (
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                  <th className="py-2">Severity</th>
-                  <th>Milestone</th>
-                  <th>Cause</th>
-                  <th className="text-right">Slip (days)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {variance.flags.map((f) => (
-                  <tr
-                    key={`${f.kind}:${f.milestoneId}`}
-                    className="border-b border-line-soft hover:bg-muted/30"
-                  >
-                    <td className="py-2">
-                      <Badge tone={f.severity === "red" ? "danger" : "warning"}>
-                        {f.severity}
-                      </Badge>
-                    </td>
-                    <td className="font-medium">{f.milestoneName}</td>
-                    <td className="text-xs text-ink-secondary">
-                      {f.kind === "overdue_milestone"
-                        ? "Target date passed, not done"
-                        : `Dependency slip via ${String(f.detail.predecessorName ?? "predecessor")}`}
-                    </td>
-                    <td className="text-right tabular-nums">{f.slipDays}</td>
+            <div className="card overflow-hidden">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Severity</th>
+                    <th>Milestone</th>
+                    <th>Cause</th>
+                    <th className="num">Slip (days)</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {variance.flags.map((f) => (
+                    <tr key={`${f.kind}:${f.milestoneId}`}>
+                      <td>
+                        <HandoffBadge
+                          tone={f.severity === "red" ? "danger" : "warn"}
+                        >
+                          {f.severity}
+                        </HandoffBadge>
+                      </td>
+                      <td className="font-medium text-ink">{f.milestoneName}</td>
+                      <td className="text-xs text-ink-3">
+                        {f.kind === "overdue_milestone"
+                          ? "Target date passed, not done"
+                          : `Dependency slip via ${String(f.detail.predecessorName ?? "predecessor")}`}
+                      </td>
+                      <td className="num">{f.slipDays}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </Section>
+        </section>
       )}
 
       <MilestonesEditor

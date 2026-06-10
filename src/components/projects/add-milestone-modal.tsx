@@ -118,9 +118,9 @@ export function AddMilestoneModal({
           {milestones.length === 0 ? (
             <div className="field-help">No upstream milestones yet — this will be the first.</div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 160, overflow: "auto" }}>
+            <div className="ms-dep-picker">
               {milestones.map((m) => (
-                <label key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                <label key={m.id} className="ms-dep-option">
                   <input
                     type="checkbox"
                     checked={values.dependsOn.includes(m.id)}
@@ -139,7 +139,7 @@ export function AddMilestoneModal({
         </button>
         <button
           type="button"
-          className="btn btn-primary btn-sm"
+          className="btn btn-accent btn-sm"
           onClick={submit}
           disabled={!values.name || !values.targetDate}
         >

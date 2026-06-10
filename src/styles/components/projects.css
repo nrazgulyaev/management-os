@@ -338,6 +338,9 @@
   color: var(--ink);
 }
 [data-product] .po-panel-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-left: auto;
   font-size: 10px;
   letter-spacing: 0.1em;
@@ -370,6 +373,34 @@
 [data-product="development"] .po-panel-body .ms-check.next {
   border-color: var(--amber);
   background: var(--bg-3, var(--panel));
+}
+/* Open-RFIs panel — aged-RFI emphasis (≥5d) on the mono age cell. */
+[data-product] .po-panel .rfi-age-warn { color: var(--warn); }
+
+/* Quick-stat tile (Project facts grid) + active-phase row + coming-soon
+   placeholder — tokenised replacements for the former raw Tailwind
+   `rounded-md border bg-surface` blocks on the Overview tab. */
+[data-product] .po-stat {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 16px;
+  background: var(--panel, var(--paper));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 10px;
+}
+[data-product] .po-phase-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px;
+  background: var(--panel, var(--paper));
+  border: 1px solid var(--line-soft, var(--line));
+  border-radius: 10px;
+}
+[data-product] .po-coming {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; text-align: center;
+  padding: 40px 24px;
+  background: var(--bg-2, var(--cream-warm));
+  border: 1px dashed var(--line-2, var(--line));
+  border-radius: 12px;
 }
 
 /* Engineering rail */
@@ -464,5 +495,22 @@
 [data-product] .ms-editor-delete:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* Add-milestone modal — dependency picker (scrollable checkbox list).
+   Replaces the modal's former inline `style={{}}` block. */
+[data-product] .ms-dep-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow: auto;
+}
+[data-product] .ms-dep-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
 }
 
