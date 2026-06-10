@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getInvestorSession } from "@/lib/investor-portal/session";
 import {
@@ -26,6 +25,8 @@ import { loadInvestorGpPosition } from "@/lib/investor-portal/gp-economics-queri
 import { buildLpGpEconomics } from "@/features/investors/lp-gp-economics";
 import { InvestorCopilotPanel } from "@/components/investor-portal/investor-copilot-panel";
 import { FundAnalyticsStrip } from "@/components/investor-portal/fund-analytics-strip";
+import { ProjectNarrativeCard } from "@/components/investor-portal/project-narrative-card";
+import { loadLpFundAnalytics } from "@/lib/development/server/investor/fund-analytics-queries";
 
 /**
  * Mega-Sprint / Phase 12 — Investor Portal Dashboard on the Sprint-4
@@ -75,13 +76,14 @@ export default async function DashboardPage() {
   if (!session) redirect("/investor-portal/login");
 
   const strings = getPortalStrings(session.reportingLanguage);
-  const [data, commitments, forecast, gpPosition] = await Promise.all([
+  const [data, commitments, forecast, gpPosition, fund] = await Promise.all([
     getInvestorDashboard(),
     getMyCommitments(),
     loadForecastCashflow(session.investorId, 4).catch(
       () => [] as ForecastQuarterRow[],
     ),
     loadInvestorGpPosition().catch(() => null),
+    loadLpFundAnalytics().catch(() => null),
   ]);
 
   const committed = Number(BigInt(data.totalCommittedUsdMinor)) / 100;
@@ -90,6 +92,31 @@ export default async function DashboardPage() {
   const walletAvailable =
     Number(BigInt(data.totalWalletAvailableUsdMinor)) / 100;
   const walletHold = Number(BigInt(data.totalWalletHoldUsdMinor)) / 100;
+
+  // Portfolio-totals dark band (Overview variant B) — Committed + Current
+  // NAV + Net IRR + MOIC, sourced from the canonical XIRR engine
+  // (loadLpFundAnalytics) so they reconcile with the Dev OS Investors
+  // cabinet. NAV = distributed-to-date + residual unrealised value.
+  const analytics = fund?.analytics ?? null;
+  const hasAnalytics = !!analytics && !analytics.isEmpty;
+  const navUsd = hasAnalytics
+    ? Number(analytics!.distributedMinor + analytics!.residualNavMinor) / 100
+    : distributed + walletAvailable + walletHold;
+  const compactUsd = (n: number) =>
+    `${data.primaryCurrency} ${n.toLocaleString("en-US", {
+      notation: "compact",
+      maximumFractionDigits: 2,
+    })}`;
+  const netIrrLabel =
+    hasAnalytics && analytics!.netIrr !== null
+      ? `${(analytics!.netIrr * 100).toFixed(1)}%`
+      : "—";
+  const moicLabel =
+    hasAnalytics && Number.isFinite(analytics!.moic) && analytics!.moic > 0
+      ? `${analytics!.moic.toFixed(2)}×`
+      : "—";
+
+  const PROJECT_TONES = ["amber", "steel", "lime"] as const;
 
   const stages: WaterfallStage[] = [
     {
@@ -166,6 +193,27 @@ export default async function DashboardPage() {
 
         <FundAnalyticsStrip currency={data.primaryCurrency} />
 
+        {/* Portfolio-totals dark band — Overview variant B headline. */}
+        <section className="rounded-[18px] border border-carbon bg-carbon p-[22px] text-ink-inverse shadow-soft-card">
+          <div className="grid grid-cols-2 gap-y-6 sm:grid-cols-4 sm:gap-y-0">
+            {[
+              { label: "Committed", value: compactUsd(committed) },
+              { label: "Current NAV", value: compactUsd(navUsd) },
+              { label: "Net IRR", value: netIrrLabel },
+              { label: "MOIC", value: moicLabel },
+            ].map((kpi) => (
+              <div key={kpi.label}>
+                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-inverse/50">
+                  {kpi.label}
+                </div>
+                <div className="mt-2 font-display text-[30px] font-medium leading-none tracking-[-0.02em] tabular-nums text-white">
+                  {kpi.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <DistributionWaterfall
           stages={stages}
           variant="ink-deep"
@@ -240,14 +288,21 @@ export default async function DashboardPage() {
           }
         />
 
-        <section>
-          <div className="label">Portfolio</div>
-          <h2 className="display mb-1 mt-1.5 text-[22px] font-medium">
-            {strings.dashActiveCommitments}
-          </h2>
-          <p className="mb-3.5 text-[13px] text-ink-3">
-            Each card opens the commitment detail with capital-call history + distribution ledger.
-          </p>
+        <section className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-tertiary">
+                Portfolio · {data.activeCommitmentCount} active
+              </div>
+              <h2 className="mt-1.5 font-display text-[22px] font-medium leading-tight tracking-[-0.01em] text-ink">
+                {strings.dashActiveCommitments}
+              </h2>
+              <p className="mt-1 text-[13px] text-ink-tertiary">
+                Each card opens the commitment detail with capital-call
+                history + distribution ledger.
+              </p>
+            </div>
+          </div>
           {commitments.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-line-soft bg-surface px-6 py-10 text-center">
               <p className="text-sm font-medium text-ink-secondary">
@@ -260,46 +315,42 @@ export default async function DashboardPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {commitments.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/investor-portal/commitments/${c.id}`}
-                  className="block rounded-[14px] border border-line bg-panel p-5 shadow-soft-card transition-all hover:border-line-strong hover:shadow-elevated-card"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-tertiary">
-                      {c.commitmentCode}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] ${
-                        c.status === "active"
-                          ? "bg-amber/[0.13] text-amber-deep"
-                          : c.status === "fully_called"
-                            ? "bg-steel/[0.12] text-steel"
-                            : "bg-muted text-ink-secondary"
-                      }`}
-                    >
-                      {COMMITMENT_STATUS_LABEL[c.status]}
-                    </span>
-                  </div>
-                  <div className="font-display text-base font-medium tracking-[-0.01em] text-ink">
-                    {c.projectName ?? "Multi-project"}
-                  </div>
-                  <div className="text-xs text-ink-tertiary mt-1 tabular-nums">
-                    {formatUsdMinor(BigInt(c.committedAmountUsdMinor))}{" "}
-                    committed · {c.drawnPercent.toFixed(1)}% drawn
-                  </div>
-                  <div className="mt-3 h-[7px] overflow-hidden rounded-[4px] bg-line-soft">
-                    <div
-                      className="h-full rounded-[4px] bg-amber"
-                      style={{
-                        width: `${Math.min(100, c.drawnPercent)}%`,
-                      }}
-                    />
-                  </div>
-                </Link>
-              ))}
+            <div className="grid grid-cols-1 gap-4">
+              {commitments.map((c, i) => {
+                const committedMinor = BigInt(c.committedAmountUsdMinor);
+                const drawnMinor = BigInt(c.drawnUsdMinor);
+                const remainingMinor = BigInt(c.remainingUsdMinor);
+                const statusClassName =
+                  c.status === "active"
+                    ? "bg-amber/[0.13] text-amber-deep"
+                    : c.status === "fully_called"
+                      ? "bg-steel/[0.12] text-steel"
+                      : "bg-muted text-ink-secondary";
+                return (
+                  <ProjectNarrativeCard
+                    key={c.id}
+                    href={`/investor-portal/commitments/${c.id}`}
+                    name={c.projectName ?? "Multi-project"}
+                    meta={c.commitmentCode}
+                    tone={PROJECT_TONES[i % PROJECT_TONES.length]}
+                    statusLabel={COMMITMENT_STATUS_LABEL[c.status]}
+                    statusClassName={statusClassName}
+                    deployedPercent={c.drawnPercent}
+                    deployedCaption={`${formatUsdMinor(drawnMinor)} / ${formatUsdMinor(committedMinor)}`}
+                    stats={[
+                      {
+                        label: "Committed",
+                        value: formatUsdMinor(committedMinor),
+                      },
+                      { label: "Drawn", value: formatUsdMinor(drawnMinor) },
+                      {
+                        label: "Remaining",
+                        value: formatUsdMinor(remainingMinor),
+                      },
+                    ]}
+                  />
+                );
+              })}
             </div>
           )}
         </section>
