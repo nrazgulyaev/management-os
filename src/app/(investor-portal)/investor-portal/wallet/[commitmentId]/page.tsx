@@ -76,16 +76,16 @@ export default async function PortalWalletPage({
             payout method right. */}
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_2fr]">
           <div className="flex flex-col gap-3.5">
-            {/* Amber hero KPI — spendable cash */}
+            {/* Amber hero KPI — available to withdraw */}
             <div className="bg-gradient-amber-hero rounded-[14px] p-5 text-white shadow-soft-card">
               <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/80">
-                Spendable cash
+                Available to withdraw
               </div>
               <div className="mt-2 font-display text-[32px] font-medium leading-none tabular-nums tracking-[-0.02em]">
                 {formatUsdMinor(cash)}
               </div>
               <div className="mt-2 text-xs text-white/80">
-                Available to withdraw or reinvest
+                Spendable cash — withdraw or reinvest
               </div>
             </div>
 
@@ -198,7 +198,7 @@ export default async function PortalWalletPage({
                       return (
                         <tr
                           key={t.id}
-                          className="border-b border-line-soft last:border-b-0"
+                          className="border-b border-line-soft transition-colors last:border-b-0 hover:bg-bg-3"
                         >
                           <td className="px-4 py-3.5 text-[13px] font-semibold text-ink">
                             {new Date(t.occurredAt).toLocaleDateString()}
@@ -207,9 +207,13 @@ export default async function PortalWalletPage({
                             {WALLET_TX_TYPE_LABEL[t.transactionType]}
                           </td>
                           <td
-                            className={`px-4 py-3.5 text-right font-mono text-[13px] font-semibold tabular-nums ${amt < 0n ? "text-ink-2" : "text-success"}`}
+                            className={`px-4 py-3.5 text-right font-mono text-[13px] font-semibold tabular-nums ${amt < 0n ? "text-ink-2" : "text-ok"}`}
                           >
-                            {formatUsdMinor(amt)}
+                            {amt > 0n
+                              ? `+ ${formatUsdMinor(amt)}`
+                              : amt < 0n
+                                ? `− ${formatUsdMinor(-amt)}`
+                                : formatUsdMinor(amt)}
                           </td>
                           <td className="px-4 py-3.5 text-right font-mono text-[13px] tabular-nums text-ink-3">
                             {formatUsdMinor(

@@ -1,8 +1,7 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
+import { Card, Kpi } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { SelfPreferenceForm } from "@/components/notifications/self-preference-form";
 import { listNotificationPreferences } from "@/features/notifications/services";
 
@@ -11,41 +10,72 @@ export const dynamic = "force-dynamic";
 
 export default async function NotificationPreferencesPage() {
   const rows = await listNotificationPreferences();
+  const enabledCount = rows.filter((p) => p.enabled).length;
+  const quietHoursCount = rows.filter(
+    (p) => p.quietHoursStart || p.quietHoursEnd,
+  ).length;
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Notifications", href: "/dashboard/notifications" },
-          { label: "Preferences" },
-        ]}
-        title="Notification preferences"
-        description="Per-user / per-owner / per-role channel preferences. Quiet-hours support opt-out windows. Most-specific row wins (you > owner > role > global)."
-      />
-      <DbStatusNotice />
-      <Section eyebrow="Your preference" title="Update your channel + quiet hours">
-        <SelfPreferenceForm />
-      </Section>
-      <Section eyebrow="All preferences" title="Currently configured">
-        {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No preferences configured yet. Defaults apply: in-app channel always on,
-            external channels off until Resend / Twilio env is set and dry-run is off.
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/notifications">Notifications</Link> /{" "}
+            <span>Preferences</span>
+          </div>
+          <h1>Notification preferences</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Per-user / per-owner / per-role channel preferences. Quiet-hours
+            support opt-out windows. Most-specific row wins (you &gt; owner
+            &gt; role &gt; global).
           </p>
-        ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Scope</TH>
-                <TH>Channel</TH>
-                <TH>Template</TH>
-                <TH>Enabled</TH>
-                <TH>Quiet hours</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {rows.map((p) => (
-                <TR key={p.id}>
-                  <TD className="text-sm">
+        </div>
+      </div>
+
+      <DbStatusNotice />
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-[18px]">
+        <Kpi label="Preferences" value={String(rows.length)} sub="configured" />
+        <Kpi
+          label="Enabled"
+          value={String(enabledCount)}
+          tone={enabledCount > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="With quiet hours"
+          value={String(quietHoursCount)}
+        />
+      </div>
+
+      <div className="card card-pad mb-[18px]">
+        <div className="gs-card-h">
+          <h3>Your preference</h3>
+          <span className="meta">CHANNEL + QUIET HOURS</span>
+        </div>
+        <SelfPreferenceForm />
+      </div>
+
+      <Card padding="none" overflowHidden>
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Scope</th>
+              <th scope="col">Channel</th>
+              <th scope="col">Template</th>
+              <th scope="col">Enabled</th>
+              <th scope="col">Quiet hours</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <TableEmpty colSpan={5}>
+                No preferences configured yet. Defaults apply: in-app channel
+                always on, external channels off until Resend / Twilio env is
+                set and dry-run is off.
+              </TableEmpty>
+            ) : (
+              rows.map((p) => (
+                <tr key={p.id}>
+                  <td className="text-[12px]">
                     {p.appUserName ? (
                       <span>User · {p.appUserName}</span>
                     ) : p.ownerId ? (
@@ -53,29 +83,31 @@ export default async function NotificationPreferencesPage() {
                     ) : p.roleKey ? (
                       <span>Role · {p.roleKey}</span>
                     ) : (
-                      <span className="text-ink-tertiary">Global</span>
+                      <span className="text-ink-4">Global</span>
                     )}
-                  </TD>
-                  <TD>
-                    <Badge tone="outline">{p.channel}</Badge>
-                  </TD>
-                  <TD className="font-mono text-xs">{p.templateKey}</TD>
-                  <TD>
-                    <Badge tone={p.enabled ? "success" : "neutral"}>
+                  </td>
+                  <td>
+                    <span className="badge">{p.channel}</span>
+                  </td>
+                  <td className="mono text-[11px]">{p.templateKey}</td>
+                  <td>
+                    <span
+                      className={`badge ${p.enabled ? "badge-ok" : "badge-soft"}`}
+                    >
                       {p.enabled ? "on" : "off"}
-                    </Badge>
-                  </TD>
-                  <TD className="text-xs">
+                    </span>
+                  </td>
+                  <td className="mono text-[11px] text-ink-3">
                     {p.quietHoursStart || p.quietHoursEnd
                       ? `${p.quietHoursStart ?? "—"} → ${p.quietHoursEnd ?? "—"}`
                       : "—"}
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        )}
-      </Section>
-    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </Card>
+    </>
   );
 }

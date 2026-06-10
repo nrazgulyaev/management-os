@@ -133,7 +133,7 @@ export default async function CommitmentDetailPage({
             </thead>
             <tbody className="divide-y divide-line-soft text-[13.5px] text-ink-2">
               {drawdowns.map((d) => (
-                <tr key={d.id}>
+                <tr key={d.id} className="transition-colors hover:bg-bg-3">
                   <td className="px-4 py-3.5 font-mono text-xs font-semibold text-ink">
                     #{d.drawdownNumber}
                   </td>
@@ -214,7 +214,7 @@ export default async function CommitmentDetailPage({
               {walletBundle.recentTransactions.map((t) => {
                 const amt = BigInt(t.amountUsdMinor);
                 return (
-                  <tr key={t.id}>
+                  <tr key={t.id} className="transition-colors hover:bg-bg-3">
                     <td className="px-4 py-3.5 text-xs">
                       {new Date(t.occurredAt).toLocaleString()}
                     </td>
@@ -224,7 +224,11 @@ export default async function CommitmentDetailPage({
                     <td
                       className={`px-4 py-3.5 text-right font-mono font-semibold tabular-nums ${amt < 0n ? "text-ink-2" : "text-ok"}`}
                     >
-                      {formatUsdMinor(amt)}
+                      {amt > 0n
+                        ? `+ ${formatUsdMinor(amt)}`
+                        : amt < 0n
+                          ? `− ${formatUsdMinor(-amt)}`
+                          : formatUsdMinor(amt)}
                     </td>
                     <td className="px-4 py-3.5 text-right font-mono tabular-nums text-ink-3">
                       {formatUsdMinor(

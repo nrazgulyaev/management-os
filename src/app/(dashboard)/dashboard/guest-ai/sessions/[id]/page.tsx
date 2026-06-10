@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { getAdminSessionDetail } from "@/features/guest-ai-concierge/services";
 import { listHandoffsForSession } from "@/features/guest-ai-concierge/handoff-services";
@@ -43,47 +42,79 @@ export default async function SessionDetailPage({
   );
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest stays", href: "/dashboard/guest-stays" },
-          { label: "Concierge AI", href: "/dashboard/guest-ai" },
-          {
-            label: "Sessions",
-            href: "/dashboard/guest-ai/sessions",
-          },
-          { label: session.tokenPrefix ?? session.id.slice(0, 8) },
-        ]}
-        title={`Session · ${session.tokenPrefix ?? session.id.slice(0, 8)}…`}
-        description={`Booking ${session.bookingCode ?? "—"} · ${session.messageCount} messages`}
-        actions={
-          <div className="flex items-center gap-3">
-            <Badge tone={session.status === "active" ? "success" : "neutral"}>
-              {session.status}
-            </Badge>
-            {session.status === "active" && (
-              <ArchiveSessionButton id={session.id} />
-            )}
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-stays">Guest stays</Link> /{" "}
+            <Link href="/dashboard/guest-ai">Concierge AI</Link> /{" "}
+            <Link href="/dashboard/guest-ai/sessions">Sessions</Link> /{" "}
+            <span>{session.tokenPrefix ?? session.id.slice(0, 8)}</span>
           </div>
-        }
-      />
+          <h1>Session · {session.tokenPrefix ?? session.id.slice(0, 8)}…</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Booking {session.bookingCode ?? "—"} · {session.messageCount}{" "}
+            messages
+          </p>
+        </div>
+        <div className="actions">
+          <Badge tone={session.status === "active" ? "success" : "neutral"}>
+            {session.status}
+          </Badge>
+          {session.status === "active" && (
+            <ArchiveSessionButton id={session.id} />
+          )}
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <Section eyebrow="Transcript" title={`${messages.length} entries`}>
-            <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-[18px]">
+        <Kpi label="Input tokens" value={totalInputTokens.toLocaleString()} />
+        <Kpi label="Output tokens" value={totalOutputTokens.toLocaleString()} />
+        <Kpi
+          label="Started"
+          value={
+            <span className="mono text-[15px]">
+              {new Date(session.startedAt)
+                .toISOString()
+                .slice(0, 16)
+                .replace("T", " ")}
+            </span>
+          }
+        />
+        <Kpi
+          label="Last message"
+          value={
+            <span className="mono text-[15px]">
+              {session.lastMessageAt
+                ? new Date(session.lastMessageAt)
+                    .toISOString()
+                    .slice(0, 16)
+                    .replace("T", " ")
+                : "—"}
+            </span>
+          }
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-[18px]">
+        <div className="lg:col-span-2 flex flex-col gap-[18px]">
+          <div>
+            <h2 className="display text-[22px] font-normal mb-3.5">
+              Transcript · {messages.length} entries
+            </h2>
+            <ol className="card p-0 overflow-hidden divide-y divide-[var(--line-soft,var(--line))]">
               {messages.length === 0 && (
-                <li className="px-4 py-4 text-xs text-ink-tertiary">
+                <li className="px-4 py-4 text-xs text-ink-4">
                   No messages yet.
                 </li>
               )}
               {messages.map((m) => (
                 <li key={m.id} className="px-4 py-3 flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[11px] text-ink-tertiary">
-                    <span className="uppercase tracking-widest">
+                  <div className="flex items-center justify-between text-[11px] text-ink-4">
+                    <span className="mono uppercase tracking-[0.16em]">
                       {m.role}
                     </span>
-                    <span className="tabular-nums">
+                    <span className="mono tabular-nums">
                       {new Date(m.createdAt)
                         .toISOString()
                         .slice(0, 16)
@@ -93,7 +124,7 @@ export default async function SessionDetailPage({
                   <div className="text-sm whitespace-pre-wrap">
                     {m.content}
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] text-ink-tertiary">
+                  <div className="flex items-center gap-2 text-[10px] text-ink-4">
                     <Badge
                       tone={SAFETY_TONES[m.safetyStatus] ?? "neutral"}
                     >
@@ -112,52 +143,27 @@ export default async function SessionDetailPage({
                 </li>
               ))}
             </ol>
-          </Section>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <Section eyebrow="Metrics" title="At a glance">
-            <dl className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 gap-4 text-sm">
-              <Pair label="Total input tokens">
-                {totalInputTokens.toLocaleString()}
-              </Pair>
-              <Pair label="Total output tokens">
-                {totalOutputTokens.toLocaleString()}
-              </Pair>
-              <Pair label="Started">
-                {new Date(session.startedAt)
-                  .toISOString()
-                  .slice(0, 16)
-                  .replace("T", " ")}
-              </Pair>
-              <Pair label="Last message">
-                {session.lastMessageAt
-                  ? new Date(session.lastMessageAt)
-                      .toISOString()
-                      .slice(0, 16)
-                      .replace("T", " ")
-                  : "—"}
-              </Pair>
-            </dl>
-          </Section>
-
-          <Section
-            eyebrow="Handoffs"
-            title={`${handoffs.length} created from this session`}
-          >
+        <div className="flex flex-col gap-[18px]">
+          <div>
+            <h2 className="display text-[22px] font-normal mb-3.5">
+              Handoffs · {handoffs.length} from this session
+            </h2>
             {handoffs.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-line-soft bg-muted/20 px-4 py-3 text-xs text-ink-tertiary">
+              <p className="card px-4 py-3 text-xs text-ink-4">
                 None yet.
               </p>
             ) : (
-              <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
+              <ol className="card p-0 overflow-hidden divide-y divide-[var(--line-soft,var(--line))]">
                 {handoffs.map((h) => (
                   <li
                     key={h.id}
                     className="px-4 py-3 flex flex-col gap-1 text-xs"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-[10px] text-ink-tertiary">
+                      <span className="mono text-[10px] text-ink-4">
                         {new Date(h.createdAt)
                           .toISOString()
                           .slice(0, 16)
@@ -188,12 +194,12 @@ export default async function SessionDetailPage({
                         </Badge>
                       </span>
                     </div>
-                    <span className="text-ink-secondary">
+                    <span className="text-ink-3">
                       {h.handoffType} · {h.guestSummary.slice(0, 80)}
                     </span>
                     <Link
                       href={`/dashboard/guest-ai/handoffs/${h.id}`}
-                      className="text-xs text-ink hover:underline underline-offset-4 self-start"
+                      className="text-xs hover:text-terra underline underline-offset-4 self-start"
                     >
                       Open →
                     </Link>
@@ -201,33 +207,36 @@ export default async function SessionDetailPage({
                 ))}
               </ol>
             )}
-          </Section>
+          </div>
 
-          <Section eyebrow="Runs" title={`${runs.length} model runs`}>
-            <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
+          <div>
+            <h2 className="display text-[22px] font-normal mb-3.5">
+              Runs · {runs.length} model runs
+            </h2>
+            <ol className="card p-0 overflow-hidden divide-y divide-[var(--line-soft,var(--line))]">
               {runs.length === 0 && (
-                <li className="px-4 py-4 text-xs text-ink-tertiary">
+                <li className="px-4 py-4 text-xs text-ink-4">
                   No runs yet.
                 </li>
               )}
               {runs.map((r) => (
                 <li key={r.id} className="px-4 py-3 flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between text-[11px] text-ink-tertiary">
-                    <span className="uppercase tracking-widest">
+                  <div className="flex items-center justify-between text-[11px] text-ink-4">
+                    <span className="mono uppercase tracking-[0.16em]">
                       {r.status}
                     </span>
-                    <span className="tabular-nums">
+                    <span className="mono tabular-nums">
                       {new Date(r.startedAt)
                         .toISOString()
                         .slice(0, 16)
                         .replace("T", " ")}
                     </span>
                   </div>
-                  <div className="text-xs text-ink-secondary">
+                  <div className="text-xs text-ink-3">
                     {r.model ?? "—"}
                   </div>
                   {Array.isArray(r.allowedContextKeys) && (
-                    <div className="text-[10px] text-ink-tertiary font-mono">
+                    <div className="mono text-[10px] text-ink-4">
                       keys:{" "}
                       {(r.allowedContextKeys as unknown[])
                         .filter((v): v is string => typeof v === "string")
@@ -235,35 +244,16 @@ export default async function SessionDetailPage({
                     </div>
                   )}
                   {r.errorMessage && (
-                    <div className="text-[10px] text-danger">
+                    <div className="text-[10px] text-[var(--danger)]">
                       {r.errorMessage.slice(0, 200)}
                     </div>
                   )}
                 </li>
               ))}
             </ol>
-          </Section>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Pair({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-[10px] uppercase tracking-widest text-ink-tertiary">
-        {label}
-      </dt>
-      <dd className="text-ink mt-1 font-mono tabular-nums text-xs">
-        {children}
-      </dd>
-    </div>
+    </>
   );
 }

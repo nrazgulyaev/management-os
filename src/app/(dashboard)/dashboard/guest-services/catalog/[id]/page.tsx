@@ -1,6 +1,5 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import {
   getServiceById,
@@ -33,20 +32,24 @@ export default async function EditServicePage({
   ]);
   if (!service) notFound();
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest services", href: "/dashboard/guest-services" },
-          { label: "Catalog", href: "/dashboard/guest-services/catalog" },
-          { label: service.name },
-        ]}
-        title={service.name}
-        description={`${service.serviceKey} · ${describePricingModel(service.pricingModel as PricingModel)} · ${
-          service.pricingModel === "quote_required"
-            ? "On request"
-            : formatMinorMoney(service.basePriceMinor, service.currency)
-        }`}
-        actions={
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-services">Guest services</Link> /{" "}
+            <Link href="/dashboard/guest-services/catalog">Catalog</Link> /{" "}
+            <span>{service.name}</span>
+          </div>
+          <h1>{service.name}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            {service.serviceKey} ·{" "}
+            {describePricingModel(service.pricingModel as PricingModel)} ·{" "}
+            {service.pricingModel === "quote_required"
+              ? "On request"
+              : formatMinorMoney(service.basePriceMinor, service.currency)}
+          </p>
+        </div>
+        <div className="actions">
           <Badge
             tone={
               service.status === "active"
@@ -58,9 +61,11 @@ export default async function EditServicePage({
           >
             {service.status}
           </Badge>
-        }
-      />
-      <Section eyebrow="Edit" title="Service details">
+        </div>
+      </div>
+
+      <h2 className="display text-[22px] font-normal mb-3.5">Service details</h2>
+      <div className="card px-5 py-[18px] mb-[18px]">
         <ServiceEditorForm
           service={service}
           categories={categories.map((c) => ({ id: c.id, name: c.name }))}
@@ -71,23 +76,28 @@ export default async function EditServicePage({
             projectName: v.projectName,
           }))}
         />
-      </Section>
-      <Section
-        eyebrow="Options"
-        title={`${service.options.length} option${service.options.length === 1 ? "" : "s"}`}
-        description="Each option adds (or subtracts) from the base price. Use them for variants like 60/90 min massages or 2/3-course menus."
-      >
-        <div className="flex flex-col gap-3">
-          <OptionEditorForm serviceId={service.id} />
-          {service.options.map((o) => (
-            <OptionEditorForm
-              key={o.id}
-              serviceId={service.id}
-              option={o}
-            />
-          ))}
-        </div>
-      </Section>
-    </div>
+      </div>
+
+      <div className="mt-8 mb-3.5">
+        <h2 className="display text-[22px] font-normal">
+          {service.options.length} option
+          {service.options.length === 1 ? "" : "s"}
+        </h2>
+        <p className="text-[13px] text-ink-3 mt-1 max-w-[760px]">
+          Each option adds (or subtracts) from the base price. Use them for
+          variants like 60/90 min massages or 2/3-course menus.
+        </p>
+      </div>
+      <div className="flex flex-col gap-3">
+        <OptionEditorForm serviceId={service.id} />
+        {service.options.map((o) => (
+          <OptionEditorForm
+            key={o.id}
+            serviceId={service.id}
+            option={o}
+          />
+        ))}
+      </div>
+    </>
   );
 }

@@ -1,13 +1,13 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import { TableEmpty } from "@/components/ui/table-empty";
+import { Kpi } from "@/components/dashboard/primitives";
 import { listResponsibilityScopes } from "@/features/responsibility-scopes/services";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { listAppUsers } from "@/features/auth/users-service";
 import { ResponsibilityScopeForm } from "@/components/responsibility-scopes/scope-form";
 import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
-import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Responsibility scopes" };
 export const dynamic = "force-dynamic";
@@ -21,82 +21,99 @@ export default async function ResponsibilityScopesPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Settings", href: "/dashboard/settings" },
-          { label: "Responsibility scopes" },
-        ]}
-        title="Responsibility scopes"
-        description="A user_role grants the role-level permissions; a scope narrows the actionable surface to a project / villa / category. NULL fields mean 'any'."
-      />
-
-      <Section eyebrow="Active scopes" title={`${scopes.length} rows`}>
-        {scopes.length === 0 ? (
-          <NoItemsYet
-            entityLabel="responsibility scopes"
-            description="Narrow a user's role-level permissions to a specific project, villa, or task category. Add the first scope below."
-          />
-        ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
-                <tr>
-                  <th className="text-left px-3 py-2">User</th>
-                  <th className="text-left px-3 py-2">Scope</th>
-                  <th className="text-left px-3 py-2">Project</th>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Category</th>
-                  <th className="text-left px-3 py-2">Role</th>
-                  <th className="text-right px-3 py-2"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line-soft">
-                {scopes.map((s) => (
-                  <tr key={s.id}>
-                    <td className="px-3 py-2 text-ink font-medium">
-                      {s.userFullName ?? s.userId}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge tone="info">{s.scopeType}</Badge>
-                    </td>
-                    <td className="px-3 py-2 text-ink-secondary">
-                      {s.projectName ?? "any"}
-                    </td>
-                    <td className="px-3 py-2 text-ink-secondary">
-                      {s.villaCode ?? "any"}
-                    </td>
-                    <td className="px-3 py-2 text-ink-secondary">
-                      {s.taskCategory ?? "any"}
-                    </td>
-                    <td className="px-3 py-2 text-ink-tertiary text-xs">
-                      {s.roleKey ?? "—"}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <SettingsRowActions
-                        kind="scope"
-                        row={{
-                          id: s.id,
-                          displayName: s.userFullName ?? s.userId,
-                          values: {
-                            scopeType: s.scopeType,
-                            roleKey: s.roleKey ?? "",
-                            projectId: s.projectId ?? "",
-                            villaId: s.villaId ?? "",
-                            taskCategory: s.taskCategory ?? "",
-                          },
-                        }}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/settings">Settings</Link> /{" "}
+            <span>Responsibility scopes</span>
           </div>
-        )}
-      </Section>
+          <h1>Responsibility scopes</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            A user_role grants the role-level permissions; a scope narrows the
+            actionable surface to a project / villa / category. NULL fields
+            mean &lsquo;any&rsquo;.
+          </p>
+        </div>
+      </div>
 
-      <Section eyebrow="Add" title="New scope">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
+        <Kpi
+          label="Active scopes"
+          value={String(scopes.length)}
+          sub="narrowed grants"
+          tone={scopes.length > 0 ? "success" : undefined}
+        />
+        <Kpi label="Users" value={String(users.length)} sub="assignable" />
+        <Kpi label="Projects" value={String(projects.length)} sub="scope targets" />
+        <Kpi label="Villas" value={String(villas.length)} sub="scope targets" />
+      </div>
+
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-3.5">
+        Active scopes · <em>{scopes.length}</em>
+      </h2>
+      <div className="card p-0 overflow-hidden mb-[18px]">
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">User</th>
+              <th scope="col">Scope</th>
+              <th scope="col">Project</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Category</th>
+              <th scope="col">Role</th>
+              <th scope="col" />
+            </tr>
+          </thead>
+          <tbody>
+            {scopes.length === 0 ? (
+              <TableEmpty colSpan={7}>
+                No responsibility scopes yet. Narrow a user&apos;s role-level
+                permissions to a specific project, villa, or task category —
+                add the first scope below.
+              </TableEmpty>
+            ) : (
+              scopes.map((s) => (
+                <tr key={s.id}>
+                  <td className="text-ink font-medium">
+                    {s.userFullName ?? s.userId}
+                  </td>
+                  <td>
+                    <Badge tone="info">{s.scopeType}</Badge>
+                  </td>
+                  <td>{s.projectName ?? "any"}</td>
+                  <td>{s.villaCode ?? "any"}</td>
+                  <td>{s.taskCategory ?? "any"}</td>
+                  <td className="mono text-[11px] text-ink-3">
+                    {s.roleKey ?? "—"}
+                  </td>
+                  <td className="text-right">
+                    <SettingsRowActions
+                      kind="scope"
+                      row={{
+                        id: s.id,
+                        displayName: s.userFullName ?? s.userId,
+                        values: {
+                          scopeType: s.scopeType,
+                          roleKey: s.roleKey ?? "",
+                          projectId: s.projectId ?? "",
+                          villaId: s.villaId ?? "",
+                          taskCategory: s.taskCategory ?? "",
+                        },
+                      }}
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-3.5">
+        New scope
+      </h2>
+      <div className="card card-pad mb-[18px]">
         <ResponsibilityScopeForm
           users={users.map((u) => ({ id: u.id, label: u.fullName ?? u.email }))}
           projects={projects.map((p) => ({ id: p.id, label: p.name }))}
@@ -105,7 +122,7 @@ export default async function ResponsibilityScopesPage() {
             label: `${v.unitCode} · ${v.projectName}`,
           }))}
         />
-      </Section>
-    </div>
+      </div>
+    </>
   );
 }

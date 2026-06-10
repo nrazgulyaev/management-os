@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
+import { PortalEmpty } from "@/components/investor-portal/portal-primitives";
 import { WithdrawRequestForm } from "@/components/investor-portal/withdraw-request-form";
 import { getDb } from "@/lib/db/client";
 import {
@@ -61,55 +62,66 @@ export default async function WithdrawPage() {
       investorCode={session.investorCode}
       pageTitle="Withdraw"
     >
-      <div className="space-y-6">
-        <Link
-          href="/investor-portal/dashboard"
-          className="inline-flex items-center gap-1 text-sm text-ink-secondary hover:text-ink"
-        >
-          <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-          Back
-        </Link>
-
-        <div>
-          <h2 className="font-display text-2xl tracking-wide text-ink mb-1">
+      <div className="flex flex-col gap-5">
+        {/* Page header — back-crumb + mono eyebrow + display title */}
+        <header>
+          <Link
+            href="/investor-portal/dashboard"
+            className="mb-3 inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-tertiary transition-colors hover:text-ink"
+          >
+            <ArrowLeft className="h-3 w-3" strokeWidth={1.75} />
+            {strings.navDashboard}
+          </Link>
+          <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-4">
+            Wallet
+          </div>
+          <h1 className="mt-1.5 font-display text-[29px] font-medium leading-none tracking-[-0.02em] text-ink">
             Withdraw cash
-          </h2>
-          <p className="text-sm text-ink-secondary">
+          </h1>
+          <p className="mt-1.5 text-[13.5px] text-ink-3">
             Submit a withdrawal request from one of your commitments. The
             Arconique team reviews and executes — money does not move on submit.
           </p>
+        </header>
+
+        {/* Amber available-to-withdraw KPI — total spendable cash. */}
+        <div className="bg-gradient-amber-hero max-w-sm rounded-[14px] p-5 text-white shadow-soft-card">
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/80">
+            Available to withdraw
+          </div>
+          <div className="tnum mt-2 font-display text-[32px] font-medium leading-none tracking-[-0.02em]">
+            {formatUsdMinor(totalCashMinor)}
+          </div>
+          <div className="mt-2 text-xs text-white/80">
+            Total spendable cash across {commitments.length} commitment
+            {commitments.length === 1 ? "" : "s"}
+          </div>
         </div>
 
         {fundableCommitments.length === 0 ? (
-          <div className="rounded-md border border-dashed border-line-soft bg-surface px-6 py-10 text-center">
-            <p className="text-sm font-medium text-ink-secondary">
-              No withdrawable cash
-            </p>
-            <p className="text-xs text-ink-tertiary mt-2 max-w-md mx-auto leading-relaxed">
-              A withdrawal needs spendable cash on a commitment — typically
-              available after a distribution settles. Check back after your next
-              distribution.
-            </p>
-          </div>
+          <PortalEmpty
+            title="No withdrawable cash"
+            body="A withdrawal needs spendable cash on a commitment — typically available after a distribution settles. Check back after your next distribution."
+          />
         ) : (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             {fundableCommitments.map((c) => (
               <div
                 key={c.id}
-                className="rounded-lg border border-line-soft bg-surface p-5 space-y-3"
+                className="flex flex-col gap-3 rounded-[18px] border border-line bg-panel p-[22px] shadow-soft-card"
               >
                 <div className="flex items-baseline justify-between gap-3">
-                  <div className="text-sm text-ink">
-                    <span className="font-mono text-ink-secondary">
+                  <div className="text-[13.5px] text-ink">
+                    <span className="font-mono text-xs text-ink-3">
                       {c.code}
                     </span>
                     {c.projectName ? (
-                      <span className="text-ink-tertiary"> · {c.projectName}</span>
+                      <span className="text-ink-3"> · {c.projectName}</span>
                     ) : null}
                   </div>
-                  <div className="text-sm font-medium tabular-nums text-ink">
+                  <div className="tnum font-display text-[17px] font-medium text-ink">
                     {formatUsdMinor(c.cashBalanceMinor)}{" "}
-                    <span className="text-xs font-normal text-ink-tertiary">
+                    <span className="font-sans text-xs font-normal text-ink-4">
                       cash
                     </span>
                   </div>
@@ -123,11 +135,6 @@ export default async function WithdrawPage() {
             ))}
           </div>
         )}
-
-        <p className="text-[11px] text-ink-tertiary">
-          Total spendable cash across commitments:{" "}
-          {formatUsdMinor(totalCashMinor)}
-        </p>
       </div>
     </PortalShell>
   );

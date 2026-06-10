@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
   ValidateBucketButton,
@@ -36,172 +34,187 @@ export default async function StorageHealthPage() {
   const failedMetadata = failedMetadataResult.value;
   if (!health) {
     return (
-      <div className="flex flex-col gap-6">
-        <PageHeader
-          breadcrumbs={[
-            { label: "Guest stays", href: "/dashboard/guest-stays" },
-            { label: "Concierge AI", href: "/dashboard/guest-ai" },
-            { label: "Storage" },
-          ]}
-          title="Storage health"
-          description="Database not reachable or migrations pending."
-        />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-stays">Guest stays</Link> /{" "}
+            <Link href="/dashboard/guest-ai">Concierge AI</Link> /{" "}
+            <span>Storage</span>
+          </div>
+          <h1>Storage health</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Database not reachable or migrations pending.
+          </p>
+        </div>
       </div>
     );
   }
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest stays", href: "/dashboard/guest-stays" },
-          { label: "Concierge AI", href: "/dashboard/guest-ai" },
-          { label: "Storage" },
-        ]}
-        title="Storage health"
-        description="Bucket / signed URL / metadata-strip / cleanup status for guest concierge attachments. Bucket name: guest-request-attachments. The bucket must be PRIVATE and accessed only via short-lived signed URLs."
-        actions={
-          <span className="text-[11px] text-ink-tertiary tabular-nums">
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-stays">Guest stays</Link> /{" "}
+            <Link href="/dashboard/guest-ai">Concierge AI</Link> /{" "}
+            <span>Storage</span>
+          </div>
+          <h1>Storage health</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Bucket / signed URL / metadata-strip / cleanup status for guest
+            concierge attachments. Bucket name: guest-request-attachments.
+            The bucket must be PRIVATE and accessed only via short-lived
+            signed URLs.
+          </p>
+        </div>
+        <div className="actions">
+          <span className="mono text-[11px] text-ink-4 tabular-nums">
             Last checked{" "}
             {new Date(health.checkedAt)
               .toISOString()
               .slice(0, 16)
               .replace("T", " ")}
           </span>
-        }
-      />
+        </div>
+      </div>
 
-      <Section eyebrow="1" title="Storage bucket health">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard
-            label="Bucket exists"
-            value={health.bucketExists}
-            accent={health.bucketExists !== "ok"}
-          />
-          <MetricCard
-            label="Private"
-            value={health.bucketPrivate}
-            accent={health.bucketPrivate === "failed"}
-          />
-          <MetricCard
-            label="Signed upload"
-            value={health.signedUploadWorks}
-            accent={health.signedUploadWorks === "failed"}
-          />
-          <MetricCard
-            label="Signed download"
-            value={health.signedDownloadWorks}
-          />
-        </div>
-        {health.notes.length > 0 && (
-          <ul className="mt-4 rounded-2xl border border-line-soft bg-canvas/40 p-4 text-[11px] text-ink-secondary list-disc list-inside space-y-1">
-            {health.notes.map((n, i) => (
-              <li key={i}>{n}</li>
-            ))}
-          </ul>
-        )}
-        <div className="mt-4">
-          <ValidateBucketButton />
-        </div>
-      </Section>
+      <h2 className="display text-[22px] font-normal mb-3.5">
+        Storage bucket health
+      </h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi
+          label="Bucket exists"
+          value={health.bucketExists}
+          tone={health.bucketExists !== "ok" ? "danger" : "success"}
+        />
+        <Kpi
+          label="Private"
+          value={health.bucketPrivate}
+          tone={health.bucketPrivate === "failed" ? "danger" : undefined}
+        />
+        <Kpi
+          label="Signed upload"
+          value={health.signedUploadWorks}
+          tone={health.signedUploadWorks === "failed" ? "danger" : undefined}
+        />
+        <Kpi
+          label="Signed download"
+          value={health.signedDownloadWorks}
+        />
+      </div>
+      {health.notes.length > 0 && (
+        <ul className="card mt-4 px-5 py-[14px] text-[11px] text-ink-3 list-disc list-inside space-y-1">
+          {health.notes.map((n, i) => (
+            <li key={i}>{n}</li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-4">
+        <ValidateBucketButton />
+      </div>
 
-      <Section eyebrow="2" title="Attachment processing">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard
-            label="Pending uploads"
-            value={String(health.pendingAttachments)}
-          />
-          <MetricCard
-            label="Pending metadata strip"
-            value={String(health.pendingMetadata)}
-            accent={health.pendingMetadata > 0}
-          />
-          <MetricCard
-            label="Failed metadata"
-            value={String(health.failedMetadata)}
-            accent={health.failedMetadata > 0}
-          />
-          <MetricCard
-            label="Stale pending (>24h)"
-            value={String(health.stalePending)}
-            accent={health.stalePending > 0}
-          />
-        </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <StripPendingButton />
-          <CleanupStaleButton />
-        </div>
-      </Section>
+      <h2 className="display text-[22px] font-normal mt-8 mb-3.5">
+        Attachment processing
+      </h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi
+          label="Pending uploads"
+          value={String(health.pendingAttachments)}
+        />
+        <Kpi
+          label="Pending metadata strip"
+          value={String(health.pendingMetadata)}
+          tone={health.pendingMetadata > 0 ? "warn" : undefined}
+        />
+        <Kpi
+          label="Failed metadata"
+          value={String(health.failedMetadata)}
+          tone={health.failedMetadata > 0 ? "danger" : undefined}
+        />
+        <Kpi
+          label="Stale pending (>24h)"
+          value={String(health.stalePending)}
+          tone={health.stalePending > 0 ? "warn" : undefined}
+        />
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3">
+        <StripPendingButton />
+        <CleanupStaleButton />
+      </div>
 
-      <Section
-        eyebrow="3"
-        title={`Recent failed metadata strips (${failedMetadata.length})`}
-        description="Each row tried to strip EXIF/text chunks and failed. The attachment is hidden from the guest until an operator triages it."
-      >
-        {failedMetadata.length === 0 ? (
-          <p className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-6 text-sm text-ink-tertiary">
-            No failed strips. 🎉
-          </p>
-        ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-canvas/50 text-left">
-                <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                  <th className="px-4 py-3">When</th>
-                  <th className="px-4 py-3">File</th>
-                  <th className="px-4 py-3">MIME</th>
-                  <th className="px-4 py-3">Error</th>
-                  <th />
+      <div className="mt-8 mb-3.5">
+        <h2 className="display text-[22px] font-normal">
+          Recent failed metadata strips ({failedMetadata.length})
+        </h2>
+        <p className="text-[13px] text-ink-3 mt-1 max-w-[760px]">
+          Each row tried to strip EXIF/text chunks and failed. The attachment
+          is hidden from the guest until an operator triages it.
+        </p>
+      </div>
+      {failedMetadata.length === 0 ? (
+        <p className="card px-5 py-[18px] text-sm text-ink-4">
+          No failed strips. 🎉
+        </p>
+      ) : (
+        <div className="card p-0 overflow-hidden">
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">When</th>
+                <th scope="col">File</th>
+                <th scope="col">MIME</th>
+                <th scope="col">Error</th>
+                <th scope="col" />
+              </tr>
+            </thead>
+            <tbody>
+              {failedMetadata.map((f) => (
+                <tr key={f.id} className="align-top">
+                  <td className="mono text-[11px] text-ink-4 tabular-nums whitespace-nowrap">
+                    {new Date(f.createdAt)
+                      .toISOString()
+                      .slice(0, 16)
+                      .replace("T", " ")}
+                  </td>
+                  <td className="text-[12px]">{f.fileName}</td>
+                  <td className="mono text-[11px] text-ink-3">
+                    {f.mimeType}
+                  </td>
+                  <td className="text-[11px] text-[var(--danger)] max-w-md break-words">
+                    {f.metadataError ?? "(unknown)"}
+                  </td>
+                  <td className="num">
+                    <Link
+                      href={`/dashboard/guest-ai/handoffs/${f.handoffId}`}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      Open handoff
+                    </Link>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {failedMetadata.map((f) => (
-                  <tr
-                    key={f.id}
-                    className="border-t border-line-soft align-top"
-                  >
-                    <td className="px-4 py-3 text-[11px] text-ink-tertiary tabular-nums whitespace-nowrap">
-                      {new Date(f.createdAt)
-                        .toISOString()
-                        .slice(0, 16)
-                        .replace("T", " ")}
-                    </td>
-                    <td className="px-4 py-3 text-xs">{f.fileName}</td>
-                    <td className="px-4 py-3 font-mono text-[11px]">
-                      {f.mimeType}
-                    </td>
-                    <td className="px-4 py-3 text-[11px] text-danger max-w-md break-words">
-                      {f.metadataError ?? "(unknown)"}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/dashboard/guest-ai/handoffs/${f.handoffId}`}
-                        className="text-xs text-ink hover:underline underline-offset-4"
-                      >
-                        Open handoff
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-
-      <Section
-        eyebrow="4"
-        title="Daily cleanup cron"
-        description="The platform runs `guest_request_attachment_cleanup` every 24 hours via /api/cron/guest-request-attachments-cleanup. Use the manual button above to trigger it on demand."
-      >
-        <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm flex items-center gap-3">
-          <Badge tone={TONES[health.bucketExists]}>cron · enabled</Badge>
-          <span className="text-ink-secondary">
-            Sweeps `pending` attachments older than 24h, deletes the
-            storage object, marks rows `deleted` with reason
-            `stale_pending`. Failed-metadata rows are NOT auto-deleted.
-          </span>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </Section>
-    </div>
+      )}
+
+      <div className="mt-8 mb-3.5">
+        <h2 className="display text-[22px] font-normal">
+          Daily cleanup cron
+        </h2>
+        <p className="text-[13px] text-ink-3 mt-1 max-w-[760px]">
+          The platform runs `guest_request_attachment_cleanup` every 24 hours
+          via /api/cron/guest-request-attachments-cleanup. Use the manual
+          button above to trigger it on demand.
+        </p>
+      </div>
+      <div className="card px-5 py-[18px] text-sm flex items-center gap-3">
+        <Badge tone={TONES[health.bucketExists]}>cron · enabled</Badge>
+        <span className="text-ink-3">
+          Sweeps `pending` attachments older than 24h, deletes the
+          storage object, marks rows `deleted` with reason
+          `stale_pending`. Failed-metadata rows are NOT auto-deleted.
+        </span>
+      </div>
+    </>
   );
 }

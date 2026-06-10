@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { getOrderById } from "@/features/guest-services/services";
 import {
@@ -36,29 +34,37 @@ export default async function OrderDetailPage({
   const { order, service, selectedOption, financeLink, events } = detail;
   const fulfilment = await getFulfilmentForGuestOrder(order.id);
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest services", href: "/dashboard/guest-services" },
-          { label: "Orders", href: "/dashboard/guest-services/orders" },
-          { label: order.orderCode },
-        ]}
-        title={service?.name ?? "Service order"}
-        description={`${order.orderCode} · ${detail.villaCode ?? "—"} · ${detail.bookingCode ?? "no booking"}`}
-        actions={
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-services">Guest services</Link> /{" "}
+            <Link href="/dashboard/guest-services/orders">Orders</Link> /{" "}
+            <span>{order.orderCode}</span>
+          </div>
+          <h1>{service?.name ?? "Service order"}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            {order.orderCode} · {detail.villaCode ?? "—"} ·{" "}
+            {detail.bookingCode ?? "no booking"}
+          </p>
+        </div>
+        <div className="actions">
           <Badge tone={toneForStatus(order.status as OrderStatus)}>
             {ORDER_STATUS_LABELS[order.status as OrderStatus]}
           </Badge>
-        }
-      />
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <Section eyebrow="Request" title="Details">
-            <dl className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-[18px]">
+        <div className="lg:col-span-2 flex flex-col gap-[18px]">
+          <div>
+            <h2 className="display text-[22px] font-normal mb-3.5">
+              Request details
+            </h2>
+            <dl className="card px-5 py-[18px] grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <Pair label="Service">
                 {service?.name ?? "—"}
-                <div className="text-[11px] text-ink-tertiary mt-0.5">
+                <div className="text-[11px] text-ink-4 mt-0.5">
                   {service ? describePricingModel(service.pricingModel as PricingModel) : ""}
                 </div>
               </Pair>
@@ -95,25 +101,26 @@ export default async function OrderDetailPage({
               </Pair>
               {order.guestNote && (
                 <Pair label="Guest note" className="md:col-span-3">
-                  <span className="block text-ink-secondary whitespace-pre-wrap">
+                  <span className="block text-ink-2 whitespace-pre-wrap">
                     {order.guestNote}
                   </span>
                 </Pair>
               )}
               {order.internalNote && (
                 <Pair label="Internal note" className="md:col-span-3">
-                  <span className="block text-ink-secondary whitespace-pre-wrap">
+                  <span className="block text-ink-2 whitespace-pre-wrap">
                     {order.internalNote}
                   </span>
                 </Pair>
               )}
             </dl>
-          </Section>
+          </div>
 
-          <Section eyebrow="Activity" title="Timeline">
-            <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
+          <div>
+            <h2 className="display text-[22px] font-normal mb-3.5">Timeline</h2>
+            <ol className="card p-0 overflow-hidden divide-y divide-[var(--line-soft,var(--line))]">
               {events.length === 0 && (
-                <li className="px-4 py-4 text-xs text-ink-tertiary">
+                <li className="px-4 py-4 text-xs text-ink-4">
                   No events yet.
                 </li>
               )}
@@ -122,42 +129,53 @@ export default async function OrderDetailPage({
                   key={e.id}
                   className="px-4 py-3 grid grid-cols-[120px_1fr_140px] gap-4 text-xs"
                 >
-                  <span className="font-mono text-ink-tertiary">
+                  <span className="mono text-ink-4">
                     {new Date(e.createdAt).toISOString().slice(0, 16).replace("T", " ")}
                   </span>
                   <span>
-                    <span className="text-ink font-medium">{e.eventType}</span>
+                    <span className="font-medium">{e.eventType}</span>
                     {e.message && (
-                      <span className="text-ink-secondary ml-2">{e.message}</span>
+                      <span className="text-ink-3 ml-2">{e.message}</span>
                     )}
                   </span>
-                  <span className="text-ink-tertiary text-right">
+                  <span className="text-ink-4 text-right">
                     {e.actorName ?? e.actorType}
                   </span>
                 </li>
               ))}
             </ol>
-          </Section>
+          </div>
 
-          <Section eyebrow="Add" title="Note">
-            <AddOrderNoteForm orderId={order.id} />
-          </Section>
+          <div>
+            <h2 className="display text-[22px] font-normal mb-3.5">Add note</h2>
+            <div className="card px-5 py-[18px]">
+              <AddOrderNoteForm orderId={order.id} />
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <Section eyebrow="Lifecycle" title="Move forward">
-            <OrderTransitionForm
-              orderId={order.id}
-              currentStatus={order.status as OrderStatus}
-              currency={order.currency}
-              pricingModel={service?.pricingModel ?? "fixed"}
-            />
-          </Section>
+        <div className="flex flex-col gap-[18px]">
+          <div>
+            <h2 className="display text-[22px] font-normal mb-3.5">
+              Lifecycle
+            </h2>
+            <div className="card px-5 py-[18px]">
+              <OrderTransitionForm
+                orderId={order.id}
+                currentStatus={order.status as OrderStatus}
+                currency={order.currency}
+                pricingModel={service?.pricingModel ?? "fixed"}
+              />
+            </div>
+          </div>
 
-          <Section eyebrow="Finance" title="Bridge">
-            <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-4 flex flex-col gap-3 text-sm">
+          <div>
+            <h2 className="display text-[22px] font-normal mb-3.5">
+              Finance bridge
+            </h2>
+            <div className="card px-5 py-[18px] flex flex-col gap-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-ink-secondary">Status</span>
+                <span className="text-ink-3">Status</span>
                 <Badge
                   tone={
                     order.financeBridgeStatus === "bridged"
@@ -175,13 +193,13 @@ export default async function OrderDetailPage({
               {financeLink && (
                 <>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-ink-tertiary">Amount</span>
-                    <span className="font-mono tabular-nums">
+                    <span className="text-ink-4">Amount</span>
+                    <span className="mono tabular-nums">
                       {formatMinorMoney(financeLink.amountMinor, financeLink.currency)}
                     </span>
                   </div>
                   {financeLink.reason && (
-                    <p className="text-[11px] text-ink-tertiary border-t border-line-soft pt-2">
+                    <p className="text-[11px] text-ink-4 border-t border-[var(--line-soft,var(--line))] pt-2">
                       {financeLink.reason}
                     </p>
                   )}
@@ -190,7 +208,7 @@ export default async function OrderDetailPage({
               {order.linkedRevenueLineId && (
                 <Link
                   href={`/dashboard/finance/revenue`}
-                  className="text-xs text-ink hover:underline underline-offset-4"
+                  className="text-xs hover:text-terra underline underline-offset-4"
                 >
                   Open revenue ledger
                 </Link>
@@ -200,36 +218,39 @@ export default async function OrderDetailPage({
                   <BridgeOrderForm orderId={order.id} />
                 )}
             </div>
-          </Section>
+          </div>
 
-          <Section eyebrow="Fulfilment" title="Operational layer">
+          <div>
+            <h2 className="display text-[22px] font-normal mb-3.5">
+              Fulfilment
+            </h2>
             {fulfilment ? (
-              <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-4 flex flex-col gap-2">
+              <div className="card px-5 py-[18px] flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs text-ink">
+                  <span className="mono text-xs">
                     {fulfilment.fulfilmentCode}
                   </span>
                   <Badge tone="neutral">{fulfilment.status}</Badge>
                 </div>
                 <Link
                   href={`/dashboard/service-fulfilment/fulfilments/${fulfilment.id}`}
-                  className="text-xs text-ink hover:underline underline-offset-4"
+                  className="text-xs hover:text-terra underline underline-offset-4"
                 >
                   Open fulfilment →
                 </Link>
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-line-soft bg-muted/20 px-5 py-4 flex items-center justify-between gap-3">
-                <span className="text-xs text-ink-tertiary">
+              <div className="card px-5 py-[18px] flex items-center justify-between gap-3">
+                <span className="text-xs text-ink-4">
                   No fulfilment yet — create one to dispatch a vendor.
                 </span>
                 <CreateFulfilmentForOrderButton orderId={order.id} />
               </div>
             )}
-          </Section>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -244,10 +265,10 @@ function Pair({
 }) {
   return (
     <div className={className}>
-      <dt className="text-[10px] uppercase tracking-widest text-ink-tertiary">
+      <dt className="mono text-[10px] uppercase tracking-[0.16em] text-ink-4">
         {label}
       </dt>
-      <dd className="text-ink mt-1 font-mono tabular-nums">{children}</dd>
+      <dd className="mt-1 mono tabular-nums text-[13px]">{children}</dd>
     </div>
   );
 }

@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { Card, Kpi } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Badge } from "@/components/ui/badge";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { TableEmpty } from "@/components/ui/table-empty";
 import { JobStatusPill } from "@/components/jobs/job-status-pill";
 import { listJobRuns } from "@/features/jobs/services";
 
@@ -30,19 +29,53 @@ export default async function JobRunsPage({
     limit: 200,
   });
 
+  const failedRuns = runs.filter((r) => r.status === "failed").length;
+  const runningRuns = runs.filter((r) => r.status === "running").length;
+  const successRuns = runs.filter(
+    (r) => r.status === "success" || r.status === "partial_success",
+  ).length;
+
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Jobs", href: "/dashboard/jobs" },
-          { label: "Runs" },
-        ]}
-        title="Job runs"
-        description="Every cron + manual run with status, duration, summary."
-      />
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/jobs">Jobs</Link> / <span>Runs</span>
+          </div>
+          <h1>Job runs</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Every cron + manual run with status, duration, summary.
+          </p>
+        </div>
+        <div className="actions">
+          <span className="mono text-[11px] text-ink-3">
+            {runs.length} runs in view
+          </span>
+        </div>
+      </div>
+
       <DbStatusNotice />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="gs-kpis">
+        <Kpi label="Runs · in view" value={String(runs.length)} />
+        <Kpi
+          label="Succeeded"
+          value={String(successRuns)}
+          tone={successRuns > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Failed"
+          value={String(failedRuns)}
+          tone={failedRuns > 0 ? "warn" : undefined}
+        />
+        <Kpi
+          label="Running"
+          value={String(runningRuns)}
+          tone={runningRuns > 0 ? "accent" : undefined}
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-[14px]">
         <FilterPill
           label="All"
           href="/dashboard/jobs/runs"
@@ -58,53 +91,58 @@ export default async function JobRunsPage({
         ))}
       </div>
 
-      {runs.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-          No runs match these filters.
-        </p>
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>When</TH>
-              <TH>Job</TH>
-              <TH>Trigger</TH>
-              <TH>Status</TH>
-              <TH>Duration</TH>
-              <TH>Summary</TH>
-              <TH>By</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {runs.map((r) => (
-              <TR key={r.id}>
-                <TD className="text-xs text-ink-tertiary tabular-nums">
-                  {r.startedAt.slice(0, 16).replace("T", " ")}
-                </TD>
-                <TD className="font-mono text-xs">
-                  <Link href={`/dashboard/jobs/runs/${r.id}`} className="hover:underline">
-                    {r.jobKey}
-                  </Link>
-                </TD>
-                <TD>
-                  <Badge tone="outline">{r.triggerType}</Badge>
-                </TD>
-                <TD>
-                  <JobStatusPill status={r.status} />
-                </TD>
-                <TD className="text-xs font-mono tabular-nums">
-                  {r.durationMs !== null ? `${r.durationMs}ms` : "—"}
-                </TD>
-                <TD className="text-xs text-ink-secondary truncate max-w-[400px]">
-                  {r.resultSummary ?? "—"}
-                </TD>
-                <TD className="text-xs text-ink-tertiary">{r.createdByName ?? "—"}</TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      )}
-    </div>
+      <Card padding="none" overflowHidden>
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">When</th>
+              <th scope="col">Job</th>
+              <th scope="col">Trigger</th>
+              <th scope="col">Status</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Summary</th>
+              <th scope="col">By</th>
+            </tr>
+          </thead>
+          <tbody>
+            {runs.length === 0 ? (
+              <TableEmpty colSpan={7}>No runs match these filters.</TableEmpty>
+            ) : (
+              runs.map((r) => (
+                <tr key={r.id}>
+                  <td className="mono text-[11px] text-ink-3 tabular-nums whitespace-nowrap">
+                    {r.startedAt.slice(0, 16).replace("T", " ")}
+                  </td>
+                  <td className="mono text-[11px]">
+                    <Link
+                      href={`/dashboard/jobs/runs/${r.id}`}
+                      className="hover:underline"
+                    >
+                      {r.jobKey}
+                    </Link>
+                  </td>
+                  <td>
+                    <span className="badge">{r.triggerType}</span>
+                  </td>
+                  <td>
+                    <JobStatusPill status={r.status} />
+                  </td>
+                  <td className="mono text-[11px] tabular-nums">
+                    {r.durationMs !== null ? `${r.durationMs}ms` : "—"}
+                  </td>
+                  <td className="text-[12px] text-ink-3 truncate max-w-[400px]">
+                    {r.resultSummary ?? "—"}
+                  </td>
+                  <td className="text-[11px] text-ink-4">
+                    {r.createdByName ?? "—"}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </Card>
+    </>
   );
 }
 
@@ -118,14 +156,7 @@ function FilterPill({
   active: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className={`text-[11px] uppercase tracking-widest px-3 py-1.5 rounded-full border ${
-        active
-          ? "bg-ink text-ink-inverse border-ink"
-          : "border-line-soft text-ink-secondary hover:border-line-strong"
-      }`}
-    >
+    <Link href={href} className={active ? "filter-chip on" : "filter-chip"}>
       {label}
     </Link>
   );

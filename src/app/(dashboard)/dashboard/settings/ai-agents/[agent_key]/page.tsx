@@ -13,8 +13,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { and, eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
@@ -39,6 +37,32 @@ import type {
 export const metadata: Metadata = { title: "AI agent detail · Settings" };
 export const dynamic = "force-dynamic";
 
+function AgentDetailHeader({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="page-header">
+      <div className="left">
+        <div className="crumb">
+          <Link href="/dashboard/settings">Settings</Link> /{" "}
+          <Link href="/dashboard/settings/ai-agents">AI agents</Link> /{" "}
+          <span>{title}</span>
+        </div>
+        <h1>{title}</h1>
+        {description && (
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            {description}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default async function AiAgentDetailPage({
   params,
 }: {
@@ -51,26 +75,21 @@ export default async function AiAgentDetailPage({
   // EmptyState pointing back at the list, rather than a 404.
   if (!CONFIGURABLE_AGENTS.includes(rawKey as ConfigurableAgentKey)) {
     return (
-      <div className="flex flex-col gap-8">
-        <PageHeader
-          breadcrumbs={[
-            { label: "Settings", href: "/dashboard/settings" },
-            { label: "AI agents", href: "/dashboard/settings/ai-agents" },
-            { label: "Unknown agent" },
-          ]}
-          title="Unknown agent"
-        />
+      <>
+        <AgentDetailHeader title="Unknown agent" />
         <EmptyState
           title={`No agent registered with key "${rawKey}"`}
           description="This URL does not match any agent in the configurable-agents catalog. If you arrived here from a cabinet 'Configure key' CTA, the underlying agent may have been added in SQL without a matching entry in src/features/ai-agents/agent-config-keys.ts — open a ticket so the team can sync the catalog."
         />
-        <Link
-          href="/dashboard/settings/ai-agents"
-          className="text-sm text-ink hover:underline self-start"
-        >
-          ← Back to AI agents
-        </Link>
-      </div>
+        <div className="mt-[18px]">
+          <Link
+            href="/dashboard/settings/ai-agents"
+            className="btn btn-ghost btn-sm"
+          >
+            ← Back to AI agents
+          </Link>
+        </div>
+      </>
     );
   }
   const agentKey = rawKey as ConfigurableAgentKey;
@@ -79,10 +98,10 @@ export default async function AiAgentDetailPage({
   const db = getDb();
   if (!db) {
     return (
-      <div className="flex flex-col gap-8">
-        <PageHeader title={desc.label} />
+      <>
+        <AgentDetailHeader title={desc.label} />
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
-      </div>
+      </>
     );
   }
   let orgId: string;
@@ -90,13 +109,13 @@ export default async function AiAgentDetailPage({
     orgId = await requireOrgId();
   } catch {
     return (
-      <div className="flex flex-col gap-8">
-        <PageHeader title={desc.label} />
+      <>
+        <AgentDetailHeader title={desc.label} />
         <EmptyState
           title="No organization context"
           description="Sign in to configure this agent."
         />
-      </div>
+      </>
     );
   }
 
@@ -140,83 +159,78 @@ export default async function AiAgentDetailPage({
       : null;
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Settings", href: "/dashboard/settings" },
-          { label: "AI agents", href: "/dashboard/settings/ai-agents" },
-          { label: desc.label },
-        ]}
-        title={desc.label}
-        description={desc.blurb}
-      />
+    <>
+      <AgentDetailHeader title={desc.label} description={desc.blurb} />
 
-      <Section eyebrow="Status" title="Eligibility + state">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card">
-            <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-              Tier
-            </div>
-            <div className="mt-1 text-lg font-medium">Tier {desc.tier}</div>
-            <div className="mt-1 text-xs text-ink-secondary">
-              {desc.tier === 1 && "Light prompts on Haiku."}
-              {desc.tier === 2 && "Standard prompts on Sonnet."}
-              {desc.tier === 3 && "Heavy reasoning on Opus."}
-            </div>
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-3.5">
+        Eligibility + state
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-[18px]">
+        <div className="card card-pad">
+          <div className="label">Tier</div>
+          <div className="mt-1 text-lg font-medium text-ink">
+            Tier {desc.tier}
           </div>
-          <div className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card">
-            <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-              Plan
-            </div>
-            <div className="mt-1">
-              {planAllows ? (
-                <Badge tone="success">Allowed</Badge>
-              ) : (
-                <Badge tone="neutral">Not in plan</Badge>
-              )}
-            </div>
-            <div className="mt-1 text-xs text-ink-secondary">
-              Requires <span className="font-mono">{requiredFlag}</span>.
-              {!planAllows && (
-                <>
-                  {" "}
-                  <Link href="/dashboard/billing/upgrade" className="underline">
-                    Upgrade plan
-                  </Link>
-                </>
-              )}
-            </div>
+          <div className="mt-1 text-xs text-ink-3">
+            {desc.tier === 1 && "Light prompts on Haiku."}
+            {desc.tier === 2 && "Standard prompts on Sonnet."}
+            {desc.tier === 3 && "Heavy reasoning on Opus."}
           </div>
-          <div className="rounded-2xl border border-line-soft bg-surface p-5 shadow-soft-card">
-            <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-              State
-            </div>
-            <div className="mt-1">
-              {!planAllows ? (
-                <Badge tone="neutral">—</Badge>
-              ) : isEnabled ? (
-                <Badge tone="success">Enabled</Badge>
-              ) : (
-                <Badge tone="warning">Disabled by org</Badge>
-              )}
-            </div>
-            {planAllows && (
-              <div className="mt-2">
-                <ToggleAgentButton
-                  agentKey={agentKey}
-                  currentEnabled={isEnabled}
-                />
-              </div>
+        </div>
+        <div className="card card-pad">
+          <div className="label">Plan</div>
+          <div className="mt-1">
+            {planAllows ? (
+              <Badge tone="success">Allowed</Badge>
+            ) : (
+              <Badge tone="neutral">Not in plan</Badge>
+            )}
+          </div>
+          <div className="mt-1 text-xs text-ink-3">
+            Requires <span className="mono">{requiredFlag}</span>.
+            {!planAllows && (
+              <>
+                {" "}
+                <Link href="/dashboard/billing/upgrade" className="underline">
+                  Upgrade plan
+                </Link>
+              </>
             )}
           </div>
         </div>
-      </Section>
+        <div className="card card-pad">
+          <div className="label">State</div>
+          <div className="mt-1">
+            {!planAllows ? (
+              <Badge tone="neutral">—</Badge>
+            ) : isEnabled ? (
+              <Badge tone="success">Enabled</Badge>
+            ) : (
+              <Badge tone="warning">Disabled by org</Badge>
+            )}
+          </div>
+          {planAllows && (
+            <div className="mt-2">
+              <ToggleAgentButton
+                agentKey={agentKey}
+                currentEnabled={isEnabled}
+              />
+            </div>
+          )}
+        </div>
+      </div>
 
-      <Section
-        eyebrow="Behaviour"
-        title="No-code agent config"
-        description="Tune how this agent behaves without touching the prompt. Mode controls autonomy (auto sends on its own · semi drafts for review · off disables AI); tone shapes the writing style; knowledge sources govern what the drafter may ground on. The Agent Inbox agent's mode + tone + sources drive the AI-draft loop in the unified inbox."
-      >
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        No-code agent config
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5 max-w-[760px]">
+        Tune how this agent behaves without touching the prompt. Mode controls
+        autonomy (auto sends on its own · semi drafts for review · off
+        disables AI); tone shapes the writing style; knowledge sources govern
+        what the drafter may ground on. The Agent Inbox agent&apos;s mode +
+        tone + sources drive the AI-draft loop in the unified inbox.
+      </p>
+      <div className="card card-pad mb-[18px]">
         <AgentConfigForm
           agentKey={agentKey}
           currentMode={currentMode}
@@ -224,13 +238,17 @@ export default async function AiAgentDetailPage({
           currentSources={currentSources}
           drivesInbox={agentKey === "inbox"}
         />
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Provider"
-        title="API key + provider override"
-        description="Per-agent provider routing and API key. Defaults to the platform's system key when none is set. Encrypted at rest with AES-256-GCM."
-      >
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        API key + provider override
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5 max-w-[760px]">
+        Per-agent provider routing and API key. Defaults to the
+        platform&apos;s system key when none is set. Encrypted at rest with
+        AES-256-GCM.
+      </p>
+      <div className="card card-pad mb-[18px]">
         <ProviderConfigForm
           agentKey={agentKey}
           currentProvider={
@@ -256,75 +274,88 @@ export default async function AiAgentDetailPage({
           }
           lastTestError={override?.lastTestError ?? null}
         />
-      </Section>
+      </div>
 
       {canonicalPrompt !== null && (
-        <Section
-          eyebrow="Prompt"
-          title="Kickoff prompt"
-          description="Sent to the agent when an operator presses 'Run now'. The canonical prompt below ships with the platform; you can override it for your workspace without changing other tenants."
-        >
-          <div className="rounded-2xl border border-line-soft bg-muted/30 p-5 text-sm">
-            <div className="text-[11px] uppercase tracking-widest text-ink-tertiary mb-2">
-              Canonical prompt
-            </div>
-            <p className="font-mono text-xs whitespace-pre-wrap leading-relaxed">
+        <>
+          <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+            Kickoff prompt
+          </h2>
+          <p className="text-[12px] text-ink-3 mb-3.5 max-w-[760px]">
+            Sent to the agent when an operator presses &lsquo;Run now&rsquo;.
+            The canonical prompt below ships with the platform; you can
+            override it for your workspace without changing other tenants.
+          </p>
+          <div className="card card-pad mb-[18px]">
+            <div className="label mb-2">Canonical prompt</div>
+            <p className="mono text-xs whitespace-pre-wrap leading-relaxed">
               {canonicalPrompt}
             </p>
           </div>
-          <div className="mt-4">
+          <div className="card card-pad mb-[18px]">
             <CustomPromptForm
               agentKey={agentKey}
               currentOverride={override?.customPrompt ?? null}
               canonicalPrompt={canonicalPrompt}
             />
           </div>
-        </Section>
+        </>
       )}
 
       {runSlug && (
-        <Section
-          eyebrow="Run"
-          title="Trigger the agent"
-          description="The Run-now button lives on the agent's dashboard page. It uses the canonical prompt unless you've set an override above."
-        >
-          <Link
-            href={`/development-os/ai-agents/${runSlug}`}
-            className="inline-flex items-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium hover:bg-muted/40"
-          >
-            Open {desc.label} dashboard →
-          </Link>
-        </Section>
+        <>
+          <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+            Trigger the agent
+          </h2>
+          <p className="text-[12px] text-ink-3 mb-3.5 max-w-[760px]">
+            The Run-now button lives on the agent&apos;s dashboard page. It
+            uses the canonical prompt unless you&apos;ve set an override
+            above.
+          </p>
+          <div className="mb-[18px]">
+            <Link
+              href={`/development-os/ai-agents/${runSlug}`}
+              className="btn btn-secondary btn-sm"
+            >
+              Open {desc.label} dashboard →
+            </Link>
+          </div>
+        </>
       )}
 
       {desc.category === "system" && (
-        <Section eyebrow="System" title="System surface">
-          <p className="text-sm text-ink-secondary max-w-prose">
-            This is a system-level surface, not a runnable agent. The
-            enable/disable toggle controls whether the dashboard page and its
-            associated machinery (queue / memory ingestion) are active for
-            your workspace.
-          </p>
-          <div className="mt-4">
-            {agentKey === "inbox" && (
-              <Link
-                href="/development-os/ai-agents/inbox"
-                className="inline-flex items-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium hover:bg-muted/40"
-              >
-                Open inbox →
-              </Link>
-            )}
-            {agentKey === "memory" && (
-              <Link
-                href="/development-os/ai-agents/memory"
-                className="inline-flex items-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium hover:bg-muted/40"
-              >
-                Open memory →
-              </Link>
-            )}
+        <>
+          <h2 className="display text-[22px] font-normal mt-[18px] mb-3.5">
+            System surface
+          </h2>
+          <div className="card card-pad mb-[18px]">
+            <p className="text-sm text-ink-3 max-w-prose">
+              This is a system-level surface, not a runnable agent. The
+              enable/disable toggle controls whether the dashboard page and
+              its associated machinery (queue / memory ingestion) are active
+              for your workspace.
+            </p>
+            <div className="mt-4">
+              {agentKey === "inbox" && (
+                <Link
+                  href="/development-os/ai-agents/inbox"
+                  className="btn btn-secondary btn-sm"
+                >
+                  Open inbox →
+                </Link>
+              )}
+              {agentKey === "memory" && (
+                <Link
+                  href="/development-os/ai-agents/memory"
+                  className="btn btn-secondary btn-sm"
+                >
+                  Open memory →
+                </Link>
+              )}
+            </div>
           </div>
-        </Section>
+        </>
       )}
-    </div>
+    </>
   );
 }

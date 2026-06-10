@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { TableEmpty } from "@/components/ui/table-empty";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { listAdminSessions } from "@/features/guest-ai-concierge/services";
 
@@ -16,81 +16,93 @@ export default async function SessionsPage({
   const status =
     sp.status === "active" || sp.status === "archived" ? sp.status : undefined;
   const rows = await listAdminSessions({ status, limit: 200 });
+  const activeCount = rows.filter((s) => s.status === "active").length;
+  const totalMessages = rows.reduce((acc, s) => acc + s.messageCount, 0);
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest stays", href: "/dashboard/guest-stays" },
-          { label: "Concierge AI", href: "/dashboard/guest-ai" },
-          { label: "Sessions" },
-        ]}
-        title="Sessions"
-        description="Every session is bound to one stay token. Each row is one chat thread; archiving releases the slot for a fresh thread on the next visit."
-      />
-      <Section eyebrow="Filter" title={`${rows.length} sessions`}>
-        <div className="flex gap-2 mb-4">
-          <FilterPill href="/dashboard/guest-ai/sessions" active={!status}>
-            All
-          </FilterPill>
-          <FilterPill
-            href="/dashboard/guest-ai/sessions?status=active"
-            active={status === "active"}
-          >
-            Active
-          </FilterPill>
-          <FilterPill
-            href="/dashboard/guest-ai/sessions?status=archived"
-            active={status === "archived"}
-          >
-            Archived
-          </FilterPill>
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-stays">Guest stays</Link> /{" "}
+            <Link href="/dashboard/guest-ai">Concierge AI</Link> /{" "}
+            <span>Sessions</span>
+          </div>
+          <h1>Sessions</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Every session is bound to one stay token. Each row is one chat
+            thread; archiving releases the slot for a fresh thread on the next
+            visit.
+          </p>
         </div>
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Token</th>
-                <th className="px-4 py-3">Booking</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Started</th>
-                <th className="px-4 py-3">Last</th>
-                <th className="px-4 py-3">Messages</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-6 text-center text-ink-tertiary"
-                  >
-                    No sessions match.
-                  </td>
-                </tr>
-              )}
-              {rows.map((s) => (
-                <tr key={s.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 font-mono text-xs">
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-[18px]">
+        <Kpi label="Sessions · in view" value={String(rows.length)} />
+        <Kpi
+          label="Active"
+          value={String(activeCount)}
+          tone={activeCount > 0 ? "accent" : undefined}
+        />
+        <Kpi label="Messages" value={totalMessages.toLocaleString("en-US")} sub="across sessions in view" />
+      </div>
+
+      <div className="flex gap-2 mb-[14px]">
+        <FilterPill href="/dashboard/guest-ai/sessions" active={!status}>
+          All
+        </FilterPill>
+        <FilterPill
+          href="/dashboard/guest-ai/sessions?status=active"
+          active={status === "active"}
+        >
+          Active
+        </FilterPill>
+        <FilterPill
+          href="/dashboard/guest-ai/sessions?status=archived"
+          active={status === "archived"}
+        >
+          Archived
+        </FilterPill>
+      </div>
+
+      <div className="card p-0 overflow-hidden">
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Token</th>
+              <th scope="col">Booking</th>
+              <th scope="col">Status</th>
+              <th scope="col">Started</th>
+              <th scope="col">Last</th>
+              <th scope="col" className="num">Messages</th>
+              <th scope="col" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <TableEmpty colSpan={7}>No sessions match.</TableEmpty>
+            ) : (
+              rows.map((s) => (
+                <tr key={s.id}>
+                  <td className="mono text-[11px] text-ink-3">
                     {s.tokenPrefix ? `${s.tokenPrefix}…` : "—"}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs">
+                  <td className="mono text-[11px] text-ink-3">
                     {s.bookingCode ?? "—"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <Badge
                       tone={s.status === "active" ? "success" : "neutral"}
                     >
                       {s.status}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-[11px] text-ink-tertiary tabular-nums">
+                  <td className="mono text-[11px] text-ink-4 tabular-nums">
                     {new Date(s.startedAt)
                       .toISOString()
                       .slice(0, 16)
                       .replace("T", " ")}
                   </td>
-                  <td className="px-4 py-3 text-[11px] text-ink-tertiary tabular-nums">
+                  <td className="mono text-[11px] text-ink-4 tabular-nums">
                     {s.lastMessageAt
                       ? new Date(s.lastMessageAt)
                           .toISOString()
@@ -98,22 +110,22 @@ export default async function SessionsPage({
                           .replace("T", " ")
                       : "—"}
                   </td>
-                  <td className="px-4 py-3 tabular-nums">{s.messageCount}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="num mono text-[12px] tabular-nums">{s.messageCount}</td>
+                  <td className="num">
                     <Link
                       href={`/dashboard/guest-ai/sessions/${s.id}`}
-                      className="text-xs text-ink hover:underline underline-offset-4"
+                      className="btn btn-ghost btn-sm"
                     >
                       Open
                     </Link>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-    </div>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -127,14 +139,7 @@ function FilterPill({
   children: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className={`h-8 px-3 inline-flex items-center rounded-full text-xs ${
-        active
-          ? "bg-ink text-ink-inverse"
-          : "border border-line-soft text-ink-secondary hover:border-line-strong"
-      }`}
-    >
+    <Link href={href} className={active ? "filter-chip on" : "filter-chip"}>
       {children}
     </Link>
   );

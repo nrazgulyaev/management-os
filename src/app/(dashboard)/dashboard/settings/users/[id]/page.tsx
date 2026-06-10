@@ -1,10 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { TableEmpty } from "@/components/ui/table-empty";
+import { Kpi } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { GrantForm } from "@/components/admin/grant-form";
 import { getDb } from "@/lib/db/client";
@@ -30,17 +29,19 @@ export default async function UserProfilePage({
 
   if (!db) {
     return (
-      <div className="flex flex-col gap-6">
-        <PageHeader
-          breadcrumbs={[
-            { label: "Settings", href: "/dashboard/settings" },
-            { label: "Users", href: "/dashboard/settings/users" },
-            { label: "User" },
-          ]}
-          title="User profile"
-        />
+      <>
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/dashboard/settings">Settings</Link> /{" "}
+              <Link href="/dashboard/settings/users">Users</Link> /{" "}
+              <span>User</span>
+            </div>
+            <h1>User profile</h1>
+          </div>
+        </div>
         <DbStatusNotice />
-      </div>
+      </>
     );
   }
 
@@ -61,28 +62,58 @@ export default async function UserProfilePage({
 
   const grants = await listAccessGrantsForAppUser(id);
   const owners = await listOwners();
+  const activeGrantCount = grants.filter((g) => g.status === "active").length;
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Settings", href: "/dashboard/settings" },
-          { label: "Users", href: "/dashboard/settings/users" },
-          { label: user.fullName },
-        ]}
-        title={user.fullName}
-        description={`${user.email} · ${user.status}`}
-        actions={
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/settings">Settings</Link> /{" "}
+            <Link href="/dashboard/settings/users">Users</Link> /{" "}
+            <span>{user.fullName}</span>
+          </div>
+          <h1>{user.fullName}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            {user.email} · {user.status}
+          </p>
+        </div>
+        <div className="actions">
           <Badge tone={user.authUserId ? "success" : "warning"}>
             {user.authUserId ? "Auth linked" : "No Supabase user"}
           </Badge>
-        }
-      />
+        </div>
+      </div>
+
       <DbStatusNotice />
 
-      <Section eyebrow="Roles" title="System roles">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
+        <Kpi label="System roles" value={String(userRoleRows.length)} sub="role grants" />
+        <Kpi
+          label="Owner grants"
+          value={String(grants.length)}
+          sub="owner-portal access"
+        />
+        <Kpi
+          label="Active grants"
+          value={String(activeGrantCount)}
+          sub="currently readable"
+          tone={activeGrantCount > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Auth"
+          value={user.authUserId ? "Linked" : "Unlinked"}
+          sub="Supabase Auth"
+          tone={user.authUserId ? "success" : "warn"}
+        />
+      </div>
+
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-3.5">
+        System roles
+      </h2>
+      <div className="card card-pad mb-[18px]">
         {userRoleRows.length === 0 ? (
-          <div className="text-sm text-ink-tertiary">No roles assigned yet.</div>
+          <div className="text-sm text-ink-3">No roles assigned yet.</div>
         ) : (
           <div className="flex flex-wrap gap-1.5">
             {userRoleRows.map((r) => (
@@ -92,45 +123,41 @@ export default async function UserProfilePage({
             ))}
           </div>
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Owner-portal access"
-        title="Owners this user can read"
-      >
-        <Table>
-          <THead>
-            <TR>
-              <TH>Owner</TH>
-              <TH>Type</TH>
-              <TH>Status</TH>
-              <TH>Granted</TH>
-              <TH>Action</TH>
-            </TR>
-          </THead>
-          <TBody>
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-3.5">
+        Owner-portal access · <em>{grants.length}</em>
+      </h2>
+      <div className="card p-0 overflow-hidden mb-[18px]">
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Owner</th>
+              <th scope="col">Type</th>
+              <th scope="col">Status</th>
+              <th scope="col">Granted</th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody>
             {grants.length === 0 ? (
-              <TR>
-                <TD colSpan={5} className="text-center py-8 text-ink-tertiary">
-                  No grants yet.
-                </TD>
-              </TR>
+              <TableEmpty colSpan={5}>No grants yet.</TableEmpty>
             ) : (
               grants.map((g) => (
-                <TR key={g.id}>
-                  <TD className="text-ink">{g.ownerName}</TD>
-                  <TD>
+                <tr key={g.id}>
+                  <td className="text-ink">{g.ownerName}</td>
+                  <td>
                     <Badge tone="outline">{g.grantType}</Badge>
-                  </TD>
-                  <TD>
+                  </td>
+                  <td>
                     <Badge tone={g.status === "active" ? "success" : "neutral"}>
                       {g.status}
                     </Badge>
-                  </TD>
-                  <TD className="text-xs text-ink-tertiary tabular-nums">
+                  </td>
+                  <td className="mono text-[11px] text-ink-3 tabular-nums">
                     {new Date(g.grantedAt).toLocaleDateString("en-GB")}
-                  </TD>
-                  <TD>
+                  </td>
+                  <td>
                     {g.status === "active" ? (
                       <form
                         action={async (formData: FormData) => {
@@ -139,9 +166,9 @@ export default async function UserProfilePage({
                           await revokeOwnerAccessGrantAction(null, formData);
                         }}
                       >
-                        <Button size="sm" variant="ghost" type="submit">
+                        <button type="submit" className="btn btn-ghost btn-sm">
                           Revoke
-                        </Button>
+                        </button>
                       </form>
                     ) : (
                       <form
@@ -151,26 +178,32 @@ export default async function UserProfilePage({
                           await reactivateOwnerAccessGrantAction(null, formData);
                         }}
                       >
-                        <Button size="sm" variant="ghost" type="submit">
+                        <button type="submit" className="btn btn-ghost btn-sm">
                           Reactivate
-                        </Button>
+                        </button>
                       </form>
                     )}
-                  </TD>
-                </TR>
+                  </td>
+                </tr>
               ))
             )}
-          </TBody>
-        </Table>
-      </Section>
+          </tbody>
+        </table>
+      </div>
 
-      <Section eyebrow="Grant access" title="Add this user to an owner">
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        Grant access
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5">
+        Add this user to an owner.
+      </p>
+      <div className="card card-pad mb-[18px]">
         <GrantForm
           fixedAppUserId={user.id}
           owners={owners.map((o) => ({ id: o.id, label: o.displayName }))}
           cancelHref={`/dashboard/settings/users`}
         />
-      </Section>
-    </div>
+      </div>
+    </>
   );
 }

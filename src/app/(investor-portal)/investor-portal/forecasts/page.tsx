@@ -6,6 +6,7 @@ import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getMyForecast } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
+import { PortalKpi } from "@/components/investor-portal/portal-primitives";
 import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 import { loadLpFundAnalytics } from "@/lib/development/server/investor/fund-analytics-queries";
 import {
@@ -138,10 +139,8 @@ export default async function PortalForecastsPage() {
         {/* Page header — eyebrow + display title + scenario toggle */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-tertiary">
-              Forecasts
-            </div>
-            <h1 className="mt-1.5 font-display text-[29px] font-medium leading-tight tracking-[-0.02em] text-ink">
+            <div className="label">Forecasts</div>
+            <h1 className="display mt-1.5 text-[26px] font-medium tracking-[-0.02em] text-ink sm:text-[29px]">
               Return forecast
             </h1>
             <p className="mt-1 text-[13.5px] text-ink-tertiary">
@@ -163,37 +162,20 @@ export default async function PortalForecastsPage() {
           </div>
         </div>
 
-        {/* KPI row — base Net IRR · amber MOIC · horizon */}
+        {/* KPI row — base Net IRR · amber MOIC · horizon (mock kpi/kpiAmber/kpi) */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-[14px] border border-line bg-panel p-5 shadow-soft-card">
-            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary">
-              Base Net IRR
-            </div>
-            <div className="mt-2 font-display text-[32px] font-medium leading-none tracking-[-0.02em] tabular-nums text-ink">
-              {pct(baseExitIrr / 100)}
-            </div>
-            <div className="mt-2 text-[12px] text-ink-tertiary">at exit</div>
-          </div>
-          <div className="rounded-[14px] border-0 bg-gradient-to-br from-amber to-amber-deep p-5 text-white shadow-soft-card">
-            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/80">
-              Forecast MOIC
-            </div>
-            <div className="mt-2 font-display text-[32px] font-medium leading-none tracking-[-0.02em] tabular-nums">
-              {multiple(projMoic)}
-            </div>
-            <div className="mt-2 text-[12px] text-white/80">base scenario</div>
-          </div>
-          <div className="rounded-[14px] border border-line bg-panel p-5 shadow-soft-card">
-            <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary">
-              Horizon
-            </div>
-            <div className="mt-2 font-display text-[32px] font-medium leading-none tracking-[-0.02em] tabular-nums text-ink">
-              ~22 mo
-            </div>
-            <div className="mt-2 text-[12px] text-ink-tertiary">
-              median exit
-            </div>
-          </div>
+          <PortalKpi
+            label="Base Net IRR"
+            value={pct(baseExitIrr / 100)}
+            hint="at exit"
+          />
+          <PortalKpi
+            label="Forecast MOIC"
+            value={multiple(projMoic)}
+            hint="base scenario"
+            tone="amber"
+          />
+          <PortalKpi label="Horizon" value="~22 mo" hint="median exit" />
         </div>
 
         {/* XIRR curve card */}

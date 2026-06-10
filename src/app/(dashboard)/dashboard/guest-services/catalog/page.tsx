@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { TableEmpty } from "@/components/ui/table-empty";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
   listAllCatalogServices,
@@ -51,121 +51,130 @@ export default async function CatalogPage({
     unitCode: v.unitCode,
     projectName: v.projectName,
   }));
+  const activeCount = services.filter((s) => s.status === "active").length;
+  const pausedCount = services.filter((s) => s.status === "paused").length;
+  const quoteCount = services.filter(
+    (s) => s.pricingModel === "quote_required"
+  ).length;
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest services", href: "/dashboard/guest-services" },
-          { label: "Catalog" },
-        ]}
-        title="Catalog"
-        description="Editable list of guest-facing services. Villa-scoped rows beat project-scoped rows; project-scoped rows beat global. Set guest_visible=false to hide a service without archiving it."
-        actions={
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-services">Guest services</Link> /{" "}
+            <span>Catalog</span>
+          </div>
+          <h1>Catalog</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Editable list of guest-facing services. Villa-scoped rows beat
+            project-scoped rows; project-scoped rows beat global. Set
+            guest_visible=false to hide a service without archiving it.
+          </p>
+        </div>
+        <div className="actions">
           <ServiceAddButton
             categories={categoryOpts}
             projects={projectOpts}
             villas={villaOpts}
           />
-        }
-      />
-      <Section eyebrow="Filter" title={`${services.length} services`}>
-        <form className="flex flex-wrap items-end gap-3 mb-4" method="get">
-          <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
-            <span className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-              Search
-            </span>
-            <input
-              name="search"
-              defaultValue={sp.search ?? ""}
-              className="h-10 px-3 rounded-xl border border-line-soft bg-canvas text-sm"
-              placeholder="airport transfer…"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-              Category
-            </span>
-            <select
-              name="categoryId"
-              defaultValue={sp.categoryId ?? ""}
-              className="h-10 px-3 rounded-xl border border-line-soft bg-canvas text-sm"
-            >
-              <option value="">All</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-              Status
-            </span>
-            <select
-              name="status"
-              defaultValue={sp.status ?? ""}
-              className="h-10 px-3 rounded-xl border border-line-soft bg-canvas text-sm"
-            >
-              <option value="">All</option>
-              <option value="active">Active</option>
-              <option value="paused">Paused</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-          <button
-            type="submit"
-            className="h-10 px-4 rounded-full bg-ink text-ink-inverse text-sm font-medium"
-          >
-            Apply
-          </button>
-        </form>
+        </div>
+      </div>
 
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Service</th>
-                <th className="px-4 py-3">Scope</th>
-                <th className="px-4 py-3">Pricing</th>
-                <th className="px-4 py-3">Base</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Options</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {services.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-ink-tertiary">
-                    No services match these filters.
-                  </td>
-                </tr>
-              )}
-              {services.map((s) => (
-                <tr key={s.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3">
-                    <div className="text-ink font-medium">{s.name}</div>
-                    <div className="text-[11px] text-ink-tertiary mt-0.5 font-mono">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-[18px]">
+        <Kpi label="Services · in view" value={String(services.length)} sub={`${categories.length} categories`} />
+        <Kpi
+          label="Active"
+          value={String(activeCount)}
+          tone={activeCount > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Paused"
+          value={String(pausedCount)}
+          tone={pausedCount > 0 ? "warn" : undefined}
+        />
+        <Kpi label="Quote required" value={String(quoteCount)} sub="priced on request" />
+      </div>
+
+      <form className="flex flex-wrap items-end gap-3 mb-[14px]" method="get">
+        <label className="field flex-1 min-w-[200px]">
+          <span className="field-label">Search</span>
+          <input
+            name="search"
+            defaultValue={sp.search ?? ""}
+            className="input"
+            placeholder="airport transfer…"
+          />
+        </label>
+        <label className="field min-w-[160px]">
+          <span className="field-label">Category</span>
+          <select
+            name="categoryId"
+            defaultValue={sp.categoryId ?? ""}
+            className="select"
+          >
+            <option value="">All</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field min-w-[140px]">
+          <span className="field-label">Status</span>
+          <select name="status" defaultValue={sp.status ?? ""} className="select">
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="archived">Archived</option>
+          </select>
+        </label>
+        <button type="submit" className="btn btn-secondary">
+          Apply
+        </button>
+      </form>
+
+      <div className="card p-0 overflow-hidden">
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Service</th>
+              <th scope="col">Scope</th>
+              <th scope="col">Pricing</th>
+              <th scope="col" className="num">Base</th>
+              <th scope="col">Status</th>
+              <th scope="col" className="num">Options</th>
+              <th scope="col" />
+            </tr>
+          </thead>
+          <tbody>
+            {services.length === 0 ? (
+              <TableEmpty colSpan={7}>No services match these filters.</TableEmpty>
+            ) : (
+              services.map((s) => (
+                <tr key={s.id}>
+                  <td>
+                    <div className="font-medium">{s.name}</div>
+                    <div className="mono text-[11px] text-ink-4 mt-0.5">
                       {s.serviceKey} · {s.serviceType}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-ink-tertiary text-xs">
+                  <td className="text-[12px] text-ink-3">
                     {s.villaCode
                       ? `Villa ${s.villaCode}`
                       : s.projectName
                         ? `Project · ${s.projectName}`
                         : "Global"}
                   </td>
-                  <td className="px-4 py-3 text-xs">
+                  <td className="text-[12px] text-ink-3">
                     {describePricingModel(s.pricingModel as PricingModel)}
                   </td>
-                  <td className="px-4 py-3 font-mono tabular-nums">
+                  <td className="num mono text-[12px]">
                     {s.pricingModel === "quote_required"
                       ? "—"
                       : formatMinorMoney(s.basePriceMinor, s.currency)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <Badge
                       tone={
                         s.status === "active"
@@ -178,21 +187,21 @@ export default async function CatalogPage({
                       {s.status}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-xs">{s.optionCount}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="num mono text-[12px]">{s.optionCount}</td>
+                  <td className="num">
                     <Link
                       href={`/dashboard/guest-services/catalog/${s.id}`}
-                      className="text-xs text-ink hover:underline underline-offset-4"
+                      className="btn btn-ghost btn-sm"
                     >
                       Edit
                     </Link>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-    </div>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
