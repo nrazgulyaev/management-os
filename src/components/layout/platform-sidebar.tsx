@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
  * Mirrors the `cabinets/super-admin/Platform Console.html` mock chrome:
  * brand mark, an "Operator" workspace card, then grouped nav (Customers /
  * Platform). Every entry maps to a real `(platform-app)` route — no dead
- * links (the mock's "Billing · Stripe" and "Support" items have no live
- * route yet, so they are intentionally absent).
+ * links (the mock's "Billing · Stripe" item has no live route yet, so it
+ * is intentionally absent; "Support" went live with migration 0165).
  *
  * All colors are the cross-product alias utilities (bg-surface / bg-muted /
  * text-ink-* / border-line-soft / border-accent) which the
@@ -40,6 +40,7 @@ const NAV: NavGroup[] = [
     label: "Customers",
     items: [
       { href: "/platform/organizations", label: "Organizations" },
+      { href: "/platform/support", label: "Support" },
       { href: "/platform/revenue", label: "Revenue" },
       { href: "/platform/usage", label: "Usage" },
       { href: "/platform/plans", label: "Plans & pricing" },

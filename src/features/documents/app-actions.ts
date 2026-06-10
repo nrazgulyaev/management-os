@@ -43,39 +43,10 @@ async function guard(): Promise<
   return { ok: true, userId: me?.id ?? null, organizationId };
 }
 
-// ---------- Feed-to-AI / Remove-from-AI ----------
-
-export async function setDocumentAiFedAction(input: {
-  documentId: string;
-  fed: boolean;
-}): Promise<AppActionResult> {
-  const id = uuid.safeParse(input.documentId);
-  if (!id.success) return { ok: false, error: "Invalid document id." };
-  const g = await guard();
-  if (!g.ok) return g;
-  const db = getDb();
-  if (!db) return { ok: false, error: "Database is not configured." };
-
-  const [before] = await db
-    .select({ aiFedAt: documents.aiFedAt })
-    .from(documents)
-    .where(eq(documents.id, id.data))
-    .limit(1);
-  if (!before) return { ok: false, error: "Document not found." };
-
-  const next = input.fed ? new Date() : null;
-  await db.update(documents).set({ aiFedAt: next }).where(eq(documents.id, id.data));
-  await recordAuditEvent({
-    actorUserId: g.userId,
-    action: input.fed ? "document.ai_feed" : "document.ai_remove",
-    entityType: "document",
-    entityId: id.data,
-    before: { aiFedAt: before.aiFedAt },
-    after: { aiFedAt: next },
-  });
-  revalidatePath(PATH);
-  return { ok: true };
-}
+// Feed-to-AI / Remove-from-AI moved to the real ingestion flow in
+// src/app/(dashboard)/dashboard/documents/ai-knowledge-actions.ts
+// (feedDocumentToAgentAction / removeDocumentFromAgentAction) — the old
+// flag-only setDocumentAiFedAction was removed.
 
 // ---------- Sign (manual operator mark) ----------
 

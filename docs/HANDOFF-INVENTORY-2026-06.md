@@ -167,3 +167,15 @@
 **Честные пропуски волны 2:** Coretax-файл e-Faktur, NPWP-валидация, bukti potong (нужен отдельный дизайн-пасс) · revenue-колонка в rep-скорборде (нет колонки) · per-rule enable/disable и drag-reorder приоритета (нет экшенов) · A/B креативы кампаний (нет таблицы) · feed-to-AI в форме загрузки (createDocumentAction redirect'ит без id — нужен 1 правка в features/documents/actions.ts) · cookie-персист роли · capacity-гейджи бинов.
 
 **Остаток (волна 3):** billing-консоль + support-inbox (сначала дизайн — superseded-моки как старт) · investor/guest pixel-волны (#47/#48) · mobile 390px pass (#46) · оставшиеся present-not-pixel глубокие страницы (direct-bookings detail, guest-services deep, settings deep и пр.) · visual-baselines кабинетов · 06:00 push.
+
+## 13. Волна 3 выполнена (2026-06-10, PR #211–#213)
+
+| PR | Что закрыто |
+|---|---|
+| **#211** | Investor-портал: реально оставшиеся пиксель-дыры (wallet withdraw/reinvest на award-язык, forecasts на PortalKpi, знаковые суммы в леджерах) — большинство LP-экранов уже было закрыто pixel-блицем, аудит 3/13 устарел |
+| **#212** | **41 глубокая страница** legacy→DS с нулевым изменением поведения: settings (9), security/jobs/notifications (12), guest-services/journey/ai (20) |
+| **#213** | **Support-inbox** (потерян при супersession; миграция 0165): org-сторона /dashboard/settings/support + платформенная /platform/support с lifecycle open→pending→closed, всё аудируется; upload→AI select на форме документов (createDocumentAction теперь возвращает id); вычищен фейковый setDocumentAiFedAction; orphan-cleanup с верификацией (2 из 3 кандидатов оказались живыми — отчёты предыдущих агентов исправлены) |
+
+**Миграции волны 3:** 0165 (support_threads/support_messages) — выполнить `npm run db:migrate`.
+
+**Осталось (волна 4 / отдельные решения):** billing-консоль (нужен PSP/Stripe — отложено до launch по решению фаундера) · guest pixel-волна #47 (по аудиту 11/12 уже ок) · mobile 390px pass + visual-baselines (нужен запущенный браузер/стейджинг) · 06:00 push (notification-инфра) · roles/matrix внутренний рестайл · Coretax-экспорт/NPWP/bukti potong (дизайн-пасс).

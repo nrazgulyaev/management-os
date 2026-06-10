@@ -223,6 +223,19 @@ export default async function SettingsPage() {
           Open audit log →
         </Link>
       </div>
+
+      <div className="card card-pad mt-[18px] flex items-center justify-between gap-4 flex-wrap">
+        <p className="text-[13px] text-ink-3 leading-relaxed max-w-xl">
+          Need help from the Arconique team? Open a support thread — replies
+          from the platform team land right here in the workspace.
+        </p>
+        <Link
+          href="/dashboard/settings/support"
+          className="btn btn-secondary btn-sm"
+        >
+          Platform support →
+        </Link>
+      </div>
     </>
   );
 }
