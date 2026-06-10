@@ -3,6 +3,9 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createPricingRuleSetAction } from "@/features/dynamic-pricing/actions";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 
 export function CreateRuleSetForm({
   onSuccess,
@@ -20,72 +23,64 @@ export function CreateRuleSetForm({
     }
   }, [state, router, onSuccess]);
   return (
-    <form action={dispatch} className="flex flex-col gap-3 rounded-md border border-line-soft bg-surface p-5">
+    <form action={dispatch} className="flex flex-col gap-3.5">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Input name="ruleSetCode" label="Code" required />
-        <Input name="name" label="Name" required />
+        <Field label="Code">
+          <Input name="ruleSetCode" required />
+        </Field>
+        <Field label="Name">
+          <Input name="name" required />
+        </Field>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Select name="scopeType" label="Scope" options={["global", "project", "villa"]} />
-        <Input name="projectId" label="Project ID (optional)" />
-        <Input name="villaId" label="Villa ID (optional)" />
+        <Field label="Scope">
+          <Select name="scopeType" defaultValue="global">
+            <option value="global">global</option>
+            <option value="project">project</option>
+            <option value="villa">villa</option>
+          </Select>
+        </Field>
+        <Field label="Project ID (optional)">
+          <Input name="projectId" />
+        </Field>
+        <Field label="Villa ID (optional)">
+          <Input name="villaId" />
+        </Field>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Input name="priority" label="Priority" type="number" defaultValue="100" />
-        <Input name="currency" label="Currency" defaultValue="USD" />
-        <Input name="baseRateMinor" label="Base rate (minor)" type="number" required defaultValue="50000" />
+        <Field label="Priority">
+          <Input name="priority" type="number" defaultValue="100" />
+        </Field>
+        <Field label="Currency">
+          <Input name="currency" defaultValue="USD" />
+        </Field>
+        <Field label="Base rate (minor)">
+          <Input name="baseRateMinor" type="number" required defaultValue="50000" />
+        </Field>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Input name="minRateMinor" label="Min rate (minor, optional)" type="number" />
-        <Input name="maxRateMinor" label="Max rate (minor, optional)" type="number" />
+        <Field label="Min rate (minor, optional)">
+          <Input name="minRateMinor" type="number" />
+        </Field>
+        <Field label="Max rate (minor, optional)">
+          <Input name="maxRateMinor" type="number" />
+        </Field>
       </div>
-      <div className="flex items-center gap-3">
-        <button type="submit" className="h-9 px-4 rounded-full bg-ink text-ink-inverse text-xs font-medium hover:bg-ink/90">
-          Create rule set
-        </button>
+      <div className="flex items-center gap-2 mt-1 pt-3.5 border-t border-line-soft">
+        {state && !state.ok && <span className="text-[12px] text-danger">{state.error}</span>}
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="h-9 px-4 rounded-full border border-line-soft text-xs text-ink hover:bg-muted"
+            className="btn btn-secondary btn-sm ml-auto"
           >
             Cancel
           </button>
         )}
-        {state && !state.ok && <span className="text-xs text-danger">{state.error}</span>}
+        <button type="submit" className={`btn btn-accent btn-sm${onCancel ? "" : " ml-auto"}`}>
+          Create rule set
+        </button>
       </div>
     </form>
-  );
-}
-
-function Input(props: { name: string; label: string; type?: string; defaultValue?: string; required?: boolean }) {
-  return (
-    <label className="flex flex-col gap-1 text-xs text-ink-tertiary">
-      {props.label}
-      <input
-        name={props.name}
-        type={props.type ?? "text"}
-        defaultValue={props.defaultValue}
-        required={props.required}
-        className="h-9 px-3 rounded-md border border-line-soft bg-canvas text-sm text-ink"
-      />
-    </label>
-  );
-}
-
-function Select(props: { name: string; label: string; options: string[] }) {
-  return (
-    <label className="flex flex-col gap-1 text-xs text-ink-tertiary">
-      {props.label}
-      <select
-        name={props.name}
-        defaultValue={props.options[0]}
-        className="h-9 px-3 rounded-md border border-line-soft bg-canvas text-sm text-ink"
-      >
-        {props.options.map((o) => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-      </select>
-    </label>
   );
 }

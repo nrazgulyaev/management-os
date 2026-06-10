@@ -1,82 +1,98 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listPricingRuleSets } from "@/features/dynamic-pricing/services";
 import { RuleSetAddButton } from "@/components/dynamic-pricing/rule-set-add-button";
 
 export const metadata = { title: "Pricing rule sets" };
 export const dynamic = "force-dynamic";
 
+function statusTone(status: string): "ok" | "warn" | "soft" {
+  return status === "active" ? "ok" : status === "paused" ? "warn" : "soft";
+}
+
 export default async function RuleSetsPage() {
   const sets = await listPricingRuleSets();
+  const active = sets.filter((rs) => rs.status === "active").length;
+
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Dynamic pricing", href: "/dashboard/pricing" },
-          { label: "Rule sets" },
-        ]}
-        title="Rule sets"
-        description="Each rule set is the top of a (scope, priority, base) triple that drives nightly pricing."
-        actions={<RuleSetAddButton />}
-      />
-      <Section eyebrow="Catalog" title={`${sets.length} rule sets`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Scope</th>
-                <th className="px-4 py-3">Base</th>
-                <th className="px-4 py-3">Priority</th>
-                <th className="px-4 py-3">Status</th>
+    <>
+      <div className="page-header !mb-0 !pb-[18px]">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/pricing">Dynamic pricing</Link> / <span>Rule sets</span>
+          </div>
+          <h1>Pricing rules</h1>
+          <p className="text-[13.5px] text-ink-3 mt-2 max-w-[720px]">
+            Order matters: top rule wins. Each rule set is the top of a (scope, priority, base)
+            triple that drives nightly pricing.
+          </p>
+        </div>
+        <div className="actions">
+          <RuleSetAddButton />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mt-[18px] mb-[18px]">
+        <div className="kpi">
+          <div className="label">Rule sets</div>
+          <div className="v">{sets.length}</div>
+          <div className="sub">scope / priority / base</div>
+        </div>
+        <div className="kpi ok">
+          <div className="label">Active</div>
+          <div className="v">{active}</div>
+          <div className="sub">driving nightly prices</div>
+        </div>
+        <div className="kpi">
+          <div className="label">Paused / draft</div>
+          <div className="v">{sets.length - active}</div>
+          <div className="sub">not applied</div>
+        </div>
+      </div>
+
+      <div className="card overflow-hidden">
+        {sets.length === 0 ? (
+          <p className="px-5 py-8 text-center text-[13px] text-ink-3 m-0">
+            No rule sets yet — seed or create one.
+          </p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Scope</th>
+                <th className="num">Base</th>
+                <th className="num">Priority</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {sets.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-ink-tertiary">
-                    No rule sets yet — seed or create one.
-                  </td>
-                </tr>
-              )}
               {sets.map((rs) => (
-                <tr key={rs.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3">
+                <tr key={rs.id}>
+                  <td className="row-title">
                     <Link
                       href={`/dashboard/pricing/rule-sets/${rs.id}`}
-                      className="text-ink hover:underline underline-offset-4"
+                      className="hover:underline underline-offset-4"
                     >
                       {rs.name}
                     </Link>
-                    <div className="text-[10px] font-mono text-ink-tertiary">{rs.ruleSetCode}</div>
+                    <div className="font-mono text-[10px] text-ink-4 mt-0.5">{rs.ruleSetCode}</div>
                   </td>
-                  <td className="px-4 py-3 text-xs capitalize">{rs.scopeType}</td>
-                  <td className="px-4 py-3 font-mono text-xs">
+                  <td className="capitalize">{rs.scopeType}</td>
+                  <td className="num">
                     {(rs.baseRateMinor / 100n).toString()}.
                     {String(rs.baseRateMinor % 100n).padStart(2, "0")} {rs.currency}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs">{rs.priority}</td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      tone={
-                        rs.status === "active"
-                          ? "success"
-                          : rs.status === "paused"
-                            ? "warning"
-                            : "neutral"
-                      }
-                    >
-                      {rs.status}
-                    </Badge>
+                  <td className="num">{rs.priority}</td>
+                  <td>
+                    <HandoffBadge tone={statusTone(rs.status)}>{rs.status}</HandoffBadge>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </Section>
-    </div>
+        )}
+      </div>
+    </>
   );
 }

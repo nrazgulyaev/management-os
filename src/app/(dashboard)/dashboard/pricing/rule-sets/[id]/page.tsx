@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import {
   getPricingRuleSetById,
   listPricingRulesForSet,
@@ -111,15 +111,15 @@ export default async function RuleSetDetailPage({
           </p>
         </div>
         <div className="actions">
-          <Badge
-            tone={set.status === "active" ? "success" : set.status === "paused" ? "warning" : "neutral"}
+          <HandoffBadge
+            tone={set.status === "active" ? "ok" : set.status === "paused" ? "warn" : "soft"}
           >
             {set.status}
-          </Badge>
+          </HandoffBadge>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">
         {/* Rule stack — every family, in priority order */}
         <div>
           <div className="label text-[9.5px] mb-2.5">
