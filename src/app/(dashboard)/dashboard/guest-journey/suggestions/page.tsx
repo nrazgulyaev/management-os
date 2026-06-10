@@ -1,5 +1,6 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
+import { TableEmpty } from "@/components/ui/table-empty";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { listGuestJourneySuggestions } from "@/features/guest-journey/services";
 
@@ -8,55 +9,71 @@ export const dynamic = "force-dynamic";
 
 export default async function JourneySuggestionsPage() {
   const rows = await listGuestJourneySuggestions({ limit: 200 });
+  const activeCount = rows.filter(({ suggestion }) => suggestion.status === "active").length;
+  const clickedCount = rows.filter(({ suggestion }) => suggestion.status === "clicked").length;
+  const convertedCount = rows.filter(({ suggestion }) => suggestion.status === "converted").length;
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest journey", href: "/dashboard/guest-journey" },
-          { label: "Suggestions" },
-        ]}
-        title="Suggestions log"
-        description="Suggestions are guest-visible CTAs. They are never purchases — only links into existing surfaces."
-      />
-      <Section eyebrow="Guest-facing" title={`${rows.length} suggestions`}>
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Booking</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Title</th>
-                <th className="px-4 py-3">Suggested for</th>
-                <th className="px-4 py-3">Priority</th>
-                <th className="px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-6 text-center text-ink-tertiary"
-                  >
-                    No suggestions yet.
-                  </td>
-                </tr>
-              )}
-              {rows.map(({ suggestion: s, bookingCode, villaCode }) => (
-                <tr key={s.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 font-mono text-xs">
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-journey">Guest journey</Link> /{" "}
+            <span>Suggestions</span>
+          </div>
+          <h1>Suggestions log</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Suggestions are guest-visible CTAs. They are never purchases — only
+            links into existing surfaces.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-[18px]">
+        <Kpi label="Suggestions · in view" value={String(rows.length)} />
+        <Kpi
+          label="Active"
+          value={String(activeCount)}
+          tone={activeCount > 0 ? "accent" : undefined}
+        />
+        <Kpi label="Clicked" value={String(clickedCount)} />
+        <Kpi
+          label="Converted"
+          value={String(convertedCount)}
+          tone={convertedCount > 0 ? "success" : undefined}
+        />
+      </div>
+
+      <div className="card p-0 overflow-hidden">
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Booking</th>
+              <th scope="col">Type</th>
+              <th scope="col">Title</th>
+              <th scope="col">Suggested for</th>
+              <th scope="col">Priority</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <TableEmpty colSpan={6}>No suggestions yet.</TableEmpty>
+            ) : (
+              rows.map(({ suggestion: s, bookingCode, villaCode }) => (
+                <tr key={s.id}>
+                  <td className="mono text-[11px] text-ink-3">
                     {bookingCode ?? s.bookingId?.slice(0, 8) ?? "—"}
-                    <div className="text-[10px] text-ink-tertiary">
+                    <div className="text-[10px] text-ink-4">
                       {villaCode ?? ""}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-xs">{s.suggestionType}</td>
-                  <td className="px-4 py-3 text-sm">{s.title}</td>
-                  <td className="px-4 py-3 font-mono text-[11px]">
+                  <td className="text-[12px] text-ink-3">{s.suggestionType}</td>
+                  <td>{s.title}</td>
+                  <td className="mono text-[11px] text-ink-3">
                     {s.suggestedFor?.toISOString().slice(0, 10) ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-xs capitalize">{s.priority}</td>
-                  <td className="px-4 py-3">
+                  <td className="text-[12px] text-ink-3 capitalize">{s.priority}</td>
+                  <td>
                     <Badge
                       tone={
                         s.status === "active"
@@ -74,11 +91,11 @@ export default async function JourneySuggestionsPage() {
                     </Badge>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-    </div>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

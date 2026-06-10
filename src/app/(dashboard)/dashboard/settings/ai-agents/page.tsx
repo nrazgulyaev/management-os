@@ -15,11 +15,9 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
+import { Kpi } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
 import { orgAiAgentConfig } from "@/lib/db/schema/org-ai-agent-config";
@@ -48,14 +46,34 @@ interface RowData {
   planReason: string | null;
 }
 
+function AiAgentsHeader() {
+  return (
+    <div className="page-header">
+      <div className="left">
+        <div className="crumb">
+          <Link href="/dashboard/settings">Settings</Link> /{" "}
+          <span>AI agents</span>
+        </div>
+        <h1>AI agents</h1>
+        <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+          Configure which AI agents are active for your workspace. Plan tier
+          sets the upper bound; the toggle here is your per-org override.
+          Disabled agents stop firing immediately and surface the disabled
+          state on their dashboard pages.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default async function AiAgentSettingsPage() {
   const db = getDb();
   if (!db) {
     return (
-      <div className="flex flex-col gap-8">
-        <PageHeader title="AI agents" />
+      <>
+        <AiAgentsHeader />
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
-      </div>
+      </>
     );
   }
 
@@ -64,13 +82,13 @@ export default async function AiAgentSettingsPage() {
     orgId = await requireOrgId();
   } catch {
     return (
-      <div className="flex flex-col gap-8">
-        <PageHeader title="AI agents" />
+      <>
+        <AiAgentsHeader />
         <EmptyState
           title="No organization context"
           description="Sign in to manage AI agent configuration."
         />
-      </div>
+      </>
     );
   }
 
@@ -110,132 +128,156 @@ export default async function AiAgentSettingsPage() {
     planReason: e.planReason,
   }));
 
+  const planAllowedCount = rows.filter((r) => r.planAllows).length;
+  const enabledCount = rows.filter(
+    (r) =>
+      r.planAllows &&
+      (r.isEnabledOverride === null || r.isEnabledOverride === true),
+  ).length;
+
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Settings", href: "/dashboard/settings" },
-          { label: "AI agents" },
-        ]}
-        title="AI agents"
-        description="Configure which AI agents are active for your workspace. Plan tier sets the upper bound; the toggle here is your per-org override. Disabled agents stop firing immediately and surface the disabled state on their dashboard pages."
-      />
+    <>
+      <AiAgentsHeader />
 
-      <Section
-        eyebrow="Catalog"
-        title={`${rows.length} configurable agent${rows.length === 1 ? "" : "s"}`}
-      >
-        <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50">
-              <tr className="text-left text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Agent</th>
-                <th className="px-4 py-3">Tier</th>
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line-soft">
-              {rows.map((r) => {
-                const desc = AGENT_CATALOG[r.agentKey];
-                const effectivelyEnabled =
-                  r.planAllows &&
-                  (r.isEnabledOverride === null || r.isEnabledOverride === true);
-                return (
-                  <tr key={r.agentKey}>
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{desc.label}</div>
-                      <div className="text-xs text-ink-secondary mt-0.5">
-                        {desc.blurb}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={TIER_TONE[desc.tier]}>Tier {desc.tier}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {r.planAllows ? (
-                        <Badge tone="success">Allowed</Badge>
-                      ) : (
-                        <span className="text-ink-tertiary">
-                          <Badge tone="neutral">Not in plan</Badge>
-                          <span className="block mt-1 text-[10px]">
-                            ({r.planReason ?? "unknown"})
-                          </span>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
+        <Kpi
+          label="Configurable agents"
+          value={String(rows.length)}
+          sub="catalog surfaces"
+        />
+        <Kpi
+          label="Allowed by plan"
+          value={String(planAllowedCount)}
+          sub="plan-tier eligible"
+          tone={planAllowedCount > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Enabled"
+          value={String(enabledCount)}
+          sub="effectively active"
+          tone={enabledCount > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Org overrides"
+          value={String(overrides.length)}
+          sub="per-org config rows"
+        />
+      </div>
+
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-3.5">
+        Catalog · <em>{rows.length}</em>
+      </h2>
+      <div className="card p-0 overflow-hidden mb-[18px]">
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Agent</th>
+              <th scope="col">Tier</th>
+              <th scope="col">Plan</th>
+              <th scope="col">Status</th>
+              <th scope="col" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const desc = AGENT_CATALOG[r.agentKey];
+              const effectivelyEnabled =
+                r.planAllows &&
+                (r.isEnabledOverride === null || r.isEnabledOverride === true);
+              return (
+                <tr key={r.agentKey}>
+                  <td>
+                    <div className="font-medium text-ink">{desc.label}</div>
+                    <div className="text-xs text-ink-3 mt-0.5">
+                      {desc.blurb}
+                    </div>
+                  </td>
+                  <td>
+                    <Badge tone={TIER_TONE[desc.tier]}>Tier {desc.tier}</Badge>
+                  </td>
+                  <td className="text-xs">
+                    {r.planAllows ? (
+                      <Badge tone="success">Allowed</Badge>
+                    ) : (
+                      <span className="text-ink-3">
+                        <Badge tone="neutral">Not in plan</Badge>
+                        <span className="block mt-1 text-[10px]">
+                          ({r.planReason ?? "unknown"})
                         </span>
+                      </span>
+                    )}
+                  </td>
+                  <td className="text-xs">
+                    {!r.planAllows ? (
+                      <Badge tone="neutral">—</Badge>
+                    ) : effectivelyEnabled ? (
+                      <Badge tone="success">Enabled</Badge>
+                    ) : (
+                      <Badge tone="warning">Disabled by org</Badge>
+                    )}
+                  </td>
+                  <td className="text-right">
+                    <div className="inline-flex items-center gap-2">
+                      {r.planAllows && (
+                        <ToggleAgentButton
+                          agentKey={r.agentKey}
+                          currentEnabled={effectivelyEnabled}
+                        />
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {!r.planAllows ? (
-                        <Badge tone="neutral">—</Badge>
-                      ) : effectivelyEnabled ? (
-                        <Badge tone="success">Enabled</Badge>
-                      ) : (
-                        <Badge tone="warning">Disabled by org</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="inline-flex items-center gap-2">
-                        {r.planAllows && (
-                          <ToggleAgentButton
-                            agentKey={r.agentKey}
-                            currentEnabled={effectivelyEnabled}
-                          />
-                        )}
-                        <Link
-                          href={`/dashboard/settings/ai-agents/${r.agentKey}`}
-                          className="rounded-full border border-line-soft bg-surface px-3 py-1 text-xs hover:bg-muted/40"
-                        >
-                          Configure
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+                      <Link
+                        href={`/dashboard/settings/ai-agents/${r.agentKey}`}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        Configure
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-      <Section
-        eyebrow="Per-tenant integrations"
-        title="WhatsApp + Memory"
-        description="These configuration surfaces also affect AI behavior. Each lives in its own settings page; this hub surfaces the pointers."
-      >
-        <ul className="space-y-3">
-          <li className="rounded border border-line-soft bg-surface px-4 py-3 flex items-center justify-between">
-            <div>
-              <div className="font-medium">WhatsApp credentials</div>
-              <div className="text-xs text-ink-secondary mt-0.5">
-                Per-tenant Twilio account + phone number for AI WhatsApp output.
-                Credentials are stored encrypted.
-              </div>
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        Per-tenant integrations
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5">
+        These configuration surfaces also affect AI behavior. Each lives in
+        its own settings page; this hub surfaces the pointers.
+      </p>
+      <ul className="space-y-3 mb-[18px]">
+        <li className="card card-pad flex items-center justify-between gap-4">
+          <div>
+            <div className="font-medium text-ink">WhatsApp credentials</div>
+            <div className="text-xs text-ink-3 mt-0.5">
+              Per-tenant Twilio account + phone number for AI WhatsApp output.
+              Credentials are stored encrypted.
             </div>
-            <Link
-              href="/development-os/settings/whatsapp"
-              className="inline-flex items-center gap-1 text-sm font-medium text-ink hover:underline"
-            >
-              Open <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
-            </Link>
-          </li>
-          <li className="rounded border border-line-soft bg-surface px-4 py-3 flex items-center justify-between">
-            <div>
-              <div className="font-medium">Project memory</div>
-              <div className="text-xs text-ink-secondary mt-0.5">
-                Per-project knowledge layer feeding agent retrieval. Populated
-                automatically by agent runs + ingestion (Stage 7.0).
-              </div>
+          </div>
+          <Link
+            href="/development-os/settings/whatsapp"
+            className="btn btn-secondary btn-sm shrink-0"
+          >
+            Open →
+          </Link>
+        </li>
+        <li className="card card-pad flex items-center justify-between gap-4">
+          <div>
+            <div className="font-medium text-ink">Project memory</div>
+            <div className="text-xs text-ink-3 mt-0.5">
+              Per-project knowledge layer feeding agent retrieval. Populated
+              automatically by agent runs + ingestion (Stage 7.0).
             </div>
-            <Link
-              href="/development-os/ai-agents/memory"
-              className="inline-flex items-center gap-1 text-sm font-medium text-ink hover:underline"
-            >
-              Open <ArrowRight className="w-4 h-4" strokeWidth={1.75} />
-            </Link>
-          </li>
-        </ul>
-      </Section>
-    </div>
+          </div>
+          <Link
+            href="/development-os/ai-agents/memory"
+            className="btn btn-secondary btn-sm shrink-0"
+          >
+            Open →
+          </Link>
+        </li>
+      </ul>
+    </>
   );
 }

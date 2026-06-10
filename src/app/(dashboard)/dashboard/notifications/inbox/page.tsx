@@ -1,9 +1,6 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { Card, Kpi } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Badge } from "@/components/ui/badge";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Section } from "@/components/ui/section";
 import { InboxRowActions } from "@/components/notifications/inbox-actions";
 import {
   countUnreadForCurrentUser,
@@ -15,17 +12,17 @@ export const dynamic = "force-dynamic";
 
 const STATUSES = ["unread", "read", "archived"] as const;
 
-const STATUS_TONES: Record<string, "neutral" | "warning" | "info" | "success" | "danger"> = {
-  unread: "warning",
-  read: "neutral",
-  archived: "neutral",
+const STATUS_BADGES: Record<string, string> = {
+  unread: "badge-warn",
+  read: "badge-soft",
+  archived: "badge-soft",
 };
 
-const PRIORITY_TONES: Record<string, "neutral" | "info" | "warning" | "danger"> = {
-  low: "neutral",
-  normal: "info",
-  high: "warning",
-  urgent: "danger",
+const PRIORITY_BADGES: Record<string, string> = {
+  low: "badge-soft",
+  normal: "badge-info",
+  high: "badge-warn",
+  urgent: "badge-danger",
 };
 
 export default async function InboxPage({
@@ -39,38 +36,53 @@ export default async function InboxPage({
     countUnreadForCurrentUser(),
   ]);
 
+  const urgentVisible = rows.filter(
+    (r) => r.priority === "urgent" || r.priority === "high",
+  ).length;
+
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Notifications", href: "/dashboard/notifications" },
-          { label: "Inbox" },
-        ]}
-        title="Your inbox"
-        description="In-app notifications addressed to you. Email / SMS / WhatsApp ship through Resend / Twilio when those provider env vars are configured."
-      />
-      {/* DAILY-DIGEST-SPRINT-1 P4.5 — pointer to the parallel digest
-          inbox. The two systems are intentionally separate today
-          (DIGEST-INBOX-UNIFY-1 backlog item). */}
-      <div className="rounded-md border border-line-soft bg-surface px-4 py-3 text-sm text-ink-secondary flex items-center justify-between gap-3 flex-wrap">
-        <span>
-          Looking for daily digest reports? They live separately.
-        </span>
-        <Link
-          href="/dashboard/digests"
-          className="text-sm text-ink hover:underline whitespace-nowrap"
-        >
-          Daily digests →
-        </Link>
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/notifications">Notifications</Link> /{" "}
+            <span>Inbox</span>
+          </div>
+          <h1>Your inbox</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            In-app notifications addressed to you. Email / SMS / WhatsApp ship
+            through Resend / Twilio when those provider env vars are
+            configured.
+          </p>
+        </div>
+        <div className="actions">
+          {/* DAILY-DIGEST-SPRINT-1 P4.5 — pointer to the parallel digest
+              inbox. The two systems are intentionally separate today
+              (DIGEST-INBOX-UNIFY-1 backlog item). */}
+          <Link href="/dashboard/digests" className="btn btn-secondary btn-sm">
+            Daily digests →
+          </Link>
+        </div>
       </div>
+
       <DbStatusNotice />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Unread" value={String(unreadCount)} accent={unreadCount > 0} />
-        <MetricCard label="Visible" value={String(rows.length)} />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-[18px]">
+        <Kpi
+          label="Unread"
+          value={String(unreadCount)}
+          tone={unreadCount > 0 ? "accent" : undefined}
+        />
+        <Kpi label="Visible" value={String(rows.length)} sub="in view" />
+        <Kpi
+          label="High / urgent"
+          value={String(urgentVisible)}
+          tone={urgentVisible > 0 ? "warn" : undefined}
+          sub="in view"
+        />
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mb-[14px]">
         <FilterPill
           label="All"
           href="/dashboard/notifications/inbox"
@@ -86,46 +98,56 @@ export default async function InboxPage({
         ))}
       </div>
 
-      <Section eyebrow="Inbox" title="Notifications">
+      <Card padding="none" overflowHidden>
         {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            Your inbox is empty. Notifications arrive when actions you triggered complete or when system events fire — check the{" "}
-            <Link href="/dashboard/notifications/deliveries" className="underline">
+          <p className="px-5 py-6 text-[13px] text-ink-3 m-0">
+            Your inbox is empty. Notifications arrive when actions you
+            triggered complete or when system events fire — check the{" "}
+            <Link
+              href="/dashboard/notifications/deliveries"
+              className="underline"
+            >
               Deliveries
             </Link>{" "}
             tab for failed sends.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <ul className="divide-y divide-line-soft">
-              {rows.map((r) => (
-                <li
-                  key={r.id}
-                  className={`p-4 flex items-start justify-between gap-4 ${
-                    r.status === "unread" ? "bg-accent-weak/20" : ""
-                  }`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge tone={STATUS_TONES[r.status] ?? "neutral"}>{r.status}</Badge>
-                      <Badge tone={PRIORITY_TONES[r.priority] ?? "neutral"}>{r.priority}</Badge>
-                      <span className="text-[11px] text-ink-tertiary tabular-nums">
-                        {r.createdAt.slice(0, 16).replace("T", " ")}
-                      </span>
-                    </div>
-                    <div className="text-sm text-ink font-medium mt-2">{r.title}</div>
-                    <div className="text-xs text-ink-secondary mt-1 whitespace-pre-line">
-                      {r.body}
-                    </div>
+          <ul className="m-0 p-0 list-none divide-y divide-line-soft">
+            {rows.map((r) => (
+              <li
+                key={r.id}
+                className={`p-4 flex items-start justify-between gap-4 ${
+                  r.status === "unread" ? "bg-accent-weak/20" : ""
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={`badge ${STATUS_BADGES[r.status] ?? "badge-soft"}`}
+                    >
+                      {r.status}
+                    </span>
+                    <span
+                      className={`badge ${PRIORITY_BADGES[r.priority] ?? "badge-soft"}`}
+                    >
+                      {r.priority}
+                    </span>
+                    <span className="mono text-[11px] text-ink-4 tabular-nums">
+                      {r.createdAt.slice(0, 16).replace("T", " ")}
+                    </span>
                   </div>
-                  <InboxRowActions id={r.id} status={r.status} />
-                </li>
-              ))}
-            </ul>
-          </div>
+                  <div className="text-[13.5px] text-ink mt-2">{r.title}</div>
+                  <div className="text-[12px] text-ink-3 mt-1 whitespace-pre-line leading-relaxed">
+                    {r.body}
+                  </div>
+                </div>
+                <InboxRowActions id={r.id} status={r.status} />
+              </li>
+            ))}
+          </ul>
         )}
-      </Section>
-    </div>
+      </Card>
+    </>
   );
 }
 
@@ -139,14 +161,7 @@ function FilterPill({
   active: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className={`text-[11px] uppercase tracking-widest px-3 py-1.5 rounded-full border ${
-        active
-          ? "bg-ink text-ink-inverse border-ink"
-          : "border-line-soft text-ink-secondary hover:border-line-strong"
-      }`}
-    >
+    <Link href={href} className={active ? "filter-chip on" : "filter-chip"}>
       {label}
     </Link>
   );
