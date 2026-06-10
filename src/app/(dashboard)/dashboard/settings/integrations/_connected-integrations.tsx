@@ -15,17 +15,21 @@
  * error = needs attention, paused / archived = ignored) plus inline
  * Test-connection / Sync / Disconnect buttons by reusing the EXISTING
  * client action components — no false-green, no new backend.
+ *
+ * pixel-mgmt-integrations-deep — re-skinned from the LEGACY ui `<Table>` /
+ * `<Section>` / `<Badge tone>` surface tokens to the management-lineage
+ * chrome from cabinets/mgmt-p3/Integrations.html: `<SectionHeading>`,
+ * `<Card overflowHidden>` + `table.data` (mono th, `td.mono`/`.num`),
+ * chrome `.badge` trust pills and `.btn` actions. Every fetch + action +
+ * prop is preserved.
  */
 
 import "server-only";
 
 import Link from "next/link";
 import { ArrowUpRight, Banknote, Plug, TrendingUp } from "lucide-react";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, SectionHeading } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { getDb } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
 import { listBankConnectionsForUi } from "@/lib/banking/queries";
@@ -67,12 +71,13 @@ function trustTier(status: string): TrustTier {
   }
 }
 
-const TIER_TONE: Record<TrustTier, "success" | "warning" | "danger" | "neutral"> = {
-  live: "success",
-  dry_run: "warning",
-  error: "danger",
-  paused: "warning",
-  ignored: "neutral",
+/** Trust tier → chrome `.badge-*` palette (matches the catalog cards). */
+const TIER_BADGE: Record<TrustTier, string> = {
+  live: "badge-ok",
+  dry_run: "badge-warn",
+  error: "badge-danger",
+  paused: "badge-warn",
+  ignored: "badge-soft",
 };
 
 const TIER_LABEL: Record<TrustTier, string> = {
@@ -87,8 +92,8 @@ function TrustTierBadge({ status }: { status: string }) {
   const tier = trustTier(status);
   return (
     <span className="inline-flex items-center gap-1.5">
-      <Badge tone={TIER_TONE[tier]}>{TIER_LABEL[tier]}</Badge>
-      <span className="text-[10px] uppercase tracking-widest text-ink-tertiary">
+      <span className={`badge ${TIER_BADGE[tier]}`}>{TIER_LABEL[tier]}</span>
+      <span className="mono text-[10px] uppercase tracking-[0.14em] text-ink-4">
         {status}
       </span>
     </span>
@@ -105,16 +110,17 @@ export async function ConnectedIntegrations() {
   const db = getDb();
   if (!db) {
     return (
-      <Section
-        eyebrow="Connected"
-        title="Live connections"
-        description="Per-org integrations with real connect / test / disconnect controls."
-      >
+      <section>
+        <SectionHeading
+          eyebrow="Connected"
+          title={<>Live connections</>}
+          subtitle="Per-org integrations with real connect / test / disconnect controls."
+        />
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to manage live integration connections."
         />
-      </Section>
+      </section>
     );
   }
 
@@ -147,11 +153,13 @@ export async function ConnectedIntegrations() {
     marketing.filter((m) => trustTier(m.status) === "dry_run").length;
 
   return (
-    <Section
-      eyebrow="Connected"
-      title="Live connections"
-      description={`${total} per-org connection${total === 1 ? "" : "s"} · ${live} live · ${dryRun} dry-run. Trust tier is read straight from each connection's status — a stub provider shows "Dry-run", never a false green.`}
-    >
+    <section>
+      <SectionHeading
+        eyebrow="Connected"
+        title={<>Live connections</>}
+        subtitle={`${total} per-org connection${total === 1 ? "" : "s"} · ${live} live · ${dryRun} dry-run. Trust tier is read straight from each connection's status — a stub provider shows "Dry-run", never a false green.`}
+      />
+
       {total === 0 ? (
         <EmptyState
           title="No live connections yet"
@@ -161,121 +169,119 @@ export async function ConnectedIntegrations() {
         <div className="flex flex-col gap-8">
           {channels.length > 0 && (
             <FamilyTable
-              icon={<Plug className="w-4 h-4" strokeWidth={1.75} />}
+              icon={<Plug className="h-4 w-4" strokeWidth={1.75} />}
               title="Channel managers"
               addHref="/development-os/channels"
               addLabel="Manage channels"
             >
               {channels.map((c) => (
-                <TR key={c.id}>
-                  <TD>
+                <tr key={c.id}>
+                  <td className="row-title">
                     <Link
                       href={`/development-os/channels/${c.id}`}
-                      className="hover:underline"
+                      className="hover:text-terra"
                     >
-                      <Badge tone="outline">{c.channel}</Badge>
+                      {c.channel}
                     </Link>
-                  </TD>
-                  <TD className="text-xs">
+                  </td>
+                  <td className="text-[12px] text-ink-3">
                     {c.villaName ?? c.villaCode ?? c.externalPropertyId}
-                  </TD>
-                  <TD>
+                  </td>
+                  <td>
                     <TrustTierBadge status={c.status} />
-                  </TD>
-                  <TD className="text-xs text-ink-secondary">
+                  </td>
+                  <td className="mono text-[11px] text-ink-3">
                     {fmtWhen(c.lastReservationSyncAt ?? c.lastInventorySyncAt)}
-                  </TD>
-                  <TD>
+                  </td>
+                  <td>
                     <ChannelConnectionActions
                       connectionId={c.id}
                       status={c.status as ChannelConnectionStatus}
                     />
-                  </TD>
-                </TR>
+                  </td>
+                </tr>
               ))}
             </FamilyTable>
           )}
 
           {banks.length > 0 && (
             <FamilyTable
-              icon={<Banknote className="w-4 h-4" strokeWidth={1.75} />}
+              icon={<Banknote className="h-4 w-4" strokeWidth={1.75} />}
               title="Banking sync"
               addHref="/development-os/banking/new"
               addLabel="Add bank connection"
             >
               {banks.map((b) => (
-                <TR key={b.id}>
-                  <TD>
+                <tr key={b.id}>
+                  <td className="row-title">
                     <Link
                       href={`/development-os/banking/${b.id}`}
-                      className="hover:underline"
+                      className="hover:text-terra"
                     >
-                      <Badge tone="outline">{b.provider}</Badge>
+                      {b.provider}
                     </Link>
-                  </TD>
-                  <TD className="text-xs">
+                  </td>
+                  <td className="text-[12px] text-ink-3">
                     {b.accountName ?? b.externalAccountId}
-                    <span className="text-ink-tertiary font-mono ml-1">
-                      {b.currency}
-                    </span>
-                  </TD>
-                  <TD>
+                    <span className="mono ml-1 text-ink-4">{b.currency}</span>
+                  </td>
+                  <td>
                     <TrustTierBadge status={b.status} />
-                  </TD>
-                  <TD className="text-xs text-ink-secondary">
+                  </td>
+                  <td className="mono text-[11px] text-ink-3">
                     {fmtWhen(b.lastSyncedAt)}
-                  </TD>
-                  <TD>
+                  </td>
+                  <td>
                     <BankConnectionActions
                       connectionId={b.id}
                       status={b.status}
                       provider={b.provider}
                     />
-                  </TD>
-                </TR>
+                  </td>
+                </tr>
               ))}
             </FamilyTable>
           )}
 
           {marketing.length > 0 && (
             <FamilyTable
-              icon={<TrendingUp className="w-4 h-4" strokeWidth={1.75} />}
+              icon={<TrendingUp className="h-4 w-4" strokeWidth={1.75} />}
               title="Marketing connections"
               addHref="/development-os/marketing/connections/new"
               addLabel="Connect provider"
             >
               {marketing.map((m) => (
-                <TR key={m.id}>
-                  <TD>
+                <tr key={m.id}>
+                  <td className="row-title">
                     <Link
                       href={`/development-os/marketing/connections/${m.id}`}
-                      className="hover:underline"
+                      className="hover:text-terra"
                     >
-                      <Badge tone="outline">{m.provider}</Badge>
+                      {m.provider}
                     </Link>
-                  </TD>
-                  <TD className="text-xs">
+                  </td>
+                  <td className="text-[12px] text-ink-3">
                     {m.accountName ?? m.externalAccountId}
-                  </TD>
-                  <TD>
+                  </td>
+                  <td>
                     <TrustTierBadge status={m.status} />
-                  </TD>
-                  <TD className="text-xs text-ink-secondary">
+                  </td>
+                  <td className="mono text-[11px] text-ink-3">
                     {fmtWhen(m.lastSyncedAt)}
-                  </TD>
-                  <TD>
+                  </td>
+                  <td>
                     <MarketingConnectionActions
                       connectionId={m.id}
                       status={m.status}
                     />
-                  </TD>
-                </TR>
+                  </td>
+                </tr>
               ))}
             </FamilyTable>
           )}
         </div>
       )}
-    </Section>
+    </section>
   );
 }
 
@@ -295,29 +301,29 @@ function FamilyTable({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="flex items-center gap-2 text-sm font-medium text-ink">
-          <span className="text-ink-tertiary">{icon}</span>
+        <h3 className="flex items-center gap-2 text-[14px] font-semibold text-ink">
+          <span className="text-ink-4">{icon}</span>
           {title}
         </h3>
-        <Button asChild variant="secondary" size="sm">
-          <Link href={addHref}>
-            {addLabel}
-            <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
-          </Link>
-        </Button>
+        <Link href={addHref} className="btn btn-secondary btn-sm">
+          {addLabel}
+          <ArrowUpRight className="ml-1 h-3.5 w-3.5" strokeWidth={1.75} />
+        </Link>
       </div>
-      <Table>
-        <THead>
-          <TR>
-            <TH>Provider</TH>
-            <TH>Account</TH>
-            <TH>Trust tier</TH>
-            <TH>Last sync</TH>
-            <TH>Actions</TH>
-          </TR>
-        </THead>
-        <TBody>{children}</TBody>
-      </Table>
+      <Card padding="none" overflowHidden>
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Provider</th>
+              <th scope="col">Account</th>
+              <th scope="col">Trust tier</th>
+              <th scope="col">Last sync</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>{children}</tbody>
+        </table>
+      </Card>
     </div>
   );
 }
