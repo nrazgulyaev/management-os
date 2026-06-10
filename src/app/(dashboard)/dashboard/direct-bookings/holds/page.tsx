@@ -30,7 +30,15 @@ export default async function DirectBookingHoldsPage({
           { label: "Holds" },
         ]}
         title="Direct booking holds"
-        description="Each hold is a 15-minute inventory reservation taken from a public quote."
+        description="Each hold is a 15-minute inventory reservation — taken from a public quote, or placed by an operator on behalf of a guest."
+        actions={
+          <Link
+            href="/dashboard/direct-bookings/new"
+            className="btn btn-accent btn-sm"
+          >
+            + New direct booking
+          </Link>
+        }
       />
       <Section eyebrow="Catalog" title={`${rows.length} holds`}>
         <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
@@ -43,12 +51,13 @@ export default async function DirectBookingHoldsPage({
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Expires</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-ink-tertiary">
+                  <td colSpan={7} className="px-4 py-6 text-center text-ink-tertiary">
                     No holds match the filter.
                   </td>
                 </tr>
@@ -80,6 +89,14 @@ export default async function DirectBookingHoldsPage({
                     </td>
                     <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
                       {hold.expiresAt.toISOString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Link
+                        href={`/dashboard/direct-bookings/${hold.id}`}
+                        className="text-xs text-ink hover:underline underline-offset-4"
+                      >
+                        View →
+                      </Link>
                     </td>
                   </tr>
                 );

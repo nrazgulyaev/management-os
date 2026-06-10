@@ -55,9 +55,15 @@ export default async function DirectBookingsHub() {
             </Link>
             <Link
               href="/dashboard/direct-bookings/holds"
-              className="btn btn-accent btn-sm"
+              className="btn btn-secondary btn-sm"
             >
               All holds →
+            </Link>
+            <Link
+              href="/dashboard/direct-bookings/new"
+              className="btn btn-accent btn-sm"
+            >
+              + New direct booking
             </Link>
           </>
         }
@@ -115,7 +121,8 @@ export default async function DirectBookingsHub() {
             <tbody>
               {holds.length === 0 ? (
                 <TableEmpty colSpan={5}>No active holds. Holds appear here when guests reserve dates
-                    from a public quote.</TableEmpty>
+                    from a public quote — or when an operator places one on a
+                    guest&apos;s behalf.</TableEmpty>
               ) : (
                 holds.map(({ hold, villaCode }) => {
                   const lab = adminHoldStatusLabel(
@@ -125,7 +132,7 @@ export default async function DirectBookingsHub() {
                     <tr key={hold.id}>
                       <td className="mono text-[11px] text-ink-3">
                         <Link
-                          href={`/dashboard/direct-bookings/holds/${hold.id}`}
+                          href={`/dashboard/direct-bookings/${hold.id}`}
                           className="hover:text-terra"
                         >
                           {hold.holdCode}

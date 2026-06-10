@@ -94,13 +94,22 @@ export default async function OwnerSettingsPage() {
             label="Method"
             value={settings.payout.bankName}
             action={
-              <button
-                className="btn btn-secondary btn-sm opacity-60 cursor-not-allowed"
-                disabled
-                title="Changing the payout method requires 2FA"
-              >
-                Change method
-              </button>
+              readOnly ? (
+                <button
+                  className="btn btn-secondary btn-sm opacity-60 cursor-not-allowed"
+                  disabled
+                  title="Changes are disabled while viewing as this owner"
+                >
+                  Change method
+                </button>
+              ) : (
+                <Link
+                  href="/owner/preferences/payout"
+                  className="btn btn-secondary btn-sm"
+                >
+                  Change method
+                </Link>
+              )
             }
           />
         )}
@@ -109,13 +118,19 @@ export default async function OwnerSettingsPage() {
           label="Account number"
           value={<span className="mono">{settings.payout.maskedAccount}</span>}
           action={
-            <button
-              className="btn btn-ghost btn-sm opacity-60 cursor-not-allowed"
-              disabled
-              title="Revealing the full account number requires 2FA"
-            >
-              Reveal
-            </button>
+            readOnly ? (
+              <button
+                className="btn btn-ghost btn-sm opacity-60 cursor-not-allowed"
+                disabled
+                title="Changes are disabled while viewing as this owner"
+              >
+                Edit payout method
+              </button>
+            ) : (
+              <Link href="/owner/preferences/payout" className="btn btn-ghost btn-sm">
+                Edit payout method
+              </Link>
+            )
           }
         />
         <SettingsRow

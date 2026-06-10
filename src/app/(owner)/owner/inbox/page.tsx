@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentOwnerContext } from "@/features/owner-portal/owner-context";
 import { listOwnerThreads, getOwnerThreadDetail } from "@/features/owner-portal/get-threads";
@@ -98,14 +99,20 @@ export default async function OwnerInboxPage({
             requests, and anything else. Replies notify the team directly.
           </p>
         </div>
+        <Link href="/owner/inbox/new" className="btn btn-accent btn-sm">
+          + New message
+        </Link>
       </header>
 
       {threads.length === 0 ? (
-        <div className="rounded-[14px] border border-dashed border-line-strong p-8">
+        <div className="rounded-[14px] border border-dashed border-line-strong p-8 flex flex-col items-start gap-4">
           <p className="text-sm text-ink-tertiary italic">
             No conversations yet. When you raise a statement question, request a
             stay, or the team reaches out, the thread appears here.
           </p>
+          <Link href="/owner/inbox/new" className="btn btn-accent btn-sm">
+            + New message
+          </Link>
         </div>
       ) : (
         <OwnerInboxClient
