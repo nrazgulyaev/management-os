@@ -46,11 +46,11 @@ export function CheckInButton({ bookingId, bookingStatus }: ButtonProps) {
       <button
         type="submit"
         disabled={pending}
-        className="text-xs px-2 py-1 rounded border border-stone-300 bg-white hover:bg-stone-50 disabled:opacity-50"
+        className="btn btn-accent btn-sm disabled:opacity-50"
       >
         {pending ? "..." : "Check in"}
       </button>
-      {error && <span className="text-xs text-red-600 ml-2">{error}</span>}
+      {error && <span className="text-xs text-danger ml-2">{error}</span>}
     </form>
   );
 }
@@ -78,11 +78,11 @@ export function CheckOutButton({ bookingId, bookingStatus }: ButtonProps) {
       <button
         type="submit"
         disabled={pending}
-        className="text-xs px-2 py-1 rounded border border-stone-300 bg-white hover:bg-stone-50 disabled:opacity-50"
+        className="btn btn-secondary btn-sm disabled:opacity-50"
       >
         {pending ? "..." : "Check out"}
       </button>
-      {error && <span className="text-xs text-red-600 ml-2">{error}</span>}
+      {error && <span className="text-xs text-danger ml-2">{error}</span>}
     </form>
   );
 }

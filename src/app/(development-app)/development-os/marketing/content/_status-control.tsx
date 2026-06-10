@@ -63,9 +63,9 @@ export function ContentStatusControl({
   }
 
   const chip =
-    "text-[10px] px-1.5 py-0.5 rounded border border-line-soft bg-surface hover:bg-muted/50 disabled:opacity-50";
+    "font-mono text-[9.5px] uppercase tracking-[0.06em] px-1.5 py-0.5 rounded border border-line-soft bg-surface text-ink-secondary hover:border-line hover:text-ink disabled:opacity-50";
   const dangerChip =
-    "text-[10px] px-1.5 py-0.5 rounded border border-danger/40 bg-surface text-danger hover:bg-danger/5 disabled:opacity-50";
+    "font-mono text-[9.5px] uppercase tracking-[0.06em] px-1.5 py-0.5 rounded border border-danger/40 bg-surface text-danger hover:bg-danger/5 disabled:opacity-50";
 
   return (
     <div className="mt-1 flex flex-col gap-1">
