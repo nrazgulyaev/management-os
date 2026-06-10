@@ -8,6 +8,12 @@
  * full contract_milestones schedule with Mark-paid + Remind per line. All
  * writes go through the operator-side server actions, which permission-gate
  * and audit-log. Money is rendered from USD MINOR (cents) strings.
+ *
+ * Pixel target: cabinets/dev-p2/sales.html (buyers & installments). Dev OS
+ * lineage — `.kpi` strip, `table.data`, `.badge`, the `.payment-ladder`
+ * schedule rows, the amber `.toggle`, and the carbon pill toast. All values
+ * are Layer-B tokens / Tailwind aliases; no raw hex, no inline geometry
+ * except the dynamic progress-bar width.
  */
 
 import * as React from "react";
@@ -95,7 +101,14 @@ export function InstallmentDesk({ plans }: { plans: PlanRow[] }) {
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [openPlanId, setOpenPlanId] = React.useState<string | null>(null);
   const [bulkPending, startBulk] = React.useTransition();
-  const [banner, setBanner] = React.useState<string | null>(null);
+  const [toast, setToast] = React.useState<string | null>(null);
+
+  // Auto-dismiss toast (mock: 2.4s carbon pill).
+  React.useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const remindable = plans.filter((p) => p.outstandingUsdMinor !== "0" && Number(p.outstandingUsdMinor) > 0);
   const allSelected = remindable.length > 0 && remindable.every((p) => selected.has(p.contractGroupId));
@@ -120,15 +133,14 @@ export function InstallmentDesk({ plans }: { plans: PlanRow[] }) {
   function runBulk() {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    setBanner(null);
     startBulk(async () => {
       const r = await bulkRemindPlans(ids);
       if (!r.ok) {
-        setBanner(r.error ?? "Could not send reminders.");
+        setToast(r.error ?? "Could not send reminders.");
         return;
       }
       setSelected(new Set());
-      setBanner(
+      setToast(
         `Reminders sent to ${r.plansReminded ?? 0} plan${(r.plansReminded ?? 0) === 1 ? "" : "s"}` +
           ((r.plansSkipped ?? 0) > 0 ? ` · ${r.plansSkipped} skipped (nothing due)` : ""),
       );
@@ -137,7 +149,7 @@ export function InstallmentDesk({ plans }: { plans: PlanRow[] }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-ink-tertiary">
           {selected.size > 0
@@ -145,7 +157,7 @@ export function InstallmentDesk({ plans }: { plans: PlanRow[] }) {
             : `${plans.length} plan${plans.length === 1 ? "" : "s"}`}
         </p>
         <Button
-          variant="primary"
+          variant="accent"
           size="sm"
           disabled={selected.size === 0 || bulkPending}
           onClick={runBulk}
@@ -153,12 +165,6 @@ export function InstallmentDesk({ plans }: { plans: PlanRow[] }) {
           {bulkPending ? "Sending…" : `Send reminders${selected.size ? ` (${selected.size})` : ""}`}
         </Button>
       </div>
-
-      {banner && (
-        <div className="rounded-md border border-line-soft bg-muted/40 px-3 py-2 text-xs text-ink-secondary">
-          {banner}
-        </div>
-      )}
 
       <Table>
         <THead>
@@ -197,7 +203,14 @@ export function InstallmentDesk({ plans }: { plans: PlanRow[] }) {
                     className="accent-accent disabled:opacity-30"
                   />
                 </TD>
-                <TD className="text-sm text-ink">{p.buyerName}</TD>
+                <TD>
+                  <div className="flex items-center gap-2">
+                    <span className="text-display text-[15px] font-medium text-ink">
+                      {p.buyerName}
+                    </span>
+                    {p.overdueCount > 0 && <Badge tone="danger">overdue</Badge>}
+                  </div>
+                </TD>
                 <TD>
                   <div className="flex flex-col">
                     <span className="font-mono text-xs text-ink-tertiary">{p.villaCode}</span>
@@ -208,15 +221,12 @@ export function InstallmentDesk({ plans }: { plans: PlanRow[] }) {
                   <Badge tone={STAGE_TONE[p.stage] ?? "neutral"}>
                     {STAGE_LABEL[p.stage] ?? p.stage}
                   </Badge>
-                  {p.overdueCount > 0 && (
-                    <span className="ml-1.5 text-[10px] text-danger">{p.overdueCount} overdue</span>
-                  )}
                 </TD>
                 <TD>
                   <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+                    <div className="h-[7px] w-24 overflow-hidden rounded-full bg-inset">
                       <div
-                        className="h-full rounded-full bg-accent"
+                        className="h-full rounded-full bg-success"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -224,7 +234,7 @@ export function InstallmentDesk({ plans }: { plans: PlanRow[] }) {
                       {progress}%
                     </span>
                   </div>
-                  <span className="text-[10px] text-ink-tertiary">
+                  <span className="mt-0.5 block text-[10px] text-ink-tertiary">
                     {p.paidMilestoneCount}/{p.milestoneCount} milestones ·{" "}
                     {fmtUsdMinor(p.paidTotalUsdMinor)} of {fmtUsdMinor(p.expectedTotalUsdMinor)}
                   </span>
@@ -236,6 +246,7 @@ export function InstallmentDesk({ plans }: { plans: PlanRow[] }) {
                   <AutoRemindToggle
                     contractGroupId={p.contractGroupId}
                     enabled={p.autoRemindEnabled}
+                    disabled={p.milestoneCount === 0}
                   />
                 </TD>
                 <TD className="text-right">
@@ -257,22 +268,35 @@ export function InstallmentDesk({ plans }: { plans: PlanRow[] }) {
         <PlanDrawer
           contractGroupId={openPlanId}
           onClose={() => setOpenPlanId(null)}
+          onToast={setToast}
         />
+      )}
+
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-full bg-carbon px-[18px] py-[11px] text-[13px] text-white shadow-redesign-pop"
+        >
+          {toast}
+        </div>
       )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Auto-remind toggle (inline)
+// Auto-remind toggle (inline) — mock `.sl-toggle` (amber when on)
 // ---------------------------------------------------------------------------
 
 function AutoRemindToggle({
   contractGroupId,
   enabled,
+  disabled,
 }: {
   contractGroupId: string;
   enabled: boolean;
+  disabled?: boolean;
 }) {
   const router = useRouter();
   const [on, setOn] = React.useState(enabled);
@@ -300,15 +324,15 @@ function AutoRemindToggle({
       role="switch"
       aria-checked={on}
       aria-label="Toggle auto-remind"
-      disabled={pending}
+      disabled={pending || disabled}
       onClick={flip}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 ${
-        on ? "bg-accent" : "bg-muted"
+      className={`relative inline-flex h-[23px] w-10 items-center rounded-full transition-colors disabled:opacity-40 ${
+        on ? "bg-accent" : "bg-line-strong"
       }`}
     >
       <span
-        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow transition-transform ${
-          on ? "translate-x-[18px]" : "translate-x-1"
+        className={`inline-block h-[19px] w-[19px] transform rounded-full bg-white shadow transition-transform ${
+          on ? "translate-x-[19px]" : "translate-x-0.5"
         }`}
       />
     </button>
@@ -316,20 +340,21 @@ function AutoRemindToggle({
 }
 
 // ---------------------------------------------------------------------------
-// Per-buyer drawer with the full schedule
+// Per-buyer drawer with the full schedule — mock `.sl-drawer`
 // ---------------------------------------------------------------------------
 
 function PlanDrawer({
   contractGroupId,
   onClose,
+  onToast,
 }: {
   contractGroupId: string;
   onClose: () => void;
+  onToast: (msg: string) => void;
 }) {
   const router = useRouter();
   const [detail, setDetail] = React.useState<PlanDetailDTO | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [err, setErr] = React.useState<string | null>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -350,6 +375,20 @@ function PlanDrawer({
     router.refresh();
   }
 
+  // Price / paid / remaining from the milestone schedule (USD minor strings).
+  const totals = React.useMemo(() => {
+    if (!detail) return { price: 0n, paid: 0n, remaining: 0n };
+    let price = 0n;
+    let paid = 0n;
+    for (const m of detail.milestones) {
+      price += BigInt(m.expectedAmountUsdMinor);
+      paid += BigInt(m.paidAmountUsdMinor);
+    }
+    return { price, paid, remaining: price - paid };
+  }, [detail]);
+
+  const paidPct = pct(totals.paid, totals.price);
+
   return (
     <Modal open onOpenChange={(o) => !o && onClose()} size="lg" ariaLabel="Installment schedule">
       <ModalHeader
@@ -362,37 +401,67 @@ function PlanDrawer({
           <p className="py-8 text-center text-sm text-ink-tertiary">Loading schedule…</p>
         ) : !detail ? (
           <p className="py-8 text-center text-sm text-ink-tertiary">Plan not found.</p>
-        ) : detail.milestones.length === 0 ? (
-          <p className="py-8 text-center text-sm text-ink-tertiary">
-            This plan has no milestones yet.
-          </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-line-soft text-left">
-                <tr>
-                  <th className="px-2 py-2 text-[11px] uppercase tracking-wide text-ink-tertiary">#</th>
-                  <th className="px-2 py-2 text-[11px] uppercase tracking-wide text-ink-tertiary">Milestone</th>
-                  <th className="px-2 py-2 text-[11px] uppercase tracking-wide text-ink-tertiary">Due</th>
-                  <th className="px-2 py-2 text-[11px] uppercase tracking-wide text-ink-tertiary text-right">Expected</th>
-                  <th className="px-2 py-2 text-[11px] uppercase tracking-wide text-ink-tertiary text-right">Paid</th>
-                  <th className="px-2 py-2 text-[11px] uppercase tracking-wide text-ink-tertiary">Status</th>
-                  <th className="px-2 py-2 text-[11px] uppercase tracking-wide text-ink-tertiary text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="flex flex-col gap-4">
+            {/* Price / Paid / Remaining — mock `.sl-kv` */}
+            <dl className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-1.5 text-sm">
+              <dt className="font-mono text-[11px] uppercase tracking-wide text-ink-tertiary">Price</dt>
+              <dd className="font-mono font-medium tabular-nums text-ink">{fmtUsdMinor2(totals.price)}</dd>
+              <dt className="font-mono text-[11px] uppercase tracking-wide text-ink-tertiary">Paid</dt>
+              <dd className="font-mono font-medium tabular-nums text-success">
+                {fmtUsdMinor2(totals.paid)} ({paidPct}%)
+              </dd>
+              <dt className="font-mono text-[11px] uppercase tracking-wide text-ink-tertiary">Remaining</dt>
+              <dd className="font-mono font-medium tabular-nums text-ink">{fmtUsdMinor2(totals.remaining)}</dd>
+            </dl>
+
+            {/* Auto payment reminders — mock `.sl-switch` */}
+            {detail.milestones.length > 0 && (
+              <div className="flex items-center justify-between gap-3 rounded-md bg-muted px-3.5 py-3">
+                <div>
+                  <div className="text-[13.5px] font-medium text-ink">Auto payment reminders</div>
+                  <div className="text-xs text-ink-tertiary">3 days before due + on overdue</div>
+                </div>
+                <AutoRemindToggle
+                  contractGroupId={contractGroupId}
+                  enabled={detail.autoRemindEnabled}
+                />
+              </div>
+            )}
+
+            {/* Schedule payments — mock `.payment-ladder` rows */}
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-tertiary">
+                Schedule payments (installment)
+              </span>
+            </div>
+            {detail.milestones.length === 0 ? (
+              <p className="text-[13px] text-ink-tertiary">
+                Lead without a contract — no schedule yet.
+              </p>
+            ) : (
+              <ol className="flex flex-col">
                 {detail.milestones.map((m) => (
-                  <MilestoneRow key={m.id} milestone={m} onChanged={refreshAll} setErr={setErr} />
+                  <MilestoneRow
+                    key={m.id}
+                    milestone={m}
+                    onChanged={refreshAll}
+                    onToast={onToast}
+                    buyerName={detail.buyerName}
+                  />
                 ))}
-              </tbody>
-            </table>
+              </ol>
+            )}
           </div>
         )}
-        {err && <p className="mt-2 text-xs text-danger">{err}</p>}
       </ModalBody>
       <ModalFooter>
         {detail && (
-          <RemindPlanButton contractGroupId={contractGroupId} onDone={refreshAll} setErr={setErr} />
+          <RemindPlanButton
+            contractGroupId={contractGroupId}
+            onDone={refreshAll}
+            onToast={onToast}
+          />
         )}
         <Button variant="secondary" size="sm" onClick={onClose}>
           Close
@@ -424,11 +493,13 @@ const MS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutr
 function MilestoneRow({
   milestone,
   onChanged,
-  setErr,
+  onToast,
+  buyerName,
 }: {
   milestone: PlanDetailDTO["milestones"][number];
   onChanged: () => void;
-  setErr: (s: string | null) => void;
+  onToast: (msg: string) => void;
+  buyerName: string;
 }) {
   const [pending, start] = React.useTransition();
   const remaining =
@@ -437,85 +508,88 @@ function MilestoneRow({
   const canPay = isOutstanding && remaining > 0n;
 
   function markPaid() {
-    setErr(null);
     start(async () => {
       const fd = new FormData();
       fd.set("milestoneId", milestone.id);
       const r = await markMilestonePaidByOperator(fd);
       if (!r.ok) {
-        setErr(r.error ?? "Could not mark paid.");
+        onToast(r.error ?? "Could not mark paid.");
         return;
       }
+      onToast("Payment marked paid");
       onChanged();
     });
   }
 
   function remind() {
-    setErr(null);
     start(async () => {
       const fd = new FormData();
       fd.set("milestoneId", milestone.id);
       const r = await remindMilestone(fd);
       if (!r.ok) {
-        setErr(r.error ?? "Could not send reminder.");
+        onToast(r.error ?? "Could not send reminder.");
         return;
       }
+      onToast(`Reminder sent · ${buyerName}`);
       onChanged();
     });
   }
 
   return (
-    <tr className="border-b border-line-soft last:border-b-0">
-      <td className="px-2 py-2 font-mono text-xs text-ink-tertiary">{milestone.sequence}</td>
-      <td className="px-2 py-2 text-ink">{milestone.name}</td>
-      <td className="px-2 py-2 font-mono text-xs text-ink-secondary">
-        {milestone.expectedDueDate ?? "—"}
-      </td>
-      <td className="px-2 py-2 text-right font-mono tabular-nums text-ink">
-        {fmtUsdMinor2(milestone.expectedAmountUsdMinor)}
-      </td>
-      <td className="px-2 py-2 text-right font-mono tabular-nums text-ink-secondary">
-        {fmtUsdMinor2(milestone.paidAmountUsdMinor)}
-      </td>
-      <td className="px-2 py-2">
-        <Badge tone={MS_TONE[milestone.status] ?? "neutral"}>
-          {milestone.status.replace(/_/g, " ")}
-        </Badge>
-      </td>
-      <td className="px-2 py-2">
-        <div className="flex items-center justify-end gap-1.5">
-          <Button variant="ghost" size="sm" disabled={!canPay || pending} onClick={markPaid}>
-            {pending ? "…" : "Mark paid"}
-          </Button>
-          <Button variant="secondary" size="sm" disabled={!isOutstanding || pending} onClick={remind}>
+    <li className="flex items-center gap-3 border-b border-line-soft py-3 last:border-b-0">
+      <span className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-md bg-muted font-mono text-xs text-ink-tertiary">
+        {milestone.sequence}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
+          <span className="truncate text-sm text-ink">{milestone.name}</span>
+          <span className="font-mono text-xs tabular-nums text-ink-tertiary">
+            {fmtUsdMinor2(milestone.expectedAmountUsdMinor)}
+          </span>
+        </div>
+        <div className="font-mono text-[11px] text-ink-tertiary">
+          due {milestone.expectedDueDate ?? "—"}
+          {BigInt(milestone.paidAmountUsdMinor) > 0n &&
+            ` · paid ${fmtUsdMinor2(milestone.paidAmountUsdMinor)}`}
+        </div>
+      </div>
+      <Badge tone={MS_TONE[milestone.status] ?? "neutral"}>
+        {milestone.status.replace(/_/g, " ")}
+      </Badge>
+      {isOutstanding && (
+        <div className="flex flex-none items-center gap-1.5">
+          <Button variant="secondary" size="sm" disabled={pending} onClick={remind}>
             Remind
           </Button>
+          <Button variant="accent" size="sm" disabled={!canPay || pending} onClick={markPaid}>
+            {pending ? "…" : "Mark paid"}
+          </Button>
         </div>
-      </td>
-    </tr>
+      )}
+    </li>
   );
 }
 
 function RemindPlanButton({
   contractGroupId,
   onDone,
-  setErr,
+  onToast,
 }: {
   contractGroupId: string;
   onDone: () => void;
-  setErr: (s: string | null) => void;
+  onToast: (msg: string) => void;
 }) {
   const [pending, start] = React.useTransition();
   function run() {
-    setErr(null);
     start(async () => {
       const fd = new FormData();
       fd.set("contractGroupId", contractGroupId);
       const r = await remindPlan(fd);
       if (!r.ok) {
-        setErr(r.error ?? "Could not send reminders.");
+        onToast(r.error ?? "Could not send reminders.");
         return;
       }
+      onToast("Reminders sent to outstanding milestones");
       onDone();
     });
   }

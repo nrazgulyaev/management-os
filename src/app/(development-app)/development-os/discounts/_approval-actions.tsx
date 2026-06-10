@@ -61,10 +61,9 @@ export function DiscountApprovalActions({
     });
   }
 
-  const btn =
-    "text-xs px-2.5 py-1 rounded border border-line-soft bg-surface hover:bg-muted/50 disabled:opacity-50";
+  const btn = "btn btn-dark btn-sm disabled:opacity-50";
   const dangerBtn =
-    "text-xs px-2.5 py-1 rounded border border-danger/40 bg-surface text-danger hover:bg-danger/5 disabled:opacity-50";
+    "btn btn-sm border border-danger/40 text-danger hover:bg-danger/5 disabled:opacity-50";
 
   return (
     <div className="flex flex-col gap-1.5 pt-1">
@@ -92,7 +91,7 @@ export function DiscountApprovalActions({
             required
             minLength={2}
             placeholder="Rejection reason"
-            className="text-xs px-2 py-1 rounded border border-line-soft bg-surface flex-1 min-w-0"
+            className="input text-xs flex-1 min-w-0"
           />
           <button type="submit" className={dangerBtn} disabled={pending}>
             {pending ? "…" : "Confirm"}

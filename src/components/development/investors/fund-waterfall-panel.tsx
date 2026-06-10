@@ -77,7 +77,7 @@ export function FundWaterfallPanel({ funds }: FundWaterfallPanelProps) {
   if (!fund) {
     return (
       <Section eyebrow="Waterfall" title="Distribution waterfall">
-        <p className="text-sm text-ink-secondary">
+        <p className="text-sm text-ink-3">
           No funds with active commitments yet. Add a commitment to a project
           to model distributions and issue capital calls.
         </p>
@@ -252,7 +252,7 @@ export function FundWaterfallPanel({ funds }: FundWaterfallPanelProps) {
           </label>
         </div>
 
-        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-ink-secondary">
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-ink-3">
           <Badge tone="neutral">
             Committed {formatUsdMinor(totalCommittedCents)}
           </Badge>
@@ -279,48 +279,48 @@ export function FundWaterfallPanel({ funds }: FundWaterfallPanelProps) {
               result={{ ...result, kpis: formattedKpis }}
               unit="USD cents"
             />
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-ink-tertiary">
-                    <th className="py-2 pr-4">LP</th>
-                    <th className="py-2 pr-4">% of fund</th>
-                    <th className="py-2 text-right">Distribution</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.lpDistributions.map((d) => (
-                    <tr key={d.lpId} className="border-t border-line-soft">
-                      <td className="py-2 pr-4 font-medium">
-                        {lpNameById.get(d.lpId) ?? d.lpId}
+            <div className="card mt-4 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="data w-full">
+                  <thead>
+                    <tr>
+                      <th>LP</th>
+                      <th className="num">% of fund</th>
+                      <th className="num">Distribution</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.lpDistributions.map((d) => (
+                      <tr key={d.lpId}>
+                        <td className="row-title">
+                          {lpNameById.get(d.lpId) ?? d.lpId}
+                        </td>
+                        <td className="num text-ink-3">
+                          {(
+                            fund.lps.find((l) => l.investorId === d.lpId)
+                              ?.pctOfFund ?? 0
+                          ).toFixed(2)}
+                          %
+                        </td>
+                        <td className="num">{formatUsdMinor(d.amount)}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td className="row-title">GP carry + catch-up</td>
+                      <td className="num text-ink-3">
+                        {clampPct(carrySplitPct).toFixed(0)}%
                       </td>
-                      <td className="py-2 pr-4 tabular-nums text-ink-secondary">
-                        {(
-                          fund.lps.find((l) => l.investorId === d.lpId)
-                            ?.pctOfFund ?? 0
-                        ).toFixed(2)}
-                        %
-                      </td>
-                      <td className="py-2 text-right tabular-nums font-mono">
-                        {formatUsdMinor(d.amount)}
+                      <td className="num font-semibold text-amber-deep">
+                        {formatUsdMinor(result.gpTotal)}
                       </td>
                     </tr>
-                  ))}
-                  <tr className="border-t border-line-soft">
-                    <td className="py-2 pr-4 font-semibold">GP carry + catch-up</td>
-                    <td className="py-2 pr-4 text-ink-secondary">
-                      {clampPct(carrySplitPct).toFixed(0)}%
-                    </td>
-                    <td className="py-2 text-right tabular-nums font-mono font-semibold">
-                      {formatUsdMinor(result.gpTotal)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </>
         ) : (
-          <p className="text-sm text-ink-secondary">
+          <p className="text-sm text-ink-3">
             Enter a proceeds amount to preview the distribution waterfall.
           </p>
         )}
@@ -334,7 +334,7 @@ export function FundWaterfallPanel({ funds }: FundWaterfallPanelProps) {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className="btn btn-primary btn-sm"
+            className="btn btn-amber btn-sm"
             onClick={() => {
               setIssueError(null);
               setCallOpen(true);
@@ -344,7 +344,7 @@ export function FundWaterfallPanel({ funds }: FundWaterfallPanelProps) {
             Issue capital call
           </button>
           {callLps.length === 0 && (
-            <span className="text-sm text-ink-secondary">
+            <span className="text-sm text-ink-3">
               No LPs on this fund to call.
             </span>
           )}
