@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { DevelopmentShell } from "@/components/development/development-shell";
 import { CashflowForecast, type ForecastMonth } from "@/components/cfo/cashflow-forecast";
 
 /**
@@ -13,6 +9,11 @@ import { CashflowForecast, type ForecastMonth } from "@/components/cfo/cashflow-
  * visible end-to-end; the real materialized `cashflow_forecasts`
  * view + `cashflow-forecaster` agent wiring land in the 2.2 data
  * slice.
+ *
+ * Pixel-redesign (cabinets/dev-p1/cfo.html lineage): legacy
+ * PageHeader/Button/DevelopmentShell swapped for the dev `.page-header`
+ * brick + `.btn` lineage so this sub-route matches the redesigned CFO
+ * console landing. syntheticMonths() series wiring preserved verbatim.
  */
 
 export const metadata: Metadata = { title: "Cashflow forecast · Development OS" };
@@ -41,26 +42,30 @@ function syntheticMonths(): ForecastMonth[] {
 export default async function CashflowPage() {
   const months = syntheticMonths();
   return (
-    <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "CFO", href: "/development-os/cfo" },
-          { label: "Cashflow" },
-        ]}
-        eyebrow="12-month rolling · refreshed daily 06:00"
-        title="Cashflow forecast"
-        description="Net cashflow per month + cumulative cash on hand. Sparkline traces against the zero axis. Real series lands once the cashflow-forecaster agent runs against live BOQ + capital-call data."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/cfo">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              CFO console
-            </Link>
-          </Button>
-        }
-      />
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os/cfo">CFO</Link>
+            <span>·</span>
+            <span>12-month rolling · refreshed daily 06:00</span>
+          </div>
+          <h1>Cashflow forecast</h1>
+          <p className="mt-2 mb-0 text-[15px] text-[var(--ink-3)] max-w-[680px]">
+            Net cashflow per month + cumulative cash on hand. Sparkline traces
+            against the zero axis. Real series lands once the
+            cashflow-forecaster agent runs against live BOQ + capital-call
+            data.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/cfo" className="btn btn-secondary btn-sm">
+            ← CFO console
+          </Link>
+        </div>
+      </div>
+
       <CashflowForecast months={months} />
-    </DevelopmentShell>
+    </>
   );
 }
