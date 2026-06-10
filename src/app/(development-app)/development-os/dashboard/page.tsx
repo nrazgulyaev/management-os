@@ -278,12 +278,23 @@ export default async function ExecutiveDashboardPage() {
         sub={headerSub}
         actions={
           <>
-            <Link
-              href="/development-os/digests"
-              className="inline-flex items-center rounded-md border border-line-soft bg-surface px-[14px] py-[9px] text-[13.5px] font-medium text-ink-secondary hover:bg-muted/60"
-            >
-              Period: {periodLabel}
-            </Link>
+            <span className="inline-flex items-center rounded-md border border-line-soft bg-surface text-[13.5px] font-medium text-ink-secondary">
+              <span className="px-[14px] py-[9px] text-ink">
+                {periodLabel}
+              </span>
+              <Link
+                href="/development-os/executive/quarterly"
+                className="border-l border-line-soft px-[12px] py-[9px] hover:bg-muted/60"
+              >
+                Quarterly
+              </Link>
+              <Link
+                href="/development-os/executive/ytd"
+                className="border-l border-line-soft px-[12px] py-[9px] hover:bg-muted/60"
+              >
+                YTD
+              </Link>
+            </span>
             <Link
               href="/development-os/digests"
               className="inline-flex items-center rounded-md border border-ink bg-ink px-[14px] py-[9px] text-[13.5px] font-medium text-ink-inverse hover:opacity-90"

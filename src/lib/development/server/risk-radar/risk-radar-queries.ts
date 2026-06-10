@@ -1,8 +1,28 @@
 import "server-only";
 
-import { and, desc, eq, inArray, gte, ne, or } from "drizzle-orm";
+import { and, desc, eq, inArray, gte, lte, ne, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { riskRadarAlerts } from "@/lib/db/schema/executive";
+
+/**
+ * Alerts detected within `[start, end]` (inclusive), newest first.
+ * Used by the time-range executive rollups to count risks raised in a
+ * quarter / year-to-date window.
+ */
+export async function listAlertsInRange(start: Date, end: Date) {
+  const db = getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(riskRadarAlerts)
+    .where(
+      and(
+        gte(riskRadarAlerts.detectedAt, start),
+        lte(riskRadarAlerts.detectedAt, end),
+      ),
+    )
+    .orderBy(desc(riskRadarAlerts.detectedAt));
+}
 
 export async function listRecentAlerts(opts: {
   limit?: number;

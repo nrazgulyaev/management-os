@@ -93,6 +93,8 @@ export const DEV_DASHBOARD_NAV: DashboardNavGroup[] = [
     icon: "chart" as IconKey,
     items: [
       { href: `${DEV}/dashboard`, label: "Executive dashboard" },
+      { href: `${DEV}/executive/quarterly`, label: "Quarterly rollup" },
+      { href: `${DEV}/executive/ytd`, label: "Year-to-date" },
       { href: `${DEV}/reports`, label: "Visual reports" },
       { href: `${DEV}/risk-radar`, label: "Risk radar" },
       { href: `${DEV}/digests`, label: "Daily digests" },
