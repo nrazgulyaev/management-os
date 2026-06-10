@@ -12,8 +12,13 @@ import { DocumentsApp } from "@/components/documents/documents-app";
 export const metadata = { title: "Documents" };
 export const dynamic = "force-dynamic";
 
-export default async function DocumentsPage() {
-  const [docs, templates, counts] = await Promise.all([
+export default async function DocumentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ doc?: string }>;
+}) {
+  const [{ doc: initialDocId }, docs, templates, counts] = await Promise.all([
+    searchParams,
     listDocsForApp(),
     listTemplates(),
     getDocCategoryCounts(),
@@ -63,7 +68,12 @@ export default async function DocumentsPage() {
       </header>
       <DbStatusNotice />
 
-      <DocumentsApp docs={docs} templates={templates} counts={counts} />
+      <DocumentsApp
+        docs={docs}
+        templates={templates}
+        counts={counts}
+        initialDocId={initialDocId ?? null}
+      />
     </div>
   );
 }
