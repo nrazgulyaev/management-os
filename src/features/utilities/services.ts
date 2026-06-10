@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   utilityAccounts,
@@ -177,6 +177,100 @@ export async function getLatestReadingForAccount(
     balanceMinor: r.balanceMinor,
     readingValue: r.readingValue != null ? Number(r.readingValue) : null,
   };
+}
+
+export interface OrgMeterReadingRow {
+  utilityAccountId: string;
+  readingAt: string;
+  readingValue: number;
+}
+
+/**
+ * Org-scoped cumulative meter readings (`reading_type = 'meter'`,
+ * non-null value) since `sinceMonths` calendar months ago. Powers
+ * the per-villa / per-type spike rollups and the account drill-in
+ * 12-month usage trend.
+ */
+export async function listOrgMeterReadings(opts: {
+  sinceMonths: number;
+}): Promise<OrgMeterReadingRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const organizationId = await requireOrgId();
+  const cutoff = new Date();
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - opts.sinceMonths, 1);
+  cutoff.setUTCHours(0, 0, 0, 0);
+  const rows = await db
+    .select({
+      utilityAccountId: utilityReadings.utilityAccountId,
+      readingAt: utilityReadings.readingAt,
+      readingValue: utilityReadings.readingValue,
+    })
+    .from(utilityReadings)
+    .where(
+      and(
+        eq(utilityReadings.organizationId, organizationId),
+        eq(utilityReadings.readingType, "meter"),
+        isNotNull(utilityReadings.readingValue),
+        gte(utilityReadings.readingAt, cutoff),
+      ),
+    )
+    .orderBy(asc(utilityReadings.readingAt));
+  return rows.map((r) => ({
+    utilityAccountId: r.utilityAccountId,
+    readingAt: r.readingAt.toISOString(),
+    readingValue: Number(r.readingValue),
+  }));
+}
+
+export interface OrgUtilityBillRow {
+  utilityAccountId: string;
+  /** YYYY-MM-DD */
+  dueDate: string;
+  amountMinor: number | null;
+  currency: string;
+  status: string;
+}
+
+/**
+ * Org-scoped payment reminders (bills) with a due date in the last
+ * `sinceMonths` calendar months. Cancelled reminders are excluded —
+ * they are not real spend.
+ */
+export async function listOrgUtilityBills(opts: {
+  sinceMonths: number;
+}): Promise<OrgUtilityBillRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const organizationId = await requireOrgId();
+  const cutoff = new Date();
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - opts.sinceMonths, 1);
+  const cutoffYmd = cutoff.toISOString().slice(0, 10);
+  const rows = await db
+    .select({
+      utilityAccountId: utilityPaymentReminders.utilityAccountId,
+      dueDate: utilityPaymentReminders.dueDate,
+      amountMinor: utilityPaymentReminders.amountMinor,
+      currency: utilityPaymentReminders.currency,
+      status: utilityPaymentReminders.status,
+    })
+    .from(utilityPaymentReminders)
+    .where(
+      and(
+        eq(utilityPaymentReminders.organizationId, organizationId),
+        gte(utilityPaymentReminders.dueDate, cutoffYmd),
+      ),
+    )
+    .orderBy(asc(utilityPaymentReminders.dueDate));
+  return rows
+    .filter((r) => r.status !== "cancelled")
+    .map((r) => ({
+      utilityAccountId: r.utilityAccountId,
+      dueDate: r.dueDate as unknown as string,
+      amountMinor: r.amountMinor,
+      currency: r.currency,
+      status: r.status,
+    }));
 }
 
 export async function listUtilityPaymentReminders(opts?: {

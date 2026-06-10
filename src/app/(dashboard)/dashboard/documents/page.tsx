@@ -8,6 +8,8 @@ import {
   getDocCategoryCounts,
 } from "@/features/documents/app-services";
 import { DocumentsApp } from "@/components/documents/documents-app";
+import { getAiKnowledgeData } from "./ai-knowledge-queries";
+import { AiKnowledgePanel } from "./ai-knowledge-panel";
 
 export const metadata = { title: "Documents" };
 export const dynamic = "force-dynamic";
@@ -17,12 +19,18 @@ export default async function DocumentsPage({
 }: {
   searchParams: Promise<{ doc?: string }>;
 }) {
-  const [{ doc: initialDocId }, docs, templates, counts] = await Promise.all([
-    searchParams,
-    listDocsForApp(),
-    listTemplates(),
-    getDocCategoryCounts(),
-  ]);
+  const [{ doc: initialDocId }, docs, templates, counts, aiKnowledge] =
+    await Promise.all([
+      searchParams,
+      listDocsForApp(),
+      listTemplates(),
+      getDocCategoryCounts(),
+      getAiKnowledgeData().catch(() => ({
+        envReady: false,
+        agents: [],
+        assignments: [],
+      })),
+    ]);
   const source = isDbConfigured() ? "db" : "mock";
 
   const active = docs.filter((d) => d.status === "active");
@@ -57,7 +65,8 @@ export default async function DocumentsPage({
             </h1>
             <p className="mt-1 text-sm text-ink-tertiary">
               {counts.all} docs · {expired} expired · {expiringSoon} expiring
-              &lt; 30d · {awaitingSig} awaiting signature
+              &lt; 30d · {awaitingSig} awaiting signature ·{" "}
+              {counts.aiKnowledge} in AI knowledge
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -73,6 +82,20 @@ export default async function DocumentsPage({
         templates={templates}
         counts={counts}
         initialDocId={initialDocId ?? null}
+      />
+
+      <AiKnowledgePanel
+        docs={active.map((d) => ({
+          id: d.id,
+          title: d.title,
+          documentType: d.documentType,
+          fileName: d.fileName,
+          mimeType: d.mimeType,
+          hasFile: d.hasFile,
+        }))}
+        agents={aiKnowledge.agents}
+        assignments={aiKnowledge.assignments}
+        envReady={aiKnowledge.envReady}
       />
     </div>
   );
