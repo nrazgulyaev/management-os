@@ -16,6 +16,34 @@ import {
   type InventoryMovementType,
 } from "./stock-balance-helpers";
 
+/**
+ * INV-CODE-RACE — `movement_code` (INV-YYYY-####) is derived from COUNT(*)+1
+ * under a UNIQUE constraint, so two concurrent writers can compute the same
+ * code and one hits a Postgres unique_violation (SQLSTATE 23505). Bound-retry
+ * the whole transaction, re-deriving the code each attempt, so concurrent
+ * writes serialize onto distinct codes instead of surfacing a raw collision.
+ * Mirrors the 23505 retry in capital-call-actions.ts. Module-private (not a
+ * server action) so the "use server" export-only-async rule is preserved.
+ */
+async function withMovementCodeRetry<T>(run: () => Promise<T>): Promise<T> {
+  const MAX_ATTEMPTS = 5;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await run();
+    } catch (err) {
+      const code = (err as { code?: unknown } | null)?.code;
+      const message = err instanceof Error ? err.message : String(err);
+      const isUniqueViolation = code === "23505" || message.includes("23505");
+      if (isUniqueViolation && attempt < MAX_ATTEMPTS - 1) continue;
+      throw err;
+    }
+  }
+  // Unreachable: the loop returns or throws on the final attempt.
+  throw new Error(
+    "Could not allocate a unique inventory movement code after several attempts. Please retry.",
+  );
+}
+
 const MOVEMENT_TYPES = [
   "received",
   "reserved",
@@ -117,7 +145,13 @@ export async function recordInventoryMovement(
     toLocationId: parsed.toLocationId ?? null,
   });
 
-  return db.transaction(async (tx) => {
+  // `movement_code` is derived from COUNT(*)+1 under a UNIQUE constraint, which
+  // is racy: two concurrent writers compute the same INV-YYYY-#### and one hits
+  // a Postgres unique_violation (SQLSTATE 23505). Bound-retry the whole txn,
+  // re-deriving the code each attempt so concurrent writes serialize onto
+  // distinct codes (mirrors capital-call-actions.ts).
+  return withMovementCodeRetry(() =>
+    db.transaction(async (tx) => {
     const [{ count }] = await tx
       .select({ count: sql<string>`COUNT(*)::text` })
       .from(devOsInventoryMovements);
@@ -242,7 +276,8 @@ export async function recordInventoryMovement(
     }
 
     return movement;
-  });
+    }),
+  );
 }
 
 const _transferSchema = z.object({

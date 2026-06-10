@@ -28,6 +28,33 @@ import type { CycleCountResult } from "./warehouse-inbound-types";
  * location field is set, mirroring `applyMovementToBalance("adjusted")`.
  */
 
+/**
+ * INV-CODE-RACE — `movement_code` (INV-YYYY-####) is derived from COUNT(*)+1
+ * under a UNIQUE constraint, so concurrent writers can compute the same code
+ * and one hits a Postgres unique_violation (SQLSTATE 23505). Bound-retry the
+ * whole transaction, re-deriving the code each attempt. Mirrors the 23505 retry
+ * in capital-call-actions.ts. Module-private (not a server action) so the
+ * "use server" export-only-async rule is preserved.
+ */
+async function withMovementCodeRetry<T>(run: () => Promise<T>): Promise<T> {
+  const MAX_ATTEMPTS = 5;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await run();
+    } catch (err) {
+      const code = (err as { code?: unknown } | null)?.code;
+      const message = err instanceof Error ? err.message : String(err);
+      const isUniqueViolation = code === "23505" || message.includes("23505");
+      if (isUniqueViolation && attempt < MAX_ATTEMPTS - 1) continue;
+      throw err;
+    }
+  }
+  // Unreachable: the loop returns or throws on the final attempt.
+  throw new Error(
+    "Could not allocate a unique inventory movement code after several attempts. Please retry.",
+  );
+}
+
 const countSchema = z.object({
   itemId: z.string().uuid(),
   locationId: z.string().uuid(),
@@ -47,7 +74,11 @@ export async function recordCycleCount(
     throw new Error("recordCycleCount: requires an authenticated app user");
   }
 
-  return db.transaction(async (tx) => {
+  // `movement_code` (INV-YYYY-####) is COUNT(*)+1 under a UNIQUE constraint, so
+  // concurrent cycle counts can collide on the same code. Bound-retry the whole
+  // txn, re-deriving the code each attempt (mirrors capital-call-actions.ts).
+  return withMovementCodeRetry(() =>
+    db.transaction(async (tx) => {
     // Guard: item + location belong to this org.
     const [item] = await tx
       .select({ id: devOsInventoryItems.id, sku: devOsInventoryItems.sku })
@@ -94,21 +125,25 @@ export async function recordCycleCount(
     const variance = parsed.countedQuantity - previousOnHand;
 
     if (variance === 0) {
-      await recordAuditEvent({
-        actorUserId: actorId,
-        action: "warehouse.cycle_count",
-        entityType: "dev_os_inventory_item",
-        entityId: parsed.itemId,
-        after: {
-          organizationId,
-          sku: item.sku,
-          locationCode: location.code,
-          countedQuantity: parsed.countedQuantity,
-          previousOnHand,
-          variance: 0,
-          noChange: true,
+      // Atomic with the txn (mirrors the variance != 0 path below).
+      await recordAuditEvent(
+        {
+          actorUserId: actorId,
+          action: "warehouse.cycle_count",
+          entityType: "dev_os_inventory_item",
+          entityId: parsed.itemId,
+          after: {
+            organizationId,
+            sku: item.sku,
+            locationCode: location.code,
+            countedQuantity: parsed.countedQuantity,
+            previousOnHand,
+            variance: 0,
+            noChange: true,
+          },
         },
-      });
+        { tx },
+      );
       return {
         movementId: null,
         movementCode: null,
@@ -181,21 +216,26 @@ export async function recordCycleCount(
       });
     }
 
-    await recordAuditEvent({
-      actorUserId: actorId,
-      action: "warehouse.cycle_count",
-      entityType: "dev_os_inventory_movement",
-      entityId: movement.id,
-      after: {
-        organizationId,
-        sku: item.sku,
-        locationCode: location.code,
-        movementCode,
-        countedQuantity: parsed.countedQuantity,
-        previousOnHand,
-        variance,
+    // Atomic with the movement + balance write: pass the txn handle so the
+    // audit row commits/rolls back together with the stock adjustment.
+    await recordAuditEvent(
+      {
+        actorUserId: actorId,
+        action: "warehouse.cycle_count",
+        entityType: "dev_os_inventory_movement",
+        entityId: movement.id,
+        after: {
+          organizationId,
+          sku: item.sku,
+          locationCode: location.code,
+          movementCode,
+          countedQuantity: parsed.countedQuantity,
+          previousOnHand,
+          variance,
+        },
       },
-    });
+      { tx },
+    );
 
     return {
       movementId: movement.id,
@@ -205,5 +245,6 @@ export async function recordCycleCount(
       variance,
       noChange: false,
     };
-  });
+    }),
+  );
 }

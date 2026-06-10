@@ -57,6 +57,33 @@ function pad4(n: number): string {
   return String(n).padStart(4, "0");
 }
 
+/**
+ * INV-CODE-RACE — `movement_code` (INV-YYYY-####) is derived from COUNT(*)+1
+ * under a UNIQUE constraint, so concurrent writers can compute the same code
+ * and one hits a Postgres unique_violation (SQLSTATE 23505). Bound-retry the
+ * whole transaction, re-deriving the code each attempt. Mirrors the 23505 retry
+ * in capital-call-actions.ts. Module-private (not a server action) so the
+ * "use server" export-only-async rule is preserved.
+ */
+async function withMovementCodeRetry<T>(run: () => Promise<T>): Promise<T> {
+  const MAX_ATTEMPTS = 5;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await run();
+    } catch (err) {
+      const code = (err as { code?: unknown } | null)?.code;
+      const message = err instanceof Error ? err.message : String(err);
+      const isUniqueViolation = code === "23505" || message.includes("23505");
+      if (isUniqueViolation && attempt < MAX_ATTEMPTS - 1) continue;
+      throw err;
+    }
+  }
+  // Unreachable: the loop returns or throws on the final attempt.
+  throw new Error(
+    "Could not allocate a unique inventory movement code after several attempts. Please retry.",
+  );
+}
+
 export async function receivePurchaseOrder(
   input: z.input<typeof receivePoSchema>,
 ): Promise<ReceivePoResult> {
@@ -69,7 +96,12 @@ export async function receivePurchaseOrder(
     throw new Error("receivePurchaseOrder: requires an authenticated app user");
   }
 
-  return db.transaction(async (tx) => {
+  // `movement_code` (INV-YYYY-####) is derived from COUNT(*)+1 under a UNIQUE
+  // constraint, so a concurrent receipt/movement can collide on the same code.
+  // Bound-retry the whole txn, re-reading COUNT + re-deriving the code base each
+  // attempt (mirrors capital-call-actions.ts).
+  return withMovementCodeRetry(() =>
+    db.transaction(async (tx) => {
     // 1) PO + org guard.
     const [po] = await tx
       .select({
@@ -286,22 +318,28 @@ export async function receivePurchaseOrder(
         );
     }
 
-    await recordAuditEvent({
-      actorUserId: actorId,
-      action: "warehouse.receive_po",
-      entityType: "material_purchase_order",
-      entityId: parsed.poId,
-      before: { status: po.status },
-      after: {
-        organizationId,
-        poCode: po.poCode,
-        status: nextStatus,
-        linesReceived: parsed.lines.filter((l) => l.receivedQty > 0).length,
-        movementsWritten,
-        unmatchedPassed,
-        locationId: parsed.locationId ?? null,
+    // Atomic with the PO/inventory write: pass the txn handle so the audit row
+    // commits/rolls back together — never commit a stock receipt whose audit
+    // silently failed.
+    await recordAuditEvent(
+      {
+        actorUserId: actorId,
+        action: "warehouse.receive_po",
+        entityType: "material_purchase_order",
+        entityId: parsed.poId,
+        before: { status: po.status },
+        after: {
+          organizationId,
+          poCode: po.poCode,
+          status: nextStatus,
+          linesReceived: parsed.lines.filter((l) => l.receivedQty > 0).length,
+          movementsWritten,
+          unmatchedPassed,
+          locationId: parsed.locationId ?? null,
+        },
       },
-    });
+      { tx },
+    );
 
     return {
       poId: parsed.poId,
@@ -310,5 +348,6 @@ export async function receivePurchaseOrder(
       movementsWritten,
       unmatchedPassed,
     };
-  });
+    }),
+  );
 }

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { desc, eq } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getDb, requireDb } from "@/lib/db/client";
 import { auditEvents, type NewAuditEvent } from "@/lib/db/schema/audit";
 import { appUsers } from "@/lib/db/schema/identity";
 import { headers } from "next/headers";
@@ -13,27 +13,66 @@ export type AuditEventInput = Omit<NewAuditEvent, "id" | "createdAt"> & {
 };
 
 /**
- * Append-only audit write. Silently no-ops when the database is not
- * configured so demo flows do not crash. Errors are logged but never
- * thrown — the caller's primary action must not fail because audit failed.
+ * A transaction handle as handed to `db.transaction(async (tx) => …)`. Callers
+ * that need the audit row to commit/rollback atomically with a money/inventory
+ * write pass their own `tx` here (see {@link recordAuditEvent}'s `tx` option).
  */
-export async function recordAuditEvent(event: AuditEventInput): Promise<void> {
-  const db = getDb();
-  if (!db) return;
+type AuditTx = Parameters<Parameters<ReturnType<typeof requireDb>["transaction"]>[0]>[0];
 
-  try {
-    let ip: string | null | undefined = event.ipAddress;
-    let ua: string | null | undefined = event.userAgent;
+export interface RecordAuditEventOptions {
+  /**
+   * Optional transaction handle. When provided, the audit row is written on the
+   * caller's transaction so it commits/rolls back atomically with the primary
+   * write AND a failed insert propagates (the txn must abort together). When
+   * omitted (the default), the write goes to the outer db and errors are
+   * swallowed — audit never breaks a best-effort action.
+   */
+  tx?: AuditTx;
+}
+
+/**
+ * Append-only audit write. Silently no-ops when the database is not
+ * configured so demo flows do not crash.
+ *
+ * Default (no `tx`): runs against the outer db and errors are logged but never
+ * thrown — the caller's primary action must not fail because audit failed.
+ *
+ * With `opts.tx`: runs on the caller's transaction so the audit row is atomic
+ * with the money/inventory write. Insert errors are NOT swallowed in this mode
+ * — they must abort the surrounding transaction so we never commit a money
+ * move whose audit silently failed.
+ */
+export async function recordAuditEvent(
+  event: AuditEventInput,
+  opts?: RecordAuditEventOptions,
+): Promise<void> {
+  const writer = opts?.tx ?? getDb();
+  if (!writer) return;
+
+  let ip: string | null | undefined = event.ipAddress;
+  let ua: string | null | undefined = event.userAgent;
+
+  const insert = async () => {
     if (ip === undefined || ua === undefined) {
       const h = await headers();
       ip ??= h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
       ua ??= h.get("user-agent") ?? null;
     }
-    await db.insert(auditEvents).values({
+    await writer.insert(auditEvents).values({
       ...event,
       ipAddress: ip ?? null,
       userAgent: ua ?? null,
     });
+  };
+
+  // Atomic mode: let the error propagate so the caller's txn aborts with it.
+  if (opts?.tx) {
+    await insert();
+    return;
+  }
+
+  try {
+    await insert();
   } catch (err) {
     // Don't propagate — audit must not break the action.
     console.error("[audit] failed to record event", err);

@@ -19,6 +19,11 @@
 import { and, desc, eq, or, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { crmActivities } from "@/lib/db/schema/crm-activities";
+import { contacts } from "@/lib/db/schema/contacts";
+import { buyers } from "@/lib/db/schema/buyers";
+import { leads } from "@/lib/db/schema/marketing";
+import { projects } from "@/lib/db/schema/projects";
+import { ownershipShares } from "@/lib/db/schema/ownership";
 import { requireOrgId } from "@/features/auth/require-org";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { recordAuditEvent } from "@/features/audit/services";
@@ -49,6 +54,85 @@ function toView(row: typeof crmActivities.$inferSelect): CrmActivityView {
 }
 
 /**
+ * Lightweight tenant guard: does `subjectId` exist within `organizationId`
+ * for the given subject type? `contact`/`buyer` carry `organization_id`
+ * directly; `owner` anchors via `ownership_shares`; `lead` has no direct
+ * org column so it anchors via its `contact` or `project`. Returns true on
+ * the legacy/unknown path so we never harden into a regression for subject
+ * types that lack a resolvable org anchor.
+ *
+ * Local (non-exported) on purpose: this is a "use server" module, so only
+ * async *exports* are permitted — internal helpers are unrestricted.
+ */
+async function subjectBelongsToOrg(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  subjectType: CrmSubjectType,
+  subjectId: string,
+  organizationId: string,
+): Promise<boolean> {
+  switch (subjectType) {
+    case "contact": {
+      const [r] = await db
+        .select({ id: contacts.id })
+        .from(contacts)
+        .where(
+          and(eq(contacts.id, subjectId), eq(contacts.organizationId, organizationId)),
+        )
+        .limit(1);
+      return Boolean(r);
+    }
+    case "buyer": {
+      const [r] = await db
+        .select({ id: buyers.id })
+        .from(buyers)
+        .where(
+          and(eq(buyers.id, subjectId), eq(buyers.organizationId, organizationId)),
+        )
+        .limit(1);
+      return Boolean(r);
+    }
+    case "lead": {
+      // leads has no direct org column — anchor via its contact, else its
+      // project. A lead in-org by either anchor passes.
+      const [byContact] = await db
+        .select({ id: leads.id })
+        .from(leads)
+        .innerJoin(contacts, eq(contacts.id, leads.contactId))
+        .where(
+          and(eq(leads.id, subjectId), eq(contacts.organizationId, organizationId)),
+        )
+        .limit(1);
+      if (byContact) return true;
+      const [byProject] = await db
+        .select({ id: leads.id })
+        .from(leads)
+        .innerJoin(projects, eq(projects.id, leads.projectId))
+        .where(
+          and(eq(leads.id, subjectId), eq(projects.organizationId, organizationId)),
+        )
+        .limit(1);
+      return Boolean(byProject);
+    }
+    case "owner": {
+      // owners has no direct org column — the anchor is on ownership_shares.
+      const [r] = await db
+        .select({ id: ownershipShares.id })
+        .from(ownershipShares)
+        .where(
+          and(
+            eq(ownershipShares.ownerId, subjectId),
+            eq(ownershipShares.organizationId, organizationId),
+          ),
+        )
+        .limit(1);
+      return Boolean(r);
+    }
+    default:
+      return true;
+  }
+}
+
+/**
  * Append one activity to the unified stream. Returns the new id (or null when
  * the DB is unconfigured / the write is skipped). The actor is resolved from
  * the current session; system-generated events pass no actor and are stamped
@@ -71,6 +155,16 @@ export async function recordCrmActivity(
 
   try {
     const organizationId = await requireOrgId();
+
+    // Tenant-integrity guard: never append a timeline entry against a subject
+    // that does not belong to the caller's org. The org is stamped on the
+    // row, but the caller-supplied subjectId is otherwise untrusted — verify
+    // the subject exists within this org before writing (behaviour-neutral
+    // under single-tenant; closes a cross-tenant write under multi-tenant).
+    if (!(await subjectBelongsToOrg(db, input.subjectType, input.subjectId, organizationId))) {
+      return null;
+    }
+
     const ctx = await getCurrentUserContext();
     const actorAppUserId = ctx.appUser?.id ?? null;
     const actorName = ctx.appUser?.fullName ?? null;

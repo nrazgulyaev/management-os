@@ -13,6 +13,7 @@ import { bookings } from "@/lib/db/schema/bookings";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
 import { getDepositForHold } from "./deposits";
 import { enumerateStayNights } from "@/features/dynamic-pricing/quote-pure";
+import { getCurrentUserContext } from "@/features/auth/permissions";
 
 /**
  * Unified "direct booking" detail — keyed on the canonical hold entity.
@@ -87,8 +88,9 @@ function labelForSource(sourceType: string | null, blockType: string): string {
  * Load the unified direct-booking detail for a hold, scoped to the
  * caller's organization. Returns null when the hold does not exist OR
  * belongs to a different org (no cross-tenant leakage). Holds whose
- * org anchor is still NULL (pre-0153 backfill) are visible to any org
- * — they predate tenancy threading.
+ * org anchor is still NULL (pre-0153 backfill) predate tenancy threading
+ * and are shown ONLY to internal users — a portal/non-internal caller
+ * must match the hold's org, closing the residual cross-tenant read.
  */
 export async function getDirectBookingDetailByHoldId(
   holdId: string,
@@ -112,10 +114,14 @@ export async function getDirectBookingDetailByHoldId(
     .limit(1);
   if (!row) return null;
 
-  // Tenant guard: reject holds owned by another org. NULL org = legacy,
-  // pre-tenancy-backfill, so it stays visible.
-  if (row.hold.organizationId && row.hold.organizationId !== organizationId) {
-    return null;
+  // Tenant guard: reject holds owned by another org. A NULL org is legacy
+  // (pre-tenancy-backfill); rather than leak it to any org, surface it only
+  // to internal users — a non-internal caller must match the hold's org.
+  if (row.hold.organizationId) {
+    if (row.hold.organizationId !== organizationId) return null;
+  } else {
+    const ctx = await getCurrentUserContext();
+    if (!ctx.isInternal) return null;
   }
 
   const nights = enumerateStayNights(row.hold.checkIn, row.hold.checkOut);
