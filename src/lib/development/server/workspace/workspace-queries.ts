@@ -208,6 +208,130 @@ export async function getWorkspaceProjectRisks(
   }));
 }
 
+export interface WorkspaceProjectMilestoneStats {
+  total: number;
+  overdue: number;
+  nextName: string | null;
+  nextTargetDate: string | null;
+}
+
+/**
+ * Milestone posture for one project: how many are past target and not
+ * done, plus the next upcoming milestone (drives the drill's
+ * "milestones" KPI). Status enum per `schema/milestones.ts`:
+ * planned | in_progress | done | at_risk | slipped — anything not
+ * `done` past its target date counts as overdue.
+ */
+export async function getWorkspaceProjectMilestoneStats(
+  projectId: string,
+): Promise<WorkspaceProjectMilestoneStats> {
+  const empty: WorkspaceProjectMilestoneStats = {
+    total: 0,
+    overdue: 0,
+    nextName: null,
+    nextTargetDate: null,
+  };
+  const db = getDb();
+  if (!db) return empty;
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    total: string;
+    overdue: string;
+    next_name: string | null;
+    next_target: string | null;
+  }>(sql`
+    WITH scoped AS (
+      SELECT name, target_date, status
+        FROM milestones
+       WHERE organization_id = ${orgId}
+         AND project_id = ${projectId}
+    ),
+    nxt AS (
+      SELECT name, target_date
+        FROM scoped
+       WHERE status <> 'done'
+         AND target_date >= CURRENT_DATE
+       ORDER BY target_date ASC
+       LIMIT 1
+    )
+    SELECT
+      (SELECT COUNT(*)::text FROM scoped) AS total,
+      (SELECT COUNT(*)::text FROM scoped
+        WHERE status <> 'done'
+          AND target_date < CURRENT_DATE) AS overdue,
+      (SELECT name FROM nxt) AS next_name,
+      (SELECT target_date::text FROM nxt) AS next_target
+  `);
+  const r = rowsOf<{
+    total: string;
+    overdue: string;
+    next_name: string | null;
+    next_target: string | null;
+  }>(rows)[0];
+  if (!r) return empty;
+  return {
+    total: Number(r.total ?? "0"),
+    overdue: Number(r.overdue ?? "0"),
+    nextName: r.next_name,
+    nextTargetDate: r.next_target,
+  };
+}
+
+export interface WorkspaceProjectCoordinationStats {
+  openRfis: number;
+  openSubmittals: number;
+  openQaQcIssues: number;
+}
+
+/**
+ * Open coordination items for one project: unresolved RFIs, submittals
+ * still in the review loop (open / submitted / under_review /
+ * revise_resubmit per `SUBMITTAL_STATUSES`) and open QA/QC issues —
+ * the three item kinds the coordination board pins.
+ */
+export async function getWorkspaceProjectCoordinationStats(
+  projectId: string,
+): Promise<WorkspaceProjectCoordinationStats> {
+  const empty: WorkspaceProjectCoordinationStats = {
+    openRfis: 0,
+    openSubmittals: 0,
+    openQaQcIssues: 0,
+  };
+  const db = getDb();
+  if (!db) return empty;
+  const orgId = await requireOrgId();
+  const rows = await db.execute<{
+    open_rfis: string;
+    open_submittals: string;
+    open_qaqc: string;
+  }>(sql`
+    SELECT
+      (SELECT COUNT(*)::text FROM rfis
+        WHERE organization_id = ${orgId}
+          AND project_id = ${projectId}
+          AND resolved_at IS NULL) AS open_rfis,
+      (SELECT COUNT(*)::text FROM submittals
+        WHERE organization_id = ${orgId}
+          AND project_id = ${projectId}
+          AND status IN ('open','submitted','under_review','revise_resubmit')) AS open_submittals,
+      (SELECT COUNT(*)::text FROM qa_qc_issues
+        WHERE organization_id = ${orgId}
+          AND project_id = ${projectId}
+          AND status IN ('open','in_progress','assigned')) AS open_qaqc
+  `);
+  const r = rowsOf<{
+    open_rfis: string;
+    open_submittals: string;
+    open_qaqc: string;
+  }>(rows)[0];
+  if (!r) return empty;
+  return {
+    openRfis: Number(r.open_rfis ?? "0"),
+    openSubmittals: Number(r.open_submittals ?? "0"),
+    openQaQcIssues: Number(r.open_qaqc ?? "0"),
+  };
+}
+
 export interface WorkspaceProjectSiteRow {
   occurredAt: string;
   summary: string;

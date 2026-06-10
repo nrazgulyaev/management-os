@@ -1,27 +1,31 @@
 /**
- * Role-access "who-sees-what" matrix editor (P0 design-live gap).
+ * Role-access "who-sees-what" matrix (P0 design-live gap; Keystone mock
+ * `cc-functional-handoff/cabinets/new/Keystone.html` → RBAC view).
  *
  * A cabinet × role grid over the canonical roles in
  * `permission-matrix.ts`. Each cell is the role's read access to a cabinet;
- * the default comes from ROLE_CAPABILITIES["{cabinet}.read"]. Admins with
- * `roles.assign` can override any cell — deviations persist to
- * `role_access_overrides` (migration 0128).
+ * the default comes from ROLE_CAPABILITIES["{cabinet}.read"], with persisted
+ * (org, cabinet, role) overrides layered on top — the SAME
+ * `effectiveAccess()` mapping `requireCabinetAccess` / the sidebar filter
+ * use, so what this grid shows is exactly what the nav and route gates do.
  *
- * Read access gated to `users.read` (super_admin / director); editing gated
- * inside the action to `roles.assign` (super_admin).
+ * Viewing is open to anyone with settings access (like its neighbours —
+ * team, users, security): every `CabinetGate` denial screen links here, so
+ * a non-admin must be able to see WHY their role is gated. Their own role
+ * column is highlighted. Editing stays gated to `roles.assign`
+ * (super_admin) — enforced both here (readOnly grid) and inside the action.
  */
 
 import type { Metadata } from "next";
-import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Button } from "@/components/ui/button";
 import { getDb } from "@/lib/db/client";
 import {
   getCurrentUserContext,
   hasPermission,
 } from "@/features/auth/permissions";
+import type { RoleKey } from "@/features/auth/permission-matrix";
 import { getRoleAccessOverrides } from "@/features/keystone/services";
 import {
   MATRIX_CABINETS,
@@ -45,31 +49,18 @@ export default async function RoleMatrixPage() {
     );
   }
 
+  // Viewing is open like its settings neighbours (team/users/security carry
+  // no extra read gate) — the CabinetGate denial screen links here, so the
+  // matrix itself must never lock a gated role out. Editing stays admin-only.
   const ctx = await getCurrentUserContext();
-  if (!hasPermission(ctx, "users.read")) {
-    return (
-      <div className="flex flex-col gap-8">
-        <PageHeader
-          breadcrumbs={[
-            { label: "Settings", href: "/dashboard/settings" },
-            { label: "Role access matrix" },
-          ]}
-          title="Role access matrix"
-        />
-        <EmptyState
-          title="Admin access required"
-          description="Only an organisation admin can view the role-access matrix."
-          action={
-            <Button asChild variant="secondary">
-              <Link href="/dashboard">Back to dashboard</Link>
-            </Button>
-          }
-        />
-      </div>
-    );
-  }
-
   const canEdit = hasPermission(ctx, "roles.assign");
+
+  // Highlight the viewer's own role column(s). Super admin / demo mode are
+  // always all-access and aren't matrix columns — flagged in copy instead.
+  const allAccess = ctx.mode === "demo" || ctx.isSuperAdmin;
+  const viewerRoles = allAccess
+    ? []
+    : MATRIX_ROLES.filter((r) => (ctx.roles as RoleKey[]).includes(r));
   const orgId = ctx.appUser?.organizationId ?? "";
   const overrideMap = orgId
     ? await getRoleAccessOverrides(orgId)
@@ -100,7 +91,7 @@ export default async function RoleMatrixPage() {
           { label: "Access matrix" },
         ]}
         title="Who sees what"
-        description="A grid of cabinets against roles. Tick a cell to grant a role read access to a cabinet. Defaults come from the built-in permission table; your changes are saved as overrides."
+        description="A grid of cabinets against roles — the same mapping that filters the sidebar and gates every cabinet route. Defaults come from the built-in permission table; admin changes are saved as overrides."
       />
 
       <Section
@@ -109,10 +100,18 @@ export default async function RoleMatrixPage() {
         description={
           canEdit
             ? "Toggle cells, then Save. Cells outlined in amber differ from the built-in default."
-            : "Read-only — only a super-admin can change the matrix."
+            : allAccess
+              ? "You always have full access to every cabinet, so no column is highlighted. Read-only — only a super-admin can change the matrix."
+              : viewerRoles.length > 0
+                ? "Your role's column is highlighted. Read-only — only a super-admin can change the matrix."
+                : "Read-only — only a super-admin can change the matrix."
         }
       >
-        <MatrixEditor initialOverrides={initialOverrides} readOnly={!canEdit} />
+        <MatrixEditor
+          initialOverrides={initialOverrides}
+          readOnly={!canEdit}
+          viewerRoles={viewerRoles}
+        />
       </Section>
     </div>
   );

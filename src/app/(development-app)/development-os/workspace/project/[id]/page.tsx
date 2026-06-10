@@ -8,7 +8,11 @@ import {
   getWorkspaceProjectKpis,
   getWorkspaceProjectRisks,
   getWorkspaceProjectSiteActivity,
+  getWorkspaceProjectMilestoneStats,
+  getWorkspaceProjectCoordinationStats,
 } from "@/lib/development/server/workspace/workspace-queries";
+import { usdCompact } from "@/lib/development/server/workspace/usd-format";
+import { getProjectFinancialSummary } from "@/lib/development/server/budget";
 
 /**
  * UNIT build-workspace-roleviews · (b) project drill —
@@ -71,14 +75,27 @@ export default async function WorkspaceProjectDrillPage({
   const header = await getWorkspaceProjectHeader(id).catch(() => null);
   if (!header) notFound();
 
-  const [kpis, risks, siteActivity] = await mapPoolAll(
-    [
-      () => getWorkspaceProjectKpis(id).catch(() => null),
-      () => getWorkspaceProjectRisks(id, 6).catch(() => []),
-      () => getWorkspaceProjectSiteActivity(id, 6).catch(() => []),
-    ] as const,
-    3,
-  );
+  // `header` resolved org-scoped above (404 on cross-tenant), so the
+  // validated project id is safe to hand to the project-keyed budget read.
+  const [kpis, risks, siteActivity, financial, milestoneStats, coordStats] =
+    await mapPoolAll(
+      [
+        () => getWorkspaceProjectKpis(id).catch(() => null),
+        () => getWorkspaceProjectRisks(id, 6).catch(() => []),
+        () => getWorkspaceProjectSiteActivity(id, 6).catch(() => []),
+        () => getProjectFinancialSummary(id).catch(() => null),
+        () => getWorkspaceProjectMilestoneStats(id).catch(() => null),
+        () => getWorkspaceProjectCoordinationStats(id).catch(() => null),
+      ] as const,
+      3,
+    );
+
+  const budgetMinor = financial ? Number(financial.totalBudgetUsdMinor) : 0;
+  const spentMinor = financial ? Number(financial.totalActualUsdMinor) : 0;
+  const consumedPct = financial ? financial.budgetConsumedPercent : 0;
+  const openCoordination = coordStats
+    ? coordStats.openRfis + coordStats.openSubmittals + coordStats.openQaQcIssues
+    : 0;
 
   const attentionItems = risks.map((r) => {
     const tone: AttnTone =
@@ -127,13 +144,40 @@ export default async function WorkspaceProjectDrillPage({
         }
       />
 
-      {/* KPI strip — portfolio figures scoped to this project. */}
+      {/* KPI strip — budget / milestones / risk / coordination / packages,
+          all scoped to this project (mock §03 project drill-in). */}
       <div className="grid grid-cols-5 gap-3.5 mb-[18px] max-[900px]:grid-cols-3 max-[600px]:grid-cols-2">
         <Kpi
-          label="villas"
-          value={kpis && kpis.villas > 0 ? String(kpis.villas) : "—"}
-          sub="in this project"
-          tone={kpis && kpis.villas > 0 ? "accent" : undefined}
+          label="budget · spent"
+          value={budgetMinor > 0 ? usdCompact(spentMinor) : "—"}
+          sub={
+            budgetMinor > 0
+              ? `of ${usdCompact(budgetMinor)} · ${consumedPct.toFixed(0)}% used`
+              : "no budget lines yet"
+          }
+          tone={
+            budgetMinor > 0
+              ? consumedPct >= 90
+                ? "warn"
+                : "accent"
+              : undefined
+          }
+        />
+        <Kpi
+          label="milestones · overdue"
+          value={
+            milestoneStats && milestoneStats.overdue > 0
+              ? String(milestoneStats.overdue)
+              : "—"
+          }
+          sub={
+            milestoneStats?.nextName
+              ? `next: ${milestoneStats.nextName} · ${milestoneStats.nextTargetDate}`
+              : milestoneStats && milestoneStats.total > 0
+                ? "none upcoming"
+                : "no milestones yet"
+          }
+          tone={milestoneStats && milestoneStats.overdue > 0 ? "warn" : undefined}
         />
         <Kpi
           label="open risks"
@@ -142,25 +186,21 @@ export default async function WorkspaceProjectDrillPage({
           tone={kpis && kpis.openRisks > 0 ? "warn" : undefined}
         />
         <Kpi
+          label="coordination · open"
+          value={openCoordination > 0 ? String(openCoordination) : "—"}
+          sub={
+            coordStats
+              ? `${coordStats.openRfis} RFI · ${coordStats.openSubmittals} submittal · ${coordStats.openQaQcIssues} QA/QC`
+              : "RFIs · submittals · QA/QC"
+          }
+          tone={openCoordination > 0 ? "warn" : undefined}
+        />
+        <Kpi
           label="open packages"
           value={
             kpis && kpis.openWorkPackages > 0 ? String(kpis.openWorkPackages) : "—"
           }
           sub="planned + in-progress"
-        />
-        <Kpi
-          label="site reports · 14d"
-          value={
-            kpis && kpis.recentSiteReports > 0 ? String(kpis.recentSiteReports) : "—"
-          }
-          sub="recent activity"
-        />
-        <Kpi
-          label="bookings · MTD"
-          value={
-            kpis && kpis.bookingsThisMonth > 0 ? String(kpis.bookingsThisMonth) : "—"
-          }
-          sub="this month"
         />
       </div>
 
@@ -232,6 +272,12 @@ export default async function WorkspaceProjectDrillPage({
             <p className="mono text-[10.5px] text-ink-3 mt-3 mb-0">
               {header.projectCode ?? header.slug}
             </p>
+            {kpis && (
+              <p className="mono text-[10.5px] text-ink-3 mt-1.5 mb-0">
+                {kpis.villas} villas · {kpis.recentSiteReports} site reports ·
+                14d · {kpis.bookingsThisMonth} bookings · MTD
+              </p>
+            )}
           </Card>
 
           <Card className="p-4">
@@ -268,6 +314,81 @@ export default async function WorkspaceProjectDrillPage({
           </Card>
         </div>
       </div>
+
+      {/* Project surfaces — the drill's cabinet map (mock §03): links into
+          this project's sub-routes, with live counts where we hold them. */}
+      <Card padding="none" overflowHidden>
+        <div className="px-[22px] py-3.5 border-b border-line bg-muted">
+          <h2 className="display text-[20px] font-normal text-ink m-0">
+            Project surfaces
+          </h2>
+        </div>
+        <div className="grid grid-cols-3 gap-2 p-5 max-[900px]:grid-cols-2 max-[600px]:grid-cols-1">
+          {[
+            {
+              key: "work-packages",
+              group: "Build",
+              name: "Work packages",
+              ctx:
+                kpis && kpis.openWorkPackages > 0
+                  ? `${kpis.openWorkPackages} open`
+                  : "plan · execute",
+            },
+            {
+              key: "milestones",
+              group: "Build",
+              name: "Milestones",
+              ctx: milestoneStats
+                ? `${milestoneStats.overdue} overdue · ${milestoneStats.total} total`
+                : "schedule gates",
+            },
+            {
+              key: "boq",
+              group: "Cost",
+              name: "BOQ",
+              ctx: "bill of quantities",
+            },
+            {
+              key: "rfis",
+              group: "Coordination",
+              name: "RFIs",
+              ctx:
+                coordStats && coordStats.openRfis > 0
+                  ? `${coordStats.openRfis} open`
+                  : "requests for information",
+            },
+            {
+              key: "risks",
+              group: "Risk",
+              name: "Risks",
+              ctx:
+                kpis && kpis.openRisks > 0
+                  ? `${kpis.openRisks} open`
+                  : "register",
+            },
+            {
+              key: "schedule",
+              group: "Build",
+              name: "Schedule",
+              ctx: "work-package timeline",
+            },
+          ].map((s) => (
+            <Link
+              key={s.key}
+              href={`/development-os/projects/${header.slug}/${s.key}`}
+              className="px-3.5 py-3 border border-line rounded-[8px] bg-bg-3 no-underline hover:border-amber"
+            >
+              <div className="mono text-[9.5px] uppercase tracking-[0.14em] text-ink-4">
+                {s.group}
+              </div>
+              <div className="text-[13px] font-medium text-ink mt-0.5">
+                {s.name}
+              </div>
+              <div className="mono text-[10.5px] text-ink-3 mt-0.5">{s.ctx}</div>
+            </Link>
+          ))}
+        </div>
+      </Card>
     </>
   );
 }
