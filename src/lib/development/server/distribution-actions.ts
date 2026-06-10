@@ -13,6 +13,9 @@ import {
   DISTRIBUTION_TRIGGER_REASONS,
   DISTRIBUTION_TYPES,
 } from "@/lib/development/constants/investor-constants";
+import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
+import { recordAuditEvent } from "@/features/audit/services";
 import {
   computeCapitalReturn,
   computeProfitDistribution,
@@ -55,6 +58,8 @@ export async function declareDistribution(
   totalAllocatedUsdMinor: string;
   unallocatedUsdMinor: string;
 }> {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = declareSchema.parse(input);
   const total = toBig(parsed.totalAmountUsdMinor);
   if (total <= 0n) throw new Error("totalAmountUsdMinor must be > 0");
@@ -96,7 +101,7 @@ export async function declareDistribution(
     );
   }
 
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [maxRow] = await tx
       .select({
         next: sql<number>`coalesce(max(distribution_number), 0)::int + 1`,
@@ -112,6 +117,7 @@ export async function declareDistribution(
     const [d] = await tx
       .insert(distributions)
       .values({
+        organizationId,
         projectId: parsed.projectId,
         distributionNumber,
         distributionType: parsed.distributionType,
@@ -124,6 +130,7 @@ export async function declareDistribution(
         effectiveDate: parsed.effectiveDate,
         notes: parsed.notes ?? null,
         status: "declared",
+        declaredBy: ctx.appUser?.id ?? null,
       })
       .returning({ id: distributions.id });
 
@@ -134,6 +141,7 @@ export async function declareDistribution(
       const profit = profitMap.get(s.commitmentId) ?? 0n;
       if (cap === 0n && profit === 0n) continue;
       await tx.insert(distributionAllocations).values({
+        organizationId,
         distributionId: d.id,
         commitmentId: s.commitmentId,
         capitalReturnAmountUsdMinor: cap,
@@ -154,6 +162,27 @@ export async function declareDistribution(
       unallocatedUsdMinor: (total - totalAllocated).toString(),
     };
   });
+
+  await recordAuditEvent({
+    action: "distribution.declare",
+    entityType: "distribution",
+    entityId: result.distributionId,
+    actorUserId: ctx.appUser?.id ?? null,
+    organizationId,
+    after: {
+      projectId: parsed.projectId,
+      distributionNumber: result.distributionNumber,
+      distributionType: parsed.distributionType,
+      totalAmountUsdMinor: total.toString(),
+      triggerReason: parsed.triggerReason,
+      effectiveDate: parsed.effectiveDate,
+      allocationCount: result.allocationCount,
+      totalAllocatedUsdMinor: result.totalAllocatedUsdMinor,
+      status: "declared",
+    },
+  });
+
+  return result;
 }
 
 /**
@@ -182,13 +211,23 @@ export async function executeDistribution(distributionId: string): Promise<{
   executedAllocations: number;
   totalExecutedUsdMinor: string;
 }> {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
-  return await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
+    // SECURITY (IDOR): scope the load by org so a foreign distribution id
+    // returns no row and cannot be executed. Single-tenant today => the
+    // extra predicate is a no-op against current behaviour.
     const [d] = await tx
       .select()
       .from(distributions)
-      .where(eq(distributions.id, distributionId))
+      .where(
+        and(
+          eq(distributions.id, distributionId),
+          eq(distributions.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!d) throw new Error("Distribution not found");
     if (d.status !== "declared") {
@@ -201,7 +240,12 @@ export async function executeDistribution(distributionId: string): Promise<{
     await tx
       .update(distributions)
       .set({ status: "executing", updatedAt: new Date() })
-      .where(eq(distributions.id, distributionId));
+      .where(
+        and(
+          eq(distributions.id, distributionId),
+          eq(distributions.organizationId, organizationId),
+        ),
+      );
 
     const allocs = await tx
       .select()
@@ -310,29 +354,64 @@ export async function executeDistribution(distributionId: string): Promise<{
         completedAt: occurredAt,
         updatedAt: new Date(),
       })
-      .where(eq(distributions.id, distributionId));
+      .where(
+        and(
+          eq(distributions.id, distributionId),
+          eq(distributions.organizationId, organizationId),
+        ),
+      );
 
     return {
       executedAllocations: executed,
       totalExecutedUsdMinor: totalExecuted.toString(),
+      distributionNumber: d.distributionNumber,
     };
   });
+
+  await recordAuditEvent({
+    action: "distribution.execute",
+    entityType: "distribution",
+    entityId: distributionId,
+    actorUserId: ctx.appUser?.id ?? null,
+    organizationId,
+    before: { status: "declared" },
+    after: {
+      status: "completed",
+      distributionNumber: result.distributionNumber,
+      executedAllocations: result.executedAllocations,
+      totalExecutedUsdMinor: result.totalExecutedUsdMinor,
+    },
+  });
+
+  return {
+    executedAllocations: result.executedAllocations,
+    totalExecutedUsdMinor: result.totalExecutedUsdMinor,
+  };
 }
 
 export async function cancelDistribution(
   distributionId: string,
   reason: string,
 ): Promise<void> {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   if (!reason || reason.trim().length < 3) {
     throw new Error("cancelDistribution: reason is required (min 3 chars)");
   }
   const db = requireDb();
 
   await db.transaction(async (tx) => {
+    // SECURITY (IDOR): scope by org so a foreign distribution cannot be
+    // cancelled.
     const [d] = await tx
       .select({ status: distributions.status })
       .from(distributions)
-      .where(eq(distributions.id, distributionId))
+      .where(
+        and(
+          eq(distributions.id, distributionId),
+          eq(distributions.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!d) throw new Error("Distribution not found");
     if (d.status !== "declared") {
@@ -343,7 +422,12 @@ export async function cancelDistribution(
     await tx
       .update(distributionAllocations)
       .set({ status: "cancelled", updatedAt: new Date() })
-      .where(eq(distributionAllocations.distributionId, distributionId));
+      .where(
+        and(
+          eq(distributionAllocations.distributionId, distributionId),
+          eq(distributionAllocations.organizationId, organizationId),
+        ),
+      );
     await tx
       .update(distributions)
       .set({
@@ -351,7 +435,22 @@ export async function cancelDistribution(
         notes: reason,
         updatedAt: new Date(),
       })
-      .where(eq(distributions.id, distributionId));
+      .where(
+        and(
+          eq(distributions.id, distributionId),
+          eq(distributions.organizationId, organizationId),
+        ),
+      );
+  });
+
+  await recordAuditEvent({
+    action: "distribution.cancel",
+    entityType: "distribution",
+    entityId: distributionId,
+    actorUserId: ctx.appUser?.id ?? null,
+    organizationId,
+    before: { status: "declared" },
+    after: { status: "cancelled", reason },
   });
 }
 
@@ -385,13 +484,21 @@ const editDistributionSchema = z.object({
 export async function editDistribution(
   input: z.input<typeof editDistributionSchema>,
 ): Promise<void> {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = editDistributionSchema.parse(input);
   const db = requireDb();
 
+  // SECURITY (IDOR): scope by org so a foreign distribution cannot be edited.
   const [existing] = await db
     .select({ status: distributions.status })
     .from(distributions)
-    .where(eq(distributions.id, parsed.id))
+    .where(
+      and(
+        eq(distributions.id, parsed.id),
+        eq(distributions.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!existing) throw new Error("Distribution not found");
   if (existing.status !== "declared") {
@@ -407,5 +514,26 @@ export async function editDistribution(
   if (parsed.triggerReason !== undefined)
     patch.triggerReason = parsed.triggerReason;
 
-  await db.update(distributions).set(patch).where(eq(distributions.id, parsed.id));
+  await db
+    .update(distributions)
+    .set(patch)
+    .where(
+      and(
+        eq(distributions.id, parsed.id),
+        eq(distributions.organizationId, organizationId),
+      ),
+    );
+
+  await recordAuditEvent({
+    action: "distribution.edit",
+    entityType: "distribution",
+    entityId: parsed.id,
+    actorUserId: ctx.appUser?.id ?? null,
+    organizationId,
+    after: {
+      effectiveDate: parsed.effectiveDate ?? null,
+      notes: parsed.notes ?? null,
+      triggerReason: parsed.triggerReason ?? null,
+    },
+  });
 }
