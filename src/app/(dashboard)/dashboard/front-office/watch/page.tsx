@@ -1,8 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/dashboard/primitives";
+import { Card, HandoffBadge, Kpi } from "@/components/dashboard/primitives";
 import { detectTurnoverRisks, detectVisaWatch } from "@/features/front-office/watch-agents";
 
 export const metadata = { title: "Front office — Watch" };
@@ -16,106 +13,147 @@ export default async function FrontOfficeWatchPage() {
   const now = new Date();
   const [turnover, visa] = await Promise.all([detectTurnoverRisks(now), detectVisaWatch(now)]);
 
+  const expiredIds = visa.filter((v) => v.severity === "expired").length;
+
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Front office", href: "/dashboard/front-office" },
-          { label: "Watch" },
-        ]}
-        title="Watch — front-office agents"
-        description="Deterministic monitors over today's data. turnover-monitor flags villas not ready for an arrival; visa-watcher flags guest IDs that lapse during the stay."
-      />
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/front-office">Front office</Link> / <span>Watch</span>
+          </div>
+          <h1>Watch — front-office agents</h1>
+        </div>
+      </div>
 
-      <Section
-        eyebrow="turnover-monitor"
-        title={`${turnover.length} villa${turnover.length === 1 ? "" : "s"} not ready`}
-      >
-        {turnover.length === 0 ? (
-          <Empty>All arriving villas are ready.</Empty>
-        ) : (
-          <Card padding="none" overflowHidden>
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>Villa</th>
-                  <th>Guest</th>
-                  <th>Readiness</th>
-                  <th className="num" />
-                </tr>
-              </thead>
-              <tbody>
-                {turnover.map((t) => (
-                  <tr key={t.bookingId}>
-                    <td className="row-title">{t.villaCode ?? "—"}</td>
-                    <td className="text-ink-2">{t.guestDisplay}</td>
-                    <td>
-                      <Badge tone="warning">{t.readinessStatus}</Badge>
-                    </td>
-                    <td className="num">
-                      <Link
-                        href="/dashboard/front-office/arrivals"
-                        className="text-xs text-ink-2 hover:text-accent"
-                      >
-                        Arrivals →
-                      </Link>
-                    </td>
+      <p className="mt-3 mb-7 text-[15px] text-ink-3 max-w-[680px]">
+        Deterministic monitors over today&apos;s data. turnover-monitor flags villas
+        not ready for an arrival; visa-watcher flags guest IDs that lapse during
+        the stay.
+      </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+        <Kpi
+          label="Turnover risks"
+          value={String(turnover.length)}
+          sub={turnover.length > 0 ? "villas not ready" : "all villas ready"}
+          tone={turnover.length > 0 ? "danger" : "success"}
+        />
+        <Kpi
+          label="IDs to watch"
+          value={String(visa.length)}
+          sub={visa.length > 0 ? "lapse during stay" : "no expiries in stays"}
+          tone={visa.length > 0 ? "gold" : "success"}
+        />
+        <Kpi
+          label="Expired IDs"
+          value={String(expiredIds)}
+          sub="already lapsed"
+          tone={expiredIds > 0 ? "danger" : "success"}
+        />
+      </div>
+
+      <div className="flex flex-col gap-8">
+        <section>
+          <div className="section-heading">
+            <div className="eyebrow label">turnover-monitor</div>
+            <h2>
+              {turnover.length} villa{turnover.length === 1 ? "" : "s"} not ready
+            </h2>
+          </div>
+          {turnover.length === 0 ? (
+            <Empty>All arriving villas are ready.</Empty>
+          ) : (
+            <Card padding="none" overflowHidden>
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Villa</th>
+                    <th>Guest</th>
+                    <th>Readiness</th>
+                    <th className="num" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        )}
-      </Section>
+                </thead>
+                <tbody>
+                  {turnover.map((t) => (
+                    <tr key={t.bookingId}>
+                      <td className="row-title">{t.villaCode ?? "—"}</td>
+                      <td className="text-ink-2">{t.guestDisplay}</td>
+                      <td>
+                        <HandoffBadge tone="warn">{t.readinessStatus}</HandoffBadge>
+                      </td>
+                      <td className="num">
+                        <Link
+                          href="/dashboard/front-office/arrivals"
+                          className="text-xs text-ink-2 hover:text-accent"
+                        >
+                          Arrivals →
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
+        </section>
 
-      <Section
-        eyebrow="visa-watcher"
-        title={`${visa.length} ID${visa.length === 1 ? "" : "s"} to watch`}
-      >
-        {visa.length === 0 ? (
-          <Empty>No ID/visa expiries during current stays.</Empty>
-        ) : (
-          <Card padding="none" overflowHidden>
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>Guest</th>
-                  <th>Villa</th>
-                  <th className="num">Expires</th>
-                  <th className="num">Checkout</th>
-                  <th>Flag</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visa.map((v) => (
-                  <tr key={v.bookingId}>
-                    <td className="row-title">{v.guestName ?? "—"}</td>
-                    <td className="text-ink-2">{v.villaCode ?? "—"}</td>
-                    <td className="num text-ink-2">{v.expiresAt ?? "—"}</td>
-                    <td className="num text-ink-3">{v.checkOut}</td>
-                    <td>
-                      <Badge tone={v.severity === "expired" ? "danger" : "warning"}>
-                        {v.severity === "expired" ? "expired" : "expires during stay"}
-                      </Badge>
-                    </td>
+        <section>
+          <div className="section-heading">
+            <div className="eyebrow label">visa-watcher</div>
+            <h2>
+              {visa.length} ID{visa.length === 1 ? "" : "s"} to watch
+            </h2>
+          </div>
+          {visa.length === 0 ? (
+            <Empty>No ID/visa expiries during current stays.</Empty>
+          ) : (
+            <Card padding="none" overflowHidden>
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Guest</th>
+                    <th>Villa</th>
+                    <th className="num">Expires</th>
+                    <th className="num">Checkout</th>
+                    <th>Flag</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        )}
-      </Section>
+                </thead>
+                <tbody>
+                  {visa.map((v) => (
+                    <tr key={v.bookingId}>
+                      <td className="row-title">{v.guestName ?? "—"}</td>
+                      <td className="text-ink-2">{v.villaCode ?? "—"}</td>
+                      <td className="num text-ink-2">{v.expiresAt ?? "—"}</td>
+                      <td className="num text-ink-3">{v.checkOut}</td>
+                      <td>
+                        <HandoffBadge tone={v.severity === "expired" ? "danger" : "warn"}>
+                          {v.severity === "expired" ? "expired" : "expires during stay"}
+                        </HandoffBadge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
+        </section>
 
-      <Section eyebrow="vip-prep" title="Not yet available">
-        <Card padding="default">
-          <p className="text-sm text-ink-tertiary m-0">
-            vip-prep needs a VIP signal on bookings/guests — none exists in the schema yet. Add an
-            <code className="font-mono text-xs"> is_vip </code> flag (or a booking-value threshold)
-            and this agent will flag arrival prep for VIP guests.
-          </p>
-        </Card>
-      </Section>
-    </div>
+        <section>
+          <div className="section-heading">
+            <div className="eyebrow label">vip-prep</div>
+            <h2>Not yet available</h2>
+          </div>
+          <Card padding="default">
+            <p className="text-sm text-ink-3 m-0">
+              vip-prep needs a VIP signal on bookings/guests — none exists in the schema yet. Add an
+              <code className="font-mono text-xs"> is_vip </code> flag (or a booking-value threshold)
+              and this agent will flag arrival prep for VIP guests.
+            </p>
+          </Card>
+        </section>
+      </div>
+    </>
   );
 }
 

@@ -682,3 +682,85 @@ export async function getPricingHubMetrics(): Promise<PricingHubMetrics> {
     villasMissingRuleSet: Number(villaRow?.missing ?? 0),
   };
 }
+
+// =============================================================================
+// RULE COUNTS — per-rule-set meta for the rule-sets list
+// =============================================================================
+
+export interface RuleSetRuleCounts {
+  total: number;
+  active: number;
+}
+
+/**
+ * Per-rule-set rule counts across all six rule families. One grouped
+ * COUNT query per family (6 round-trips total, independent of how many
+ * rule sets exist) so the list page can show honest "N rules · M active"
+ * meta without loading every rule row.
+ */
+export async function countPricingRulesPerSet(): Promise<
+  Map<string, RuleSetRuleCounts>
+> {
+  const out = new Map<string, RuleSetRuleCounts>();
+  const db = getDb();
+  if (!db) return out;
+  const grouped = await Promise.all([
+    db
+      .select({
+        ruleSetId: pricingDayOfWeekRules.ruleSetId,
+        status: pricingDayOfWeekRules.status,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(pricingDayOfWeekRules)
+      .groupBy(pricingDayOfWeekRules.ruleSetId, pricingDayOfWeekRules.status),
+    db
+      .select({
+        ruleSetId: pricingOccupancyRules.ruleSetId,
+        status: pricingOccupancyRules.status,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(pricingOccupancyRules)
+      .groupBy(pricingOccupancyRules.ruleSetId, pricingOccupancyRules.status),
+    db
+      .select({
+        ruleSetId: pricingCloseOutRules.ruleSetId,
+        status: pricingCloseOutRules.status,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(pricingCloseOutRules)
+      .groupBy(pricingCloseOutRules.ruleSetId, pricingCloseOutRules.status),
+    db
+      .select({
+        ruleSetId: pricingChannelRules.ruleSetId,
+        status: pricingChannelRules.status,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(pricingChannelRules)
+      .groupBy(pricingChannelRules.ruleSetId, pricingChannelRules.status),
+    db
+      .select({
+        ruleSetId: pricingMinStayRules.ruleSetId,
+        status: pricingMinStayRules.status,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(pricingMinStayRules)
+      .groupBy(pricingMinStayRules.ruleSetId, pricingMinStayRules.status),
+    db
+      .select({
+        ruleSetId: pricingStopSellRules.ruleSetId,
+        status: pricingStopSellRules.status,
+        n: sql<number>`count(*)::int`,
+      })
+      .from(pricingStopSellRules)
+      .groupBy(pricingStopSellRules.ruleSetId, pricingStopSellRules.status),
+  ]);
+  for (const rows of grouped) {
+    for (const r of rows) {
+      const cur = out.get(r.ruleSetId) ?? { total: 0, active: 0 };
+      cur.total += r.n;
+      if (r.status === "active") cur.active += r.n;
+      out.set(r.ruleSetId, cur);
+    }
+  }
+  return out;
+}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, HandoffBadge } from "@/components/dashboard/primitives";
+import { Card, HandoffBadge, Kpi } from "@/components/dashboard/primitives";
 import { listInHouseGuests } from "@/features/front-office/services";
 
 export const metadata = { title: "In-house" };
@@ -7,6 +7,11 @@ export const dynamic = "force-dynamic";
 
 export default async function InHousePage() {
   const rows = await listInHouseGuests(new Date());
+
+  // KPI roll-ups — derived from the rows already fetched above.
+  const villasOccupied = new Set(rows.map((r) => r.villaId)).size;
+  const openSr = rows.reduce((n, r) => n + r.openServiceRequests, 0);
+  const openMt = rows.reduce((n, r) => n + r.openMaintenanceTickets, 0);
 
   return (
     <>
@@ -23,6 +28,27 @@ export default async function InHousePage() {
         Stays currently in progress. Counts of open service requests and
         maintenance tickets help the front desk spot stays at risk.
       </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <Kpi label="Stays in progress" value={String(rows.length)} sub="right now" />
+        <Kpi
+          label="Villas occupied"
+          value={String(villasOccupied)}
+          sub={villasOccupied === 1 ? "villa with guests" : "villas with guests"}
+        />
+        <Kpi
+          label="Open service requests"
+          value={String(openSr)}
+          sub="across in-house stays"
+          tone={openSr > 0 ? "gold" : undefined}
+        />
+        <Kpi
+          label="Open maintenance"
+          value={String(openMt)}
+          sub="tickets on occupied villas"
+          tone={openMt > 0 ? "danger" : "success"}
+        />
+      </div>
 
       <div className="section-heading">
         <div className="eyebrow label">Right now</div>

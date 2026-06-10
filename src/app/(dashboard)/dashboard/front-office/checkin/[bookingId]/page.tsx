@@ -14,10 +14,11 @@ export const dynamic = "force-dynamic";
 
 /**
  * Counter check-in — the 4-step tablet wizard (identity → stay → sign →
- * handover) that issues a villa door code on completion. Mounts the
- * previously-orphaned CheckinFlow + IdOcrPreview and persists the flow +
- * code (migration 0123). The arrivals board's single-shot "Check in" button
- * stays for quick desk flips; this is the full guided flow.
+ * handover) that issues a villa door code on completion. The client renders
+ * the mock's vertical `.fo-checkin-step` stepper around IdOcrPreview and
+ * persists the flow + code (migration 0123). The arrivals board's
+ * single-shot "Check in" button stays for quick desk flips; this is the
+ * full guided flow.
  */
 export default async function CheckinPage({
   params,

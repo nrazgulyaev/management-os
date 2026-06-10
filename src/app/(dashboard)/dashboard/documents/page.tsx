@@ -39,10 +39,6 @@ export default async function DocumentsPage({
   const agentOptions = aiKnowledge.envReady
     ? aiKnowledge.agents.map(({ id, displayName }) => ({ id, displayName }))
     : [];
-  const aiAssignments = aiKnowledge.assignments.map(
-    ({ documentId, agentId, agentName }) => ({ documentId, agentId, agentName }),
-  );
-
   const active = docs.filter((d) => d.status === "active");
   const expired = active.filter((d) => d.expired).length;
   const expiringSoon = active.filter((d) => d.expiringSoon).length;
@@ -92,8 +88,6 @@ export default async function DocumentsPage({
         templates={templates}
         counts={counts}
         initialDocId={initialDocId ?? null}
-        feedAgents={agentOptions}
-        aiAssignments={aiAssignments}
       />
 
       <AiKnowledgePanel

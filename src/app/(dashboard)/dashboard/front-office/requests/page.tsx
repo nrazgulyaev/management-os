@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, HandoffBadge } from "@/components/dashboard/primitives";
+import { Card, HandoffBadge, Kpi } from "@/components/dashboard/primitives";
 import { listCheckinCheckoutRequests } from "@/features/front-office/services";
 import { CheckinCheckoutRequestRowActions } from "@/components/front-office/request-row-actions";
 
@@ -28,6 +28,13 @@ export default async function RequestsPage({
     limit: 200,
   });
 
+  // KPI roll-ups — derived from the rows in view (respects ?status= filter).
+  const awaiting = rows.filter(
+    (r) => r.status === "requested" || r.status === "reviewing",
+  ).length;
+  const approved = rows.filter((r) => r.status === "approved").length;
+  const completed = rows.filter((r) => r.status === "completed").length;
+
   return (
     <>
       <div className="page-header">
@@ -43,6 +50,27 @@ export default async function RequestsPage({
         Early check-in, late check-out, expected-checkout-time updates, and
         early-checkout notices. Approve, reject, or mark completed.
       </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <Kpi
+          label="In view"
+          value={String(rows.length)}
+          sub={sp.status ? `filter: ${sp.status}` : "all statuses"}
+        />
+        <Kpi
+          label="Awaiting decision"
+          value={String(awaiting)}
+          sub="requested or reviewing"
+          tone={awaiting > 0 ? "gold" : undefined}
+        />
+        <Kpi
+          label="Approved"
+          value={String(approved)}
+          sub="not yet completed"
+          tone={approved > 0 ? "success" : undefined}
+        />
+        <Kpi label="Completed" value={String(completed)} sub="closed out" />
+      </div>
 
       <div className="section-heading">
         <div className="eyebrow label">Inbox</div>
