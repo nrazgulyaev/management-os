@@ -34,8 +34,7 @@ import {
   Sparkles,
   Workflow,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Card, Kpi, SectionHeading } from "@/components/dashboard/primitives";
 import {
   resolvePlatformIntegrationTrust,
   summarizePlatformTrust,
@@ -158,43 +157,66 @@ export default async function IntegrationsHubPage() {
     // Anonymous / pre-auth render — leave defaults.
   }
 
+  const available = counts.dryRun + counts.ignored;
+
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Settings", href: "/dashboard/settings" },
-          { label: "Integrations" },
-        ]}
-        eyebrow="Workspace"
-        title="Integrations"
-        description={`Trust tiers are resolved from each integration's real runtime — never env-presence. ${counts.real} real · ${counts.dryRun} dry-run · ${counts.ignored} ignored · ${counts.error} error.`}
+      <SectionHeading
+        eyebrow="Connections · channels, payments, messaging"
+        title={<>Integrations</>}
+        subtitle={`Trust tiers are resolved from each integration's real runtime — never env-presence. ${counts.real} real · ${counts.dryRun} dry-run · ${counts.ignored} ignored · ${counts.error} error.`}
       />
 
+      <div className="dist-kpis">
+        <Kpi
+          label="Connected"
+          value={String(counts.real)}
+          sub="services"
+          tone={counts.real > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Dry-run"
+          value={String(counts.dryRun)}
+          sub="simulated"
+          tone={counts.dryRun > 0 ? "warn" : undefined}
+        />
+        <Kpi
+          label="Errors"
+          value={String(counts.error)}
+          sub={counts.error > 0 ? "needs attention" : "all healthy"}
+          tone={counts.error > 0 ? "danger" : undefined}
+        />
+        <Kpi label="Available" value={String(available)} sub="not connected" />
+      </div>
+
       {/* Encryption + per-org messaging credentials banner. */}
-      <div className="rounded-2xl border border-line-soft bg-surface p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <Card
+        padding="default"
+        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      >
         <div className="flex items-center gap-3">
           <span
             className={
               kmsReady
-                ? "w-9 h-9 rounded-xl bg-success-weak/50 text-success flex items-center justify-center"
-                : "w-9 h-9 rounded-xl bg-danger-weak/50 text-danger flex items-center justify-center"
+                ? "flex h-9 w-9 items-center justify-center rounded-[10px] bg-success-weak/50 text-ok"
+                : "flex h-9 w-9 items-center justify-center rounded-[10px] bg-danger-weak/50 text-danger"
             }
           >
-            <Lock className="w-4 h-4" strokeWidth={2} />
+            <Lock className="h-4 w-4" strokeWidth={2} />
           </span>
           <div className="flex flex-col">
-            <span className="text-sm font-medium text-ink">
+            <span className="text-[14px] font-semibold text-ink">
               Credential encryption {kmsReady ? "active" : "MISSING"}
             </span>
-            <span className="text-xs text-ink-secondary">
+            <span className="text-[12.5px] text-ink-3">
               {kmsReady
                 ? "All per-org credentials are sealed AES-256-GCM at rest via the platform KMS."
                 : "STAY_LINK_KMS_SECRET is unset — per-org credentials would fall back to plaintext. Set it before connecting integrations."}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-ink-secondary">
-          <MessageSquare className="w-4 h-4 text-ink-tertiary" strokeWidth={1.75} />
+        <div className="flex items-center gap-2 text-[12.5px] text-ink-3">
+          <MessageSquare className="h-4 w-4 text-ink-4" strokeWidth={1.75} />
           {orgMessagingConnected ? (
             <span>
               This org has saved WhatsApp credentials
@@ -208,16 +230,17 @@ export default async function IntegrationsHubPage() {
             </span>
           )}
         </div>
-      </div>
+      </Card>
 
       <ConnectedIntegrations />
 
-      <Section
-        eyebrow="Catalog"
-        title="All external services"
-        description="Every platform integration with its truthful trust tier and a real test-connection. A present API key is never enough for a green badge — the runtime has to genuinely call the upstream."
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <section>
+        <SectionHeading
+          eyebrow="Catalog"
+          title={<>All external services</>}
+          subtitle="Every platform integration with its truthful trust tier and a real test-connection. A present API key is never enough for a green badge — the runtime has to genuinely call the upstream."
+        />
+        <div className="grid grid-cols-1 gap-[14px] md:grid-cols-2 lg:grid-cols-3">
           {trust.map((t) => {
             const meta = CATALOG_META[t.key];
             return (
@@ -238,7 +261,7 @@ export default async function IntegrationsHubPage() {
             );
           })}
         </div>
-      </Section>
+      </section>
     </div>
   );
 }
