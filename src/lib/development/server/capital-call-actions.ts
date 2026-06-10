@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -105,7 +105,12 @@ export async function issueCapitalCallAction(
   const [project] = await db
     .select({ id: projects.id, name: projects.name })
     .from(projects)
-    .where(eq(projects.id, parsed.projectId))
+    .where(
+      and(
+        eq(projects.id, parsed.projectId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!project) {
     throw new Error("Project not found.");

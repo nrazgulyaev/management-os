@@ -76,47 +76,55 @@ export async function confirmCapitalCallWireReceived(
     return { ok: false, error: "This wire has already been confirmed." };
   }
 
-  // Manual confirm: the LP asserts the full allocated amount was wired.
-  // received_usd mirrors allocated_usd (no partial-confirm in v1).
-  await db
-    .update(capitalCallAllocations)
-    .set({
-      receivedAt: new Date(),
-      receivedUsd: row.allocatedUsd,
-      wireRef: parsed.data.wireRef,
-    })
-    .where(
-      and(
-        eq(capitalCallAllocations.id, parsed.data.allocationId),
-        eq(capitalCallAllocations.investorId, session.investorId),
-        // Optimistic guard — don't overwrite a concurrently-confirmed row.
-        sql`${capitalCallAllocations.receivedAt} IS NULL`,
-      ),
-    );
+  // The allocation stamp, the sibling recompute, and the parent-status
+  // advance must be ONE atomic unit. Run as three separate statements they
+  // can split-brain (the allocation lands `received` while the parent call
+  // is left `issued` if the process dies between them, or two concurrent
+  // confirms race the parent status). Wrap them in a single transaction; the
+  // optimistic `received_at IS NULL` guard still protects the row.
+  await db.transaction(async (tx) => {
+    // Manual confirm: the LP asserts the full allocated amount was wired.
+    // received_usd mirrors allocated_usd (no partial-confirm in v1).
+    await tx
+      .update(capitalCallAllocations)
+      .set({
+        receivedAt: new Date(),
+        receivedUsd: row.allocatedUsd,
+        wireRef: parsed.data.wireRef,
+      })
+      .where(
+        and(
+          eq(capitalCallAllocations.id, parsed.data.allocationId),
+          eq(capitalCallAllocations.investorId, session.investorId),
+          // Optimistic guard — don't overwrite a concurrently-confirmed row.
+          sql`${capitalCallAllocations.receivedAt} IS NULL`,
+        ),
+      );
 
-  // Advance the PARENT call status now that an allocation settled. Without
-  // this the call stays `issued` forever even when every LP has wired, so the
-  // CFO list + attention feed misreport (split-brain: allocation says paid,
-  // call says issued). Recompute from the live allocation rows (this SELECT
-  // runs after the UPDATE above, so it sees the row we just stamped).
-  const siblings = await db
-    .select({ receivedAt: capitalCallAllocations.receivedAt })
-    .from(capitalCallAllocations)
-    .where(eq(capitalCallAllocations.callId, row.callId));
-  const totalAllocs = siblings.length;
-  const settledAllocs = siblings.filter((s) => s.receivedAt).length;
-  const nextStatus =
-    settledAllocs === 0
-      ? "issued"
-      : settledAllocs >= totalAllocs
-        ? "received"
-        : "partial";
-  if (nextStatus !== row.callStatus) {
-    await db
-      .update(capitalCalls)
-      .set({ status: nextStatus })
-      .where(eq(capitalCalls.id, row.callId));
-  }
+    // Advance the PARENT call status now that an allocation settled. Without
+    // this the call stays `issued` forever even when every LP has wired, so the
+    // CFO list + attention feed misreport (split-brain: allocation says paid,
+    // call says issued). Recompute from the live allocation rows (this SELECT
+    // runs after the UPDATE above, so it sees the row we just stamped).
+    const siblings = await tx
+      .select({ receivedAt: capitalCallAllocations.receivedAt })
+      .from(capitalCallAllocations)
+      .where(eq(capitalCallAllocations.callId, row.callId));
+    const totalAllocs = siblings.length;
+    const settledAllocs = siblings.filter((s) => s.receivedAt).length;
+    const nextStatus =
+      settledAllocs === 0
+        ? "issued"
+        : settledAllocs >= totalAllocs
+          ? "received"
+          : "partial";
+    if (nextStatus !== row.callStatus) {
+      await tx
+        .update(capitalCalls)
+        .set({ status: nextStatus })
+        .where(eq(capitalCalls.id, row.callId));
+    }
+  });
 
   await recordAuditEvent({
     actorUserId: session.appUserId,

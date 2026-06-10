@@ -148,7 +148,12 @@ export async function transitionPurchaseRequest(
       const [sub] = await tx
         .select({ status: submittals.status, ref: submittals.ref })
         .from(submittals)
-        .where(eq(submittals.id, pr.gatingSubmittalId))
+        .where(
+          and(
+            eq(submittals.id, pr.gatingSubmittalId),
+            eq(submittals.organizationId, organizationId),
+          ),
+        )
         .limit(1);
       if (!sub || !isSubmittalApproved(sub.status as SubmittalStatus)) {
         throw new Error(

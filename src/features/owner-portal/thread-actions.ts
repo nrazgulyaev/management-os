@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db/client";
 import { ownerThreads, ownerMessages } from "@/lib/db/schema/owner-threads";
 import { requireOwnerWrite } from "@/features/owner-portal/require-owner-write";
 import { getOwnerOrgId } from "@/features/owner-portal/owner-context";
+import { recordAuditEvent } from "@/features/audit/services";
 import { triggerOwnerConcierge } from "@/features/owner-portal/messaging/concierge-trigger";
 import type { OwnerActionState } from "@/features/owner-portal/notification-prefs-types";
 
@@ -97,9 +98,23 @@ export async function postOwnerThreadReplyAction(
     })
     .where(eq(ownerThreads.id, threadId));
 
+  // Resolve the org anchor once — used for both the audit event and the
+  // concierge trigger below.
+  const orgId = await getOwnerOrgId(auth.ownerId).catch(() => null);
+
+  // Audit the reply (sibling createOwnerThreadAction audits the create;
+  // this closes the gap so an owner reply is equally attributable).
+  await recordAuditEvent({
+    actorUserId: auth.appUserId,
+    organizationId: orgId,
+    action: "owner_thread.reply",
+    entityType: "owner_thread",
+    entityId: threadId,
+    after: { messageId: msg.id, ownerId: auth.ownerId, kind: thread.kind },
+  });
+
   // Fire-and-forget the concierge trigger (no-op until an agent is
   // seeded; never blocks or fails the reply).
-  const orgId = await getOwnerOrgId(auth.ownerId).catch(() => null);
   if (orgId) {
     void triggerOwnerConcierge({
       organizationId: orgId,
