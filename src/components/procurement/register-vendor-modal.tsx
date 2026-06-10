@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
+import { validateNpwp, NPWP_FORMAT_HINT } from "@/lib/tax/npwp";
 
 /**
  * Phase 2.2 dev-04 — RegisterVendorModal.
@@ -52,8 +53,18 @@ export function RegisterVendorModal({
 
   const dirty = values.name.length > 0 || values.contactEmail.length > 0;
 
+  // ID-TAX — soft NPWP format check, Indonesia region only (US EIN / SG
+  // GST values must not be judged against NPWP rules). Empty stays
+  // allowed; a present-but-malformed value blocks submit inline.
+  const npwpError =
+    values.taxRegion === "ID" &&
+    values.taxId.trim().length > 0 &&
+    !validateNpwp(values.taxId).valid
+      ? `Invalid NPWP format — enter a ${NPWP_FORMAT_HINT}, or leave blank.`
+      : null;
+
   async function submit() {
-    if (!values.name || !values.category) return;
+    if (!values.name || !values.category || npwpError) return;
     await onSubmit?.(values);
     onOpenChange(false);
   }
@@ -108,7 +119,18 @@ export function RegisterVendorModal({
           </div>
           <div className="field">
             <label className="field-label">Tax ID</label>
-            <input className="input mono" value={values.taxId} onChange={(e) => setValues((p) => ({ ...p, taxId: e.target.value }))} />
+            <input
+              className="input mono"
+              value={values.taxId}
+              aria-invalid={npwpError !== null || undefined}
+              data-testid="npwp-input"
+              onChange={(e) => setValues((p) => ({ ...p, taxId: e.target.value }))}
+            />
+            {npwpError && (
+              <span className="text-xs text-danger" data-testid="npwp-error">
+                {npwpError}
+              </span>
+            )}
           </div>
         </div>
         <div className="field">
@@ -125,7 +147,12 @@ export function RegisterVendorModal({
         <button type="button" className="btn btn-secondary btn-sm" onClick={() => onOpenChange(false)}>
           Cancel
         </button>
-        <button type="button" className="btn btn-primary btn-sm" onClick={submit} disabled={!values.name || !values.category}>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={submit}
+          disabled={!values.name || !values.category || npwpError !== null}
+        >
           Register vendor
         </button>
       </ModalFooter>

@@ -6,7 +6,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { NpwpInput } from "@/components/development/finance/npwp-input";
 import { createVendor } from "@/lib/development/server/vendor-actions";
+import { validateNpwp, NPWP_FORMAT_HINT } from "@/lib/tax/npwp";
 import {
   VENDOR_TYPES,
   VENDOR_TYPE_LABEL,
@@ -45,6 +47,16 @@ export default async function NewVendorPage({
       String(formData.get("bankAccountNumber") ?? "") || null;
     const bankSwift = String(formData.get("bankSwift") ?? "") || null;
     const notes = String(formData.get("notes") ?? "") || null;
+
+    // ID-TAX — soft NPWP format check, server side (NpwpInput already
+    // blocks native submit client-side). Empty stays allowed.
+    if (taxId && !validateNpwp(taxId).valid) {
+      redirect(
+        `/development-os/vendors/new?error=${encodeURIComponent(
+          `Invalid NPWP format — enter a ${NPWP_FORMAT_HINT}, or leave the field blank.`,
+        )}`,
+      );
+    }
 
     let result: { vendorCode: string } | null = null;
     try {
@@ -216,10 +228,10 @@ export default async function NewVendorPage({
         <Section eyebrow="Compliance + banking" title="Optional">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Tax ID (NPWP)">
-              <input
-                type="text"
+              <NpwpInput
                 name="taxId"
                 placeholder="01.234.567.8-901.000"
+                ariaLabel="Tax ID (NPWP)"
                 className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm font-mono"
               />
             </Field>

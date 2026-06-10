@@ -22,6 +22,7 @@ import { runDirectBookingDepositExpiryJob } from "./direct-booking-deposit-expir
 import { runOwnerBookingProjectionRebuildJob } from "./owner-booking-projection-rebuild-job";
 import { runStatementTransparencyRebuildJob } from "./statement-transparency-rebuild-job";
 import { runOwnerStatementAutoAckJob } from "./owner-statement-auto-ack-job";
+import { runOwnerIntelDailyDigestJob } from "@/lib/owner-intel/daily-digest-job";
 import {
   runDevOsBalanceAlert,
   runDevOsBalanceReconciliation,
@@ -138,6 +139,12 @@ const KNOWN_JOBS = new Set([
   "direct_booking_deposit_expiry",
   "owner_booking_projection_rebuild",
   "statement_transparency_rebuild",
+  // Registered in JobKey + the dispatch switch since its cron landed, but
+  // was missing here — the /api/cron/owner-statement-auto-ack route threw
+  // "Unknown job key". Fixed alongside the owner_intel_daily registration.
+  "owner_statement_auto_ack",
+  // INSIGHTS-PUSH-0600 — morning owner-intelligence digest.
+  "owner_intel_daily",
   // Development OS · Stage 2.2.B Checkpoint 2
   "dev_os_pricing_apply",
   "dev_os_reservation_expiry",
@@ -273,6 +280,7 @@ export type JobKey =
   | "owner_booking_projection_rebuild"
   | "statement_transparency_rebuild"
   | "owner_statement_auto_ack"
+  | "owner_intel_daily"
   | "dev_os_pricing_apply"
   | "dev_os_reservation_expiry"
   | "dev_os_milestone_pre_invoice"
@@ -458,6 +466,8 @@ export async function executeJob(
         return runStatementTransparencyRebuildJob(handle);
       case "owner_statement_auto_ack":
         return runOwnerStatementAutoAckJob(handle);
+      case "owner_intel_daily":
+        return runOwnerIntelDailyDigestJob(handle);
       case "dev_os_pricing_apply":
         return runDevOsPricingApply(handle);
       case "dev_os_reservation_expiry":

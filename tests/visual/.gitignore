@@ -1,0 +1,3 @@
+# Authenticated Playwright storage states minted by cabinets.setup.ts.
+# These contain live Supabase session cookies — NEVER commit them.
+.auth/

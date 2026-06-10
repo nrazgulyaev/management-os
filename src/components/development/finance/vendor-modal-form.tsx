@@ -12,7 +12,9 @@ import {
 } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { EntityModal } from "@/components/forms/entity-modal";
+import { NpwpInput } from "@/components/development/finance/npwp-input";
 import { createVendor } from "@/lib/development/server/vendor-actions";
+import { validateNpwp, NPWP_FORMAT_HINT } from "@/lib/tax/npwp";
 
 /**
  * Stage 6.P0.4 — modal-driven Add Vendor.
@@ -68,6 +70,16 @@ export function VendorModalForm() {
     ).trim();
     const bankSwift = String(formData.get("bankSwift") ?? "").trim();
     const notes = String(formData.get("notes") ?? "").trim();
+
+    // ID-TAX — soft NPWP format check (NpwpInput already blocks native
+    // submit via setCustomValidity; this is the belt-and-braces guard).
+    // Empty stays allowed: NPWP is optional.
+    if (taxId && !validateNpwp(taxId).valid) {
+      setError(
+        `Invalid NPWP format — enter a ${NPWP_FORMAT_HINT}, or leave blank.`,
+      );
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -202,8 +214,11 @@ export function VendorModalForm() {
               Compliance + tax
             </summary>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
-              <Field label="Tax ID (NPWP / TIN)">
-                <input name="taxId" className={inputCls} />
+              <Field
+                label="Tax ID (NPWP / TIN)"
+                hint="Optional · 15-digit NPWP or 16-digit NIK format"
+              >
+                <NpwpInput name="taxId" className={inputCls} />
               </Field>
               <Field label="Business licence number">
                 <input name="businessLicenseNumber" className={inputCls} />

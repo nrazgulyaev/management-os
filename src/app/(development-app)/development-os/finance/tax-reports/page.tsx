@@ -11,6 +11,11 @@ import {
 import type { TaxPeriodReport } from "@/lib/db/schema/tax";
 import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 import { safeQuery } from "@/lib/development/safe-query";
+import {
+  calendarMonth,
+  monthLabel,
+  type PeriodKey,
+} from "./_period";
 import { FinalizeReportButton } from "./_finalize-button";
 import { MarkFiledButton } from "./_mark-filed-button";
 import { FileTaxesButton } from "./_file-taxes-button";
@@ -29,42 +34,8 @@ export const dynamic = "force-dynamic";
  * "File taxes" batch action, and the period-close gate note.
  */
 
-interface PeriodKey {
-  start: string;
-  end: string;
-}
-
-function monthLabel(p: PeriodKey): string {
-  // Calendar month → "May 2026"; anything else → raw bounds.
-  const d = new Date(`${p.start}T00:00:00Z`);
-  const lastDay = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0),
-  )
-    .toISOString()
-    .slice(0, 10);
-  if (p.start.endsWith("-01") && p.end === lastDay) {
-    return d.toLocaleString("en-US", {
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-  }
-  return `${p.start} → ${p.end}`;
-}
-
-function calendarMonth(offset: number): PeriodKey {
-  const now = new Date();
-  const start = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1),
-  );
-  const end = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset + 1, 0),
-  );
-  return {
-    start: start.toISOString().slice(0, 10),
-    end: end.toISOString().slice(0, 10),
-  };
-}
+// PeriodKey / monthLabel / calendarMonth live in ./_period.ts (shared with
+// the bukti potong register sub-route).
 
 function declarationLabel(
   vatDirection: string | null,
@@ -215,6 +186,21 @@ export default async function TaxReportsPage({
           >
             Period close →
           </Link>
+          <Link
+            href={`/development-os/finance/tax-reports/bukti-potong?period=${selectedKey}`}
+            className="btn btn-secondary btn-sm"
+            title="PPh withholding per counterparty — source register for bukti potong (official e-Bupot numbers are issued by DJP/Coretax)"
+          >
+            Bukti potong register →
+          </Link>
+          <a
+            href={`/development-os/finance/tax-reports/export?periodStart=${selected.start}&periodEnd=${selected.end}`}
+            className="btn btn-secondary btn-sm"
+            title="Coretax import draft — verify column mapping against your Coretax template before upload"
+            download
+          >
+            Export e-Faktur CSV (draft)
+          </a>
           <RefreshDeclarationsButton
             periodStart={selected.start}
             periodEnd={selected.end}
@@ -246,6 +232,13 @@ export default async function TaxReportsPage({
           );
         })}
       </div>
+
+      <p className="mb-[18px] text-xs text-[var(--ink-3)] max-w-[680px]">
+        e-Faktur CSV export is a Coretax import draft — verify column mapping
+        against your Coretax template before upload (not a certified
+        DJP/Coretax format). The bukti potong register is the per-counterparty
+        PPh source; official e-Bupot numbers are issued by DJP/Coretax.
+      </p>
 
       <div className="cfo-kpis">
         <Kpi
@@ -410,13 +403,16 @@ export default async function TaxReportsPage({
         <p className="cfo-card-sub mt-[10px] mb-0 max-w-[680px]">
           Built: direction-aware PPN output/input + PPh withholding
           declarations, finalize → file lifecycle with DJP reference, audit
-          trail, and the period-close gate (a period cannot be closed until
-          these declarations are filed). Not built yet — each needs its own
-          design pass: Coretax-compatible e-Faktur export files, NPWP
-          validation, and per-counterparty bukti potong (e-Bupot)
-          certificates. Declarations here track period totals and the DJP
-          reference only. Legacy direction-less VAT drafts are archived
-          automatically when a period is re-aggregated.
+          trail, the period-close gate (a period cannot be closed until these
+          declarations are filed), NPWP format validation on vendor forms
+          (15-digit legacy + 16-digit NIK format, soft — empty stays
+          allowed), the e-Faktur CSV export DRAFT (Coretax import draft —
+          verify column mapping against your Coretax template before upload),
+          and the bukti potong source register with printable per-counterparty
+          drafts. Not built yet: certified Coretax file formats / API upload
+          and official e-Bupot certificate numbers — those are issued by
+          DJP/Coretax, never invented here. Legacy direction-less VAT drafts
+          are archived automatically when a period is re-aggregated.
         </p>
       </Card>
     </DevelopmentShell>
