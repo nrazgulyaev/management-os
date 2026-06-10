@@ -1,6 +1,7 @@
 import type { PaymentProviderName } from "@/lib/db/schema/payment-processors";
 import { DryRunPaymentProvider } from "./providers/dry-run";
 import { StripeProvider } from "./providers/stripe/provider";
+import { XenditProvider } from "./providers/xendit/provider";
 import type {
   PaymentCredentials,
   PaymentProviderInterface,
@@ -40,6 +41,13 @@ export function selectPaymentProvider(
         return new DryRunPaymentProvider(provider);
       }
       return new StripeProvider(credentials);
+
+    case "xendit":
+      // Indonesia-local rails (QRIS / e-wallets / VA via Invoice API).
+      if (credentials.provider !== "xendit") {
+        return new DryRunPaymentProvider(provider);
+      }
+      return new XenditProvider(credentials);
 
     // P3 doesn't ship Wise Payments / PayPal in this iteration.
     case "wise_payments":

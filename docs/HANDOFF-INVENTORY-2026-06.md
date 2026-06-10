@@ -190,3 +190,14 @@
 | **Coretax/NPWP/bukti potong** | NPWP-валидация (15/16-значный формат, 13 тестов) на 3 вендорских формах (только для ID-региона); e-Faktur CSV-export **draft** с дисклеймером (без претензии на сертифицированный формат); реестр bukti potong per-counterparty + печатная форма-draft (официальные номера выдаёт DJP — не выдумываем) |
 
 **Известные хвосты, зафиксированные агентами:** role-fan-out в delivery worker не фильтрует по org (pre-existing tenancy-гэп — кросс-org director увидит чужие дайджесты в инбоксе) · сертифицированный Coretax-формат/API · PSP-разблокировка billing.
+
+## 15. Волна 5 выполнена (2026-06-10, PR #215) — внешние блокеры разблокированы
+
+| Блок | Что построено |
+|---|---|
+| **Tenancy-фикс delivery** | role fan-out теперь фильтруется по organization_id (платформенный охват только при org=null); internal_user/owner ветки укреплены; 5 регрессионных тестов проверяют реальный SQL WHERE; аудит продьюсеров: ровно 2 задавали org+role (aging-reminder и 06:00-дайджест — та самая утечка) |
+| **Xendit PSP-рельсы** (миграция 0166) | XenditProvider (Invoice API = QRIS/e-wallets/VA/cards одной ссылкой), per-org шифрованные креды, верифицируемый вебхук (constant-time token, идемпотентность, аудит 401), e2e-потребитель: buyer-installment «Pay online» в IDR → вебхук → ТОТ ЖЕ settle-код, что и manual mark-paid; провайдер-форма с честным test-connection; band на /platform/billing читает реальное состояние. Без ключей — not configured, manual-поток нетронут. Refunds — честный not-supported. Попутно закрыт IDOR в connection-actions |
+| **Coretax-формат** (HIGH confidence) | Ресёрч по первоисточникам DJP (официальный sample XML TaxInvoiceBulk v1.4 + Excel-шаблон v1.6.1 из конвертера + PDF-механизм с pajak.go.id) → docs/CORETAX-EFAKTUR-FORMAT.md; экспорт ?format=coretax-xml: официальный XML, 16-значный NPWP (15→0-префикс), PMK 131/2024 (OtherTaxBase=11/12×DPP, VAT 12%), nomor faktur НЕ эмитится (его выдаёт DJP), non-IDR строки исключаются со счётчиком; ловушка задокументирована: IND в сэмпле DJP — это Индия, Индонезия = IDN |
+| **Visual-baselines** | **36 PNG лендингов реально сгенерированы и закоммичены** (12 экранов × desktop/tablet/mobile, -darwin, ~11MB): прод-сборка на :3101 без DB, каждый PNG проверен на нетривиальность, стабильность доказана двумя зелёными diff-прогонами; CI-guard исправлен на -linux.png (darwin-сет не роняет ubuntu-runner); кабинетные — после экспорта DB-кредов и PLAYWRIGHT_VISUAL_* (runbook в README) |
+
+**Действия пользователя:** `npm run db:migrate` (0166) · для Xendit: добавить провайдера с ключами на /dashboard/payments/providers + callback-token, URL вебхука на странице провайдера · для кабинетных baseline: README tests/visual.

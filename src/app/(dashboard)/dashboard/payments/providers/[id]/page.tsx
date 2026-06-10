@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { paymentProcessorConnections } from "@/lib/db/schema/payment-processors";
 import { PaymentConnectionActions } from "@/components/payments/connection-actions-buttons";
 
@@ -33,14 +34,31 @@ export default async function PaymentConnectionDetailPage({
   if (!db) {
     return <p className="p-6">Database not configured.</p>;
   }
+  // Org-scoped read — a connection id from another tenant 404s.
+  let orgId: string;
+  try {
+    orgId = await requireOrgId();
+  } catch {
+    notFound();
+  }
   const [conn] = await db
     .select()
     .from(paymentProcessorConnections)
-    .where(eq(paymentProcessorConnections.id, id))
+    .where(
+      and(
+        eq(paymentProcessorConnections.id, id),
+        eq(paymentProcessorConnections.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!conn) notFound();
 
-  const webhookUrl = `/api/webhooks/payments/${conn.provider}`;
+  // Xendit has a dedicated top-level route (per-org callback-token
+  // verification); the others share the /payments/<provider> envelope.
+  const webhookUrl =
+    conn.provider === "xendit"
+      ? "/api/webhooks/xendit"
+      : `/api/webhooks/payments/${conn.provider}`;
 
   return (
     <div className="flex flex-col gap-10">
@@ -106,7 +124,11 @@ export default async function PaymentConnectionDetailPage({
 
       <Section
         title="Webhook configuration"
-        description="Copy this URL to the provider's dashboard so they can POST events to us. Signing secret you entered during setup is what verifies inbound events."
+        description={
+          conn.provider === "xendit"
+            ? "Copy this URL into the Xendit dashboard (Settings → Developers → Webhooks → Invoices). Inbound callbacks are verified against the callback verification token you entered during setup."
+            : "Copy this URL to the provider's dashboard so they can POST events to us. Signing secret you entered during setup is what verifies inbound events."
+        }
       >
         <div className="rounded border border-line-soft bg-canvas/30 p-4">
           <div className="text-[10px] uppercase tracking-widest text-ink-tertiary mb-2">

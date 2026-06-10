@@ -41,7 +41,7 @@ export default async function NewPaymentConnectionPage() {
           { label: "New" },
         ]}
         title="Connect a payment processor"
-        description="Stripe is the only provider with live API calls today. Wise Payments + PayPal connections save credentials but route through DryRun until each provider's implementation lands."
+        description="Xendit (Indonesia — QRIS, e-wallets, virtual accounts) and Stripe have live API calls today. Wise Payments + PayPal connections save credentials but route through DryRun until each provider's implementation lands."
         actions={
           <Button asChild variant="secondary">
             <Link href="/dashboard/payments/providers">

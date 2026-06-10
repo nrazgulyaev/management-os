@@ -10,28 +10,35 @@ import {
   type EfakturDeclarationBlock,
   type EfakturLine,
 } from "@/lib/development/server/tax/efaktur-export";
+import { buildCoretaxFakturKeluaranXml } from "@/lib/development/server/tax/coretax-xml";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * ID-TAX compliance trio — e-Faktur export DRAFT (CSV download backing the
- * "Export e-Faktur CSV" button on the tax-reports page).
+ * ID-TAX compliance trio — e-Faktur export (download backing the export
+ * format picker on the tax-reports page). Two formats:
  *
- * One file per period: a comment preamble (draft disclaimer), then per
- * declaration (PPN Keluaran / PPN Masukan) one `declaration` header row with
- * block totals + report status, followed by `line` rows from the underlying
- * VAT-classified dev_transactions (date, counterparty, NPWP when the vendor
- * register has one, base amount, VAT amount, direction).
+ *   * format=draft-csv (default) — working DRAFT register: a comment
+ *     preamble (draft disclaimer), then per declaration (PPN Keluaran /
+ *     PPN Masukan) one `declaration` header row with block totals + report
+ *     status, followed by `line` rows from the underlying VAT-classified
+ *     dev_transactions. All currencies, USD-normalised aggregates. NOT a
+ *     DJP file format.
+ *   * format=coretax-xml — official-format Coretax import XML
+ *     (TaxInvoiceBulk, faktur pajak keluaran), built per DJP's published
+ *     template (docs/CORETAX-EFAKTUR-FORMAT.md). IDR output lines only;
+ *     excluded non-IDR lines are counted in the file header comment.
  *
  * Explicitly gated here (route handlers do NOT inherit the layout guard):
  * requireInternalUser + org scoping inside loadEfakturExport. Audited as
- * tax_report.export. This is a Coretax import DRAFT, not a certified format.
+ * tax_report.export with the chosen format.
  */
 
 const querySchema = z.object({
   periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  format: z.enum(["draft-csv", "coretax-xml"]).default("draft-csv"),
 });
 
 const HEADERS = [
@@ -124,10 +131,14 @@ export async function GET(request: NextRequest) {
   const parsed = querySchema.safeParse({
     periodStart: sp.get("periodStart") ?? "",
     periodEnd: sp.get("periodEnd") ?? "",
+    format: sp.get("format") ?? "draft-csv",
   });
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "periodStart and periodEnd are required (YYYY-MM-DD)." },
+      {
+        error:
+          "periodStart and periodEnd are required (YYYY-MM-DD); format must be draft-csv or coretax-xml.",
+      },
       { status: 400 },
     );
   }
@@ -145,8 +156,35 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  if (parsed.data.format === "coretax-xml") {
+    const result = buildCoretaxFakturKeluaranXml(data);
+
+    await recordAuditEvent({
+      actorUserId: ctx.appUser?.id ?? null,
+      organizationId: data.organizationId,
+      action: "tax_report.export",
+      entityType: "tax_period_report",
+      entityId: null,
+      after: {
+        kind: "efaktur_coretax_xml",
+        period: `${data.periodStart} → ${data.periodEnd}`,
+        includedLineCount: result.includedLineCount,
+        excludedNonIdrCount: result.excludedNonIdrCount,
+      },
+    });
+
+    return new NextResponse(result.xml, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/xml; charset=utf-8",
+        "Content-Disposition": `attachment; filename="coretax-faktur-keluaran-${data.periodStart}_${data.periodEnd}.xml"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
   const lines: string[] = [
-    "# Coretax import draft — verify column mapping against your Coretax template before upload.",
+    "# Working DRAFT register — not a DJP/Coretax file format. For the official Coretax import file (faktur keluaran, IDR only) use format=coretax-xml; see docs/CORETAX-EFAKTUR-FORMAT.md.",
     `# e-Faktur VAT register DRAFT (not a certified DJP/Coretax file format) · period ${data.periodStart} → ${data.periodEnd} · VAT tax types: ${data.vatTaxTypeNames.join("; ") || "none configured"}.`,
     "# base_amount_usd / vat_amount_usd are USD-normalised (matching the declaration totals on the tax-reports page); amount_original_minor is the recorded amount in minor units of the stated currency. counterparty_npwp is the vendor register tax_id, verbatim, when the counterparty matches a vendor.",
     HEADERS.join(","),

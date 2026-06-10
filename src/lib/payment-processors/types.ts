@@ -75,11 +75,24 @@ export interface ManualPaymentCredentials {
   mode: PaymentMode;
 }
 
+export interface XenditCredentials {
+  provider: "xendit";
+  /** xnd_development_... or xnd_production_... — Basic-auth username
+   *  against api.xendit.co. */
+  secretKey: string;
+  /** Xendit "callback verification token" (Settings → Developers →
+   *  Webhooks). Inbound webhooks echo it in `x-callback-token`; we
+   *  constant-time compare against this stored value. */
+  callbackToken: string;
+  mode: PaymentMode;
+}
+
 export type PaymentCredentials =
   | StripeCredentials
   | WisePaymentsCredentials
   | PaypalCredentials
-  | ManualPaymentCredentials;
+  | ManualPaymentCredentials
+  | XenditCredentials;
 
 // ---------------------------------------------------------------------------
 // Domain types — what providers consume / return

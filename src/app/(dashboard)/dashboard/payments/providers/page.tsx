@@ -56,7 +56,8 @@ export default async function ProvidersPage() {
           </div>
           <h1>Payment providers</h1>
           <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
-            Provider configuration. Stripe is wired live today; Wise + PayPal
+            Provider configuration. Xendit (Indonesia rails — QRIS, e-wallets,
+            virtual accounts) and Stripe are wired live today; Wise + PayPal
             default to DryRun until each implementation lands. Private credentials
             live encrypted and never surface here.
           </p>
@@ -85,8 +86,8 @@ export default async function ProvidersPage() {
           </thead>
           <tbody>
             {connections.length === 0 ? (
-              <TableEmpty colSpan={6}>No connections yet. Wire Stripe, Wise, PayPal or Manual to start
-                  collecting payments.</TableEmpty>
+              <TableEmpty colSpan={6}>No connections yet. Wire Xendit (Indonesia), Stripe, Wise, PayPal or
+                  Manual to start collecting payments.</TableEmpty>
             ) : (
               connections.map((c) => (
                 <tr key={c.id}>

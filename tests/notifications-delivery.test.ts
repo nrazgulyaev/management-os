@@ -254,6 +254,189 @@ test("default job catalog includes delivery + digest", async () => {
 });
 
 // -----------------------------------------------------------------------------
+// TENANCY (wave 4 regression) — recipient resolution must stay inside the
+// notification's organization. Before the fix, recipientType='role'
+// resolved PLATFORM-WIDE (every active user with the role across all
+// orgs), so a cross-org "director" received other orgs' digests.
+//
+// `resolveNotificationRecipients` lives in recipients.ts (no
+// "server-only") and takes an injected Drizzle client, so we can hand it
+// a fake db that captures the WHERE condition and render it to SQL —
+// asserting on the exact constraint the database would receive.
+// -----------------------------------------------------------------------------
+
+import { PgDialect } from "drizzle-orm/pg-core";
+import type { SQL } from "drizzle-orm";
+
+const ORG_A = "11111111-1111-1111-1111-111111111111";
+
+interface CapturedQuery {
+  where?: SQL;
+}
+
+/** Minimal drizzle-shaped fake: select().from().innerJoin()*.where()[.limit()]. */
+function fakeDb(rows: Array<Record<string, unknown>>, captured: CapturedQuery) {
+  const chain = {
+    select: () => chain,
+    from: () => chain,
+    innerJoin: () => chain,
+    where: (cond: SQL) => {
+      captured.where = cond;
+      const promise = Promise.resolve(rows) as Promise<unknown> & {
+        limit: (n: number) => Promise<unknown>;
+      };
+      promise.limit = (n: number) => Promise.resolve(rows.slice(0, n));
+      return promise;
+    },
+  };
+  return chain;
+}
+
+function renderWhere(captured: CapturedQuery): { sql: string; params: unknown[] } {
+  assert.ok(captured.where, "query never reached .where()");
+  const q = new PgDialect().sqlToQuery(captured.where);
+  return { sql: q.sql, params: q.params as unknown[] };
+}
+
+const baseQueueRow = {
+  id: "00000000-0000-0000-0000-00000000aaaa",
+  recipientId: null as string | null,
+  channel: "in_app",
+  templateKey: "owner_intel.daily_digest",
+  title: "Morning insights",
+  body: "digest body",
+  priority: "normal",
+};
+
+test("role notification with organizationId only reaches that org's users", async () => {
+  const { resolveNotificationRecipients } = await import(
+    "../src/features/notifications/recipients"
+  );
+  const captured: CapturedQuery = {};
+  const db = fakeDb(
+    [
+      { id: "u-1", email: "a@org-a.test", phone: null, timezone: "Asia/Makassar" },
+      { id: "u-2", email: "b@org-a.test", phone: null, timezone: "Asia/Makassar" },
+    ],
+    captured,
+  );
+
+  const { recipients, reason } = await resolveNotificationRecipients(
+    {
+      ...baseQueueRow,
+      recipientType: "role",
+      organizationId: ORG_A,
+      payload: { recipientRole: "director" },
+    },
+    db as never,
+  );
+
+  assert.equal(reason, undefined);
+  assert.equal(recipients.length, 2);
+  assert.ok(recipients.every((r) => r.roleKey === "director"));
+
+  // The WHERE clause sent to the database must constrain the fan-out to
+  // the notification's organization (not just role + status).
+  const { sql, params } = renderWhere(captured);
+  assert.match(sql, /"app_users"\."organization_id" = /);
+  assert.ok(params.includes(ORG_A), "org id must be bound as a parameter");
+  assert.ok(params.includes("director"));
+});
+
+test("role notification without organizationId keeps platform-wide fan-out", async () => {
+  const { resolveNotificationRecipients } = await import(
+    "../src/features/notifications/recipients"
+  );
+  const captured: CapturedQuery = {};
+  const db = fakeDb(
+    [{ id: "u-1", email: "a@x.test", phone: null, timezone: "Asia/Makassar" }],
+    captured,
+  );
+
+  const { recipients } = await resolveNotificationRecipients(
+    {
+      ...baseQueueRow,
+      recipientType: "role",
+      organizationId: null,
+      payload: { recipientRole: "super_admin" },
+    },
+    db as never,
+  );
+
+  assert.equal(recipients.length, 1);
+  const { sql } = renderWhere(captured);
+  assert.doesNotMatch(sql, /organization_id/);
+});
+
+test("internal_user target outside the notification org is rejected", async () => {
+  const { resolveNotificationRecipients } = await import(
+    "../src/features/notifications/recipients"
+  );
+  const captured: CapturedQuery = {};
+  // The org filter is in SQL, so a cross-org target resolves zero rows.
+  const db = fakeDb([], captured);
+
+  const { recipients, reason } = await resolveNotificationRecipients(
+    {
+      ...baseQueueRow,
+      recipientType: "internal_user",
+      recipientId: "00000000-0000-0000-0000-00000000bbbb",
+      organizationId: ORG_A,
+      payload: null,
+    },
+    db as never,
+  );
+
+  assert.equal(recipients.length, 0);
+  assert.equal(reason, "app_user not found in notification organization");
+  const { sql, params } = renderWhere(captured);
+  assert.match(sql, /"app_users"\."organization_id" = /);
+  assert.ok(params.includes(ORG_A));
+});
+
+test("owner external delivery scopes linked app_users to the notification org", async () => {
+  const { resolveNotificationRecipients } = await import(
+    "../src/features/notifications/recipients"
+  );
+  const captured: CapturedQuery = {};
+  const db = fakeDb(
+    [{ id: "u-9", email: "owner@org-a.test", phone: null, timezone: "Asia/Makassar" }],
+    captured,
+  );
+
+  const { recipients } = await resolveNotificationRecipients(
+    {
+      ...baseQueueRow,
+      recipientType: "owner",
+      recipientId: "00000000-0000-0000-0000-00000000cccc",
+      organizationId: ORG_A,
+      channel: "email",
+      payload: null,
+    },
+    db as never,
+  );
+
+  assert.equal(recipients.length, 1);
+  assert.equal(recipients[0].recipientAddress, "owner@org-a.test");
+  const { sql, params } = renderWhere(captured);
+  assert.match(sql, /"app_users"\."organization_id" = /);
+  assert.ok(params.includes(ORG_A));
+});
+
+test("delivery worker threads the queue row's organizationId into resolution", () => {
+  // Static guard — deliverNotification must keep passing n.organizationId
+  // (and its db handle) to resolveNotificationRecipients; dropping either
+  // silently reverts the role fan-out to platform-wide.
+  const src = readFileSync(
+    join(repoRoot, "src/features/notifications/delivery.ts"),
+    "utf8",
+  );
+  assert.match(src, /organizationId:\s*n\.organizationId/);
+  assert.match(src, /resolveNotificationRecipients\(/);
+  assert.match(src, /from "\.\/recipients"/);
+});
+
+// -----------------------------------------------------------------------------
 // Permission matrix (v8A keys are inherited from v7; sanity check)
 // -----------------------------------------------------------------------------
 test("notification permissions still gate on the v7 matrix", async () => {
