@@ -52,6 +52,11 @@
 @import "../styles/components/investors.css";
 @import "../styles/components/distribution.css";
 @import "../styles/components/workspace.css";
+/* platform.css carries the [data-product="platform"] dark-console chrome
+   gap-fills; it must come after primitives/shell/modal so its equal-
+   specificity product rules win the source-order tie-break when the
+   /platform group is nested inside another product host. */
+@import "../styles/components/platform.css";
 
 @import "../styles/motion.css";
 @import "../styles/mobile.css";

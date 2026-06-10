@@ -35,11 +35,12 @@ export const metadata: Metadata = {
  * bypass `enforceProductAccess()` entirely and gate purely on
  * super_admin role.
  *
- * The body is wrapped in a minimal `PlatformShell` whose only job is to
- * stamp `data-product="management"` (the closest palette) so the
- * platform-admin pages resolve the DS chrome instead of falling through to
- * bare :root tokens. The /platform landing page still carries its own
- * header; the shell adds no chrome of its own.
+ * The body is wrapped in `PlatformShell`, which stamps
+ * `data-product="platform"` + `data-surface="platform-os"` (the dark
+ * operator-console palette — pixel-platform-console) so the platform-admin
+ * pages resolve the dark DS chrome instead of falling through to bare
+ * :root tokens, and mounts the console sidebar over the real /platform/*
+ * routes. Pages still carry their own PageHeader.
  */
 export default async function PlatformAppLayout({
   children,

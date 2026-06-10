@@ -1,16 +1,16 @@
 import * as React from "react";
+import { PlatformSidebar } from "@/components/layout/platform-sidebar";
 
 /**
  * Platform Admin OS shell.
  *
- * Minimal wrapper that stamps `data-product="platform"` +
- * `data-surface="platform-os"` on the platform-admin surface so the dark
- * operator-console DS chrome resolves. The Platform Admin OS (the
- * /platform route group) is served on whichever product host the
- * super_admin signed in on (management / development / subscription — see
- * middleware.ts PLATFORM-ROUTING-FIX), and RootLayout only stamps a
- * `data-product` for the three public product surfaces, so /platform
- * traffic previously fell through to bare :root tokens.
+ * Stamps `data-product="platform"` + `data-surface="platform-os"` on the
+ * platform-admin surface so the dark operator-console DS chrome resolves.
+ * The Platform Admin OS (the /platform route group) is served on whichever
+ * product host the super_admin signed in on (management / development /
+ * subscription — see middleware.ts PLATFORM-ROUTING-FIX), and RootLayout
+ * only stamps a `data-product` for the three public product surfaces, so
+ * /platform traffic previously fell through to bare :root tokens.
  *
  * pixel-platform-console: the console is the ONLY dark surface in the
  * product family — carbon surfaces + a cool-blue (#5B9DFF) accent +
@@ -23,14 +23,20 @@ import * as React from "react";
  * renders dark without per-page restyling. This mirrors the dev-os
  * `data-surface="development-os"` remap pattern.
  *
- * Deliberately presentation-only: the layout owns auth (super_admin gate),
- * the impersonation banner and the bg-canvas background, so this stays a
- * thin wrapper with no behaviour of its own.
+ * Chrome: mounts the mock's dark sidebar (PlatformSidebar — grouped nav
+ * over the real /platform/* routes, hidden below lg). The layout still
+ * owns auth (super_admin gate) and the impersonation banner; this shell
+ * stays presentation-only.
  */
 export function PlatformShell({ children }: { children: React.ReactNode }) {
   return (
-    <div data-product="platform" data-surface="platform-os">
-      {children}
+    <div
+      data-product="platform"
+      data-surface="platform-os"
+      className="flex min-h-screen bg-canvas"
+    >
+      <PlatformSidebar />
+      <div className="flex-1 min-w-0 flex flex-col">{children}</div>
     </div>
   );
 }

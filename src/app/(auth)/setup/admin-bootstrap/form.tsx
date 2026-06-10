@@ -2,18 +2,35 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Field, FormShell, inputCls } from "@/components/admin/form-shell";
-import { Button } from "@/components/ui/button";
+import { AlertCircle, ArrowRight, KeyRound, User } from "lucide-react";
 import { bootstrapSuperAdminAction, type BootstrapResult } from "./actions";
+
+/**
+ * RESKIN-AUTH-3 — bootstrap form restyled with the Auth Suite `.auth-*`
+ * / `.field` primitives (was admin <FormShell>). Behavior unchanged:
+ * same server action, field names (`fullName`, `secret`), required
+ * logic and pending state.
+ */
 
 const initial: BootstrapResult | null = null;
 
 function Submit() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Linking…" : "Bootstrap super-admin"}
-    </Button>
+    <button
+      type="submit"
+      disabled={pending}
+      className="btn btn-accent btn-lg auth-submit"
+    >
+      {pending ? (
+        "Linking…"
+      ) : (
+        <>
+          Bootstrap super-admin{" "}
+          <ArrowRight className="w-4 h-4" strokeWidth={1.8} />
+        </>
+      )}
+    </button>
   );
 }
 
@@ -36,47 +53,68 @@ export function BootstrapForm({
   const requireSecret = state.stage === "locked_requires_secret";
 
   return (
-    <form action={action}>
-      <FormShell
-        title="Link this auth user as super-admin"
-        description={`Will be linked to: ${email} (${authUserId.slice(0, 8)}…)`}
-        footer={<Submit />}
-      >
-        {result && !result.ok && (
-          <div className="rounded-md border border-danger/30 bg-danger-weak/40 px-4 py-2.5 text-sm text-ink">
-            {result.error}
-          </div>
-        )}
+    <form action={action} className="auth-stack">
+      <p className="field-help">
+        Will be linked to:{" "}
+        <span className="font-mono">
+          {email} ({authUserId.slice(0, 8)}…)
+        </span>
+      </p>
 
-        <Field label="Full name" required>
+      {result && !result.ok && (
+        <div className="auth-notice auth-notice-danger">
+          <AlertCircle className="auth-notice-ic w-4 h-4" strokeWidth={1.7} />
+          <span>{result.error}</span>
+        </div>
+      )}
+
+      <label className="field">
+        <span className="field-label">Full name</span>
+        <div className="auth-field-wrap">
+          <User
+            className="auth-field-icon w-4 h-4"
+            strokeWidth={1.7}
+            aria-hidden
+          />
           <input
             name="fullName"
             defaultValue={defaultName}
             required
-            className={inputCls}
-            placeholder="Nikita Razgulyaev"
+            className="input auth-input"
+            placeholder="Jane Operator"
           />
-        </Field>
+        </div>
+      </label>
 
-        <Field
-          label={requireSecret ? "ADMIN_BOOTSTRAP_SECRET" : "ADMIN_BOOTSTRAP_SECRET (optional)"}
-          required={requireSecret}
-          hint={
-            requireSecret
-              ? "Required because a super-admin already exists."
-              : "Not required for the first super-admin."
-          }
-        >
+      <label className="field">
+        <span className="field-label">
+          {requireSecret
+            ? "ADMIN_BOOTSTRAP_SECRET"
+            : "ADMIN_BOOTSTRAP_SECRET (optional)"}
+        </span>
+        <div className="auth-field-wrap">
+          <KeyRound
+            className="auth-field-icon w-4 h-4"
+            strokeWidth={1.7}
+            aria-hidden
+          />
           <input
             name="secret"
             type="password"
             autoComplete="off"
-            className={inputCls}
+            className="input auth-input"
             placeholder={requireSecret ? "Paste secret" : "Leave blank for first run"}
             required={requireSecret}
           />
-        </Field>
-      </FormShell>
+        </div>
+        <span className="field-help">
+          {requireSecret
+            ? "Required because a super-admin already exists."
+            : "Not required for the first super-admin."}
+        </span>
+      </label>
+
+      <Submit />
     </form>
   );
 }
