@@ -80,10 +80,8 @@ export default async function PortalDocumentsPage() {
         {/* Page header — mono eyebrow + Space Grotesk display title */}
         <header className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
           <div>
-            <div className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-4">
-              Documents
-            </div>
-            <h1 className="mt-1.5 font-display text-[29px] font-medium leading-none tracking-[-0.02em] text-ink">
+            <div className="label">Documents</div>
+            <h1 className="display mt-1.5 text-[26px] font-medium tracking-[-0.02em] text-ink sm:text-[29px]">
               {strings.navDocuments}
             </h1>
             <p className="mt-1.5 text-[13.5px] text-ink-3">
