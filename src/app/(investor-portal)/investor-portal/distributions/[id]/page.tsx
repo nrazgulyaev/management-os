@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { getInvestorSession } from "@/lib/investor-portal/session";
 import {
   getMyDistributionAllocation,
@@ -10,6 +9,14 @@ import {
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
 import { Badge } from "@/components/ui/badge";
+import {
+  PortalBreakdownRow,
+  PortalCard,
+  PortalDetailHeader,
+  PortalKpi,
+  PortalProgress,
+  PortalSectionTitle,
+} from "@/components/investor-portal/portal-primitives";
 import {
   DISTRIBUTION_STATUS_LABEL,
   DISTRIBUTION_TYPE_LABEL,
@@ -36,6 +43,16 @@ export default async function PortalDistributionDetailPage({
   if (!distribution) notFound();
   const myAllocation = await getMyDistributionAllocation(id);
 
+  const allocTotal = myAllocation
+    ? BigInt(myAllocation.totalAmountUsdMinor)
+    : 0n;
+  const capitalReturn = myAllocation
+    ? BigInt(myAllocation.capitalReturnAmountUsdMinor)
+    : 0n;
+  const profit = myAllocation ? BigInt(myAllocation.profitAmountUsdMinor) : 0n;
+  const capitalReturnPct =
+    allocTotal > 0n ? (Number(capitalReturn) / Number(allocTotal)) * 100 : 0;
+
   return (
     <PortalShell
       strings={strings}
@@ -43,90 +60,136 @@ export default async function PortalDistributionDetailPage({
       investorCode={session.investorCode}
       pageTitle="Distribution"
     >
-      <div>
-        <Link
-          href="/investor-portal/distributions"
-          className="inline-flex items-center gap-1 text-xs text-ink-tertiary hover:text-ink mb-3"
-        >
-          <ArrowLeft className="w-3 h-3" /> {strings.navDistributions}
-        </Link>
-        <h1 className="font-display text-2xl text-ink">
-          {DISTRIBUTION_TYPE_LABEL[distribution.distributionType]} #
-          {distribution.distributionNumber}
-        </h1>
-        <p className="text-sm text-ink-secondary mt-1">
-          {distribution.projectName ?? "Company-wide"} · effective{" "}
-          {distribution.effectiveDate}
-        </p>
-      </div>
+      <PortalDetailHeader
+        backHref="/investor-portal/distributions"
+        backLabel={strings.navDistributions}
+        title={`${DISTRIBUTION_TYPE_LABEL[distribution.distributionType]} #${distribution.distributionNumber}`}
+        sub={`${distribution.projectName ?? "Company-wide"} · effective ${distribution.effectiveDate}`}
+        badge={
+          <Badge
+            tone={distribution.status === "completed" ? "success" : "warning"}
+          >
+            {DISTRIBUTION_STATUS_LABEL[distribution.status]}
+          </Badge>
+        }
+      />
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <PortalKpi
           label="Total distributed"
           value={formatUsdMinor(BigInt(distribution.totalAmountUsdMinor))}
+          hint="across all investors"
         />
-        <Stat
+        <PortalKpi
           label="My allocation"
-          value={
+          value={myAllocation ? formatUsdMinor(allocTotal) : "—"}
+          hint={
             myAllocation
-              ? formatUsdMinor(BigInt(myAllocation.totalAmountUsdMinor))
-              : "—"
+              ? `${Number(myAllocation.profitSharePercentUsed).toFixed(2)}% share`
+              : undefined
           }
+          tone="amber"
         />
-        <Stat
+        <PortalKpi
           label="My capital return"
-          value={
-            myAllocation
-              ? formatUsdMinor(BigInt(myAllocation.capitalReturnAmountUsdMinor))
-              : "—"
-          }
+          value={myAllocation ? formatUsdMinor(capitalReturn) : "—"}
         />
-        <Stat
+        <PortalKpi
           label="My profit share"
-          value={
-            myAllocation
-              ? formatUsdMinor(BigInt(myAllocation.profitAmountUsdMinor))
-              : "—"
-          }
+          value={myAllocation ? formatUsdMinor(profit) : "—"}
         />
       </section>
 
-      <div className="text-xs text-ink-tertiary flex items-center gap-2">
-        Status:{" "}
-        <Badge tone={distribution.status === "completed" ? "success" : "warning"}>
-          {DISTRIBUTION_STATUS_LABEL[distribution.status]}
-        </Badge>
-      </div>
+      <div className="mt-5 grid grid-cols-1 items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <PortalCard>
+          <PortalSectionTitle title="Allocation breakdown" />
+          {myAllocation ? (
+            <>
+              <div className="mb-4">
+                <div className="mb-2 flex items-center justify-between text-[12px]">
+                  <span className="text-ink-3">
+                    Capital return vs profit split
+                  </span>
+                  <span className="tnum text-ink-3">
+                    {capitalReturnPct.toFixed(0)}% / {(100 - capitalReturnPct).toFixed(0)}%
+                  </span>
+                </div>
+                <PortalProgress percent={capitalReturnPct} tone="steel" />
+              </div>
+              <PortalBreakdownRow
+                label="Return of capital"
+                value={formatUsdMinor(capitalReturn)}
+              />
+              <PortalBreakdownRow
+                label="Profit split"
+                value={formatUsdMinor(profit)}
+              />
+              <PortalBreakdownRow
+                label="Profit share % used"
+                value={`${Number(myAllocation.profitSharePercentUsed).toFixed(2)}%`}
+              />
+              <PortalBreakdownRow
+                label="Outstanding capital at declare"
+                value={formatUsdMinor(
+                  BigInt(myAllocation.outstandingCapitalAtDeclareUsdMinor),
+                )}
+              />
+              <PortalBreakdownRow
+                label="Commitment"
+                value={
+                  <span className="font-mono text-xs">
+                    {myAllocation.commitmentCode}
+                  </span>
+                }
+              />
+              <hr className="my-3.5 border-0 border-t border-line-soft" />
+              <PortalBreakdownRow
+                label="My total allocation"
+                value={formatUsdMinor(allocTotal)}
+                emphasis
+              />
+            </>
+          ) : (
+            <p className="text-sm text-ink-3">
+              You did not receive an allocation in this distribution.
+            </p>
+          )}
+        </PortalCard>
 
-      {myAllocation && myAllocation.status === "executed" && (
-        <p className="text-sm text-ink-secondary">
-          This allocation was credited to your wallet on{" "}
-          {myAllocation.executedAt
-            ? new Date(myAllocation.executedAt).toLocaleString()
-            : "—"}
-          . You can{" "}
-          <Link
-            href={`/investor-portal/wallet/${myAllocation.commitmentId}`}
-            className="underline hover:text-ink"
-          >
-            view your wallet ledger
-          </Link>{" "}
-          to see the resulting transaction.
-        </p>
-      )}
+        <PortalCard>
+          <PortalSectionTitle title="Status" />
+          <PortalBreakdownRow
+            label="Distribution"
+            value={DISTRIBUTION_STATUS_LABEL[distribution.status]}
+          />
+          <PortalBreakdownRow
+            label="Type"
+            value={DISTRIBUTION_TYPE_LABEL[distribution.distributionType]}
+          />
+          <PortalBreakdownRow
+            label="Effective date"
+            value={distribution.effectiveDate}
+          />
+          {myAllocation?.executedAt ? (
+            <PortalBreakdownRow
+              label="Credited to wallet"
+              value={new Date(myAllocation.executedAt).toLocaleDateString()}
+            />
+          ) : null}
+          {myAllocation && myAllocation.status === "executed" ? (
+            <p className="mt-4 rounded-[10px] border border-line-soft bg-bg-2 px-4 py-3 text-[12.5px] leading-relaxed text-ink-3">
+              This allocation was credited to your wallet. You can{" "}
+              <Link
+                href={`/investor-portal/wallet/${myAllocation.commitmentId}`}
+                className="font-semibold text-amber-deep hover:underline"
+              >
+                view your wallet ledger
+              </Link>{" "}
+              to see the resulting transaction.
+            </p>
+          ) : null}
+        </PortalCard>
+      </div>
     </PortalShell>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-line-soft bg-surface p-4">
-      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-        {label}
-      </div>
-      <div className="text-xl font-medium tabular-nums text-ink mt-1">
-        {value}
-      </div>
-    </div>
   );
 }
