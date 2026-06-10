@@ -710,6 +710,9 @@
   --accent-deep:  var(--amber-deep);
   --accent-soft:  var(--amber-soft);
   --on-accent:    var(--carbon);
+  /* Amber hero-KPI gradient — the investor-portal wallet
+     "available to withdraw" tile (mock .kpi.amber). */
+  --gradient-amber-hero: linear-gradient(140deg, #FF7A47 0%, #E8551F 100%);
   --r-card:       14px;
   --r-card-lg:    18px;
   --r-hero:       22px;

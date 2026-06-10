@@ -65,6 +65,12 @@
   .bg-gradient-ink-deep {
     background: var(--gradient-ink-deep);
   }
+  /* Dev OS / investor-portal amber hero KPI fill (e.g. wallet
+     available-to-withdraw). Resolves via --gradient-amber-hero, set on the
+     [data-product="development"] block; falls back to the flat accent. */
+  .bg-gradient-amber-hero {
+    background: var(--gradient-amber-hero, var(--accent));
+  }
 
   /* Stage 10.6.C.1 — hero card shadow utilities */
   .shadow-soft-card {
