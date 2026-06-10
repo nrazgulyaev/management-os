@@ -9,11 +9,27 @@ import { cn } from "@/lib/utils";
 import type { DocAppRow } from "@/features/documents/app-services";
 import {
   markDocumentSignedAction,
-  setDocumentAiFedAction,
   deleteDocumentAppAction,
 } from "@/features/documents/app-actions";
+import {
+  feedDocumentToAgentAction,
+  removeDocumentFromAgentAction,
+} from "@/app/(dashboard)/dashboard/documents/ai-knowledge-actions";
 import { SignatureRequestButton } from "./documents-signature-modals";
 import { VersionCompareButton } from "./documents-version-modals";
+
+/** Org-visible AI agent option for the feed picker. */
+export interface DocFeedAgent {
+  id: string;
+  displayName: string;
+}
+
+/** A document→agent knowledge assignment (real ingestion, not a flag). */
+export interface DocFeedAssignment {
+  documentId: string;
+  agentId: string;
+  agentName: string;
+}
 
 interface VersionRow {
   id: string;
@@ -78,14 +94,23 @@ function PaneHeading({
 
 export function DocumentPreviewPane({
   doc,
+  feedAgents = [],
+  assignments = [],
   onClose,
 }: {
   doc: DocAppRow;
+  /** Org-visible AI agents (empty while ingestion is paused / none enabled). */
+  feedAgents?: DocFeedAgent[];
+  /** Knowledge assignments for THIS document. */
+  assignments?: DocFeedAssignment[];
   onClose: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
+  const [notice, setNotice] = React.useState<string | null>(null);
+  const [feedPickerOpen, setFeedPickerOpen] = React.useState(false);
+  const [feedAgentId, setFeedAgentId] = React.useState("");
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [detail, setDetail] = React.useState<{
     versions: VersionRow[];
@@ -97,6 +122,10 @@ export function DocumentPreviewPane({
     let cancelled = false;
     setLoadingDetail(true);
     setDetail(null);
+    // Per-document UI state — reset when the selection changes.
+    setNotice(null);
+    setFeedPickerOpen(false);
+    setFeedAgentId("");
     fetch(`/api/documents/${doc.id}/detail`)
       .then((r) => (r.ok ? r.json() : { versions: [], signatures: [] }))
       .then((d) => {
@@ -118,10 +147,59 @@ export function DocumentPreviewPane({
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
+    setNotice(null);
     startTransition(async () => {
       const r = await fn();
       if (!r.ok) setError(r.error ?? "Something went wrong.");
       else router.refresh();
+    });
+  }
+
+  // Agents this document is not yet fed to.
+  const assignedAgentIds = new Set(assignments.map((a) => a.agentId));
+  const availableAgents = feedAgents.filter((a) => !assignedAgentIds.has(a.id));
+
+  function feed() {
+    if (!feedAgentId) return;
+    const fallbackName =
+      availableAgents.find((a) => a.id === feedAgentId)?.displayName ??
+      "the agent";
+    setError(null);
+    setNotice(null);
+    startTransition(async () => {
+      const r = await feedDocumentToAgentAction({
+        documentId: doc.id,
+        agentId: feedAgentId,
+      });
+      if (!r.ok) {
+        setError(r.error);
+        return;
+      }
+      setFeedPickerOpen(false);
+      setFeedAgentId("");
+      setNotice(
+        r.mode === "metadata"
+          ? `Fed to ${r.agentName ?? fallbackName} as a metadata card — this file type can't be read in full yet.`
+          : `Fed to ${r.agentName ?? fallbackName} — ingestion started, processing the full text now.`,
+      );
+      router.refresh();
+    });
+  }
+
+  function removeFromAgent(a: DocFeedAssignment) {
+    setError(null);
+    setNotice(null);
+    startTransition(async () => {
+      const r = await removeDocumentFromAgentAction({
+        documentId: a.documentId,
+        agentId: a.agentId,
+      });
+      if (!r.ok) {
+        setError(r.error);
+        return;
+      }
+      setNotice(`Removed from ${a.agentName}'s knowledge base.`);
+      router.refresh();
     });
   }
 
@@ -238,6 +316,11 @@ export function DocumentPreviewPane({
             {error}
           </p>
         )}
+        {notice && (
+          <p className="text-xs text-success" role="status">
+            {notice}
+          </p>
+        )}
 
         {/* Metadata key/value card */}
         <div className="flex flex-col gap-2">
@@ -256,7 +339,19 @@ export function DocumentPreviewPane({
               {formatBytes(doc.sizeBytes)}
             </KvRow>
             <KvRow k="ai knowledge">
-              {isFed ? <Badge tone="accent">fed</Badge> : "—"}
+              {assignments.length > 0 ? (
+                <span className="flex flex-wrap gap-1">
+                  {assignments.map((a) => (
+                    <Badge key={a.agentId} tone="accent">
+                      AI · {a.agentName}
+                    </Badge>
+                  ))}
+                </span>
+              ) : isFed ? (
+                <Badge tone="accent">fed</Badge>
+              ) : (
+                "—"
+              )}
             </KvRow>
           </dl>
         </div>
@@ -310,14 +405,17 @@ export function DocumentPreviewPane({
             <Button
               variant="secondary"
               size="sm"
-              disabled={pending}
-              onClick={() =>
-                run(() =>
-                  setDocumentAiFedAction({ documentId: doc.id, fed: !isFed }),
-                )
+              disabled={pending || availableAgents.length === 0}
+              title={
+                feedAgents.length === 0
+                  ? "No AI agents are enabled for this workspace (or ingestion is paused)."
+                  : availableAgents.length === 0
+                    ? "Already in every enabled agent's knowledge base."
+                    : "Add this document to an agent's knowledge base."
               }
+              onClick={() => setFeedPickerOpen((o) => !o)}
             >
-              {isFed ? "Remove from AI" : "Feed to AI agent"}
+              Feed to AI agent
             </Button>
             <Button
               variant="ghost"
@@ -329,6 +427,65 @@ export function DocumentPreviewPane({
               Delete
             </Button>
           </div>
+          {feedPickerOpen && availableAgents.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-cream-warm px-3 py-2.5">
+              <select
+                value={feedAgentId}
+                onChange={(e) => setFeedAgentId(e.target.value)}
+                aria-label="Agent to feed this document to"
+                className="min-w-0 flex-1 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[12.5px] text-ink"
+              >
+                <option value="">Pick an agent…</option>
+                {availableAgents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.displayName}
+                  </option>
+                ))}
+              </select>
+              <Button
+                variant="accent"
+                size="sm"
+                disabled={pending || !feedAgentId}
+                onClick={feed}
+              >
+                {pending ? "Feeding…" : "Feed"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={pending}
+                onClick={() => {
+                  setFeedPickerOpen(false);
+                  setFeedAgentId("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+          {assignments.length > 0 && (
+            <ul className="flex flex-col gap-1.5">
+              {assignments.map((a) => (
+                <li
+                  key={a.agentId}
+                  className="flex items-center justify-between gap-2 rounded-sm border border-line-soft px-3 py-2 text-xs"
+                >
+                  <span className="truncate text-ink-secondary">
+                    In {a.agentName}&apos;s knowledge base
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 shrink-0 px-2 text-[11px] text-danger hover:bg-danger-weak"
+                    disabled={pending}
+                    onClick={() => removeFromAgent(a)}
+                  >
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Signature requests */}

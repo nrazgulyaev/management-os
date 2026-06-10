@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
@@ -16,10 +15,19 @@ import type { ActionResult } from "@/features/projects/actions";
 const idSchema = z.string().uuid();
 const nullable = (v: string | undefined) => (v && v !== "" ? v : null);
 
+/**
+ * Create returns the new document id (instead of redirecting) so the
+ * form can run the optional "Feed to AI agent" follow-up with the id.
+ * Navigation on success is handled client-side by the form.
+ */
+export type CreateDocumentResult =
+  | { ok: true; id: string }
+  | { ok: false; error: string; fieldErrors?: Record<string, string[]> };
+
 export async function createDocumentAction(
-  _prev: ActionResult | null,
+  _prev: CreateDocumentResult | null,
   formData: FormData,
-): Promise<ActionResult> {
+): Promise<CreateDocumentResult> {
   if (!(await canManageEntity("document"))) return { ok: false, error: "Not authorised." };
   const parsed = createDocumentSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) {
@@ -60,7 +68,7 @@ export async function createDocumentAction(
     after: d,
   });
   revalidatePath("/dashboard/documents");
-  redirect("/dashboard/documents");
+  return { ok: true, id: row.id };
 }
 
 async function transition(

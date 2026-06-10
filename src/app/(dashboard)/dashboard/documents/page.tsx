@@ -33,6 +33,16 @@ export default async function DocumentsPage({
     ]);
   const source = isDbConfigured() ? "db" : "mock";
 
+  // Org-visible agents for the "Feed to AI agent" controls (upload form
+  // + preview pane). Hidden while ingestion is paused so the select
+  // never becomes a dead control.
+  const agentOptions = aiKnowledge.envReady
+    ? aiKnowledge.agents.map(({ id, displayName }) => ({ id, displayName }))
+    : [];
+  const aiAssignments = aiKnowledge.assignments.map(
+    ({ documentId, agentId, agentName }) => ({ documentId, agentId, agentName }),
+  );
+
   const active = docs.filter((d) => d.status === "active");
   const expired = active.filter((d) => d.expired).length;
   const expiringSoon = active.filter((d) => d.expiringSoon).length;
@@ -71,7 +81,7 @@ export default async function DocumentsPage({
           </div>
           <div className="flex items-center gap-2">
             <SourceBadge source={source} />
-            <DocumentAddButton />
+            <DocumentAddButton agents={agentOptions} />
           </div>
         </div>
       </header>
@@ -82,6 +92,8 @@ export default async function DocumentsPage({
         templates={templates}
         counts={counts}
         initialDocId={initialDocId ?? null}
+        feedAgents={agentOptions}
+        aiAssignments={aiAssignments}
       />
 
       <AiKnowledgePanel

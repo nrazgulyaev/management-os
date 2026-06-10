@@ -5,7 +5,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import type { DocAppRow, TemplateRow } from "@/features/documents/app-services";
 import { CATEGORY_ORDER, metaFor } from "@/features/documents/category-meta";
-import { DocumentPreviewPane } from "./documents-preview-pane";
+import {
+  DocumentPreviewPane,
+  type DocFeedAgent,
+  type DocFeedAssignment,
+} from "./documents-preview-pane";
 import { GenerateFromTemplateButton } from "./documents-template-modals";
 
 type Counts = {
@@ -41,6 +45,8 @@ export function DocumentsApp({
   templates,
   counts,
   initialDocId = null,
+  feedAgents = [],
+  aiAssignments = [],
 }: {
   docs: DocAppRow[];
   templates: TemplateRow[];
@@ -48,6 +54,10 @@ export function DocumentsApp({
   /** Deep-link target — preselects this doc's preview pane on mount.
    *  Used by the folder-tree / timeline vault variants (`?doc=<id>`). */
   initialDocId?: string | null;
+  /** Org-visible AI agents (empty while ingestion is paused). */
+  feedAgents?: DocFeedAgent[];
+  /** Current document→agent knowledge assignments. */
+  aiAssignments?: DocFeedAssignment[];
 }) {
   const [tab, setTab] = React.useState<Tab>("all");
   const [query, setQuery] = React.useState("");
@@ -287,6 +297,10 @@ export function DocumentsApp({
             {selected ? (
               <DocumentPreviewPane
                 doc={selected}
+                feedAgents={feedAgents}
+                assignments={aiAssignments.filter(
+                  (a) => a.documentId === selected.id,
+                )}
                 onClose={() => setSelectedId(null)}
               />
             ) : (
