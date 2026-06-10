@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, HandoffBadge } from "@/components/dashboard/primitives";
+import { Card, HandoffBadge, Kpi } from "@/components/dashboard/primitives";
 import { listDepartures } from "@/features/front-office/services";
 import { CheckOutButton } from "@/components/front-office/check-in-out-buttons";
 
@@ -15,6 +15,11 @@ export default async function DeparturesPage({
   const date = sp.date ? new Date(sp.date) : new Date();
   const rows = await listDepartures(date);
   const dateStr = date.toISOString().slice(0, 10);
+
+  // KPI roll-ups — derived from the rows already fetched above.
+  const checkedOut = rows.filter((r) => r.bookingStatus === "checked_out").length;
+  const lateAsks = rows.filter((r) => r.lateCheckoutRequestStatus != null).length;
+  const turnovers = rows.filter((r) => r.nextArrivalBookingId).length;
 
   return (
     <>
@@ -32,6 +37,28 @@ export default async function DeparturesPage({
         status, and the same-day next arrival (if any) are joined in so the
         front desk can sequence turnovers.
       </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <Kpi label="Departing" value={String(rows.length)} sub={dateStr} />
+        <Kpi
+          label="Checked out"
+          value={String(checkedOut)}
+          sub={rows.length > 0 ? `${rows.length - checkedOut} still in villa` : "none today"}
+          tone={checkedOut > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Late-checkout asks"
+          value={String(lateAsks)}
+          sub="requests on today's departures"
+          tone={lateAsks > 0 ? "gold" : undefined}
+        />
+        <Kpi
+          label="Same-day turns"
+          value={String(turnovers)}
+          sub="next arrival lands today"
+          tone="accent"
+        />
+      </div>
 
       <div className="section-heading">
         <div className="eyebrow label">Today</div>

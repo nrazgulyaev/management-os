@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card, HandoffBadge } from "@/components/dashboard/primitives";
+import { Card, HandoffBadge, Kpi } from "@/components/dashboard/primitives";
 import { listArrivals } from "@/features/front-office/services";
 import { CheckInButton } from "@/components/front-office/check-in-out-buttons";
 import { CheckinApproveButton } from "@/components/front-office/checkin-approve-button";
@@ -35,6 +35,18 @@ export default async function ArrivalsPage({
   const guestIdMap = await getGuestIdMap(rows.map((r) => r.bookingId));
   const dateStr = date.toISOString().slice(0, 10);
 
+  // KPI roll-ups — derived from the rows already fetched above.
+  const readyCount = rows.filter((r) => r.readinessStatus === "ready").length;
+  const blockedCount = rows.filter(
+    (r) =>
+      r.readinessStatus === "out_of_order" ||
+      r.readinessStatus === "maintenance_block",
+  ).length;
+  const awaitingReview = rows.filter(
+    (r) => checkinMap[r.bookingId] === "submitted",
+  ).length;
+  const openSrCount = rows.filter((r) => r.hasOpenServiceRequest).length;
+
   return (
     <>
       <div className="page-header">
@@ -51,6 +63,34 @@ export default async function ArrivalsPage({
         surfaced inline so the front desk can clear blockers before the guest
         arrives.
       </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
+        <Kpi label="Arriving" value={String(rows.length)} sub={dateStr} />
+        <Kpi
+          label="Villas ready"
+          value={String(readyCount)}
+          sub="cleared for check-in"
+          tone={readyCount > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Blocked"
+          value={String(blockedCount)}
+          sub="OOO or maintenance block"
+          tone={blockedCount > 0 ? "danger" : "success"}
+        />
+        <Kpi
+          label="Awaiting review"
+          value={String(awaitingReview)}
+          sub="self check-in submitted"
+          tone={awaitingReview > 0 ? "gold" : undefined}
+        />
+        <Kpi
+          label="Open requests"
+          value={String(openSrCount)}
+          sub="service requests on arrivals"
+          tone={openSrCount > 0 ? "warn" : undefined}
+        />
+      </div>
 
       <div className="section-heading">
         <div className="eyebrow label">Today</div>

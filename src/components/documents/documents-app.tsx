@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import type { DocAppRow, TemplateRow } from "@/features/documents/app-services";
 import { CATEGORY_ORDER, metaFor } from "@/features/documents/category-meta";
+import { DocumentAiFeedModal } from "./documents-ai-feed";
 import { DocumentPreviewPane } from "./documents-preview-pane";
 import { GenerateFromTemplateButton } from "./documents-template-modals";
 
@@ -56,6 +57,8 @@ export function DocumentsApp({
       ? initialDocId
       : null,
   );
+  /** Doc whose "Feed to AI agent" modal is open (per-row ✦ affordance). */
+  const [aiFeedDoc, setAiFeedDoc] = React.useState<DocAppRow | null>(null);
 
   const categories = CATEGORY_ORDER.filter((c) => (counts.byType[c] ?? 0) > 0);
 
@@ -211,12 +214,15 @@ export function DocumentsApp({
             </div>
           ) : (
             <div className="overflow-hidden rounded-md border border-line bg-surface">
-              <div className="grid grid-cols-[36px_1fr_76px_72px] sm:grid-cols-[36px_1fr_104px_92px_84px] items-center gap-3 border-b border-line-soft bg-cream-warm px-4 py-2.5 mono text-[9.5px] uppercase tracking-wide text-ink-tertiary">
-                <div aria-hidden />
-                <div>document</div>
-                <div className="hidden sm:block">linked to</div>
-                <div className="text-right">expires</div>
-                <div className="text-center">status</div>
+              <div className="mono flex items-center border-b border-line-soft bg-cream-warm text-[9.5px] uppercase tracking-wide text-ink-tertiary">
+                <div className="grid flex-1 grid-cols-[36px_1fr_76px_72px] sm:grid-cols-[36px_1fr_104px_92px_84px] items-center gap-3 px-4 py-2.5">
+                  <div aria-hidden />
+                  <div>document</div>
+                  <div className="hidden sm:block">linked to</div>
+                  <div className="text-right">expires</div>
+                  <div className="text-center">status</div>
+                </div>
+                <div className="w-11 shrink-0 text-center">ai</div>
               </div>
               {sorted.map((d) => (
                 <DocRow
@@ -224,6 +230,7 @@ export function DocumentsApp({
                   doc={d}
                   selected={d.id === selectedId}
                   onSelect={() => setSelectedId(d.id)}
+                  onAiFeed={() => setAiFeedDoc(d)}
                 />
               ))}
             </div>
@@ -300,6 +307,21 @@ export function DocumentsApp({
           </div>
         </div>
       </div>
+
+      {aiFeedDoc && (
+        <DocumentAiFeedModal
+          doc={{
+            id: aiFeedDoc.id,
+            title: aiFeedDoc.title,
+            mimeType: aiFeedDoc.mimeType,
+            hasFile: aiFeedDoc.hasFile,
+          }}
+          open
+          onOpenChange={(o) => {
+            if (!o) setAiFeedDoc(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -308,15 +330,18 @@ function DocRow({
   doc,
   selected,
   onSelect,
+  onAiFeed,
 }: {
   doc: DocAppRow;
   selected: boolean;
   onSelect: () => void;
+  onAiFeed: () => void;
 }) {
   const tone = doc.expired ? "danger" : doc.expiringSoon ? "warn" : null;
   const suffix = untilSuffix(doc.expiresAt);
   const isPdf = (doc.mimeType ?? "").includes("pdf");
   const m = metaFor(doc.documentType);
+  const isFed = !!doc.aiFedAt;
 
   const sigStatus = doc.signatureStatus;
   const signed = doc.signedAt || sigStatus === "signed" || sigStatus === "countersigned";
@@ -328,89 +353,121 @@ function DocRow({
     sigStatus !== "cancelled";
 
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
+    <div
       className={cn(
-        "grid w-full grid-cols-[36px_1fr_76px_72px] sm:grid-cols-[36px_1fr_104px_92px_84px] items-center gap-3 border-b border-line-soft px-4 py-3 text-left transition-colors last:border-0",
+        "flex items-stretch border-b border-line-soft transition-colors last:border-0",
         selected
           ? "bg-muted"
           : tone === "danger"
-            ? "border-l-[3px] border-l-danger bg-danger-weak/40 pl-[13px] hover:bg-danger-weak/60"
+            ? "border-l-[3px] border-l-danger bg-danger-weak/40 hover:bg-danger-weak/60"
             : tone === "warn"
-              ? "border-l-[3px] border-l-warning bg-warning-weak/30 pl-[13px] hover:bg-warning-weak/50"
+              ? "border-l-[3px] border-l-warning bg-warning-weak/30 hover:bg-warning-weak/50"
               : "hover:bg-muted/40",
       )}
     >
-      <span
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={selected}
         className={cn(
-          "inline-flex h-11 w-9 items-center justify-center rounded-sm border border-line bg-cream-warm text-display text-[11px] font-medium",
-          isPdf ? "text-danger" : "text-terra",
+          "grid min-w-0 flex-1 grid-cols-[36px_1fr_76px_72px] sm:grid-cols-[36px_1fr_104px_92px_84px] items-center gap-3 px-4 py-3 text-left",
+          tone && !selected && "pl-[13px]",
         )}
       >
-        {isPdf ? "PDF" : "DOC"}
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-[13px] font-medium text-ink">
-          {doc.title}
-        </span>
-        <span className="mono mt-0.5 block truncate text-[10.5px] text-ink-tertiary">
-          {doc.fileName ?? m.label}
-          {doc.versionCount > 1 ? ` · v${doc.versionCount}` : ""}
-        </span>
-      </span>
-      <span className="mono hidden text-[10.5px] leading-tight text-ink-tertiary sm:block">
-        {doc.entityType}
-        <span className="block text-ink-secondary">
-          {doc.entityId.slice(0, 6)}
-        </span>
-      </span>
-      <span
-        className={cn(
-          "mono text-right text-[11px] leading-tight",
-          tone === "danger"
-            ? "text-danger"
-            : tone === "warn"
-              ? "text-warning"
-              : "text-ink-tertiary",
-        )}
-      >
-        {doc.expiresAt ? (
-          <>
-            {formatDate(doc.expiresAt)}
-            {suffix && (
-              <span className="mt-0.5 block text-[9.5px] text-ink-tertiary">
-                {suffix}
-              </span>
-            )}
-          </>
-        ) : (
-          "—"
-        )}
-      </span>
-      <span className="flex justify-center">
         <span
           className={cn(
-            "mono rounded-sm px-1.5 py-0.5 text-center text-[9.5px] uppercase tracking-wide",
-            signed
-              ? "bg-success-weak text-success"
-              : awaiting
-                ? "bg-warning-weak text-warning"
-                : doc.expired
-                  ? "bg-danger-weak text-danger"
-                  : "bg-cream-deep text-ink-tertiary",
+            "inline-flex h-11 w-9 items-center justify-center rounded-sm border border-line bg-cream-warm text-display text-[11px] font-medium",
+            isPdf ? "text-danger" : "text-terra",
           )}
         >
-          {signed
-            ? "signed"
-            : awaiting
-              ? "awaiting"
-              : doc.expired
-                ? "expired"
-                : "active"}
+          {isPdf ? "PDF" : "DOC"}
         </span>
+        <span className="min-w-0">
+          <span className="block truncate text-[13px] font-medium text-ink">
+            {doc.title}
+          </span>
+          <span className="mono mt-0.5 block truncate text-[10.5px] text-ink-tertiary">
+            {doc.fileName ?? m.label}
+            {doc.versionCount > 1 ? ` · v${doc.versionCount}` : ""}
+            {isFed && <span className="text-terra"> · ✦ ai</span>}
+          </span>
+        </span>
+        <span className="mono hidden text-[10.5px] leading-tight text-ink-tertiary sm:block">
+          {doc.entityType}
+          <span className="block text-ink-secondary">
+            {doc.entityId.slice(0, 6)}
+          </span>
+        </span>
+        <span
+          className={cn(
+            "mono text-right text-[11px] leading-tight",
+            tone === "danger"
+              ? "text-danger"
+              : tone === "warn"
+                ? "text-warning"
+                : "text-ink-tertiary",
+          )}
+        >
+          {doc.expiresAt ? (
+            <>
+              {formatDate(doc.expiresAt)}
+              {suffix && (
+                <span className="mt-0.5 block text-[9.5px] text-ink-tertiary">
+                  {suffix}
+                </span>
+              )}
+            </>
+          ) : (
+            "—"
+          )}
+        </span>
+        <span className="flex justify-center">
+          <span
+            className={cn(
+              "mono rounded-sm px-1.5 py-0.5 text-center text-[9.5px] uppercase tracking-wide",
+              signed
+                ? "bg-success-weak text-success"
+                : awaiting
+                  ? "bg-warning-weak text-warning"
+                  : doc.expired
+                    ? "bg-danger-weak text-danger"
+                    : "bg-cream-deep text-ink-tertiary",
+            )}
+          >
+            {signed
+              ? "signed"
+              : awaiting
+                ? "awaiting"
+                : doc.expired
+                  ? "expired"
+                  : "active"}
+          </span>
+        </span>
+      </button>
+      <span className="flex w-11 shrink-0 items-center justify-center">
+        <button
+          type="button"
+          onClick={onAiFeed}
+          title={
+            isFed
+              ? "In AI knowledge — manage agents"
+              : "Feed to AI agent"
+          }
+          aria-label={
+            isFed
+              ? `Manage AI knowledge for ${doc.title}`
+              : `Feed ${doc.title} to an AI agent`
+          }
+          className={cn(
+            "inline-flex h-7 w-7 items-center justify-center rounded-md border text-[13px] transition-colors",
+            isFed
+              ? "border-terra/50 bg-accent-weak text-terra"
+              : "border-line text-ink-tertiary hover:bg-accent-weak hover:text-terra",
+          )}
+        >
+          ✦
+        </button>
       </span>
-    </button>
+    </div>
   );
 }

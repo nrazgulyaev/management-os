@@ -1,14 +1,17 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import {
   listChannelPushEvents,
   listPricingRuleSets,
 } from "@/features/dynamic-pricing/services";
-import { SimulatePushForm } from "@/components/dynamic-pricing/simulate-push-form";
+import { SimulatePushFormDs } from "./_simulate-form";
 
 export const metadata = { title: "Channel push" };
 export const dynamic = "force-dynamic";
+
+function eventTone(status: string): "ok" | "danger" | "soft" {
+  return status === "sent" ? "ok" : status === "failed" ? "danger" : "soft";
+}
 
 export default async function ChannelPushPage() {
   const [sets, events] = await Promise.all([
@@ -16,55 +19,71 @@ export default async function ChannelPushPage() {
     listChannelPushEvents({ limit: 100 }),
   ]);
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Dynamic pricing", href: "/dashboard/pricing" },
-          { label: "Channel push" },
-        ]}
-        title="Channel push"
-        description="Outbound stub. Records what we WOULD push to a channel manager — no real OTA integration."
-      />
-      <Section eyebrow="Simulate" title="Build a push payload">
-        <SimulatePushForm ruleSets={sets.map((s) => ({ id: s.id, name: s.name }))} />
-      </Section>
-      <Section eyebrow="History" title={`${events.length} events`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Channel</th>
-                <th className="px-4 py-3">Range</th>
-                <th className="px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-ink-tertiary">
-                    No events yet — simulate a push above.
-                  </td>
-                </tr>
-              )}
-              {events.map((e) => (
-                <tr key={e.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 font-mono text-xs">{e.eventCode}</td>
-                  <td className="px-4 py-3 text-xs">{e.eventType}</td>
-                  <td className="px-4 py-3 text-xs">{e.channelKey}</td>
-                  <td className="px-4 py-3 text-xs">{e.dateStart} → {e.dateEnd}</td>
-                  <td className="px-4 py-3">
-                    <Badge tone={e.status === "sent" ? "success" : e.status === "failed" ? "danger" : "neutral"}>
-                      {e.status}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <>
+      <div className="page-header !mb-0 !pb-[18px]">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/pricing">Dynamic pricing</Link> / <span>Channel push</span>
+          </div>
+          <h1>Channel push</h1>
+          <p className="text-[13.5px] text-ink-3 mt-2 max-w-[720px]">
+            Outbound stub. Records what we WOULD push to a channel manager — no real OTA
+            integration.
+          </p>
         </div>
-      </Section>
-    </div>
+        <div className="actions">
+          <Link href="/dashboard/pricing/rule-sets" className="btn btn-secondary btn-sm">
+            Rule sets
+          </Link>
+        </div>
+      </div>
+
+      <div className="card card-pad mt-[18px] mb-[18px]">
+        <div className="label text-[9.5px] mb-3.5">Simulate · build a push payload</div>
+        <SimulatePushFormDs ruleSets={sets.map((s) => ({ id: s.id, name: s.name }))} />
+      </div>
+
+      <div className="flex items-baseline justify-between mb-2.5">
+        <span className="label text-[9.5px]">History</span>
+        <span className="font-mono text-[11px] text-ink-4">
+          {events.length} event{events.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <div className="card overflow-hidden">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Type</th>
+              <th>Channel</th>
+              <th>Range</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.length === 0 && (
+              <tr>
+                <td colSpan={5} className="text-center text-ink-3 py-6">
+                  No events yet — simulate a push above.
+                </td>
+              </tr>
+            )}
+            {events.map((e) => (
+              <tr key={e.id}>
+                <td className="font-mono text-[11px]">{e.eventCode}</td>
+                <td className="text-[12.5px]">{e.eventType}</td>
+                <td className="text-[12.5px]">{e.channelKey}</td>
+                <td className="font-mono text-[11px]">
+                  {e.dateStart} → {e.dateEnd}
+                </td>
+                <td>
+                  <HandoffBadge tone={eventTone(e.status)}>{e.status}</HandoffBadge>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
