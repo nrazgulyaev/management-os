@@ -60,6 +60,15 @@ export async function approveStatement(statementId: string): Promise<ActionResul
   if (statement.status === "approved" || statement.status === "sent") {
     return { ok: true };
   }
+  // Legal transition guard (MASTER §6): only a not-yet-approved draft may be
+  // approved. A `disputed` (or any other) status must be re-opened first —
+  // previously this skipped the check and let a disputed statement be approved.
+  if (statement.status !== "draft" && statement.status !== "draft_revised") {
+    return {
+      ok: false,
+      error: `Cannot approve a statement in '${statement.status}' state`,
+    };
+  }
   await db
     .update(ownerStatements)
     .set({
@@ -68,6 +77,14 @@ export async function approveStatement(statementId: string): Promise<ActionResul
       updatedAt: new Date(),
     })
     .where(eq(ownerStatements.id, statementId));
+  await recordAuditEvent({
+    actorUserId: user.id,
+    action: "statement.approved",
+    entityType: "owner_statement",
+    entityId: statementId,
+    before: { status: statement.status },
+    after: { status: "approved" },
+  });
   revalidatePath("/dashboard/finance");
   return { ok: true };
 }
@@ -98,6 +115,8 @@ export async function markStatementSent(
 ): Promise<ActionResult & { emailReason?: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
+  const user = await getCurrentAppUser();
+  if (!user) return { ok: false, error: "Sign in required" };
   const statement = await loadStatementForOrg(statementId);
   if (!statement) return { ok: false, error: "Statement not found" };
   if (statement.status !== "approved" && statement.status !== "sent") {
@@ -156,6 +175,14 @@ export async function markStatementSent(
         : {}),
     })
     .where(eq(ownerStatements.id, statementId));
+  await recordAuditEvent({
+    actorUserId: user.id,
+    action: "statement.sent",
+    entityType: "owner_statement",
+    entityId: statementId,
+    before: { status: statement.status },
+    after: { status: "sent", sentToEmail, firstSend, emailReason: emailReason ?? null },
+  });
   revalidatePath("/dashboard/finance");
   revalidatePath("/owner/statements");
   return { ok: true, emailReason };
