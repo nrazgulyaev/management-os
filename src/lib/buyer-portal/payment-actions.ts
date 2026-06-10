@@ -25,16 +25,8 @@ import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
 import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { contractGroups, contractMilestones } from "@/lib/db/schema/sales";
-import { projects, villas } from "@/lib/db/schema/projects";
-import { documents } from "@/lib/db/schema/documents";
-import { formatMoneyMinor } from "@/lib/money";
 import { recordAuditEvent } from "@/features/audit/services";
-import { receiptStoragePath } from "@/lib/buyer-portal/receipts";
-import {
-  renderReceiptPdf,
-  uploadBuyerDocumentBytes,
-  BUYER_DOC_BUCKET,
-} from "@/lib/buyer-portal/document-pdf";
+import { persistMilestoneReceipt } from "@/lib/buyer-portal/document-pdf";
 
 const markPaidSchema = z.object({ milestoneId: z.string().uuid() });
 
@@ -114,80 +106,27 @@ export async function markBuyerInstallmentPaid(input: {
     })
     .where(eq(contractMilestones.id, milestone.id));
 
-  // Generate a RECEIPT into the buyer's document vault. We render real PDF bytes
-  // and upload them to the canonical documents bucket at a deterministic
-  // per-milestone key (which is also the milestone → receipt join), then index a
-  // `documents` row scoped to the villa and marked owner-visible so it lands in
-  // the buyer doc-vault "Payment receipts" group AND is downloadable. Receipt
-  // generation must not fail the payment, so it is best-effort: if storage is
-  // not configured the row is still written byte-less (download simply absent).
+  // Generate a RECEIPT into the buyer's document vault via the shared
+  // receipt-on-pay writer (also used by the operator installments desk). It
+  // renders real PDF bytes, uploads them to the canonical documents bucket at
+  // the deterministic per-milestone key (the milestone → receipt join), and
+  // indexes an owner-visible `documents` row scoped to the villa so it lands in
+  // the buyer doc-vault "Payment receipts" group AND is downloadable. It is
+  // best-effort: receipt generation must never fail the recorded payment.
   const villaId = villaIdByGroupId.get(milestone.contractGroupId) ?? null;
   let receiptDocumentId: string | null = null;
   if (villaId) {
-    try {
-      const receiptNumber = `RCP-${now.getUTCFullYear()}-${milestone.id.slice(0, 8).toUpperCase()}`;
-      const amountLabel = formatMoneyMinor(newPaid, "USD");
-      const storagePath = receiptStoragePath(milestone.id);
-
-      // Villa label for the printed receipt (best-effort). We also pull
-      // the org via villa -> project so the receipt document is scoped.
-      const [villa] = await db
-        .select({
-          unitCode: villas.unitCode,
-          name: villas.name,
-          organizationId: projects.organizationId,
-        })
-        .from(villas)
-        .leftJoin(projects, eq(projects.id, villas.projectId))
-        .where(eq(villas.id, villaId))
-        .limit(1);
-      const villaLabel =
-        villa?.name ?? villa?.unitCode ?? `Villa ${villaId.slice(0, 8)}`;
-
-      // Render + upload the PDF bytes. Upload is best-effort; on failure the row
-      // is written without storage columns and the doc vault shows no download.
-      const bytes = await renderReceiptPdf({
-        receiptNumber,
-        buyerName: session.displayName,
-        buyerCode: session.buyerCode,
-        villaLabel,
-        milestoneName: milestone.name,
-        amountMinor: newPaid,
-        currency: "USD",
-        paidAt: now,
-      });
-      const upload = await uploadBuyerDocumentBytes(storagePath, bytes);
-
-      const [doc] = await db
-        .insert(documents)
-        .values({
-          // TENANCY-FINANCE-DOCS — org via villa -> project (buyer portal).
-          organizationId: villa?.organizationId ?? null,
-          title: `Receipt ${receiptNumber} — ${milestone.name} (${amountLabel})`,
-          documentType: "receipt",
-          entityType: "villa",
-          entityId: villaId,
-          // Owner-visible so the buyer doc vault surfaces it.
-          visibility: "owner",
-          visibleToOwner: true,
-          status: "active",
-          // `storage_path` doubles as the milestone → receipt join sentinel AND
-          // the real Supabase object key. `storage_bucket` is set only when the
-          // upload succeeded, which is what the doc vault keys "downloadable" off.
-          storagePath,
-          storageBucket: upload.ok ? upload.bucket ?? BUYER_DOC_BUCKET : null,
-          fileName: upload.ok ? `${receiptNumber}.pdf` : null,
-          mimeType: upload.ok ? "application/pdf" : null,
-          sizeBytes: upload.ok ? upload.sizeBytes ?? null : null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .returning({ id: documents.id });
-      receiptDocumentId = doc?.id ?? null;
-    } catch (err) {
-      // Receipt is a side-effect; never break the recorded payment.
-      console.error("[buyer-portal] receipt generation failed", err);
-    }
+    const receipt = await persistMilestoneReceipt({
+      milestoneId: milestone.id,
+      milestoneName: milestone.name,
+      villaId,
+      amountMinor: newPaid,
+      buyerName: session.displayName,
+      buyerCode: session.buyerCode,
+      paidAt: now,
+      methodLabel: "Manual confirmation (buyer portal)",
+    });
+    receiptDocumentId = receipt.documentId;
   }
 
   await recordAuditEvent({

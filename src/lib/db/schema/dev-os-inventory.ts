@@ -1,9 +1,32 @@
 /**
- * Stage 4.C.1 — Development OS warehouse / inventory.
+ * ============================================================================
+ * OWNER: DEVELOPMENT OS — Warehouse / construction-inventory cabinet.
+ * ============================================================================
+ * Stage 4.C.1. Tables here (`dev_os_inventory_items`,
+ * `dev_os_inventory_locations`, `dev_os_inventory_stock_balances`,
+ * `dev_os_inventory_movements`) power the construction warehouse: material
+ * SKUs, receiving, stock balances, and movements against work packages.
  *
- * Namespaced with `dev_os_` prefix to avoid collision with the existing
- * Management OS `inventory_items` table (villa operations consumables,
- * different schema).
+ * Importers (Development OS only): src/lib/development/server/inventory/*,
+ * src/lib/development/server/warehouse/*, and the development-app warehouse
+ * pages under src/app/(development-app)/development-os/inventory/*. The
+ * Development-OS BOQ schema (src/lib/db/schema/boq.ts) holds an in-domain FK
+ * `boq_items.inventory_item_id -> dev_os_inventory_items.id`; that is the same
+ * product and is allowed.
+ *
+ * PARALLEL DOMAIN — DO NOT CONFUSE WITH: src/lib/db/schema/inventory.ts
+ * (`inventory_*`, `suppliers`, `purchase_orders`, `inventory_movements`...),
+ * which is the MANAGEMENT OS villa-operations inventory/procurement cabinet.
+ * The `dev_os_` prefix exists precisely to avoid colliding with that table set.
+ * Same problem shape (items / locations / stock / movements), different
+ * product, different lifecycle, different consumers.
+ *
+ * RULES:
+ *   - DO NOT cross-reference inventory_* (Management OS) from this file or its
+ *     queries.
+ *   - DO NOT join dev_os_inventory_* to inventory_* in application code.
+ *   - DO NOT merge the two schemas without a data migration (see
+ *     docs/INVENTORY-SCHEMA-SPLIT.md for the ADR and unify/keep call).
  *
  * Forward-FK reservation: dev_os_inventory_movements.work_package_id →
  * work_packages(id) added in 0052.

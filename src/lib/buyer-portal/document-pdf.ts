@@ -24,8 +24,13 @@ import "server-only";
  */
 
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { eq } from "drizzle-orm";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getDb } from "@/lib/db/client";
+import { documents } from "@/lib/db/schema/documents";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { formatMoneyMinor } from "@/lib/money";
+import { receiptStoragePath } from "@/lib/buyer-portal/receipts";
 
 /** Canonical documents bucket — the buyer download route resolves through it. */
 export const BUYER_DOC_BUCKET = "arconique-documents";
@@ -161,6 +166,8 @@ export interface ReceiptPdfInput {
   amountMinor: bigint;
   currency: string;
   paidAt: Date;
+  /** Printed on the "Method" line. Defaults to the buyer-portal phrasing. */
+  methodLabel?: string;
 }
 
 /** A simple payment-summary receipt PDF. */
@@ -178,7 +185,7 @@ export async function renderReceiptPdf(input: ReceiptPdfInput): Promise<Uint8Arr
   row(ctx, "Amount received", formatMoneyMinor(input.amountMinor, input.currency), {
     bold: true,
   });
-  row(ctx, "Method", "Manual confirmation (buyer portal)");
+  row(ctx, "Method", input.methodLabel ?? "Manual confirmation (buyer portal)");
   hairline(ctx);
   paragraph(
     ctx,
@@ -291,5 +298,141 @@ export async function uploadBuyerDocumentBytes(
     };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "upload-failed" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Milestone → receipt persistence (shared writer)
+// ---------------------------------------------------------------------------
+
+export interface PersistMilestoneReceiptInput {
+  /** The paid milestone the receipt attests. Becomes the storage-path join. */
+  milestoneId: string;
+  /** Milestone name printed on the receipt ("Foundation", "Handover", …). */
+  milestoneName: string;
+  /** Villa the receipt is scoped to in the doc vault (entity_type='villa'). */
+  villaId: string;
+  /** Amount recorded paid, bigint USD MINOR (cents). */
+  amountMinor: bigint;
+  /** Display name printed as "Issued to". */
+  buyerName: string;
+  /** Buyer reference code printed on the receipt. */
+  buyerCode: string;
+  /** When the payment was recorded. */
+  paidAt: Date;
+  /** Currency code (defaults to USD). */
+  currency?: string;
+  /** Channel note for the printed "Method" line. */
+  methodLabel?: string;
+}
+
+export interface PersistMilestoneReceiptResult {
+  /** The indexed `documents` row id, or null when the row could not be written. */
+  documentId: string | null;
+  /** The buyer-facing receipt number (RCP-YYYY-XXXXXXXX). */
+  receiptNumber: string;
+  /** Whether the PDF bytes were uploaded (false ⇒ doc row is byte-less). */
+  uploaded: boolean;
+}
+
+/**
+ * Renders a payment-receipt PDF for a paid milestone, uploads the bytes to the
+ * canonical documents bucket at the deterministic per-milestone key (which is
+ * also the milestone → receipt join), and indexes an owner-visible `documents`
+ * row scoped to the villa so it surfaces in the buyer doc-vault "Payment
+ * receipts" group AND is downloadable.
+ *
+ * This is the single receipt-on-pay writer shared by BOTH the buyer self-service
+ * mark-paid (`payment-actions.ts`) and the operator installments-desk mark-paid
+ * (`installment-desk-actions.ts`) — neither should duplicate this block.
+ *
+ * Best-effort: never throws. On any failure (missing villa, storage not
+ * configured, render error) the caller's payment write still stands; the receipt
+ * is simply absent or byte-less. The org is resolved via villa → project so the
+ * document carries the right tenant.
+ */
+export async function persistMilestoneReceipt(
+  input: PersistMilestoneReceiptInput,
+): Promise<PersistMilestoneReceiptResult> {
+  const currency = input.currency ?? "USD";
+  const receiptNumber = `RCP-${input.paidAt.getUTCFullYear()}-${input.milestoneId
+    .slice(0, 8)
+    .toUpperCase()}`;
+  const fallback: PersistMilestoneReceiptResult = {
+    documentId: null,
+    receiptNumber,
+    uploaded: false,
+  };
+
+  const db = getDb();
+  if (!db) return fallback;
+
+  try {
+    const amountLabel = formatMoneyMinor(input.amountMinor, currency);
+    const storagePath = receiptStoragePath(input.milestoneId);
+
+    // Villa label for the printed receipt + org for tenancy (best-effort).
+    const [villa] = await db
+      .select({
+        unitCode: villas.unitCode,
+        name: villas.name,
+        organizationId: projects.organizationId,
+      })
+      .from(villas)
+      .leftJoin(projects, eq(projects.id, villas.projectId))
+      .where(eq(villas.id, input.villaId))
+      .limit(1);
+    const villaLabel =
+      villa?.name ?? villa?.unitCode ?? `Villa ${input.villaId.slice(0, 8)}`;
+
+    const bytes = await renderReceiptPdf({
+      receiptNumber,
+      buyerName: input.buyerName,
+      buyerCode: input.buyerCode,
+      villaLabel,
+      milestoneName: input.milestoneName,
+      amountMinor: input.amountMinor,
+      currency,
+      paidAt: input.paidAt,
+      methodLabel: input.methodLabel,
+    });
+    const upload = await uploadBuyerDocumentBytes(storagePath, bytes);
+
+    const now = new Date();
+    const [doc] = await db
+      .insert(documents)
+      .values({
+        // TENANCY-FINANCE-DOCS — org via villa -> project.
+        organizationId: villa?.organizationId ?? null,
+        title: `Receipt ${receiptNumber} — ${input.milestoneName} (${amountLabel})`,
+        documentType: "receipt",
+        entityType: "villa",
+        entityId: input.villaId,
+        // Owner-visible so the buyer doc vault surfaces it.
+        visibility: "owner",
+        visibleToOwner: true,
+        status: "active",
+        // `storage_path` doubles as the milestone → receipt join sentinel AND
+        // the real Supabase object key. `storage_bucket` is set only when the
+        // upload succeeded, which the doc vault keys "downloadable" off.
+        storagePath,
+        storageBucket: upload.ok ? upload.bucket ?? BUYER_DOC_BUCKET : null,
+        fileName: upload.ok ? `${receiptNumber}.pdf` : null,
+        mimeType: upload.ok ? "application/pdf" : null,
+        sizeBytes: upload.ok ? upload.sizeBytes ?? null : null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: documents.id });
+
+    return {
+      documentId: doc?.id ?? null,
+      receiptNumber,
+      uploaded: upload.ok,
+    };
+  } catch (err) {
+    // Receipt is a side-effect; never break the recorded payment.
+    console.error("[buyer-portal] milestone receipt persistence failed", err);
+    return fallback;
   }
 }
