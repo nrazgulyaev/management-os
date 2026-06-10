@@ -7,7 +7,6 @@ import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema/projects";
@@ -155,7 +154,7 @@ export default async function NewDistributionPage({
               name="projectId"
               defaultValue={params.projectId ?? ""}
               required
-              className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm"
+              className="select"
             >
               <option value="" disabled>
                 Select a project…
@@ -173,7 +172,7 @@ export default async function NewDistributionPage({
               name="type"
               defaultValue={params.type ?? "capital_return"}
               required
-              className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm"
+              className="select"
             >
               {DISTRIBUTION_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -190,7 +189,7 @@ export default async function NewDistributionPage({
               min="0.01"
               defaultValue={params.totalUsdMajor ?? ""}
               required
-              className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm"
+              className="input"
               placeholder="e.g. 200000"
             />
           </Field>
@@ -202,7 +201,7 @@ export default async function NewDistributionPage({
                 params.effectiveDate ?? new Date().toISOString().slice(0, 10)
               }
               required
-              className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm"
+              className="input"
             />
           </Field>
           <Field label="Trigger reason">
@@ -210,7 +209,7 @@ export default async function NewDistributionPage({
               name="trigger"
               defaultValue={params.trigger ?? "manual"}
               required
-              className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm"
+              className="select"
             >
               {DISTRIBUTION_TRIGGER_REASONS.map((t) => (
                 <option key={t} value={t}>
@@ -224,12 +223,14 @@ export default async function NewDistributionPage({
               type="text"
               name="notes"
               defaultValue={params.notes ?? ""}
-              className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm"
+              className="input"
             />
           </Field>
           <input type="hidden" name="preview" value="1" />
           <div className="md:col-span-2">
-            <Button type="submit">Compute preview</Button>
+            <button type="submit" className="btn btn-amber">
+              Compute preview
+            </button>
           </div>
         </form>
       </Section>
@@ -257,36 +258,44 @@ export default async function NewDistributionPage({
             />
           ) : (
             <>
-              <Table>
-                <THead>
-                  <TR>
-                    <TH>Investor</TH>
-                    <TH>Commitment</TH>
-                    <TH>Capital return</TH>
-                    <TH>Profit</TH>
-                    <TH>Total</TH>
-                    <TH>Profit %</TH>
-                  </TR>
-                </THead>
-                <TBody>
-                  {preview.allocations.map((a) => (
-                    <TR key={a.commitmentId}>
-                      <TD className="text-sm">{a.investorLegalName}</TD>
-                      <TD className="font-mono text-xs">{a.commitmentCode}</TD>
-                      <TDNum>
-                        {formatUsdMinor(a.capitalReturnAmountUsdMinor)}
-                      </TDNum>
-                      <TDNum>{formatUsdMinor(a.profitAmountUsdMinor)}</TDNum>
-                      <TDNum className="font-medium">
-                        {formatUsdMinor(a.totalAmountUsdMinor)}
-                      </TDNum>
-                      <TDNum>
-                        {Number(a.profitSharePercentUsed).toFixed(1)}%
-                      </TDNum>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
+              <div className="card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="data w-full">
+                    <thead>
+                      <tr>
+                        <th>Investor</th>
+                        <th>Commitment</th>
+                        <th className="num">Capital return</th>
+                        <th className="num">Profit</th>
+                        <th className="num">Total</th>
+                        <th className="num">Profit %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preview.allocations.map((a) => (
+                        <tr key={a.commitmentId}>
+                          <td className="row-title">{a.investorLegalName}</td>
+                          <td className="font-mono text-xs">
+                            {a.commitmentCode}
+                          </td>
+                          <td className="num">
+                            {formatUsdMinor(a.capitalReturnAmountUsdMinor)}
+                          </td>
+                          <td className="num">
+                            {formatUsdMinor(a.profitAmountUsdMinor)}
+                          </td>
+                          <td className="num font-medium">
+                            {formatUsdMinor(a.totalAmountUsdMinor)}
+                          </td>
+                          <td className="num text-ink-3">
+                            {Number(a.profitSharePercentUsed).toFixed(1)}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
               <form action={declareAction} className="mt-4 flex items-center gap-3">
                 <input type="hidden" name="projectId" value={params.projectId} />
@@ -303,8 +312,10 @@ export default async function NewDistributionPage({
                 />
                 <input type="hidden" name="trigger" value={params.trigger ?? "manual"} />
                 <input type="hidden" name="notes" value={params.notes ?? ""} />
-                <Button type="submit">Declare distribution</Button>
-                <span className="text-xs text-ink-tertiary">
+                <button type="submit" className="btn btn-amber">
+                  Declare distribution
+                </button>
+                <span className="text-xs text-ink-4">
                   Creates rows in `distributions` and `distribution_allocations`. No
                   balances move until you click Execute.
                 </span>
@@ -325,10 +336,8 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-        {label}
-      </span>
+    <label className="field">
+      <span className="field-label">{label}</span>
       {children}
     </label>
   );
