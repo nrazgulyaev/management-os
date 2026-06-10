@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Kpi, Card } from "@/components/dashboard/primitives";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getCommitments } from "@/lib/development/server/investors";
@@ -70,40 +67,41 @@ export default async function CommitmentsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Commitments" },
-        ]}
-        eyebrow="Capital · one row per investor × project"
-        title="Capital commitments"
-        description="Each commitment carries its own profit-share % and capital-return priority. Drawdowns and wallets nest under the detail view."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="accent">
-              <Link href="/development-os/commitments">+ New commitment</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
-          </div>
-        }
-      />
+      <div className="section-heading">
+        <div className="eyebrow label">Capital · one row per investor × project</div>
+        <h1>
+          Capital <em>commitments</em>.
+        </h1>
+        <p>
+          Each commitment carries its own profit-share % and capital-return
+          priority. Drawdowns and wallets nest under the detail view.
+        </p>
+      </div>
+
+      <div className="flex justify-end gap-2 mb-[22px]">
+        <Link
+          href="/development-os/commitments"
+          className="btn btn-accent btn-sm"
+        >
+          + New commitment
+        </Link>
+        <Link href="/development-os" className="btn btn-dark btn-sm">
+          <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+          Command center
+        </Link>
+      </div>
 
       {!db && (
         <EmptyState
           title="Commitments need the database"
           description="Database connection not configured. Contact support."
-          action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+          action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
         />
       )}
 
       {db && (
         <>
-          <div className="projects-kpi-strip">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Kpi
               label="Committed"
               value={fmtAbbrevUsd(totalCommittedUsd)}
@@ -128,101 +126,99 @@ export default async function CommitmentsPage() {
             />
           </div>
 
-          <Card padding="default" overflowHidden>
-            <div className="flex items-center gap-2.5 mb-3.5">
-              <h3 className="display text-[19px] font-medium tracking-tight m-0">
-                Active + closed
-              </h3>
-              <span className="label ml-auto text-[10.5px] tracking-[0.04em]">
-                {commitments.length} commitments
-              </span>
+          <section>
+            <div className="flex items-baseline justify-between mb-3">
+              <span className="label">Active + closed</span>
+              <span className="label">{commitments.length} commitments</span>
             </div>
-            {commitments.length === 0 ? (
-              <EmptyState
-                title="No commitments yet"
-                description="Add your first investor commitment to start tracking capital calls and distributions."
-                action={
-                  <Link
-                    href="/development-os/commitments"
-                    className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40"
-                  >
-                    View commitments
-                  </Link>
-                }
-              />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="data w-full">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Investor</th>
-                      <th>Project</th>
-                      <th className="num">Committed</th>
-                      <th className="num">Profit %</th>
-                      <th className="num">Drawn %</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {commitments.map((c) => (
-                      <tr key={c.id}>
-                        <td className="font-mono text-[11px]">
-                          <Link
-                            href={`/development-os/commitments/${c.id}`}
-                            className="hover:underline"
-                          >
-                            {c.commitmentCode}
-                          </Link>
-                        </td>
-                        <td>
-                          <Link
-                            href={`/development-os/investors/${c.investorCode}`}
-                            className="hover:underline text-ink"
-                          >
-                            {c.investorLegalName}
-                          </Link>
-                        </td>
-                        <td className="text-ink-secondary">
-                          {c.projectName ?? (
-                            <span className="text-ink-4">Multi-project</span>
-                          )}
-                        </td>
-                        <td className="num">
-                          {formatCurrencyMinor(
-                            BigInt(c.committedAmountMinor),
-                            c.committedCurrency,
-                          )}
-                          <div className="text-[10px] text-ink-tertiary">
-                            ≈ {formatUsdMinor(BigInt(c.committedAmountUsdMinor))}
-                          </div>
-                        </td>
-                        <td className="num">
-                          {Number(c.profitSharePercent).toFixed(1)}%
-                        </td>
-                        <td className="num">{c.drawnPercent.toFixed(1)}%</td>
-                        <td>
-                          <Badge
-                            tone={
-                              c.status === "active"
-                                ? "success"
-                                : c.status === "fully_called"
-                                  ? "info"
-                                  : c.status === "closed"
-                                    ? "neutral"
-                                    : "warning"
-                            }
-                          >
-                            {COMMITMENT_STATUS_LABEL[c.status]}
-                          </Badge>
-                        </td>
+            <div className="card overflow-hidden">
+              {commitments.length === 0 ? (
+                <EmptyState
+                  title="No commitments yet"
+                  description="Add your first investor commitment to start tracking capital calls and distributions."
+                  action={
+                    <Link
+                      href="/development-os/commitments"
+                      className="btn btn-dark btn-sm"
+                    >
+                      View commitments
+                    </Link>
+                  }
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="data">
+                    <thead>
+                      <tr>
+                        <th>Code</th>
+                        <th>Investor</th>
+                        <th>Project</th>
+                        <th className="num">Committed</th>
+                        <th className="num">Profit %</th>
+                        <th className="num">Drawn %</th>
+                        <th>Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
+                    </thead>
+                    <tbody>
+                      {commitments.map((c) => (
+                        <tr key={c.id}>
+                          <td className="font-mono text-[11px]">
+                            <Link
+                              href={`/development-os/commitments/${c.id}`}
+                              className="hover:underline"
+                            >
+                              {c.commitmentCode}
+                            </Link>
+                          </td>
+                          <td className="row-title">
+                            <Link
+                              href={`/development-os/investors/${c.investorCode}`}
+                              className="hover:underline"
+                            >
+                              {c.investorLegalName}
+                            </Link>
+                          </td>
+                          <td className="text-ink-3">
+                            {c.projectName ?? (
+                              <span className="text-ink-4">Multi-project</span>
+                            )}
+                          </td>
+                          <td className="num">
+                            {formatCurrencyMinor(
+                              BigInt(c.committedAmountMinor),
+                              c.committedCurrency,
+                            )}
+                            <div className="text-[10px] text-ink-3">
+                              ≈ {formatUsdMinor(BigInt(c.committedAmountUsdMinor))}
+                            </div>
+                          </td>
+                          <td className="num">
+                            {Number(c.profitSharePercent).toFixed(1)}%
+                          </td>
+                          <td className="num">{c.drawnPercent.toFixed(1)}%</td>
+                          <td>
+                            <HandoffBadge
+                              tone={
+                                c.status === "active"
+                                  ? "ok"
+                                  : c.status === "fully_called"
+                                    ? "info"
+                                    : c.status === "closed"
+                                      ? "soft"
+                                      : "warn"
+                              }
+                            >
+                              {COMMITMENT_STATUS_LABEL[c.status]}
+                            </HandoffBadge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </section>
         </>
       )}
     </DevelopmentShell>

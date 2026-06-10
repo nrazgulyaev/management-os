@@ -17,10 +17,9 @@ import {
 } from "@/lib/development/server/contract-actions";
 import { issueInvoiceForMilestone } from "@/lib/development/server/invoice-actions";
 
-const btn =
-  "text-xs px-2.5 py-1 rounded border border-line-soft bg-surface hover:bg-muted/50 disabled:opacity-50";
+const btn = "btn btn-dark btn-sm disabled:opacity-50";
 const dangerBtn =
-  "text-xs px-2.5 py-1 rounded border border-danger/40 bg-surface text-danger hover:bg-danger/5 disabled:opacity-50";
+  "btn btn-sm border border-danger/40 text-danger hover:bg-danger/5 disabled:opacity-50";
 
 function useRun() {
   const router = useRouter();
@@ -121,7 +120,7 @@ export function CancelGroupButton({
         required
         minLength={2}
         placeholder="Reason"
-        className="text-xs px-2 py-1 rounded border border-line-soft bg-surface w-40"
+        className="input text-xs w-40"
       />
       <button type="submit" className={dangerBtn} disabled={pending}>
         {pending ? "…" : "Confirm cancel"}

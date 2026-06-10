@@ -133,7 +133,7 @@ export function Card({
 
 interface HandoffBadgeProps {
   children: React.ReactNode;
-  tone?: "ok" | "warn" | "danger" | "gold" | "info" | "ink" | "soft";
+  tone?: "ok" | "warn" | "danger" | "gold" | "info" | "ink" | "soft" | "amber";
 }
 /** Layer B (handoff) badge — pill-shaped, mono-font, per-product
  *  palette via the `.badge` CSS classes in src/styles/components.css.

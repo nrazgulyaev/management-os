@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Percent } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Card } from "@/components/dashboard/primitives";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { formatDate, formatUSD } from "@/lib/utils";
 import {
@@ -25,13 +22,16 @@ import { DiscountApprovalActions } from "./_approval-actions";
 export const metadata: Metadata = { title: "Discounts · Development OS" };
 export const dynamic = "force-dynamic";
 
-const statusTone: Record<DiscountStatus, "neutral" | "warning" | "accent" | "success" | "danger"> = {
-  proposed: "neutral",
-  pending_approval: "warning",
-  approved: "accent",
+const statusTone: Record<
+  DiscountStatus,
+  "ok" | "warn" | "danger" | "amber" | "soft" | undefined
+> = {
+  proposed: "soft",
+  pending_approval: "warn",
+  approved: "amber",
   rejected: "danger",
-  applied: "success",
-  reverted: "neutral",
+  applied: "ok",
+  reverted: "soft",
 };
 
 function fmtUsd(minor: bigint): string {
@@ -66,35 +66,31 @@ export default async function DiscountsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Discounts" },
-        ]}
-        eyebrow="Sales · role-driven authority"
-        title="Discounts that escalate"
-        description="Authority is role-driven — a discount above the proposer's tier escalates automatically to the next role with sufficient authority."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
-        }
-      />
+      <div className="section-heading">
+        <div className="eyebrow label">Sales · role-driven authority</div>
+        <h1>
+          Discounts that <em>escalate</em>.
+        </h1>
+        <p>
+          Authority is role-driven — a discount above the proposer&apos;s tier
+          escalates automatically to the next role with sufficient authority.
+        </p>
+      </div>
+
+      <div className="flex justify-end mb-[22px]">
+        <Link href="/development-os" className="btn btn-dark btn-sm">
+          <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+          Command center
+        </Link>
+      </div>
 
       {/* Authorization tiers — who can approve what */}
       <section>
-        <div className="flex items-center gap-2.5 mb-3.5">
-          <h3 className="display text-[15px] font-medium tracking-tight m-0">
-            Authorization tiers
-          </h3>
-          <span className="label ml-auto text-[10.5px] tracking-[0.04em]">
-            Who can approve what
-          </span>
+        <div className="gs-card-h">
+          <h3 className="text-[15px]">Authorization tiers</h3>
+          <span className="meta">Who can approve what</span>
         </div>
-        <div className="projects-kpi-strip">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {limits.length === 0 ? (
             <EmptyState
               title="No authorization tiers seeded"
@@ -103,11 +99,8 @@ export default async function DiscountsPage() {
             />
           ) : (
             limits.map((l) => (
-              <div
-                key={l.id}
-                className="card px-4 py-3.5"
-              >
-                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary">
+              <div key={l.id} className="card px-4 py-3.5">
+                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
                   {l.roleKey}
                 </div>
                 <div className="display text-[24px] font-medium text-ink mt-1.5">
@@ -129,13 +122,9 @@ export default async function DiscountsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         {/* Awaiting your review */}
         <section>
-          <div className="flex items-center gap-2.5 mb-3.5">
-            <h3 className="display text-[15px] font-medium tracking-tight m-0">
-              ⚠ Awaiting your review
-            </h3>
-            <span className="label ml-auto text-[10.5px] tracking-[0.04em]">
-              {pending.length}
-            </span>
+          <div className="gs-card-h">
+            <h3 className="text-[15px]">⚠ Awaiting your review</h3>
+            <span className="meta">{pending.length}</span>
           </div>
           {pending.length === 0 ? (
             <EmptyState
@@ -147,20 +136,20 @@ export default async function DiscountsPage() {
               {pending.map((d) => (
                 <article
                   key={d.id}
-                  className="rounded-md border border-warning/30 bg-warning-weak/40 p-4 flex flex-col gap-2.5"
+                  className="card px-4 py-4 flex flex-col gap-2.5 border-warning/40 bg-warning-weak/40"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-sm font-medium text-ink">
                         {d.contactFullName}
                       </span>
-                      <span className="text-[11px] text-ink-tertiary">
+                      <span className="text-[11px] text-ink-3">
                         {d.villaCode} · {DISCOUNT_REASON_LABEL[d.reason]}
                       </span>
                     </div>
-                    <Badge tone="warning">
+                    <HandoffBadge tone="warn">
                       {DISCOUNT_STATUS_LABEL[d.status]}
-                    </Badge>
+                    </HandoffBadge>
                   </div>
                   <div className="grid grid-cols-3 gap-3 mt-1">
                     <div>
@@ -191,11 +180,11 @@ export default async function DiscountsPage() {
                     </div>
                   </div>
                   {d.reasonNote && (
-                    <p className="text-sm text-ink-secondary leading-relaxed">
+                    <p className="text-sm text-ink-3 leading-relaxed">
                       {d.reasonNote}
                     </p>
                   )}
-                  <div className="text-[11px] text-ink-tertiary">
+                  <div className="text-[11px] text-ink-3">
                     Proposed {formatDate(d.proposedAt, "short")}
                     {d.escalatedAt &&
                       ` · escalated ${formatDate(d.escalatedAt, "short")}`}
@@ -206,7 +195,7 @@ export default async function DiscountsPage() {
                       approverUserId={me.id}
                     />
                   ) : (
-                    <span className="text-[11px] text-ink-tertiary">
+                    <span className="text-[11px] text-ink-3">
                       Sign in to approve.
                     </span>
                   )}
@@ -217,58 +206,56 @@ export default async function DiscountsPage() {
         </section>
 
         {/* History */}
-        <Card padding="default" overflowHidden>
-          <div className="flex items-center gap-2.5 mb-3.5">
-            <h3 className="display text-[19px] font-medium tracking-tight m-0">
-              History
-            </h3>
-            <span className="label ml-auto text-[10.5px] tracking-[0.04em]">
-              All discounts
-            </span>
-          </div>
-          {all.length === 0 ? (
-            <EmptyState
-              icon={<Percent className="w-5 h-5" strokeWidth={1.75} />}
-              title="No discounts proposed"
-              description="Discounts are proposed from a contract group's detail page."
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="data w-full">
-                <thead>
-                  <tr>
-                    <th>Buyer</th>
-                    <th>Unit</th>
-                    <th className="num">Disc.</th>
-                    <th className="num">Final</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {all.map((d) => (
-                    <tr key={d.id}>
-                      <td className="text-ink">{d.contactFullName}</td>
-                      <td className="font-mono text-[11px] text-ink-tertiary">
-                        {d.villaCode}
-                      </td>
-                      <td className="num">
-                        {d.discountType === "percent"
-                          ? fmtPercent(d.discountPercent)
-                          : fmtUsd(d.discountAmountUsdMinor ?? 0n)}
-                      </td>
-                      <td className="num">{fmtUsd(d.finalPriceUsdMinor)}</td>
-                      <td>
-                        <Badge tone={statusTone[d.status]}>
-                          {DISCOUNT_STATUS_LABEL[d.status]}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <section>
+          <div className="card card-pad overflow-hidden">
+            <div className="gs-card-h">
+              <h3>History</h3>
+              <span className="meta">All discounts</span>
             </div>
-          )}
-        </Card>
+            {all.length === 0 ? (
+              <EmptyState
+                icon={<Percent className="w-5 h-5" strokeWidth={1.75} />}
+                title="No discounts proposed"
+                description="Discounts are proposed from a contract group's detail page."
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th>Buyer</th>
+                      <th>Unit</th>
+                      <th className="num">Disc.</th>
+                      <th className="num">Final</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {all.map((d) => (
+                      <tr key={d.id}>
+                        <td className="row-title">{d.contactFullName}</td>
+                        <td className="font-mono text-[11px] text-ink-3">
+                          {d.villaCode}
+                        </td>
+                        <td className="num">
+                          {d.discountType === "percent"
+                            ? fmtPercent(d.discountPercent)
+                            : fmtUsd(d.discountAmountUsdMinor ?? 0n)}
+                        </td>
+                        <td className="num">{fmtUsd(d.finalPriceUsdMinor)}</td>
+                        <td>
+                          <HandoffBadge tone={statusTone[d.status]}>
+                            {DISCOUNT_STATUS_LABEL[d.status]}
+                          </HandoffBadge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </DevelopmentShell>
   );

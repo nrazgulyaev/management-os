@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Wallet } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Kpi, Card } from "@/components/dashboard/primitives";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { formatDate, formatUSD } from "@/lib/utils";
 import { getInvoices } from "@/lib/development/server/invoices";
@@ -18,13 +15,16 @@ import type { InvoiceStatus } from "@/lib/development/types/payments";
 export const metadata: Metadata = { title: "Invoices · Development OS" };
 export const dynamic = "force-dynamic";
 
-const statusTone: Record<InvoiceStatus, "neutral" | "warning" | "accent" | "success" | "danger"> = {
-  draft: "neutral",
-  sent: "accent",
-  viewed: "accent",
-  paid: "success",
+const statusTone: Record<
+  InvoiceStatus,
+  "ok" | "warn" | "danger" | "info" | "amber" | "soft" | undefined
+> = {
+  draft: "soft",
+  sent: "amber",
+  viewed: "amber",
+  paid: "ok",
   overdue: "danger",
-  void: "neutral",
+  void: "soft",
 };
 
 function fmtUsd(minor: bigint): string {
@@ -60,28 +60,28 @@ export default async function InvoicesPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Invoices" },
-        ]}
-        eyebrow="Sales · milestone invoices"
-        title="Issued against milestones"
-        description="Invoices fire on a contract milestone's pre-invoice or due-date trigger. PDF generation and multi-language rendering wire up next."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="accent">+ Issue invoice</Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
-          </div>
-        }
-      />
+      <div className="section-heading">
+        <div className="eyebrow label">Sales · milestone invoices</div>
+        <h1>
+          Issued against <em>milestones</em>.
+        </h1>
+        <p>
+          Invoices fire on a contract milestone&apos;s pre-invoice or due-date
+          trigger. PDF generation and multi-language rendering wire up next.
+        </p>
+      </div>
 
-      <div className="projects-kpi-strip">
+      <div className="flex justify-end gap-2 mb-[22px]">
+        <button type="button" className="btn btn-accent btn-sm">
+          + Issue invoice
+        </button>
+        <Link href="/development-os" className="btn btn-dark btn-sm">
+          <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+          Command center
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi label="Total" value={invoices.length} sub="issued" />
         <Kpi
           label="Unpaid"
@@ -110,59 +110,57 @@ export default async function InvoicesPage() {
           description="Invoices are created when a contract milestone fires its pre-invoice or due-date trigger. Open a contract group to issue one manually."
         />
       ) : (
-        <Card padding="default" overflowHidden>
-          <div className="flex items-center gap-2.5 mb-3.5">
-            <h3 className="display text-[19px] font-medium tracking-tight m-0">
-              All invoices
-            </h3>
-            <span className="label ml-auto text-[10.5px] tracking-[0.04em]">
-              {invoices.length} records
-            </span>
+        <section>
+          <div className="flex items-baseline justify-between mb-3">
+            <span className="label">All invoices</span>
+            <span className="label">{invoices.length} records</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="data w-full">
-              <thead>
-                <tr>
-                  <th>Number</th>
-                  <th>Buyer</th>
-                  <th>Type</th>
-                  <th className="num">Amount</th>
-                  <th>Due</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((i) => (
-                  <tr key={i.id}>
-                    <td className="font-mono text-[12px] text-ink">
-                      {i.invoiceNumber}
-                    </td>
-                    <td>
-                      <div className="text-ink">{i.contactFullName}</div>
-                      <div className="text-[11px] text-ink-4">
-                        {i.contactEmail ?? "—"}
-                      </div>
-                    </td>
-                    <td className="text-ink-secondary">
-                      {INVOICE_TYPE_LABEL[i.invoiceType]}
-                    </td>
-                    <td className="num">{fmtUsd(i.amountUsdMinor)}</td>
-                    <td className="font-mono text-[11px]">
-                      {i.status === "paid"
-                        ? "paid"
-                        : formatDate(i.dueDate, "short")}
-                    </td>
-                    <td>
-                      <Badge tone={statusTone[i.status]}>
-                        {INVOICE_STATUS_LABEL[i.status]}
-                      </Badge>
-                    </td>
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Number</th>
+                    <th>Buyer</th>
+                    <th>Type</th>
+                    <th className="num">Amount</th>
+                    <th>Due</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {invoices.map((i) => (
+                    <tr key={i.id}>
+                      <td className="font-mono text-[12px] text-ink">
+                        {i.invoiceNumber}
+                      </td>
+                      <td>
+                        <div className="text-ink">{i.contactFullName}</div>
+                        <div className="text-[11px] text-ink-4">
+                          {i.contactEmail ?? "—"}
+                        </div>
+                      </td>
+                      <td className="text-ink-3">
+                        {INVOICE_TYPE_LABEL[i.invoiceType]}
+                      </td>
+                      <td className="num">{fmtUsd(i.amountUsdMinor)}</td>
+                      <td className="font-mono text-[11px]">
+                        {i.status === "paid"
+                          ? "paid"
+                          : formatDate(i.dueDate, "short")}
+                      </td>
+                      <td>
+                        <HandoffBadge tone={statusTone[i.status]}>
+                          {INVOICE_STATUS_LABEL[i.status]}
+                        </HandoffBadge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </Card>
+        </section>
       )}
     </DevelopmentShell>
   );

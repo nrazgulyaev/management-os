@@ -2,13 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getCommitment } from "@/lib/development/server/commitments";
@@ -30,6 +25,26 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
+function StatCard({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="card px-[18px] py-[14px]">
+      <div className="label">{label}</div>
+      <div className="font-mono text-[20px] text-ink mt-1.5 tabular-nums">
+        {value}
+      </div>
+      {hint && <div className="text-[11px] text-ink-3 mt-1">{hint}</div>}
+    </div>
+  );
+}
+
 export default async function CommitmentDetailPage({
   params,
 }: {
@@ -40,21 +55,22 @@ export default async function CommitmentDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            {
-              label: "Commitments",
-              href: "/development-os/commitments",
-            },
-            { label: "Detail" },
-          ]}
-          title="Commitment detail"
-        />
+        <header className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os/commitments">
+                Capital · commitments
+              </Link>
+              <span>/</span>
+              <span>Detail</span>
+            </div>
+            <h1>Commitment detail</h1>
+          </div>
+        </header>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to view commitment details."
-          action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+          action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
         />
       </DevelopmentShell>
     );
@@ -67,32 +83,68 @@ export default async function CommitmentDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Commitments", href: "/development-os/commitments" },
-          { label: commitment.commitmentCode },
-        ]}
-        eyebrow={`${commitment.commitmentCode} · ${commitment.investorLegalName}`}
-        title={
-          commitment.projectName
-            ? `${commitment.projectName} commitment`
-            : `Multi-project commitment`
-        }
-        description={commitment.notes ?? undefined}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/commitments">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All commitments
-            </Link>
-          </Button>
-        }
-      />
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os/commitments">Capital · commitments</Link>
+            <span>/</span>
+            <span>{commitment.commitmentCode}</span>
+          </div>
+          <h1>
+            {commitment.projectName
+              ? `${commitment.projectName} commitment`
+              : "Multi-project commitment"}{" "}
+            <em>· {commitment.commitmentCode}</em>
+          </h1>
+          <div className="page-header-meta">
+            <span>{commitment.investorLegalName}</span>
+            <span>·</span>
+            <span>{CURRENCY_LABEL[commitment.committedCurrency]}</span>
+            {commitment.signedAt && (
+              <>
+                <span>·</span>
+                <span>signed {commitment.signedAt}</span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="actions">
+          <HandoffBadge
+            tone={
+              commitment.status === "active"
+                ? "ok"
+                : commitment.status === "fully_called"
+                  ? "info"
+                  : commitment.status === "closed"
+                    ? "soft"
+                    : "warn"
+            }
+          >
+            {COMMITMENT_STATUS_LABEL[commitment.status]}
+          </HandoffBadge>
+          {commitment.isLandownerJv && (
+            <HandoffBadge tone="gold">Landowner JV</HandoffBadge>
+          )}
+          <Link
+            href="/development-os/commitments"
+            className="btn btn-dark btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All commitments
+          </Link>
+        </div>
+      </header>
 
-      <Section eyebrow="Terms" title="Negotiated commitment terms">
+      {commitment.notes && (
+        <p className="text-ink-secondary text-sm max-w-3xl leading-relaxed -mt-2">
+          {commitment.notes}
+        </p>
+      )}
+
+      <section>
+        <div className="label mb-3">Negotiated commitment terms</div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
+          <StatCard
             label="Committed"
             value={formatCurrencyMinor(
               BigInt(commitment.committedAmountMinor),
@@ -100,216 +152,186 @@ export default async function CommitmentDetailPage({
             )}
             hint={`≈ ${formatUsdMinor(BigInt(commitment.committedAmountUsdMinor))} at FX ${commitment.fxRateAtCommitment}`}
           />
-          <MetricCard
+          <StatCard
             label="Profit share"
             value={`${Number(commitment.profitSharePercent).toFixed(2)}%`}
             hint={`Priority ${commitment.capitalReturnPriority}`}
           />
-          <MetricCard
+          <StatCard
             label="Drawn"
             value={formatUsdMinor(BigInt(commitment.drawnUsdMinor))}
             hint={`${commitment.drawnPercent.toFixed(1)}% of committed`}
           />
-          <MetricCard
+          <StatCard
             label="In wallet"
             value={formatUsdMinor(BigInt(commitment.walletAvailableUsdMinor))}
             hint="Available to withdraw"
           />
         </div>
-        <div className="mt-3 flex items-center gap-3 text-xs text-ink-secondary">
-          <Badge
-            tone={
-              commitment.status === "active"
-                ? "success"
-                : commitment.status === "fully_called"
-                  ? "info"
-                  : commitment.status === "closed"
-                    ? "neutral"
-                    : "warning"
-            }
-          >
-            {COMMITMENT_STATUS_LABEL[commitment.status]}
-          </Badge>
-          {commitment.isLandownerJv && (
-            <Badge tone="gold">Landowner JV</Badge>
-          )}
-          <span>Currency: {CURRENCY_LABEL[commitment.committedCurrency]}</span>
-          {commitment.signedAt && <span>Signed: {commitment.signedAt}</span>}
-        </div>
-      </Section>
+      </section>
 
-      <Section eyebrow="Drawdowns" title="Capital calls">
+      <section>
+        <div className="label mb-3">Capital calls · drawdowns</div>
         {commitment.drawdowns.length === 0 ? (
           <EmptyState
             title="No drawdowns yet"
             description="Use requestDrawdown via the API to create the first capital call."
           />
         ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>#</TH>
-                <TH>Amount</TH>
-                <TH>USD</TH>
-                <TH>Requested</TH>
-                <TH>Due</TH>
-                <TH>Received</TH>
-                <TH>Trigger</TH>
-                <TH>Status</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {commitment.drawdowns.map((d) => (
-                <TR key={d.id}>
-                  <TD className="font-mono text-xs">#{d.drawdownNumber}</TD>
-                  <TDNum>
-                    {formatCurrencyMinor(BigInt(d.amountMinor), d.currency)}
-                  </TDNum>
-                  <TDNum>{formatUsdMinor(BigInt(d.amountUsdMinor))}</TDNum>
-                  <TD className="text-xs">
-                    {new Date(d.requestedAt).toLocaleDateString()}
-                  </TD>
-                  <TD className="text-xs">{d.dueDate}</TD>
-                  <TD className="text-xs">
-                    {d.receivedAt
-                      ? new Date(d.receivedAt).toLocaleDateString()
-                      : "—"}
-                  </TD>
-                  <TD className="text-xs">
-                    {DRAWDOWN_TRIGGER_LABEL[d.triggerReason]}
-                  </TD>
-                  <TD>
-                    <Badge
-                      tone={
-                        d.status === "received"
-                          ? "success"
-                          : d.status === "overdue"
-                            ? "danger"
-                            : d.status === "cancelled"
-                              ? "neutral"
-                              : "warning"
-                      }
-                    >
-                      {DRAWDOWN_STATUS_LABEL[d.status]}
-                    </Badge>
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
+          <div className="card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th className="num">Amount</th>
+                    <th className="num">USD</th>
+                    <th>Requested</th>
+                    <th>Due</th>
+                    <th>Received</th>
+                    <th>Trigger</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {commitment.drawdowns.map((d) => (
+                    <tr key={d.id}>
+                      <td className="font-mono text-xs">#{d.drawdownNumber}</td>
+                      <td className="num">
+                        {formatCurrencyMinor(BigInt(d.amountMinor), d.currency)}
+                      </td>
+                      <td className="num">
+                        {formatUsdMinor(BigInt(d.amountUsdMinor))}
+                      </td>
+                      <td className="font-mono text-[11px]">
+                        {new Date(d.requestedAt).toLocaleDateString()}
+                      </td>
+                      <td className="font-mono text-[11px]">{d.dueDate}</td>
+                      <td className="font-mono text-[11px]">
+                        {d.receivedAt
+                          ? new Date(d.receivedAt).toLocaleDateString()
+                          : "—"}
+                      </td>
+                      <td className="text-ink-3 text-xs">
+                        {DRAWDOWN_TRIGGER_LABEL[d.triggerReason]}
+                      </td>
+                      <td>
+                        <HandoffBadge
+                          tone={
+                            d.status === "received"
+                              ? "ok"
+                              : d.status === "overdue"
+                                ? "danger"
+                                : d.status === "cancelled"
+                                  ? "soft"
+                                  : "warn"
+                          }
+                        >
+                          {DRAWDOWN_STATUS_LABEL[d.status]}
+                        </HandoffBadge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
-      </Section>
+      </section>
 
-      <Section eyebrow="Wallet" title="Recent wallet activity">
+      <section>
+        <div className="label mb-3">Recent wallet activity</div>
         {!walletBundle.wallet ? (
           <EmptyState
             title="Wallet not initialized"
             description="The wallet should be auto-created with the commitment. If missing, this is a data integrity issue — check the commitment-actions transactional path."
           />
-        ) : walletBundle.recentTransactions.length === 0 ? (
-          <div className="rounded-md border border-line-soft p-6 text-sm text-ink-secondary">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-              <MetricCard
-                label="Available"
-                value={formatUsdMinor(
-                  BigInt(walletBundle.wallet.availableBalanceUsdMinor),
-                )}
-              />
-              <MetricCard
-                label="On hold"
-                value={formatUsdMinor(
-                  BigInt(walletBundle.wallet.holdBalanceUsdMinor),
-                )}
-              />
-              <MetricCard
-                label="Lifetime drawn"
-                value={formatUsdMinor(
-                  BigInt(walletBundle.wallet.totalDrawnUsdMinor),
-                )}
-              />
-              <MetricCard
-                label="Lifetime withdrawn"
-                value={formatUsdMinor(
-                  BigInt(walletBundle.wallet.totalWithdrawnUsdMinor),
-                )}
-              />
-            </div>
-            No transactions yet — confirm a drawdown receipt to see the first
-            wallet entry.
-          </div>
         ) : (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-              <MetricCard
+              <StatCard
                 label="Available"
                 value={formatUsdMinor(
                   BigInt(walletBundle.wallet.availableBalanceUsdMinor),
                 )}
               />
-              <MetricCard
+              <StatCard
                 label="On hold"
                 value={formatUsdMinor(
                   BigInt(walletBundle.wallet.holdBalanceUsdMinor),
                 )}
               />
-              <MetricCard
+              <StatCard
                 label="Lifetime drawn"
                 value={formatUsdMinor(
                   BigInt(walletBundle.wallet.totalDrawnUsdMinor),
                 )}
               />
-              <MetricCard
+              <StatCard
                 label="Lifetime withdrawn"
                 value={formatUsdMinor(
                   BigInt(walletBundle.wallet.totalWithdrawnUsdMinor),
                 )}
               />
             </div>
-            <Table>
-              <THead>
-                <TR>
-                  <TH>When</TH>
-                  <TH>Type</TH>
-                  <TH>Amount (USD)</TH>
-                  <TH>After (avail)</TH>
-                  <TH>After (hold)</TH>
-                  <TH>Note</TH>
-                </TR>
-              </THead>
-              <TBody>
-                {walletBundle.recentTransactions.map((t) => (
-                  <TR key={t.id}>
-                    <TD className="text-xs">
-                      {new Date(t.occurredAt).toLocaleString()}
-                    </TD>
-                    <TD className="text-xs">
-                      {WALLET_TX_TYPE_LABEL[t.transactionType]}
-                    </TD>
-                    <TDNum
-                      className={
-                        BigInt(t.amountUsdMinor) < 0n
-                          ? "text-danger"
-                          : "text-success"
-                      }
-                    >
-                      {formatUsdMinor(BigInt(t.amountUsdMinor))}
-                    </TDNum>
-                    <TDNum>
-                      {formatUsdMinor(BigInt(t.balanceAvailableAfterUsdMinor))}
-                    </TDNum>
-                    <TDNum>
-                      {formatUsdMinor(BigInt(t.balanceHoldAfterUsdMinor))}
-                    </TDNum>
-                    <TD className="text-xs text-ink-secondary">
-                      {t.description ?? "—"}
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
+            {walletBundle.recentTransactions.length === 0 ? (
+              <div className="card px-6 py-8 text-center text-sm text-ink-3">
+                No transactions yet — confirm a drawdown receipt to see the first
+                wallet entry.
+              </div>
+            ) : (
+              <div className="card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="data">
+                    <thead>
+                      <tr>
+                        <th>When</th>
+                        <th>Type</th>
+                        <th className="num">Amount (USD)</th>
+                        <th className="num">After (avail)</th>
+                        <th className="num">After (hold)</th>
+                        <th>Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {walletBundle.recentTransactions.map((t) => (
+                        <tr key={t.id}>
+                          <td className="font-mono text-[11px]">
+                            {new Date(t.occurredAt).toLocaleString()}
+                          </td>
+                          <td className="text-ink-3 text-xs">
+                            {WALLET_TX_TYPE_LABEL[t.transactionType]}
+                          </td>
+                          <td
+                            className={
+                              BigInt(t.amountUsdMinor) < 0n
+                                ? "num text-danger"
+                                : "num text-ok"
+                            }
+                          >
+                            {formatUsdMinor(BigInt(t.amountUsdMinor))}
+                          </td>
+                          <td className="num">
+                            {formatUsdMinor(
+                              BigInt(t.balanceAvailableAfterUsdMinor),
+                            )}
+                          </td>
+                          <td className="num">
+                            {formatUsdMinor(BigInt(t.balanceHoldAfterUsdMinor))}
+                          </td>
+                          <td className="text-ink-3 text-xs">
+                            {t.description ?? "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </>
         )}
-      </Section>
+      </section>
     </DevelopmentShell>
   );
 }
