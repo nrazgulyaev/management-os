@@ -155,3 +155,19 @@
 **Контент потерян при супersession:** billing-консоль · support-inbox · plans-редактор · rollout-матрица флагов · per-org AI-spend.
 
 **Системные дыры:** пакет в .gitignore (агенты/CI/свежий клон не видят) · Platform Console рендерится без тёмной темы (data-product=management) · investor/buyer-логины без AuthShell · ни одного visual-baseline для кабинетов.
+
+---
+
+## 11. Волна 1 выполнена (2026-06-10, PR #203–#207)
+
+| PR | Что закрыто |
+|---|---|
+| **#203** | Owner Intelligence 2/5 → 4.5/5: tier-matrix (B), churn cohort + LTV (C), drill-in [ownerId] с save-plan и 4 действиями, per-owner hero, 1-tap call |
+| **#204** | Dev OS: **Executive-кабинет** (был 0/5 — hero + risk/[id] с реальными acknowledge/resolve/false-positive + архив дайджестов + период-чипы); **захватки** (слайдер прогресса = новый updateWorkPackageProgress, block/unblock, авто-WP-код, dependency-гейт вех); координация (4 KPI, +Дефект через createQaQcIssue, Active-фильтр, assignee/due/overdue) |
+| **#205** | Finance: **журнал проводок** (/general-ledger/journal + drill-down счёта с running balance); **импорт выписки** (первый вызов createStatementImport: CSV Mandiri/BCA/OFX/MT940, дедуп, авто-реконсиляция, honest error-таблица); aging (stacked-бары, группировка по контрагентам, Pay→, Remind через notification-spine) |
+| **#206** | Mgmt: календарь бронирований (7/14/30/мес + prev/today/next + тултипы, org-scope); **feed-to-AI** (реальная ингестия в RAG-пайплайн agent_knowledge, бейджи AI·agent, remove, статусы); utilities (per-villa, by-type, 12-мес тренд + spike-детект) |
+| **#207** | Platform: тёмная тема довершена — platform.css gap-fills (.card/.kpi/.btn/badges не имели platform-стилей → Agent Studio рендерился «невидимым»), тёмный сайдбар; AuthShell на buyer/investor/bootstrap; owner-nav паритет + рабочий sign-out |
+
+**Честные пропуски волны (нет данных/таблиц — без миграций):** lead/бригада на захватках · impact $/owner у рисков · period-lock чип GL · PDF-выписки · external-dunning должнику (spine не доставляет внешним) · drag-reschedule календаря · юниты m³/kWh · 06:00 push.
+
+**Backlog волны 2:** warehouse-дерево (/receive,/stock,/picks,/movements,/bins) · CFO transactions паритет (category/project/counterparty/profit/поиск) · Налоги ID (e-Faktur/e-Bupot lifecycle + гейт периода — нужны миграции) · Keystone RBAC-матрица + ролевой nav · dev-workspace 9 ролей + project drill-in · marketing /performance · superseded-потери (billing-консоль, support-inbox — нужен сначала дизайн) · investor/guest pixel-волны (#47/#48) · mobile 390px pass (#46) · ~91 «present-not-pixel» глубоких страниц · visual-baseline для кабинетов.
