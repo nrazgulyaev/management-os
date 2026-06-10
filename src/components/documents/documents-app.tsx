@@ -4,6 +4,7 @@ import * as React from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import type { DocAppRow, TemplateRow } from "@/features/documents/app-services";
+import { CATEGORY_ORDER, metaFor } from "@/features/documents/category-meta";
 import { DocumentPreviewPane } from "./documents-preview-pane";
 import { GenerateFromTemplateButton } from "./documents-template-modals";
 
@@ -14,47 +15,7 @@ type Counts = {
   aiKnowledge: number;
 };
 
-/** Display metadata per document type — drives the category cards + icons. */
-const CATEGORY_META: Record<
-  string,
-  { label: string; glyph: string; meta: string }
-> = {
-  contract: { label: "Contracts", glyph: "§", meta: "owner + vendor agreements" },
-  invoice: { label: "Invoices", glyph: "$", meta: "vendor + service billing" },
-  receipt: { label: "Receipts", glyph: "⊕", meta: "expenses + reimbursements" },
-  statement: { label: "Statements archive", glyph: "∷", meta: "historical owner statements" },
-  kyc: { label: "KYC", glyph: "⊠", meta: "identity + verification" },
-  certificate: { label: "Permits & licences", glyph: "⌂", meta: "villa + zoning + tourism" },
-  guide: { label: "Guides", glyph: "⌬", meta: "reusable boilerplate" },
-  policy: { label: "Insurance & policy", glyph: "⚭", meta: "property + liability" },
-  photo: { label: "Property records", glyph: "⊡", meta: "surveys · photos · plans" },
-  other: { label: "Other documents", glyph: "○", meta: "uncategorised" },
-};
-
-const CATEGORY_ORDER = [
-  "contract",
-  "invoice",
-  "receipt",
-  "statement",
-  "kyc",
-  "certificate",
-  "guide",
-  "policy",
-  "photo",
-  "other",
-];
-
 type Tab = string; // "all" | "expiring" | "ai" | documentType
-
-function metaFor(type: string) {
-  return (
-    CATEGORY_META[type] ?? {
-      label: type.charAt(0).toUpperCase() + type.slice(1),
-      glyph: "○",
-      meta: "documents",
-    }
-  );
-}
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -79,14 +40,22 @@ export function DocumentsApp({
   docs,
   templates,
   counts,
+  initialDocId = null,
 }: {
   docs: DocAppRow[];
   templates: TemplateRow[];
   counts: Counts;
+  /** Deep-link target — preselects this doc's preview pane on mount.
+   *  Used by the folder-tree / timeline vault variants (`?doc=<id>`). */
+  initialDocId?: string | null;
 }) {
   const [tab, setTab] = React.useState<Tab>("all");
   const [query, setQuery] = React.useState("");
-  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(
+    initialDocId && docs.some((d) => d.id === initialDocId)
+      ? initialDocId
+      : null,
+  );
 
   const categories = CATEGORY_ORDER.filter((c) => (counts.byType[c] ?? 0) > 0);
 
