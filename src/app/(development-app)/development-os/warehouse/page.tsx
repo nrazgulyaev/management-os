@@ -60,6 +60,27 @@ export default async function DevWarehousePage() {
         }
       />
 
+      <nav className="flex flex-wrap gap-2 mb-4" aria-label="Warehouse flow">
+        <Link
+          href="/development-os/warehouse/picks"
+          className="btn btn-amber btn-sm"
+        >
+          Picks today →
+        </Link>
+        <Link
+          href="/development-os/warehouse/movements"
+          className="btn btn-dark btn-sm"
+        >
+          Movements log →
+        </Link>
+        <Link
+          href="/development-os/warehouse/bins"
+          className="btn btn-dark btn-sm"
+        >
+          Bin map →
+        </Link>
+      </nav>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 18 }}>
         <Kpi
           label="SKUs"
