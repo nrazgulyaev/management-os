@@ -1,23 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  Table,
-  THead,
-  TBody,
-  TR,
-  TH,
-  TD,
-} from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
-import { listStatementImportsForUi } from "@/lib/banking/queries";
+import {
+  listBankConnectionsForUi,
+  listStatementImportsForUi,
+} from "@/lib/banking/queries";
 import { CSV_TEMPLATES } from "@/lib/banking/templates/csv-templates";
+import { StatementUploadForm } from "./_upload-form";
 
 export const metadata: Metadata = { title: "Statement import · Finance" };
 export const dynamic = "force-dynamic";
@@ -27,141 +19,228 @@ export default async function StatementImportPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Statement import" />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/finance">Finance</Link> / Statement
+              import
+            </div>
+            <h1>Statement import.</h1>
+          </div>
+        </div>
         <EmptyState
-          title="Database not configured"
-          description="Set DATABASE_URL."
+          title="Statement import runs against the database"
+          description="Database connection not configured. Contact support."
+          action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
         />
       </DevelopmentShell>
     );
   }
-  const imports = await listStatementImportsForUi({ limit: 50 });
+
+  const [imports, allConnections] = await Promise.all([
+    listStatementImportsForUi({ limit: 50 }),
+    listBankConnectionsForUi(),
+  ]);
+
+  const connections = allConnections
+    .filter((c) => c.status !== "archived")
+    .map((c) => ({
+      id: c.id,
+      label: c.accountName ?? c.externalAccountId,
+      provider: c.provider,
+      currency: c.currency,
+      status: c.status,
+    }));
+
+  const totals = imports.reduce(
+    (acc, i) => ({
+      created: acc.created + i.transactionsCreated,
+      skipped: acc.skipped + i.transactionsSkippedDuplicate,
+      failed: acc.failed + i.rowsFailed,
+    }),
+    { created: 0, skipped: 0, failed: 0 },
+  );
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Statement import" },
-        ]}
-        eyebrow={`${imports.length} recent imports`}
-        title="Statement import"
-        description="Upload bank statements (CSV / OFX / PDF / MT940). The wizard auto-detects format + dialect, suggests column mappings (Mandiri + BCA + generic templates bundled), previews parsed rows, then commits in batches with idempotent dedupe."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance/bank-review">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Bank review
-            </Link>
-          </Button>
-        }
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> / Statement
+            import
+          </div>
+          <h1>
+            Statement import.{" "}
+            <span className="text-[var(--amber)]">
+              From bank file to matched lines.
+            </span>
+          </h1>
+          <p className="mt-2 mb-0 text-[15px] text-[var(--ink-3)] max-w-[680px]">
+            Upload CSV / OFX / MT940 exports. Format and CSV columns
+            auto-detect (Mandiri + BCA + generic templates bundled), rows
+            commit with idempotent dedupe, then the auto-matcher runs so
+            new lines land in the Bank ↔ GL matcher pre-scored.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/finance/bank-review"
+            className="btn btn-secondary btn-sm"
+          >
+            Bank review
+          </Link>
+          <Link
+            href="/development-os/finance/accounting"
+            className="btn btn-secondary btn-sm"
+          >
+            Bank ↔ GL matcher →
+          </Link>
+        </div>
+      </div>
+
+      <div className="cfo-kpis">
+        <Kpi
+          label="Recent imports"
+          value={String(imports.length)}
+          sub="last 50 shown"
+        />
+        <Kpi
+          label="Lines imported"
+          value={totals.created.toLocaleString()}
+          sub="across recent imports"
+          tone="accent"
+        />
+        <Kpi
+          label="Duplicates skipped"
+          value={totals.skipped.toLocaleString()}
+          sub="idempotent re-uploads"
+        />
+        <Kpi
+          label="Rows failed"
+          value={totals.failed.toLocaleString()}
+          sub="see per-import error log"
+        />
+      </div>
+
+      <StatementUploadForm
+        connections={connections}
+        csvTemplates={CSV_TEMPLATES.map((t) => ({ id: t.id, label: t.label }))}
       />
 
-      <Section
-        title="Bundled CSV templates"
-        description="Auto-applied when the operator picks a matching bank in the upload wizard. Operators can override any column on the review screen before committing."
-      >
-        <Table>
-          <THead>
-            <TR>
-              <TH>Template</TH>
-              <TH>Provider</TH>
-              <TH>Default columns</TH>
-              <TH>Currency</TH>
-            </TR>
-          </THead>
-          <TBody>
+      <Card padding="default" className="mb-[18px]">
+        <div className="cfo-card-head">
+          <h3 className="cfo-card-title">Bundled CSV templates</h3>
+          <span className="label">{CSV_TEMPLATES.length} templates</span>
+        </div>
+        <p className="cfo-card-sub mt-[6px] mb-[12px] max-w-[680px]">
+          Pick one in the upload form when the auto-detector cannot read
+          the bank&apos;s headers. Each template pins the column mapping,
+          date format, and amount format for a known export schema.
+        </p>
+        <table className="data">
+          <thead>
+            <tr>
+              <th>Template</th>
+              <th>Provider</th>
+              <th>Default columns</th>
+              <th>Currency</th>
+            </tr>
+          </thead>
+          <tbody>
             {CSV_TEMPLATES.map((t) => (
-              <TR key={t.id}>
-                <TD>
+              <tr key={t.id}>
+                <td>
                   <div>{t.label}</div>
                   {t.description && (
-                    <div className="text-[11px] text-ink-secondary">
+                    <div className="text-[11px] text-[var(--ink-3)]">
                       {t.description}
                     </div>
                   )}
-                </TD>
-                <TD>
-                  <Badge tone="outline">{t.provider}</Badge>
-                </TD>
-                <TD className="text-xs font-mono">
+                </td>
+                <td>
+                  <HandoffBadge tone="info">{t.provider}</HandoffBadge>
+                </td>
+                <td className="mono text-[11px]">
                   {Object.entries(t.defaultMapping)
                     .map(([k, v]) => `${k}=${v}`)
                     .join(", ")}
-                </TD>
-                <TD className="text-xs">
+                </td>
+                <td className="text-[12px]">
                   {t.defaultOptions?.defaultCurrency ?? "—"}
-                </TD>
-              </TR>
+                </td>
+              </tr>
             ))}
-          </TBody>
-        </Table>
-      </Section>
+          </tbody>
+        </table>
+      </Card>
 
-      <Section
-        title="Recent imports"
-        description="Idempotent — re-uploading the same file is safe (UNIQUE on bank_connection_id + external_transaction_id catches duplicates)."
-      >
+      <Card padding="default">
+        <div className="cfo-card-head">
+          <h3 className="cfo-card-title">Recent imports</h3>
+          <span className="label">latest {imports.length}</span>
+        </div>
+        <p className="cfo-card-sub mt-[6px] mb-[12px] max-w-[680px]">
+          Idempotent — re-uploading the same file is safe (UNIQUE on
+          bank_connection_id + external_transaction_id catches
+          duplicates).
+        </p>
         {imports.length === 0 ? (
           <EmptyState
             title="No imports yet"
-            description="Upload a statement file via the wizard to begin. PDF imports of Mandiri / BCA exports apply the bundled regex templates from P3.B."
+            description="Upload a statement file above to begin — the first import appears here with its created/skipped/failed counts."
           />
         ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Format</TH>
-                <TH>Filename</TH>
-                <TH>Status</TH>
-                <TH className="text-right">Created</TH>
-                <TH className="text-right">Skipped</TH>
-                <TH className="text-right">Failed</TH>
-                <TH>Uploaded</TH>
-              </TR>
-            </THead>
-            <TBody>
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Format</th>
+                <th>Filename</th>
+                <th>Status</th>
+                <th className="num">Created</th>
+                <th className="num">Skipped</th>
+                <th className="num">Failed</th>
+                <th>Uploaded</th>
+              </tr>
+            </thead>
+            <tbody>
               {imports.map((i) => (
-                <TR key={i.id}>
-                  <TD className="font-mono text-xs">{i.importCode}</TD>
-                  <TD>
-                    <Badge tone="outline">{i.format}</Badge>
-                  </TD>
-                  <TD className="text-xs">{i.filename ?? "—"}</TD>
-                  <TD>
-                    <Badge
+                <tr key={i.id}>
+                  <td className="mono text-[11px]">{i.importCode}</td>
+                  <td>
+                    <HandoffBadge tone="info">{i.format}</HandoffBadge>
+                  </td>
+                  <td className="text-[12px]">{i.filename ?? "—"}</td>
+                  <td>
+                    <HandoffBadge
                       tone={
                         i.status === "completed"
-                          ? "success"
+                          ? "ok"
                           : i.status === "failed" || i.status === "cancelled"
                             ? "danger"
-                            : "neutral"
+                            : "warn"
                       }
                     >
                       {i.status}
-                    </Badge>
-                  </TD>
-                  <TD className="text-right tabular-nums">
-                    {i.transactionsCreated}
-                  </TD>
-                  <TD className="text-right tabular-nums">
-                    {i.transactionsSkippedDuplicate}
-                  </TD>
-                  <TD className="text-right tabular-nums">{i.rowsFailed}</TD>
-                  <TD className="text-xs text-ink-secondary">
+                    </HandoffBadge>
+                  </td>
+                  <td className="num">{i.transactionsCreated}</td>
+                  <td className="num">{i.transactionsSkippedDuplicate}</td>
+                  <td className="num">{i.rowsFailed}</td>
+                  <td className="text-[12px] text-[var(--ink-3)]">
                     {new Date(i.uploadedAt)
                       .toISOString()
                       .slice(0, 16)
                       .replace("T", " ")}
-                  </TD>
-                </TR>
+                  </td>
+                </tr>
               ))}
-            </TBody>
-          </Table>
+            </tbody>
+          </table>
         )}
-      </Section>
+      </Card>
     </DevelopmentShell>
   );
 }

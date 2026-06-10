@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BookOpen } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,12 @@ export default async function GeneralLedgerPage() {
           <div className="flex items-start gap-2">
             <PostFinanceButton />
             <Button asChild variant="secondary">
+              <Link href="/development-os/finance/general-ledger/journal">
+                <BookOpen className="w-4 h-4" strokeWidth={1.75} />
+                Journal
+              </Link>
+            </Button>
+            <Button asChild variant="secondary">
               <Link href="/development-os/finance">
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
                 Finance
@@ -115,7 +121,18 @@ export default async function GeneralLedgerPage() {
             </div>
           </Section>
 
-          <Section eyebrow="Trial balance" title="Account balances">
+          <Section
+            eyebrow="Trial balance"
+            title="Account balances"
+            description="Click an account to see the journal lines that compose its balance."
+            action={
+              <Button asChild variant="secondary">
+                <Link href="/development-os/finance/general-ledger/journal">
+                  Full journal →
+                </Link>
+              </Button>
+            }
+          >
             {tb.rows.length === 0 ? (
               <p className="text-sm text-ink-tertiary">
                 Chart of accounts seeded, but no journal entries posted yet.
@@ -136,8 +153,22 @@ export default async function GeneralLedgerPage() {
                 <TBody>
                   {tb.rows.map((r) => (
                     <TR key={r.code}>
-                      <TD className="font-mono text-xs">{r.code}</TD>
-                      <TD className="text-sm">{r.name}</TD>
+                      <TD className="font-mono text-xs">
+                        <Link
+                          href={`/development-os/finance/general-ledger/accounts/${r.accountId}`}
+                          className="hover:underline"
+                        >
+                          {r.code}
+                        </Link>
+                      </TD>
+                      <TD className="text-sm">
+                        <Link
+                          href={`/development-os/finance/general-ledger/accounts/${r.accountId}`}
+                          className="hover:underline"
+                        >
+                          {r.name}
+                        </Link>
+                      </TD>
                       <TD>
                         <Badge tone={TYPE_TONE[r.type] ?? "neutral"}>{r.type}</Badge>
                       </TD>
@@ -165,8 +196,22 @@ export default async function GeneralLedgerPage() {
               <TBody>
                 {accounts.map((a) => (
                   <TR key={a.id}>
-                    <TD className="font-mono text-xs">{a.code}</TD>
-                    <TD className="text-sm">{a.name}</TD>
+                    <TD className="font-mono text-xs">
+                      <Link
+                        href={`/development-os/finance/general-ledger/accounts/${a.id}`}
+                        className="hover:underline"
+                      >
+                        {a.code}
+                      </Link>
+                    </TD>
+                    <TD className="text-sm">
+                      <Link
+                        href={`/development-os/finance/general-ledger/accounts/${a.id}`}
+                        className="hover:underline"
+                      >
+                        {a.name}
+                      </Link>
+                    </TD>
                     <TD>
                       <Badge tone={TYPE_TONE[a.type] ?? "neutral"}>{a.type}</Badge>
                     </TD>

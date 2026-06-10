@@ -13,6 +13,8 @@ import {
 } from "@/lib/db/schema/general-ledger";
 
 export interface TrialBalanceRow {
+  /** chart_of_accounts.id — drill-down key for the account ledger page. */
+  accountId: string;
   code: string;
   name: string;
   type: string;
@@ -42,6 +44,7 @@ export async function getTrialBalance(
 
   const raw = await db
     .select({
+      accountId: chartOfAccounts.id,
       code: chartOfAccounts.code,
       name: chartOfAccounts.name,
       type: chartOfAccounts.type,
@@ -60,6 +63,7 @@ export async function getTrialBalance(
       ),
     )
     .groupBy(
+      chartOfAccounts.id,
       chartOfAccounts.code,
       chartOfAccounts.name,
       chartOfAccounts.type,
@@ -77,6 +81,7 @@ export async function getTrialBalance(
     const balanceMinor =
       r.normalBalance === "debit" ? debit - credit : credit - debit;
     return {
+      accountId: r.accountId,
       code: r.code,
       name: r.name,
       type: r.type,
