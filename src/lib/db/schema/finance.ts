@@ -458,11 +458,14 @@ export const payoutBatches = pgTable(
     paidAt: timestamp("paid_at", { withTimezone: true }),
     createdBy: uuid("created_by").references(() => appUsers.id, { onDelete: "set null" }),
     // WRITE-FLOW-AUDIT (migration 0160): tenancy scope for payout writes.
-    // Nullable on insert; backfilled to the linked statement's org or
-    // ARCONIQUE_DEFAULT. Server actions scope reads/writes by this.
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    // Backfilled to the linked statement's org or ARCONIQUE_DEFAULT; every
+    // insert site stamps it from requireOrgId(). NOT NULL enforced by the
+    // guarded migration 0163.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -495,12 +498,14 @@ export const payoutLines = pgTable(
     scheduledFor: date("scheduled_for"),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     // WRITE-FLOW-AUDIT (migration 0160): tenancy scope for payout-line
-    // reads/writes. Nullable; backfilled via owner_statements.organization_id
-    // (or the batch / ARCONIQUE_DEFAULT). Closes the cross-tenant IDOR on
-    // setPayoutLineStatusAction.
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    // reads/writes. Backfilled via owner_statements.organization_id (or the
+    // batch / ARCONIQUE_DEFAULT); createPayoutLineAction stamps it from
+    // requireOrgId(). NOT NULL enforced by the guarded migration 0163.
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
