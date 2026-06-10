@@ -9,10 +9,12 @@ import {
   contractMilestones,
   devNotificationDeliveryLog,
 } from "@/lib/db/schema/sales";
+import { buyers } from "@/lib/db/schema/buyers";
 import { contractGroupRemindPrefs } from "@/lib/db/schema/contract-remind-prefs";
 import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
 import { recordAuditEvent } from "@/features/audit/services";
+import { persistMilestoneReceipt } from "@/lib/buyer-portal/document-pdf";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
 import {
   OUTSTANDING_STATUSES,
@@ -201,6 +203,49 @@ export async function markMilestonePaidByOperator(
       ),
     );
 
+  // Generate a RECEIPT into the buyer's document vault once the milestone is
+  // fully settled, via the SAME shared receipt-on-pay writer the buyer
+  // self-service mark-paid uses (`persistMilestoneReceipt`). It renders the PDF,
+  // uploads it to the deterministic per-milestone key (the milestone → receipt
+  // join), and indexes an owner-visible `documents` row scoped to the villa, so
+  // a paid milestone shows a downloadable receipt in /buyer-portal/documents.
+  // Partial payments do not issue a receipt (only the closing payment does, the
+  // same posture as the buyer flow). Best-effort: never break the recorded
+  // payment. We resolve the buyer (code + display name) and villa via the
+  // contract group so the receipt is identical regardless of which side paid.
+  let receiptDocumentId: string | null = null;
+  if (fullyPaid) {
+    const [group] = await db
+      .select({
+        villaId: contractGroups.villaId,
+        buyerCode: buyers.buyerCode,
+        buyerName: buyers.displayName,
+      })
+      .from(contractGroups)
+      .leftJoin(buyers, eq(buyers.contactId, contractGroups.contactId))
+      .where(
+        and(
+          eq(contractGroups.id, milestone.contractGroupId),
+          eq(contractGroups.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+
+    if (group?.villaId) {
+      const receipt = await persistMilestoneReceipt({
+        milestoneId: milestone.id,
+        milestoneName: milestone.name,
+        villaId: group.villaId,
+        amountMinor: newPaid,
+        buyerName: group.buyerName ?? "Buyer",
+        buyerCode: group.buyerCode ?? milestone.contractGroupId.slice(0, 8).toUpperCase(),
+        paidAt: now,
+        methodLabel: "Manual confirmation (operator desk)",
+      });
+      receiptDocumentId = receipt.documentId;
+    }
+  }
+
   await recordAuditEvent({
     actorUserId: ctx.appUser?.id ?? null,
     action: "installment.mark_paid",
@@ -219,10 +264,16 @@ export async function markMilestonePaidByOperator(
       contractGroupId: milestone.contractGroupId,
       reference: parsed.data.reference ?? null,
       channel: "operator_desk",
+      receiptDocumentId,
     },
   });
 
   revalidateDesk();
+  // The new receipt must surface immediately in the buyer's doc vault.
+  if (receiptDocumentId) {
+    revalidatePath("/buyer-portal/documents");
+    revalidatePath("/buyer-portal/contracts");
+  }
   return RESULT_OK;
 }
 

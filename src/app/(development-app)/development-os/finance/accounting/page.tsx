@@ -18,9 +18,15 @@ import {
   getIncomeStatement,
   type StatementGroup,
 } from "@/lib/development/server/general-ledger/financial-statements";
-import { getAgingReport } from "@/lib/development/server/general-ledger/aging";
+import {
+  getAgingReport,
+  type AgingReport,
+} from "@/lib/development/server/general-ledger/aging";
 import { getBankReconciliationView } from "@/lib/development/server/general-ledger/bank-reconciliation";
+import { notificationQueue } from "@/lib/db/schema/notifications";
+import { and, desc, eq } from "drizzle-orm";
 import { ReconciliationMatcher } from "./_reconciliation-matcher";
+import { AgingSection, type AgingInvoiceRow } from "./_aging-view";
 
 export const metadata: Metadata = { title: "Accounting · Development OS" };
 export const dynamic = "force-dynamic";
@@ -79,82 +85,18 @@ function StatementSection({
   );
 }
 
-interface AgingReportLike {
-  totals: {
-    currentMinor: bigint;
-    d31_60Minor: bigint;
-    d61_90Minor: bigint;
-    d90PlusMinor: bigint;
-    totalMinor: bigint;
-  };
-  rows: Array<{
-    id: string;
-    invoiceNumber: string;
-    counterparty: string;
-    currency: string;
-    dueDate: string;
-    outstandingMinor: bigint;
-    daysPastDue: number;
-    bucket: string;
-  }>;
-}
-
-function AgingTable({ report, title }: { report: AgingReportLike; title: string }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-        <MetricCard label="Current (0-30)" value={fmt(report.totals.currentMinor)} />
-        <MetricCard label="31-60" value={fmt(report.totals.d31_60Minor)} />
-        <MetricCard label="61-90" value={fmt(report.totals.d61_90Minor)} />
-        <MetricCard label="90+" value={fmt(report.totals.d90PlusMinor)} />
-        <MetricCard label="Total outstanding" value={fmt(report.totals.totalMinor)} />
-      </div>
-      {report.rows.length === 0 ? (
-        <p className="text-sm text-ink-tertiary">No open {title.toLowerCase()}.</p>
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Invoice</TH>
-              <TH>Counterparty</TH>
-              <TH>Due</TH>
-              <TH className="text-right">Days past due</TH>
-              <TH>Bucket</TH>
-              <TH className="text-right">Outstanding</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {report.rows.map((r) => (
-              <TR key={r.id}>
-                <TD className="font-mono text-xs">{r.invoiceNumber}</TD>
-                <TD className="text-sm">{r.counterparty}</TD>
-                <TD className="text-xs">{r.dueDate}</TD>
-                <TDNum>{r.daysPastDue}</TDNum>
-                <TD>
-                  <Badge
-                    tone={
-                      r.bucket === "current"
-                        ? "neutral"
-                        : r.bucket === "31-60"
-                          ? "info"
-                          : r.bucket === "61-90"
-                            ? "warning"
-                            : "danger"
-                    }
-                  >
-                    {r.bucket}
-                  </Badge>
-                </TD>
-                <TDNum>
-                  {fmt(r.outstandingMinor)} {r.currency}
-                </TDNum>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
-      )}
-    </div>
-  );
+/** Serialize aging rows for the client view (bigint → string minor units). */
+function serializeAgingRows(report: AgingReport): AgingInvoiceRow[] {
+  return report.rows.map((r) => ({
+    id: r.id,
+    invoiceNumber: r.invoiceNumber,
+    counterparty: r.counterparty,
+    currency: r.currency,
+    dueDate: r.dueDate,
+    outstandingMinor: r.outstandingMinor.toString(),
+    daysPastDue: r.daysPastDue,
+    bucket: r.bucket,
+  }));
 }
 
 export default async function AccountingDeskPage({
@@ -216,6 +158,40 @@ export default async function AccountingDeskPage({
       5000,
     ),
   ]);
+
+  // Persisted "Remind" state — latest AR payment-reminder per invoice, so
+  // the button reflects reminders filed in earlier sessions. Template key
+  // mirrors _aging-actions.ts (literal repeated: "use server" files may
+  // only export async functions).
+  const reminderRows =
+    arAging && arAging.rows.length > 0
+      ? await safeQuery(
+          "arReminderLog",
+          db
+            .select({
+              payload: notificationQueue.payload,
+              createdAt: notificationQueue.createdAt,
+            })
+            .from(notificationQueue)
+            .where(
+              and(
+                eq(notificationQueue.organizationId, organizationId),
+                eq(notificationQueue.templateKey, "finance.ar_payment_reminder"),
+              ),
+            )
+            .orderBy(desc(notificationQueue.createdAt))
+            .limit(300),
+          [],
+          4000,
+        )
+      : [];
+  const remindedAt: Record<string, string> = {};
+  for (const r of reminderRows) {
+    const invoiceId = (r.payload as Record<string, unknown> | null)?.invoiceId;
+    if (typeof invoiceId === "string" && !(invoiceId in remindedAt)) {
+      remindedAt[invoiceId] = r.createdAt.toISOString();
+    }
+  }
 
   return (
     <DevelopmentShell>
@@ -349,24 +325,28 @@ export default async function AccountingDeskPage({
       <Section
         eyebrow="Receivables"
         title="AR aging — money owed to us"
-        description="Outstanding receivable invoices bucketed by age from the due date, as of the reporting date."
+        description="Outstanding receivables grouped by counterparty, bucketed 0–30 / 31–60 / 61–90 / 90+ from the due date as of the reporting date. Remind files an in-app payment reminder to the finance team via the notification queue (external dunning channels are not connected yet)."
       >
         {!arAging ? (
           <EmptyState title="AR aging unavailable" description="No open receivables, or the query timed out." />
         ) : (
-          <AgingTable report={arAging} title="receivables" />
+          <AgingSection
+            kind="ar"
+            rows={serializeAgingRows(arAging)}
+            remindedAt={remindedAt}
+          />
         )}
       </Section>
 
       <Section
         eyebrow="Payables"
         title="AP aging — money we owe"
-        description="Outstanding payable invoices bucketed by age from the due date, as of the reporting date."
+        description="Outstanding payables grouped by vendor, bucketed by age from the due date as of the reporting date. Pay opens the invoice's payment form — payments are recorded there, never here."
       >
         {!apAging ? (
           <EmptyState title="AP aging unavailable" description="No open payables, or the query timed out." />
         ) : (
-          <AgingTable report={apAging} title="payables" />
+          <AgingSection kind="ap" rows={serializeAgingRows(apAging)} />
         )}
       </Section>
 
@@ -374,6 +354,14 @@ export default async function AccountingDeskPage({
         eyebrow="Reconciliation"
         title={`Bank ↔ GL matching · ${recon.matchedCount} matched · ${recon.unmatchedCount} open`}
         description="Tie imported bank lines to posted journal entries. Manual matching only — each match is audit-logged. Variance shows where the bank line and the journal net diverge."
+        action={
+          <Link
+            href="/development-os/finance/statement-import"
+            className="btn btn-secondary btn-sm"
+          >
+            Import bank statement →
+          </Link>
+        }
       >
         <ReconciliationMatcher
           unmatched={recon.unmatched.map((u) => ({

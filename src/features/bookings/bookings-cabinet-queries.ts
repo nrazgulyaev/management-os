@@ -2,8 +2,8 @@ import "server-only";
 
 import { and, asc, eq, gt, gte, inArray, lt, lte, notInArray, sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
-import { villas } from "@/lib/db/schema/projects";
-import { bookings, guests } from "@/lib/db/schema/bookings";
+import { projects, villas } from "@/lib/db/schema/projects";
+import { bookingChannels, bookings, guests } from "@/lib/db/schema/bookings";
 import { ownerStayRequests } from "@/lib/db/schema/owner-stays";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -229,6 +229,14 @@ export interface CalendarBlock {
   checkIn: string;
   checkOut: string;
   href?: string;
+  // BOOKINGS-CAL-PARITY-1 — optional tooltip extras (additive; older
+  // callers that ignore them keep working unchanged).
+  /** Booking code, e.g. BK-2148. */
+  code?: string;
+  /** Channel display name, e.g. "Airbnb" — only guest bookings have one. */
+  channel?: string;
+  /** Raw status: confirmed | checked_in | checked_out | tentative | inquiry | owner_stay | hold. */
+  status?: string;
 }
 export interface CalendarVillaRow {
   villaId: string;
@@ -250,6 +258,9 @@ export async function getNext14NightsTimeline(
 ): Promise<CalendarVillaRow[]> {
   const db = getDb();
   if (!db) return [];
+  // BOOKINGS-CAL-PARITY-1 — scope villas to the caller's org (via
+  // projects.organization_id), matching listBookingsForCabinet above.
+  const organizationId = await requireOrgId();
   const start = startDate ?? new Date().toISOString().slice(0, 10);
   const endIso = new Date(new Date(`${start}T00:00:00.000Z`).getTime() + nights * 86_400_000)
     .toISOString()
@@ -260,7 +271,13 @@ export async function getNext14NightsTimeline(
   const villaRows = await db
     .select({ id: villas.id, unitCode: villas.unitCode, name: villas.name })
     .from(villas)
-    .where(notInArray(villas.status, ["archived", "out_of_service"]))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        notInArray(villas.status, ["archived", "out_of_service"]),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .orderBy(asc(villas.unitCode));
   if (villaRows.length === 0) return [];
   const villaIds = villaRows.map((v) => v.id);
@@ -273,12 +290,14 @@ export async function getNext14NightsTimeline(
         code: bookings.bookingCode,
         notes: bookings.notes,
         guestName: guests.fullName,
+        channelName: bookingChannels.name,
         checkIn: bookings.checkIn,
         checkOut: bookings.checkOut,
         status: bookings.status,
       })
       .from(bookings)
       .leftJoin(guests, eq(guests.id, bookings.guestId))
+      .leftJoin(bookingChannels, eq(bookingChannels.id, bookings.channelId))
       .where(
         and(
           inArray(bookings.villaId, villaIds),
@@ -361,6 +380,9 @@ export async function getNext14NightsTimeline(
       checkIn: b.checkIn,
       checkOut: b.checkOut,
       href: `/dashboard/bookings/${b.id}`,
+      code: b.code ?? undefined,
+      channel: b.channelName ?? undefined,
+      status: b.status,
     });
   }
   for (const o of ownerRows) {
@@ -373,6 +395,7 @@ export async function getNext14NightsTimeline(
       label: "Owner stay",
       checkIn: o.checkIn,
       checkOut: o.checkOut,
+      status: "owner_stay",
     });
   }
   for (const h of holdRows) {
@@ -384,6 +407,7 @@ export async function getNext14NightsTimeline(
       label: h.title || "Hold",
       checkIn: h.startsAt.toISOString().slice(0, 10),
       checkOut: h.endsAt.toISOString().slice(0, 10),
+      status: "hold",
     });
   }
   return Array.from(byVilla.values());

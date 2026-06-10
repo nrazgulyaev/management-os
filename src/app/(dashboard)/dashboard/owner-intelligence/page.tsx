@@ -10,6 +10,9 @@ import { listVillas } from "@/features/villas/services";
 import type { VillaHealthSnapshot } from "@/lib/db/schema/owner-intelligence";
 import { requireCabinetAccess } from "@/features/keystone/access";
 import { CabinetGate } from "@/components/keystone/cabinet-gate";
+import { listOwnerIntel, type OwnerIntelRow } from "@/features/owners/owner-intel-service";
+import { IntelViewSwitcher } from "./_views";
+import { QuickCallButton } from "./_quick-call";
 
 export const metadata = { title: "Owner intelligence" };
 export const dynamic = "force-dynamic";
@@ -76,11 +79,20 @@ type Insight = {
 export default async function OwnerIntelligenceHub() {
   const { allowed } = await requireCabinetAccess("owners");
   if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
-  const [snapshots, reviews, villas] = await Promise.all([
+  const [snapshots, reviews, villas, ownerRows] = await Promise.all([
     listOwnerVillaHealthSnapshots(),
     listAdminReviews({ limit: 100 }),
     listVillas(),
+    listOwnerIntel().catch(() => [] as Awaited<ReturnType<typeof listOwnerIntel>>),
   ]);
+
+  const RISK_ORDER: Record<OwnerIntelRow["riskLevel"], number> = { flag: 0, watch: 1, ok: 2 };
+  const ownersByRisk = [...ownerRows].sort(
+    (a, b) =>
+      RISK_ORDER[a.riskLevel] - RISK_ORDER[b.riskLevel] || b.villaCount - a.villaCount,
+  );
+  const ownersAtRisk = ownerRows.filter((o) => o.riskLevel !== "ok").length;
+  const TIER_LETTER = { platinum: "A", gold: "B", silver: "C" } as const;
 
   const villaMap = new Map(
     villas.map((v) => [v.id, { code: v.unitCode, project: v.projectName }]),
@@ -207,8 +219,17 @@ export default async function OwnerIntelligenceHub() {
         </div>
       </div>
 
+      <div className="mt-[18px]">
+        <IntelViewSwitcher active="insights" />
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
-        <Kpi label="Villas tracked" value={String(snaps.length)} sub={`${snapshots.length} snapshots`} />
+        <Kpi
+          label="Owners"
+          value={String(ownerRows.length)}
+          sub={ownersAtRisk > 0 ? `${ownersAtRisk} attention` : `${snaps.length} villas tracked`}
+          tone={ownersAtRisk > 0 ? "accent" : undefined}
+        />
         <Kpi
           label="Avg health"
           value={avgHealth !== null ? `${avgHealth.toFixed(0)}/100` : "—"}
@@ -268,41 +289,51 @@ export default async function OwnerIntelligenceHub() {
 
         <div className="card p-5">
           <h3 className="display-md flex items-baseline gap-2.5">
-            Retention risk <em className="text-terra text-[16px]">· per villa</em>
+            Retention risk <em className="text-terra text-[16px]">· per owner</em>
           </h3>
-          <div className="label mt-1">Latest snapshot · health-scored</div>
+          <div className="label mt-1">
+            Tier · churn signals · click an owner for the drill-in
+          </div>
           <div className="mt-3.5 flex flex-col gap-[7px]">
-            {snaps.length === 0 ? (
-              <p className="text-[13px] text-ink-3 italic">No snapshots yet.</p>
+            {ownersByRisk.length === 0 ? (
+              <p className="text-[13px] text-ink-3 italic">
+                No owners yet — add them in the Owners cabinet.
+              </p>
             ) : (
-              snaps.slice(0, 8).map((s) => {
-                const v = villaMap.get(s.villaId);
-                const score = num(s.healthScore);
-                const r = risk(score);
-                const g = grade(score).toLowerCase();
-                const occ = pct(num(s.occupancyRate));
+              ownersByRisk.slice(0, 8).map((o) => {
+                const level =
+                  o.riskLevel === "flag" ? "high" : o.riskLevel === "watch" ? "mid" : "low";
                 return (
-                  <Link
-                    key={s.id}
-                    href={`/dashboard/owner-intelligence/health/${s.villaId}`}
-                    className={`oi-risk-row ${r.level === "high" ? "high" : r.level === "mid" ? "mid" : ""}`}
+                  <div
+                    key={o.id}
+                    className={`oi-risk-row has-action ${level === "high" ? "high" : level === "mid" ? "mid" : ""}`}
                   >
                     <div className="nm">
-                      {codeFor(s.villaId)}
+                      <Link
+                        href={`/dashboard/owner-intelligence/${o.id}`}
+                        className="hover:text-terra"
+                      >
+                        {o.displayName}
+                      </Link>
                       <span className="meta">
-                        {v?.project ?? "—"} ·{" "}
-                        {occ !== null ? `${occ.toFixed(0)}% occ` : "occ —"} ·{" "}
-                        {s.bookedNights} nts
+                        {o.nationality ?? "—"} · {o.villaCount} villa
+                        {o.villaCount === 1 ? "" : "s"}
+                        {o.tenureYears !== null ? ` · ${o.tenureYears.toFixed(1)}y` : ""}
                       </span>
                     </div>
-                    <span className={`grade ${["a", "b", "c", "d"].includes(g) ? g : "c"}`}>
-                      {grade(score)}
+                    <span className={`grade ${TIER_LETTER[o.tier].toLowerCase()}`}>
+                      {TIER_LETTER[o.tier]}
                     </span>
-                    <span className={`risk ${r.level}`}>
-                      {r.value}
-                      <span className="sub">{r.sub}</span>
+                    <span className={`risk ${level}`}>
+                      {level === "high" ? "HIGH" : level === "mid" ? "rising" : "low"}
+                      <span className="sub">
+                        {o.riskSignalCount} signal{o.riskSignalCount === 1 ? "" : "s"}
+                      </span>
                     </span>
-                  </Link>
+                    <span className="action-slot">
+                      {o.riskLevel === "flag" ? <QuickCallButton ownerId={o.id} /> : null}
+                    </span>
+                  </div>
                 );
               })
             )}

@@ -7,6 +7,8 @@ import { drawings, drawingRevisions } from "@/lib/db/schema/drawings";
 import { rfis } from "@/lib/db/schema/rfis";
 import { submittals } from "@/lib/db/schema/submittals";
 import { qaQcIssues } from "@/lib/db/schema/qa-qc";
+import { appUsers } from "@/lib/db/schema/identity";
+import { contacts } from "@/lib/db/schema/contacts";
 import {
   coordinationPins,
   coordinationMessages,
@@ -16,8 +18,11 @@ import { rfiStatus } from "@/features/development/rfi/rfi-routing";
 import {
   submittalStatusTone,
   type BadgeTone,
-  type CoordinationItemSummary,
 } from "@/features/development/coordination/coordination-model";
+import {
+  isActiveCoordinationStatus,
+  type CoordinationItemRow,
+} from "@/components/development/coordination/coordination-meta";
 import type { SubmittalStatus } from "@/lib/db/schema/submittals";
 
 /** Drawings (with their latest/IFC revision) available to pin against for a project. */
@@ -123,9 +128,9 @@ export async function listCoordinationItems(input: {
   projectId: string;
   revisionId: string;
 }): Promise<{
-  rfis: CoordinationItemSummary[];
-  submittals: CoordinationItemSummary[];
-  defects: CoordinationItemSummary[];
+  rfis: CoordinationItemRow[];
+  submittals: CoordinationItemRow[];
+  defects: CoordinationItemRow[];
 }> {
   const db = requireDb();
   // TENANCY — scope the RFI/submittal registry reads to the caller's org
@@ -149,8 +154,20 @@ export async function listCoordinationItems(input: {
 
   const [rfiRows, submittalRows, defectRows] = await Promise.all([
     db
-      .select()
+      .select({
+        id: rfis.id,
+        ref: rfis.ref,
+        question: rfis.question,
+        discipline: rfis.discipline,
+        openedAt: rfis.openedAt,
+        respondedAt: rfis.respondedAt,
+        resolvedAt: rfis.resolvedAt,
+        // Ball-in-court: the contact the RFI is routed to (rfis carries no
+        // assignee column of its own).
+        routedToName: contacts.fullName,
+      })
       .from(rfis)
+      .leftJoin(contacts, eq(contacts.id, rfis.routedToContactId))
       .where(
         and(
           eq(rfis.organizationId, organizationId),
@@ -169,13 +186,30 @@ export async function listCoordinationItems(input: {
       )
       .orderBy(desc(submittals.createdAt)),
     db
-      .select()
+      .select({
+        id: qaQcIssues.id,
+        issueCode: qaQcIssues.issueCode,
+        title: qaQcIssues.title,
+        status: qaQcIssues.status,
+        severity: qaQcIssues.severity,
+        deadlineAt: qaQcIssues.deadlineAt,
+        reportedAt: qaQcIssues.reportedAt,
+        assigneeName: appUsers.fullName,
+      })
       .from(qaQcIssues)
-      .where(eq(qaQcIssues.projectId, input.projectId))
+      .leftJoin(appUsers, eq(appUsers.id, qaQcIssues.assignedTo))
+      // TENANCY — org-scope the defect read like the rfi/submittal reads
+      // above (qa_qc_issues carries organization_id since migration 0072).
+      .where(
+        and(
+          eq(qaQcIssues.organizationId, organizationId),
+          eq(qaQcIssues.projectId, input.projectId),
+        ),
+      )
       .orderBy(desc(qaQcIssues.reportedAt)),
   ]);
 
-  const rfiItems: CoordinationItemSummary[] = rfiRows.map((r) => {
+  const rfiItems: CoordinationItemRow[] = rfiRows.map((r) => {
     const status = rfiStatus(r);
     const pin = pinByRfi.get(r.id) ?? null;
     return {
@@ -191,10 +225,15 @@ export async function listCoordinationItems(input: {
       xPct: pin?.xPct ?? null,
       yPct: pin?.yPct ?? null,
       createdAt: r.openedAt,
+      assigneeName: r.routedToName,
+      // rfis carries no due-date column.
+      dueDate: null,
+      severity: null,
+      active: isActiveCoordinationStatus("rfi", status),
     };
   });
 
-  const submittalItems: CoordinationItemSummary[] = submittalRows.map((s) => {
+  const submittalItems: CoordinationItemRow[] = submittalRows.map((s) => {
     const pin = pinBySubmittal.get(s.id) ?? null;
     return {
       kind: "submittal",
@@ -208,10 +247,15 @@ export async function listCoordinationItems(input: {
       xPct: pin?.xPct ?? null,
       yPct: pin?.yPct ?? null,
       createdAt: s.createdAt,
+      // submittals carries neither an assignee/ball-in-court nor a due column.
+      assigneeName: null,
+      dueDate: null,
+      severity: null,
+      active: isActiveCoordinationStatus("submittal", s.status),
     };
   });
 
-  const defectItems: CoordinationItemSummary[] = defectRows.map((d) => {
+  const defectItems: CoordinationItemRow[] = defectRows.map((d) => {
     const pin = pinByDefect.get(d.id) ?? null;
     return {
       kind: "defect",
@@ -225,6 +269,10 @@ export async function listCoordinationItems(input: {
       xPct: pin?.xPct ?? null,
       yPct: pin?.yPct ?? null,
       createdAt: d.reportedAt,
+      assigneeName: d.assigneeName,
+      dueDate: d.deadlineAt,
+      severity: d.severity,
+      active: isActiveCoordinationStatus("defect", d.status),
     };
   });
 

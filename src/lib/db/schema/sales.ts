@@ -283,12 +283,15 @@ export const contractGroups = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     /**
-     * Tenancy (migration 0162). NULLABLE — backfilled via project->org and
-     * scoped at the action layer; not yet enforced NOT NULL.
+     * Tenancy (migration 0162 add, 0163 NOT NULL). Backfilled via
+     * project->org; convertReservationToContract stamps it from
+     * requireOrgId() (project-org guarded). NOT NULL enforced by 0163.
      */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     contactId: uuid("contact_id")
       .notNull()
       .references(() => contacts.id, { onDelete: "restrict" }),
@@ -404,12 +407,15 @@ export const contractMilestones = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     /**
-     * Tenancy (migration 0162). NULLABLE — backfilled via
-     * contract_group->org and scoped at the action layer; not yet NOT NULL.
+     * Tenancy (migration 0162 add, 0163 NOT NULL). Backfilled via
+     * contract_group->org; convertReservationToContract stamps it from
+     * requireOrgId() on every milestone. NOT NULL enforced by 0163.
      */
-    organizationId: uuid("organization_id").references(() => organizations.id, {
-      onDelete: "restrict",
-    }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "restrict",
+      }),
     contractGroupId: uuid("contract_group_id")
       .notNull()
       .references(() => contractGroups.id, { onDelete: "cascade" }),

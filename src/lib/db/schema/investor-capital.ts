@@ -360,15 +360,14 @@ export const distributions = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     /**
-     * TENANCY (migration 0161): NULLABLE org anchor. Backfilled from
-     * project_id -> projects.organization_id (company-wide rows where
-     * project_id IS NULL -> ARCONIQUE_DEFAULT). Server actions scope
-     * load + write by this column to close the multi-tenant IDOR hole.
+     * TENANCY (migration 0161 add, 0163 NOT NULL): org anchor. Backfilled
+     * from project_id -> projects.organization_id (company-wide rows where
+     * project_id IS NULL -> ARCONIQUE_DEFAULT); declareDistribution stamps it
+     * from requireOrgId(). Server actions scope load + write by this column.
      */
-    organizationId: uuid("organization_id").references(
-      () => organizations.id,
-      { onDelete: "restrict" },
-    ),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
     /** NULL for company-level distribution */
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "restrict",
@@ -516,15 +515,14 @@ export const distributionAllocations = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     /**
-     * TENANCY (migration 0161): NULLABLE org anchor, backfilled from
-     * distribution_id -> distributions.organization_id. Server actions
-     * scope by the parent distribution's org; this column is the local
-     * anchor for future per-tenant allocation filtering.
+     * TENANCY (migration 0161 add, 0163 NOT NULL): org anchor, backfilled
+     * from distribution_id -> distributions.organization_id; declareDistribution
+     * stamps it from requireOrgId() on every allocation. Server actions scope
+     * by the parent distribution's org; this column is the local anchor.
      */
-    organizationId: uuid("organization_id").references(
-      () => organizations.id,
-      { onDelete: "restrict" },
-    ),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
     distributionId: uuid("distribution_id")
       .notNull()
       .references(() => distributions.id, { onDelete: "cascade" }),

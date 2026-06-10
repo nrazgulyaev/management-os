@@ -18,8 +18,32 @@ import { expenseLines } from "./finance";
 import { organizations } from "./saas";
 
 /**
- * Inventory + Procurement + Attachments — see migration
- * `drizzle/0006_inventory_procurement_attachments.sql` and
+ * ============================================================================
+ * OWNER: MANAGEMENT OS — Inventory / Procurement cabinet.
+ * ============================================================================
+ * Tables here (`suppliers`, `inventory_locations`, `inventory_categories`,
+ * `inventory_items`, `inventory_stock_levels`, `inventory_movements`,
+ * `task_material_usage`, `purchase_requests(_lines)`, `purchase_orders(_lines)`,
+ * `inventory_counts(_lines)`) power villa-operations consumables: stocking,
+ * procurement, counts, and the finance material-usage bridge.
+ *
+ * Importers (Management OS only): src/features/inventory/*,
+ * src/features/procurement/*, src/features/finance/material-usage-bridge*,
+ * src/features/jobs/{material-usage-bridge-job,notification-digest-job}.
+ *
+ * PARALLEL DOMAIN — DO NOT CONFUSE WITH: src/lib/db/schema/dev-os-inventory.ts
+ * (`dev_os_inventory_*`), which is the DEVELOPMENT OS construction-warehouse
+ * cabinet. The two are intentionally separate parallel domains: same problem
+ * shape (items / locations / stock / movements), different products, different
+ * lifecycles, different units, different consumers.
+ *
+ * RULES:
+ *   - DO NOT cross-reference dev_os_inventory_* from this file or its queries.
+ *   - DO NOT join inventory_* to dev_os_inventory_* in application code.
+ *   - DO NOT merge the two schemas without a data migration (see
+ *     docs/INVENTORY-SCHEMA-SPLIT.md for the ADR and unify/keep call).
+ *
+ * Origin: migration `drizzle/0006_inventory_procurement_attachments.sql` and
  * docs/ADR-0007_INVENTORY_PROCUREMENT_ATTACHMENTS.md.
  *
  * Money columns follow the BIGINT minor-unit rule with a paired `currency`

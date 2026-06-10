@@ -279,6 +279,11 @@
   border: 1px solid var(--line-soft, var(--line));
   border-radius: 10px;
 }
+/* Variant with a trailing quick-action slot (1-tap founder call). */
+[data-product] .oi-risk-row.has-action { grid-template-columns: 1fr 44px 80px auto; }
+/* Cohort variant — risk pill + LTV figure + action slot. */
+[data-product] .oi-risk-row.cohort { grid-template-columns: 1fr auto 96px auto; }
+[data-product] .oi-risk-row .action-slot { min-width: 64px; display: flex; justify-content: flex-end; }
 [data-product] .oi-risk-row.high { border-left: 3px solid var(--danger, var(--warn)); padding-left: 11px; background: color-mix(in oklab, var(--danger, var(--warn)) 5%, var(--paper, var(--panel))); }
 [data-product] .oi-risk-row.mid  { border-left: 3px solid var(--warn); padding-left: 11px; background: color-mix(in oklab, var(--warn) 5%, var(--paper, var(--panel))); }
 [data-product] .oi-risk-row .nm { font-size: 13px; color: var(--ink); font-weight: 500; }

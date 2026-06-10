@@ -80,6 +80,11 @@ export async function convertReservationToContract(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const data = parsed.data;
+  // TENANCY (migration 0163 prep): the caller's org stamps every row this
+  // action writes (group + milestones). The reservation's project is the
+  // anchor — confirm it belongs to the caller's org (mirrors signContract's
+  // project→org IDOR guard) before stamping.
+  const organizationId = await requireOrgId();
 
   // Load reservation.
   const [reservation] = await db
@@ -88,6 +93,14 @@ export async function convertReservationToContract(
     .where(eq(reservations.id, data.reservationId))
     .limit(1);
   if (!reservation) {
+    return { ok: false, error: "Reservation not found." };
+  }
+  const [reservationProject] = await db
+    .select({ organizationId: projects.organizationId })
+    .from(projects)
+    .where(eq(projects.id, reservation.projectId))
+    .limit(1);
+  if (!reservationProject || reservationProject.organizationId !== organizationId) {
     return { ok: false, error: "Reservation not found." };
   }
   if (!["active", "pending_payment"].includes(reservation.status)) {
@@ -224,6 +237,7 @@ export async function convertReservationToContract(
   const [group] = await db
     .insert(contractGroups)
     .values({
+      organizationId,
       contactId: reservation.contactId,
       villaId: reservation.villaId,
       projectId: reservation.projectId,
@@ -267,6 +281,7 @@ export async function convertReservationToContract(
     .insert(contractMilestones)
     .values(
       milestoneInstances.map((m) => ({
+        organizationId,
         contractGroupId: group.id,
         sourceMilestoneId: m.sourceMilestoneId,
         sequence: m.sequence,

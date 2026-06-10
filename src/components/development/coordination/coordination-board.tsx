@@ -41,8 +41,19 @@ import {
   createSubmittal,
   createCoordinationRfi,
 } from "@/lib/development/server/coordination/coordination-actions";
+import { createQaQcIssue } from "@/lib/development/server/qa-qc/qa-qc-actions";
+import {
+  isOverdueCoordinationItem,
+  todayIsoDate,
+  type CoordinationItemRow,
+} from "./coordination-meta";
 import { CoordinationItemDrawer } from "./coordination-item-drawer";
 import { CoordinationMarkup } from "./coordination-markup";
+
+export interface DefectCategoryOption {
+  id: string;
+  displayName: string;
+}
 
 export interface CoordinationBoardProps {
   projectId: string;
@@ -52,13 +63,26 @@ export interface CoordinationBoardProps {
   imageAlt: string;
   imageMissingNote: string | null;
   items: {
-    rfis: CoordinationItemSummary[];
-    submittals: CoordinationItemSummary[];
-    defects: CoordinationItemSummary[];
+    rfis: CoordinationItemRow[];
+    submittals: CoordinationItemRow[];
+    defects: CoordinationItemRow[];
   };
+  /** Active qa_qc_categories — required to log a defect from this screen. */
+  defectCategories: DefectCategoryOption[];
 }
 
 type PendingPin = { xPct: number; yPct: number };
+
+/** Registry filter tabs: All / Active (non-terminal) / per-kind. */
+type RegistryFilter = "all" | "active" | CoordinationItemKind;
+
+/** "12 Jun" — explicit locale so SSR and client render identically. */
+function formatDueDate(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+  });
+}
 
 export function CoordinationBoard({
   projectId,
@@ -68,6 +92,7 @@ export function CoordinationBoard({
   imageAlt,
   imageMissingNote,
   items,
+  defectCategories,
 }: CoordinationBoardProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -75,7 +100,7 @@ export function CoordinationBoard({
 
   const [placeMode, setPlaceMode] = useState(false);
   const [pendingPin, setPendingPin] = useState<PendingPin | null>(null);
-  const [kindFilter, setKindFilter] = useState<CoordinationItemKind | "all">("all");
+  const [kindFilter, setKindFilter] = useState<RegistryFilter>("all");
   // "pins" = item pins canvas; "markup" = persistent drawing annotations.
   const [paneMode, setPaneMode] = useState<"pins" | "markup">("pins");
 
@@ -94,9 +119,22 @@ export function CoordinationBoard({
     () =>
       kindFilter === "all"
         ? allItems
-        : allItems.filter((i) => i.kind === kindFilter),
+        : kindFilter === "active"
+          ? allItems.filter((i) => i.active)
+          : allItems.filter((i) => i.kind === kindFilter),
     [allItems, kindFilter],
   );
+  const filterCounts = useMemo<Record<RegistryFilter, number>>(
+    () => ({
+      all: allItems.length,
+      active: allItems.filter((i) => i.active).length,
+      rfi: items.rfis.length,
+      submittal: items.submittals.length,
+      defect: items.defects.length,
+    }),
+    [allItems, items],
+  );
+  const todayIso = todayIsoDate();
 
   function onPlanClick(e: React.MouseEvent<HTMLDivElement>) {
     if (!placeMode || !imageUrl) return;
@@ -261,70 +299,101 @@ export function CoordinationBoard({
           <span className="text-[11px] uppercase tracking-wide text-ink-tertiary mr-1">
             Show
           </span>
-          <button type="button" onClick={() => setKindFilter("all")}>
-            <Badge tone={kindFilter === "all" ? "accent" : "outline"}>All</Badge>
-          </button>
-          {COORDINATION_KINDS.map((k) => (
-            <button key={k} type="button" onClick={() => setKindFilter(k)}>
-              <Badge tone={kindFilter === k ? "accent" : "outline"}>
-                {KIND_LABEL[k]}
+          {(
+            [
+              ["all", "All"],
+              ["active", "Active"],
+              ...COORDINATION_KINDS.map(
+                (k) => [k, KIND_LABEL[k]] as [RegistryFilter, string],
+              ),
+            ] as [RegistryFilter, string][]
+          ).map(([key, label]) => (
+            <button key={key} type="button" onClick={() => setKindFilter(key)}>
+              <Badge tone={kindFilter === key ? "accent" : "outline"}>
+                {label} · {filterCounts[key]}
               </Badge>
             </button>
           ))}
         </div>
 
-        {visibleItems.length === 0 ? (
+        {allItems.length === 0 ? (
           <EmptyState
             title="No items yet"
-            description="Create an RFI or Submittal from the toolbar, or open the QA/QC cabinet to log a defect — then pin it to this drawing."
+            description="Create an RFI, Submittal, or Defect from the New bar below — then pin it to this drawing."
           />
+        ) : visibleItems.length === 0 ? (
+          <p className="text-xs text-ink-tertiary text-center py-6">
+            Nothing matches this filter.
+          </p>
         ) : (
           <ul className="flex flex-col gap-1.5 max-h-[70vh] overflow-y-auto pr-1">
-            {visibleItems.map((item) => (
-              <li key={`${item.kind}-${item.id}`}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (placeMode && pendingPin && !item.pinId) {
-                      linkExisting(item);
-                    } else {
-                      setOpenItem(item);
-                    }
-                  }}
-                  className="w-full text-left rounded-lg border border-line-soft bg-surface hover:bg-muted transition-colors px-3 py-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="inline-block w-2 h-2 rounded-full shrink-0"
-                      style={{ background: KIND_COLOR[item.kind] }}
-                    />
-                    <span className="font-mono text-[11px] text-ink-tertiary">
-                      {item.ref}
-                    </span>
-                    <Badge tone={item.statusTone}>{item.status}</Badge>
-                    {item.pinId ? (
-                      <Badge tone="neutral">pinned</Badge>
-                    ) : placeMode && pendingPin ? (
-                      <span className="ml-auto text-[10px] text-accent">
-                        click to pin here
+            {visibleItems.map((item) => {
+              const overdue = isOverdueCoordinationItem(item, todayIso);
+              return (
+                <li key={`${item.kind}-${item.id}`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (placeMode && pendingPin && !item.pinId) {
+                        linkExisting(item);
+                      } else {
+                        setOpenItem(item);
+                      }
+                    }}
+                    className="w-full text-left rounded-lg border border-line-soft bg-surface hover:bg-muted transition-colors px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-block w-2 h-2 rounded-full shrink-0"
+                        style={{ background: KIND_COLOR[item.kind] }}
+                      />
+                      <span className="font-mono text-[11px] text-ink-tertiary">
+                        {item.ref}
                       </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-1 text-sm text-ink line-clamp-2">
-                    {item.title}
-                  </div>
-                </button>
-              </li>
-            ))}
+                      <Badge tone={item.statusTone}>{item.status}</Badge>
+                      {item.pinId ? (
+                        <Badge tone="neutral">pinned</Badge>
+                      ) : placeMode && pendingPin ? (
+                        <span className="ml-auto text-[10px] text-accent">
+                          click to pin here
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-1 text-sm text-ink line-clamp-2">
+                      {item.title}
+                    </div>
+                    {(item.assigneeName || item.severity || item.dueDate) && (
+                      <div className="mt-1 flex items-center gap-2 flex-wrap font-mono text-[10.5px] text-ink-tertiary">
+                        {item.assigneeName && <span>{item.assigneeName}</span>}
+                        {item.severity && (
+                          <span className="uppercase">{item.severity}</span>
+                        )}
+                        {item.dueDate && (
+                          <span
+                            className={
+                              overdue ? "text-danger font-medium" : undefined
+                            }
+                          >
+                            due {formatDueDate(item.dueDate)}
+                            {overdue ? " · overdue" : ""}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
 
-      {/* New-item launcher (RFI / Submittal) */}
+      {/* New-item launcher (RFI / Submittal / Defect) */}
       <NewItemFooter
         projectId={projectId}
         projectCode={projectCode}
         pending={pending}
+        defectCategories={defectCategories}
       />
 
       {/* Item drawer */}
@@ -382,18 +451,22 @@ function PinMarker({
   );
 }
 
-/** RFI + Submittal create dialogs, mounted from a single footer bar. */
+const DEFECT_SEVERITIES = ["low", "medium", "high", "critical"] as const;
+
+/** RFI + Submittal + Defect create dialogs, mounted from a single footer bar. */
 function NewItemFooter({
   projectId,
   projectCode,
   pending,
+  defectCategories,
 }: {
   projectId: string;
   projectCode: string;
   pending: boolean;
+  defectCategories: DefectCategoryOption[];
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<"rfi" | "submittal" | null>(null);
+  const [mode, setMode] = useState<"rfi" | "submittal" | "defect" | null>(null);
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -406,11 +479,24 @@ function NewItemFooter({
   const [submittalType, setSubmittalType] = useState<string>("shop_drawing");
   const [subDiscipline, setSubDiscipline] = useState<string>("architectural");
 
+  // Defect fields (qa_qc_issues columns: category, severity, zone ref,
+  // deadline, description).
+  const [defectCategoryId, setDefectCategoryId] = useState<string>(
+    defectCategories[0]?.id ?? "",
+  );
+  const [defectSeverity, setDefectSeverity] = useState<string>("medium");
+  const [defectZoneRef, setDefectZoneRef] = useState("");
+  const [defectDueDate, setDefectDueDate] = useState("");
+  const [defectDescription, setDefectDescription] = useState("");
+
   function reset() {
     setMode(null);
     setError(null);
     setQuestion("");
     setTitle("");
+    setDefectZoneRef("");
+    setDefectDueDate("");
+    setDefectDescription("");
   }
 
   function submit() {
@@ -440,6 +526,25 @@ function NewItemFooter({
             submittalType,
             discipline: subDiscipline,
           });
+        } else if (mode === "defect") {
+          if (title.trim().length < 3) {
+            setError("Give the defect a title.");
+            return;
+          }
+          if (!defectCategoryId) {
+            setError("Pick a QA/QC category.");
+            return;
+          }
+          await createQaQcIssue({
+            title: title.trim(),
+            projectId,
+            categoryId: defectCategoryId,
+            severity: defectSeverity as (typeof DEFECT_SEVERITIES)[number],
+            // description is NOT NULL on qa_qc_issues — fall back to the title.
+            description: defectDescription.trim() || title.trim(),
+            zoneReference: defectZoneRef.trim() || null,
+            deadlineAt: defectDueDate || null,
+          });
         }
         reset();
         router.refresh();
@@ -448,6 +553,9 @@ function NewItemFooter({
       }
     });
   }
+
+  const defectCategoriesMissing =
+    mode === "defect" && defectCategories.length === 0;
 
   return (
     <div className="lg:col-span-2 flex items-center gap-2 border-t border-line-soft pt-3">
@@ -464,6 +572,14 @@ function NewItemFooter({
         <Plus className="w-4 h-4" strokeWidth={1.75} />
         Submittal
       </Button>
+      <Button
+        variant="secondary"
+        onClick={() => setMode("defect")}
+        disabled={pending}
+      >
+        <Plus className="w-4 h-4" strokeWidth={1.75} />
+        Defect
+      </Button>
 
       <Modal
         open={mode !== null}
@@ -472,16 +588,107 @@ function NewItemFooter({
         ariaLabel="Create coordination item"
       >
         <ModalHeader
-          title={mode === "rfi" ? "New RFI" : "New submittal"}
+          title={
+            mode === "rfi"
+              ? "New RFI"
+              : mode === "submittal"
+                ? "New submittal"
+                : "New defect"
+          }
           description={
             mode === "rfi"
               ? "Opens an RFI on this project. Pin it to the drawing afterwards."
-              : "Logs a submittal in the register. Pin it to the drawing afterwards."
+              : mode === "submittal"
+                ? "Logs a submittal in the register. Pin it to the drawing afterwards."
+                : "Logs a punch-list defect in QA/QC. It appears in this registry — pin it to the drawing afterwards."
           }
           onClose={reset}
         />
         <ModalBody>
-          {mode === "rfi" ? (
+          {mode === "defect" ? (
+            <div className="space-y-3">
+              {defectCategoriesMissing && (
+                <p className="text-xs text-danger">
+                  No active QA/QC categories are configured — set up categories
+                  in the QA/QC cabinet before logging defects.
+                </p>
+              )}
+              <label className="block text-sm">
+                <span className="text-ink-secondary">Title</span>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="mt-1 block w-full rounded border border-line-soft p-2 text-sm"
+                  placeholder="e.g. Hairline crack in plaster by bedroom 2 window"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-sm">
+                  <span className="text-ink-secondary">Category</span>
+                  <select
+                    value={defectCategoryId}
+                    onChange={(e) => setDefectCategoryId(e.target.value)}
+                    disabled={defectCategoriesMissing}
+                    className="mt-1 block w-full rounded border border-line-soft p-2 text-sm bg-surface"
+                  >
+                    {defectCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm">
+                  <span className="text-ink-secondary">Severity</span>
+                  <select
+                    value={defectSeverity}
+                    onChange={(e) => setDefectSeverity(e.target.value)}
+                    className="mt-1 block w-full rounded border border-line-soft p-2 text-sm bg-surface"
+                  >
+                    {DEFECT_SEVERITIES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-sm">
+                  <span className="text-ink-secondary">
+                    Villa / zone ref (optional)
+                  </span>
+                  <input
+                    value={defectZoneRef}
+                    onChange={(e) => setDefectZoneRef(e.target.value)}
+                    className="mt-1 block w-full rounded border border-line-soft p-2 text-sm"
+                    placeholder="e.g. Villa 3 · WP-04 finishes"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="text-ink-secondary">Due date (optional)</span>
+                  <input
+                    type="date"
+                    value={defectDueDate}
+                    onChange={(e) => setDefectDueDate(e.target.value)}
+                    className="mt-1 block w-full rounded border border-line-soft p-2 text-sm bg-surface"
+                  />
+                </label>
+              </div>
+              <label className="block text-sm">
+                <span className="text-ink-secondary">
+                  Description (defaults to the title)
+                </span>
+                <textarea
+                  value={defectDescription}
+                  onChange={(e) => setDefectDescription(e.target.value)}
+                  rows={3}
+                  className="mt-1 block w-full rounded border border-line-soft p-2 text-sm"
+                  placeholder="What is wrong, where exactly, and what rework is needed?"
+                />
+              </label>
+            </div>
+          ) : mode === "rfi" ? (
             <div className="space-y-3">
               <label className="block text-sm">
                 <span className="text-ink-secondary">Question</span>
@@ -557,7 +764,7 @@ function NewItemFooter({
           <Button variant="secondary" onClick={reset} disabled={busy}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={busy}>
+          <Button onClick={submit} disabled={busy || defectCategoriesMissing}>
             {busy && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
             Create
           </Button>

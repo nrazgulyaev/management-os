@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Kpi } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getDevelopmentProjects } from "@/lib/development/server/projects";
@@ -14,6 +15,7 @@ import {
   getRevisionOption,
   listCoordinationItems,
 } from "@/lib/development/server/coordination/coordination-queries";
+import { listQaQcCategories } from "@/lib/development/server/qa-qc/qa-qc-queries";
 import { resolveRevisionImage } from "@/app/(development-app)/development-os/drawings/[code]/_resolve-revision-image";
 import { CoordinationBoard } from "@/components/development/coordination/coordination-board";
 
@@ -147,7 +149,7 @@ export default async function CoordinationPage({
     );
   }
 
-  const [image, items] = await Promise.all([
+  const [image, items, qaQcCategories] = await Promise.all([
     safeQuery(
       "coordination.image",
       resolveRevisionImage(activeOption.documentId),
@@ -163,6 +165,7 @@ export default async function CoordinationPage({
       { rfis: [], submittals: [], defects: [] },
       6000,
     ),
+    safeQuery("coordination.qaQcCategories", listQaQcCategories(), [], 4000),
   ]);
 
   const imageUrl = image?.isPdf ? null : (image?.url ?? null);
@@ -175,9 +178,47 @@ export default async function CoordinationPage({
   const totalItems =
     items.rfis.length + items.submittals.length + items.defects.length;
 
+  // ── KPI strip — counts by kind + status over the unified registry ──
+  // "Active" = non-terminal per each kind's state machine (the `active` flag
+  // is computed in listCoordinationItems via coordination-meta).
+  const rfiOpen = items.rfis.filter((r) => r.active).length;
+  const submittalsInReview = items.submittals.filter(
+    (s) => s.status === "submitted" || s.status === "under_review",
+  ).length;
+  const defectsOpen = items.defects.filter((d) => d.active).length;
+  const totalActive =
+    rfiOpen +
+    items.submittals.filter((s) => s.active).length +
+    defectsOpen;
+
   return (
     <DevelopmentShell>
       {header}
+
+      <div className="cfo-kpis cfo-kpis-4">
+        <Kpi
+          label="RFI open"
+          value={rfiOpen}
+          sub="awaiting answer or close-out"
+        />
+        <Kpi
+          label="Submittals in review"
+          value={submittalsInReview}
+          sub="submitted + under review"
+          tone="accent"
+        />
+        <Kpi
+          label="Defects open"
+          value={defectsOpen}
+          sub="punch-list rework pending"
+          tone={defectsOpen > 0 ? "danger" : undefined}
+        />
+        <Kpi
+          label="Total active"
+          value={totalActive}
+          sub={`of ${totalItems} registry item${totalItems === 1 ? "" : "s"}`}
+        />
+      </div>
 
       {/* Drawing selector */}
       <Section eyebrow="Drawing" title="Pin against revision">
@@ -206,6 +247,10 @@ export default async function CoordinationPage({
         imageAlt={`${activeOption.drawingCode} ${activeOption.revisionLabel}`}
         imageMissingNote={imageMissingNote}
         items={items}
+        defectCategories={qaQcCategories.map((c) => ({
+          id: c.id,
+          displayName: c.displayName,
+        }))}
       />
     </DevelopmentShell>
   );

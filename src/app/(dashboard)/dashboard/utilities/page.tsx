@@ -66,6 +66,12 @@ export default async function UtilitiesHub() {
           </p>
         </div>
         <div className="actions">
+          <Link href="/dashboard/utilities/villas" className="btn btn-ghost btn-sm">
+            By villa
+          </Link>
+          <Link href="/dashboard/utilities/by-type" className="btn btn-ghost btn-sm">
+            By type
+          </Link>
           <Link href="/dashboard/utilities/readings" className="btn btn-secondary btn-sm">
             Readings →
           </Link>

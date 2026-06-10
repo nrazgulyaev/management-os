@@ -142,6 +142,21 @@ export function computeTimeRangeRollup(
   };
 }
 
+/** Inclusive `[start, end]` of the calendar month containing `ref`. */
+export function monthBounds(ref: Date): {
+  start: Date;
+  end: Date;
+  label: string;
+} {
+  const y = ref.getUTCFullYear();
+  const m = ref.getUTCMonth();
+  const start = new Date(Date.UTC(y, m, 1));
+  // Last day of the month = day 0 of the following month.
+  const end = new Date(Date.UTC(y, m + 1, 0, 23, 59, 59, 999));
+  const label = `${start.toLocaleString("en-US", { month: "long", timeZone: "UTC" })} ${y}`;
+  return { start, end, label };
+}
+
 /** Inclusive `[start, end]` of the calendar quarter containing `ref`. */
 export function quarterBounds(ref: Date): {
   start: Date;

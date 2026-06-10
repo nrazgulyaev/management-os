@@ -328,6 +328,11 @@ export const developmentAppNav: NavGroup[] = [
     label: "Executive",
     items: [
       {
+        href: `${DEVELOPMENT_APP_PATH}/executive`,
+        label: "Executive cabinet",
+        icon: Activity,
+      },
+      {
         href: `${DEVELOPMENT_APP_PATH}/dashboard`,
         label: "Executive dashboard",
         icon: Activity,
