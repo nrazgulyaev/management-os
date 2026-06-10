@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { DevelopmentShell } from "@/components/development/development-shell";
 import { ProgressBar } from "@/components/projects/progress-bar";
 import { NumKpi } from "@/components/projects/num-kpi";
 
@@ -14,6 +10,12 @@ import { NumKpi } from "@/components/projects/num-kpi";
  * Header + summary KPIs + allocations table. The
  * RecordCapitalReceivedModal opens from the "Record receipt" action
  * on a row in the data PR; today the rows are static.
+ *
+ * Pixel-redesign (cabinets/dev-p1/cfo.html lineage): legacy
+ * PageHeader/Button/DevelopmentShell + inline styles swapped for the
+ * dev `.page-header` brick, `.btn` lineage, and tokenised utilities so
+ * the detail matches the redesigned CFO console. Static MOCK_DETAIL +
+ * notFound() wiring preserved verbatim.
  */
 
 export const dynamic = "force-dynamic";
@@ -65,26 +67,30 @@ export default async function CapitalCallDetailPage({
   const paid = c.allocations.filter((a) => a.received > 0).length;
 
   return (
-    <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "CFO", href: "/development-os/cfo" },
-          { label: "Capital calls", href: "/development-os/cfo/capital-calls" },
-          { label: c.ref },
-        ]}
-        eyebrow={c.projectLabel}
-        title={c.ref}
-        description={`Issued ${c.issuedAt} · due ${c.dueAt}`}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/cfo/capital-calls">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All capital calls
-            </Link>
-          </Button>
-        }
-      />
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os/cfo">CFO</Link>
+            <span>·</span>
+            <Link href="/development-os/cfo/capital-calls">Capital calls</Link>
+            <span>·</span>
+            <span>{c.ref}</span>
+          </div>
+          <h1>{c.ref}</h1>
+          <p className="mt-2 mb-0 text-[15px] text-[var(--ink-3)] max-w-[680px]">
+            {c.projectLabel} · issued {c.issuedAt} · due {c.dueAt}
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/cfo/capital-calls"
+            className="btn btn-secondary btn-sm"
+          >
+            ← All capital calls
+          </Link>
+        </div>
+      </div>
 
       <div className="cfo-detail-kpis">
         <NumKpi label="Total" value={fmt(c.totalUsdMinor)} tone="accent" />
@@ -96,7 +102,7 @@ export default async function CapitalCallDetailPage({
         />
       </div>
 
-      <div style={{ margin: "18px 0 28px" }}>
+      <div className="mt-[18px] mb-7">
         <ProgressBar
           pct={pct}
           caption="Overall receipt"
@@ -105,7 +111,7 @@ export default async function CapitalCallDetailPage({
         />
       </div>
 
-      <h2 className="display text-[22px] mb-3" style={{ fontWeight: 500 }}>Allocations</h2>
+      <h2 className="display text-[22px] mb-3">Allocations</h2>
       <table className="data">
         <thead>
           <tr>
@@ -123,10 +129,17 @@ export default async function CapitalCallDetailPage({
               <tr key={a.id}>
                 <td>{a.investor}</td>
                 <td className="num mono">{fmt(a.expected)}</td>
-                <td className="num mono" style={{ color: settled ? "var(--ok)" : "var(--ink-3)" }}>
+                <td
+                  className={
+                    "num mono " +
+                    (settled ? "text-ok" : "text-[var(--ink-3)]")
+                  }
+                >
                   {fmt(a.received)}
                 </td>
-                <td className="mono text-[11px] text-ink-3">{a.ref ?? "—"}</td>
+                <td className="mono text-[11px] text-[var(--ink-3)]">
+                  {a.ref ?? "—"}
+                </td>
                 <td>
                   {settled ? (
                     <span className="badge badge-ok">Received</span>
@@ -141,6 +154,6 @@ export default async function CapitalCallDetailPage({
           })}
         </tbody>
       </table>
-    </DevelopmentShell>
+    </>
   );
 }

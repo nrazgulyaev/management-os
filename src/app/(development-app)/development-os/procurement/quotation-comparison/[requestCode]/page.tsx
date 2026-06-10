@@ -3,9 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -30,7 +27,12 @@ export default async function QuotationComparisonPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Quotation comparison" />
+        <header className="page-header">
+          <div className="left">
+            <div className="crumb">Buyer · supply</div>
+            <h1>Quotation comparison</h1>
+          </div>
+        </header>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -74,32 +76,37 @@ export default async function QuotationComparisonPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          {
-            label: "Purchase requests",
-            href: "/development-os/procurement/purchase-requests",
-          },
-          {
-            label: request.requestCode,
-            href: `/development-os/procurement/purchase-requests/${encodeURIComponent(request.requestCode)}`,
-          },
-          { label: "Compare" },
-        ]}
-        title={`Compare quotations: ${request.requestCode}`}
-        description={`${request.materialName} · ${request.quantity} ${request.unitOfMeasure} · required by ${request.requiredByDate}`}
-        actions={
-          <Button asChild variant="secondary">
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os/procurement/purchase-requests">
+              Purchase requests
+            </Link>
+            <span>/</span>
             <Link
               href={`/development-os/procurement/purchase-requests/${encodeURIComponent(request.requestCode)}`}
             >
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back to request
+              {request.requestCode}
             </Link>
-          </Button>
-        }
-      />
+            <span>·</span>
+            <span>Compare</span>
+          </div>
+          <h1>Compare quotations: {request.requestCode}</h1>
+          <div className="text-[13px] text-ink-3 mt-1.5">
+            {request.materialName} · {request.quantity} {request.unitOfMeasure} ·
+            required by {request.requiredByDate}
+          </div>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/procurement/purchase-requests/${encodeURIComponent(request.requestCode)}`}
+            className="btn btn-dark btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back to request
+          </Link>
+        </div>
+      </header>
 
       {quotations.length === 0 ? (
         <EmptyState
@@ -107,7 +114,13 @@ export default async function QuotationComparisonPage({
           description="Add quotations via the addQuotation server action."
         />
       ) : (
-        <Section eyebrow="Side-by-side" title={`${quotations.length} quote${quotations.length === 1 ? "" : "s"}`}>
+        <div>
+          <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+            Side-by-side
+          </div>
+          <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-3">
+            {quotations.length} quote{quotations.length === 1 ? "" : "s"}
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {quotations.map((q) => {
               const vendor = vendorById.get(q.vendorId);
@@ -188,7 +201,7 @@ export default async function QuotationComparisonPage({
               );
             })}
           </div>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -27,7 +24,12 @@ export default async function BoqExportPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Export BOQ" />
+        <header className="page-header">
+          <div className="left">
+            <div className="crumb">Construction · estimate</div>
+            <h1>Export BOQ</h1>
+          </div>
+        </header>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -39,30 +41,46 @@ export default async function BoqExportPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "BOQ", href: "/development-os/boq" },
-          {
-            label: document.boqCode,
-            href: `/development-os/boq/${encodeURIComponent(document.boqCode)}`,
-          },
-          { label: "Export" },
-        ]}
-        title={`Export CSV → ${document.boqCode}`}
-        description="CSV preview below. Click 'Download' to save the file (UTF-8). Opens directly in Excel / Sheets / Numbers."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href={`/development-os/boq/${encodeURIComponent(document.boqCode)}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              BOQ
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os/boq">BOQ</Link>
+            <span>/</span>
+            <Link
+              href={`/development-os/boq/${encodeURIComponent(document.boqCode)}`}
+            >
+              {document.boqCode}
             </Link>
-          </Button>
-        }
-      />
-      <Section eyebrow="CSV" title="Preview + download">
-        <BoqExportClient csv={csv} filename={`${document.boqCode}.csv`} />
-      </Section>
+            <span>·</span>
+            <span>Export</span>
+          </div>
+          <h1>Export CSV → {document.boqCode}</h1>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/boq/${encodeURIComponent(document.boqCode)}`}
+            className="btn btn-dark btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            BOQ
+          </Link>
+        </div>
+      </header>
+
+      <p className="text-ink-3 text-sm max-w-3xl -mt-4 leading-relaxed">
+        CSV preview below. Click &lsquo;Download&rsquo; to save the file
+        (UTF-8). Opens directly in Excel / Sheets / Numbers.
+      </p>
+
+      <div>
+        <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+          CSV
+        </div>
+        <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-3">
+          Preview + download
+        </h2>
+      </div>
+      <BoqExportClient csv={csv} filename={`${document.boqCode}.csv`} />
     </DevelopmentShell>
   );
 }

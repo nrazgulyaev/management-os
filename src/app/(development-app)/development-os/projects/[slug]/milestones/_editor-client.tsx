@@ -146,7 +146,7 @@ export function MilestonesEditor({
       <div className="ms-editor-toolbar">
         <button
           type="button"
-          className="btn btn-primary btn-sm"
+          className="btn btn-amber btn-sm"
           onClick={() => setAddOpen(true)}
           disabled={pending}
         >

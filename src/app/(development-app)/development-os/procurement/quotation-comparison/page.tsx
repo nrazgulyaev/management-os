@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
@@ -80,24 +78,33 @@ export default async function QuotationComparisonListPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Procurement" },
-          { label: "Quotation comparison" },
-        ]}
-        eyebrow={`${summary.totalRfqsCount} RFQ${summary.totalRfqsCount === 1 ? "" : "s"} · ${summary.totalQuotationsCount} quote${summary.totalQuotationsCount === 1 ? "" : "s"}`}
-        title="Quotation comparison"
-        description="Every Dev-OS purchase request that has at least one quote, sorted by required-by date. Click 'Compare' to see vendor cards side-by-side and select the winner."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
-        }
-      />
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <span>Procurement</span>
+            <span>·</span>
+            <span>
+              {summary.totalRfqsCount} RFQ
+              {summary.totalRfqsCount === 1 ? "" : "s"} ·{" "}
+              {summary.totalQuotationsCount} quote
+              {summary.totalQuotationsCount === 1 ? "" : "s"}
+            </span>
+          </div>
+          <h1>Quotation comparison</h1>
+        </div>
+        <div className="actions">
+          <Link href="/development-os" className="btn btn-dark btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </header>
+
+      <p className="text-ink-3 text-sm max-w-3xl -mt-4 leading-relaxed">
+        Every Dev-OS purchase request that has at least one quote, sorted by
+        required-by date. Click &lsquo;Compare&rsquo; to see vendor cards
+        side-by-side and select the winner.
+      </p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <DashboardKpi
@@ -127,23 +134,33 @@ export default async function QuotationComparisonListPage() {
       </div>
 
       {matrix.lines.length > 0 && matrix.vendors.length > 0 && (
-        <Section
-          eyebrow="Award matrix"
-          title="Pick a winner per row, create POs in one batch"
-          description="Side-by-side comparison across every PR that has at least one quotation. Defaults match the lowest-price highlight; click a different vendor radio to override."
-        >
+        <div>
+          <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+            Award matrix
+          </div>
+          <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-1">
+            Pick a winner per row, create POs in one batch
+          </h2>
+          <p className="text-sm text-ink-3 leading-relaxed mb-3 max-w-3xl">
+            Side-by-side comparison across every PR that has at least one
+            quotation. Defaults match the lowest-price highlight; click a
+            different vendor radio to override.
+          </p>
           <QuotationMatrixIsland
             lines={matrix.lines}
             vendors={matrix.vendors}
             cellsByPrAndVendor={matrix.cellsByPrAndVendor}
           />
-        </Section>
+        </div>
       )}
 
-      <Section
-        eyebrow="Active comparisons"
-        title={`${rows.length} RFQ${rows.length === 1 ? "" : "s"} with quotations`}
-      >
+      <div>
+        <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+          Active comparisons
+        </div>
+        <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-3">
+          {rows.length} RFQ{rows.length === 1 ? "" : "s"} with quotations
+        </h2>
         {rows.length === 0 ? (
           <NoItemsYet
             entityLabel="quotation comparisons"
@@ -234,14 +251,21 @@ export default async function QuotationComparisonListPage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
       {awaiting.length > 0 && (
-        <Section
-          eyebrow="Heads up"
-          title={`${awaiting.length} approved PR${awaiting.length === 1 ? "" : "s"} awaiting quotations`}
-          description="These purchase requests are submitted or approved but have no quotes yet — chase the vendor list before the required-by date slips."
-        >
+        <div>
+          <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+            Heads up
+          </div>
+          <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-1">
+            {awaiting.length} approved PR{awaiting.length === 1 ? "" : "s"}{" "}
+            awaiting quotations
+          </h2>
+          <p className="text-sm text-ink-3 leading-relaxed mb-3 max-w-3xl">
+            These purchase requests are submitted or approved but have no quotes
+            yet — chase the vendor list before the required-by date slips.
+          </p>
           <div className="rounded-[14px] border border-warning/40 bg-warning-weak/30 overflow-hidden">
             {awaiting.map((p) => (
               <QueueRow
@@ -262,7 +286,7 @@ export default async function QuotationComparisonListPage() {
               />
             ))}
           </div>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

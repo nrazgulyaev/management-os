@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Calendar, Globe, Layers } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SourceBadge } from "@/components/ui/source-badge";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { DevelopmentMetricCard } from "@/components/development/metric-card";
 import { PhasesTimeline } from "@/components/development/phases-timeline";
 import { LandPlotCard } from "@/components/development/land-plot-card";
 import { UnitTable } from "@/components/development/unit-row";
@@ -42,6 +41,7 @@ import {
 } from "@/lib/development/constants/investor-constants";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { getSiteReports } from "@/lib/development/server/site-reports";
+import { listProjectRfis } from "@/lib/development/server/rfis/rfi-queries";
 import { getVendorEngagements } from "@/lib/development/server/vendors";
 import { getMaterialPurchaseOrders } from "@/lib/development/server/materials";
 import { getSafetyIncidents } from "@/lib/development/server/safety";
@@ -61,7 +61,6 @@ import {
   SAFETY_SEVERITY_TONE,
   SAFETY_STATUS_LABEL,
 } from "@/lib/development/constants/safety-constants";
-import type { DevelopmentMetric } from "@/lib/development/types";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
@@ -212,6 +211,7 @@ export default async function ProjectDetailPage({
     projectVendorEngagements,
     projectMaterialPos,
     projectSafetyIncidents,
+    projectRfis,
   ] = await mapPoolAll([
     () => (detail.source === "db"
       ? safeQuery(
@@ -245,6 +245,17 @@ export default async function ProjectDetailPage({
           4000,
         )
       : Promise.resolve([])),
+    () => (detail.source === "db"
+      ? safeQuery(
+          "listProjectRfis(open)",
+          listProjectRfis({
+            projectId: project.realProjectId,
+            status: "open",
+          }),
+          [],
+          4000,
+        )
+      : Promise.resolve([])),
   ] as const, 4);
   const sourceOptions = allSourcesRaw.map((s) => ({
     id: s.id,
@@ -257,45 +268,6 @@ export default async function ProjectDetailPage({
   const usedMajor = Number(project.budgetUsedMinor) / 100;
   const budgetPct =
     totalBudgetMajor > 0 ? Math.round((usedMajor / totalBudgetMajor) * 100) : 0;
-
-  const overviewMetrics: DevelopmentMetric[] = [
-    {
-      id: "m-progress",
-      label: "Construction",
-      value: `${project.constructionProgressPct}`,
-      unit: "% weighted",
-      changePct: null,
-      trend: "flat",
-      status: "ok",
-    },
-    {
-      id: "m-units",
-      label: "Units contracted",
-      value: `${project.unitsSold} / ${project.units}`,
-      changePct: null,
-      trend: "flat",
-      status: project.unitsSold > 0 ? "ok" : "watch",
-    },
-    {
-      id: "m-budget",
-      label: "Budget used",
-      value: fmtMinor(project.budgetUsedMinor, project.currency),
-      changePct: null,
-      trend: "flat",
-      status: budgetPct > 90 ? "watch" : "ok",
-      hint: `${budgetPct}% of plan`,
-    },
-    {
-      id: "m-handover",
-      label: "Planned handover",
-      value: project.expectedHandover
-        ? formatDate(project.expectedHandover, "short")
-        : "—",
-      changePct: null,
-      trend: "flat",
-      status: "ok",
-    },
-  ];
 
   const activePhases = phases.filter((p) => p.status === "in_progress");
 
@@ -321,6 +293,25 @@ export default async function ProjectDetailPage({
     })
     .slice(0, 4);
 
+  // Overview KPIs + RFIs panel — real reads (db-gated; empty on mock source).
+  const nextMilestone = upcomingPhases[0] ?? null;
+  const openRfis = projectRfis.slice(0, 4);
+  const openRfiCount = projectRfis.length;
+  const oldestRfiAgeDays =
+    projectRfis.length > 0
+      ? Math.max(
+          ...projectRfis.map((r) =>
+            Math.max(
+              0,
+              Math.floor(
+                (today.getTime() - new Date(r.openedAt).getTime()) /
+                  86_400_000,
+              ),
+            ),
+          ),
+        )
+      : null;
+
   const tabs: ProjectTab[] = [
     {
       value: "overview",
@@ -328,13 +319,47 @@ export default async function ProjectDetailPage({
       content: (
         <div className="project-overview">
           <div className="po-main">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {overviewMetrics.map((m) => (
-                <DevelopmentMetricCard key={m.id} metric={m} />
-              ))}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-[10px]">
+              <Kpi
+                label="Schedule"
+                value={`${project.constructionProgressPct}%`}
+                sub="weighted complete"
+              />
+              <Kpi
+                label="Budget burn"
+                value={fmtMinor(project.budgetUsedMinor, project.currency)}
+                sub={`${budgetPct}% of plan`}
+                tone="accent"
+              />
+              <Kpi
+                label="RFIs open"
+                value={`${openRfiCount}`}
+                sub={
+                  oldestRfiAgeDays !== null
+                    ? `oldest ${oldestRfiAgeDays}d`
+                    : "none open"
+                }
+              />
+              <Kpi
+                label="Next milestone"
+                value={
+                  nextMilestone
+                    ? nextMilestone.daysAway === null
+                      ? "—"
+                      : nextMilestone.daysAway < 0
+                        ? `${-nextMilestone.daysAway}d`
+                        : `${nextMilestone.daysAway}d`
+                    : "—"
+                }
+                sub={
+                  nextMilestone
+                    ? nextMilestone.phase.phaseType.replace(/_/g, " ")
+                    : "none scheduled"
+                }
+              />
             </div>
 
-            <div className="panel po-panel">
+            <div className="card po-panel overflow-hidden">
               <div className="po-panel-head">
                 <h3 className="display">Upcoming milestones</h3>
                 <span className="po-panel-tag mono">
@@ -342,10 +367,12 @@ export default async function ProjectDetailPage({
                 </span>
               </div>
               {upcomingPhases.length === 0 ? (
-                <EmptyState
-                  title="No upcoming milestones"
-                  description="Every authored phase is complete, or none are dated yet."
-                />
+                <div className="po-panel-body">
+                  <p className="text-sm text-ink-3 py-2">
+                    No upcoming milestones — every authored phase is complete,
+                    or none are dated yet.
+                  </p>
+                </div>
               ) : (
                 <div className="po-panel-body">
                   {upcomingPhases.map((u) => (
@@ -379,30 +406,104 @@ export default async function ProjectDetailPage({
               )}
             </div>
 
-            <Section
-              eyebrow="Active phases"
-              title={`In progress · ${activePhases.length}`}
-              description="Phases currently running on this project. The full timeline is on the next tab."
-            >
+            <div className="card po-panel overflow-hidden">
+              <div className="po-panel-head">
+                <h3 className="display">Open RFIs · {openRfiCount}</h3>
+                <span className="po-panel-tag mono">
+                  <span className="pulse-dot accent" aria-hidden />
+                  RFI-ROUTER
+                </span>
+              </div>
+              {openRfis.length === 0 ? (
+                <div className="po-panel-body">
+                  <p className="text-sm text-ink-3 py-2">
+                    No open RFIs on this project.{" "}
+                    <Link
+                      href={`/development-os/projects/${slug}/rfis`}
+                      className="underline"
+                    >
+                      Open the RFI log
+                    </Link>
+                    .
+                  </p>
+                </div>
+              ) : (
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th>Ref</th>
+                      <th>Question</th>
+                      <th>Discipline</th>
+                      <th>Routed to</th>
+                      <th className="num">Age</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {openRfis.map((r) => {
+                      const ageDays = Math.max(
+                        0,
+                        Math.floor(
+                          (today.getTime() - new Date(r.openedAt).getTime()) /
+                            86_400_000,
+                        ),
+                      );
+                      return (
+                        <tr key={r.id}>
+                          <td className="mono text-[11px]">
+                            <Link
+                              href={`/development-os/projects/${slug}/rfis/${r.id}`}
+                              className="hover:underline"
+                            >
+                              {r.ref}
+                            </Link>
+                          </td>
+                          <td className="text-sm">{r.question}</td>
+                          <td>
+                            <span className="badge">{r.discipline}</span>
+                          </td>
+                          <td className="text-sm text-ink-2">
+                            {r.routedToName ?? "Unrouted"}
+                          </td>
+                          <td
+                            className={`num text-[11px] ${ageDays >= 5 ? "rfi-age-warn" : "text-ink-3"}`}
+                          >
+                            {ageDays}d
+                          </td>
+                          <td className="num text-ink-3">→</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <section>
+              <div className="section-heading">
+                <div className="label eyebrow">Active phases</div>
+                <h2>In progress · {activePhases.length}</h2>
+                <p>
+                  Phases currently running on this project. The full timeline
+                  is on the next tab.
+                </p>
+              </div>
               {activePhases.length === 0 ? (
-                <EmptyState
-                  title="No phases in progress"
-                  description="Either everything is completed or nothing has started yet."
-                />
+                <p className="text-sm text-ink-3">
+                  No phases in progress — either everything is completed or
+                  nothing has started yet.
+                </p>
               ) : (
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {activePhases.map((p) => (
-                    <li
-                      key={p.id}
-                      className="rounded-md border border-line-soft bg-surface px-4 py-3 flex items-center justify-between gap-3"
-                    >
+                    <li key={p.id} className="po-phase-row">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-2 h-2 rounded-full bg-accent" aria-hidden />
+                        <span className="status-dot in-progress" aria-hidden />
                         <div className="flex flex-col min-w-0">
                           <span className="text-sm font-medium text-ink truncate">
                             {p.phaseType.replace(/_/g, " ")}
                           </span>
-                          <span className="text-xs text-ink-tertiary">
+                          <span className="mono text-[11px] text-ink-3">
                             since{" "}
                             {p.actualStartDate
                               ? formatDate(p.actualStartDate, "short")
@@ -411,7 +512,7 @@ export default async function ProjectDetailPage({
                         </div>
                       </div>
                       {p.notes && (
-                        <span className="text-xs text-ink-secondary text-right truncate max-w-[50%]">
+                        <span className="text-xs text-ink-2 text-right truncate max-w-[50%]">
                           {p.notes}
                         </span>
                       )}
@@ -419,9 +520,13 @@ export default async function ProjectDetailPage({
                   ))}
                 </ul>
               )}
-            </Section>
+            </section>
 
-            <Section eyebrow="Quick stats" title="Project facts">
+            <section>
+              <div className="section-heading">
+                <div className="label eyebrow">Quick stats</div>
+                <h2>Project facts</h2>
+              </div>
               <dl className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Stat label="Acquisition" value={acquisitionLabel[meta.acquisitionMode] ?? meta.acquisitionMode} />
                 <Stat label="Land area" value={meta.landAreaSqm ? `${meta.landAreaSqm.toLocaleString()} m²` : "—"} />
@@ -433,11 +538,11 @@ export default async function ProjectDetailPage({
                 <Stat label="Acquisition date" value={meta.acquisitionDate ? formatDate(meta.acquisitionDate, "long") : "—"} />
               </dl>
               {meta.notes && (
-                <p className="mt-4 text-sm text-ink-secondary leading-relaxed">
+                <p className="mt-4 text-sm text-ink-2 leading-relaxed">
                   {meta.notes}
                 </p>
               )}
-            </Section>
+            </section>
           </div>
 
           <aside className="po-rail">
@@ -469,11 +574,12 @@ export default async function ProjectDetailPage({
                 )}{" "}
                 committed
               </div>
-              <Button asChild variant="secondary" className="w-full mt-2">
-                <Link href={`/development-os/projects/${slug}/milestones`}>
-                  Compose update
-                </Link>
-              </Button>
+              <Link
+                href={`/development-os/projects/${slug}/milestones`}
+                className="btn btn-dark btn-sm w-full mt-2 justify-center"
+              >
+                Compose update
+              </Link>
             </div>
           </aside>
         </div>
@@ -1196,50 +1302,64 @@ export default async function ProjectDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: project.name },
-        ]}
-        eyebrow={project.location}
-        title={project.name}
-        description={
-          meta.notes ??
-          "Project workspace — phases, land, units, and the artifact trail behind every decision."
-        }
-        actions={
-          <div className="flex items-center gap-2">
-            <SourceBadge source={detail.source} />
-            <Button asChild variant="secondary">
-              <Link href={`/development-os/projects/${slug}/rfis`}>RFIs</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/projects">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                All projects
-              </Link>
-            </Button>
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Dev OS</Link>
+            <span>/</span>
+            <Link href="/development-os/projects">Projects</Link>
+            <span>/</span>
+            <span>{project.name}</span>
           </div>
-        }
-      />
+          <h1>{project.name}</h1>
+          <div className="page-header-meta">
+            <Layers className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+            <span>
+              {(acquisitionLabel[meta.acquisitionMode] ?? meta.acquisitionMode).toUpperCase()}
+            </span>
+            {meta.acquisitionDate && (
+              <>
+                <span>·</span>
+                <Calendar className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+                <span>ACQUIRED {formatDate(meta.acquisitionDate, "short")}</span>
+              </>
+            )}
+            <span>·</span>
+            <Globe className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+            <span>
+              {meta.projectCurrency} / {meta.operationalCurrency}
+            </span>
+          </div>
+        </div>
+        <div className="actions">
+          <SourceBadge source={detail.source} />
+          <Link
+            href="/development-os/projects"
+            className="btn btn-dark btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All projects
+          </Link>
+          <Link
+            href={`/development-os/projects/${slug}/rfis`}
+            className="btn btn-dark btn-sm"
+          >
+            + RFI
+          </Link>
+          <Link
+            href={`/development-os/projects/${slug}/milestones`}
+            className="btn btn-amber btn-sm"
+          >
+            + Milestone
+          </Link>
+        </div>
+      </header>
 
-      <div className="flex items-center gap-2 -mt-4 flex-wrap">
-        <Badge tone="outline">
-          <Layers className="w-3 h-3 mr-1" strokeWidth={2} />
-          {acquisitionLabel[meta.acquisitionMode] ?? meta.acquisitionMode}
-        </Badge>
-        {meta.acquisitionDate && (
-          <Badge tone="outline">
-            <Calendar className="w-3 h-3 mr-1" strokeWidth={2} />
-            Acquired {formatDate(meta.acquisitionDate, "short")}
-          </Badge>
-        )}
-        <Badge tone="outline">
-          <Globe className="w-3 h-3 mr-1" strokeWidth={2} />
-          {meta.projectCurrency} / {meta.operationalCurrency}
-        </Badge>
-      </div>
+      {meta.notes && (
+        <p className="text-ink-3 text-sm max-w-3xl -mt-4 leading-relaxed">
+          {meta.notes}
+        </p>
+      )}
 
       <ProjectDetailTabs tabs={tabs} defaultValue="overview" />
     </DevelopmentShell>
@@ -1256,21 +1376,19 @@ function Stat({
   hint?: string;
 }) {
   return (
-    <div className="rounded-md border border-line-soft bg-surface px-4 py-3 flex flex-col gap-0.5">
-      <span className="text-label">{label}</span>
-      <span className="text-sm text-ink font-mono tabular-nums">{value}</span>
-      {hint && (
-        <span className="text-[11px] text-ink-tertiary">{hint}</span>
-      )}
+    <div className="po-stat">
+      <span className="label">{label}</span>
+      <span className="mono text-sm text-ink tabular-nums">{value}</span>
+      {hint && <span className="text-[11px] text-ink-3">{hint}</span>}
     </div>
   );
 }
 
 function ComingInPlaceholder({ stage, summary }: { stage: string; summary: string }) {
   return (
-    <div className="rounded-md border border-dashed border-line-soft bg-muted/30 px-6 py-10 flex flex-col items-center text-center gap-2">
-      <Badge tone="gold">Stage {stage}</Badge>
-      <p className="text-sm text-ink-secondary max-w-md leading-relaxed">{summary}</p>
+    <div className="po-coming">
+      <HandoffBadge tone="gold">Stage {stage}</HandoffBadge>
+      <p className="text-sm text-ink-2 max-w-md leading-relaxed">{summary}</p>
     </div>
   );
 }

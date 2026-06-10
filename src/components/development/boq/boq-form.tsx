@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { createBoqDocument } from "@/lib/development/server/boq/boq-actions";
 
 export function BoqForm({
@@ -46,48 +45,48 @@ export function BoqForm({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 max-w-xl">
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block text-sm">
-          <span className="text-ink-secondary">BOQ code</span>
+    <form onSubmit={submit} className="card p-6 flex flex-col gap-4 max-w-xl">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="field">
+          <span className="field-label">BOQ code</span>
           <input
             type="text"
             value={boqCode}
             onChange={(e) => setBoqCode(e.target.value)}
             placeholder="BOQ-ETV-2026-001"
-            className="mt-1 block w-full rounded border border-line-soft p-2 text-sm font-mono"
+            className="input mono"
             required
           />
-        </label>
-        <label className="block text-sm">
-          <span className="text-ink-secondary">Version label</span>
+        </div>
+        <div className="field">
+          <span className="field-label">Version label</span>
           <input
             type="text"
             value={versionLabel}
             onChange={(e) => setVersionLabel(e.target.value)}
             placeholder="v1.0"
-            className="mt-1 block w-full rounded border border-line-soft p-2 text-sm"
+            className="input"
             required
           />
-        </label>
+        </div>
       </div>
-      <label className="block text-sm">
-        <span className="text-ink-secondary">Title</span>
+      <div className="field">
+        <span className="field-label">Title</span>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Eternal Villas — main works"
-          className="mt-1 block w-full rounded border border-line-soft p-2 text-sm"
+          className="input"
           required
         />
-      </label>
-      <label className="block text-sm">
-        <span className="text-ink-secondary">Project</span>
+      </div>
+      <div className="field">
+        <span className="field-label">Project</span>
         <select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
-          className="mt-1 block w-full rounded border border-line-soft p-2 text-sm"
+          className="select"
           required
         >
           {projects.map((p) => (
@@ -96,33 +95,35 @@ export function BoqForm({
             </option>
           ))}
         </select>
-      </label>
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block text-sm">
-          <span className="text-ink-secondary">Currency</span>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="field">
+          <span className="field-label">Currency</span>
           <input
             type="text"
             value={currency}
             onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-            className="mt-1 block w-full rounded border border-line-soft p-2 text-sm font-mono"
+            className="input mono"
             required
           />
-        </label>
-        <label className="block text-sm">
-          <span className="text-ink-secondary">QS firm (optional)</span>
+        </div>
+        <div className="field">
+          <span className="field-label">QS firm (optional)</span>
           <input
             type="text"
             value={qsFirm}
             onChange={(e) => setQsFirm(e.target.value)}
-            className="mt-1 block w-full rounded border border-line-soft p-2 text-sm"
+            className="input"
           />
-        </label>
+        </div>
       </div>
-      <Button type="submit" disabled={pending}>
-        {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-        Create BOQ
-      </Button>
-      {error && <p className="text-xs text-danger">{error}</p>}
+      <div className="flex items-center gap-3 pt-1">
+        <button type="submit" className="btn btn-accent" disabled={pending}>
+          {pending && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />}
+          Create BOQ
+        </button>
+        {error && <p className="field-error">{error}</p>}
+      </div>
     </form>
   );
 }

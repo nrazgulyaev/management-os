@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { importBoqFromCsv } from "@/lib/development/server/boq/boq-actions";
 
 const SAMPLE_CSV = `section_code,section_name,item_code,description,quantity,uom,unit_rate_minor,currency
@@ -55,10 +54,10 @@ export function BoqImportForm({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 max-w-3xl">
-      <div className="rounded border border-line-soft bg-muted/30 p-3 text-xs text-ink-secondary">
+    <form onSubmit={submit} className="flex flex-col gap-3 max-w-3xl">
+      <div className="card p-4 text-xs text-ink-3">
         <p className="font-medium text-ink mb-1">CSV format</p>
-        <p>
+        <p className="leading-relaxed">
           Header row required. Section rows have <code>section_code</code> +{" "}
           <code>section_name</code> only (other columns blank). Item rows have
           everything except <code>section_name</code>. Sections are auto-created
@@ -67,38 +66,40 @@ export function BoqImportForm({
         <button
           type="button"
           onClick={() => setCsv(SAMPLE_CSV)}
-          className="mt-2 text-info hover:underline"
+          className="mt-2 text-amber hover:underline"
         >
           Load sample CSV →
         </button>
       </div>
 
-      <label className="block text-sm">
-        <span className="text-ink-secondary">CSV body</span>
+      <div className="field">
+        <span className="field-label">CSV body</span>
         <textarea
           value={csv}
           onChange={(e) => setCsv(e.target.value)}
           rows={14}
           placeholder="Paste CSV here…"
-          className="mt-1 block w-full rounded border border-line-soft p-2 text-xs font-mono"
+          className="textarea mono text-xs"
         />
-      </label>
+      </div>
 
-      <div className="rounded border border-warning/40 bg-warning/10 p-3 text-xs text-ink-secondary flex gap-2">
-        <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-        <span>
+      <div className="card p-4 text-xs text-ink-3 flex gap-2 border-warning/40 bg-warning-weak/40">
+        <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" strokeWidth={1.75} />
+        <span className="leading-relaxed">
           Importing will <strong>replace</strong> all existing sections + items
           on this BOQ document. The operation is atomic — if the CSV fails to
           parse, the existing data is preserved.
         </span>
       </div>
 
-      <Button type="submit" disabled={pending}>
-        {pending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-        Import CSV
-      </Button>
-      {error && <p className="text-xs text-danger">{error}</p>}
-      {result && <p className="text-xs text-success">{result}</p>}
+      <div className="flex items-center gap-3 pt-1">
+        <button type="submit" className="btn btn-accent" disabled={pending}>
+          {pending && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />}
+          Import CSV
+        </button>
+        {error && <p className="field-error">{error}</p>}
+        {result && <p className="text-xs text-ok">{result}</p>}
+      </div>
     </form>
   );
 }

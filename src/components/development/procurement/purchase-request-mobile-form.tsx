@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { createPurchaseRequest } from "@/lib/development/server/procurement/procurement-actions";
 
 /**
@@ -13,10 +12,10 @@ import { createPurchaseRequest } from "@/lib/development/server/procurement/proc
  */
 
 const URGENCY_OPTIONS = [
-  { value: "low", label: "Low", color: "bg-stone-200 text-stone-700" },
-  { value: "normal", label: "Normal", color: "bg-blue-100 text-blue-800" },
-  { value: "high", label: "High", color: "bg-orange-100 text-orange-800" },
-  { value: "critical", label: "Critical", color: "bg-red-100 text-red-800" },
+  { value: "low", label: "Low", color: "bg-bg-2 text-ink-2" },
+  { value: "normal", label: "Normal", color: "bg-info/10 text-info" },
+  { value: "high", label: "High", color: "bg-warning-weak/50 text-warning" },
+  { value: "critical", label: "Critical", color: "bg-danger-weak/50 text-danger" },
 ] as const;
 
 const CATEGORY_OPTIONS = [
@@ -121,7 +120,7 @@ export function PurchaseRequestMobileForm({
         <select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
-          className="rounded border border-line-soft p-3 text-base w-full min-h-[44px]"
+          className="select text-base w-full min-h-[44px]"
         >
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
@@ -139,14 +138,14 @@ export function PurchaseRequestMobileForm({
             value={materialName}
             onChange={(e) => setMaterialName(e.target.value)}
             placeholder="e.g. Cement (40kg bag)"
-            className="rounded border border-line-soft p-3 text-base w-full min-h-[44px]"
+            className="input text-base w-full min-h-[44px]"
           />
         </Field>
         <Field label="Category">
           <select
             value={materialCategory}
             onChange={(e) => setMaterialCategory(e.target.value)}
-            className="rounded border border-line-soft p-3 text-base w-full min-h-[44px]"
+            className="select text-base w-full min-h-[44px]"
           >
             {CATEGORY_OPTIONS.map((c) => (
               <option key={c} value={c}>
@@ -163,7 +162,7 @@ export function PurchaseRequestMobileForm({
             step="0.01"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
-            className="rounded border border-line-soft p-3 text-base w-full min-h-[44px]"
+            className="input mono text-base w-full min-h-[44px]"
           />
         </Field>
         <Field label="Unit of measure">
@@ -172,7 +171,7 @@ export function PurchaseRequestMobileForm({
             value={unitOfMeasure}
             onChange={(e) => setUnitOfMeasure(e.target.value)}
             placeholder="bag, m³, piece, sqm…"
-            className="rounded border border-line-soft p-3 text-base w-full min-h-[44px]"
+            className="input text-base w-full min-h-[44px]"
           />
         </Field>
       </div>
@@ -184,7 +183,7 @@ export function PurchaseRequestMobileForm({
           onChange={(e) => setReason(e.target.value)}
           rows={3}
           placeholder="Tap mic for voice input on mobile…"
-          className="rounded border border-line-soft p-3 text-base w-full"
+          className="textarea text-base w-full"
         />
       </Field>
       <Field label="Required by">
@@ -192,7 +191,7 @@ export function PurchaseRequestMobileForm({
           type="date"
           value={requiredByDate}
           onChange={(e) => setRequiredByDate(e.target.value)}
-          className="rounded border border-line-soft p-3 text-base w-full min-h-[44px]"
+          className="input text-base w-full min-h-[44px]"
         />
       </Field>
 
@@ -203,9 +202,9 @@ export function PurchaseRequestMobileForm({
               key={u.value}
               type="button"
               onClick={() => setUrgency(u.value)}
-              className={`min-h-[44px] rounded-md font-medium text-sm transition-all ${
+              className={`min-h-[44px] rounded-[8px] font-medium text-sm transition-all ${
                 urgency === u.value
-                  ? `${u.color} ring-2 ring-stone-900`
+                  ? `${u.color} ring-2 ring-inset ring-ink`
                   : `${u.color} opacity-60`
               }`}
             >
@@ -216,11 +215,11 @@ export function PurchaseRequestMobileForm({
       </Field>
 
       {/* Optional context */}
-      <details className="rounded border border-line-soft p-3">
-        <summary className="cursor-pointer text-sm text-ink-secondary">
+      <details className="card p-4">
+        <summary className="cursor-pointer text-sm text-ink-3">
           Optional context (estimated cost, supplier, notes)
         </summary>
-        <div className="mt-3 space-y-3">
+        <div className="mt-3 flex flex-col gap-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Field label="Estimated cost">
               <input
@@ -229,14 +228,14 @@ export function PurchaseRequestMobileForm({
                 value={estimatedCost}
                 onChange={(e) => setEstimatedCost(e.target.value)}
                 placeholder="optional"
-                className="rounded border border-line-soft p-3 text-base w-full min-h-[44px]"
+                className="input mono text-base w-full min-h-[44px]"
               />
             </Field>
             <Field label="Currency">
               <select
                 value={estimatedCurrency}
                 onChange={(e) => setEstimatedCurrency(e.target.value)}
-                className="rounded border border-line-soft p-3 text-base w-full min-h-[44px]"
+                className="select text-base w-full min-h-[44px]"
               >
                 <option value="IDR">IDR</option>
                 <option value="USD">USD</option>
@@ -249,7 +248,7 @@ export function PurchaseRequestMobileForm({
               type="text"
               value={preferredSupplierId}
               onChange={(e) => setPreferredSupplierId(e.target.value)}
-              className="rounded border border-line-soft p-3 text-xs w-full font-mono min-h-[44px]"
+              className="input mono text-xs w-full min-h-[44px]"
             />
           </Field>
           <Field label="Notes">
@@ -257,46 +256,46 @@ export function PurchaseRequestMobileForm({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="rounded border border-line-soft p-3 text-base w-full"
+              className="textarea text-base w-full"
             />
           </Field>
         </div>
       </details>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p className="field-error">{error}</p>}
 
       <div className="flex flex-col md:flex-row gap-2 pt-4 border-t border-line-soft">
-        <Button
+        <button
+          type="button"
           onClick={() => submit("draft")}
           disabled={pending}
-          variant="secondary"
-          className="min-h-[44px]"
+          className="btn btn-dark min-h-[44px]"
         >
           {pending ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />
           ) : null}
           Save as draft
-        </Button>
-        <Button
+        </button>
+        <button
+          type="button"
           onClick={() => submit("submitted")}
           disabled={pending}
-          className="min-h-[44px]"
+          className="btn btn-accent min-h-[44px]"
         >
           {pending ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />
           ) : null}
           Save (operator submits via detail page)
-        </Button>
+        </button>
         {onCancel && (
-          <Button
+          <button
             type="button"
-            variant="ghost"
             onClick={onCancel}
             disabled={pending}
-            className="min-h-[44px]"
+            className="btn btn-ghost min-h-[44px]"
           >
             Cancel
-          </Button>
+          </button>
         )}
       </div>
     </div>
@@ -312,7 +311,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-ink-secondary">{label}</span>
+      <span className="text-sm font-medium text-ink-3">{label}</span>
       {children}
     </label>
   );
