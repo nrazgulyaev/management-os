@@ -457,10 +457,19 @@ export const payoutBatches = pgTable(
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     createdBy: uuid("created_by").references(() => appUsers.id, { onDelete: "set null" }),
+    // WRITE-FLOW-AUDIT (migration 0160): tenancy scope for payout writes.
+    // Nullable on insert; backfilled to the linked statement's org or
+    // ARCONIQUE_DEFAULT. Server actions scope reads/writes by this.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("payout_batches_status_idx").on(t.status)],
+  (t) => [
+    index("payout_batches_status_idx").on(t.status),
+    index("payout_batches_org_idx").on(t.organizationId),
+  ],
 );
 
 export const payoutLines = pgTable(
@@ -485,6 +494,13 @@ export const payoutLines = pgTable(
     reference: text("reference"),
     scheduledFor: date("scheduled_for"),
     paidAt: timestamp("paid_at", { withTimezone: true }),
+    // WRITE-FLOW-AUDIT (migration 0160): tenancy scope for payout-line
+    // reads/writes. Nullable; backfilled via owner_statements.organization_id
+    // (or the batch / ARCONIQUE_DEFAULT). Closes the cross-tenant IDOR on
+    // setPayoutLineStatusAction.
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -492,6 +508,7 @@ export const payoutLines = pgTable(
     index("payout_lines_owner_idx").on(t.ownerId),
     index("payout_lines_batch_idx").on(t.payoutBatchId),
     index("payout_lines_status_idx").on(t.status),
+    index("payout_lines_org_idx").on(t.organizationId),
   ],
 );
 
