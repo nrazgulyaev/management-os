@@ -1,7 +1,6 @@
 "use client";
 
 import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 /**
  * Client-side download trigger. Uses Blob + URL.createObjectURL to save
@@ -27,12 +26,12 @@ export function BoqExportClient({
   }
 
   return (
-    <div className="space-y-3">
-      <Button onClick={download}>
-        <Download className="w-4 h-4 mr-2" strokeWidth={1.75} />
+    <div className="flex flex-col gap-3">
+      <button type="button" onClick={download} className="btn btn-accent self-start">
+        <Download className="w-4 h-4" strokeWidth={1.75} />
         Download {filename}
-      </Button>
-      <pre className="text-[11px] font-mono whitespace-pre-wrap rounded border border-line-soft bg-muted/30 p-3 max-h-[400px] overflow-y-auto">
+      </button>
+      <pre className="card text-[11px] font-mono whitespace-pre-wrap text-ink-2 p-4 max-h-[400px] overflow-y-auto">
         {csv}
       </pre>
     </div>

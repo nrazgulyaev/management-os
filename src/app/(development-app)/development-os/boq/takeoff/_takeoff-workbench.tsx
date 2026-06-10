@@ -266,13 +266,13 @@ export function TakeoffWorkbench({
   return (
     <div className="flex flex-col gap-5">
       {/* Revision picker + controls */}
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line-soft bg-surface px-4 py-3">
-        <label className="text-xs text-ink-secondary">
+      <div className="flex flex-wrap items-center gap-3 card p-4">
+        <label className="text-xs text-ink-3">
           Drawing revision
           <select
             value={revisionId}
             onChange={(e) => setRevisionId(e.target.value)}
-            className="ml-1 text-xs px-2 py-1 rounded border border-line-soft bg-surface max-w-[280px]"
+            className="ml-1 text-xs px-2 py-1 rounded-[8px] border border-line-2 bg-bg-3 text-ink max-w-[280px]"
           >
             <option value="">Select revision…</option>
             {revisionOptions.map((r) => (
@@ -292,7 +292,7 @@ export function TakeoffWorkbench({
             className="ml-2 text-xs"
           />
         </label>
-        <span className="text-xs text-ink-tertiary">or URL:</span>
+        <span className="text-xs text-ink-4">or URL:</span>
         <input
           type="url"
           value={imageUrl.startsWith("blob:") ? "" : imageUrl}
@@ -301,23 +301,23 @@ export function TakeoffWorkbench({
             setImageUrl(e.target.value);
           }}
           placeholder="https://…/floor-plan.png"
-          className="flex-1 min-w-[160px] text-xs px-2 py-1 rounded border border-line-soft bg-surface"
+          className="flex-1 min-w-[160px] text-xs px-2 py-1 rounded-[8px] border border-line-2 bg-bg-3 text-ink"
         />
-        <label className="text-xs text-ink-secondary">
+        <label className="text-xs text-ink-3">
           Currency
           <input
             value={currency}
             onChange={(e) => setCurrency(e.target.value.toUpperCase().slice(0, 4))}
-            className="ml-1 w-16 text-xs px-2 py-1 rounded border border-line-soft bg-surface font-mono"
+            className="ml-1 w-16 text-xs px-2 py-1 rounded-[8px] border border-line-2 bg-bg-3 text-ink font-mono"
           />
         </label>
         {boqTargets.length > 0 && (
-          <label className="text-xs text-ink-secondary">
+          <label className="text-xs text-ink-3">
             Push into BOQ
             <select
               value={targetSectionId}
               onChange={(e) => setTargetSectionId(e.target.value)}
-              className="ml-1 text-xs px-2 py-1 rounded border border-line-soft bg-surface max-w-[220px]"
+              className="ml-1 text-xs px-2 py-1 rounded-[8px] border border-line-2 bg-bg-3 text-ink max-w-[220px]"
             >
               <option value="">Select section…</option>
               {boqTargets.map((t) => (
@@ -331,13 +331,13 @@ export function TakeoffWorkbench({
       </div>
 
       {staleCount > 0 && (
-        <div className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-2.5 text-xs text-warning">
+        <div className="rounded-[10px] border border-warning/40 bg-warning-weak/40 px-4 py-2.5 text-xs text-warning">
           {staleCount} persisted takeoff{staleCount === 1 ? "" : "s"} measured on
           a superseded revision — re-measure against the latest revision.
         </div>
       )}
       {revisionIsStale && (
-        <div className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-2.5 text-xs text-warning">
+        <div className="rounded-[10px] border border-warning/40 bg-warning-weak/40 px-4 py-2.5 text-xs text-warning">
           This revision has been superseded by a newer one. New takeoffs here
           will be flagged stale — measure on the latest revision instead.
         </div>
@@ -350,7 +350,7 @@ export function TakeoffWorkbench({
           description="Select the drawing revision you are measuring against. Every measurement is pinned to that revision, so a newer revision flags older takeoffs as stale."
         />
       ) : !imageUrl ? (
-        <div className="rounded-lg border border-dashed border-line-soft bg-muted/20 px-6 py-12 text-center text-sm text-ink-tertiary">
+        <div className="rounded-[10px] border border-dashed border-line-2 bg-bg-2 px-6 py-12 text-center text-sm text-ink-4">
           {autoImageState === "loading" ? (
             <>
               Loading the plan for{" "}
@@ -382,7 +382,7 @@ export function TakeoffWorkbench({
       ) : (
         <div className="flex flex-col gap-1.5">
           {!manualImage && autoImageState === "loaded" && (
-            <p className="text-xs text-ink-tertiary">
+            <p className="text-xs text-ink-4">
               Auto-loaded{" "}
               <span className="font-medium text-ink">
                 {selectedRevision?.drawingCode} {selectedRevision?.revisionLabel}
@@ -407,13 +407,13 @@ export function TakeoffWorkbench({
       )}
 
       {savingStrokeId && (
-        <p className="text-xs text-ink-tertiary -mt-2">Saving measurement…</p>
+        <p className="text-xs text-ink-4 -mt-2">Saving measurement…</p>
       )}
 
       {/* Persisted takeoff → cost table (the round-trip surface) */}
       {revisionId && (
-        <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-line-soft flex items-center justify-between">
+        <div className="card overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-line flex items-center justify-between">
             <span className="text-sm font-medium text-ink">
               Persisted takeoff —{" "}
               {loadingPersisted
@@ -427,22 +427,22 @@ export function TakeoffWorkbench({
             )}
           </div>
           {persisted.length === 0 && !loadingPersisted ? (
-            <div className="px-4 py-8 text-center text-xs text-ink-tertiary">
+            <div className="px-4 py-8 text-center text-xs text-ink-4">
               No measurements yet for this revision. Draw on the plan above —
               each measurement is saved here automatically.
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-ink-tertiary border-b border-line-soft text-[11px] uppercase tracking-wide">
-                  <th className="px-4 py-2 font-normal">Item</th>
-                  <th className="px-2 py-2 font-normal">Assembly</th>
-                  <th className="px-2 py-2 font-normal">Type</th>
-                  <th className="px-2 py-2 font-normal text-right">Quantity</th>
-                  <th className="px-2 py-2 font-normal text-right">Unit rate</th>
-                  <th className="px-4 py-2 font-normal text-right">Line cost</th>
-                  <th className="px-2 py-2 font-normal text-right">BOQ</th>
-                  <th className="px-2 py-2 font-normal" />
+                <tr className="text-left text-ink-4 border-b border-line text-[10.5px] font-mono uppercase tracking-[0.1em]">
+                  <th className="px-4 py-2 font-medium">Item</th>
+                  <th className="px-2 py-2 font-medium">Assembly</th>
+                  <th className="px-2 py-2 font-medium">Type</th>
+                  <th className="px-2 py-2 font-medium text-right">Quantity</th>
+                  <th className="px-2 py-2 font-medium text-right">Unit rate</th>
+                  <th className="px-4 py-2 font-medium text-right">Line cost</th>
+                  <th className="px-2 py-2 font-medium text-right">BOQ</th>
+                  <th className="px-2 py-2 font-medium" />
                 </tr>
               </thead>
               <tbody>
@@ -459,11 +459,11 @@ export function TakeoffWorkbench({
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t border-line-strong">
+                <tr className="border-t border-line-3">
                   <td colSpan={5} className="px-4 py-2.5 text-right text-sm font-medium text-ink">
                     Total takeoff
                   </td>
-                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-sm font-semibold text-accent">
+                  <td className="px-4 py-2.5 text-right font-mono tabular-nums text-sm font-semibold text-amber">
                     {money(total)}
                   </td>
                   <td colSpan={2} />
@@ -520,7 +520,7 @@ function PersistedRow({
           }
           placeholder="e.g. Floor screed"
           disabled={busy}
-          className="w-full text-xs px-2 py-1 rounded border border-line-soft bg-surface"
+          className="w-full text-xs px-2 py-1 rounded-[8px] border border-line-2 bg-bg-3 text-ink"
         />
         {row.isStale && (
           <span className="mt-1 inline-block text-[10px] text-warning">
@@ -543,13 +543,13 @@ function PersistedRow({
           }
           placeholder="—"
           disabled={busy}
-          className="w-24 text-xs px-2 py-1 rounded border border-line-soft bg-surface"
+          className="w-24 text-xs px-2 py-1 rounded-[8px] border border-line-2 bg-bg-3 text-ink"
         />
       </td>
-      <td className="px-2 py-2 text-xs text-ink-secondary uppercase">
+      <td className="px-2 py-2 text-xs text-ink-3 uppercase font-mono">
         {row.kind}
       </td>
-      <td className="px-2 py-2 text-right font-mono tabular-nums text-xs">
+      <td className="px-2 py-2 text-right font-mono tabular-nums text-xs text-ink-2">
         {row.rawQuantity.toLocaleString("en-US", { maximumFractionDigits: 2 })}{" "}
         {row.unitOfMeasure}
       </td>
@@ -565,7 +565,7 @@ function PersistedRow({
           }
           placeholder="0"
           disabled={busy}
-          className="w-28 text-xs px-2 py-1 rounded border border-line-soft bg-surface font-mono text-right"
+          className="w-28 text-xs px-2 py-1 rounded-[8px] border border-line-2 bg-bg-3 text-ink font-mono text-right"
         />
       </td>
       <td className="px-4 py-2 text-right font-mono tabular-nums text-xs text-ink">
@@ -578,7 +578,7 @@ function PersistedRow({
             disabled={busy || !canPush}
             onClick={() => onPush(row)}
             title="Re-push the current quantity & rate into the linked BOQ line"
-            className="text-[11px] px-2 py-0.5 rounded border border-line-soft bg-surface hover:bg-muted/50 disabled:opacity-40"
+            className="text-[11px] px-2 py-0.5 rounded-[8px] border border-line-2 bg-bg-3 text-ink-2 hover:bg-bg-2 disabled:opacity-40"
           >
             {busy ? "…" : "Re-push"}
           </button>
@@ -588,7 +588,7 @@ function PersistedRow({
             disabled={busy || !canPush || !(row.rawQuantity > 0) || row.unitRateMinor === "0"}
             onClick={() => onPush(row)}
             title="Create a costed BOQ line from this measurement"
-            className="text-[11px] px-2 py-0.5 rounded border border-line-soft bg-surface hover:bg-muted/50 disabled:opacity-40"
+            className="text-[11px] px-2 py-0.5 rounded-[8px] border border-line-2 bg-bg-3 text-ink-2 hover:bg-bg-2 disabled:opacity-40"
           >
             {busy ? "…" : "Push to BOQ"}
           </button>
@@ -600,7 +600,7 @@ function PersistedRow({
           disabled={busy}
           onClick={() => onRemove(row)}
           title="Delete this measurement (and its BOQ line)"
-          className="text-[11px] px-2 py-0.5 rounded border border-line-soft bg-surface text-danger hover:bg-danger/10 disabled:opacity-40"
+          className="text-[11px] px-2 py-0.5 rounded-[8px] border border-line-2 bg-bg-3 text-danger hover:bg-danger-weak/40 disabled:opacity-40"
         >
           Delete
         </button>

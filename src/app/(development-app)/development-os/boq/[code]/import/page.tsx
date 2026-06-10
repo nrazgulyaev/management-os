@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -24,7 +21,12 @@ export default async function BoqImportPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Import BOQ" />
+        <header className="page-header">
+          <div className="left">
+            <div className="crumb">Construction · estimate</div>
+            <h1>Import BOQ</h1>
+          </div>
+        </header>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -35,30 +37,47 @@ export default async function BoqImportPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "BOQ", href: "/development-os/boq" },
-          {
-            label: document.boqCode,
-            href: `/development-os/boq/${encodeURIComponent(document.boqCode)}`,
-          },
-          { label: "Import" },
-        ]}
-        title={`Import CSV → ${document.boqCode}`}
-        description="Bulk-load sections + items from a CSV body. CSV format chosen over XLSX to keep zero new dependencies — round-trips cleanly through Excel/Sheets/Numbers."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href={`/development-os/boq/${encodeURIComponent(document.boqCode)}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              BOQ
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os/boq">BOQ</Link>
+            <span>/</span>
+            <Link
+              href={`/development-os/boq/${encodeURIComponent(document.boqCode)}`}
+            >
+              {document.boqCode}
             </Link>
-          </Button>
-        }
-      />
-      <Section eyebrow="CSV" title="Paste body">
-        <BoqImportForm boqDocumentId={document.id} boqCode={document.boqCode} />
-      </Section>
+            <span>·</span>
+            <span>Import</span>
+          </div>
+          <h1>Import CSV → {document.boqCode}</h1>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/boq/${encodeURIComponent(document.boqCode)}`}
+            className="btn btn-dark btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            BOQ
+          </Link>
+        </div>
+      </header>
+
+      <p className="text-ink-3 text-sm max-w-3xl -mt-4 leading-relaxed">
+        Bulk-load sections + items from a CSV body. CSV format chosen over XLSX
+        to keep zero new dependencies — round-trips cleanly through
+        Excel/Sheets/Numbers.
+      </p>
+
+      <div>
+        <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+          CSV
+        </div>
+        <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-3">
+          Paste body
+        </h2>
+      </div>
+      <BoqImportForm boqDocumentId={document.id} boqCode={document.boqCode} />
     </DevelopmentShell>
   );
 }

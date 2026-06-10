@@ -190,11 +190,11 @@ export function BoqQuickEntryForm({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-wrap items-center gap-4">
+      <header className="card p-5 md:p-6 flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-sm">
-          <span className="text-ink-secondary font-medium">BoQ document</span>
+          <span className="text-ink-2 font-medium">BoQ document</span>
           <select
-            className="rounded-md border border-line-soft bg-canvas px-3 h-9 text-sm text-ink min-w-[260px]"
+            className="select h-9 min-w-[260px]"
             value={boqDocumentId ?? ""}
             onChange={(e) => setBoqDocumentId(e.target.value || null)}
           >
@@ -209,11 +209,11 @@ export function BoqQuickEntryForm({
           </select>
         </label>
         {activeDoc && sectionCodes.length > 0 && (
-          <span className="text-xs text-ink-tertiary">
+          <span className="text-xs text-ink-4">
             Sections: {sectionCodes.map((s) => s.code).join(" · ")}
           </span>
         )}
-        <p className="text-xs text-ink-tertiary w-full">
+        <p className="text-xs text-ink-4 w-full">
           Tab/Enter to move between cells. Paste TSV/CSV from Sheets or
           Excel. Ctrl/Cmd-S saves all valid rows.
         </p>
@@ -227,10 +227,10 @@ export function BoqQuickEntryForm({
         caption="Type or paste BoQ line items. Lines are inserted into the matching section_code within the picked BoQ document."
       />
 
-      <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
+      <div className="card p-5 md:p-6 flex flex-col gap-3">
         {pending && (
-          <p className="inline-flex items-center gap-2 text-sm text-ink-secondary">
-            <Loader2 className="w-4 h-4 animate-spin" />
+          <p className="inline-flex items-center gap-2 text-sm text-ink-2">
+            <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.75} />
             Saving…
           </p>
         )}
@@ -254,7 +254,7 @@ export function BoqQuickEntryForm({
               )}
             </p>
             {result.errorCount > 0 && (
-              <ul className="text-xs text-ink-secondary flex flex-col gap-0.5 max-h-32 overflow-y-auto border border-line-soft rounded-md px-3 py-2 bg-canvas">
+              <ul className="text-xs text-ink-2 flex flex-col gap-0.5 max-h-32 overflow-y-auto border border-line-2 rounded-[10px] px-3 py-2 bg-bg-2">
                 {result.results
                   .filter((r) => !r.ok)
                   .map((r) => (
@@ -267,7 +267,7 @@ export function BoqQuickEntryForm({
             {result.successCount > 0 && (
               <Link
                 href="/development-os/cabinets/qs"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline self-start"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-amber hover:underline self-start"
               >
                 Open QS cabinet
                 <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />

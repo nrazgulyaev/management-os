@@ -3,9 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
@@ -84,7 +81,12 @@ export default async function PurchaseRequestDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Purchase request" />
+        <header className="page-header">
+          <div className="left">
+            <div className="crumb">Procurement · supply</div>
+            <h1>Purchase request</h1>
+          </div>
+        </header>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -113,29 +115,44 @@ export default async function PurchaseRequestDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          {
-            label: "Purchase requests",
-            href: "/development-os/procurement/purchase-requests",
-          },
-          { label: request.requestCode },
-        ]}
-        eyebrow={`${request.materialName} · ${request.quantity} ${request.unitOfMeasure}`}
-        title={request.requestCode}
-        description={request.reason}
-        actions={
-          <Button asChild variant="secondary">
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
             <Link href="/development-os/procurement/purchase-requests">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All requests
+              Purchase requests
             </Link>
-          </Button>
-        }
-      />
+            <span>/</span>
+            <span>{request.requestCode}</span>
+          </div>
+          <h1>{request.requestCode}</h1>
+          <div className="text-[13px] text-ink-3 mt-1.5">
+            {request.materialName} · {request.quantity} {request.unitOfMeasure}
+          </div>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/procurement/purchase-requests"
+            className="btn btn-dark btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All requests
+          </Link>
+        </div>
+      </header>
 
-      <Section eyebrow="State" title="Status + urgency">
+      {request.reason && (
+        <p className="text-ink-3 text-sm max-w-3xl -mt-4 leading-relaxed">
+          {request.reason}
+        </p>
+      )}
+
+      <div>
+        <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+          State
+        </div>
+        <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-3">
+          Status + urgency
+        </h2>
         <div className="flex items-center gap-2 mb-5 flex-wrap">
           <Badge tone={STATUS_TONE[request.status] ?? "neutral"}>
             {request.status}
@@ -161,9 +178,15 @@ export default async function PurchaseRequestDetailPage({
           status={request.status}
           canApprove={canApprove}
         />
-      </Section>
+      </div>
 
-      <Section eyebrow="What's needed" title="Material">
+      <div>
+        <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+          What&rsquo;s needed
+        </div>
+        <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-3">
+          Material
+        </h2>
         <div className="rounded-[14px] border border-line-2 bg-panel p-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <Field label="Material" value={request.materialName} />
@@ -188,20 +211,29 @@ export default async function PurchaseRequestDetailPage({
             />
           </div>
         </div>
-      </Section>
+      </div>
 
       {request.status === "rejected" && request.rejectionReason && (
-        <Section eyebrow="Rejected" title="Reason">
+        <div>
+          <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+            Rejected
+          </div>
+          <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-3">
+            Reason
+          </h2>
           <p className="text-sm text-danger whitespace-pre-wrap">
             {request.rejectionReason}
           </p>
-        </Section>
+        </div>
       )}
 
-      <Section
-        eyebrow="Quotations"
-        title={`${quotations.length} quote${quotations.length === 1 ? "" : "s"}`}
-      >
+      <div>
+        <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+          Quotations
+        </div>
+        <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-3">
+          {quotations.length} quote{quotations.length === 1 ? "" : "s"}
+        </h2>
         {quotations.length === 0 ? (
           <EmptyState
             title="No quotations yet"
@@ -210,13 +242,12 @@ export default async function PurchaseRequestDetailPage({
         ) : (
           <>
             <div className="mb-3">
-              <Button asChild variant="secondary">
-                <Link
-                  href={`/development-os/procurement/quotation-comparison/${encodeURIComponent(request.requestCode)}`}
-                >
-                  Compare side-by-side →
-                </Link>
-              </Button>
+              <Link
+                href={`/development-os/procurement/quotation-comparison/${encodeURIComponent(request.requestCode)}`}
+                className="btn btn-dark btn-sm"
+              >
+                Compare side-by-side →
+              </Link>
             </div>
             <Table>
               <THead>
@@ -254,15 +285,21 @@ export default async function PurchaseRequestDetailPage({
             </Table>
           </>
         )}
-      </Section>
+      </div>
 
       {request.generatedPoId && (
-        <Section eyebrow="Linked" title="Generated PO">
-          <p className="text-sm">
+        <div>
+          <div className="text-[10.5px] font-mono uppercase tracking-[0.16em] text-ink-4 leading-[1.5] mb-1">
+            Linked
+          </div>
+          <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-3">
+            Generated PO
+          </h2>
+          <p className="text-sm text-ink-2">
             PO created:{" "}
             <span className="font-mono text-xs">{request.generatedPoId}</span>
           </p>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

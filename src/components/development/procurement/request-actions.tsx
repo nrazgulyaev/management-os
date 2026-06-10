@@ -122,9 +122,9 @@ export function DevOsPurchaseRequestActions({
           Cancel
         </Button>
       )}
-      {error && <span className="text-xs text-red-600 ml-2">{error}</span>}
+      {error && <span className="text-xs text-danger ml-2">{error}</span>}
       {success && (
-        <span className="text-xs text-emerald-700 ml-2">{success}</span>
+        <span className="text-xs text-ok ml-2">{success}</span>
       )}
     </div>
   );

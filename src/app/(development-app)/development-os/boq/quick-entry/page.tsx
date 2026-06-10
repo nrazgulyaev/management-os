@@ -12,10 +12,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { Button } from "@/components/ui/button";
 import { getDb } from "@/lib/db/client";
 import { listBoqDocuments } from "@/lib/development/server/boq/boq-queries";
 import { getCostCategories } from "@/lib/development/server/cost-categories";
@@ -37,7 +35,12 @@ export default async function BoqQuickEntryPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="BoQ quick entry" />
+        <header className="page-header">
+          <div className="left">
+            <div className="crumb">Construction · estimate</div>
+            <h1>BoQ quick entry</h1>
+          </div>
+        </header>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to use the BoQ spreadsheet entry."
@@ -87,45 +90,45 @@ export default async function BoqQuickEntryPage() {
 
   return (
     <DevelopmentShell>
-      <div className="flex flex-col gap-6">
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "BoQ", href: "/development-os/boq" },
-            { label: "Quick entry" },
-          ]}
-          title="BoQ quick entry"
-          description="Type or paste BoQ lines from your spreadsheet. Tab/Enter to move across cells; Ctrl/Cmd-S to save. Section code, item code, quantity, unit rate are required."
-          actions={
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/development-os/boq">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Back to BoQ list
-              </Link>
-            </Button>
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os/boq">BoQ</Link>
+            <span>/</span>
+            <span>Quick entry</span>
+          </div>
+          <h1>BoQ quick entry</h1>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/boq" className="btn btn-dark btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back to BoQ list
+          </Link>
+        </div>
+      </header>
+
+      <p className="text-ink-3 text-sm max-w-3xl -mt-4 leading-relaxed">
+        Type or paste BoQ lines from your spreadsheet. Tab/Enter to move across
+        cells; Ctrl/Cmd-S to save. Section code, item code, quantity, unit rate
+        are required.
+      </p>
+
+      {boqDocs.length === 0 ? (
+        <EmptyState
+          title="No BoQ documents under review"
+          description="Create a BoQ document and add at least one section before using quick entry."
+          action={
+            <Link href="/development-os/boq/new" className="btn btn-accent">
+              New BoQ document
+            </Link>
           }
         />
-
-        {boqDocs.length === 0 ? (
-          <EmptyState
-            title="No BoQ documents under review"
-            description="Create a BoQ document and add at least one section before using quick entry."
-            action={
-              <Link
-                href="/development-os/boq/new"
-                className="inline-flex items-center px-4 py-2 rounded-sm bg-ink text-ink-inverse text-sm font-medium hover:bg-ink/90"
-              >
-                New BoQ document
-              </Link>
-            }
-          />
-        ) : (
-          <BoqQuickEntryForm
-            boqDocuments={boqDocs}
-            categoryNames={categories.map((c) => c.displayName)}
-          />
-        )}
-      </div>
+      ) : (
+        <BoqQuickEntryForm
+          boqDocuments={boqDocs}
+          categoryNames={categories.map((c) => c.displayName)}
+        />
+      )}
     </DevelopmentShell>
   );
 }
