@@ -57,7 +57,7 @@ export function CheckinClient({
           if (step === "identity") {
             return (
               <div className="flex flex-col gap-2">
-                <p className="text-sm text-ink-secondary">
+                <p className="text-sm text-ink-3">
                   Verify the guest&apos;s ID. Enter the details from the document
                   (live OCR capture is a follow-up — manual entry is audit-logged).
                 </p>
@@ -76,9 +76,9 @@ export function CheckinClient({
           if (step === "stay") {
             return (
               <div className="flex flex-col gap-3">
-                <div className="rounded-md border border-line-soft bg-muted/20 p-3 text-sm">
+                <div className="rounded-[var(--r-md)] border border-line-soft bg-cream-warm p-3 text-sm">
                   <div className="font-medium text-ink">{booking.guestName}</div>
-                  <div className="text-ink-secondary">
+                  <div className="text-ink-3">
                     {booking.villaName} · {booking.checkIn} → {booking.checkOut} · {booking.pax}
                   </div>
                 </div>
@@ -117,12 +117,12 @@ export function CheckinClient({
           // handover
           return (
             <div className="flex flex-col gap-3">
-              <div className="rounded-md border border-line-soft bg-surface p-4 text-center">
-                <div className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary mb-1">
+              <div className="rounded-[var(--r-md)] border border-line-soft bg-cream-warm p-4 text-center flex flex-col gap-2">
+                <div className="text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink-4">
                   Villa door code
                 </div>
-                <div className="text-3xl font-mono tracking-[0.3em] text-ink">{doorCode}</div>
-                <div className="text-xs text-ink-tertiary mt-1">
+                <div className="fo-keycode">{doorCode}</div>
+                <div className="text-xs text-ink-4">
                   Share with the guest and confirm the key handover below.
                 </div>
               </div>

@@ -1,11 +1,6 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/dashboard/primitives";
-import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
+import { Card, HandoffBadge, Kpi } from "@/components/dashboard/primitives";
+import { NoItemsYet } from "@/components/ui/primitives";
 import { CheckInButton } from "@/components/front-office/check-in-out-buttons";
 import {
   listArrivalReadiness,
@@ -16,18 +11,17 @@ import {
 export const metadata = { title: "Arrival readiness · Front office" };
 export const dynamic = "force-dynamic";
 
-const READINESS_TONES: Record<
-  VillaReadinessTone,
-  "neutral" | "info" | "warning" | "success" | "danger"
-> = {
-  ready: "success",
-  cleaning: "warning",
+type FoTone = "ok" | "warn" | "danger" | "gold" | "info" | "ink" | "soft";
+
+const READINESS_TONES: Record<VillaReadinessTone, FoTone> = {
+  ready: "ok",
+  cleaning: "warn",
   inspection: "info",
-  dirty: "warning",
+  dirty: "warn",
   occupied: "info",
   out_of_order: "danger",
   maintenance_block: "danger",
-  unknown: "neutral",
+  unknown: "soft",
 };
 
 function readinessLabel(s: VillaReadinessTone): string {
@@ -55,48 +49,48 @@ export default async function FrontOfficeReadinessPage({
   );
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Front office", href: "/dashboard/front-office" },
-          { label: "Arrival readiness" },
-        ]}
-        title={`Arrival readiness — ${dateStr}`}
-        description="Pre-arrival prep status across every villa due to receive a guest today. Sorted by blocker urgency so the front desk can clear the worst first."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/dashboard/front-office">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Front office
-            </Link>
-          </Button>
-        }
-      />
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/front-office">Front office</Link> / <span>Arrival readiness</span>
+          </div>
+          <h1>Arrival readiness — {dateStr}</h1>
+        </div>
+        <div className="actions">
+          <Link href="/dashboard/front-office" className="btn btn-secondary btn-sm">
+            Front office
+          </Link>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <DashboardKpi
+      <p className="mt-3 mb-7 text-[15px] text-ink-3 max-w-[680px]">
+        Pre-arrival prep status across every villa due to receive a guest today.
+        Sorted by blocker urgency so the front desk can clear the worst first.
+      </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        <Kpi
           label="Arrivals today"
           value={String(summary.arrivalsCount)}
-          status="neutral"
-          drillHref="/dashboard/front-office/arrivals"
         />
-        <DashboardKpi
+        <Kpi
           label="Villas ready"
           value={String(summary.villasReady)}
-          status={summary.villasReady > 0 ? "good" : "neutral"}
-          hint="Villa is clean + inspected + no blocker"
+          sub="Clean + inspected + no blocker"
+          tone={summary.villasReady > 0 ? "success" : undefined}
         />
-        <DashboardKpi
+        <Kpi
           label="In progress"
           value={String(summary.villasInProgress)}
-          status={summary.villasInProgress > 0 ? "warn" : "neutral"}
-          hint="Cleaning or inspection in progress, no hard blocker"
+          sub="Cleaning or inspection, no hard blocker"
+          tone={summary.villasInProgress > 0 ? "gold" : undefined}
         />
-        <DashboardKpi
+        <Kpi
           label="Blocked"
           value={String(summary.villasBlocked)}
-          status={summary.villasBlocked > 0 ? "bad" : "good"}
-          hint="OOO, maintenance block, or open maintenance ticket"
+          sub="OOO, maintenance block, or open ticket"
+          tone={summary.villasBlocked > 0 ? "danger" : "success"}
         />
       </div>
 
@@ -108,38 +102,41 @@ export default async function FrontOfficeReadinessPage({
       ) : (
         <div className="flex flex-col gap-8">
           {blockedRows.length > 0 && (
-            <Section
-              eyebrow="Action required"
-              title={`Blocked (${blockedRows.length})`}
-            >
+            <section>
+              <div className="section-heading">
+                <div className="eyebrow label">Action required</div>
+                <h2>Blocked ({blockedRows.length})</h2>
+              </div>
               <ReadinessTable rows={blockedRows} />
-            </Section>
+            </section>
           )}
           {cleaningRows.length > 0 && (
-            <Section
-              eyebrow="In progress"
-              title={`Cleaning, inspection, or pending tasks (${cleaningRows.length})`}
-            >
+            <section>
+              <div className="section-heading">
+                <div className="eyebrow label">In progress</div>
+                <h2>Cleaning, inspection, or pending tasks ({cleaningRows.length})</h2>
+              </div>
               <ReadinessTable rows={cleaningRows} />
-            </Section>
+            </section>
           )}
           {readyRows.length > 0 && (
-            <Section
-              eyebrow="Ready"
-              title={`Cleared for check-in (${readyRows.length})`}
-            >
+            <section>
+              <div className="section-heading">
+                <div className="eyebrow label">Ready</div>
+                <h2>Cleared for check-in ({readyRows.length})</h2>
+              </div>
               <ReadinessTable rows={readyRows} />
-            </Section>
+            </section>
           )}
         </div>
       )}
 
-      <p className="text-xs text-ink-tertiary">
+      <p className="mt-8 text-xs text-ink-4">
         Readiness states are written by housekeeping + maintenance flows
         (operations actions). To change a villa&apos;s readiness, complete the
         relevant task instead of editing it here.
       </p>
-    </div>
+    </>
   );
 }
 
@@ -186,9 +183,9 @@ function ReadinessTable({
                 {r.guestsCount}
               </td>
               <td>
-                <Badge tone={READINESS_TONES[r.readinessStatus]}>
+                <HandoffBadge tone={READINESS_TONES[r.readinessStatus]}>
                   {readinessLabel(r.readinessStatus)}
-                </Badge>
+                </HandoffBadge>
               </td>
               <td className="text-xs text-ink-2">
                 {r.blockerSummary ?? (

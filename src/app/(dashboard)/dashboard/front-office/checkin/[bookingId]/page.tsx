@@ -1,10 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { getBookingDetail } from "@/features/bookings/booking-detail-queries";
 import {
   getCheckinFlowState,
@@ -44,58 +40,65 @@ export default async function CheckinPage({
       : "—";
 
   const alreadyDone = !!issued?.completedAt;
+  const villaLabel = booking.villaName ?? booking.villaCode ?? "—";
 
   return (
     <>
-      <PageHeader
-        title="Counter check-in"
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/dashboard/front-office/arrivals">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Arrivals
-            </Link>
-          </Button>
-        }
-      />
-      <Section
-        title={`${booking.guestName ?? "Guest"} · ${booking.villaName ?? booking.villaCode ?? "—"}`}
-      >
-        {alreadyDone ? (
-          <div className="rounded-md border border-success/40 bg-success/5 p-5 flex flex-col gap-2 max-w-md">
-            <div className="flex items-center gap-2">
-              <Badge tone="success">Checked in</Badge>
-              <span className="text-sm text-ink-secondary">
-                {issued?.completedAt
-                  ? new Date(issued.completedAt).toLocaleString("en-GB")
-                  : ""}
-              </span>
-            </div>
-            <div className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/front-office">Front office</Link> /{" "}
+            <Link href="/dashboard/front-office/arrivals">Arrivals</Link> / <span>Check-in</span>
+          </div>
+          <h1>Counter check-in</h1>
+        </div>
+        <div className="actions">
+          <Link href="/dashboard/front-office/arrivals" className="btn btn-secondary btn-sm">
+            Arrivals
+          </Link>
+        </div>
+      </div>
+
+      <div className="section-heading mt-6">
+        <h2>
+          {booking.guestName ?? "Guest"} · {villaLabel}
+        </h2>
+      </div>
+
+      {alreadyDone ? (
+        <div className="card card-pad max-w-md flex flex-col gap-3 border-l-2 border-l-[var(--ok)]">
+          <div className="flex items-center gap-2">
+            <HandoffBadge tone="ok">Checked in</HandoffBadge>
+            <span className="text-sm text-ink-3">
+              {issued?.completedAt
+                ? new Date(issued.completedAt).toLocaleString("en-GB")
+                : ""}
+            </span>
+          </div>
+          <div>
+            <div className="text-[10.5px] font-mono uppercase tracking-[0.14em] text-ink-4 mb-2">
               Issued door code
             </div>
-            <div className="text-3xl font-mono tracking-[0.3em] text-ink">
-              {issued?.doorCode ?? "—"}
-            </div>
+            <div className="fo-keycode">{issued?.doorCode ?? "—"}</div>
           </div>
-        ) : (
-          <div className="max-w-xl">
-            <CheckinClient
-              bookingId={bookingId}
-              staffUserId={me?.id ?? ""}
-              initialState={flow}
-              issuedDoorCode={issued?.doorCode ?? null}
-              booking={{
-                guestName: booking.guestName ?? "Guest",
-                villaName: booking.villaName ?? booking.villaCode ?? "—",
-                checkIn: booking.checkIn,
-                checkOut: booking.checkOut,
-                pax,
-              }}
-            />
-          </div>
-        )}
-      </Section>
+        </div>
+      ) : (
+        <div className="max-w-xl">
+          <CheckinClient
+            bookingId={bookingId}
+            staffUserId={me?.id ?? ""}
+            initialState={flow}
+            issuedDoorCode={issued?.doorCode ?? null}
+            booking={{
+              guestName: booking.guestName ?? "Guest",
+              villaName: villaLabel,
+              checkIn: booking.checkIn,
+              checkOut: booking.checkOut,
+              pax,
+            }}
+          />
+        </div>
+      )}
     </>
   );
 }
