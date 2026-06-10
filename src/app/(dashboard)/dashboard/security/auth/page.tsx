@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Kpi } from "@/components/dashboard/primitives";
 import { listMfaFactorsForAdmin } from "@/features/security-baseline/mfa-services";
 import { summariseRecentLoginAttempts } from "@/features/security-baseline/login-throttle";
 import { safeCount, safeList } from "@/features/system/db-health";
@@ -29,37 +27,41 @@ export default async function AuthSecurityHubPage() {
     activeLocks: 0,
   };
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Security", href: "/dashboard/security" },
-          { label: "Authentication" },
-        ]}
-        title="Authentication security"
-        description="MFA enrolment, login throttling, and security event log. Investor / owner / vendor / field roles cannot reach this page."
-      />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/security">Security</Link> /{" "}
+            <span>Authentication</span>
+          </div>
+          <h1>Authentication security</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            MFA enrolment, login throttling, and security event log. Investor /
+            owner / vendor / field roles cannot reach this page.
+          </p>
+        </div>
+      </div>
+
+      <div className="gs-kpis">
+        <Kpi
           label="Failed logins · 24h"
           value={String(sum.failedLast24h)}
-          accent={sum.failedLast24h > 0}
+          tone={sum.failedLast24h > 0 ? "warn" : undefined}
         />
-        <MetricCard
+        <Kpi
           label="Successful logins · 24h"
           value={String(sum.successfulLast24h)}
         />
-        <MetricCard
+        <Kpi
           label="Active locks"
           value={String(sum.activeLocks)}
-          accent={sum.activeLocks > 0}
+          tone={sum.activeLocks > 0 ? "warn" : undefined}
         />
-        <MetricCard
-          label="MFA verified users"
-          value={String(verifiedFactors.length)}
-        />
+        <Kpi label="MFA verified users" value={String(verifiedFactors.length)} />
       </div>
+
       {!summary.ok && (
-        <p className="rounded-md border border-warning/40 bg-warning-weak text-warning p-3 text-xs">
+        <p className="rounded-md border border-warning/40 bg-warning-weak text-warning p-3 text-xs mb-[18px]">
           Migration pending — apply{" "}
           <code className="font-mono">
             0033_security_baseline_operational_hardening.sql
@@ -67,36 +69,37 @@ export default async function AuthSecurityHubPage() {
           to enable login attempts + security events.
         </p>
       )}
-      <Section eyebrow="Manage" title="Jump to">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Card
-            href="/dashboard/security/login-attempts"
-            title="Login attempts"
-            detail={`${sum.failedLast24h} failed · ${sum.activeLocks} locked`}
-          />
-          <Card
-            href="/dashboard/security/events"
-            title="Security events"
-            detail="MFA, login locks, suspicious requests"
-          />
-          <Card
-            href="/dashboard/security/mfa"
-            title="MFA factors"
-            detail={`${verifiedFactors.length} verified · ${factors.value.length} total`}
-          />
-        </div>
-      </Section>
-      <p className="text-xs text-ink-tertiary">
+
+      <div className="label mb-2.5">Manage · jump to</div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <JumpCard
+          href="/dashboard/security/login-attempts"
+          title="Login attempts"
+          detail={`${sum.failedLast24h} failed · ${sum.activeLocks} locked`}
+        />
+        <JumpCard
+          href="/dashboard/security/events"
+          title="Security events"
+          detail="MFA, login locks, suspicious requests"
+        />
+        <JumpCard
+          href="/dashboard/security/mfa"
+          title="MFA factors"
+          detail={`${verifiedFactors.length} verified · ${factors.value.length} total`}
+        />
+      </div>
+
+      <p className="mt-[18px] text-[11px] text-ink-4 leading-relaxed max-w-[680px]">
         Sign-in is currently routed through Supabase Auth. Login throttling
         records every server-side attempt; full enforcement on the sign-in
         path completes when the auth callback proxies through a dedicated
         server action.
       </p>
-    </div>
+    </>
   );
 }
 
-function Card({
+function JumpCard({
   href,
   title,
   detail,
@@ -108,10 +111,10 @@ function Card({
   return (
     <Link
       href={href}
-      className="rounded-md border border-line-soft bg-surface p-4 hover:border-line-strong"
+      className="card px-[18px] py-[14px] block hover:opacity-90"
     >
-      <div className="text-sm text-ink font-medium">{title}</div>
-      <div className="text-xs text-ink-tertiary mt-1">{detail}</div>
+      <div className="text-[13.5px] text-ink">{title}</div>
+      <div className="mono text-[11px] text-ink-4 mt-1">{detail}</div>
     </Link>
   );
 }

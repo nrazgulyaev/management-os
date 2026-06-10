@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
+import { TableEmpty } from "@/components/ui/table-empty";
+import { Kpi } from "@/components/dashboard/primitives";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { getCurrentAuthUser } from "@/lib/supabase/server";
 import { getMfaStatus } from "@/features/security-baseline/mfa-services";
@@ -46,20 +44,26 @@ export default async function AccountSecurityPage() {
 
   if (!me) {
     return (
-      <div className="flex flex-col gap-6">
-        <PageHeader
-          breadcrumbs={[
-            { label: "Settings", href: "/dashboard/settings" },
-            { label: "Account security" },
-          ]}
-          title="Account security"
-          description="Sign in to manage your password, two-factor authentication, sessions, and security audit log."
-        />
-        <NoItemsYet
-          entityLabel="account security details"
-          description="No signed-in user. Sign in to view this page."
-        />
-      </div>
+      <>
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/dashboard/settings">Settings</Link> /{" "}
+              <span>Account security</span>
+            </div>
+            <h1>Account security</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+              Sign in to manage your password, two-factor authentication,
+              sessions, and security audit log.
+            </p>
+          </div>
+        </div>
+        <div className="card card-pad mt-[18px]">
+          <p className="text-sm text-ink-3">
+            No signed-in user. Sign in to view this page.
+          </p>
+        </div>
+      </>
     );
   }
 
@@ -75,69 +79,73 @@ export default async function AccountSecurityPage() {
     (auth?.last_sign_in_at as string | null | undefined) ?? null;
   const sessionCreatedAt = lastSignInAt;
 
-  const mfaKpiStatus: "good" | "warn" | "bad" = mfa.verified
-    ? "good"
+  const mfaKpiTone: "success" | "warn" | "danger" = mfa.verified
+    ? "success"
     : mfa.pendingEnrolment
       ? "warn"
-      : "bad";
+      : "danger";
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Settings", href: "/dashboard/settings" },
-          { label: "Account security" },
-        ]}
-        title="Account security"
-        description={`Personal security center for ${me.email}. Org-wide MFA + login monitoring lives at /dashboard/security (admin only).`}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/dashboard/settings">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Settings
-            </Link>
-          </Button>
-        }
-      />
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/settings">Settings</Link> /{" "}
+            <span>Account security</span>
+          </div>
+          <h1>Account security</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Personal security center for {me.email}. Org-wide MFA + login
+            monitoring lives at /dashboard/security (admin only).
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/dashboard/settings"
+            className="btn btn-secondary btn-sm"
+          >
+            ← Settings
+          </Link>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <DashboardKpi
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
+        <Kpi
           label="MFA"
           value={mfa.verified ? "On" : mfa.pendingEnrolment ? "Pending" : "Off"}
-          status={mfaKpiStatus}
-          hint={
+          tone={mfaKpiTone}
+          sub={
             mfa.verified
               ? "TOTP factor verified"
               : "Enrol an authenticator below"
           }
         />
-        <DashboardKpi
+        <Kpi
           label="Recovery codes"
           value={String(mfa.activeRecoveryCodeCount)}
-          status={
+          tone={
             mfa.activeRecoveryCodeCount === 0
-              ? "neutral"
+              ? undefined
               : mfa.activeRecoveryCodeCount < 3
                 ? "warn"
-                : "good"
+                : "success"
           }
-          hint={`${mfa.usedRecoveryCodeCount} used so far`}
+          sub={`${mfa.usedRecoveryCodeCount} used so far`}
         />
-        <DashboardKpi
+        <Kpi
           label="Failed logins · 30d"
           value={String(summary.failedAttemptsLast30Days)}
-          status={summary.failedAttemptsLast30Days > 0 ? "warn" : "good"}
-          hint={
+          tone={summary.failedAttemptsLast30Days > 0 ? "warn" : "success"}
+          sub={
             summary.lastFailedLoginAt
               ? `Last: ${formatDate(summary.lastFailedLoginAt)}`
               : "None recently"
           }
         />
-        <DashboardKpi
+        <Kpi
           label="Last successful sign-in"
           value={formatDate(summary.lastSuccessfulLoginAt)}
-          status="neutral"
-          hint={
+          sub={
             summary.lastSuccessfulLoginAt
               ? formatDateTime(summary.lastSuccessfulLoginAt)
               : "—"
@@ -145,194 +153,198 @@ export default async function AccountSecurityPage() {
         />
       </div>
 
-      <Section
-        eyebrow="Identity"
-        title="Password"
-        description="Change the password used to sign in to Arconique. Updates take effect immediately on every active session."
-      >
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        Password
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5">
+        Change the password used to sign in to Arconique. Updates take effect
+        immediately on every active session.
+      </p>
+      <div className="card card-pad mb-[18px]">
         <ChangePasswordForm />
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Two-factor"
-        title="Authenticator app (TOTP)"
-        description="Adds a 6-digit code from an authenticator app to every sign-in. Strongly recommended for all internal users."
-      >
-        {mfa.verified ? (
-          <div className="rounded-md border border-line-soft bg-surface p-4 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <Badge tone="success">enrolled</Badge>
-              <span className="text-sm text-ink">
-                MFA is active on your account.
-              </span>
-            </div>
-            <p className="text-xs text-ink-tertiary leading-relaxed">
-              Verified {formatDate(mfa.verifiedAt)}. Last used{" "}
-              {formatDate(mfa.lastUsedAt)}. If you lose access to your
-              authenticator, use one of your recovery codes when prompted.
-            </p>
-            {mfa.factorId && <DisableMfaButton factorId={mfa.factorId} />}
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        Authenticator app (TOTP)
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5">
+        Adds a 6-digit code from an authenticator app to every sign-in.
+        Strongly recommended for all internal users.
+      </p>
+      {mfa.verified ? (
+        <div className="card card-pad mb-[18px] flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Badge tone="success">enrolled</Badge>
+            <span className="text-sm text-ink">
+              MFA is active on your account.
+            </span>
           </div>
-        ) : mfa.pendingEnrolment ? (
-          <div className="rounded-md border border-line-soft bg-surface p-4 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <Badge tone="info">pending</Badge>
-              <span className="text-sm text-ink">
-                Enrolment started — verify a code from your authenticator to
-                finish.
-              </span>
-            </div>
-            <Link
-              href="/setup/mfa/verify"
-              className="text-xs text-ink hover:underline underline-offset-4"
-            >
-              Continue verification →
-            </Link>
-            {mfa.factorId && <DisableMfaButton factorId={mfa.factorId} />}
-          </div>
-        ) : (
-          <div className="rounded-md border border-line-soft bg-surface p-4 flex flex-col gap-3">
-            <p className="text-sm text-ink leading-relaxed">
-              Set up an authenticator app (Google Authenticator, 1Password,
-              Authy, etc.). After scanning the QR code we generate, you&apos;ll
-              receive 10 single-use recovery codes — store them safely.
-            </p>
-            <StartEnrolmentButton />
-          </div>
-        )}
-      </Section>
-
-      <Section
-        eyebrow="Sessions"
-        title="Active sessions"
-        description="Supabase Auth tracks every refresh-token. We can&apos;t list other devices individually here, but you can sign them all out at once."
-      >
-        <div className="rounded-md border border-line-soft bg-surface p-4 flex flex-col gap-3">
-          <div className="text-sm flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <Badge tone="success">current</Badge>
-              <span className="text-ink">This device</span>
-            </div>
-            <p className="text-xs text-ink-tertiary">
-              Signed in as <span className="text-ink">{me.email}</span>.
-              {sessionCreatedAt &&
-                ` This session started ${formatDateTime(sessionCreatedAt)}.`}
-            </p>
-          </div>
-          <SignOutOtherSessionsButton />
+          <p className="text-xs text-ink-3 leading-relaxed">
+            Verified {formatDate(mfa.verifiedAt)}. Last used{" "}
+            {formatDate(mfa.lastUsedAt)}. If you lose access to your
+            authenticator, use one of your recovery codes when prompted.
+          </p>
+          {mfa.factorId && <DisableMfaButton factorId={mfa.factorId} />}
         </div>
-      </Section>
+      ) : mfa.pendingEnrolment ? (
+        <div className="card card-pad mb-[18px] flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Badge tone="info">pending</Badge>
+            <span className="text-sm text-ink">
+              Enrolment started — verify a code from your authenticator to
+              finish.
+            </span>
+          </div>
+          <Link
+            href="/setup/mfa/verify"
+            className="text-xs text-ink hover:underline underline-offset-4"
+          >
+            Continue verification →
+          </Link>
+          {mfa.factorId && <DisableMfaButton factorId={mfa.factorId} />}
+        </div>
+      ) : (
+        <div className="card card-pad mb-[18px] flex flex-col gap-3">
+          <p className="text-sm text-ink leading-relaxed">
+            Set up an authenticator app (Google Authenticator, 1Password,
+            Authy, etc.). After scanning the QR code we generate, you&apos;ll
+            receive 10 single-use recovery codes — store them safely.
+          </p>
+          <StartEnrolmentButton />
+        </div>
+      )}
 
-      <Section
-        eyebrow="Audit"
-        title="Recent sign-in attempts"
-        description="The last 20 sign-in attempts on your account. IP addresses are stored hashed."
-      >
-        {attempts.length === 0 ? (
-          <NoItemsYet
-            entityLabel="sign-in attempts"
-            description="No sign-in attempts have been recorded against your account yet."
-          />
-        ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
-                <tr>
-                  <th className="text-left px-3 py-2">When</th>
-                  <th className="text-left px-3 py-2">Result</th>
-                  <th className="text-left px-3 py-2">Reason / lock</th>
-                  <th className="text-left px-3 py-2">IP fingerprint</th>
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        Active sessions
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5">
+        Supabase Auth tracks every refresh-token. We can&apos;t list other
+        devices individually here, but you can sign them all out at once.
+      </p>
+      <div className="card card-pad mb-[18px] flex flex-col gap-3">
+        <div className="text-sm flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Badge tone="success">current</Badge>
+            <span className="text-ink">This device</span>
+          </div>
+          <p className="text-xs text-ink-3">
+            Signed in as <span className="text-ink">{me.email}</span>.
+            {sessionCreatedAt &&
+              ` This session started ${formatDateTime(sessionCreatedAt)}.`}
+          </p>
+        </div>
+        <SignOutOtherSessionsButton />
+      </div>
+
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        Recent sign-in attempts
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5">
+        The last 20 sign-in attempts on your account. IP addresses are stored
+        hashed.
+      </p>
+      <div className="card p-0 overflow-hidden mb-[18px]">
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">When</th>
+              <th scope="col">Result</th>
+              <th scope="col">Reason / lock</th>
+              <th scope="col">IP fingerprint</th>
+            </tr>
+          </thead>
+          <tbody>
+            {attempts.length === 0 ? (
+              <TableEmpty colSpan={4}>
+                No sign-in attempts have been recorded against your account
+                yet.
+              </TableEmpty>
+            ) : (
+              attempts.map((a) => (
+                <tr key={a.id}>
+                  <td className="tabular-nums">
+                    {formatDateTime(a.createdAt)}
+                  </td>
+                  <td>
+                    <Badge tone={a.succeeded ? "success" : "warning"}>
+                      {a.succeeded ? "succeeded" : "failed"}
+                    </Badge>
+                  </td>
+                  <td className="text-xs">
+                    {a.lockedUntil ? (
+                      <span className="inline-flex items-center gap-1 text-danger">
+                        <AlertTriangle className="w-3 h-3" />
+                        locked until {formatDateTime(a.lockedUntil)}
+                      </span>
+                    ) : (
+                      (a.failureReason ?? <span className="text-ink-3">—</span>)
+                    )}
+                  </td>
+                  <td className="mono text-[11px] text-ink-3">
+                    {a.ipHash ? a.ipHash.slice(0, 12) : "—"}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-line-soft">
-                {attempts.map((a) => (
-                  <tr key={a.id}>
-                    <td className="px-3 py-2 text-ink-secondary tabular-nums">
-                      {formatDateTime(a.createdAt)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={a.succeeded ? "success" : "warning"}>
-                        {a.succeeded ? "succeeded" : "failed"}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2 text-xs text-ink-secondary">
-                      {a.lockedUntil ? (
-                        <span className="inline-flex items-center gap-1 text-danger">
-                          <AlertTriangle className="w-3 h-3" />
-                          locked until {formatDateTime(a.lockedUntil)}
-                        </span>
-                      ) : (
-                        (a.failureReason ?? (
-                          <span className="text-ink-tertiary">—</span>
-                        ))
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        Recent security events
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5">
+        MFA enrolment, password changes, session revokes, and
+        suspicious-request flags. Last 20 events for your account.
+      </p>
+      <div className="card p-0 overflow-hidden mb-[18px]">
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">When</th>
+              <th scope="col">Event</th>
+              <th scope="col">Severity</th>
+              <th scope="col">IP fingerprint</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.length === 0 ? (
+              <TableEmpty colSpan={4}>
+                No security events have been recorded for your account yet.
+              </TableEmpty>
+            ) : (
+              events.map((e) => (
+                <tr key={e.id}>
+                  <td className="tabular-nums">
+                    {formatDateTime(e.createdAt)}
+                  </td>
+                  <td className="text-ink">
+                    {eventTypeLabel(e.eventType as SecurityEventType)}
+                  </td>
+                  <td>
+                    <Badge
+                      tone={severityTone(
+                        e.severity as SecurityEventSeverity,
                       )}
-                    </td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-ink-tertiary">
-                      {a.ipHash ? a.ipHash.slice(0, 12) : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-
-      <Section
-        eyebrow="Audit"
-        title="Recent security events"
-        description="MFA enrolment, password changes, session revokes, and suspicious-request flags. Last 20 events for your account."
-      >
-        {events.length === 0 ? (
-          <NoItemsYet
-            entityLabel="security events"
-            description="No security events have been recorded for your account yet."
-          />
-        ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
-                <tr>
-                  <th className="text-left px-3 py-2">When</th>
-                  <th className="text-left px-3 py-2">Event</th>
-                  <th className="text-left px-3 py-2">Severity</th>
-                  <th className="text-left px-3 py-2">IP fingerprint</th>
+                    >
+                      {e.severity}
+                    </Badge>
+                  </td>
+                  <td className="mono text-[11px] text-ink-3">
+                    {e.ipHash ? e.ipHash.slice(0, 12) : "—"}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-line-soft">
-                {events.map((e) => (
-                  <tr key={e.id}>
-                    <td className="px-3 py-2 text-ink-secondary tabular-nums">
-                      {formatDateTime(e.createdAt)}
-                    </td>
-                    <td className="px-3 py-2 text-ink">
-                      {eventTypeLabel(e.eventType as SecurityEventType)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge
-                        tone={severityTone(
-                          e.severity as SecurityEventSeverity,
-                        )}
-                      >
-                        {e.severity}
-                      </Badge>
-                    </td>
-                    <td className="px-3 py-2 font-mono text-[11px] text-ink-tertiary">
-                      {e.ipHash ? e.ipHash.slice(0, 12) : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      <p className="text-xs text-ink-tertiary">
+      <p className="text-xs text-ink-3">
         Suspect a compromised account? Sign out other sessions, rotate your
         password, and message your workspace admin to review the org-wide
         security event log.
       </p>
-    </div>
+    </>
   );
 }

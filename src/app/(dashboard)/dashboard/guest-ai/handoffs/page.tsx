@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Section } from "@/components/ui/section";
+import { TableEmpty } from "@/components/ui/table-empty";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
   countHandoffsByStatus,
@@ -61,129 +60,134 @@ export default async function HandoffsListPage({
     listHandoffs({ status, priority, limit: 200 }),
   ]);
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest stays", href: "/dashboard/guest-stays" },
-          { label: "Concierge AI", href: "/dashboard/guest-ai" },
-          { label: "Handoffs" },
-        ]}
-        title="Handoffs"
-        description="Every Ask-human / Report-to-staff escalation from /stay/[token]/concierge. Each row links to the underlying service_requests row that ops actually works."
-        actions={
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-stays">Guest stays</Link> /{" "}
+            <Link href="/dashboard/guest-ai">Concierge AI</Link> /{" "}
+            <span>Handoffs</span>
+          </div>
+          <h1>Handoffs</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            Every Ask-human / Report-to-staff escalation from
+            /stay/[token]/concierge. Each row links to the underlying
+            service_requests row that ops actually works.
+          </p>
+        </div>
+        <div className="actions">
           <Link
             href="/dashboard/guest-ai/handoffs/metrics"
-            className="text-sm px-4 py-2 rounded-full border border-line-soft hover:border-line-strong"
+            className="btn btn-secondary btn-sm"
           >
             SLA metrics →
           </Link>
-        }
-      />
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <MetricCard label="Open" value={String(counts.created + counts.linked)} />
-        <MetricCard label="Acknowledged" value={String(counts.acknowledged)} />
-        <MetricCard label="Resolved" value={String(counts.resolved)} />
-        <MetricCard
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-[18px]">
+        <Kpi label="Open" value={String(counts.created + counts.linked)} />
+        <Kpi label="Acknowledged" value={String(counts.acknowledged)} />
+        <Kpi
+          label="Resolved"
+          value={String(counts.resolved)}
+          tone={counts.resolved > 0 ? "success" : undefined}
+        />
+        <Kpi
           label="Open urgent"
           value={String(counts.urgent)}
-          accent={counts.urgent > 0}
+          tone={counts.urgent > 0 ? "danger" : undefined}
         />
       </div>
-      <Section eyebrow="Filter" title={`${rows.length} handoffs`}>
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <FilterPill href="/dashboard/guest-ai/handoffs" active={!status}>
-            All statuses
-          </FilterPill>
-          {ALL_STATUSES.map((s) => (
-            <FilterPill
-              key={s}
-              href={`/dashboard/guest-ai/handoffs?status=${s}`}
-              active={status === s}
-            >
-              {s.replace("_", " ")}
-            </FilterPill>
-          ))}
-          <span className="mx-2 text-ink-tertiary">|</span>
+
+      <div className="flex flex-wrap items-center gap-2 mb-[14px]">
+        <FilterPill href="/dashboard/guest-ai/handoffs" active={!status}>
+          All statuses
+        </FilterPill>
+        {ALL_STATUSES.map((s) => (
           <FilterPill
-            href="/dashboard/guest-ai/handoffs?priority=urgent"
-            active={priority === "urgent"}
+            key={s}
+            href={`/dashboard/guest-ai/handoffs?status=${s}`}
+            active={status === s}
           >
-            Urgent only
+            {s.replace("_", " ")}
           </FilterPill>
-        </div>
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">When</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Villa / booking</th>
-                <th className="px-4 py-3">Summary</th>
-                <th className="px-4 py-3">Priority</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">SR</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-6 text-center text-ink-tertiary"
-                  >
-                    No handoffs match.
-                  </td>
-                </tr>
-              )}
-              {rows.map((h) => (
-                <tr key={h.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 text-[11px] text-ink-tertiary tabular-nums whitespace-nowrap">
+        ))}
+        <span className="mx-2 text-ink-4">|</span>
+        <FilterPill
+          href="/dashboard/guest-ai/handoffs?priority=urgent"
+          active={priority === "urgent"}
+        >
+          Urgent only
+        </FilterPill>
+      </div>
+
+      <div className="card p-0 overflow-hidden">
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">When</th>
+              <th scope="col">Type</th>
+              <th scope="col">Villa / booking</th>
+              <th scope="col">Summary</th>
+              <th scope="col">Priority</th>
+              <th scope="col">Status</th>
+              <th scope="col">SR</th>
+              <th scope="col" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <TableEmpty colSpan={8}>No handoffs match.</TableEmpty>
+            ) : (
+              rows.map((h) => (
+                <tr key={h.id}>
+                  <td className="mono text-[11px] text-ink-4 tabular-nums whitespace-nowrap">
                     {new Date(h.createdAt)
                       .toISOString()
                       .slice(0, 16)
                       .replace("T", " ")}
                   </td>
-                  <td className="px-4 py-3 text-xs">{h.handoffType}</td>
-                  <td className="px-4 py-3 text-xs text-ink-secondary">
-                    {h.villaCode ?? "—"}
+                  <td className="text-[12px] text-ink-3">{h.handoffType}</td>
+                  <td className="text-[12px] text-ink-3">
+                    <span className="mono">{h.villaCode ?? "—"}</span>
                     {h.bookingCode && (
-                      <div className="text-[10px] text-ink-tertiary">
+                      <div className="mono text-[10px] text-ink-4">
                         {h.bookingCode}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs max-w-md truncate">
+                  <td className="text-[12px] max-w-md truncate">
                     {h.guestSummary}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <Badge tone={PRIORITY_TONES[h.priority] ?? "neutral"}>
                       {h.priority}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <Badge tone={STATUS_TONES[h.status] ?? "neutral"}>
                       {h.status.replace("_", " ")}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 font-mono text-[11px]">
+                  <td className="mono text-[11px] text-ink-3">
                     {h.serviceRequestCode ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="num">
                     <Link
                       href={`/dashboard/guest-ai/handoffs/${h.id}`}
-                      className="text-xs text-ink hover:underline underline-offset-4"
+                      className="btn btn-ghost btn-sm"
                     >
                       Open
                     </Link>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
-    </div>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -197,14 +201,7 @@ function FilterPill({
   children: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className={`h-8 px-3 inline-flex items-center rounded-full text-xs ${
-        active
-          ? "bg-ink text-ink-inverse"
-          : "border border-line-soft text-ink-secondary hover:border-line-strong"
-      }`}
-    >
+    <Link href={href} className={active ? "filter-chip on" : "filter-chip"}>
       {children}
     </Link>
   );

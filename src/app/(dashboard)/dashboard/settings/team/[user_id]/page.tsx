@@ -15,9 +15,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
+import { TableEmpty } from "@/components/ui/table-empty";
+import { Kpi } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
 import { appUsers } from "@/lib/db/schema/identity";
@@ -47,10 +47,19 @@ export default async function TeamMemberPage({
   const db = getDb();
   if (!db) {
     return (
-      <div className="flex flex-col gap-8">
-        <PageHeader title="Team member" />
+      <>
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/dashboard/settings">Settings</Link> /{" "}
+              <Link href="/dashboard/settings/team">Team</Link> /{" "}
+              <span>Member</span>
+            </div>
+            <h1>Team member</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
-      </div>
+      </>
     );
   }
 
@@ -73,29 +82,64 @@ export default async function TeamMemberPage({
   const currentPrimary = activeGrants.find((g) => g.isPrimary) ?? activeGrants[0];
 
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Settings", href: "/dashboard/settings" },
-          { label: "Team", href: "/dashboard/settings/team" },
-          { label: user.fullName },
-        ]}
-        title={user.fullName}
-        description={user.email}
-      />
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/settings">Settings</Link> /{" "}
+            <Link href="/dashboard/settings/team">Team</Link> /{" "}
+            <span>{user.fullName}</span>
+          </div>
+          <h1>{user.fullName}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[760px]">
+            {user.email}
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/dashboard/settings/team"
+            className="btn btn-ghost btn-sm"
+          >
+            ← Back to team
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Identity" title="Profile">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
+        <Kpi
+          label="Status"
+          value={user.status}
+          tone={user.status === "active" ? "success" : undefined}
+        />
+        <Kpi
+          label="Active grants"
+          value={String(activeGrants.length)}
+          sub="app_user_roles"
+          tone={activeGrants.length > 0 ? "success" : "warn"}
+        />
+        <Kpi
+          label="Prior grants"
+          value={String(historyGrants.length)}
+          sub="revoked / superseded"
+        />
+        <Kpi
+          label="Joined"
+          value={new Date(user.createdAt).toLocaleDateString()}
+          sub={user.timezone}
+        />
+      </div>
+
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-3.5">
+        Profile
+      </h2>
+      <div className="card card-pad mb-[18px]">
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
           <div>
-            <dt className="text-ink-tertiary text-xs uppercase tracking-widest">
-              Email
-            </dt>
-            <dd className="font-mono text-xs">{user.email}</dd>
+            <dt className="label">Email</dt>
+            <dd className="mono text-[11px]">{user.email}</dd>
           </div>
           <div>
-            <dt className="text-ink-tertiary text-xs uppercase tracking-widest">
-              Status
-            </dt>
+            <dt className="label">Status</dt>
             <dd>
               <Badge tone={STATUS_TONE[user.status] ?? "neutral"}>
                 {user.status}
@@ -103,125 +147,117 @@ export default async function TeamMemberPage({
             </dd>
           </div>
           <div>
-            <dt className="text-ink-tertiary text-xs uppercase tracking-widest">
-              Joined
-            </dt>
+            <dt className="label">Joined</dt>
             <dd>{new Date(user.createdAt).toLocaleDateString()}</dd>
           </div>
           <div>
-            <dt className="text-ink-tertiary text-xs uppercase tracking-widest">
-              Timezone
-            </dt>
+            <dt className="label">Timezone</dt>
             <dd>{user.timezone}</dd>
           </div>
         </dl>
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Role"
-        title="Current grant"
-        description="Active cabinet grants in app_user_roles. Changing the role replaces the current grant; the old one is preserved in history below."
-      >
-        {activeGrants.length === 0 ? (
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        Current grant
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5">
+        Active cabinet grants in app_user_roles. Changing the role replaces
+        the current grant; the old one is preserved in history below.
+      </p>
+      {activeGrants.length === 0 ? (
+        <div className="mb-[18px]">
           <EmptyState
             title="No active role"
             description="This user has no active grants. Use the form below to assign a role."
           />
-        ) : (
-          <ul className="space-y-2 mb-6">
-            {activeGrants.map((g) => {
-              const desc = ROLE_DESCRIPTIONS[g.roleKey as keyof typeof ROLE_DESCRIPTIONS];
-              return (
-                <li
-                  key={g.id}
-                  className="rounded border border-line-soft bg-surface px-4 py-3"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <span className="font-medium">
-                        {desc?.label ?? g.roleKey.replace(/_/g, " ")}
+        </div>
+      ) : (
+        <ul className="space-y-2 mb-[18px]">
+          {activeGrants.map((g) => {
+            const desc = ROLE_DESCRIPTIONS[g.roleKey as keyof typeof ROLE_DESCRIPTIONS];
+            return (
+              <li key={g.id} className="card card-pad">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <span className="font-medium text-ink">
+                      {desc?.label ?? g.roleKey.replace(/_/g, " ")}
+                    </span>
+                    {g.isPrimary && (
+                      <span className="ml-2 text-xs text-ink-3">
+                        (primary)
                       </span>
-                      {g.isPrimary && (
-                        <span className="ml-2 text-xs text-ink-tertiary">
-                          (primary)
-                        </span>
-                      )}
-                      {desc && (
-                        <p className="text-xs text-ink-secondary mt-1">
-                          {desc.blurb}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right text-xs text-ink-tertiary">
-                      <div>scope: {g.scope}</div>
-                      <div>
-                        granted {new Date(g.grantedAt).toLocaleDateString()}
-                      </div>
+                    )}
+                    {desc && (
+                      <p className="text-xs text-ink-3 mt-1">
+                        {desc.blurb}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right mono text-[11px] text-ink-3">
+                    <div>scope: {g.scope}</div>
+                    <div>
+                      granted {new Date(g.grantedAt).toLocaleDateString()}
                     </div>
                   </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="card card-pad mb-[18px]">
         <ChangeRoleForm
           userId={user.id}
           userEmail={user.email}
           currentRoleKey={currentPrimary?.roleKey ?? null}
         />
-      </Section>
-
-      <Section
-        eyebrow="History"
-        title={`${historyGrants.length} prior grant${historyGrants.length === 1 ? "" : "s"}`}
-        description="Grants that have been revoked or superseded by a newer grant."
-      >
-        {historyGrants.length === 0 ? (
-          <p className="text-sm text-ink-tertiary">No prior grants.</p>
-        ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-canvas/50">
-                <tr className="text-left text-[11px] uppercase tracking-widest text-ink-tertiary">
-                  <th className="px-4 py-2">Role</th>
-                  <th className="px-4 py-2">Scope</th>
-                  <th className="px-4 py-2">Granted</th>
-                  <th className="px-4 py-2">Revoked</th>
-                  <th className="px-4 py-2">Reason</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line-soft">
-                {historyGrants.map((g) => (
-                  <tr key={g.id}>
-                    <td className="px-4 py-2 text-xs">
-                      {g.roleKey.replace(/_/g, " ")}
-                    </td>
-                    <td className="px-4 py-2 text-xs">{g.scope}</td>
-                    <td className="px-4 py-2 text-xs text-ink-tertiary">
-                      {new Date(g.grantedAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-2 text-xs text-ink-tertiary">
-                      {g.revokedAt
-                        ? new Date(g.revokedAt).toLocaleDateString()
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-xs text-ink-tertiary">
-                      {g.revocationReason ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-
-      <div className="text-sm">
-        <Link href="/dashboard/settings/team" className="underline">
-          ← Back to team
-        </Link>
       </div>
-    </div>
+
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        History · <em>{historyGrants.length}</em>
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5">
+        Grants that have been revoked or superseded by a newer grant.
+      </p>
+      <div className="card p-0 overflow-hidden mb-[18px]">
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Role</th>
+              <th scope="col">Scope</th>
+              <th scope="col">Granted</th>
+              <th scope="col">Revoked</th>
+              <th scope="col">Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            {historyGrants.length === 0 ? (
+              <TableEmpty colSpan={5}>No prior grants.</TableEmpty>
+            ) : (
+              historyGrants.map((g) => (
+                <tr key={g.id}>
+                  <td className="text-xs">
+                    {g.roleKey.replace(/_/g, " ")}
+                  </td>
+                  <td className="text-xs">{g.scope}</td>
+                  <td className="text-xs text-ink-3">
+                    {new Date(g.grantedAt).toLocaleDateString()}
+                  </td>
+                  <td className="text-xs text-ink-3">
+                    {g.revokedAt
+                      ? new Date(g.revokedAt).toLocaleDateString()
+                      : "—"}
+                  </td>
+                  <td className="text-xs text-ink-3">
+                    {g.revocationReason ?? "—"}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
