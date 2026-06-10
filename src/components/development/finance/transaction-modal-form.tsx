@@ -138,13 +138,15 @@ export function TransactionModalForm({
 
   return (
     <>
-      <Button
+      <button
+        type="button"
+        className="btn btn-amber btn-sm"
         onClick={() => setOpen(true)}
         data-testid="transaction-record-trigger"
       >
         <Plus className="w-4 h-4" strokeWidth={1.75} />
         Record transaction
-      </Button>
+      </button>
 
       <EntityModal
         open={open}
@@ -250,6 +252,27 @@ export function TransactionModalForm({
                 ))}
               </select>
             </Field>
+            <Field label="Project">
+              <select
+                name="projectId"
+                className={selectCls}
+                defaultValue=""
+              >
+                <option value="">— company / unallocated —</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Counterparty" hint="Free-text vendor / payer">
+              <input
+                name="counterpartyName"
+                placeholder="ACME Construction Ltd."
+                className={inputCls}
+              />
+            </Field>
           </div>
 
           <Field label="Description" required>
@@ -263,23 +286,9 @@ export function TransactionModalForm({
 
           <details className="rounded-sm border border-line-soft p-3">
             <summary className="text-sm text-ink-secondary cursor-pointer select-none">
-              Advanced (project allocation, counterparty, FX, references)
+              Advanced (allocation, FX, references)
             </summary>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
-              <Field label="Project">
-                <select
-                  name="projectId"
-                  className={selectCls}
-                  defaultValue=""
-                >
-                  <option value="">— company / unallocated —</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
               <Field label="Allocation type">
                 <select
                   name="allocationType"
@@ -292,13 +301,6 @@ export function TransactionModalForm({
                     </option>
                   ))}
                 </select>
-              </Field>
-              <Field label="Counterparty name" hint="Free-text vendor / payer">
-                <input
-                  name="counterpartyName"
-                  placeholder="ACME Construction Ltd."
-                  className={inputCls}
-                />
               </Field>
               <Field label="External reference" hint="Bank ref, invoice no, etc.">
                 <input

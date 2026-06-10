@@ -7,6 +7,7 @@ import {
   devOsInventoryItems,
   devOsInventoryLocations,
   devOsInventoryMovements,
+  devOsInventoryStockBalances,
 } from "@/lib/db/schema/dev-os-inventory";
 import { projects, villas } from "@/lib/db/schema/projects";
 import { appUsers } from "@/lib/db/schema/identity";
@@ -41,6 +42,8 @@ export interface ListMovementsFilter {
   organizationId: string;
   movementType?: string;
   itemId?: string;
+  /** Free-text search over item SKU / display name (case-insensitive). */
+  q?: string;
   /** inclusive lower bound, YYYY-MM-DD */
   dateFrom?: string;
   /** inclusive upper bound, YYYY-MM-DD */
@@ -68,6 +71,15 @@ export async function listWarehouseMovements(
   }
   if (filter.itemId) {
     conditions.push(eq(devOsInventoryMovements.itemId, filter.itemId));
+  }
+  if (filter.q) {
+    // Free-text SKU search (mock §05 movements spec). Matching on the
+    // joined item turns the left join into an effective inner join for
+    // search results — exactly the wanted semantics.
+    const pattern = `%${filter.q}%`;
+    conditions.push(
+      sql`(${devOsInventoryItems.sku} ILIKE ${pattern} OR ${devOsInventoryItems.displayName} ILIKE ${pattern})`,
+    );
   }
   if (filter.dateFrom) {
     conditions.push(gte(devOsInventoryMovements.movementDate, filter.dateFrom));
@@ -219,6 +231,40 @@ export async function listWarehouseLocations(
     )
     .orderBy(asc(devOsInventoryLocations.locationCode));
   return rows;
+}
+
+export interface WarehouseLocationOccupancy {
+  locationId: string;
+  /** Distinct SKUs with on-hand > 0 at this location. */
+  stockedItemCount: number;
+  /** Σ quantity_on_hand across all SKUs at this location. */
+  totalOnHand: number;
+}
+
+/**
+ * Per-location occupancy for the bin map (mock §02 variant C). Aggregates
+ * the real `dev_os_inventory_stock_balances` rows — distinct stocked SKUs
+ * + total units on hand per location. Capacity (capacity_units) does not
+ * exist in the schema, so utilisation % stays honestly absent.
+ */
+export async function listWarehouseLocationOccupancy(
+  organizationId: string,
+): Promise<WarehouseLocationOccupancy[]> {
+  const db = requireDb();
+  const rows = await db
+    .select({
+      locationId: devOsInventoryStockBalances.locationId,
+      stockedItemCount: sql<string>`COUNT(*) FILTER (WHERE ${devOsInventoryStockBalances.quantityOnHand} > 0)::text`,
+      totalOnHand: sql<string>`COALESCE(SUM(${devOsInventoryStockBalances.quantityOnHand}), 0)::text`,
+    })
+    .from(devOsInventoryStockBalances)
+    .where(eq(devOsInventoryStockBalances.organizationId, organizationId))
+    .groupBy(devOsInventoryStockBalances.locationId);
+  return rows.map((r) => ({
+    locationId: r.locationId,
+    stockedItemCount: Number(r.stockedItemCount ?? "0"),
+    totalOnHand: Number(r.totalOnHand ?? "0"),
+  }));
 }
 
 export interface PickDestinationGroup {
