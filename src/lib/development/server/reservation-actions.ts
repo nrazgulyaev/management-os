@@ -5,6 +5,7 @@ import { z } from "zod";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { contactRoles } from "@/lib/db/schema/contacts";
+import { projects } from "@/lib/db/schema/projects";
 import {
   contractGroups,
   contractTemplates,
@@ -12,6 +13,9 @@ import {
   type Reservation,
 } from "@/lib/db/schema/sales";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
+import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
+import { recordAuditEvent } from "@/features/audit/services";
 import { calculateCurrentPrice, createPriceSnapshot } from "./pricing";
 
 const createReservationSchema = z.object({
@@ -229,6 +233,10 @@ const markReservationPaidSchema = z.object({
 export async function markReservationPaid(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
+  // AUTH: internal-only money/status write. Throws for non-internal callers.
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const parsed = markReservationPaidSchema.safeParse({
     reservationId: formData.get("reservationId"),
     paymentReference: formData.get("paymentReference") ?? undefined,
@@ -238,15 +246,59 @@ export async function markReservationPaid(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  // SCOPE + STATE GUARD: load the reservation through its project so we can
+  // (a) confirm it belongs to the caller's org (reservations carries no org
+  // column — the project is the tenancy anchor; this kills the IDOR) and
+  // (b) enforce the state machine. Marking paid is only legal from
+  // pending_payment; "active" is treated as idempotent (already paid).
+  const [row] = await db
+    .select({
+      id: reservations.id,
+      status: reservations.status,
+      organizationId: projects.organizationId,
+    })
+    .from(reservations)
+    .innerJoin(projects, eq(projects.id, reservations.projectId))
+    .where(eq(reservations.id, parsed.data.reservationId))
+    .limit(1);
+  if (!row || row.organizationId !== organizationId) {
+    return { ok: false, error: "Reservation not found." };
+  }
+  if (row.status === "active") {
+    return { ok: true }; // idempotent — already paid.
+  }
+  if (row.status !== "pending_payment") {
+    return {
+      ok: false,
+      error: `Reservation is '${row.status}' — only a pending-payment reservation can be marked paid.`,
+    };
+  }
+
+  const now = new Date();
   await db
     .update(reservations)
     .set({
       status: "active",
-      paidAt: new Date(),
+      paidAt: now,
       paymentReference: parsed.data.paymentReference ?? undefined,
-      updatedAt: new Date(),
+      updatedAt: now,
     })
-    .where(eq(reservations.id, parsed.data.reservationId));
+    .where(
+      and(
+        eq(reservations.id, parsed.data.reservationId),
+        eq(reservations.status, "pending_payment"),
+      ),
+    );
+
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "reservation.mark_paid",
+    entityType: "reservation",
+    entityId: parsed.data.reservationId,
+    before: { status: row.status },
+    after: { status: "active", paymentReference: parsed.data.paymentReference ?? null },
+    metadata: { organizationId },
+  });
 
   revalidatePath(`${DEVELOPMENT_APP_PATH}/reservations`);
   return { ok: true };

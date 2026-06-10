@@ -6,7 +6,10 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { contactRoles } from "@/lib/db/schema/contacts";
 import { unitDevelopmentMeta } from "@/lib/db/schema/development";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
+import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
+import { recordAuditEvent } from "@/features/audit/services";
 import {
   contractGroups,
   contractMilestones,
@@ -313,6 +316,11 @@ const signContractSchema = z.object({
 export async function signContract(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string; cascade?: "partial" | "fully_signed" }> {
+  // AUTH: internal-only status write that cascades into Lead→Buyer + price
+  // freeze. Throws for non-internal / cross-org callers.
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const parsed = signContractSchema.safeParse({
     contractId: formData.get("contractId"),
     signedDocumentId: formData.get("signedDocumentId") ?? undefined,
@@ -321,6 +329,37 @@ export async function signContract(
 
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+
+  // SCOPE + STATE GUARD: resolve the contract via its group → project so we
+  // can confirm tenancy (contracts/contract_groups carry no org column — the
+  // project is the anchor; this kills the IDOR) and enforce the state
+  // machine before flipping it to 'signed'.
+  const [target] = await db
+    .select({
+      status: contracts.status,
+      contractGroupId: contracts.contractGroupId,
+      organizationId: projects.organizationId,
+    })
+    .from(contracts)
+    .innerJoin(contractGroups, eq(contractGroups.id, contracts.contractGroupId))
+    .innerJoin(projects, eq(projects.id, contractGroups.projectId))
+    .where(eq(contracts.id, parsed.data.contractId))
+    .limit(1);
+  if (!target || target.organizationId !== organizationId) {
+    return { ok: false, error: "Contract not found." };
+  }
+  if (target.status === "signed") {
+    return { ok: false, error: "This contract is already signed." };
+  }
+  if (target.status === "cancelled") {
+    return { ok: false, error: "A cancelled contract cannot be signed." };
+  }
+  if (!["draft", "pending_signature"].includes(target.status)) {
+    return {
+      ok: false,
+      error: `Contract is '${target.status}' — it cannot be signed.`,
+    };
+  }
 
   const now = new Date();
   const [updated] = await db
@@ -331,9 +370,24 @@ export async function signContract(
       signedDocumentId: parsed.data.signedDocumentId ?? undefined,
       updatedAt: now,
     })
-    .where(eq(contracts.id, parsed.data.contractId))
+    .where(
+      and(
+        eq(contracts.id, parsed.data.contractId),
+        inArray(contracts.status, ["draft", "pending_signature"]),
+      ),
+    )
     .returning({ id: contracts.id, contractGroupId: contracts.contractGroupId });
   if (!updated) return { ok: false, error: "Contract not found." };
+
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "contract.sign",
+    entityType: "contract",
+    entityId: parsed.data.contractId,
+    before: { status: target.status },
+    after: { status: "signed" },
+    metadata: { organizationId, contractGroupId: updated.contractGroupId },
+  });
 
   const siblings = await db
     .select({ id: contracts.id, status: contracts.status })

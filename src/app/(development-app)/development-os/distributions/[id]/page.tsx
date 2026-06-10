@@ -12,6 +12,7 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
+import { requireInternalUser } from "@/features/auth/permissions";
 import { getDistribution } from "@/lib/development/server/distributions";
 import {
   cancelDistribution,
@@ -34,6 +35,9 @@ export default async function DistributionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // SECURITY: gate the detail page — only internal users may view a
+  // distribution or reach the Execute/Cancel money-moving controls.
+  await requireInternalUser();
   const db = getDb();
   if (!db) {
     return (
@@ -63,6 +67,8 @@ export default async function DistributionDetailPage({
 
   async function executeAction() {
     "use server";
+    // Re-gate on the POST request (separate from page render).
+    await requireInternalUser();
     await executeDistribution(id);
     revalidatePath(`/development-os/distributions/${id}`);
     redirect(`/development-os/distributions/${id}`);
@@ -70,6 +76,7 @@ export default async function DistributionDetailPage({
 
   async function cancelAction(formData: FormData) {
     "use server";
+    await requireInternalUser();
     const reason = String(formData.get("reason") ?? "Cancelled via UI");
     await cancelDistribution(id, reason);
     revalidatePath(`/development-os/distributions/${id}`);

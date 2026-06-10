@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   contactInteractions,
@@ -12,6 +12,7 @@ import {
 import { aiAssistantRuns } from "@/lib/db/schema/ai";
 import { projects } from "@/lib/db/schema/projects";
 import { unitTypes } from "@/lib/db/schema/development";
+import { requireOrgId } from "@/features/auth/require-org";
 import { findOrCreateContact, getActiveLeadRole } from "./contacts";
 import { LEAD_STATUSES, type LeadStatus } from "./leads";
 import {
@@ -344,6 +345,14 @@ const updateStatusSchema = z.object({
 export async function updateLeadStatus(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
+  // AUTH: this used to be an unauthenticated, FSM-bypassing direct UPDATE —
+  // a caller could jump a lead straight to any status (e.g. new →
+  // contract_signed) on any role id. It now (1) requires an internal user,
+  // (2) routes the status change through the SAME guarded FSM core as the
+  // Kanban (`applyLeadStageMove` → `moveLeadStage` rules), which org-scopes
+  // the role, enforces legal transitions, and audit-logs the diff.
+  const ctx = await requireInternalUser();
+
   const parsed = updateStatusSchema.safeParse({
     contactRoleId: formData.get("contactRoleId"),
     newStatus: formData.get("newStatus"),
@@ -353,51 +362,23 @@ export async function updateLeadStatus(
     return { ok: false, error: "Invalid input." };
   }
 
-  const db = getDb();
-  if (!db) return { ok: false, error: "Database is not configured." };
-
-  // Capture the prior state so the activity record can show from → to.
-  const [before] = await db
-    .select({ contactId: contactRoles.contactId, status: contactRoles.status })
-    .from(contactRoles)
-    .where(eq(contactRoles.id, parsed.data.contactRoleId))
-    .limit(1);
-  if (!before) return { ok: false, error: "Lead not found." };
-  const fromStatus = before.status;
-
-  const isTerminal = parsed.data.newStatus === "lost" || parsed.data.newStatus === "contract_signed";
-  await db
-    .update(contactRoles)
-    .set({
-      status: parsed.data.newStatus,
-      endedAt: isTerminal ? new Date() : null,
-      endReason: isTerminal
-        ? parsed.data.newStatus === "lost"
-          ? "lost"
-          : "converted"
-        : null,
-      notes: parsed.data.notes ?? undefined,
-      updatedAt: new Date(),
-    })
-    .where(eq(contactRoles.id, parsed.data.contactRoleId));
-
-  await db.insert(contactInteractions).values({
-    contactId: before.contactId,
-    interactionType: "system_event",
-    direction: "internal_note",
-    occurredAt: new Date(),
-    subject: `Status → ${parsed.data.newStatus}`,
-    body: parsed.data.notes ?? `Lead moved to ${parsed.data.newStatus}.`,
-    relatedRoleId: parsed.data.contactRoleId,
-    reviewStatus: "not_required",
+  const result = await applyLeadStageMove({
+    ctx,
+    contactRoleId: parsed.data.contactRoleId,
+    toStatus: parsed.data.newStatus,
+    notes: parsed.data.notes,
+    via: "status_control",
+    interactionBody: (from, to) =>
+      parsed.data.notes ?? `Lead moved from '${from}' to '${to}'.`,
   });
+  if (!result.ok) return result;
 
   // CRM ACTIVITY TIMELINE (#169) — auto-record the status change onto the
   // unified feed (both the lead role's own stream and the contact-level
   // stream so it surfaces on either surface). Best-effort, org-scoped,
   // audit-logged inside recordCrmActivity.
   const statusTitle = `Status → ${parsed.data.newStatus.replace(/_/g, " ")}`;
-  const statusMeta = { fromStatus, toStatus: parsed.data.newStatus };
+  const statusMeta = { fromStatus: result.fromStatus, toStatus: result.toStatus };
   await recordCrmActivity({
     subjectType: "lead",
     subjectId: parsed.data.contactRoleId,
@@ -408,7 +389,7 @@ export async function updateLeadStatus(
   });
   await recordCrmActivity({
     subjectType: "contact",
-    subjectId: before.contactId,
+    subjectId: result.contactId,
     kind: "status_change",
     title: statusTitle,
     body: parsed.data.notes ?? null,
@@ -439,6 +420,116 @@ export type MoveLeadStageResult =
  * audit-logged. Reuses the same `contact_roles.status` model + interaction log
  * as `updateLeadStatus`; it does NOT introduce a new pipeline table.
  */
+/**
+ * Shared, FSM-guarded core behind BOTH the Pipeline Kanban (`moveLeadStage`)
+ * and the lead-detail status control (`updateLeadStatus`). NOT exported (this
+ * is a "use server" module — only async functions may be exported), so it's a
+ * plain internal helper. It:
+ *   1. loads the role + resolves its org via the project chain,
+ *   2. enforces tenancy (cross-org roles are rejected),
+ *   3. enforces the lead-stage FSM (no skipping, no moving out of a closed
+ *      stage),
+ *   4. writes the status (with terminal end-stamp), the timeline interaction,
+ *      and the audit event.
+ * Callers pass the auth ctx (already gated upstream) + presentation options.
+ */
+async function applyLeadStageMove(args: {
+  ctx: Awaited<ReturnType<typeof requireInternalUser>>;
+  contactRoleId: string;
+  toStatus: LeadStatus;
+  notes?: string;
+  via: "pipeline_kanban" | "status_control";
+  interactionBody: (from: LeadStatus, to: LeadStatus) => string;
+}): Promise<
+  | { ok: true; contactId: string; fromStatus: LeadStatus; toStatus: LeadStatus }
+  | { ok: false; error: string }
+> {
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+
+  const organizationId = await requireOrgId();
+
+  // Load the current stage + the role's resolvable org so we can enforce the
+  // FSM AND tenancy. contact_roles.organization_id is a nullable, not-yet-
+  // backfilled column, and the role may be project-scoped or global — so we
+  // derive the org from scope_project → projects.organization_id when present
+  // and fall back to the role's own org column. A role that resolves to a
+  // DIFFERENT org than the caller is rejected (kills the cross-tenant IDOR);
+  // a role with no resolvable org (legacy/global, un-backfilled) is allowed
+  // through so existing single-tenant paths keep working.
+  const [current] = await db
+    .select({
+      contactId: contactRoles.contactId,
+      status: contactRoles.status,
+      roleOrgId: contactRoles.organizationId,
+      projectOrgId: projects.organizationId,
+    })
+    .from(contactRoles)
+    .leftJoin(projects, eq(projects.id, contactRoles.scopeProjectId))
+    .where(eq(contactRoles.id, args.contactRoleId))
+    .limit(1);
+  if (!current) return { ok: false, error: "Lead not found." };
+
+  const resolvedOrg = current.projectOrgId ?? current.roleOrgId ?? null;
+  if (resolvedOrg !== null && resolvedOrg !== organizationId) {
+    return { ok: false, error: "Lead not found." };
+  }
+
+  if (!isLeadStatus(current.status)) {
+    return {
+      ok: false,
+      error: `Lead is in an unrecognized stage ('${current.status}').`,
+    };
+  }
+  const fromStatus = current.status;
+  const toStatus = args.toStatus;
+
+  // Guarded transition — no skipping stages, no moving out of a closed stage.
+  const guardError = leadTransitionError(fromStatus, toStatus);
+  if (guardError) return { ok: false, error: guardError };
+
+  const now = new Date();
+  const isTerminal = toStatus === "lost" || toStatus === "contract_signed";
+  await db
+    .update(contactRoles)
+    .set({
+      status: toStatus,
+      endedAt: isTerminal ? now : null,
+      endReason: isTerminal
+        ? toStatus === "lost"
+          ? "lost"
+          : "converted"
+        : null,
+      notes: args.notes ?? undefined,
+      updatedAt: now,
+    })
+    .where(eq(contactRoles.id, args.contactRoleId));
+
+  // Mirror the status change into the interaction timeline.
+  await db.insert(contactInteractions).values({
+    contactId: current.contactId,
+    interactionType: "system_event",
+    direction: "internal_note",
+    occurredAt: now,
+    subject: `Stage ${fromStatus} → ${toStatus}`,
+    body: args.interactionBody(fromStatus, toStatus),
+    relatedRoleId: args.contactRoleId,
+    reviewStatus: "not_required",
+  });
+
+  await recordAuditEvent({
+    actorUserId: args.ctx.appUser?.id ?? null,
+    action: "lead.stage_move",
+    entityType: "contact_role",
+    entityId: args.contactRoleId,
+    before: { status: fromStatus },
+    after: { status: toStatus },
+    metadata: { via: args.via, terminal: isTerminal, organizationId },
+  });
+
+  return { ok: true, contactId: current.contactId, fromStatus, toStatus };
+}
+
 export async function moveLeadStage(
   input: z.input<typeof moveStageSchema>,
 ): Promise<MoveLeadStageResult> {
@@ -451,74 +542,18 @@ export async function moveLeadStage(
     return { ok: false, error: "Invalid input." };
   }
 
-  const db = getDb();
-  if (!db) return { ok: false, error: "Database is not configured." };
-
-  // Load the current stage so we can enforce the FSM (and audit the diff).
-  const rows = await db
-    .select({
-      contactId: contactRoles.contactId,
-      status: contactRoles.status,
-    })
-    .from(contactRoles)
-    .where(eq(contactRoles.id, parsed.data.contactRoleId))
-    .limit(1);
-  const current = rows[0];
-  if (!current) return { ok: false, error: "Lead not found." };
-
-  if (!isLeadStatus(current.status)) {
-    return {
-      ok: false,
-      error: `Lead is in an unrecognized stage ('${current.status}').`,
-    };
-  }
-  const fromStatus = current.status;
-  const toStatus = parsed.data.toStatus;
-
-  // Guarded transition — no skipping stages, no moving out of a closed stage.
-  const guardError = leadTransitionError(fromStatus, toStatus);
-  if (guardError) return { ok: false, error: guardError };
-
-  const isTerminal = toStatus === "lost" || toStatus === "contract_signed";
-  await db
-    .update(contactRoles)
-    .set({
-      status: toStatus,
-      endedAt: isTerminal ? new Date() : null,
-      endReason: isTerminal
-        ? toStatus === "lost"
-          ? "lost"
-          : "converted"
-        : null,
-      updatedAt: new Date(),
-    })
-    .where(eq(contactRoles.id, parsed.data.contactRoleId));
-
-  // Mirror the status change into the interaction timeline (same shape as
-  // updateLeadStatus) so the lead workspace audit trail stays consistent.
-  await db.insert(contactInteractions).values({
-    contactId: current.contactId,
-    interactionType: "system_event",
-    direction: "internal_note",
-    occurredAt: new Date(),
-    subject: `Stage ${fromStatus} → ${toStatus}`,
-    body: `Pipeline card dragged from '${fromStatus}' to '${toStatus}'.`,
-    relatedRoleId: parsed.data.contactRoleId,
-    reviewStatus: "not_required",
+  const result = await applyLeadStageMove({
+    ctx,
+    contactRoleId: parsed.data.contactRoleId,
+    toStatus: parsed.data.toStatus,
+    via: "pipeline_kanban",
+    interactionBody: (from, to) =>
+      `Pipeline card dragged from '${from}' to '${to}'.`,
   });
-
-  await recordAuditEvent({
-    actorUserId: ctx.appUser?.id ?? null,
-    action: "lead.stage_move",
-    entityType: "contact_role",
-    entityId: parsed.data.contactRoleId,
-    before: { status: fromStatus },
-    after: { status: toStatus },
-    metadata: { via: "pipeline_kanban", terminal: isTerminal },
-  });
+  if (!result.ok) return result;
 
   revalidatePath(`${DEVELOPMENT_APP_PATH}/sales`);
-  return { ok: true, fromStatus, toStatus };
+  return { ok: true, fromStatus: result.fromStatus, toStatus: result.toStatus };
 }
 
 // -----------------------------------------------------------------------------
@@ -536,6 +571,13 @@ const reviewDraftSchema = z.object({
 export async function reviewAIDraft(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
+  // AUTH: HITL approve/reject of an AI-generated client message. This was an
+  // unauthenticated, unscoped UPDATE-by-id that let any caller approve/edit
+  // any draft (the approved body is what gets sent to a client). Now gated +
+  // org-scoped + state-guarded + audited.
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const parsed = reviewDraftSchema.safeParse({
     draftId: formData.get("draftId"),
     decision: formData.get("decision"),
@@ -548,6 +590,39 @@ export async function reviewAIDraft(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  // SCOPE + STATE GUARD: resolve the draft's org via project → org (with the
+  // interaction's own nullable org column as a fallback) so a cross-tenant
+  // draft id is rejected, and confirm it is actually an ai_draft still in the
+  // 'pending' review state (no re-deciding an already approved/rejected one).
+  const [draft] = await db
+    .select({
+      id: contactInteractions.id,
+      interactionType: contactInteractions.interactionType,
+      reviewStatus: contactInteractions.reviewStatus,
+      rowOrgId: contactInteractions.organizationId,
+      projectOrgId: projects.organizationId,
+    })
+    .from(contactInteractions)
+    .leftJoin(projects, eq(projects.id, contactInteractions.projectId))
+    .where(eq(contactInteractions.id, parsed.data.draftId))
+    .limit(1);
+  if (!draft) return { ok: false, error: "Draft not found." };
+
+  const resolvedOrg = draft.projectOrgId ?? draft.rowOrgId ?? null;
+  if (resolvedOrg !== null && resolvedOrg !== organizationId) {
+    return { ok: false, error: "Draft not found." };
+  }
+  if (draft.interactionType !== "ai_draft") {
+    return { ok: false, error: "Only AI drafts can be reviewed." };
+  }
+  if (draft.reviewStatus !== "pending") {
+    return {
+      ok: false,
+      error: `This draft is already '${draft.reviewStatus}'.`,
+    };
+  }
+
+  const now = new Date();
   await db
     .update(contactInteractions)
     .set({
@@ -560,11 +635,27 @@ export async function reviewAIDraft(
           ? parsed.data.finalBody
           : undefined,
       reviewStatus: parsed.data.decision,
-      reviewedAt: new Date(),
+      reviewedBy: ctx.appUser?.id ?? null,
+      reviewedAt: now,
       reviewNotes: parsed.data.reviewNotes ?? null,
-      updatedAt: new Date(),
+      updatedAt: now,
     })
-    .where(eq(contactInteractions.id, parsed.data.draftId));
+    .where(
+      and(
+        eq(contactInteractions.id, parsed.data.draftId),
+        eq(contactInteractions.reviewStatus, "pending"),
+      ),
+    );
+
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "lead.ai_draft_review",
+    entityType: "contact_interaction",
+    entityId: parsed.data.draftId,
+    before: { reviewStatus: "pending" },
+    after: { reviewStatus: parsed.data.decision },
+    metadata: { organizationId },
+  });
 
   revalidatePath(`${DEVELOPMENT_APP_PATH}/sales`);
   return { ok: true };

@@ -100,7 +100,9 @@ function deriveStage(statuses: MilestoneStatus[]): MilestoneStatus | "completed"
  * One row per contract group; milestones are aggregated in JS so the desk
  * stays on a single round-trip plus the prefs lookup.
  */
-export async function listInstallmentPlans(): Promise<InstallmentPlanSummary[]> {
+export async function listInstallmentPlans(
+  organizationId?: string,
+): Promise<InstallmentPlanSummary[]> {
   const db = getDb();
   if (!db) return [];
 
@@ -115,6 +117,11 @@ export async function listInstallmentPlans(): Promise<InstallmentPlanSummary[]> 
     .innerJoin(contacts, eq(contacts.id, contractGroups.contactId))
     .innerJoin(villas, eq(villas.id, contractGroups.villaId))
     .innerJoin(projects, eq(projects.id, contractGroups.projectId))
+    .where(
+      organizationId
+        ? eq(contractGroups.organizationId, organizationId)
+        : undefined,
+    )
     .orderBy(desc(contractGroups.createdAt));
 
   if (groupRows.length === 0) return [];
@@ -191,9 +198,17 @@ export interface InstallmentPlanDetail {
   milestones: ContractMilestoneRow[];
 }
 
-/** Full schedule for one plan — drives the per-buyer drawer. */
+/**
+ * Full schedule for one plan — drives the per-buyer drawer.
+ *
+ * SECURITY: when `organizationId` is supplied the plan load is scoped to it so
+ * a foreign contract-group id cannot be read. Callers from authenticated server
+ * actions pass their `requireOrgId()`; omitting it preserves the unscoped read
+ * for internal/system callers that have no org context.
+ */
 export async function getInstallmentPlanDetail(
   contractGroupId: string,
+  organizationId?: string,
 ): Promise<InstallmentPlanDetail | null> {
   const db = getDb();
   if (!db) return null;
@@ -210,7 +225,14 @@ export async function getInstallmentPlanDetail(
     .innerJoin(contacts, eq(contacts.id, contractGroups.contactId))
     .innerJoin(villas, eq(villas.id, contractGroups.villaId))
     .innerJoin(projects, eq(projects.id, contractGroups.projectId))
-    .where(eq(contractGroups.id, contractGroupId))
+    .where(
+      organizationId
+        ? and(
+            eq(contractGroups.id, contractGroupId),
+            eq(contractGroups.organizationId, organizationId),
+          )
+        : eq(contractGroups.id, contractGroupId),
+    )
     .limit(1);
 
   if (!groupRow) return null;
@@ -218,7 +240,14 @@ export async function getInstallmentPlanDetail(
   const ms = await db
     .select()
     .from(contractMilestones)
-    .where(eq(contractMilestones.contractGroupId, contractGroupId))
+    .where(
+      organizationId
+        ? and(
+            eq(contractMilestones.contractGroupId, contractGroupId),
+            eq(contractMilestones.organizationId, organizationId),
+          )
+        : eq(contractMilestones.contractGroupId, contractGroupId),
+    )
     .orderBy(asc(contractMilestones.sequence));
 
   const [pref] = await db
@@ -243,18 +272,21 @@ export async function getInstallmentPlanDetail(
 /** Outstanding milestones for one plan — used to scope reminders. */
 export async function getOutstandingMilestonesForPlan(
   contractGroupId: string,
+  organizationId?: string,
 ): Promise<ContractMilestoneRow[]> {
   const db = getDb();
   if (!db) return [];
+  const conds = [
+    eq(contractMilestones.contractGroupId, contractGroupId),
+    inArray(contractMilestones.status, OUTSTANDING_STATUSES),
+  ];
+  if (organizationId) {
+    conds.push(eq(contractMilestones.organizationId, organizationId));
+  }
   const rows = await db
     .select()
     .from(contractMilestones)
-    .where(
-      and(
-        eq(contractMilestones.contractGroupId, contractGroupId),
-        inArray(contractMilestones.status, OUTSTANDING_STATUSES),
-      ),
-    )
+    .where(and(...conds))
     .orderBy(asc(contractMilestones.sequence));
   return rows.map(milestoneToRow);
 }

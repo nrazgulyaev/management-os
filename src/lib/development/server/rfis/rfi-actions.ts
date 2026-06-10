@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireDb } from "@/lib/db/client";
@@ -126,13 +126,16 @@ const respondSchema = z.object({
  */
 export async function respondToRfi(input: z.input<typeof respondSchema>) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = respondSchema.parse(input);
   const db = requireDb();
 
+  // SECURITY: scope the RFI load + write to the caller org (rfis carries
+  // organization_id) so a foreign RFI id cannot be answered.
   const [current] = await db
     .select({ respondedAt: rfis.respondedAt, resolvedAt: rfis.resolvedAt })
     .from(rfis)
-    .where(eq(rfis.id, parsed.rfiId))
+    .where(and(eq(rfis.id, parsed.rfiId), eq(rfis.organizationId, organizationId)))
     .limit(1);
   if (!current) throw new Error("RFI not found");
   const from = rfiStatus(current);
@@ -146,7 +149,7 @@ export async function respondToRfi(input: z.input<typeof respondSchema>) {
       responseText: parsed.responseText,
       respondedAt: current.respondedAt ?? new Date(),
     })
-    .where(eq(rfis.id, parsed.rfiId))
+    .where(and(eq(rfis.id, parsed.rfiId), eq(rfis.organizationId, organizationId)))
     .returning();
 
   await recordAuditEvent({
@@ -176,13 +179,16 @@ const transitionSchema = z.object({
  */
 export async function transitionRfi(input: z.input<typeof transitionSchema>) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
 
+  // SECURITY: scope the RFI load + write to the caller org so a foreign RFI id
+  // cannot be transitioned.
   const [current] = await db
     .select({ respondedAt: rfis.respondedAt, resolvedAt: rfis.resolvedAt })
     .from(rfis)
-    .where(eq(rfis.id, parsed.rfiId))
+    .where(and(eq(rfis.id, parsed.rfiId), eq(rfis.organizationId, organizationId)))
     .limit(1);
   if (!current) throw new Error("RFI not found");
 
@@ -206,7 +212,7 @@ export async function transitionRfi(input: z.input<typeof transitionSchema>) {
   const [row] = await db
     .update(rfis)
     .set(updates)
-    .where(eq(rfis.id, parsed.rfiId))
+    .where(and(eq(rfis.id, parsed.rfiId), eq(rfis.organizationId, organizationId)))
     .returning();
 
   await recordAuditEvent({

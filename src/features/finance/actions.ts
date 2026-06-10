@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import {
@@ -20,6 +20,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity, requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { assertPeriodOpen } from "./validation";
 import {
   feeLineSchema,
@@ -41,6 +42,35 @@ const nullable = (v: string | undefined) => (v && v !== "" ? v : null);
 
 async function ensureFinanceWrite() {
   await requirePermission("finance.write");
+}
+
+// -----------------------------------------------------------------------------
+// State-machine guards (WRITE-FLOW-AUDIT). Keep illegal transitions out of
+// the money-moving lifecycles. `null`-valued targets are terminal.
+// -----------------------------------------------------------------------------
+const STATEMENT_TRANSITIONS: Record<string, readonly string[]> = {
+  draft: ["issued", "voided"],
+  issued: ["approved", "voided"],
+  approved: ["paid", "voided"],
+  paid: ["voided"],
+  voided: [],
+};
+
+const PAYOUT_LINE_TRANSITIONS: Record<string, readonly string[]> = {
+  pending: ["approved", "cancelled"],
+  approved: ["paid", "failed", "cancelled"],
+  failed: ["approved", "cancelled"],
+  paid: [],
+  cancelled: [],
+};
+
+function isAllowedTransition(
+  table: Record<string, readonly string[]>,
+  from: string,
+  to: string,
+): boolean {
+  if (from === to) return true; // idempotent re-apply is a no-op, not an attack
+  return (table[from] ?? []).includes(to);
 }
 
 // -----------------------------------------------------------------------------
@@ -444,16 +474,39 @@ export async function setStatementStatusAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // WRITE-FLOW-AUDIT: org-scoped load kills the cross-tenant IDOR — a
+  // foreign statement id will not be found and cannot be mutated.
+  const organizationId = await requireOrgId();
   const [before] = await db
     .select()
     .from(ownerStatements)
-    .where(eq(ownerStatements.id, parsed.data.id))
+    .where(
+      and(
+        eq(ownerStatements.id, parsed.data.id),
+        eq(ownerStatements.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Statement not found." };
+  // State-machine guard: refuse illegal lifecycle jumps (e.g. paid → draft).
+  if (!isAllowedTransition(STATEMENT_TRANSITIONS, before.status, parsed.data.next)) {
+    return {
+      ok: false,
+      error: `Cannot move statement from "${before.status}" to "${parsed.data.next}".`,
+    };
+  }
   const updates: Record<string, unknown> = { status: parsed.data.next };
   if (parsed.data.next === "issued") updates.issuedAt = new Date();
   if (parsed.data.next === "approved") updates.approvedAt = new Date();
-  await db.update(ownerStatements).set(updates).where(eq(ownerStatements.id, parsed.data.id));
+  await db
+    .update(ownerStatements)
+    .set(updates)
+    .where(
+      and(
+        eq(ownerStatements.id, parsed.data.id),
+        eq(ownerStatements.organizationId, organizationId),
+      ),
+    );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: `owner_statement.${parsed.data.next}`,
@@ -482,6 +535,8 @@ export async function createPayoutBatchAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // WRITE-FLOW-AUDIT: stamp the caller's org so the batch is tenant-scoped.
+  const organizationId = await requireOrgId();
   try {
     const [row] = await db
       .insert(payoutBatches)
@@ -492,6 +547,7 @@ export async function createPayoutBatchAction(
         currency: parsed.data.currency,
         status: "draft",
         createdBy: me?.id ?? null,
+        organizationId,
       })
       .returning({ id: payoutBatches.id });
     await recordAuditEvent({
@@ -522,15 +578,33 @@ export async function createPayoutLineAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
   const d = parsed.data;
+  // WRITE-FLOW-AUDIT: tenant scope for the new line + parent-chain
+  // ownership checks so a foreign batch/statement id cannot be attached.
+  const organizationId = await requireOrgId();
+  const batchId = nullable(d.payoutBatchId);
+  if (batchId) {
+    const [batch] = await db
+      .select({ id: payoutBatches.id })
+      .from(payoutBatches)
+      .where(and(eq(payoutBatches.id, batchId), eq(payoutBatches.organizationId, organizationId)))
+      .limit(1);
+    if (!batch) return { ok: false, error: "Payout batch not found." };
+  }
   // FC-OWNER-STATEMENTS §4.4 — payout is PAUSED while a statement is disputed.
   // A disputed statement can't have funds released until it is resolved/reissued.
   if (d.statementId) {
     const [linked] = await db
       .select({ ownerState: ownerStatements.ownerState })
       .from(ownerStatements)
-      .where(eq(ownerStatements.id, d.statementId))
+      .where(
+        and(
+          eq(ownerStatements.id, d.statementId),
+          eq(ownerStatements.organizationId, organizationId),
+        ),
+      )
       .limit(1);
-    if (linked?.ownerState === "disputed") {
+    if (!linked) return { ok: false, error: "Statement not found." };
+    if (linked.ownerState === "disputed") {
       return {
         ok: false,
         error: "Payout is paused: this statement is under dispute. Resolve the dispute first.",
@@ -540,7 +614,7 @@ export async function createPayoutLineAction(
   const [row] = await db
     .insert(payoutLines)
     .values({
-      payoutBatchId: nullable(d.payoutBatchId),
+      payoutBatchId: batchId,
       ownerId: d.ownerId,
       payoutMethodId: nullable(d.payoutMethodId),
       statementId: nullable(d.statementId),
@@ -548,6 +622,7 @@ export async function createPayoutLineAction(
       currency: d.currency,
       scheduledFor: nullable(d.scheduledFor),
       reference: nullable(d.reference),
+      organizationId,
     })
     .returning({ id: payoutLines.id });
   await recordAuditEvent({
@@ -576,11 +651,28 @@ export async function setPayoutLineStatusAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
-  const [before] = await db.select().from(payoutLines).where(eq(payoutLines.id, parsed.data.id)).limit(1);
+  // WRITE-FLOW-AUDIT: org-scoped load closes the cross-tenant IDOR — a
+  // foreign payout-line id cannot be marked paid by another org.
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select()
+    .from(payoutLines)
+    .where(and(eq(payoutLines.id, parsed.data.id), eq(payoutLines.organizationId, organizationId)))
+    .limit(1);
   if (!before) return { ok: false, error: "Payout line not found." };
+  // State-machine guard: only pending → approved → paid (plus failed/cancelled).
+  if (!isAllowedTransition(PAYOUT_LINE_TRANSITIONS, before.status, parsed.data.next)) {
+    return {
+      ok: false,
+      error: `Cannot move payout line from "${before.status}" to "${parsed.data.next}".`,
+    };
+  }
   const updates: Record<string, unknown> = { status: parsed.data.next };
   if (parsed.data.next === "paid") updates.paidAt = new Date();
-  await db.update(payoutLines).set(updates).where(eq(payoutLines.id, parsed.data.id));
+  await db
+    .update(payoutLines)
+    .set(updates)
+    .where(and(eq(payoutLines.id, parsed.data.id), eq(payoutLines.organizationId, organizationId)));
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: `finance.payout_line.${parsed.data.next}`,

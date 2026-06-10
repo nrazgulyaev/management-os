@@ -359,6 +359,16 @@ export const distributions = pgTable(
   "distributions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0161): NULLABLE org anchor. Backfilled from
+     * project_id -> projects.organization_id (company-wide rows where
+     * project_id IS NULL -> ARCONIQUE_DEFAULT). Server actions scope
+     * load + write by this column to close the multi-tenant IDOR hole.
+     */
+    organizationId: uuid("organization_id").references(
+      () => organizations.id,
+      { onDelete: "restrict" },
+    ),
     /** NULL for company-level distribution */
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "restrict",
@@ -408,6 +418,7 @@ export const distributions = pgTable(
     ),
     index("distributions_project_idx").on(t.projectId),
     index("distributions_status_idx").on(t.status),
+    index("distributions_organization_idx").on(t.organizationId),
   ],
 );
 
@@ -504,6 +515,16 @@ export const distributionAllocations = pgTable(
   "distribution_allocations",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /**
+     * TENANCY (migration 0161): NULLABLE org anchor, backfilled from
+     * distribution_id -> distributions.organization_id. Server actions
+     * scope by the parent distribution's org; this column is the local
+     * anchor for future per-tenant allocation filtering.
+     */
+    organizationId: uuid("organization_id").references(
+      () => organizations.id,
+      { onDelete: "restrict" },
+    ),
     distributionId: uuid("distribution_id")
       .notNull()
       .references(() => distributions.id, { onDelete: "cascade" }),
@@ -553,6 +574,7 @@ export const distributionAllocations = pgTable(
   (t) => [
     index("distribution_allocations_distribution_idx").on(t.distributionId),
     index("distribution_allocations_commitment_idx").on(t.commitmentId),
+    index("distribution_allocations_organization_idx").on(t.organizationId),
   ],
 );
 

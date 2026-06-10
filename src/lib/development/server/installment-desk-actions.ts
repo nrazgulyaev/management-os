@@ -91,7 +91,10 @@ export async function getPlanDetailAction(
     return null;
   }
   if (!z.string().uuid().safeParse(contractGroupId).success) return null;
-  const detail = await getInstallmentPlanDetail(contractGroupId);
+  // SECURITY: scope the drawer read to the caller's org so a foreign plan id
+  // cannot be opened.
+  const organizationId = await requireOrgId();
+  const detail = await getInstallmentPlanDetail(contractGroupId, organizationId);
   return detail ? toDetailDto(detail) : null;
 }
 
@@ -149,11 +152,19 @@ export async function markMilestonePaidByOperator(
 
   const db = getDb();
   if (!db) return failed("Database is not configured.");
+  const organizationId = await requireOrgId();
 
+  // SECURITY: scope the load by caller org so a foreign milestone id cannot
+  // be acted on (contract_milestones carries organization_id from 0162).
   const [milestone] = await db
     .select()
     .from(contractMilestones)
-    .where(eq(contractMilestones.id, parsed.data.milestoneId))
+    .where(
+      and(
+        eq(contractMilestones.id, parsed.data.milestoneId),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!milestone) return failed("Milestone not found.");
   if (milestone.status === "waived" || milestone.status === "cancelled") {
@@ -183,7 +194,12 @@ export async function markMilestonePaidByOperator(
         : milestone.notes,
       updatedAt: now,
     })
-    .where(eq(contractMilestones.id, milestone.id));
+    .where(
+      and(
+        eq(contractMilestones.id, milestone.id),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: ctx.appUser?.id ?? null,
@@ -232,12 +248,18 @@ async function queuePlanReminder(opts: {
   const [groupRow] = await db
     .select({ contactId: contractGroups.contactId })
     .from(contractGroups)
-    .where(eq(contractGroups.id, contractGroupId))
+    .where(
+      and(
+        eq(contractGroups.id, contractGroupId),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!groupRow) return 0;
 
   const conds = [
     eq(contractMilestones.contractGroupId, contractGroupId),
+    eq(contractMilestones.organizationId, organizationId),
     inArray(contractMilestones.status, OUTSTANDING_STATUSES),
   ];
   if (milestoneIds && milestoneIds.length > 0) {
@@ -330,7 +352,12 @@ export async function remindMilestone(formData: FormData): Promise<ActionResult>
   const [milestone] = await db
     .select({ contractGroupId: contractMilestones.contractGroupId })
     .from(contractMilestones)
-    .where(eq(contractMilestones.id, parsed.data.milestoneId))
+    .where(
+      and(
+        eq(contractMilestones.id, parsed.data.milestoneId),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!milestone) return failed("Milestone not found.");
 
@@ -454,11 +481,16 @@ export async function toggleAutoRemind(formData: FormData): Promise<ActionResult
   if (!db) return failed("Database is not configured.");
   const organizationId = await requireOrgId();
 
-  // Guard against a dangling FK — the plan must exist.
+  // Guard against a dangling FK — the plan must exist AND belong to caller org.
   const [group] = await db
     .select({ id: contractGroups.id })
     .from(contractGroups)
-    .where(eq(contractGroups.id, parsed.data.contractGroupId))
+    .where(
+      and(
+        eq(contractGroups.id, parsed.data.contractGroupId),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!group) return failed("Plan not found.");
 

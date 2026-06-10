@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
@@ -82,7 +82,12 @@ export async function createDirectBookingOnBehalfAction(
   const me = await getCurrentAppUser();
 
   // Villa lookup — also the ownership guard: the villa's project must
-  // belong to the caller's org (no cross-tenant hold creation).
+  // belong to the caller's org (no cross-tenant hold creation). The
+  // earlier version selected the villa by id ALONE, which let an operator
+  // create a hold against a villa in another tenant (IDOR). Joining to
+  // projects and filtering on projects.organization_id closes that hole;
+  // villas carry no org column of their own, so the parent project is the
+  // tenancy anchor.
   const [villa] = await db
     .select({
       projectId: villas.projectId,
@@ -90,7 +95,13 @@ export async function createDirectBookingOnBehalfAction(
       code: villas.unitCode,
     })
     .from(villas)
-    .where(eq(villas.id, data.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(villas.id, data.villaId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!villa) return { ok: false, error: "Villa not found." };
 
