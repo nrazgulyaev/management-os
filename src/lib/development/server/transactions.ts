@@ -1,8 +1,12 @@
 import "server-only";
 
-import { eq, sql, and, gte, lte, desc, isNull } from "drizzle-orm";
+import { eq, sql, and, or, gte, lte, desc, isNull, ilike } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { devTransactions } from "@/lib/db/schema/dev-finance";
+import {
+  devTransactions,
+  devCostCategories,
+} from "@/lib/db/schema/dev-finance";
 import type { SupportedCurrency } from "@/lib/development/constants/investor-constants";
 
 const toStr = (v: unknown): string =>
@@ -31,6 +35,7 @@ export interface TransactionListItem {
   relatedDistributionId: string | null;
   reconciledAt: string | null;
   bankStatementLineRef: string | null;
+  taxClassificationStatus: string;
 }
 
 export interface TransactionFilters {
@@ -41,15 +46,30 @@ export interface TransactionFilters {
   fromDate?: string;
   toDate?: string;
   reconciled?: boolean;
+  /**
+   * CFO-LEDGER: free-text search over description, counterparty name,
+   * external reference, transaction code and notes (server-side ILIKE).
+   */
+  search?: string;
+  /**
+   * TENANT-1 follow-on: optional org scope for read queries. Callers
+   * that have an org context (e.g. the transactions ledger page)
+   * should pass it; legacy callers keep their previous behavior.
+   */
+  organizationId?: string;
 }
 
-export async function getTransactions(
-  filters: TransactionFilters = {},
-  pagination: { limit?: number; offset?: number } = {},
-): Promise<TransactionListItem[]> {
-  const db = getDb();
-  if (!db) return [];
-  const conditions = [];
+/** Escape ILIKE wildcards in user input (Postgres default escape is `\`). */
+function escapeLikePattern(input: string): string {
+  return input.replace(/[\\%_]/g, (m) => `\\${m}`);
+}
+
+function buildTransactionConditions(filters: TransactionFilters): SQL[] {
+  const conditions: SQL[] = [];
+  if (filters.organizationId)
+    conditions.push(
+      eq(devTransactions.organizationId, filters.organizationId),
+    );
   if (filters.bankAccountId)
     conditions.push(eq(devTransactions.bankAccountId, filters.bankAccountId));
   if (filters.projectId)
@@ -66,6 +86,28 @@ export async function getTransactions(
     conditions.push(sql`${devTransactions.reconciledAt} IS NOT NULL`);
   if (filters.reconciled === false)
     conditions.push(isNull(devTransactions.reconciledAt));
+  const search = filters.search?.trim();
+  if (search) {
+    const pattern = `%${escapeLikePattern(search)}%`;
+    const searchCond = or(
+      ilike(devTransactions.description, pattern),
+      ilike(devTransactions.counterpartyName, pattern),
+      ilike(devTransactions.externalReference, pattern),
+      ilike(devTransactions.transactionCode, pattern),
+      ilike(devTransactions.notes, pattern),
+    );
+    if (searchCond) conditions.push(searchCond);
+  }
+  return conditions;
+}
+
+export async function getTransactions(
+  filters: TransactionFilters = {},
+  pagination: { limit?: number; offset?: number } = {},
+): Promise<TransactionListItem[]> {
+  const db = getDb();
+  if (!db) return [];
+  const conditions = buildTransactionConditions(filters);
 
   const where = conditions.length ? and(...conditions) : undefined;
   const limit = pagination.limit ?? 100;
@@ -102,7 +144,120 @@ export async function getTransactions(
     relatedDistributionId: r.relatedDistributionId ?? null,
     reconciledAt: r.reconciledAt ? new Date(r.reconciledAt).toISOString() : null,
     bankStatementLineRef: r.bankStatementLineRef ?? null,
+    taxClassificationStatus: r.taxClassificationStatus ?? "unclassified",
   }));
+}
+
+// -----------------------------------------------------------------------------
+// CFO-LEDGER — aggregate summary for the transactions ledger page.
+// Computes Income / Expense / Profit / count plus the per-category
+// expense breakdown for the SAME filter set as `getTransactions`, so
+// the KPI strip and the breakdown rail stay exact even when the table
+// itself is capped at N rows.
+// -----------------------------------------------------------------------------
+
+export interface ExpenseCategorySlice {
+  categoryId: string | null;
+  categoryCode: string | null;
+  displayName: string | null;
+  amountUsdMinor: string;
+}
+
+export interface TransactionLedgerSummary {
+  /** Sum of inflow USD-minor in the filtered window. */
+  incomeUsdMinor: string;
+  /** Sum of outflow USD-minor in the filtered window. */
+  expenseUsdMinor: string;
+  /** income − expense (internal transfers excluded from both sides). */
+  profitUsdMinor: string;
+  inflowCount: number;
+  outflowCount: number;
+  /** All matching rows, including internal transfers. */
+  txCount: number;
+  /** Outflow totals per cost category, largest first. */
+  expenseByCategory: ExpenseCategorySlice[];
+}
+
+const EMPTY_LEDGER_SUMMARY: TransactionLedgerSummary = {
+  incomeUsdMinor: "0",
+  expenseUsdMinor: "0",
+  profitUsdMinor: "0",
+  inflowCount: 0,
+  outflowCount: 0,
+  txCount: 0,
+  expenseByCategory: [],
+};
+
+export async function getTransactionLedgerSummary(
+  filters: TransactionFilters = {},
+): Promise<TransactionLedgerSummary> {
+  const db = getDb();
+  if (!db) return EMPTY_LEDGER_SUMMARY;
+  const conditions = buildTransactionConditions(filters);
+  const where = conditions.length ? and(...conditions) : undefined;
+
+  const rows = await db
+    .select({
+      direction: devTransactions.direction,
+      categoryId: devTransactions.categoryId,
+      categoryCode: devCostCategories.categoryCode,
+      displayName: devCostCategories.displayName,
+      totalUsdMinor: sql<string>`coalesce(sum(${devTransactions.amountUsdMinor}), 0)::bigint`,
+      rowCount: sql<number>`count(*)::int`,
+    })
+    .from(devTransactions)
+    .leftJoin(
+      devCostCategories,
+      eq(devCostCategories.id, devTransactions.categoryId),
+    )
+    .where(where)
+    .groupBy(
+      devTransactions.direction,
+      devTransactions.categoryId,
+      devCostCategories.categoryCode,
+      devCostCategories.displayName,
+    );
+
+  let income = 0n;
+  let expense = 0n;
+  let inflowCount = 0;
+  let outflowCount = 0;
+  let txCount = 0;
+  const expenseByCategory: ExpenseCategorySlice[] = [];
+
+  for (const r of rows) {
+    const total = BigInt(toStr(r.totalUsdMinor));
+    const count = Number(r.rowCount ?? 0);
+    txCount += count;
+    if (r.direction === "inflow") {
+      income += total;
+      inflowCount += count;
+    } else if (r.direction === "outflow") {
+      expense += total;
+      outflowCount += count;
+      expenseByCategory.push({
+        categoryId: r.categoryId ?? null,
+        categoryCode: r.categoryCode ?? null,
+        displayName: r.displayName ?? null,
+        amountUsdMinor: total.toString(),
+      });
+    }
+  }
+
+  expenseByCategory.sort((a, b) => {
+    const diff = BigInt(b.amountUsdMinor) - BigInt(a.amountUsdMinor);
+    return diff > 0n ? 1 : diff < 0n ? -1 : 0;
+  });
+
+  return {
+    incomeUsdMinor: income.toString(),
+    expenseUsdMinor: expense.toString(),
+    profitUsdMinor: (income - expense).toString(),
+    inflowCount,
+    outflowCount,
+    txCount,
+    expenseByCategory,
+  };
 }
 
 export interface TransactionMetricsByCategory {

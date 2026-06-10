@@ -1,17 +1,24 @@
 "use server";
 
-import { and, eq, lte, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { taxTypes, taxPeriodReports } from "@/lib/db/schema/tax";
 import { devTransactions } from "@/lib/db/schema/dev-finance";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
+import { recordAuditEvent } from "@/features/audit/services";
 
 /**
  * Tax module actions. Tax types are operator-configurable (NOT
  * hardcoded). Period reports are aggregated by a cron job; operator
- * finalises manually.
+ * finalises manually, then files with DJP (Indonesia tax authority) —
+ * the ID-TAX lifecycle added by migration 0164:
+ *
+ *   draft → finalized → submitted → FILED (filed_at + djp_reference)
+ *
+ * "Filed" is derived (filedAt IS NOT NULL); period close is gated on it
+ * (see src/lib/development/server/tax/filing-gate.ts).
  */
 
 const upsertTypeSchema = z.object({
@@ -141,18 +148,70 @@ const generateReportSchema = z.object({
 });
 
 /**
- * Generate (or refresh) a tax_period_report by aggregating
- * dev_transactions in the window. Idempotent on
- * (tax_type_id, period_start, period_end).
+ * ID-TAX (0164) — direction classification for a tax type.
+ *
+ * `tax_types` has no structural category column, so the ONLY honest
+ * signal for "is this a VAT / a withholding tax" is the operator-set
+ * type_key + display_name (seeded keys: 'ppn_indonesia',
+ * 'pph23_withholding', 'lease_tax_bali', 'corporate_income_tax').
+ * The match is documented + conservative: anything not recognisably
+ * VAT/withholding stays 'general' (one direction-less report — exactly
+ * the pre-0164 behaviour).
  */
-export async function generateTaxPeriodReport(
-  input: z.input<typeof generateReportSchema>,
-): Promise<{ id: string; transactionCount: number }> {
-  const parsed = generateReportSchema.parse(input);
-  await requireInternalUser();
-  const db = requireDb();
-  // HF-5: tax_period_reports is multi-tenant (migration 0072).
-  const organizationId = await requireOrgId();
+type TaxDirectionKind = "vat" | "withholding" | "general";
+
+function taxDirectionKind(t: {
+  typeKey: string;
+  displayName: string;
+}): TaxDirectionKind {
+  const key = `${t.typeKey} ${t.displayName}`.toLowerCase();
+  if (key.includes("ppn") || key.includes("vat")) return "vat";
+  if (key.includes("pph") || key.includes("withhold")) return "withholding";
+  return "general";
+}
+
+/**
+ * ID-TAX (0164) — VAT direction is derived from dev_transactions.direction:
+ *   * 'inflow'  → OUTPUT VAT (e-Faktur PPN Keluaran): money received from a
+ *     sale, the 11% PPN on it was COLLECTED from the customer and is owed
+ *     to DJP.
+ *   * 'outflow' → INPUT VAT (e-Faktur PPN Masukan): money paid to a
+ *     supplier, the PPN on it was PAID and is creditable against output.
+ *   * 'internal_transfer' → excluded from VAT reports entirely (moving
+ *     money between own accounts is not a taxable supply).
+ * Withholding (PPh) and general types aggregate ALL directions, exactly
+ * like the pre-0164 aggregation, so non-VAT numbers do not shift.
+ */
+const VAT_DIRECTION_FILTER: Record<"output" | "input", string> = {
+  output: "inflow",
+  input: "outflow",
+};
+
+interface GeneratedReportResult {
+  id: string;
+  vatDirection: "output" | "input" | "withholding" | null;
+  transactionCount: number;
+  /** True when the row was left untouched because it is submitted/filed. */
+  skipped: boolean;
+  skipReason?: string;
+}
+
+async function aggregateWindow(
+  db: ReturnType<typeof requireDb>,
+  args: {
+    organizationId: string;
+    taxTypeId: string;
+    periodStart: string;
+    periodEnd: string;
+    /** dev_transactions.direction to restrict to (VAT split), or null = all. */
+    txnDirection: string | null;
+  },
+): Promise<{
+  txnCount: number;
+  unclassCount: number;
+  taxable: bigint;
+  taxTotal: bigint;
+}> {
   const [agg] = await db.execute<{
     txn_count: number;
     unclass_count: number;
@@ -165,39 +224,251 @@ export async function generateTaxPeriodReport(
       coalesce(sum(amount_usd_minor), 0)::text AS taxable,
       coalesce(sum(tax_amount_minor), 0)::text AS tax_total
     FROM dev_transactions
-    WHERE transaction_date >= ${parsed.periodStart}::date
-      AND transaction_date <= ${parsed.periodEnd}::date
-      AND tax_type_id = ${parsed.taxTypeId}
+    WHERE transaction_date >= ${args.periodStart}::date
+      AND transaction_date <= ${args.periodEnd}::date
+      AND tax_type_id = ${args.taxTypeId}
+      AND organization_id = ${args.organizationId}
+      ${args.txnDirection ? sql`AND direction = ${args.txnDirection}` : sql``}
   `);
-  const [row] = await db
-    .insert(taxPeriodReports)
-    .values({
+  return {
+    txnCount: agg?.txn_count ?? 0,
+    unclassCount: agg?.unclass_count ?? 0,
+    taxable: BigInt(agg?.taxable ?? "0"),
+    taxTotal: BigInt(agg?.tax_total ?? "0"),
+  };
+}
+
+/**
+ * Generate (or refresh) the tax_period_report(s) for one tax type ×
+ * period by aggregating dev_transactions in the window.
+ *
+ * 0164 changes vs the original:
+ *   1. VAT-class types (PPN) produce TWO reports — vat_direction 'output'
+ *      (inflow transactions) and 'input' (outflow) — see the direction
+ *      mapping doc above. PPh-class → one 'withholding' report; everything
+ *      else → one direction-less report (legacy behaviour).
+ *   2. The blind ON CONFLICT upsert is gone: a report that is already
+ *      submitted or filed is NEVER overwritten (returned as skipped) —
+ *      closes the admitted cron-overwrite integrity hole.
+ *   3. The aggregation window is org-scoped (it previously summed
+ *      dev_transactions across ALL organizations into the caller's report).
+ *   4. When a VAT type is split, a leftover pre-0164 direction-less DRAFT
+ *      row for the same (type, period) is archived (it mixed both
+ *      directions); finalized/submitted legacy rows are left untouched.
+ *
+ * Return shape stays cron-compatible: `id` + `transactionCount` (sum over
+ * generated rows), plus the per-direction breakdown in `results`.
+ */
+export async function generateTaxPeriodReport(
+  input: z.input<typeof generateReportSchema>,
+): Promise<{
+  id: string;
+  transactionCount: number;
+  results: GeneratedReportResult[];
+}> {
+  const parsed = generateReportSchema.parse(input);
+  await requireInternalUser();
+  const db = requireDb();
+  // HF-5: tax_period_reports is multi-tenant (migration 0072).
+  const organizationId = await requireOrgId();
+
+  const [taxType] = await db
+    .select({
+      id: taxTypes.id,
+      typeKey: taxTypes.typeKey,
+      displayName: taxTypes.displayName,
+    })
+    .from(taxTypes)
+    .where(eq(taxTypes.id, parsed.taxTypeId))
+    .limit(1);
+  if (!taxType) throw new Error("Tax type not found.");
+
+  const kind = taxDirectionKind(taxType);
+  const targets: Array<"output" | "input" | "withholding" | null> =
+    kind === "vat"
+      ? ["output", "input"]
+      : kind === "withholding"
+        ? ["withholding"]
+        : [null];
+
+  const results: GeneratedReportResult[] = [];
+
+  for (const direction of targets) {
+    const txnDirection =
+      direction === "output" || direction === "input"
+        ? VAT_DIRECTION_FILTER[direction]
+        : null;
+    const agg = await aggregateWindow(db, {
       organizationId,
       taxTypeId: parsed.taxTypeId,
       periodStart: parsed.periodStart,
       periodEnd: parsed.periodEnd,
-      totalTaxableAmountMinor: BigInt(agg?.taxable ?? "0"),
-      totalTaxAmountMinor: BigInt(agg?.tax_total ?? "0"),
-      transactionCount: agg?.txn_count ?? 0,
-      unclassifiedTransactionCount: agg?.unclass_count ?? 0,
-    })
-    .onConflictDoUpdate({
-      target: [
-        taxPeriodReports.taxTypeId,
-        taxPeriodReports.periodStart,
-        taxPeriodReports.periodEnd,
-      ],
-      set: {
-        totalTaxableAmountMinor: BigInt(agg?.taxable ?? "0"),
-        totalTaxAmountMinor: BigInt(agg?.tax_total ?? "0"),
-        transactionCount: agg?.txn_count ?? 0,
-        unclassifiedTransactionCount: agg?.unclass_count ?? 0,
-        generatedAt: new Date(),
+      txnDirection,
+    });
+
+    const [existing] = await db
+      .select()
+      .from(taxPeriodReports)
+      .where(
+        and(
+          eq(taxPeriodReports.taxTypeId, parsed.taxTypeId),
+          eq(taxPeriodReports.periodStart, parsed.periodStart),
+          eq(taxPeriodReports.periodEnd, parsed.periodEnd),
+          direction === null
+            ? isNull(taxPeriodReports.vatDirection)
+            : eq(taxPeriodReports.vatDirection, direction),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      // 0164 integrity fix: never overwrite a submitted/filed declaration.
+      if (existing.status === "submitted" || existing.filedAt !== null) {
+        results.push({
+          id: existing.id,
+          vatDirection: direction,
+          transactionCount: existing.transactionCount,
+          skipped: true,
+          skipReason: existing.filedAt
+            ? "Already filed with DJP — refresh refused."
+            : "Already submitted — refresh refused.",
+        });
+        continue;
+      }
+      if (existing.organizationId !== organizationId) {
+        results.push({
+          id: existing.id,
+          vatDirection: direction,
+          transactionCount: existing.transactionCount,
+          skipped: true,
+          skipReason: "Report belongs to another organization.",
+        });
+        continue;
+      }
+      await db
+        .update(taxPeriodReports)
+        .set({
+          totalTaxableAmountMinor: agg.taxable,
+          totalTaxAmountMinor: agg.taxTotal,
+          transactionCount: agg.txnCount,
+          unclassifiedTransactionCount: agg.unclassCount,
+          generatedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(taxPeriodReports.id, existing.id));
+      results.push({
+        id: existing.id,
+        vatDirection: direction,
+        transactionCount: agg.txnCount,
+        skipped: false,
+      });
+      continue;
+    }
+
+    const [row] = await db
+      .insert(taxPeriodReports)
+      .values({
+        organizationId,
+        taxTypeId: parsed.taxTypeId,
+        periodStart: parsed.periodStart,
+        periodEnd: parsed.periodEnd,
+        vatDirection: direction,
+        totalTaxableAmountMinor: agg.taxable,
+        totalTaxAmountMinor: agg.taxTotal,
+        transactionCount: agg.txnCount,
+        unclassifiedTransactionCount: agg.unclassCount,
+      })
+      .returning({ id: taxPeriodReports.id });
+    results.push({
+      id: row.id,
+      vatDirection: direction,
+      transactionCount: agg.txnCount,
+      skipped: false,
+    });
+  }
+
+  // 0164: archive a leftover direction-less DRAFT row for a now-split VAT
+  // type — its totals mixed output+input and would double-count in KPIs.
+  if (kind === "vat") {
+    await db
+      .update(taxPeriodReports)
+      .set({
+        status: "archived",
+        notes: sql`coalesce(${taxPeriodReports.notes} || ' ', '') || '[0164] Superseded by the output/input direction split.'`,
         updatedAt: new Date(),
-      },
-    })
-    .returning({ id: taxPeriodReports.id });
-  return { id: row.id, transactionCount: agg?.txn_count ?? 0 };
+      })
+      .where(
+        and(
+          eq(taxPeriodReports.taxTypeId, parsed.taxTypeId),
+          eq(taxPeriodReports.periodStart, parsed.periodStart),
+          eq(taxPeriodReports.periodEnd, parsed.periodEnd),
+          isNull(taxPeriodReports.vatDirection),
+          eq(taxPeriodReports.status, "draft"),
+          isNull(taxPeriodReports.filedAt),
+          eq(taxPeriodReports.organizationId, organizationId),
+        ),
+      );
+  }
+
+  const generated = results.filter((r) => !r.skipped);
+  return {
+    id: (generated[0] ?? results[0]).id,
+    transactionCount: generated.reduce((n, r) => n + r.transactionCount, 0),
+    results,
+  };
+}
+
+const generatePeriodSchema = z.object({
+  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+/**
+ * ID-TAX (0164) — refresh declarations for EVERY active tax type in one
+ * period (the page's "Refresh declarations" button; same path the monthly
+ * cron walks, but operator-triggered for an arbitrary period).
+ */
+export async function generateTaxReportsForPeriod(
+  input: z.input<typeof generatePeriodSchema>,
+): Promise<
+  | { ok: true; generated: number; skipped: number }
+  | { ok: false; error: string }
+> {
+  try {
+    await requireInternalUser();
+    const parsed = generatePeriodSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: parsed.error.issues[0]?.message ?? "Invalid input",
+      };
+    }
+    const db = requireDb();
+    const types = await db
+      .select({ id: taxTypes.id })
+      .from(taxTypes)
+      .where(eq(taxTypes.isActive, true));
+    if (types.length === 0) {
+      return { ok: false, error: "No active tax types are configured." };
+    }
+    let generated = 0;
+    let skipped = 0;
+    for (const t of types) {
+      const out = await generateTaxPeriodReport({
+        taxTypeId: t.id,
+        periodStart: parsed.data.periodStart,
+        periodEnd: parsed.data.periodEnd,
+      });
+      generated += out.results.filter((r) => !r.skipped).length;
+      skipped += out.results.filter((r) => r.skipped).length;
+    }
+    return { ok: true, generated, skipped };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Generation failed.",
+    };
+  }
 }
 
 // =========================================================================
@@ -243,10 +514,16 @@ export async function findUnclassifiedTransactions(opts?: {
 
 export async function listTaxPeriodReports() {
   const db = requireDb();
+  // 0164: org-scoped like sibling reads (was unscoped).
+  const organizationId = await requireOrgId();
   return await db
     .select()
     .from(taxPeriodReports)
-    .orderBy(sql`${taxPeriodReports.periodStart} desc`);
+    .where(eq(taxPeriodReports.organizationId, organizationId))
+    .orderBy(
+      desc(taxPeriodReports.periodStart),
+      taxPeriodReports.vatDirection,
+    );
 }
 
 const finalizeReportSchema = z.object({
@@ -316,6 +593,238 @@ export async function finalizeTaxPeriodReport(
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Finalize failed." };
+  }
+}
+
+// =========================================================================
+// ID-TAX (0164) — DJP filing
+// =========================================================================
+
+/** Mock-parity DJP reference: DJP-<yyyymm>-<6 digits> (Accounting.html). */
+function generateDjpReference(periodEnd: string): string {
+  const compact = periodEnd.slice(0, 7).replace("-", "");
+  const rand = Math.floor(100000 + Math.random() * 900000);
+  return `DJP-${compact}-${rand}`;
+}
+
+const markFiledSchema = z.object({
+  id: z.string().uuid(),
+  /** Optional operator-supplied DJP reference; auto-generated when blank. */
+  djpReference: z.string().trim().min(3).max(120).optional(),
+});
+
+/**
+ * Mark one tax declaration as FILED with DJP. Auth-gated like finalize;
+ * requires the report to be finalized (or already submitted) first; stamps
+ * filed_at / filed_by_user_id / djp_reference; audited. Filing implies
+ * submission, so a finalized report is bumped to 'submitted' here.
+ */
+export async function markTaxPeriodReportFiled(
+  input: z.input<typeof markFiledSchema>,
+): Promise<
+  { ok: true; djpReference: string } | { ok: false; error: string }
+> {
+  try {
+    const ctx = await requireInternalUser();
+    const parsed = markFiledSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: parsed.error.issues[0]?.message ?? "Invalid input",
+      };
+    }
+    const db = requireDb();
+    const organizationId = await requireOrgId();
+
+    const [report] = await db
+      .select()
+      .from(taxPeriodReports)
+      .where(
+        and(
+          eq(taxPeriodReports.id, parsed.data.id),
+          eq(taxPeriodReports.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!report) return { ok: false, error: "Report not found." };
+    if (report.filedAt) {
+      return {
+        ok: false,
+        error: `Already filed (${report.djpReference ?? "no reference"}).`,
+      };
+    }
+    if (report.status !== "finalized" && report.status !== "submitted") {
+      return {
+        ok: false,
+        error: "Finalize the declaration before filing with DJP.",
+      };
+    }
+
+    const djpReference =
+      parsed.data.djpReference ?? generateDjpReference(report.periodEnd);
+    const now = new Date();
+    await db
+      .update(taxPeriodReports)
+      .set({
+        status: "submitted",
+        submittedAt: report.submittedAt ?? now,
+        filedAt: now,
+        filedByUserId: ctx.appUser?.id ?? null,
+        djpReference,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(taxPeriodReports.id, parsed.data.id),
+          eq(taxPeriodReports.organizationId, organizationId),
+        ),
+      );
+
+    await recordAuditEvent({
+      actorUserId: ctx.appUser?.id ?? null,
+      organizationId,
+      action: "tax_report.mark_filed",
+      entityType: "tax_period_report",
+      entityId: report.id,
+      before: { status: report.status, djpReference: report.djpReference },
+      after: {
+        status: "submitted",
+        filedAt: now.toISOString(),
+        djpReference,
+        vatDirection: report.vatDirection,
+        period: `${report.periodStart} → ${report.periodEnd}`,
+        totalTaxAmountMinor: report.totalTaxAmountMinor.toString(),
+      },
+    });
+    return { ok: true, djpReference };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Mark-filed failed.",
+    };
+  }
+}
+
+const filePeriodSchema = z.object({
+  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** Optional shared DJP reference for the whole filing batch. */
+  djpReference: z.string().trim().min(3).max(120).optional(),
+});
+
+/**
+ * "File taxes" (mock parity) — file EVERY finalized/submitted, not-yet-filed
+ * declaration of the period in one shot, stamping one shared DJP reference
+ * (the mock stamps a single ref for the whole filing). Refuses while any
+ * declaration with nonzero tax is still a draft — a partial filing must not
+ * unlock period close.
+ */
+export async function fileTaxesForPeriod(
+  input: z.input<typeof filePeriodSchema>,
+): Promise<
+  | { ok: true; filed: number; djpReference: string }
+  | { ok: false; error: string }
+> {
+  try {
+    const ctx = await requireInternalUser();
+    const parsed = filePeriodSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: parsed.error.issues[0]?.message ?? "Invalid input",
+      };
+    }
+    const db = requireDb();
+    const organizationId = await requireOrgId();
+
+    const reports = await db
+      .select()
+      .from(taxPeriodReports)
+      .where(
+        and(
+          eq(taxPeriodReports.organizationId, organizationId),
+          eq(taxPeriodReports.periodStart, parsed.data.periodStart),
+          eq(taxPeriodReports.periodEnd, parsed.data.periodEnd),
+          sql`${taxPeriodReports.status} <> 'archived'`,
+        ),
+      );
+    if (reports.length === 0) {
+      return {
+        ok: false,
+        error:
+          "No tax declarations exist for this period. Generate reports first.",
+      };
+    }
+
+    const blockingDrafts = reports.filter(
+      (r) =>
+        !r.filedAt &&
+        r.status !== "finalized" &&
+        r.status !== "submitted" &&
+        r.totalTaxAmountMinor !== 0n,
+    );
+    if (blockingDrafts.length > 0) {
+      return {
+        ok: false,
+        error: `Finalize these declarations first: ${blockingDrafts
+          .map((r) => r.vatDirection ?? "aggregate")
+          .join(", ")}.`,
+      };
+    }
+
+    const eligible = reports.filter(
+      (r) =>
+        !r.filedAt && (r.status === "finalized" || r.status === "submitted"),
+    );
+    if (eligible.length === 0) {
+      return {
+        ok: false,
+        error: "Nothing to file — every declaration is already filed.",
+      };
+    }
+
+    const djpReference =
+      parsed.data.djpReference ?? generateDjpReference(parsed.data.periodEnd);
+    const now = new Date();
+    for (const r of eligible) {
+      await db
+        .update(taxPeriodReports)
+        .set({
+          status: "submitted",
+          submittedAt: r.submittedAt ?? now,
+          filedAt: now,
+          filedByUserId: ctx.appUser?.id ?? null,
+          djpReference,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(taxPeriodReports.id, r.id),
+            eq(taxPeriodReports.organizationId, organizationId),
+          ),
+        );
+    }
+
+    await recordAuditEvent({
+      actorUserId: ctx.appUser?.id ?? null,
+      organizationId,
+      action: "tax_report.file_period",
+      entityType: "tax_period_report",
+      entityId: eligible[0].id,
+      after: {
+        djpReference,
+        filedAt: now.toISOString(),
+        period: `${parsed.data.periodStart} → ${parsed.data.periodEnd}`,
+        reportIds: eligible.map((r) => r.id),
+        directions: eligible.map((r) => r.vatDirection ?? "aggregate"),
+      },
+    });
+    return { ok: true, filed: eligible.length, djpReference };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "File taxes failed.",
+    };
   }
 }
 

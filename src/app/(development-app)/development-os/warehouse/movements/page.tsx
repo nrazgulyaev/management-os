@@ -79,6 +79,7 @@ export default async function WarehouseMovementsLogPage({
   searchParams: Promise<{
     type?: string;
     item?: string;
+    q?: string;
     from?: string;
     to?: string;
   }>;
@@ -110,6 +111,7 @@ export default async function WarehouseMovementsLogPage({
   const dateFrom = isoOrUndefined(params.from);
   const dateTo = isoOrUndefined(params.to);
   const itemFilter = params.item || undefined;
+  const skuSearch = params.q?.trim().slice(0, 80) || undefined;
 
   const [movements, typeCounts, items] = await Promise.all([
     safeQuery(
@@ -118,6 +120,7 @@ export default async function WarehouseMovementsLogPage({
         organizationId,
         movementType: typeFilter,
         itemId: itemFilter,
+        q: skuSearch,
         dateFrom,
         dateTo,
         limit: 300,
@@ -145,7 +148,9 @@ export default async function WarehouseMovementsLogPage({
     (m) => m.movementType === "adjusted" || m.movementType === "transferred",
   ).length;
   const totalAll = typeCounts.reduce((acc, t) => acc + t.count, 0);
-  const hasFilter = Boolean(typeFilter || itemFilter || dateFrom || dateTo);
+  const hasFilter = Boolean(
+    typeFilter || itemFilter || skuSearch || dateFrom || dateTo,
+  );
 
   return (
     <DevelopmentShell>
@@ -237,6 +242,16 @@ export default async function WarehouseMovementsLogPage({
                 </option>
               ))}
             </select>
+          </label>
+          <label className="field">
+            <span className="field-label">SKU search</span>
+            <input
+              type="search"
+              name="q"
+              defaultValue={skuSearch ?? ""}
+              placeholder="SKU or name…"
+              className="input"
+            />
           </label>
           <label className="field">
             <span className="field-label">From</span>

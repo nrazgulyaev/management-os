@@ -10,23 +10,19 @@ import { requireOrgId } from "@/features/auth/require-org";
 import { safeQuery } from "@/lib/development/safe-query";
 import {
   listWarehouseLocations,
+  listWarehouseLocationOccupancy,
   type WarehouseLocationRow,
 } from "@/lib/development/server/warehouse/warehouse-flow-queries";
 
 /**
  * build-warehouse-flow — /warehouse/bins.
  *
- * HONEST-STATE bin map. The mock's variant-C bin grid wants per-cell
- * bins with zone + capacity + current occupancy. The real
- * dev_os_inventory_locations table has NO bin/zone/capacity columns —
- * only location_code, display_name, location_type, project_id. So the
- * true bin-grid (capacity gauges per cell) genuinely has no backing data.
- *
- * Rather than fabricate it, this route shows what DOES exist — the org's
- * locations grouped by location_type as "zones" — and an honest
- * coming-soon affordance for the capacity/occupancy bin grid, which
- * would require a schema migration (zone, capacity_units, current_qty)
- * that is intentionally NOT added here. No new tables.
+ * Bin map over real data. Locations grouped by location_type as "zones";
+ * each cell shows live occupancy (distinct stocked SKUs + total on-hand)
+ * aggregated from dev_os_inventory_stock_balances. What stays honestly
+ * absent: capacity — dev_os_inventory_locations has NO capacity_units
+ * column, so utilisation gauges remain a coming-soon affordance rather
+ * than fabricated data. No new tables.
  */
 
 export const metadata: Metadata = {
@@ -76,11 +72,22 @@ export default async function WarehouseBinsPage() {
   }
 
   const organizationId = await requireOrgId();
-  const locations = await safeQuery(
-    "warehouseLocations",
-    listWarehouseLocations(organizationId),
-    [] as WarehouseLocationRow[],
-    4000,
+  const [locations, occupancy] = await Promise.all([
+    safeQuery(
+      "warehouseLocations",
+      listWarehouseLocations(organizationId),
+      [] as WarehouseLocationRow[],
+      4000,
+    ),
+    safeQuery(
+      "warehouseLocationOccupancy",
+      listWarehouseLocationOccupancy(organizationId),
+      [],
+      4000,
+    ),
+  ]);
+  const occupancyByLocation = new Map(
+    occupancy.map((o) => [o.locationId, o]),
   );
 
   // Group by location_type — the nearest real concept to the mock's
@@ -98,6 +105,9 @@ export default async function WarehouseBinsPage() {
   const warehouseCount = locations.filter(
     (l) => l.locationType === "warehouse",
   ).length;
+  const occupiedCount = locations.filter(
+    (l) => (occupancyByLocation.get(l.id)?.stockedItemCount ?? 0) > 0,
+  ).length;
 
   return (
     <DevelopmentShell>
@@ -114,7 +124,7 @@ export default async function WarehouseBinsPage() {
           </div>
         </div>
         <div className="actions">
-          <ComingSoon note="Per-cell bin grid with capacity gauges needs a schema migration (zone, capacity_units, current_qty). Not added in this build.">
+          <ComingSoon note="Capacity gauges (utilisation %) need a schema migration adding capacity_units to locations. Occupancy below is already live from stock balances.">
             <button type="button" className="btn btn-amber btn-sm">
               + Bin
             </button>
@@ -129,17 +139,18 @@ export default async function WarehouseBinsPage() {
       <div className="card card-pad">
         <p className="text-sm text-ink-secondary leading-relaxed">
           <strong className="text-ink font-medium">
-            Honest state — locations, not capacity bins.
+            Live occupancy, honest capacity.
           </strong>{" "}
-          The current schema (
-          <code className="font-mono text-xs">dev_os_inventory_locations</code>)
-          stores location code, name, type, and project — but no zone,
-          capacity, or per-cell occupancy. So this page maps the{" "}
-          <em>real</em> locations grouped by type; the full capacity bin grid
-          (occupancy gauges per cell, putaway planner) is deferred until a
-          migration adds <code className="font-mono text-xs">zone</code>,{" "}
-          <code className="font-mono text-xs">capacity_units</code>, and{" "}
-          <code className="font-mono text-xs">current_qty</code>.
+          Each cell maps a real location (
+          <code className="font-mono text-xs">dev_os_inventory_locations</code>
+          ) grouped by type as zones, with live occupancy — stocked SKUs +
+          units on hand — aggregated from{" "}
+          <code className="font-mono text-xs">
+            dev_os_inventory_stock_balances
+          </code>
+          . Capacity gauges (utilisation %) stay deferred: the schema has no{" "}
+          <code className="font-mono text-xs">capacity_units</code> column and
+          this build does not fabricate one.
         </p>
       </div>
 
@@ -157,7 +168,12 @@ export default async function WarehouseBinsPage() {
           sub="storage points"
           tone={warehouseCount > 0 ? "gold" : undefined}
         />
-        <Kpi label="Capacity" value="—" sub="needs migration" />
+        <Kpi
+          label="Occupied"
+          value={occupiedCount || "—"}
+          sub="holding stock"
+          tone={occupiedCount > 0 ? "success" : undefined}
+        />
       </div>
 
       {locations.length === 0 ? (
@@ -179,27 +195,40 @@ export default async function WarehouseBinsPage() {
                 </HandoffBadge>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {locs.map((l) => (
-                  <div
-                    key={l.id}
-                    className="card card-pad flex flex-col gap-1 min-w-0"
-                  >
-                    <span className="font-mono text-xs text-ink-secondary truncate">
-                      {l.locationCode}
-                    </span>
-                    <span className="text-sm font-medium text-ink truncate">
-                      {l.displayName}
-                    </span>
-                    {l.projectName ? (
-                      <span className="text-xs text-ink-tertiary truncate">
-                        {l.projectName}
+                {locs.map((l) => {
+                  const occ = occupancyByLocation.get(l.id);
+                  const stocked = occ?.stockedItemCount ?? 0;
+                  const onHand = occ?.totalOnHand ?? 0;
+                  return (
+                    <div
+                      key={l.id}
+                      className="card card-pad flex flex-col gap-1 min-w-0"
+                    >
+                      <span className="font-mono text-xs text-ink-secondary truncate">
+                        {l.locationCode}
                       </span>
-                    ) : null}
-                    <span className="text-xs text-ink-tertiary">
-                      occupancy —
-                    </span>
-                  </div>
-                ))}
+                      <span className="text-sm font-medium text-ink truncate">
+                        {l.displayName}
+                      </span>
+                      {l.projectName ? (
+                        <span className="text-xs text-ink-tertiary truncate">
+                          {l.projectName}
+                        </span>
+                      ) : null}
+                      {stocked > 0 ? (
+                        <span className="text-xs text-ink-secondary tabular-nums">
+                          {stocked} SKU{stocked === 1 ? "" : "s"} ·{" "}
+                          {onHand.toLocaleString("en-US", {
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          on hand
+                        </span>
+                      ) : (
+                        <span className="text-xs text-ink-tertiary">empty</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </section>
           ))}

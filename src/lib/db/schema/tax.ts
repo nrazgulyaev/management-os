@@ -7,6 +7,7 @@
  * `tax_type_id` column added in migration 0046.
  */
 
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   uuid,
@@ -18,6 +19,7 @@ import {
   bigint,
   integer,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { appUsers } from "./identity";
 import { organizations } from "./saas";
@@ -119,6 +121,23 @@ export const taxPeriodReports = pgTable(
     }),
     submittedAt: timestamp("submitted_at", { withTimezone: true }),
 
+    /**
+     * ID-TAX (migration 0164) — Indonesia filing lifecycle.
+     * vatDirection: 'output' (e-Faktur PPN Keluaran, VAT on sales) |
+     * 'input' (e-Faktur PPN Masukan, creditable VAT on purchases) |
+     * 'withholding' (e-Bupot PPh) | NULL (legacy / direction-less aggregate
+     * such as lease tax or corporate income tax).
+     * "Filed" is DERIVED: filedAt IS NOT NULL (the 0046 status CHECK is
+     * untouched). djpReference is the DJP filing reference stamped by the
+     * mark-filed action.
+     */
+    vatDirection: text("vat_direction"),
+    djpReference: text("djp_reference"),
+    filedAt: timestamp("filed_at", { withTimezone: true }),
+    filedByUserId: uuid("filed_by_user_id").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+
     notes: text("notes"),
 
     generatedAt: timestamp("generated_at", { withTimezone: true })
@@ -131,6 +150,17 @@ export const taxPeriodReports = pgTable(
   (t) => [
     index("tax_period_reports_period_idx").on(t.periodStart, t.periodEnd),
     index("tax_period_reports_status_idx").on(t.status),
+    // 0164: replaces the 0046 UNIQUE (tax_type_id, period_start, period_end)
+    // constraint — COALESCE keeps direction-less rows unique per type+period
+    // while allowing the output/input split for VAT-class types.
+    uniqueIndex("tax_period_reports_type_period_direction_unique").on(
+      t.taxTypeId,
+      t.periodStart,
+      t.periodEnd,
+      sql`coalesce(${t.vatDirection}, 'all')`,
+    ),
+    index("tax_period_reports_filed_idx").on(t.filedAt),
+    index("tax_period_reports_organization_idx").on(t.organizationId),
   ],
 );
 

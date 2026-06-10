@@ -8,6 +8,10 @@ import { bankTransactions, reconciliationRules } from "@/lib/db/schema/banking";
 import { requireOrgId } from "@/features/auth/require-org";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import {
+  findUnfiledTaxDeclarations,
+  describeUnfiledDeclaration,
+} from "@/lib/development/server/tax/filing-gate";
+import {
   closePeriod,
   reopenPeriod,
   runAutoReconciliation,
@@ -252,6 +256,28 @@ export async function closePeriodAction(formData: FormData): Promise<void> {
   if (!user) {
     console.error("closePeriodAction: no current user");
     return;
+  }
+  // ID-TAX gate (migration 0164): a period cannot be closed until every tax
+  // declaration overlapping it (nonzero tax, non-archived) is FILED with DJP
+  // (filed_at stamped via markTaxPeriodReportFiled / fileTaxesForPeriod).
+  const taxGate = await findUnfiledTaxDeclarations(
+    orgId,
+    parsed.data.periodStart,
+    parsed.data.periodEnd,
+  );
+  if (taxGate.unfiled.length > 0) {
+    console.error(
+      "closePeriodAction: blocked — file these tax declarations first:",
+      taxGate.unfiled.map(describeUnfiledDeclaration).join("; "),
+    );
+    return;
+  }
+  if (taxGate.total === 0) {
+    console.warn(
+      "closePeriodAction: no tax period reports overlap " +
+        `${parsed.data.periodStart} → ${parsed.data.periodEnd} — ` +
+        "closing without tax filings on record.",
+    );
   }
   const r = await closePeriod({
     organizationId: orgId,
