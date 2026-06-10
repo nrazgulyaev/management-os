@@ -1,9 +1,11 @@
 # Arconique Management OS — Design System
 
-**Status:** v0 Blueprint
-**Last revised:** 2026-04-24
+**Status:** As-built (revised)
+**Last revised:** 2026-06-10
 
-This is the design contract for the platform. It defines how Arconique Management OS looks, feels, and moves — across the marketing site, admin dashboard, owner portal, guest portal, and staff field PWA. The system is premium, editorial, calm, and investment-grade. It is explicitly not a generic SaaS dashboard.
+This is the design contract for the platform. It describes what is **actually shipped** after the full pixel-redesign pass — not the original v0 blueprint. It documents the token architecture, the per-product palettes as implemented, and the primitive map a contributor reaches for. The companion `docs/DESIGN-SYSTEM-BUILD-PROMPT.md` carries the functional build contract (10 P0 blocks, competitor-parity mandate); this doc is the visual/structural reference.
+
+> The system is premium, editorial, calm, and investment-grade. It is explicitly not a generic SaaS dashboard. The philosophy and "do-not" sections below survive from the original blueprint; the color, token, typography, and component sections have been rewritten to match the code.
 
 ---
 
@@ -11,12 +13,12 @@ This is the design contract for the platform. It defines how Arconique Managemen
 
 1. **Editorial, not industrial.** Fewer elements, more whitespace, stronger typography. The product reads like a private-wealth quarterly, not a CRM.
 2. **Calm over alarm.** Status is communicated through hierarchy and tone — red is earned, not decorative.
-3. **Restraint as signal.** We use one accent color at a time, one chart style per context, and one motion language across surfaces.
+3. **Restraint as signal.** One accent color at a time, one chart style per context, one motion language across surfaces.
 4. **Data is the hero.** Numbers are large, typography is refined, columns align, tables breathe.
-5. **Surface-appropriate density.** Marketing is airy and cinematic; admin is efficient but never crowded; owner portal is statement-grade; guest portal is boutique-hotel-app; field is one-thumb-operable with large hit targets.
+5. **Surface-appropriate density.** Management is efficient but never crowded; owner portal is statement-grade; development OS is engineering-dense; guest portal is boutique-hotel; platform admin is a dry operator console.
 6. **Motion explains, it does not entertain.** Transitions clarify change; nothing bounces for decoration.
-7. **Brand-owned primitives.** We start from Radix + shadcn, but we rename, restyle, and wrap them. The product never reads as "stock shadcn".
-8. **Everything works dark and light.** Tokens first; components never hard-code color.
+7. **Brand-owned primitives.** We start from Radix + shadcn scaffolding, but we rename, restyle, and wrap them. The product never reads as "stock shadcn".
+8. **One product, many palettes.** A single Next app renders five distinct visual identities driven entirely by tokens — components never hard-code color.
 
 ---
 
@@ -24,12 +26,12 @@ This is the design contract for the platform. It defines how Arconique Managemen
 
 ### 2.1 Voice & tone
 - **Voice:** precise, warm, adult, confident. Never corporate-jargony, never cutesy.
-- **Tone per surface:**
-  - Marketing — editorial and aspirational.
-  - Admin — succinct and efficient.
-  - Owner — formal and respectful.
+- **Tone per surface** (this is also the copy contract in the build prompt):
+  - Management — warm hospitality, succinct.
+  - Development OS — engineering, terse.
+  - Owner — calm investor, formal and respectful.
   - Guest — warm and boutique.
-  - Field — direct and instructive.
+  - Platform admin — dry operator.
 
 ### 2.2 Naming conventions
 - Buttons name the action, not the feature: "Generate statement" not "Generate".
@@ -38,451 +40,245 @@ This is the design contract for the platform. It defines how Arconique Managemen
 
 ---
 
-## 3. Color System
+## 3. Token Architecture (the most important section)
 
-All colors are CSS variables defined in `styles/tokens.css`. Components always reference tokens, never hex values.
+All design tokens live in **`src/styles/tokens.css`** — the single source of truth. Component CSS lives in `src/styles/components/*.css` (imported by `src/app/globals.css`) and references those tokens; it imports nothing and hard-codes nothing.
 
-### 3.1 Palette philosophy
-A warm neutral base (bone, sand, graphite, ink) punctuated by a single deep accent. No rainbow chart palettes; data color is a controlled sequence.
+There are **three layers**. Understanding which layer you are writing in is the core mental model of this design system.
 
-### 3.2 Base tokens (light theme)
+### 3.A — Layer A (legacy global)
+`:root` + `.dark` in `tokens.css`. The original warm-cream neutral + emerald accent scale (`--canvas`, `--surface`, `--ink`, `--accent`, `--gold`, the `--success/--warning/--danger/--info` semantics, radii `--r-sm…--r-4xl`, the soft shadow scale, and the data-viz sequence). Consumed by ~190 older pages via `var(--…)` and by `body { background: var(--canvas) }`.
 
-| Token | Purpose | Value |
-|---|---|---|
-| `--bg-canvas` | Page background | `#F8F5F0` (Bone 50) |
-| `--bg-surface` | Cards, panels | `#FFFFFF` |
-| `--bg-muted` | Subtle fills | `#F1ECE4` |
-| `--bg-inset` | Table stripes, inputs | `#EEE7DC` |
-| `--line-soft` | 1px dividers | `#E4DCCE` |
-| `--line-strong` | Focus, table headers | `#B9AD98` |
-| `--text-primary` | Headlines, body | `#0F1110` (Ink 900) |
-| `--text-secondary` | Labels, captions | `#4A4A46` (Ink 600) |
-| `--text-tertiary` | Hints, meta | `#7A7670` (Ink 400) |
-| `--text-inverse` | On dark | `#F6F3ED` |
-| `--accent` | Brand accent | `#0E3B2E` (Arc Emerald) |
-| `--accent-weak` | Muted accent surface | `#DCE6DF` |
-| `--gold` | Premium highlight, badges | `#B08A3E` (Arc Gold) |
-| `--gold-weak` | Soft gold surface | `#F1E7D1` |
+Crucially, **most Layer A tokens are now aliased to their Layer B equivalent** — e.g. `--canvas: var(--cream, #f8f5f0)`. The literal after the comma is the off-product fallback (public site, owner shell pre-stamp, field shell). So on a `data-product` page, the Layer A name naturally resolves to the per-product value. A handful that *collide* by name with Layer B (`--line-soft`, `--line-strong`, `--ink`, `--gold`, `--danger`) keep raw literals here and are overridden by Layer B via selector specificity.
 
-### 3.3 Base tokens (dark theme)
+> Layer C (an earlier additive OKLCH layer) was migrated into Layer A / inlined and deleted. Do not reintroduce it.
 
-| Token | Value |
+### 3.B — Layer B (`[data-product]` palette) — THE TARGET LANGUAGE
+`:root[data-product="…"]` blocks in `tokens.css`. These are the handoff palettes. Because `:root[data-product="x"]` has higher specificity than `:root`, on a stamped page these win for any colliding token name. **Everything new migrates here.** This is the language the redesign speaks. Per-product palette values are in §4.
+
+### 3.C — The `@theme inline` Tailwind bridge
+The `@theme inline { … }` block registers a curated subset of tokens as Tailwind utility classes — so `bg-canvas`, `text-ink-secondary`, `border-line`, `bg-terra`, `bg-amber`, `bg-carbon`, `shadow-redesign-card`, `rounded-card`, `font-display`, etc. are real classes. Bridge entries that have a Layer B equivalent are written `--color-terra: var(--terra, <fallback>)` so the Tailwind class **auto-tracks the per-product palette**. Truly-dead bridge entries (no `var()` caller and no class consumer) were pruned. A few decorative scales (`--color-olive/sea/sand`, the data-viz sequence) keep OKLCH literals on purpose so they don't drift with the UI palette.
+
+### 3.D — The rules (binding)
+1. **Layer B is the target.** New surfaces are authored in the `[data-product]` language; older Layer A pages migrate toward it.
+2. **No `style={{…}}` in production.** Mocks use inline styles for speed; ported code converts to classes / tokens. (A small number of legacy `<Card>` callsites still pass `style={{padding}}` — those are being migrated to the `padding` prop; do not add new ones.)
+3. **No new palette, no 5th font, no ad-hoc CSS var.** A genuinely new token is added in **two places**: the Layer B `[data-product]` block(s) in `tokens.css`, **and** an alias in the `@theme inline` bridge so it becomes a Tailwind utility. Never inline a hex at the callsite.
+4. Decorative chart / score palettes stay as deliberate literals (documented in `tokens.css`) — don't "fix" them into UI tokens.
+
+### 3.E — How a surface gets its palette (the stamping model)
+The `data-product` attribute (and an optional `data-surface` marker) is what activates a palette. There are two stamping paths:
+
+- **Root layout (`src/app/layout.tsx`).** `resolveDataProduct()` reads the middleware `x-product` header and stamps `<html data-product="…">` for exactly three products: `management`, `development`, `subscription`. Everything else falls through to no attribute (inherits Management/Layer-A defaults).
+- **Per-shell stamping.** The other surfaces are stamped on their **route-group root**, not on `<html>`, by their shell component:
+  - `OwnerShell` → `data-product="owner"` (`src/components/layout/owner-shell.tsx`)
+  - `StayShell` → `data-product="guest"` + `data-surface="guest-stay"` (`stay-shell.tsx`)
+  - `PlatformShell` → `data-product="platform"` + `data-surface="platform-os"` (`platform-shell.tsx`)
+  - `DevelopmentAppShell` → `data-product="development"` + `data-surface="development-os"`
+  - Investor portal layout → `data-product="development"` + `data-surface="investor-portal"` (`src/app/(investor-portal)/layout.tsx`)
+
+Because guest/platform/investor are stamped on a *nested* element, `tokens.css` defines both the `:root[data-product="x"]` (canonical) **and** a bare `[data-product="x"]` selector for each so they resolve whatever host they're mounted on (e.g. an impersonated investor portal reached via the management host).
+
+### 3.F — `data-surface` remaps (the alias bridge per surface)
+A palette block only sets brand vars (`--terra`, `--amber`, `--bg-2`, …). The many shared primitives that write generic utilities (`bg-canvas`, `bg-surface`, `text-ink-secondary`, `border-line-soft`, `bg-accent-weak`, the gradient/soft-fill badge classes) need those generics pointed at the right surface. That is the job of the **`data-surface` remap blocks** in `tokens.css`:
+
+| `data-surface` | Remaps the generic aliases onto… |
 |---|---|
-| `--bg-canvas` | `#0C0E0D` (Arc Obsidian) |
-| `--bg-surface` | `#141716` |
-| `--bg-muted` | `#1A1D1B` |
-| `--bg-inset` | `#1E2220` |
-| `--line-soft` | `#262A28` |
-| `--line-strong` | `#3A3F3C` |
-| `--text-primary` | `#F4F1EB` |
-| `--text-secondary` | `#C4BEB3` |
-| `--text-tertiary` | `#8A857B` |
-| `--accent` | `#4FB592` (Arc Emerald Light) |
-| `--accent-weak` | `#15332A` |
-| `--gold` | `#D6B567` |
-| `--gold-weak` | `#2A2313` |
+| `development-os` | engineering surfaces + amber accent + Space Grotesk / IBM Plex (Dev OS cabinets) |
+| `investor-portal` | the dev palette surfaces (investor portal reuses Dev OS visuals) |
+| `guest-stay` | the airy lightened-hospitality surfaces + generous radii |
+| `platform-os` | the dark carbon console + cool-blue accent + dark hero-KPI gradients + Space Grotesk / IBM Plex |
 
-### 3.4 Semantic tokens
-These resolve to base tokens and are the only colors components touch.
-
-| Token | Use |
-|---|---|
-| `--success` | Neutral green `#2E7D64` (light) / `#4FB592` (dark) |
-| `--warning` | Amber `#A06A1A` / `#D0A14C` |
-| `--danger` | Terracotta `#A43E2F` / `#D46A57` (used sparingly) |
-| `--info` | Slate `#2E4A5C` / `#8FB0C2` |
-| `--neutral` | Stone `#7A7670` / `#A9A49A` |
-
-Rule: Only one `--danger` element on screen at a time. If everything is urgent, nothing is.
-
-### 3.5 Data visualization palette
-A sequential, brand-aligned set. Never `chart.js` defaults.
-
-- **Sequence A (categorical, max 6):** Emerald `#0E3B2E`, Gold `#B08A3E`, Stone `#6B6760`, Sage `#6E8A7A`, Terracotta `#9E5A49`, Ink `#2A2D2B`.
-- **Sequence B (quantitative, 5 steps, Emerald ramp):** `#D9E7DE → #A5C9B5 → #6FAA8B → #3F8C67 → #0E3B2E`.
-- **Divergent:** Terracotta ↔ Emerald for gains/losses, centered at neutral bone.
-
-Rules:
-- Never use red/green traffic-light pairs. Use Emerald / Terracotta instead.
-- Never use more than 6 categorical colors in one chart.
-- Revenue positive: Emerald. Expense: Stone. Reserve: Gold. Net payout: Ink.
+So a `<DashboardKpi tone="emerald-soft">` renders a warm cream gradient on Management but a cool-blue band under `platform-os`, with zero changes to the component — the remap recolors the gradient token underneath it.
 
 ---
 
-## 4. Typography
+## 4. Per-Product Palettes (as implemented)
 
-### 4.1 Typefaces
+Defining file for all of these is `src/styles/tokens.css`. Display fonts are wired via `next/font` in `src/app/layout.tsx` (Newsreader, Inter, JetBrains Mono, Space Grotesk, IBM Plex Mono, Fraunces) and exposed as `--font-*` axes; each product remaps `--font-display` / `--font-mono`.
 
-| Role | Primary | Fallback |
-|---|---|---|
-| Display (editorial headers, hero) | **GT Super Display** (or **Domaine Display**, or **Saol Display**) | `'Iowan Old Style', Georgia, serif` |
-| Text (body, UI) | **Söhne** (or **Inter Tight** / **Geist**) | `system-ui, sans-serif` |
-| Data / Numeric (tables, statements) | **Söhne Mono** (or **JetBrains Mono**, or tabular Söhne) | `ui-monospace, SFMono-Regular` |
+| Product | `data-product` | Surface bg | Accent | Display font | Notes |
+|---|---|---|---|---|---|
+| **Management OS** | `management` | cream `#F4EFE6` | **terra** `#C4583C` | **Newsreader** (serif) | `/dashboard/**`. The reference palette: cream/paper surfaces, forest `#1F3A33`, gold `#BC9A5C`, sage; pastel accent fills (mint/peach/butter/sky). |
+| **Development OS** | `development` + `data-surface="development-os"` | sand `#F1ECE0` / panel `#FFFFFF` | **amber** `#FF6B35` | **Space Grotesk** | `/development-os/**`. Engineering palette: concrete/carbon ink, steel `#3D5A7A`, lime `#C9DC4A`; mono = IBM Plex. |
+| **Owner Portal** | `owner` (shares the management token block) | cream | terra | Newsreader | `/owner/**`. Same Layer B block as management (`:root[data-product="management"], :root[data-product="owner"]`) — statement-grade, **larger type**, calm investor tone. |
+| **Investor Portal** | `development` + `data-surface="investor-portal"` | dev sand | amber | Space Grotesk | Reuses the **dev** engineering palette via a nested `[data-product="development"]` + the investor-portal remap. Amber hero-KPI gradient drives the wallet "available to withdraw" tile. |
+| **Guest Stay Portal** | `guest` + `data-surface="guest-stay"` | sand `#FAF6EE` | terra | Newsreader | `/stay`. The **lightened-hospitality** palette we added: management *hues* but airier (lighter cream, lighter ink), generous luxury radii (`--r-card: 22px`, `--r-hero: 32px`), softer hospitality shadows. A token-gated public surface served on the management host. |
+| **Platform Admin OS** | `platform` + `data-surface="platform-os"` | carbon `#0E1116` | **cool-blue** `#5B9DFF` | Space Grotesk | `/platform/**`. The **only dark surface** — inverts the warm scale to layered carbon panels with a cool-blue accent; gold `#E0B341`; mono = IBM Plex. Hero-KPI gradients recolored to the blue console band. |
+| **Subscription** | `subscription` | paper `#F5F0E2` | gold/terra | Fraunces | Landing + pricing only; no inner cabinets. Editorial variable-axis serif. |
 
-The display serif is the signature. Body sans is neutral and precise. The mono/tabular face is used for numbers to align decimals.
-
-> If GT Super / Söhne licenses are not procured at launch, use **Source Serif 4** (display) + **Geist** (text) + **Geist Mono** (numeric) as an open alternative. The design system is typeface-agnostic at the token level.
-
-### 4.2 Type scale
-
-A modular scale with explicit semantic names (not t-shirt sizes).
-
-| Token | Font | Size / line-height (px) | Use |
-|---|---|---|---|
-| `text-hero` | Display 500 | 72 / 76 | Marketing hero |
-| `text-display` | Display 500 | 56 / 62 | Section heroes, statement totals |
-| `text-h1` | Display 500 | 40 / 48 | Page titles |
-| `text-h2` | Display 500 | 32 / 40 | Section titles |
-| `text-h3` | Sans 600 | 24 / 32 | Subsection |
-| `text-h4` | Sans 600 | 20 / 28 | Card headers |
-| `text-body-lg` | Sans 400 | 18 / 28 | Editorial body |
-| `text-body` | Sans 400 | 16 / 24 | Default |
-| `text-body-sm` | Sans 400 | 14 / 20 | Secondary |
-| `text-label` | Sans 500 | 12 / 16 | Uppercase labels (letter-spacing 0.06em) |
-| `text-caption` | Sans 400 | 12 / 16 | Meta |
-| `text-num-xl` | Mono tabular 500 | 48 / 52 | KPI hero numbers |
-| `text-num-lg` | Mono tabular 500 | 32 / 36 | Card KPIs |
-| `text-num` | Mono tabular 500 | 16 / 20 | Table cells |
-
-Rules:
-- Page titles always use display serif. Section titles may use sans-600 in data-dense admin pages.
-- Numbers in tables and statements use the tabular/mono face for alignment.
-- No all-caps except `text-label`.
-
-### 4.3 Rhythm
-
-- Vertical rhythm based on 8px grid (4px micro).
-- Line lengths capped at ~64ch for body, 48ch for editorial.
-- Paragraph spacing `1.25em`; section spacing uses surface spacing tokens (see below), not typographic padding.
+Notes:
+- **Owner ≠ its own palette.** It is intentionally management's token block, differentiated by larger type and layout, not color.
+- **Investor portal ≠ its own palette.** It is the development palette reused on a non-dev host.
+- Dark mode (`.dark`, Layer A) still exists for the legacy emerald scale, but the *product surfaces* are light by design except Platform, which is intrinsically dark.
 
 ---
 
-## 5. Spacing, Grid, Radii, Elevation
+## 5. Typography
 
-### 5.1 Space scale (rem)
-`0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 12, 16` (rem). Named tokens map:
-`space-1 … space-16` aligned to an 8px base.
+### 5.1 Typefaces (as wired in `src/app/layout.tsx` via `next/font/google`)
 
-### 5.2 Grid
-- Marketing: 12-col, 1440 max, 96px gutters desktop / 24 mobile; editorial asymmetric layouts allowed.
-- Admin: 12-col, 1600 max, 32px gutters; content max width varies by module (tables may be full width).
-- Owner: centered 1120 max, generous margins; statement pages approach magazine spreads.
-- Guest: single-column 480 max on mobile, 720 on desktop.
-- Field: single-column 480 max; tap targets ≥ 48px; edge-to-edge with 16px safe margin.
+| Role | Family | Used by |
+|---|---|---|
+| Display — Management / Owner / Guest | **Newsreader** (warm humanist serif, has italic) | `--font-display` under those products |
+| Display — Development / Platform | **Space Grotesk** | remapped under `development-os` / `platform-os` |
+| Display — Subscription | **Fraunces** (variable-axis editorial serif) | `--font-display` under `subscription` |
+| Body (all products) | **Inter** | `--font-sans` / `--default-font-family` |
+| Mono — Management / Subscription / Guest | **JetBrains Mono** | `--font-mono` |
+| Mono — Development / Platform | **IBM Plex Mono** | remapped `--font-mono` |
 
-### 5.3 Radius
-- `--r-xs: 4px` — inputs, chips
-- `--r-sm: 8px` — buttons, tabs
-- `--r-md: 12px` — cards
-- `--r-lg: 20px` — hero cards, modals
-- `--r-xl: 32px` — marketing media blocks
-- `--r-full: 9999px` — avatars, pill toggles
+The legacy variable names `--font-display` / `--font-sans` / `--font-mono` are preserved as aliases, so existing primitives keep their typography. The per-product axes (`--font-newsreader`, `--font-space`, `--font-fraunces`, `--font-plex`, `--font-inter`, `--font-jetbrains`) are also exposed and remapped per surface. The Tailwind utilities `font-display` / `font-sans` / `font-mono` and `.text-display` all resolve these.
 
-### 5.4 Elevation
+### 5.2 Usage rules
+- Page/section titles use the product display face (serif on mgmt/owner/guest/sub, Space Grotesk on dev/platform). The `PageHeader` primitive uses `text-display` at 36–44px; `SectionHeading` uses `.display` at 42px.
+- Numbers in tables/statements/KPIs use the product mono face for decimal alignment (`.num`, `text-num`).
+- No all-caps except the `.label` / `.text-label` micro-label (letter-spacing, 10.5–12px).
+
+---
+
+## 6. Spacing, Radii, Elevation
+
+### 6.1 Radii
+Layer A registers `--r-sm: 8`, `--r-md: 12`, `--r-lg: 20`, `--r-xl: 32`, plus `--r-2xl/3xl/4xl` and bridges them to Tailwind `rounded-*`. The redesign adds **card radii** — `--r-card` / `--r-card-lg` / `--r-hero` — set per product (mgmt 18/22/28, dev 14/18/22, guest 22/28/32, platform 14/18/22) and exposed as `rounded-card` / `rounded-card-lg` / `rounded-hero`. Card radius is therefore a per-product signal: management is rounder than dev/platform, guest is the roundest.
+
+### 6.2 Elevation
 Shadows are **soft and low**; never default material shadows.
 
-| Token | Effect |
-|---|---|
-| `--shadow-flat` | `0 0 0 1px var(--line-soft)` (default card) |
-| `--shadow-rest` | `0 1px 2px rgba(15,17,16,0.04), 0 0 0 1px var(--line-soft)` |
-| `--shadow-raised` | `0 6px 20px -8px rgba(15,17,16,0.10), 0 0 0 1px var(--line-soft)` |
-| `--shadow-floating` | `0 20px 60px -20px rgba(15,17,16,0.22), 0 0 0 1px var(--line-soft)` |
-
-Glass (used rarely, only on dark backgrounds with imagery behind): `backdrop-filter: blur(18px) saturate(120%); background: rgba(20,23,22,0.55); border: 1px solid rgba(255,255,255,0.06)`. Never on light theme.
+- Layer A scale: `--shadow-flat` (hairline ring), `--shadow-rest`, `--shadow-raised`, `--shadow-floating`, plus the redesign `--shadow-soft-card` / `--shadow-elevated-card` (and dark-mode variants).
+- Redesign Tailwind shadows: `shadow-redesign-card` / `shadow-redesign-soft` / `shadow-redesign-pop` (driven by `--shadow-redesign-*` in the bridge).
+- Per-product `--shadow-card` / `--shadow-soft` are defined inside several Layer B blocks (mgmt, guest, platform) with surface-appropriate tints.
+- Hero-card gradients (`--gradient-emerald-soft` / `-gold-soft` / `-coral-soft` / `-ink-deep`, plus dev's `--gradient-amber-hero`) feed the primary KPI tiles and are recolored per surface by the `data-surface` remaps.
 
 ---
 
-## 6. Iconography & Imagery
+## 7. Primitive Map (what to reach for)
 
-### 6.1 Icons
-- **Library:** Lucide as base, replaced/augmented with custom icons for hospitality concepts (turnover, linen, pool, checklist).
-- **Stroke:** 1.5px; corner radius `2px`; no filled icons in admin (filled reserved for status markers).
-- **Size tokens:** 14, 16, 20, 24.
-- Icons always share color with their label unless indicating a meaningful status.
+Two component families coexist by design:
 
-### 6.2 Photography
-- Editorial, warm, architectural. Never stock-agency-tropical-beach.
-- Vertical hero ratios on mobile; cinematic 21:9 on marketing desktop heroes.
-- Treatment: slight warm grade, minimal saturation. No vignette, no fake film grain.
-- Alt text mandatory; empty alt only for purely decorative patterns.
+- **Layer A primitives** — `src/components/ui/*` — Tailwind-class based, consume the bridged tokens. The broad inventory (~439 `Badge` imports etc.).
+- **Layer B (handoff) primitives** — `src/components/dashboard/primitives.tsx` + `src/components/ui/primitives/*` — render the prototype's `.kpi` / `.card` / `.badge` / `.section-heading` CSS classes which are styled per-product in `src/styles/components/*.css` under `[data-product]` scopes. **One component renders correctly under any product surface** because the classes resolve the local palette.
 
-### 6.3 Illustration
-- Minimal. Line illustrations in `--line-strong` with an occasional gold accent.
-- No 3D shiny SaaS gradient blobs. No robot mascots.
+### 7.1 Layout & content primitives
+- **`PageHeader`** (`ui/page-header.tsx`) — eyebrow + display title (36–44px) + description + breadcrumbs + actions slot. The Layer B analogue is **`SectionHeading`** (`dashboard/primitives.tsx`), which renders the `.section-heading` / `.display` cabinet header.
+- **`Section`** (`ui/section.tsx`) — titled content block.
+- **`Card`** (`dashboard/primitives.tsx`) — renders `.card` (per-product surface/border/radius in `primitives.css`). Props: `padding` (`none`/`tight`/`default`/`lg`), `overflowHidden`, `tone="dark"` (inverted editorial AI band — forest-deep on mgmt, ink on dev), `id` for in-page anchors. Legacy callsites still pass `style={{padding}}`; the `padding` prop is the migration target.
+- **`ListPage`** (`dashboard/list-page.tsx`, "template 04") — 5-zone list anatomy: header → filter-bar **or** bulk-bar → optional facets + table + pager.
+- **`DetailPage`** family (`dashboard/detail/*` — `detail-page`, `detail-header`, `detail-tabs`, `detail-side`, `detail-actionbar`, `detail-activity`, `detail-related`) — "template 05" detail anatomy with optional two-column `DetailMainAndSide` (main + ~300px right rail) and a CSS-stuck bottom action bar.
+
+### 7.2 Metric / KPI primitives
+- **`Kpi`** (`dashboard/primitives.tsx`) — the cabinet `.kpi` tile: label + value + sub, `tone` ∈ `accent/success/warn/danger/gold` (color picked per product in `shell.css`).
+- **`MetricCard`** (`ui/metric-card.tsx`) — Layer A metric with delta trend (up/down/flat) + hint.
+- **`DashboardKpi`** (`ui/primitives/dashboard-kpi.tsx`) — drill-aware KPI: traffic-light variance, delta, optional sparkline + drill handler, `variant` (`default` 28px / `hero` 56–72px), and `tone` (legacy `emerald-soft`/`gold-soft`/`coral-soft`/`ink-deep` gradients + redesign terra/olive/sea/sand/ink-warm axes). Gradients are remapped per surface.
+
+### 7.3 Tables
+- **`table.data`** — the shared data-table class, styled per-product in `primitives.css` (sticky-ish headers, hover stripe, `.num` right-aligned mono cells). Plus `ui/table.tsx`, `ui/sortable-header.tsx`, `ui/table-empty.tsx`, and `dashboard/bulk-bar.tsx` for selection/batch actions.
+
+### 7.4 Badges & status
+- **`Badge`** (`ui/badge.tsx`) — Layer A, `cva`-based, tones `neutral/accent/gold/success/warning/danger/info/outline` (uses `bg-*-weak` / `text-*` bridged tokens). ~439 imports.
+- **`HandoffBadge`** (`dashboard/primitives.tsx`) — Layer B pill, mono-font, per-product via the `.badge` / `.badge-*` classes in `primitives.css`. Tones: `ok/warn/danger/gold/info/ink/soft/amber` (plus mgmt `accent`, dev `steel`). Use this one on handoff-ported pages.
+- **`StatusPill`** (`ui/status-pill.tsx`), **`SourceBadge`** (`ui/source-badge.tsx`), **`ScoreChip`** (`ui/primitives/score-chip.tsx`), and **`Pulse`** (`.pulse-dot` animated live dot, color per product) round out the status kit.
+
+### 7.5 The State Kit — the 7 states + ComingSoon
+Barrel: **`src/components/ui/state/index.ts`**. A view is in exactly one state at a time; cabinets import these instead of hand-rolling:
+
+1. **`EmptyState`** (`ui/empty-state.tsx`) — headline + one sentence + one primary action (variants/tones).
+2. **`LoadingState`** — spinner + label.
+3. **`Skeleton` / `SkeletonText` / `SkeletonGroup`** — stable placeholders (no shimmer on trust-critical surfaces).
+4. **`ErrorState`** — in-surface failure (distinct from the route boundary).
+5. **`Forbidden`** — authenticated-but-unauthorized; wired off the RBAC gate (block 08).
+6. **`DegradedState`** — offline / db-null / service-down.
+7. **`PartialDataNotice`** — rendered but knowingly incomplete.
+
+Plus **`ComingSoon`** — the affordance that closes the "no disabled button without a reason" debt. The route-level boundary lives separately (`@/components/system/route-error-boundary`, wired by each portal's `error.tsx`).
+
+### 7.6 The Modal-First pattern
+**`ModalFirstAddButton`** (`ui/primitives/modal-first-add-button.tsx`) is the single helper every list-page Add CTA should use: it opens an inline `EntityModal` (HTML5 `<dialog>`) wrapping the form, refreshes on success, and renders an optional "Open as full page" deep-link footer to a `/new` route. It supports a `permissionGate` that hides the button entirely when the user lacks the permission. This restores the Modal-First invariant (add/edit happens in a modal, not a `/new` navigation). Related: `EntityFormModal` (Radix, schema-driven), `ConfirmDialog` (two-step destructive confirm), and the `.modal` CSS in `components/modal.css`.
+
+### 7.7 Page templates (detail / list / AI)
+The unified templates are the composition wrappers above plus the AI surface primitives: **`UnifiedInbox`**, **`AiAssistantGrid`** (`dashboard/ai-assistant-grid.tsx`), **`AiAuditLog`**, **`CommsPanel`**, and the command palette (`components/command-palette.css`). Detail / list / AI-agent / list+filter screens are built from these templates, not ad-hoc. Other notable Layer B primitives in `ui/primitives/`: `HeroGreet` / `CabinetGreetingBlock`, `PageHeaderHero` / `DetailPageHero`, `FilterBar` / `FilterPills` / `facet-panel`, `KanbanBoard`, `Timeline` / `RecordTimeline`, `DrawingViewer` (coordination/estimator), `RfqMatrix`, `SpreadsheetView`, `area-chart-card` / `donut-ratio-card` / `dome-donut` / `concentric-bubbles` / `sparkline-chart` (charts), `MobileTaskCard` / `PhotoCapture` / `VoiceNote` / `GeoCheckIn` (field).
+
+### 7.8 Shell & navigation
+- `dashboard/sidebar.tsx` (Mgmt) + `dashboard/dev-sidebar.tsx` (Dev) + `dashboard/topbar.tsx`; mobile uses `dashboard/mobile-tabbar.tsx` (sidebar collapses to tab bar ≤900px). Shell CSS in `components/shell.css`. Nav is config-driven (`src/config/dashboard-nav.ts`, `src/config/development-nav.ts`).
 
 ---
 
-## 7. Layout Primitives
+## 8. Iconography & Imagery
 
-- **Shell (admin/owner/field):** persistent left nav (desktop) / bottom nav (mobile), top bar with breadcrumb + search + assistant shortcut + user menu.
-- **Page container:** header (title + meta + primary action), subtitle with context chips, then content.
-- **Section:** title + optional description + content.
-- **Card:** `bg-surface`, `r-md`, `shadow-flat`. Optional header and footer.
-- **Panel:** Card variant with tinted surface for elevated content (stats, callouts).
-- **Drawer:** right-docked on desktop (`420–640px`), full-screen sheet on mobile.
-- **Modal:** centered, max `640px`, reserved for destructive confirmations or short flows.
-- **Split views:** list + detail (`320px` / `1fr`) for inbox, bookings, tasks.
-- **Board views:** kanban for CRM pipeline and task triage.
-
----
-
-## 8. Component Library (shape & behavior)
-
-We build on Radix primitives and shadcn scaffolding, then restyle with tokens. Every component exists in **light + dark**, **touch + desktop**.
-
-### 8.1 Buttons
-- **Variants:** `primary` (filled accent), `secondary` (outline), `ghost` (text-only), `subtle` (muted surface), `destructive` (sparingly, terracotta).
-- **Sizes:** `sm` (32), `md` (40), `lg` (48 — default mobile).
-- Loading state shows a small left-hand spinner; never replaces text.
-- Icon-only buttons require `aria-label`.
-
-### 8.2 Inputs & forms
-- Label sits above input, not floating inside.
-- Help text and error share a single slot under the input.
-- Error uses `--danger` text + left border; does not repaint the input fully.
-- Required fields marked with a small hairline asterisk — never red.
-- Currency inputs show the currency code as a prefix, tabular font.
-- Date pickers: calendar with visible range for booking-like inputs.
-
-### 8.3 Tables (data)
-- **Type:** tabular; numbers right-aligned, mono font.
-- Sticky header.
-- Row hover uses `--bg-inset`.
-- Selection via checkbox column; batch action bar appears as a top-docked toolbar.
-- Inline expansion for drilldown (chevron row-prefix).
-- Empty and loading states baked-in.
-- Pagination uses cursor by default; page numbers only for small sets.
-- Export CSV / PDF buttons in table header.
-
-### 8.4 Statement table (special)
-- Ultra-wide column layout on desktop, two-column stacked on mobile.
-- Section dividers with small-caps labels.
-- Totals in display serif, one size up.
-- Each line expandable into its source transactions.
-
-### 8.5 Status badges
-- Pill shape, `r-full`, height 20, text-label size.
-- Backgrounds use `--*-weak` tokens; text uses the strong token.
-- Only one critical badge per card.
-
-### 8.6 Villa status board card
-- Large villa photo (16:10), villa code overlay, status chip on photo.
-- Footer with next action ("Cleaning due 14:00") and assignee avatar.
-- Drag into a new status column updates state (with confirmation for irreversible moves).
-
-### 8.7 Task card (field)
-- Title + villa chip + time.
-- Checklist progress bar.
-- Large primary action at bottom ("Start" / "Submit photos").
-- Offline indicator when applicable.
-
-### 8.8 Charts
-- Line, area, bar, stacked bar, donut (rarely), and a custom "revenue rail" for monthly strip charts.
-- Axis lines thin, grid barely visible.
-- Tooltips use `shadow-raised`, sans body, mono numbers, currency prefix.
-- Legends are captions, not boxes.
-- Zero baseline clearly marked for variance charts.
-
-### 8.9 KPI card
-- Big `text-num-xl` number at top, caption above in `text-label`, delta chip below ("+4.2% MoM").
-- Optional sparkline underneath — never on by default; only when it adds meaning.
-
-### 8.10 Maps
-- Mapbox light (custom Arconique style) for portfolio page and villa detail.
-- Markers are small ink dots with 1px accent ring; active marker uses gold.
-
-### 8.11 Avatars
-- Initials only if no photo. Background derived from a deterministic hash on name, but constrained to neutrals + gold.
-
-### 8.12 Dialogs & confirmations
-- Destructive confirmation uses a two-step pattern: select action → confirmation with exact names and numbers shown.
-- AI tool confirmations show the structured payload as a read-only card + confirm button.
-
-### 8.13 Toasts / notifications
-- Single toast at a time (queue collapses).
-- Positioned top-right on desktop, bottom on mobile.
-- Success is quiet (no big green check animation).
-
-### 8.14 AI chat
-- Panel or full page.
-- User messages right-aligned, assistant left.
-- Citations rendered as small badges linked to source.
-- No pulsing gradient avatar. The assistant is presented as a subtle mark, not a mascot.
-- Input has a single prompt line with enter-to-send; shift+enter newline.
-- Suggestion chips below the input, one row, horizontal-scroll on mobile.
-
-### 8.15 Empty states
-- Short headline, one sentence, one primary action.
-- Never a cartoon illustration.
-
-### 8.16 Forms for money
-- Always show currency, big number in tabular.
-- Breakdown beneath shows allocated portions.
-- On submit, confirmation modal restates amount in words for large sums.
+- **Icons:** Lucide as the base (see `dashboard/icons.tsx`), 1.5px stroke; filled reserved for status markers. Icons share their label's color unless signaling a meaningful status.
+- **Photography:** editorial, warm, architectural — never stock-tropical-beach. Alt text mandatory.
+- **Illustration:** minimal line work in `--line-strong` with occasional gold. No 3D SaaS gradient blobs, no mascots.
 
 ---
 
 ## 9. Motion System
 
-Motion is produced via **Framer Motion** with a small set of **presets** in `components/motion/`. Components never import Framer directly; they import a preset.
+Motion is centralized in a **`MotionLayer`** mounted once in the root layout, with the motion CSS in `src/styles/motion.css` (cursor / reveal / parallax / count-up / magnetic / mobile-responsive). Components consume presets, never importing Framer directly.
 
-### 9.1 Principles
-- Duration 150–400ms for interactions; 500–900ms for section reveals.
-- Easing: custom `easeSoft [0.22, 1, 0.36, 1]` and `easeEditorial [0.2, 0.8, 0.2, 1]`.
-- Always respect `prefers-reduced-motion` — presets become no-ops.
-- No spring physics on data tables. Springs only on object-to-object transitions (card to detail).
-
-### 9.2 Motion vocabulary
-- **Fade-rise:** 12px rise + fade. For cards appearing on scroll.
-- **Stagger:** 40ms stagger on list items, max 8 staggered children (beyond that, no stagger).
-- **Share-layout:** on navigation within the same object (villa card → villa detail), share layout ids for a ~240ms transition.
-- **Scroll-linked reveals:** opacity + slight translate, bound to viewport; never parallax that moves more than 10% of container height.
-- **Subtle parallax:** marketing heroes only. Background image moves 5–8% slower than foreground. Never on admin/owner surfaces.
-- **Number counters:** only in KPI hero cards; respect reduced motion; stop within 600ms.
-
-### 9.3 Page transitions
-- Use View Transitions API for full-page transitions where supported; fall back to a minimal fade.
-- Same-section transitions are instant; cross-section transitions get a 180ms fade.
-
-### 9.4 Micro-interactions
-- Button press: 2px translateY + shadow relax, 120ms.
-- Switch toggle: physical spring, 220ms.
-- Tab change: bar slides under new tab.
-- Table row expand: smooth height, 200ms with easeSoft.
-
-### 9.5 AI streaming
-- Tokens render with a soft mask gradient revealing text; cursor pulse reduced to low-opacity bar.
-- No typewriter characters-clicking effects.
-
-### 9.6 Parallax usage (strict)
-- Allowed: marketing home, case studies, portfolio deep pages.
-- Forbidden: admin, owner portal (except owner home hero image if used subtly), guest portal (other than hero image), field.
-- Parallax speed cap: 10%.
-- Pauses when motion-reduced is set.
+- Duration 150–400ms for interactions; 500–900ms for section reveals; easing `easeSoft [0.22,1,0.36,1]` / `easeEditorial [0.2,0.8,0.2,1]`.
+- **Always respect `prefers-reduced-motion`** — presets become no-ops.
+- Vocabulary: fade-rise (12px), staggered lists (≤8 children), share-layout on object→detail nav (~240ms), scroll-linked reveals, number counters on hero KPIs only (stop ≤600ms).
+- Parallax: marketing/editorial pages only (cap 10%); forbidden on admin/owner/guest/field/platform operational surfaces.
+- AI streaming: soft mask-gradient reveal, low-opacity cursor bar; no typewriter clicks.
 
 ---
 
 ## 10. Surface-Specific Guidelines
 
-### 10.1 Public marketing site
-- Editorial layouts, large imagery, restrained copy.
-- Generous negative space; hero sections up to full-viewport height.
-- Only one animated hero per page.
-- Trust signals (logos, quotes) rendered as still editorial elements, not as carousels.
-
-### 10.2 Admin dashboard
-- Dense but breathable. Two-column + side nav layout.
-- Portfolio overview is one page — three-row hierarchy: key metrics strip, operational pulse, financial pulse.
-- Tables are first-class citizens; every list is a proper data table.
-- Inline search (cmd-K) global; contextual filters as pill groups above tables.
-- No colored navigation "hero" bands. The navigation is subtle; content is the stage.
-
-### 10.3 Owner / investor portal
-- The design reads like a statement, not an app.
-- Display serif titles, tabular numbers, abundant whitespace.
-- Each statement page is designed to be **printable** — layout holds on A4 when exported.
-- No operational clutter; owners should not see internal ops-language.
-- Villa hero image tasteful and large; financial rail of the villa presented as an editorial spread.
-
-### 10.4 Guest portal
-- Warm, hospitable, boutique-hotel feel.
-- Large photos, villa name in display serif.
-- Single primary CTA per screen ("Request towels", "Book a chef").
-- Concierge chat feels like a private messaging app, not customer support.
-
-### 10.5 Staff field PWA
-- Mobile-only visually, though it may open on desktop.
-- Dark theme by default (reduces battery, glare outdoors).
-- Big tap targets; single-column; primary action always at thumb-reach bottom.
-- Offline banner is subtle gold bar across top when applicable.
-- Photo capture flow optimized for portrait; shows next checklist item immediately after capture.
+- **Management dashboard** — dense but breathable; tables are first-class; cmd-K global search; subtle nav, content is the stage. No colored nav "hero" bands.
+- **Owner / investor portal** — reads like a statement, not an app: management tokens with larger display type, abundant whitespace, printable layouts. Owners never see internal ops-language. (Investor portal visually reuses the Dev OS engineering palette.)
+- **Development OS** — engineering-dense cabinets, Space Grotesk + IBM Plex, amber accent, steel/lime accents; `DrawingViewer` + estimator/coordination tooling.
+- **Guest portal** — warm boutique-hotel feel, airy lightened palette, large radii, single primary CTA per screen, concierge chat feels like private messaging.
+- **Platform Admin OS** — the dark cool-blue operator console: carbon surfaces, terse dry copy, super-admin tooling; the only intrinsically dark surface.
+- **Staff field PWA** — mobile-first, big tap targets (≥48px), single column, primary action at thumb-reach; subtle offline banner.
 
 ---
 
 ## 11. Accessibility
 
-- WCAG 2.2 AA minimum, AAA on long-form reading content (statements, case studies).
-- Color contrast verified in both themes; data colors checked for color-blindness.
-- Never rely on color alone: every colored status has an icon or label.
-- Keyboard: every interactive element reachable in logical order; focus rings are part of the design, using `--line-strong` outline `2px` offset `2px`.
-- Screen readers: Radix primitives maintain ARIA; custom components inherit patterns.
-- Motion: `prefers-reduced-motion` respected system-wide.
-- Language attributes on content; direction-aware layouts (future RTL prep, not enabled).
-- Live regions for streaming AI responses (`aria-live="polite"`).
+- WCAG 2.2 AA minimum, AAA on long-form reading (statements). Contrast verified per palette.
+- Never rely on color alone — every colored status carries an icon or label (`a11y.css`).
+- Focus rings are part of the design (`--line-strong` outline, 2px offset). Radix primitives carry ARIA; `aria-live="polite"` regions for streaming AI.
+- `prefers-reduced-motion` respected system-wide.
 
 ---
 
-## 12. Iconography of Status (system)
+## 12. PDF Export Design (statements, POs, reports)
 
-| Status | Icon | Color token |
-|---|---|---|
-| `Occupied` | solid circle | `--text-primary` |
-| `Checkout Pending` | half-filled circle | `--neutral` |
-| `Cleaning In Progress` | brush | `--info` |
-| `Supervisor Inspection` | magnifier | `--warning` |
-| `Ready for Check-in` | ring with dot | `--success` |
-| `Maintenance Blocked` | wrench | `--warning` |
-| `Owner Stay` | key | `--gold` |
-| `Out of Service` | hashed fill | `--danger` |
-
-These are defined once and reused on the status board, villa card, field app, and owner portal. Consistency of the signifier is part of the trust.
+- Follows the owner-portal typographic system — product display serif + tabular numbers.
+- Letterhead: Arconique mark top-left, document type top-right; footer carries statement ID, page count, and the statement hash (tamper-evidence for forwarding).
+- Hairline table lines (0.5pt). Signature block (Finance Manager + Director + date + hash). `DRAFT — NOT FOR DISTRIBUTION` watermark only when draft.
 
 ---
 
-## 13. PDF Export Design (statements, POs, reports)
+## 13. "Do-Not" Rules (binding)
 
-- Follows the owner-portal typographic system — same display serif, same tabular numbers.
-- Letterhead: small Arconique mark top-left, document type top-right, footer with statement ID and page count.
-- Table lines are hairline, 0.5pt.
-- Signature block at the end with Finance Manager + Director names + date + hash.
-- Every page carries the statement hash in the footer (tamper-evidence for forwarding).
-- No watermarks unless draft ("DRAFT — NOT FOR DISTRIBUTION").
-
----
-
-## 14. Internationalization in Design
-
-- Text containers flexible for +30% Bahasa Indonesia expansion.
-- Numbers formatted per locale but display currency chosen by user (IDR or USD).
-- Dates: editorial long-form in marketing and owner portal ("14 March 2026"); compact in admin ("14 Mar").
-
----
-
-## 15. "Do-Not" Rules (binding)
-
-- **No gradients** as decoration. Only brand-controlled subtle gradients on marketing heroes (two-stop, low contrast).
-- **No default shadcn blue.** We ship a custom theme. If a component looks default, it's not done.
-- **No startup/SaaS tropes:** no rotating testimonial carousels with auto-advance, no "trusted by 10,000+ teams" meters, no abstract gradient blobs.
-- **No toy AI UI:** no pulsating rings, no rainbow auras, no "AI ✨" sparkles. The assistant is a serious instrument.
+- **No `style={{…}}` in production.** Tokens + classes only. New token → `tokens.css` Layer B + `@theme inline` alias.
+- **No new palette / 5th font / ad-hoc CSS var.** Five product palettes, the documented typefaces — that's the set.
+- **No raw hex at the callsite.** Even fallbacks live in `tokens.css`.
+- **No gradients as decoration** beyond the brand-controlled hero-KPI gradients.
+- **No default shadcn look.** If a component reads as stock, it's not done.
+- **No startup/SaaS tropes** (auto-advancing testimonial carousels, "trusted by 10,000+", gradient blobs).
+- **No toy AI UI** (pulsating rings, rainbow auras, "AI ✨" sparkles). The assistant is a serious instrument.
 - **No dense colored cards.** Data surfaces are neutral; color is for signaling.
-- **No black boxes.** Dark theme uses `#0C0E0D` with warm tint, never true black.
-- **No red badges for scores or counts in navigation.** Use small dots for unread, not count bubbles unless necessary (inbox, approvals).
-- **No stock illustrations.** If we need an illustration, we draw it.
-- **No carousels on admin.** Tables, lists, or grids — never carousels.
-- **No animated loading skeletons on trust-critical surfaces.** Statements show stable placeholder lines without shimmer.
-- **No surprise autoplay video.** Marketing videos start muted, require intent to play.
-- **No "chat bubble" mascots** or floating action buttons with character avatars.
-- **No horizontal scrolling tables on mobile.** Adopt a card/stack view for mobile tables.
-- **No success-state fireworks.** Success is quiet.
-- **No animated status ticks longer than 500ms.**
-- **No emoji in admin, owner, or field surfaces.** Guest surface may use a single brand-approved emoji per greeting, if at all.
+- **No black boxes.** The platform dark surface uses carbon `#0E1116`, never true black.
+- **No animated loading skeletons on trust-critical surfaces.** Statements show stable placeholders.
+- **No carousels / horizontal-scroll tables on admin.** Use stack/card view on mobile.
+- **No success fireworks.** Success is quiet.
+- **No emoji in management, owner, development, platform, or field surfaces.** Guest may use a single brand-approved emoji per greeting, if at all.
 
 ---
 
-## 16. Implementation Notes
+## 14. Implementation Notes
 
-- Tokens in `styles/tokens.css` generated from a small TS source-of-truth (so TS constants stay in sync for chart components).
-- Tailwind v4 theme references tokens directly via `@theme` block.
-- shadcn components copied into `components/ui/` and rewritten to consume tokens. Removed unused variants.
-- Icon system distributed as a typed `<Icon name="…">` component; tree-shakable SVG sprites.
-- Storybook per component with "do / don't" examples.
-- Visual regression via Playwright + percy/Chromatic on key pages.
-- Design tokens consumable by PDF templates (same JSON source).
+- **Source of truth:** `src/styles/tokens.css` (tokens) → `src/styles/components/*.css` (component CSS, imported by `src/app/globals.css`) → Tailwind v4 `@theme inline` (utilities) → `src/components/ui/*` + `src/components/dashboard/*` (primitives).
+- **Tailwind v4** consumes tokens via the `@theme inline` block; no separate config palette.
+- **Two primitive families** (Layer A `ui/*`, Layer B handoff `dashboard/primitives.tsx` + `ui/primitives/*`) coexist intentionally; new handoff-ported pages prefer the Layer B family.
+- The functional/build contract (10 P0 blocks, competitor-parity, RBAC + org-scope on every query, primitives-first, single nav source, mobile first-class) lives in **`docs/DESIGN-SYSTEM-BUILD-PROMPT.md`** and governs every design+functional PR.
 
 ---
 
-## 17. Review & Governance
+## 15. Review & Governance
 
-- A design change touching `styles/tokens.css` or any top-level component requires design review.
-- Additions to icon set, motion presets, and chart palette require the same.
-- Each quarter, run a "design debt" pass that audits surfaces for drift from the system.
+- Any change to `src/styles/tokens.css`, the `@theme inline` bridge, or a top-level primitive requires design review.
+- Additions to the icon set, motion presets, or chart palette require the same.
+- A change that introduces a hex literal at a callsite, a new font, or a `style={{…}}` in production is a design-system violation, not a feature.
+- Each quarter, run a "design debt" pass auditing surfaces for drift (incl. Layer A → Layer B migration progress and remaining inline-style callsites).
