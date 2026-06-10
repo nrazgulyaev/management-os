@@ -1,55 +1,113 @@
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
-import { StockStatusPill } from "./stock-status-pill";
+import { HandoffBadge } from "@/components/dashboard/primitives";
+import { TableEmpty } from "@/components/ui/table-empty";
 import type { StockLevelRow } from "@/features/inventory/services";
 
+/** Bar fill ratio (0–1) against par/reorder point. No par = full. */
+function fillRatio(stock: number, reorder: number | null): number {
+  if (!reorder || reorder <= 0) return 1;
+  return Math.max(0, Math.min(1, stock / reorder));
+}
+
 export function StockTable({ rows }: { rows: StockLevelRow[] }) {
-  if (rows.length === 0) {
-    return (
-      <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-        No stock at any location yet. Receive inventory to populate.
-      </p>
-    );
-  }
   return (
-    <Table>
-      <THead>
-        <TR>
-          <TH>Item</TH>
-          <TH>Location</TH>
-          <TH className="text-right">Quantity</TH>
-          <TH className="text-right">Reserved</TH>
-          <TH className="text-right">Status</TH>
-        </TR>
-      </THead>
-      <TBody>
-        {rows.map((r, i) => (
-          <TR key={`${r.itemId}-${r.locationId}-${i}`}>
-            <TD>
-              <div className="text-ink">{r.itemName}</div>
-              <div className="text-[11px] text-ink-tertiary font-mono">
-                {r.itemSku ?? "—"}
-              </div>
-            </TD>
-            <TD>
-              {r.locationName}
-              {r.villaCode && (
-                <span className="text-[11px] text-ink-tertiary ml-2">{r.villaCode}</span>
-              )}
-            </TD>
-            <TDNum>
-              {r.quantity.toLocaleString()} <span className="text-ink-tertiary">{r.itemUnit}</span>
-            </TDNum>
-            <TDNum>{r.reservedQuantity.toLocaleString()}</TDNum>
-            <TD className="text-right">
-              <StockStatusPill
-                quantity={r.quantity}
-                reorderPoint={r.reorderPoint}
-                unit={r.itemUnit}
-              />
-            </TD>
-          </TR>
-        ))}
-      </TBody>
-    </Table>
+    <div className="card p-0 overflow-hidden">
+      <table className="data">
+        <thead>
+          <tr>
+            <th scope="col">Item</th>
+            <th scope="col">Location</th>
+            <th scope="col" className="num">Par</th>
+            <th scope="col" className="num">Stock</th>
+            <th scope="col" className="num">Reserved</th>
+            <th scope="col" className="num">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <TableEmpty colSpan={6}>
+              No stock at any location yet. Receive inventory to populate.
+            </TableEmpty>
+          ) : (
+            rows.map((r, i) => {
+              const isOut = r.quantity <= 0;
+              const isLow =
+                r.reorderPoint !== null && r.quantity <= r.reorderPoint;
+              const sev = isOut ? "danger" : isLow ? "warn" : null;
+              const ratio = fillRatio(r.quantity, r.reorderPoint);
+              return (
+                <tr
+                  key={`${r.itemId}-${r.locationId}-${i}`}
+                  className={
+                    sev === "danger"
+                      ? "border-l-[3px] border-l-danger"
+                      : sev === "warn"
+                        ? "border-l-[3px] border-l-warning"
+                        : ""
+                  }
+                >
+                  <td>
+                    <span className="block text-[13px] font-medium text-ink">
+                      {r.itemName}
+                    </span>
+                    <span className="block mono text-[10px] text-ink-4 mt-px">
+                      {r.itemSku ?? "—"}
+                    </span>
+                  </td>
+                  <td className="text-[12px] text-ink-3">
+                    {r.locationName}
+                    {r.villaCode && (
+                      <span className="mono text-[10px] text-ink-4 ml-2">
+                        {r.villaCode}
+                      </span>
+                    )}
+                  </td>
+                  <td className="num text-ink-3">
+                    {r.reorderPoint ?? "—"}
+                  </td>
+                  <td className="num">
+                    <span className="inline-flex items-center justify-end gap-2">
+                      <span className="h-[5px] w-[44px] overflow-hidden rounded-[3px] bg-cream-deep">
+                        <span
+                          className={
+                            "block h-full " +
+                            (sev === "danger"
+                              ? "bg-danger"
+                              : sev === "warn"
+                                ? "bg-warning"
+                                : "bg-ok")
+                          }
+                          style={{ width: `${Math.round(ratio * 100)}%` }}
+                        />
+                      </span>
+                      <span
+                        className={
+                          "tabular-nums " +
+                          (sev === "danger"
+                            ? "text-danger font-medium"
+                            : sev === "warn"
+                              ? "text-warning font-medium"
+                              : "text-ink")
+                        }
+                      >
+                        {r.quantity.toLocaleString()}
+                      </span>
+                      <span className="mono text-[10px] text-ink-4">{r.itemUnit}</span>
+                    </span>
+                  </td>
+                  <td className="num text-ink-3">
+                    {r.reservedQuantity.toLocaleString()}
+                  </td>
+                  <td className="num">
+                    <HandoffBadge tone={isOut ? "danger" : isLow ? "warn" : "ok"}>
+                      {isOut ? "Out" : isLow ? "Low" : "OK"}
+                    </HandoffBadge>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
