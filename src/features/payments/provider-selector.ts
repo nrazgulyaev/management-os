@@ -29,8 +29,12 @@ export function selectPaymentProvider(
     case "xendit":
     case "wise":
     case "bank_transfer":
-      // Real providers are not implemented yet. Fall through to the
-      // manual stub so the system stays runnable.
+      // The direct-booking DEPOSIT workflow has no live provider yet and
+      // falls through to the manual stub so the system stays runnable.
+      // Note: a real Xendit adapter now exists in the unified processor
+      // framework (src/lib/payment-processors/providers/xendit/) and is
+      // live for buyer installments; bridging the deposit flow onto it
+      // is a follow-on (ADR-0028/0029/0030 reconciliation path).
       return new ManualStubProvider({ buildPaymentUrl });
   }
 }

@@ -77,8 +77,10 @@ jobs:
       - name: Compare against baselines
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.update == 'true') }}
         run: |
-          if ! find tests/visual -path '*-snapshots*' -name '*.png' | grep -q .; then
-            echo "::notice::No committed baselines yet. Run this workflow with update=true, commit the visual-baselines artifact, then re-run."
+          # Baselines are platform-suffixed (-linux/-darwin); this runner is linux,
+          # so locally generated -darwin baselines must not trigger a doomed diff.
+          if ! find tests/visual -path '*-snapshots*' -name '*-linux.png' | grep -q .; then
+            echo "::notice::No linux baselines yet (darwin-only sets are ignored on this runner). Run this workflow with update=true, commit the visual-baselines artifact, then re-run."
             exit 0
           fi
           npm run test:visual

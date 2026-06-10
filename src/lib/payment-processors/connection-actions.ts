@@ -19,6 +19,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { selectPaymentProvider } from "./select-provider";
 import {
   sealCredentials,
@@ -67,11 +68,27 @@ const manualPaymentSchema = z.object({
   mode: z.enum(["test", "live"]).default("live"),
 });
 
+const xenditSchema = z.object({
+  provider: z.literal("xendit"),
+  secretKey: z
+    .string()
+    .regex(
+      /^xnd_(development|production)_/,
+      "Xendit secret key starts with xnd_development_ or xnd_production_",
+    ),
+  callbackToken: z
+    .string()
+    .min(10, "Callback verification token looks too short"),
+  accountName: z.string().min(2).max(120),
+  mode: z.enum(["test", "live"]),
+});
+
 const createConnectionSchema = z.discriminatedUnion("provider", [
   stripeSchema,
   wisePaymentsSchema,
   paypalSchema,
   manualPaymentSchema,
+  xenditSchema,
 ]);
 
 export type CreatePaymentConnectionInput = z.infer<typeof createConnectionSchema>;
@@ -93,6 +110,13 @@ function externalAccountIdFor(input: CreatePaymentConnectionInput): string {
       return input.clientId.slice(0, 24);
     case "manual":
       return `manual-${input.label.toLowerCase().replace(/\s+/g, "-")}`;
+    case "xendit":
+      // Xendit has no public account identifier in the credentials —
+      // derive a stable, non-secret id from the operator's label + mode.
+      return `xendit-${input.mode}-${input.accountName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")}`;
   }
 }
 
@@ -130,6 +154,13 @@ function toCredentials(input: CreatePaymentConnectionInput): PaymentCredentials 
       };
     case "manual":
       return { provider: "manual", label: input.label, mode: input.mode };
+    case "xendit":
+      return {
+        provider: "xendit",
+        secretKey: input.secretKey,
+        callbackToken: input.callbackToken,
+        mode: input.mode,
+      };
   }
 }
 
@@ -142,6 +173,12 @@ export async function createPaymentConnectionAction(input: {
   data: CreatePaymentConnectionInput;
 }): Promise<{ ok: true; connectionId: string } | { ok: false; error: string }> {
   await requirePermission("payments.write");
+  // Tenancy: never trust a client-supplied org id on a money surface —
+  // the connection lands in the CALLER's active org or not at all.
+  const orgId = await requireOrgId();
+  if (input.organizationId !== orgId) {
+    return { ok: false, error: "Organization mismatch." };
+  }
   const parsed = createConnectionSchema.safeParse(input.data);
   if (!parsed.success) {
     return {
@@ -218,13 +255,19 @@ export async function testPaymentConnectionAction(args: {
   | { ok: false; error: string }
 > {
   await requirePermission("payments.read");
+  const orgId = await requireOrgId();
   const db = requireDb();
   const me = await getCurrentAppUser();
 
   const [row] = await db
     .select()
     .from(paymentProcessorConnections)
-    .where(eq(paymentProcessorConnections.id, args.connectionId))
+    .where(
+      and(
+        eq(paymentProcessorConnections.id, args.connectionId),
+        eq(paymentProcessorConnections.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!row) return { ok: false, error: "Connection not found." };
 
@@ -298,13 +341,19 @@ export async function disconnectPaymentConnectionAction(args: {
   reason?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   await requirePermission("payments.write");
+  const orgId = await requireOrgId();
   const db = requireDb();
   const me = await getCurrentAppUser();
 
   const [before] = await db
     .select()
     .from(paymentProcessorConnections)
-    .where(eq(paymentProcessorConnections.id, args.connectionId))
+    .where(
+      and(
+        eq(paymentProcessorConnections.id, args.connectionId),
+        eq(paymentProcessorConnections.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Connection not found." };
   if (before.status === "archived") {

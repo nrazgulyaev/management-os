@@ -14,12 +14,73 @@ Screenshot diffing for two surfaces:
   cookies; see `tests/visual/.gitignore`). Regenerated on every run by the
   `cabinet-auth` setup project.
 
-> **No baselines are committed by this PR.** Screenshots are
-> rendering-environment specific (fonts via `next/font` need network at build
-> time, antialiasing differs per OS) and the cabinet screens additionally
-> depend on seeded data. Baselines must be generated LOCALLY by the founder
-> against a seeded prod server (or once in CI via the `update=true` workflow
-> input for the landings), reviewed, and committed.
+## Current baseline status (2026-06-10)
+
+**36 landing baselines are committed** in
+`public-landings.spec.ts-snapshots/` — 12 pages x 3 viewports, all with the
+**`-darwin.png`** suffix (generated on the founder's macOS machine, Playwright
+1.60 / bundled Chromium). Each PNG was eyeballed after generation: full-page
+renders of the real design-system pages, no error overlays, no blanks.
+Stability was proven with two consecutive non-update diff runs (36/36 green
+each) plus a full `npm run test:visual` run (36 passed, 33 cabinet skips).
+
+Exact commands used (no DB configured — `.env.local` has only Vercel CLI
+vars; the landings are public and need none):
+
+```bash
+npx playwright install chromium
+NEXT_PUBLIC_ENABLE_DEMO_MODE=true npm run build
+PORT=3101 NEXT_PUBLIC_ENABLE_DEMO_MODE=true npm run start &
+PLAYWRIGHT_BASE_URL=http://localhost:3101 npm run test:visual:landings:update
+PLAYWRIGHT_BASE_URL=http://localhost:3101 npm run test:visual:landings   # diff: 36 passed
+PLAYWRIGHT_BASE_URL=http://localhost:3101 npm run test:visual            # 36 passed, 33 skipped
+```
+
+Known capture quirks (real page behavior, baselined as-is):
+
+- `products-management-os` mobile (408px wide) and `products-development-os`
+  mobile/tablet (401/891px wide) capture **wider than their viewports** —
+  those pages have horizontal overflow at small widths. If that overflow is
+  ever fixed, the baselines will (correctly) diff; regenerate them.
+- `portfolio` renders gradient placeholder images for the villa cards — that
+  is the current live state, not a broken capture.
+
+> **CI platform mismatch (unresolved).** The workflow
+> (`.github/workflows/visual-regression.yml`) runs on `ubuntu-latest`, so
+> Playwright there looks for **`-linux.png`** baselines — the committed
+> `-darwin.png` set is invisible to it. Worse, the workflow's "no baselines
+> yet" guard only checks that *some* `*-snapshots/*.png` exist, so once the
+> darwin set is committed CI will run the diff and **fail all 36 landings
+> with "snapshot doesn't exist"** (in CI Playwright does not write missing
+> snapshots). Fix options: (a) generate a linux set via the workflow's
+> `update=true` dispatch input and commit that artifact alongside the darwin
+> set — each OS then compares against its own suffix; or (b) switch the
+> workflow to a `macos-*` runner so it shares the darwin baselines. Until
+> one of those lands, expect the CI visual job to be red on landing-path PRs.
+
+**No cabinet baselines are committed.** Without `PLAYWRIGHT_VISUAL_*`
+credentials and a seeded DB the `cabinet-auth` setup and all cabinet screens
+skip (verified: `npm run test:visual:cabinets` exits 0 with 33 skips — that
+is the honest current state, no faked sessions). To generate them the founder
+must export, on a machine with the seeded database reachable
+(`DATABASE_URL` + Supabase vars in `.env.local`):
+
+- `PLAYWRIGHT_VISUAL_ADMIN_EMAIL` / `PLAYWRIGHT_VISUAL_ADMIN_PASSWORD` — a
+  `super_admin` test account
+- `PLAYWRIGHT_VISUAL_OWNER_EMAIL` / `PLAYWRIGHT_VISUAL_OWNER_PASSWORD` — an
+  app user with an owner-portal grant (`npm run seed:auth-owner-grants`)
+- `PLAYWRIGHT_VISUAL_INVESTOR_EMAIL` / `PLAYWRIGHT_VISUAL_INVESTOR_PASSWORD`
+  — `investor_viewer` role + non-null `investor_id`
+  (`npm run seed:auth-investor-grants`)
+
+plus the per-screen seeds in the table below, then run
+`npm run test:visual:cabinets:update` (full recipe in
+"Generate / refresh baselines").
+
+> Screenshots are rendering-environment specific (fonts via `next/font` need
+> network at build time, antialiasing differs per OS) and the cabinet screens
+> additionally depend on seeded data. Always generate and diff on the same
+> OS against the same DB snapshot.
 
 ## Scripts
 

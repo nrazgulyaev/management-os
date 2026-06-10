@@ -3,10 +3,11 @@
 /**
  * Stage 7.F.C.1 — Payment processor connection form.
  *
- * Stripe is the only provider that fires real API calls today; Wise
- * Payments / PayPal / Manual default to DryRun until each provider's
- * implementation lands. The form still saves credentials so the
- * implementation slots in transparently when ready.
+ * Xendit (Indonesia: QRIS / e-wallets / Virtual Accounts) and Stripe
+ * fire real API calls today; Wise Payments / PayPal / Manual default to
+ * DryRun until each provider's implementation lands. The form still
+ * saves credentials so the implementation slots in transparently when
+ * ready.
  */
 
 import { useState, useTransition } from "react";
@@ -24,6 +25,12 @@ const PROVIDER_OPTIONS: Array<{
   label: string;
   description: string;
 }> = [
+  {
+    key: "xendit",
+    label: "Xendit",
+    description:
+      "Indonesia rails — QRIS, e-wallets, bank virtual accounts via hosted invoice (live API today)",
+  },
   {
     key: "stripe",
     label: "Stripe",
@@ -52,7 +59,7 @@ interface FormProps {
 
 export function ConnectPaymentForm({ organizationId }: FormProps) {
   const router = useRouter();
-  const [provider, setProvider] = useState<ProviderKey>("stripe");
+  const [provider, setProvider] = useState<ProviderKey>("xendit");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -172,6 +179,41 @@ function ProviderFields({
   pending: boolean;
 }) {
   switch (provider) {
+    case "xendit":
+      return (
+        <fieldset disabled={pending} className="space-y-3">
+          <Field
+            name="accountName"
+            label="Account label"
+            placeholder="Xendit — Bali ops (IDR)"
+          />
+          <Field
+            name="secretKey"
+            label="Secret API key"
+            type="password"
+            placeholder="xnd_development_… or xnd_production_…"
+          />
+          <Field
+            name="callbackToken"
+            label="Callback verification token"
+            type="password"
+            placeholder="From Xendit dashboard → Settings → Webhooks"
+          />
+          <Select
+            name="mode"
+            label="Mode"
+            options={[
+              { v: "live", l: "Live (xnd_production_…)" },
+              { v: "test", l: "Test (xnd_development_…)" },
+            ]}
+          />
+          <p className="text-xs text-stone-500">
+            After connecting, point the Xendit invoice webhook to{" "}
+            <code>/api/webhooks/xendit</code> on this domain. Inbound
+            callbacks are verified against the token above.
+          </p>
+        </fieldset>
+      );
     case "stripe":
       return (
         <fieldset disabled={pending} className="space-y-3">
@@ -328,6 +370,14 @@ function buildPayload(
 ): CreatePaymentConnectionInput | null {
   const v = (k: string) => (formData.get(k) ?? "").toString().trim();
   switch (provider) {
+    case "xendit":
+      return {
+        provider: "xendit",
+        secretKey: v("secretKey"),
+        callbackToken: v("callbackToken"),
+        accountName: v("accountName"),
+        mode: (v("mode") as "test" | "live") || "test",
+      };
     case "stripe":
       return {
         provider: "stripe",

@@ -8,6 +8,7 @@ import {
   listTaxPeriodReports,
   listAllTaxTypes,
 } from "@/lib/development/server/tax/tax-actions";
+import { summarizeCoretaxEligibility } from "@/lib/development/server/tax/efaktur-export";
 import type { TaxPeriodReport } from "@/lib/db/schema/tax";
 import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -16,6 +17,7 @@ import {
   monthLabel,
   type PeriodKey,
 } from "./_period";
+import { ExportFormatMenu } from "./_export-menu";
 import { FinalizeReportButton } from "./_finalize-button";
 import { MarkFiledButton } from "./_mark-filed-button";
 import { FileTaxesButton } from "./_file-taxes-button";
@@ -128,6 +130,15 @@ export default async function TaxReportsPage({
     sp.period && candidates.has(sp.period) ? sp.period : defaultKey;
   const selected = candidates.get(selectedKey) ?? priorMonth;
 
+  // Export-format picker copy: how many PPN Keluaran lines are IDR
+  // (eligible for the official Coretax XML) vs non-IDR (draft CSV only).
+  const coretaxEligibility = await safeQuery(
+    "summarizeCoretaxEligibility",
+    summarizeCoretaxEligibility(selected.start, selected.end),
+    { idrOutputLines: 0, nonIdrOutputLines: 0 },
+    4000,
+  );
+
   const inPeriod = reports.filter(
     (r) => r.periodStart === selected.start && r.periodEnd === selected.end,
   );
@@ -193,14 +204,12 @@ export default async function TaxReportsPage({
           >
             Bukti potong register →
           </Link>
-          <a
-            href={`/development-os/finance/tax-reports/export?periodStart=${selected.start}&periodEnd=${selected.end}`}
-            className="btn btn-secondary btn-sm"
-            title="Coretax import draft — verify column mapping against your Coretax template before upload"
-            download
-          >
-            Export e-Faktur CSV (draft)
-          </a>
+          <ExportFormatMenu
+            periodStart={selected.start}
+            periodEnd={selected.end}
+            idrOutputLines={coretaxEligibility.idrOutputLines}
+            nonIdrOutputLines={coretaxEligibility.nonIdrOutputLines}
+          />
           <RefreshDeclarationsButton
             periodStart={selected.start}
             periodEnd={selected.end}
@@ -234,10 +243,15 @@ export default async function TaxReportsPage({
       </div>
 
       <p className="mb-[18px] text-xs text-[var(--ink-3)] max-w-[680px]">
-        e-Faktur CSV export is a Coretax import draft — verify column mapping
-        against your Coretax template before upload (not a certified
-        DJP/Coretax format). The bukti potong register is the per-counterparty
-        PPh source; official e-Bupot numbers are issued by DJP/Coretax.
+        Two export formats: the draft CSV (working register — all currencies,
+        both VAT directions, USD-normalised, not a DJP format) and the
+        Coretax XML (official DJP TaxInvoiceBulk import for faktur keluaran,
+        verified against DJP&apos;s published template — see
+        docs/CORETAX-EFAKTUR-FORMAT.md). The XML is IDR-only: non-IDR output
+        lines are excluded and counted on the picker and inside the file.
+        Nomor faktur and e-Bupot certificate numbers are issued by
+        DJP/Coretax, never by these exports. The bukti potong register is the
+        per-counterparty PPh source.
       </p>
 
       <div className="cfo-kpis">
@@ -406,11 +420,14 @@ export default async function TaxReportsPage({
           trail, the period-close gate (a period cannot be closed until these
           declarations are filed), NPWP format validation on vendor forms
           (15-digit legacy + 16-digit NIK format, soft — empty stays
-          allowed), the e-Faktur CSV export DRAFT (Coretax import draft —
-          verify column mapping against your Coretax template before upload),
-          and the bukti potong source register with printable per-counterparty
-          drafts. Not built yet: certified Coretax file formats / API upload
-          and official e-Bupot certificate numbers — those are issued by
+          allowed), the e-Faktur draft CSV (working register), the
+          official-format Coretax XML export (DJP TaxInvoiceBulk faktur
+          keluaran template, IDR lines only — requires the seller NPWP and a
+          TrxCode/goods-vs-services review before upload, see
+          docs/CORETAX-EFAKTUR-FORMAT.md), and the bukti potong source
+          register with printable per-counterparty drafts. Not built yet:
+          Coretax API upload, the e-Bupot unifikasi (BPPU) import file, and
+          official e-Bupot certificate numbers — those are issued by
           DJP/Coretax, never invented here. Legacy direction-less VAT drafts
           are archived automatically when a period is re-aggregated.
         </p>

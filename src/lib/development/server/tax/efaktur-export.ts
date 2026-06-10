@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, gte, inArray, isNotNull, lte } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, lte } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
 import { taxTypes, taxPeriodReports } from "@/lib/db/schema/tax";
 import { devTransactions } from "@/lib/db/schema/dev-finance";
@@ -24,9 +24,13 @@ import { taxDirectionKind } from "@/lib/development/server/tax/tax-kind";
  *   * declaration header metadata (status / DJP reference) comes from the
  *     period's tax_period_reports rows for the same direction.
  *
- * This is a Coretax import DRAFT — column mapping must be verified against
- * the operator's Coretax template before upload. It is NOT a certified
- * DJP/Coretax file format.
+ * Two consumers:
+ *   * the DRAFT CSV (export route, format=draft-csv) — working register,
+ *     all currencies, both directions, NOT a DJP file format;
+ *   * the official-format Coretax XML builder (./coretax-xml.ts,
+ *     format=coretax-xml) — output (Keluaran) IDR lines only, shaped per
+ *     DJP's published TaxInvoiceBulk template. Research + field mapping:
+ *     docs/CORETAX-EFAKTUR-FORMAT.md.
  */
 
 export type EfakturDirection = "output" | "input";
@@ -37,6 +41,8 @@ export interface EfakturLine {
   counterpartyName: string;
   /** Vendor register tax_id, verbatim, or null when no vendor match. */
   counterpartyNpwp: string | null;
+  /** Vendor register address, verbatim, or null when no vendor match. */
+  counterpartyAddress: string | null;
   currency: string;
   /** Original-currency amount, minor units (integer — no decimal guess). */
   amountOriginalMinor: bigint;
@@ -46,6 +52,10 @@ export interface EfakturLine {
   vatUsdMinor: bigint;
   /** dev_transactions.direction: 'inflow' | 'outflow'. */
   transactionDirection: string;
+  /** dev_transactions.description — feeds the Coretax line-item name. */
+  description: string;
+  /** dev_transactions.is_tax_included — true means the amount is gross. */
+  isTaxIncluded: boolean | null;
   taxTypeName: string;
 }
 
@@ -128,19 +138,21 @@ export async function loadEfakturExport(
     };
   }
 
-  // NPWP lookup: org vendors with a tax_id, keyed by normalized legal name.
+  // NPWP/address lookup: org vendors keyed by normalized legal name.
   const vendorRows = await db
-    .select({ legalName: vendors.legalName, taxId: vendors.taxId })
+    .select({
+      legalName: vendors.legalName,
+      taxId: vendors.taxId,
+      address: vendors.address,
+    })
     .from(vendors)
-    .where(
-      and(
-        eq(vendors.organizationId, organizationId),
-        isNotNull(vendors.taxId),
-      ),
-    );
+    .where(eq(vendors.organizationId, organizationId));
   const npwpByName = new Map<string, string>();
+  const addressByName = new Map<string, string>();
   for (const v of vendorRows) {
-    if (v.taxId) npwpByName.set(normalizeName(v.legalName), v.taxId);
+    const key = normalizeName(v.legalName);
+    if (v.taxId) npwpByName.set(key, v.taxId);
+    if (v.address) addressByName.set(key, v.address);
   }
 
   // The same window generateTaxPeriodReport aggregates; internal transfers
@@ -156,6 +168,8 @@ export async function loadEfakturExport(
       taxAmountMinor: devTransactions.taxAmountMinor,
       direction: devTransactions.direction,
       taxTypeId: devTransactions.taxTypeId,
+      description: devTransactions.description,
+      isTaxIncluded: devTransactions.isTaxIncluded,
     })
     .from(devTransactions)
     .where(
@@ -181,11 +195,16 @@ export async function loadEfakturExport(
       counterpartyNpwp: counterpartyName
         ? (npwpByName.get(normalizeName(counterpartyName)) ?? null)
         : null,
+      counterpartyAddress: counterpartyName
+        ? (addressByName.get(normalizeName(counterpartyName)) ?? null)
+        : null,
       currency: t.currency,
       amountOriginalMinor: t.amountMinor,
       baseUsdMinor: t.amountUsdMinor,
       vatUsdMinor: t.taxAmountMinor ?? 0n,
       transactionDirection: t.direction,
+      description: t.description,
+      isTaxIncluded: t.isTaxIncluded,
       taxTypeName: typeNameById.get(t.taxTypeId ?? "") ?? "",
     };
     block.lines.push(line);
@@ -229,4 +248,61 @@ export async function loadEfakturExport(
     vatTaxTypeNames: vatTypes.map((t) => t.displayName),
     blocks: [blocks.output, blocks.input],
   };
+}
+
+export interface CoretaxEligibility {
+  /** Output-VAT (inflow) lines denominated in IDR — exportable to Coretax. */
+  idrOutputLines: number;
+  /** Output-VAT lines in other currencies — excluded from the Coretax XML. */
+  nonIdrOutputLines: number;
+}
+
+/**
+ * ID-TAX — cheap per-period count backing the export-format picker copy:
+ * how many PPN Keluaran (inflow, VAT-classified) lines are IDR-denominated
+ * (eligible for the official Coretax XML, which is IDR-only) vs not
+ * (excluded from the XML; they remain in the draft CSV). Org-scoped.
+ */
+export async function summarizeCoretaxEligibility(
+  periodStart: string,
+  periodEnd: string,
+): Promise<CoretaxEligibility> {
+  const db = requireDb();
+  const organizationId = await requireOrgId();
+
+  const allTypes = await db
+    .select({
+      id: taxTypes.id,
+      typeKey: taxTypes.typeKey,
+      displayName: taxTypes.displayName,
+    })
+    .from(taxTypes);
+  const vatTypeIds = allTypes
+    .filter((t) => taxDirectionKind(t) === "vat")
+    .map((t) => t.id);
+  if (vatTypeIds.length === 0) {
+    return { idrOutputLines: 0, nonIdrOutputLines: 0 };
+  }
+
+  const rows = await db
+    .select({ currency: devTransactions.currency, n: count() })
+    .from(devTransactions)
+    .where(
+      and(
+        eq(devTransactions.organizationId, organizationId),
+        gte(devTransactions.transactionDate, periodStart),
+        lte(devTransactions.transactionDate, periodEnd),
+        inArray(devTransactions.taxTypeId, vatTypeIds),
+        eq(devTransactions.direction, "inflow"),
+      ),
+    )
+    .groupBy(devTransactions.currency);
+
+  let idrOutputLines = 0;
+  let nonIdrOutputLines = 0;
+  for (const r of rows) {
+    if (r.currency === "IDR") idrOutputLines += Number(r.n);
+    else nonIdrOutputLines += Number(r.n);
+  }
+  return { idrOutputLines, nonIdrOutputLines };
 }

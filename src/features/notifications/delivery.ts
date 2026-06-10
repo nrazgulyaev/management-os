@@ -8,8 +8,6 @@ import {
   notificationQueue,
   notificationTemplates,
 } from "@/lib/db/schema/notifications";
-import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
-import { appUsersOwners } from "@/lib/db/schema/access-grants";
 import { recordAuditEvent } from "@/features/audit/services";
 import { logger } from "@/lib/observability/logger";
 import { selectProvider } from "./providers";
@@ -30,184 +28,15 @@ import {
 // -----------------------------------------------------------------------------
 // Recipient resolution
 // -----------------------------------------------------------------------------
+// TENANCY (wave 4 fix) — recipient resolution lives in ./recipients (a
+// module without `import "server-only"` so node:test can exercise the
+// org-scoping). The worker injects its Drizzle client below; the resolver
+// constrains role fan-out + direct targets to the queue row's org.
 
-export interface ResolvedRecipient {
-  appUserId: string | null;
-  ownerId: string | null;
-  roleKey: string | null;
-  /** email/phone — only set when channel needs an external address. */
-  recipientAddress: string | null;
-  /** v8B — IANA timezone for quiet-hours evaluation. Falls back to
-   *  Asia/Makassar when the recipient row has no timezone (e.g. owners
-   *  without a linked app_user). */
-  timezone: string;
-}
+import { resolveNotificationRecipients } from "./recipients";
 
-interface QueueRow {
-  id: string;
-  recipientType: string;
-  recipientId: string | null;
-  channel: string;
-  templateKey: string;
-  title: string;
-  body: string;
-  payload: unknown;
-  priority: string;
-}
-
-/**
- * Map a queue row to one or more concrete recipients for the chosen
- * channel. The worker calls `selectProvider(channel).send(...)` once per
- * recipient.
- *
- * Today:
- *   - internal_user → resolve email/phone from app_users
- *   - owner         → linked app_users via app_users_owners (channel-aware)
- *   - role          → every active internal app_user with that role
- *   - guest         → skipped for now (returns [] with reason)
- */
-export async function resolveNotificationRecipients(
-  notification: QueueRow,
-): Promise<{ recipients: ResolvedRecipient[]; reason?: string }> {
-  const db = getDb();
-  if (!db) return { recipients: [], reason: "database unavailable" };
-
-  const channel = notification.channel as DeliveryChannel;
-  const recipientType = notification.recipientType as RecipientType;
-
-  if (recipientType === "internal_user") {
-    if (!notification.recipientId)
-      return { recipients: [], reason: "internal_user without recipient_id" };
-    const [user] = await db
-      .select({
-        id: appUsers.id,
-        email: appUsers.email,
-        phone: appUsers.phone,
-        timezone: appUsers.timezone,
-      })
-      .from(appUsers)
-      .where(eq(appUsers.id, notification.recipientId))
-      .limit(1);
-    if (!user) return { recipients: [], reason: "app_user not found" };
-    return {
-      recipients: [
-        {
-          appUserId: user.id,
-          ownerId: null,
-          roleKey: null,
-          recipientAddress: pickAddressForChannel(channel, user.email, user.phone),
-          timezone: user.timezone,
-        },
-      ],
-    };
-  }
-
-  if (recipientType === "owner") {
-    if (!notification.recipientId)
-      return { recipients: [], reason: "owner without recipient_id" };
-    // The in_app provider can target the owner directly via owner_id even
-    // when there's no linked app_user yet.
-    if (channel === "in_app") {
-      return {
-        recipients: [
-          {
-            appUserId: null,
-            ownerId: notification.recipientId,
-            roleKey: null,
-            recipientAddress: null,
-            timezone: "Asia/Makassar",
-          },
-        ],
-      };
-    }
-    // For external channels we need a linked app_user with an address.
-    const linked = await db
-      .select({
-        id: appUsers.id,
-        email: appUsers.email,
-        phone: appUsers.phone,
-        timezone: appUsers.timezone,
-      })
-      .from(appUsersOwners)
-      .innerJoin(appUsers, eq(appUsers.id, appUsersOwners.appUserId))
-      .where(
-        and(
-          eq(appUsersOwners.ownerId, notification.recipientId),
-          eq(appUsersOwners.status, "active"),
-          eq(appUsers.status, "active"),
-        ),
-      );
-    if (linked.length === 0) {
-      return { recipients: [], reason: "no linked app_users for owner" };
-    }
-    return {
-      recipients: linked
-        .map((u) => ({
-          appUserId: u.id,
-          ownerId: notification.recipientId,
-          roleKey: null,
-          recipientAddress: pickAddressForChannel(channel, u.email, u.phone),
-          timezone: u.timezone,
-        }))
-        .filter((r) => r.recipientAddress !== null),
-    };
-  }
-
-  if (recipientType === "role") {
-    const roleKey =
-      typeof (notification.payload as Record<string, unknown> | null)?.recipientRole === "string"
-        ? ((notification.payload as Record<string, unknown>).recipientRole as string)
-        : null;
-    if (!roleKey) {
-      return { recipients: [], reason: "role recipient missing payload.recipientRole" };
-    }
-    const users = await db
-      .select({
-        id: appUsers.id,
-        email: appUsers.email,
-        phone: appUsers.phone,
-        timezone: appUsers.timezone,
-      })
-      .from(userRoles)
-      .innerJoin(appUsers, eq(appUsers.id, userRoles.userId))
-      .innerJoin(roles, eq(roles.id, userRoles.roleId))
-      .where(and(eq(roles.key, roleKey), eq(appUsers.status, "active")));
-    if (users.length === 0) {
-      return { recipients: [], reason: `no active app_users for role ${roleKey}` };
-    }
-    return {
-      recipients: users.map((u) => ({
-        appUserId: u.id,
-        ownerId: null,
-        roleKey,
-        recipientAddress:
-          channel === "in_app"
-            ? null
-            : pickAddressForChannel(channel, u.email, u.phone),
-        timezone: u.timezone,
-      })),
-    };
-  }
-
-  if (recipientType === "guest") {
-    // External delivery to guests is parked until v8B (the guest portal
-    // ships a self-service preference flow). For now, in-app to a linked
-    // app_user is impossible (guests don't have one yet); skip cleanly.
-    return { recipients: [], reason: "guest delivery deferred to v8B" };
-  }
-
-  return { recipients: [], reason: `unknown recipient_type: ${recipientType}` };
-}
-
-function pickAddressForChannel(
-  channel: DeliveryChannel,
-  email: string | null,
-  phone: string | null,
-): string | null {
-  if (channel === "email") return email;
-  if (channel === "sms" || channel === "whatsapp") return phone;
-  return null;
-}
+export { resolveNotificationRecipients };
+export type { ResolvedRecipient, RecipientQueueRow } from "./recipients";
 
 // -----------------------------------------------------------------------------
 // Preferences
@@ -404,17 +233,23 @@ export async function deliverNotification(
   const channel = n.channel as DeliveryChannel;
 
   // Resolve recipients for the channel.
-  const { recipients, reason: resolveReason } = await resolveNotificationRecipients({
-    id: n.id,
-    recipientType: n.recipientType,
-    recipientId: n.recipientId,
-    channel: n.channel,
-    templateKey: n.templateKey,
-    title: n.title,
-    body: n.body,
-    payload: n.payload,
-    priority: n.priority,
-  });
+  const { recipients, reason: resolveReason } = await resolveNotificationRecipients(
+    {
+      id: n.id,
+      recipientType: n.recipientType,
+      recipientId: n.recipientId,
+      // TENANCY — thread the queue row's org into recipient resolution so
+      // role fan-out and direct targets stay inside the org.
+      organizationId: n.organizationId,
+      channel: n.channel,
+      templateKey: n.templateKey,
+      title: n.title,
+      body: n.body,
+      payload: n.payload,
+      priority: n.priority,
+    },
+    db,
+  );
 
   const provider = selectProvider(channel);
   // v8B — pre-render template once per queue row. Template lookup is by

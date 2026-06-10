@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Receipt } from "lucide-react";
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { BuyerShell } from "@/components/buyer-portal/buyer-shell";
 import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
 import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
+import {
+  paymentIntents,
+  paymentProcessorConnections,
+} from "@/lib/db/schema/payment-processors";
 import { contractGroups, contractMilestones } from "@/lib/db/schema/sales";
 import { villas } from "@/lib/db/schema/projects";
 import { formatMoneyMinor } from "@/lib/money";
@@ -20,6 +24,7 @@ import {
   type BuyerReceipt,
 } from "@/lib/buyer-portal/receipts";
 import { MarkPaidButton } from "./_mark-paid-button";
+import { PayOnlineButton } from "./_pay-online-button";
 
 export const metadata: Metadata = { title: "Payments · Buyer Portal" };
 export const dynamic = "force-dynamic";
@@ -33,6 +38,10 @@ type MilestoneRow = {
   paidAmountUsdMinor: bigint;
   expectedDueDate: string | null;
   paidAt: Date | null;
+  /** True when the org has a configured + active Xendit connection. */
+  onlinePayEnabled: boolean;
+  /** True when an unexpired online checkout is already open. */
+  hasOpenCheckout: boolean;
 };
 
 type VillaLadder = {
@@ -111,12 +120,43 @@ export default async function BuyerPaymentsPage() {
   const groups =
     unitIds.length > 0
       ? await db
-          .select({ id: contractGroups.id, villaId: contractGroups.villaId })
+          .select({
+            id: contractGroups.id,
+            villaId: contractGroups.villaId,
+            organizationId: contractGroups.organizationId,
+          })
           .from(contractGroups)
           .where(inArray(contractGroups.villaId, unitIds))
       : [];
   const groupIds = groups.map((g) => g.id);
   const villaIdByGroupId = new Map(groups.map((g) => [g.id, g.villaId]));
+  const orgIdByGroupId = new Map(groups.map((g) => [g.id, g.organizationId]));
+
+  // Online payment availability: orgs with a configured + ACTIVE Xendit
+  // connection unlock "Pay online" (Xendit hosted invoice — QRIS,
+  // e-wallets, bank Virtual Accounts). Without one, the manual
+  // "Mark as paid" flow below is the only path — unchanged.
+  const orgIds = [
+    ...new Set(groups.map((g) => g.organizationId).filter(Boolean)),
+  ] as string[];
+  const activeXenditOrgRows =
+    orgIds.length > 0
+      ? await db
+          .select({
+            organizationId: paymentProcessorConnections.organizationId,
+          })
+          .from(paymentProcessorConnections)
+          .where(
+            and(
+              inArray(paymentProcessorConnections.organizationId, orgIds),
+              eq(paymentProcessorConnections.provider, "xendit"),
+              eq(paymentProcessorConnections.status, "active"),
+            ),
+          )
+      : [];
+  const onlinePayOrgIds = new Set(
+    activeXenditOrgRows.map((r) => r.organizationId),
+  );
 
   // 3. Milestones for those groups, ordered by sequence (the ladder).
   const milestoneRows =
@@ -141,6 +181,33 @@ export default async function BuyerPaymentsPage() {
           )
       : [];
 
+  // Open online checkouts per milestone ("Resume online payment" label).
+  const milestoneIds = milestoneRows.map((m) => m.id);
+  const openIntentRows =
+    milestoneIds.length > 0 && onlinePayOrgIds.size > 0
+      ? await db
+          .select({
+            linkedContractMilestoneId:
+              paymentIntents.linkedContractMilestoneId,
+          })
+          .from(paymentIntents)
+          .where(
+            and(
+              inArray(paymentIntents.linkedContractMilestoneId, milestoneIds),
+              inArray(paymentIntents.lifecycleState, [
+                "created",
+                "processing",
+                "requires_action",
+              ]),
+            ),
+          )
+      : [];
+  const openCheckoutMilestoneIds = new Set(
+    openIntentRows
+      .map((r) => r.linkedContractMilestoneId)
+      .filter((id): id is string => Boolean(id)),
+  );
+
   // Group milestones by villa (via group → villa).
   const ladderByVilla = new Map<string, VillaLadder>();
   for (const a of assignments) {
@@ -157,6 +224,7 @@ export default async function BuyerPaymentsPage() {
     if (!villaId) continue;
     const ladder = ladderByVilla.get(villaId);
     if (!ladder) continue;
+    const orgId = orgIdByGroupId.get(m.contractGroupId) ?? null;
     ladder.milestones.push({
       id: m.id,
       sequence: m.sequence,
@@ -166,6 +234,8 @@ export default async function BuyerPaymentsPage() {
       paidAmountUsdMinor: m.paidAmountUsdMinor,
       expectedDueDate: m.expectedDueDate,
       paidAt: m.paidAt,
+      onlinePayEnabled: orgId !== null && onlinePayOrgIds.has(orgId),
+      hasOpenCheckout: openCheckoutMilestoneIds.has(m.id),
     });
   }
 
@@ -338,7 +408,15 @@ export default async function BuyerPaymentsPage() {
                               </div>
                             </div>
                             {payable && (
-                              <MarkPaidButton milestoneId={m.id} />
+                              <div className="flex flex-wrap items-center justify-end gap-2">
+                                {m.onlinePayEnabled && (
+                                  <PayOnlineButton
+                                    milestoneId={m.id}
+                                    hasOpenCheckout={m.hasOpenCheckout}
+                                  />
+                                )}
+                                <MarkPaidButton milestoneId={m.id} />
+                              </div>
                             )}
                           </div>
                         </li>
@@ -353,8 +431,20 @@ export default async function BuyerPaymentsPage() {
       )}
 
       <p className="text-xs text-ink-tertiary">
-        Bank-transfer and local payment rails are coming soon. For now, please
-        transfer via the instructions in your contract and confirm here.
+        {onlinePayOrgIds.size > 0 ? (
+          <>
+            “Pay online” opens a secure checkout (QRIS, e-wallets, bank
+            virtual accounts — processed by Xendit, charged in IDR at your
+            contract rate). You can also transfer via the instructions in
+            your contract and confirm with “Mark as paid”.
+          </>
+        ) : (
+          <>
+            Online payment rails are not enabled for your project yet. For
+            now, please transfer via the instructions in your contract and
+            confirm here.
+          </>
+        )}
       </p>
     </BuyerShell>
   );

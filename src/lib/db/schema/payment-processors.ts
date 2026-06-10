@@ -143,6 +143,10 @@ export const paymentIntents = pgTable(
     linkedVendorId: uuid("linked_vendor_id").references(() => vendors.id, {
       onDelete: "set null",
     }),
+    /** Soft link (migration 0166) — the contract milestone (buyer
+     *  installment) this intent settles. No FK by design (sales module
+     *  lives elsewhere; consistent with the other soft links). */
+    linkedContractMilestoneId: uuid("linked_contract_milestone_id"),
 
     customerEmail: text("customer_email"),
     customerName: text("customer_name"),
@@ -236,13 +240,15 @@ export type PaymentProviderName =
   | "stripe"
   | "wise_payments"
   | "paypal"
-  | "manual";
+  | "manual"
+  | "xendit";
 
 export const PAYMENT_PROVIDERS: readonly PaymentProviderName[] = [
   "stripe",
   "wise_payments",
   "paypal",
   "manual",
+  "xendit",
 ] as const;
 
 export type PaymentMode = "test" | "live";
@@ -262,6 +268,7 @@ export type PaymentPurpose =
   | "tax_payment"
   | "commission_payment"
   | "refund"
+  | "buyer_installment"
   | "other";
 
 export const PAYMENT_PURPOSES: readonly PaymentPurpose[] = [
@@ -272,6 +279,7 @@ export const PAYMENT_PURPOSES: readonly PaymentPurpose[] = [
   "tax_payment",
   "commission_payment",
   "refund",
+  "buyer_installment",
   "other",
 ] as const;
 

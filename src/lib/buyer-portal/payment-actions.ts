@@ -3,8 +3,11 @@
 /**
  * Buyer-scoped manual "mark paid" for a contract installment milestone.
  *
- * There is NO real payment-service-provider yet (Indonesia rails are deferred
- * to launch) — this is the manual mark-paid path. It DELIBERATELY does not
+ * This is the manual mark-paid path (off-platform transfer, buyer confirms).
+ * The online path (Xendit invoice → webhook) settles through the SAME core —
+ * see src/features/payments/installment-settlement.ts; this action keeps the
+ * buyer-session ownership gate and delegates the money write to that core.
+ * It DELIBERATELY does not
  * reuse `recordMilestonePayment` from the developer module: that action is
  * developer-trusted and takes an arbitrary amount + fx rate with no buyer
  * ownership check. Here we re-validate that the milestone belongs to the
@@ -25,8 +28,7 @@ import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
 import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { contractGroups, contractMilestones } from "@/lib/db/schema/sales";
-import { recordAuditEvent } from "@/features/audit/services";
-import { persistMilestoneReceipt } from "@/lib/buyer-portal/document-pdf";
+import { settleContractMilestonePaid } from "@/features/payments/installment-settlement";
 
 const markPaidSchema = z.object({ milestoneId: z.string().uuid() });
 
@@ -56,7 +58,6 @@ export async function markBuyerInstallmentPaid(input: {
     .from(contractGroups)
     .where(inArray(contractGroups.villaId, unitIds));
   const groupIds = groups.map((g) => g.id);
-  const villaIdByGroupId = new Map(groups.map((g) => [g.id, g.villaId]));
   if (groupIds.length === 0) {
     return { ok: false, error: "No contract found for your villas." };
   }
@@ -85,74 +86,29 @@ export async function markBuyerInstallmentPaid(input: {
     return { ok: false, error: "This installment cannot be paid." };
   }
 
-  // Record the FULL remaining balance as paid (manual mark-paid; no partials
-  // from the buyer side). Money stays in bigint MINOR units throughout.
-  const remaining =
-    milestone.expectedAmountUsdMinor - milestone.paidAmountUsdMinor;
-  const newPaid =
-    remaining > 0n
-      ? milestone.expectedAmountUsdMinor
-      : milestone.paidAmountUsdMinor;
-  const now = new Date();
-
-  await db
-    .update(contractMilestones)
-    .set({
-      paidAmountUsdMinor: newPaid,
-      status: "paid",
-      paidAt: now,
-      notes: `${milestone.notes ?? ""}\nMarked paid by buyer ${session.buyerCode} via portal (manual).`.trim(),
-      updatedAt: now,
-    })
-    .where(eq(contractMilestones.id, milestone.id));
-
-  // Generate a RECEIPT into the buyer's document vault via the shared
-  // receipt-on-pay writer (also used by the operator installments desk). It
-  // renders real PDF bytes, uploads them to the canonical documents bucket at
-  // the deterministic per-milestone key (the milestone → receipt join), and
-  // indexes an owner-visible `documents` row scoped to the villa so it lands in
-  // the buyer doc-vault "Payment receipts" group AND is downloadable. It is
-  // best-effort: receipt generation must never fail the recorded payment.
-  const villaId = villaIdByGroupId.get(milestone.contractGroupId) ?? null;
-  let receiptDocumentId: string | null = null;
-  if (villaId) {
-    const receipt = await persistMilestoneReceipt({
-      milestoneId: milestone.id,
-      milestoneName: milestone.name,
-      villaId,
-      amountMinor: newPaid,
-      buyerName: session.displayName,
-      buyerCode: session.buyerCode,
-      paidAt: now,
-      methodLabel: "Manual confirmation (buyer portal)",
-    });
-    receiptDocumentId = receipt.documentId;
-  }
-
-  await recordAuditEvent({
-    // Buyers are supabase auth users, not app_users — keep actor null and
-    // carry buyer identity in metadata.
-    actorUserId: null,
-    action: "contract_milestone.buyer_marked_paid",
-    entityType: "contract_milestone",
-    entityId: milestone.id,
-    before: {
-      status: milestone.status,
-      paidAmountUsdMinor: milestone.paidAmountUsdMinor.toString(),
-    },
-    after: {
-      status: "paid",
-      paidAmountUsdMinor: newPaid.toString(),
-    },
-    metadata: {
+  // Settle through the SHARED settlement core (same code path the Xendit
+  // webhook uses): full remaining balance, receipt PDF into the buyer doc
+  // vault (best-effort), audit event. Buyers are supabase auth users, not
+  // app_users — actor stays null and buyer identity rides in the metadata.
+  const settled = await settleContractMilestonePaid({
+    milestoneId: milestone.id,
+    methodLabel: "Manual confirmation (buyer portal)",
+    noteLine: `Marked paid by buyer ${session.buyerCode} via portal (manual).`,
+    buyerName: session.displayName,
+    buyerCode: session.buyerCode,
+    auditAction: "contract_milestone.buyer_marked_paid",
+    auditMetadata: {
       buyerId: session.buyerId,
       buyerCode: session.buyerCode,
-      contractGroupId: milestone.contractGroupId,
       channel: "buyer_portal",
       method: "manual_mark_paid",
-      receiptDocumentId,
     },
   });
+  if (!settled.ok) return { ok: false, error: settled.error };
+  if (settled.alreadyPaid) {
+    // Raced with a webhook / second tab — already settled, nothing to redo.
+    return { ok: false, error: "This installment is already paid." };
+  }
 
   revalidatePath("/buyer-portal/payments");
   revalidatePath("/buyer-portal/documents");
