@@ -109,6 +109,35 @@ export default async function MilestonesPage({
   const persistedMilestones = await getProjectMilestones(detail.project.realProjectId);
   const hasPersisted = persistedMilestones.length > 0;
 
+  // Dependency surfacing — "after: <name> (pending/done)" per editor row.
+  // Self-contained edge read like loadScheduleVariance above. Only real
+  // milestone rows can have edges (synthesized phase rows have no ids in
+  // milestone_dependencies). The update action enforces the same gate
+  // server-side: status=done is refused while a predecessor is pending.
+  const dependsOn: Record<string, Array<{ name: string; done: boolean }>> = {};
+  if (hasPersisted) {
+    const db = getDb();
+    if (db) {
+      const ids = persistedMilestones.map((m) => m.id);
+      const edges = await db
+        .select({
+          fromMilestoneId: milestoneDependencies.fromMilestoneId,
+          toMilestoneId: milestoneDependencies.toMilestoneId,
+        })
+        .from(milestoneDependencies)
+        .where(inArray(milestoneDependencies.toMilestoneId, ids));
+      const byId = new Map(persistedMilestones.map((m) => [m.id, m]));
+      for (const edge of edges) {
+        const from = byId.get(edge.fromMilestoneId);
+        if (!from) continue;
+        (dependsOn[edge.toMilestoneId] ??= []).push({
+          name: from.name,
+          done: from.status === "done",
+        });
+      }
+    }
+  }
+
   const today = new Date();
   // PR 2.2 dev-01 proof-of-life — synthesize from existing project
   // phases when no milestones are authored yet. Each phase becomes a
@@ -285,6 +314,7 @@ export default async function MilestonesPage({
         projectId={detail.project.realProjectId}
         persistent={hasPersisted}
         initial={initial}
+        dependsOn={dependsOn}
       />
     </DevelopmentShell>
   );

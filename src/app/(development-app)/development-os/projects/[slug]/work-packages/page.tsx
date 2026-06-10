@@ -2,31 +2,40 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { ZoneProgressSlider } from "@/components/development/work-packages/zone-progress-slider";
+import { ZoneActions } from "@/components/development/work-packages/zone-actions";
 import { getDb } from "@/lib/db/client";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
 import { listWorkPackages } from "@/lib/development/server/work-packages/work-package-queries";
+import { getProjectMilestones } from "@/lib/development/server/project-milestones";
 import { safeQuery } from "@/lib/development/safe-query";
 
 export const metadata: Metadata = {
-  title: "Work packages · Development OS",
+  title: "Work zones · Development OS",
 };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "neutral"> = {
-  planned: "neutral",
-  ready_to_start: "info",
-  in_progress: "info",
-  completed: "success",
-  on_hold: "warning",
-  cancelled: "neutral",
+type BadgeTone = "ok" | "warn" | "danger" | "gold" | "info" | "ink" | "soft" | "amber";
+
+const STATUS_BADGE: Record<string, { tone: BadgeTone; label: string }> = {
+  planned: { tone: "soft", label: "planned" },
+  ready_to_start: { tone: "info", label: "ready" },
+  in_progress: { tone: "amber", label: "in progress" },
+  completed: { tone: "ok", label: "done" },
+  on_hold: { tone: "danger", label: "blocked" },
+  cancelled: { tone: "soft", label: "cancelled" },
 };
+
+function fmtShortDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d
+    .toLocaleDateString("en-GB", { day: "2-digit", month: "short" })
+    .toUpperCase();
+}
 
 export default async function ProjectWorkPackagesPage({
   params,
@@ -38,7 +47,16 @@ export default async function ProjectWorkPackagesPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Work packages" />
+        <header className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Dev OS</Link>
+              <span>/</span>
+              <span>Work zones</span>
+            </div>
+            <h1>Work zones</h1>
+          </div>
+        </header>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -46,88 +64,189 @@ export default async function ProjectWorkPackagesPage({
   const detail = await getDevelopmentProjectBySlug(slug);
   if (!detail || detail.source !== "db") notFound();
   const { project } = detail;
-  const packages = await safeQuery(
-    "listWorkPackages",
-    listWorkPackages({ projectId: project.realProjectId }),
-    [],
-    4000,
-  );
+  const [packages, milestones] = await Promise.all([
+    safeQuery(
+      "listWorkPackages",
+      listWorkPackages({ projectId: project.realProjectId }),
+      [],
+      4000,
+    ),
+    safeQuery(
+      "getProjectMilestones",
+      getProjectMilestones(project.realProjectId),
+      [],
+      4000,
+    ),
+  ]);
+
+  const counted = packages.filter((p) => p.status !== "cancelled");
+  const activeCount = counted.filter((p) => p.status !== "completed").length;
+  const doneCount = packages.filter(
+    (p) => p.status === "completed" || Number(p.progressPercentage) >= 100,
+  ).length;
+  const avgProgress =
+    counted.length > 0
+      ? Math.round(
+          counted.reduce((sum, p) => sum + Number(p.progressPercentage), 0) /
+            counted.length,
+        )
+      : 0;
+  // getProjectMilestones is sorted by target date ascending.
+  const nextMilestone = milestones.find((m) => m.status !== "done") ?? null;
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Work packages" },
-        ]}
-        eyebrow={`${packages.length} package${packages.length === 1 ? "" : "s"}`}
-        title="Work packages"
-        description="Hierarchical work packages per project. Multi-villa scope. Linked to budget categories, purchase requests, invoices, QA/QC issues, inventory movements via FK constraints (defense-in-depth)."
-        actions={
-          <div className="flex gap-2">
-            <Button asChild>
-              <Link href={`/development-os/projects/${slug}/work-packages/new`}>
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New package
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href={`/development-os/projects/${slug}`}>
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Project
-              </Link>
-            </Button>
+      <header className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Dev OS</Link>
+            <span>/</span>
+            <Link href="/development-os/projects">Projects</Link>
+            <span>/</span>
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link>
+            <span>/</span>
+            <span>Work zones</span>
           </div>
-        }
-      />
+          <h1>Work zones</h1>
+          <div className="page-header-meta">
+            <span>
+              {packages.length} PACKAGE{packages.length === 1 ? "" : "S"}
+            </span>
+            <span>·</span>
+            <span>{activeCount} ACTIVE</span>
+          </div>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}/work-packages/new`}
+            className="btn btn-amber btn-sm"
+          >
+            <Plus className="w-4 h-4" strokeWidth={1.75} />
+            Cut work zone
+          </Link>
+          <Link
+            href={`/development-os/projects/${slug}`}
+            className="btn btn-dark btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Project
+          </Link>
+        </div>
+      </header>
+
+      <p className="text-ink-3 text-sm max-w-3xl -mt-4 leading-relaxed">
+        Cut the project into work zones (work packages), drag progress 0–100,
+        and block/unblock with one click. Zone codes auto-increment per
+        project; status and progress feed budget categories, purchase
+        requests, invoices, and QA/QC via FK links.
+      </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-[18px]">
+        <Kpi
+          label="Active zones"
+          value={
+            <>
+              {activeCount}
+              <span className="text-[15px] text-[var(--ink-4)]">
+                {" "}
+                / {counted.length}
+              </span>
+            </>
+          }
+          sub="work packages in flight"
+          tone="accent"
+        />
+        <Kpi label="Overall progress" value={`${avgProgress}%`} sub="avg across zones" />
+        <Kpi
+          label="Done"
+          value={doneCount}
+          sub="zones complete"
+          tone={doneCount > 0 ? "success" : undefined}
+        />
+        <Kpi
+          label="Next milestone"
+          value={nextMilestone ? fmtShortDate(nextMilestone.targetDate) : "—"}
+          sub={
+            nextMilestone
+              ? nextMilestone.name
+              : milestones.length > 0
+                ? "all milestones done"
+                : "no milestones authored"
+          }
+        />
+      </div>
 
       {packages.length === 0 ? (
         <EmptyState
-          title="No work packages yet"
-          description="Use 'New package' to add the first."
+          title="No work zones yet"
+          description="Cut the project into work packages to track progress per zone."
+          action={
+            <Link
+              href={`/development-os/projects/${slug}/work-packages/new`}
+              className="btn btn-amber btn-sm"
+            >
+              <Plus className="w-4 h-4" strokeWidth={1.75} />
+              Cut work zone
+            </Link>
+          }
         />
       ) : (
-        <Section eyebrow="Catalog" title="All packages">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Name</TH>
-                <TH>Status</TH>
-                <TH>Progress</TH>
-                <TH>Planned start</TH>
-                <TH>Planned finish</TH>
-                <TH>Villas</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {packages.map((p) => (
-                <TR key={p.id}>
-                  <TD className="font-mono text-xs">
-                    <Link
-                      href={`/development-os/projects/${slug}/work-packages/${p.packageCode}`}
-                      className="hover:underline"
-                    >
-                      {p.packageCode}
-                    </Link>
-                  </TD>
-                  <TD className="text-sm">{p.name}</TD>
-                  <TD>
-                    <Badge tone={STATUS_TONE[p.status] ?? "neutral"}>
-                      {p.status}
-                    </Badge>
-                  </TD>
-                  <TDNum>{Number(p.progressPercentage).toFixed(0)}%</TDNum>
-                  <TD className="text-xs">{p.plannedStart ?? "—"}</TD>
-                  <TD className="text-xs">{p.plannedFinish ?? "—"}</TD>
-                  <TDNum>{p.villaIds.length}</TDNum>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Section>
+        <Card padding="default">
+          <div className="flex items-center justify-between gap-3 mb-3.5">
+            <h3 className="cfo-card-title">Zone console</h3>
+            <span className="label">{packages.length} zones · WP codes link to detail</span>
+          </div>
+          {packages.map((p) => {
+            const progress = Math.round(Number(p.progressPercentage));
+            const isDone = p.status === "completed" || progress >= 100;
+            const isBlocked = p.status === "on_hold";
+            const badge = isDone
+              ? STATUS_BADGE.completed
+              : (STATUS_BADGE[p.status] ?? STATUS_BADGE.planned);
+            const rowClass = [
+              "zone-row",
+              (isDone || p.status === "cancelled") && "done",
+              isBlocked && "blocked",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <div key={p.id} className={rowClass}>
+                <Link
+                  href={`/development-os/projects/${slug}/work-packages/${p.packageCode}`}
+                  className="zone-code"
+                >
+                  {p.packageCode}
+                </Link>
+                <div className="zone-main">
+                  <div className="zone-name">
+                    {p.name}
+                    <HandoffBadge tone={badge.tone}>{badge.label}</HandoffBadge>
+                  </div>
+                  <div className="zone-meta">
+                    {p.villaIds.length > 0
+                      ? `${p.villaIds.length} villa${p.villaIds.length === 1 ? "" : "s"}`
+                      : "project-wide"}
+                    {" · "}
+                    {p.plannedStart ?? "—"} → {p.plannedFinish ?? "—"}
+                  </div>
+                  <ZoneProgressSlider
+                    workPackageId={p.id}
+                    initialProgress={progress}
+                    disabled={p.status === "completed" || p.status === "cancelled"}
+                  />
+                </div>
+                <div className="zone-right">
+                  <ZoneActions
+                    workPackageId={p.id}
+                    status={p.status}
+                    progress={progress}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </Card>
       )}
     </DevelopmentShell>
   );

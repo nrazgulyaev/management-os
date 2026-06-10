@@ -42,6 +42,12 @@ export interface MilestonesEditorProps {
    */
   persistent?: boolean;
   initial: MilestoneRowMilestone[];
+  /**
+   * Upstream finish-to-start dependencies per milestone id, for the
+   * "after: <name> (pending/done)" line. The server action refuses
+   * status=done while any listed dependency is still pending.
+   */
+  dependsOn?: Record<string, Array<{ name: string; done: boolean }>>;
 }
 
 export function MilestonesEditor({
@@ -49,6 +55,7 @@ export function MilestonesEditor({
   projectId,
   persistent = false,
   initial,
+  dependsOn,
 }: MilestonesEditorProps) {
   const router = useRouter();
   const [milestones, setMilestones] = React.useState<MilestoneRowMilestone[]>(initial);
@@ -76,6 +83,7 @@ export function MilestonesEditor({
   }
 
   function setStatus(id: string, status: MilestoneStatus) {
+    const previous = milestones.find((m) => m.id === id)?.status;
     // Optimistic local update for snappy feedback.
     setMilestones((p) => p.map((m) => (m.id === id ? { ...m, status } : m)));
     if (!canPersist || !projectId) return;
@@ -83,7 +91,15 @@ export function MilestonesEditor({
     startTransition(async () => {
       const res = await updateMilestone({ milestoneId: id, projectSlug, status });
       if (!res.ok) {
+        // Revert the optimistic update — e.g. the dependency gate refused
+        // status=done because a predecessor milestone is still pending.
         setError(res.error ?? "Could not save status.");
+        if (previous) {
+          setMilestones((p) =>
+            p.map((m) => (m.id === id ? { ...m, status: previous } : m)),
+          );
+        }
+        return;
       }
       router.refresh();
     });
@@ -167,43 +183,56 @@ export function MilestonesEditor({
         </p>
       )}
       <div className="ms-editor-list">
-        {milestones.map((m, i) => (
-          <div key={m.id} className="ms-editor-row">
-            <div className="ms-editor-reorder">
-              <button
-                type="button"
-                aria-label="Move up"
-                disabled={i === 0}
-                onClick={() => move(i, -1)}
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                aria-label="Move down"
-                disabled={i === milestones.length - 1}
-                onClick={() => move(i, 1)}
-              >
-                ↓
-              </button>
+        {milestones.map((m, i) => {
+          const deps = dependsOn?.[m.id] ?? [];
+          return (
+            <div key={m.id} className="ms-editor-item">
+              <div className="ms-editor-row">
+                <div className="ms-editor-reorder">
+                  <button
+                    type="button"
+                    aria-label="Move up"
+                    disabled={i === 0}
+                    onClick={() => move(i, -1)}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Move down"
+                    disabled={i === milestones.length - 1}
+                    onClick={() => move(i, 1)}
+                  >
+                    ↓
+                  </button>
+                </div>
+                <MilestoneRow
+                  milestone={m}
+                  editable
+                  onStatusChange={(next) => setStatus(m.id, next)}
+                />
+                <button
+                  type="button"
+                  className="ms-editor-delete"
+                  aria-label={`Delete ${m.name}`}
+                  title="Delete milestone"
+                  disabled={pending}
+                  onClick={() => handleDelete(m.id)}
+                >
+                  <Trash2 className="w-4 h-4" strokeWidth={1.75} aria-hidden />
+                </button>
+              </div>
+              {deps.map((d) => (
+                <div
+                  key={`${m.id}:${d.name}`}
+                  className={`ms-editor-dep mono${d.done ? " done" : ""}`}
+                >
+                  ↳ after: {d.name} ({d.done ? "done" : "pending"})
+                </div>
+              ))}
             </div>
-            <MilestoneRow
-              milestone={m}
-              editable
-              onStatusChange={(next) => setStatus(m.id, next)}
-            />
-            <button
-              type="button"
-              className="ms-editor-delete"
-              aria-label={`Delete ${m.name}`}
-              title="Delete milestone"
-              disabled={pending}
-              onClick={() => handleDelete(m.id)}
-            >
-              <Trash2 className="w-4 h-4" strokeWidth={1.75} aria-hidden />
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <AddMilestoneModal
         open={addOpen}
