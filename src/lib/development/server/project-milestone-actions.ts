@@ -186,6 +186,35 @@ export async function updateMilestone(
     .limit(1);
   if (!current) return { ok: false, error: "Milestone not found." };
 
+  // Dependency gate — a milestone cannot be marked done while any of its
+  // finish-to-start predecessors is still pending. Mirrors the editor's
+  // "after: <name> (pending)" line; without this the CPM variance graph
+  // would record successors finishing before their predecessors.
+  if (data.status === "done" && current.status !== "done") {
+    const edges = await db
+      .select({ fromMilestoneId: milestoneDependencies.fromMilestoneId })
+      .from(milestoneDependencies)
+      .where(eq(milestoneDependencies.toMilestoneId, data.milestoneId));
+    if (edges.length > 0) {
+      const predecessors = await db
+        .select({ name: milestones.name, status: milestones.status })
+        .from(milestones)
+        .where(
+          inArray(
+            milestones.id,
+            edges.map((e) => e.fromMilestoneId),
+          ),
+        );
+      const pending = predecessors.find((p) => p.status !== "done");
+      if (pending) {
+        return {
+          ok: false,
+          error: `Blocked — finish "${pending.name}" first (dependency not done).`,
+        };
+      }
+    }
+  }
+
   const updates: Partial<typeof milestones.$inferInsert> = { updatedAt: new Date() };
   if (data.name !== undefined) updates.name = data.name;
   if (data.targetDate !== undefined) updates.targetDate = data.targetDate;

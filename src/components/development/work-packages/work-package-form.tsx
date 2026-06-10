@@ -9,19 +9,22 @@ import { createWorkPackage } from "@/lib/development/server/work-packages/work-p
 export function WorkPackageForm({
   projectId,
   projectSlug,
+  suggestedCode,
   villas,
   parentOptions,
   budgetCategories,
 }: {
   projectId: string;
   projectSlug: string;
+  /** Next free WP-NN code for this project (server-computed). Editable. */
+  suggestedCode?: string;
   villas: Array<{ id: string; unitCode: string }>;
   parentOptions: Array<{ id: string; packageCode: string; name: string }>;
   budgetCategories: Array<{ id: string; displayName: string }>;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [packageCode, setPackageCode] = useState("");
+  const [packageCode, setPackageCode] = useState(suggestedCode ?? "");
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
   const [selectedVillas, setSelectedVillas] = useState<string[]>([]);
@@ -75,10 +78,15 @@ export function WorkPackageForm({
             type="text"
             value={packageCode}
             onChange={(e) => setPackageCode(e.target.value)}
-            placeholder="WP-ETV-001"
+            placeholder="WP-01"
             className="mt-1 block w-full rounded border border-line-soft p-2 text-sm font-mono"
             required
           />
+          {suggestedCode && (
+            <span className="mt-1 block text-xs text-ink-tertiary">
+              Auto-suggested next code for this project — editable.
+            </span>
+          )}
         </label>
         <label className="block text-sm">
           <span className="text-ink-secondary">Name</span>

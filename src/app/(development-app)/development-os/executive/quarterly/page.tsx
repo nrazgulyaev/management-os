@@ -129,7 +129,7 @@ export default async function ExecutiveQuarterlyPage() {
         actions={
           <>
             <Link
-              href="/development-os/dashboard"
+              href="/development-os/executive"
               className="inline-flex items-center rounded-md border border-line-soft bg-surface px-[14px] py-[9px] text-[13.5px] font-medium text-ink-secondary hover:bg-muted/60"
             >
               Monthly

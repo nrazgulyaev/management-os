@@ -1,0 +1,133 @@
+/* ============================================================
+   Work-zones console (Projects Live mock, Dev OS)
+   /development-os/projects/[slug]/work-packages
+   Zone rows: WP code chip · name + badge · meta · progress slider
+   · one-click transition controls. Plus the milestones editor's
+   "after: <name> (pending/done)" dependency line.
+   Scoped like the sibling component sheets ([data-product] +
+   Layer-B tokens with fallbacks).
+   ============================================================ */
+
+[data-product] .zone-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--line-2, var(--line));
+  border-radius: 12px;
+  margin-bottom: 10px;
+  background: var(--panel, var(--paper));
+}
+[data-product] .zone-row:last-child { margin-bottom: 0; }
+[data-product] .zone-row.done { opacity: 0.7; }
+[data-product] .zone-row.blocked {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line-2, var(--line)));
+}
+
+[data-product] .zone-code {
+  font-family: var(--mono-font, ui-monospace), monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--amber-deep, var(--accent, var(--ink)));
+  background: color-mix(in srgb, var(--amber, #ff6b35) 12%, var(--panel, #fff));
+  padding: 5px 9px;
+  border-radius: 8px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+[data-product] .zone-code:hover { text-decoration: underline; }
+
+[data-product] .zone-main { min-width: 0; }
+[data-product] .zone-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-weight: 500;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+[data-product] .zone-meta {
+  font-family: var(--mono-font, ui-monospace), monospace;
+  font-size: 10.5px;
+  color: var(--ink-4, var(--ink-3));
+  margin-top: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+[data-product] .zone-progress {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+[data-product] .zone-slider {
+  accent-color: var(--amber, var(--accent));
+  width: 100%;
+  max-width: 280px;
+  margin: 0;
+}
+[data-product] .zone-slider:disabled { opacity: 0.45; cursor: not-allowed; }
+[data-product] .zone-progress-label {
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+[data-product] .zone-progress-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--danger);
+}
+
+[data-product] .zone-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+[data-product] .zone-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+[data-product] .zone-actions-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--danger);
+  text-align: right;
+}
+
+@media (max-width: 820px) {
+  [data-product] .zone-row { grid-template-columns: auto 1fr; }
+  [data-product] .zone-right {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  [data-product] .zone-actions { justify-content: flex-start; }
+}
+
+/* ---------- Milestones editor — dependency line ---------- */
+/* The per-row border moves from .milestone-row to the .ms-editor-item
+   wrapper so the dependency line sits inside the same bordered band as
+   its milestone. */
+[data-product] .ms-editor-item {
+  border-bottom: 1px solid var(--line-soft, var(--line));
+}
+[data-product] .ms-editor-item:last-child { border-bottom: 0; }
+[data-product] .ms-editor-item .milestone-row { border-bottom: 0; }
+[data-product] .ms-editor-dep {
+  font-family: var(--mono-font, ui-monospace), monospace;
+  font-size: 10px;
+  color: var(--steel, var(--info, #3d5a7a));
+  padding: 0 14px 10px 44px;
+  margin-top: -4px;
+}
+[data-product] .ms-editor-dep.done { color: var(--ink-4, var(--ink-3)); }

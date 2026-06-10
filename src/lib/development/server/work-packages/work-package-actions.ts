@@ -6,6 +6,7 @@ import { requireDb } from "@/lib/db/client";
 import { workPackages } from "@/lib/db/schema/work-packages";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
+import { recordAuditEvent } from "@/features/audit/services";
 
 const STATUSES = [
   "planned",
@@ -111,4 +112,65 @@ export async function transitionWorkPackage(
     )
     .returning();
   return row;
+}
+
+const progressSchema = z.object({
+  workPackageId: z.string().uuid(),
+  progress: z.number(),
+});
+
+/**
+ * Zone-console progress write (the Projects Live mock's 0–100 slider).
+ * Clamps to the table's 0–100 CHECK range, org-scoped like its siblings,
+ * audit-logged so progress claims are traceable. Refuses writes on
+ * terminal packages (completed / cancelled) — re-open via the state
+ * machine first.
+ */
+export async function updateWorkPackageProgress(
+  input: z.input<typeof progressSchema>,
+): Promise<{ ok: true; progress: number }> {
+  const ctx = await requireInternalUser();
+  const parsed = progressSchema.parse(input);
+  const db = requireDb();
+  // HF-5: scope SELECT + UPDATE by organization_id.
+  const organizationId = await requireOrgId();
+  const clamped = Math.min(100, Math.max(0, Math.round(parsed.progress)));
+  const [current] = await db
+    .select()
+    .from(workPackages)
+    .where(
+      and(
+        eq(workPackages.id, parsed.workPackageId),
+        eq(workPackages.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!current) throw new Error("work_package not found");
+  if (current.status === "completed" || current.status === "cancelled") {
+    throw new Error(
+      `cannot update progress of a '${current.status}' work_package`,
+    );
+  }
+  const [row] = await db
+    .update(workPackages)
+    .set({ progressPercentage: String(clamped), updatedAt: new Date() })
+    .where(
+      and(
+        eq(workPackages.id, parsed.workPackageId),
+        eq(workPackages.organizationId, organizationId),
+      ),
+    )
+    .returning();
+
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "work_package.progress",
+    entityType: "work_package",
+    entityId: parsed.workPackageId,
+    before: { progressPercentage: current.progressPercentage },
+    after: { progressPercentage: row?.progressPercentage ?? String(clamped) },
+    metadata: { projectId: current.projectId, packageCode: current.packageCode },
+  });
+
+  return { ok: true, progress: clamped };
 }
