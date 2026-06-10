@@ -180,7 +180,7 @@ export default async function DevelopmentOverviewPage() {
       />
 
       {/* KPI hero strip — 5 PM-tuned figures (mock `.kpi-hero`). */}
-      <div className="grid grid-cols-5 gap-3.5 mb-[18px]">
+      <div className="grid grid-cols-2 min-[600px]:grid-cols-3 min-[900px]:grid-cols-5 gap-3.5 mb-[18px]">
         <Kpi
           label="Active projects"
           value={kpis && kpis.activeProjects > 0 ? String(kpis.activeProjects) : "—"}

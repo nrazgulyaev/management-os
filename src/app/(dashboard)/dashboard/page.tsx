@@ -217,7 +217,7 @@ export default async function DashboardOverviewPage() {
       />
 
       {/* KPI strip — live portfolio metrics */}
-      <div className="grid grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 min-[600px]:grid-cols-3 min-[900px]:grid-cols-5 gap-3 mb-6">
         <Kpi
           label="Occupancy YTD"
           value={metrics ? `${metrics.occupancyYtd}%` : "—"}
@@ -482,7 +482,7 @@ export default async function DashboardOverviewPage() {
       </div>
 
       {/* Operational health — 4-up KPIs (live via getOperationalHealthTiles) */}
-      <div className="grid grid-cols-4 gap-3 mb-3.5">
+      <div className="grid grid-cols-2 min-[900px]:grid-cols-4 gap-3 mb-3.5">
         <Kpi
           label="Open maintenance"
           value={opsHealth ? String(opsHealth.openMaintenance) : "—"}
