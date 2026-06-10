@@ -156,6 +156,12 @@ export default async function DevelopmentOverviewPage() {
         subtitle="Live counts from the active projects table. Risk radar and site activity feeds populate as project data accumulates."
         actions={
           <>
+            <Link
+              href="/development-os/workspace/role"
+              className="btn btn-dark btn-sm"
+            >
+              Role views
+            </Link>
             <button
               className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
               disabled
@@ -371,7 +377,14 @@ export default async function DevelopmentOverviewPage() {
             <tbody>
               {projects.map((p) => (
                 <tr key={p.projectId}>
-                  <td className="display font-medium text-ink">{p.name}</td>
+                  <td className="display font-medium text-ink">
+                    <Link
+                      href={`/development-os/workspace/project/${p.projectId}`}
+                      className="hover:underline"
+                    >
+                      {p.name}
+                    </Link>
+                  </td>
                   <td className="mono">{p.projectCode}</td>
                   <td className="num">{p.villaCount}</td>
                   <td>
