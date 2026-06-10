@@ -2,12 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, AlertCircle, ShieldCheck } from "lucide-react";
 import {
   verifyMfaChallengeAction,
   verifyMfaEnrollmentAction,
 } from "@/features/security-baseline/mfa-actions";
 
+/**
+ * Shared MFA verify form (enrolment + login challenge). RESKIN-AUTH-2 —
+ * restyled onto the design-system auth primitives; the six-digit input,
+ * server actions, recovery-code reveal and redirects are unchanged.
+ */
 export function MfaVerifyForm({
   mode,
 }: {
@@ -49,7 +54,7 @@ export function MfaVerifyForm({
           }
         });
       }}
-      className="flex flex-col gap-3"
+      className="auth-stack"
     >
       <input
         name="code"
@@ -58,21 +63,41 @@ export function MfaVerifyForm({
         value={code}
         onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
         placeholder="123 456"
-        className="font-mono tabular-nums tracking-widest text-2xl text-center w-full rounded-md border border-line-soft bg-surface px-4 py-3"
+        className="input auth-otp-cell w-full tracking-[0.4em]"
         maxLength={6}
         autoFocus
       />
-      {error && <p className="text-xs text-danger">{error}</p>}
-      <Button type="submit" disabled={pending}>
-        {pending ? "Verifying…" : "Verify code"}
-      </Button>
+      {error && (
+        <div className="auth-notice auth-notice-danger">
+          <AlertCircle className="auth-notice-ic w-4 h-4" strokeWidth={1.7} />
+          <span>{error}</span>
+        </div>
+      )}
+      <button
+        type="submit"
+        disabled={pending}
+        className="btn btn-accent btn-lg auth-submit"
+      >
+        {pending ? (
+          "Verifying…"
+        ) : (
+          <>
+            Verify <ArrowRight className="w-4 h-4" strokeWidth={1.8} />
+          </>
+        )}
+      </button>
       {recoveryCodes && (
-        <div className="rounded-md border border-success/40 bg-success-weak text-success p-4 flex flex-col gap-2 text-xs">
-          <p className="font-medium">
-            Save these recovery codes — each can be used exactly once if you
-            lose your authenticator.
+        <div className="auth-notice auth-notice-ok flex-col">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="auth-notice-ic w-4 h-4" strokeWidth={1.7} />
+            <span className="font-medium text-ink">
+              Save these recovery codes
+            </span>
+          </div>
+          <p>
+            Each can be used exactly once if you lose your authenticator.
           </p>
-          <ul className="font-mono text-sm grid grid-cols-2 gap-1">
+          <ul className="font-mono text-sm grid grid-cols-2 gap-1 mt-1 text-ink">
             {recoveryCodes.map((c) => (
               <li key={c}>{c}</li>
             ))}
@@ -80,7 +105,7 @@ export function MfaVerifyForm({
           <button
             type="button"
             onClick={() => router.push("/setup/mfa/recovery-codes")}
-            className="self-start mt-2 text-xs underline"
+            className="auth-link self-start mt-2"
           >
             I have saved them — continue
           </button>

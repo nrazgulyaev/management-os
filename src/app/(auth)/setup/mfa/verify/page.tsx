@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation";
-import { SectionHeading, Card } from "@/components/dashboard/primitives";
+import { headers } from "next/headers";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { AuthShell, AuthHead } from "@/components/auth/auth-shell";
+import { resolveAuthPlatform, resolveTokenProduct } from "@/components/auth/auth-copy";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { getMfaStatus } from "@/features/security-baseline/mfa-services";
 import { MfaVerifyForm } from "@/components/security/mfa-verify-form";
@@ -17,20 +21,37 @@ export default async function MfaVerifyPage() {
     }
     redirect("/setup/mfa");
   }
+
+  const h = await headers();
+  const plat = resolveAuthPlatform(h.get("x-product"));
+  const tokenProduct = resolveTokenProduct(plat.dataProduct);
+
   return (
-    <div className="max-w-md mx-auto py-12 px-6 flex flex-col gap-8">
-      <SectionHeading
-        eyebrow="Setup · MFA · verify"
-        title="Verify your authenticator"
-        subtitle="Enter the current 6-digit code from your authenticator app."
-      />
-      <Card style={{ padding: 20 }}>
-        <div className="label">Step 2</div>
-        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
-          Enter the code
-        </h2>
-        <MfaVerifyForm mode="enrolment" />
-      </Card>
-    </div>
+    <AuthShell
+      dataProduct={tokenProduct}
+      wordmarkSub={plat.wordmarkSub}
+      tone={plat.tone}
+      panelKicker={plat.panelKicker}
+      testimonial={plat.testimonial}
+      stats={plat.stats}
+      footer={
+        <span>
+          © {new Date().getFullYear()} Arconique · {plat.domain}
+        </span>
+      }
+    >
+      <Link href="/setup/mfa" className="auth-back">
+        <ArrowLeft className="w-[15px] h-[15px]" strokeWidth={1.8} /> Back to setup
+      </Link>
+      <AuthHead eyebrow="Two-factor · Step 2">
+        Enter your <em>code.</em>
+      </AuthHead>
+      <p className="auth-sub">
+        Open your authenticator app and enter the current 6-digit code to
+        finish enrolment.
+      </p>
+
+      <MfaVerifyForm mode="enrolment" />
+    </AuthShell>
   );
 }
