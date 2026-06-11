@@ -34,6 +34,27 @@ export interface AppSwitcherProps {
   devHref?: string;
 }
 
+/**
+ * In production each product lives on its own subdomain
+ * (management. / development.arconique.com). The OTHER product's path is
+ * cross-subdomain, so we point the inactive tab at the ABSOLUTE origin of
+ * that subdomain — the link is genuinely external, so Next never
+ * RSC-prefetches it (no cross-origin CORS error) and the browser skips the
+ * middleware redirect hop. On a single host (localhost / preview / apex)
+ * we keep relative paths so local dev still works.
+ */
+function crossProductHref(
+  currentHost: string,
+  fromSub: "management" | "development",
+  toSub: "management" | "development",
+  path: string,
+): string {
+  if (currentHost.startsWith(`${fromSub}.`)) {
+    return `https://${currentHost.replace(`${fromSub}.`, `${toSub}.`)}${path}`;
+  }
+  return path;
+}
+
 export function AppSwitcher({
   className,
   mgmtHref = "/dashboard",
@@ -42,6 +63,20 @@ export function AppSwitcher({
   const pathname = usePathname() ?? "";
   const onDev = pathname.startsWith("/development-os");
   const onMgmt = !onDev;
+
+  // Resolve the inactive tab to the other subdomain's absolute URL in prod.
+  const [resolvedMgmt, setResolvedMgmt] = React.useState(mgmtHref);
+  const [resolvedDev, setResolvedDev] = React.useState(devHref);
+  React.useEffect(() => {
+    const host = window.location.hostname;
+    // Only the inactive tab is cross-product; the active one stays local.
+    setResolvedMgmt(
+      onDev ? crossProductHref(host, "development", "management", mgmtHref) : mgmtHref,
+    );
+    setResolvedDev(
+      onMgmt ? crossProductHref(host, "management", "development", devHref) : devHref,
+    );
+  }, [onDev, onMgmt, mgmtHref, devHref]);
 
   return (
     <div
@@ -54,7 +89,7 @@ export function AppSwitcher({
       data-primitive="app-switcher"
     >
       <a
-        href={mgmtHref}
+        href={resolvedMgmt}
         role="tab"
         aria-selected={onMgmt}
         className={cn(
@@ -68,7 +103,7 @@ export function AppSwitcher({
         Mgmt
       </a>
       <a
-        href={devHref}
+        href={resolvedDev}
         role="tab"
         aria-selected={onDev}
         className={cn(
