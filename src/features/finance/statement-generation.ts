@@ -296,6 +296,185 @@ async function resolveProjectId(
   return r?.project_id ?? null;
 }
 
+/**
+ * STAFF-COST-MODEL phase 2 — owner-chargeable expense_lines for the period.
+ *
+ * Closes the dual-generator gap: until now this production path read only
+ * `dev_transactions` and ignored `expense_lines`, so payroll-posted staff
+ * costs (and any other posted owner-borne expense line) never reached the
+ * monthly/cron statement. The manual generator (`statement-generator.ts`)
+ * already deducts these; this brings the production path to parity.
+ *
+ * Two buckets, both already org-scoped (expense_lines has no organization_id;
+ * tenancy is enforced by joining villa→project→organizations, exactly like
+ * loadVillaExpenses / the cabinet queries):
+ *
+ *   1) VILLA-ATTRIBUTED — expense_lines.villa_id = this villa, cost_bearer in
+ *      ('owner','shared_pool'), owner_chargeable = true. The caller share-splits
+ *      these by the owner's ownership percent (so co-owned villas split per %).
+ *
+ *   2) SHARED_POOL — expense_lines.allocation_scope = 'project_pool',
+ *      project_id = this villa's project, cost_bearer = 'shared_pool'. These are
+ *      complex-wide (no villa_id). Each villa in the complex bears an equal
+ *      per-villa share; this villa's slice = lineAmount / villaCount. The caller
+ *      then applies this owner's villa share percent on top. Individually-owned
+ *      villas are NOT dropped — they each carry their per-villa slice.
+ *
+ * Amounts converted to IDR minor with the line's stored fx_rate (matching
+ * loadVillaExpenses). `perVillaFactor` is pre-applied for shared_pool lines;
+ * villa-attributed lines carry perVillaFactor = 1. The caller multiplies by the
+ * owner's share percent for the final owner-borne amount.
+ */
+interface ChargeableExpenseRow {
+  id: string;
+  description: string;
+  categoryKey: string;
+  amountIdrMinor: bigint;
+  /** Fraction already applied for complex apportionment (1 for villa lines). */
+  perVillaFactor: number;
+  bearer: string;
+}
+
+async function countVillasInProject(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  orgId: string,
+  projectId: string,
+): Promise<number> {
+  const rows = await db.execute<{ n: string }>(sql`
+    SELECT count(*)::text AS n
+      FROM villas v
+      JOIN projects p ON p.id = v.project_id
+     WHERE v.project_id = ${projectId}::uuid
+       AND p.organization_id = ${orgId}::uuid
+  `);
+  const r = rowsOf<{ n: string }>(rows)[0];
+  return Math.max(1, Number(r?.n ?? "1"));
+}
+
+function expenseLineToIdrMinor(amountMinorRaw: string, currency: string, fxRate: string | null): bigint {
+  let amountIdrMinor = BigInt(amountMinorRaw ?? "0");
+  if (currency !== "IDR") {
+    const fx = Number(fxRate ?? FX_USD_TO_IDR_FALLBACK);
+    amountIdrMinor = BigInt(Math.round((Number(amountIdrMinor) / 100) * fx * 100));
+  }
+  return amountIdrMinor;
+}
+
+async function loadOwnerChargeableExpenseLines(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  orgId: string,
+  villaId: string,
+  projectId: string | null,
+  periodMonth: string,
+): Promise<ChargeableExpenseRow[]> {
+  const out: ChargeableExpenseRow[] = [];
+
+  // 1) Villa-attributed owner-chargeable lines (owner | shared_pool bearer).
+  //    Org-scoped via villa→project→organizations.
+  const villaRows = await db.execute<{
+    id: string;
+    description: string;
+    expense_type: string;
+    amount_minor: string;
+    currency: string;
+    fx_rate: string | null;
+    cost_bearer: string;
+  }>(sql`
+    SELECT el.id::text          AS id,
+           el.description        AS description,
+           el.expense_type       AS expense_type,
+           el.amount_minor::text AS amount_minor,
+           el.currency           AS currency,
+           NULL::text            AS fx_rate,
+           el.cost_bearer        AS cost_bearer
+      FROM expense_lines el
+      JOIN villas v ON v.id = el.villa_id
+      JOIN projects p ON p.id = v.project_id
+     WHERE el.villa_id = ${villaId}::uuid
+       AND p.organization_id = ${orgId}::uuid
+       AND el.status = 'posted'
+       AND el.owner_chargeable = true
+       AND el.cost_bearer IN ('owner','shared_pool')
+       AND date_trunc('month', el.expense_date)::date = ${periodMonth}::date
+     ORDER BY el.expense_date ASC
+     LIMIT 200
+  `);
+  for (const r of rowsOf<{
+    id: string;
+    description: string;
+    expense_type: string;
+    amount_minor: string;
+    currency: string;
+    fx_rate: string | null;
+    cost_bearer: string;
+  }>(villaRows)) {
+    out.push({
+      id: r.id,
+      description: r.description?.replace(/^\[DEMO\] /, "").replace(/^\[DEMO2\] /, "") ?? "Expense",
+      categoryKey: r.expense_type ?? "expense",
+      amountIdrMinor: expenseLineToIdrMinor(r.amount_minor, r.currency, r.fx_rate),
+      perVillaFactor: 1,
+      bearer: r.cost_bearer,
+    });
+  }
+
+  // 2) Shared-pool complex-wide lines (no villa_id; allocation_scope project_pool).
+  //    Apportion equally across the complex's villas, then the caller applies the
+  //    owner's per-villa share percent. Individually-owned villas keep their slice.
+  if (projectId) {
+    const villaCount = await countVillasInProject(db, orgId, projectId);
+    const perVillaFactor = 1 / villaCount;
+    const poolRows = await db.execute<{
+      id: string;
+      description: string;
+      expense_type: string;
+      amount_minor: string;
+      currency: string;
+      fx_rate: string | null;
+      cost_bearer: string;
+    }>(sql`
+      SELECT el.id::text          AS id,
+             el.description        AS description,
+             el.expense_type       AS expense_type,
+             el.amount_minor::text AS amount_minor,
+             el.currency           AS currency,
+             NULL::text            AS fx_rate,
+             el.cost_bearer        AS cost_bearer
+        FROM expense_lines el
+        JOIN projects p ON p.id = el.project_id
+       WHERE el.project_id = ${projectId}::uuid
+         AND p.organization_id = ${orgId}::uuid
+         AND el.status = 'posted'
+         AND el.owner_chargeable = true
+         AND el.allocation_scope = 'project_pool'
+         AND el.cost_bearer = 'shared_pool'
+         AND date_trunc('month', el.expense_date)::date = ${periodMonth}::date
+       ORDER BY el.expense_date ASC
+       LIMIT 200
+    `);
+    for (const r of rowsOf<{
+      id: string;
+      description: string;
+      expense_type: string;
+      amount_minor: string;
+      currency: string;
+      fx_rate: string | null;
+      cost_bearer: string;
+    }>(poolRows)) {
+      out.push({
+        id: r.id,
+        description: r.description?.replace(/^\[DEMO\] /, "").replace(/^\[DEMO2\] /, "") ?? "Shared cost",
+        categoryKey: `${r.expense_type ?? "expense"} (shared)`,
+        amountIdrMinor: expenseLineToIdrMinor(r.amount_minor, r.currency, r.fx_rate),
+        perVillaFactor,
+        bearer: r.cost_bearer,
+      });
+    }
+  }
+
+  return out;
+}
+
 export async function generateStatementForOwnerVilla(
   orgId: string,
   ownerId: string,
@@ -321,6 +500,15 @@ export async function generateStatementForOwnerVilla(
   const bookings = await loadBookings(db, villaId, periodMonth, fxUsdToIdr);
   if (bookings.length === 0) return null;
   const expenses = await loadVillaExpenses(db, orgId, projectId, periodMonth);
+  // STAFF-COST-MODEL phase 2 — owner-chargeable expense_lines (incl. payroll
+  // staff costs + shared-pool complex costs) now reach the production path.
+  const chargeableExpenseLines = await loadOwnerChargeableExpenseLines(
+    db,
+    orgId,
+    villaId,
+    projectId,
+    periodMonth,
+  );
 
   const sharePctFactor = ctx.sharePercent / 100;
   const lines: DraftLine[] = [];
@@ -370,6 +558,28 @@ export async function generateStatementForOwnerVilla(
       description: `${e.categoryKey} · ${e.description}`,
       amountMinor: -ownerShare,
       sourceTable: "dev_transactions",
+      sourceId: e.id,
+      sortOrder: sortOrder++,
+    });
+  }
+
+  // STAFF-COST-MODEL phase 2 — owner-chargeable expense_lines (payroll staff
+  // costs + shared-pool complex costs). Each line's owner-borne amount =
+  // lineAmount × perVillaFactor (1 for villa lines, 1/villaCount for shared-pool)
+  // × this owner's share percent. Additional NEGATIVE expense lines; revenue,
+  // commission, tax + reserve math are all unchanged.
+  for (const e of chargeableExpenseLines) {
+    const ownerShare = BigInt(
+      Math.round(Number(e.amountIdrMinor) * e.perVillaFactor * sharePctFactor),
+    );
+    if (ownerShare === 0n) continue;
+    expenseMinor += ownerShare;
+    lines.push({
+      lineType: "expense",
+      category: "expenses",
+      description: `${e.categoryKey} · ${e.description}`,
+      amountMinor: -ownerShare,
+      sourceTable: "expense_lines",
       sourceId: e.id,
       sortOrder: sortOrder++,
     });

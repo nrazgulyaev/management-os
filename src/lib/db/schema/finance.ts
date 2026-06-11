@@ -121,6 +121,18 @@ export const expenseLines = pgTable(
     currency: text("currency").notNull(),
     expenseDate: date("expense_date").notNull(),
     allocationScope: text("allocation_scope").notNull().default("villa"),
+    /**
+     * STAFF-COST-MODEL (migration 0171) — who actually pays, DECOUPLED from
+     * allocation_scope (which stays the geographic target). owner | management
+     * | shared_pool. This is the contract column phase 2 (statement generator +
+     * company-P&L report) reads to route the money:
+     *   owner / shared_pool → owner-chargeable (reaches the owner statement;
+     *     shared_pool apportions across the complex's owners per villa)
+     *   management → company P&L only, never reduces owner payout
+     * A management-borne cost can still carry a villa_id/project_id target.
+     * Manual expenses default to 'owner'. CHECK enforced at DB level.
+     */
+    costBearer: text("cost_bearer").notNull().default("owner"),
     capitalized: boolean("capitalized").notNull().default(false),
     ownerChargeable: boolean("owner_chargeable").notNull().default(true),
     requiresOwnerApproval: boolean("requires_owner_approval").notNull().default(false),
@@ -142,6 +154,7 @@ export const expenseLines = pgTable(
     index("expense_lines_villa_date_idx").on(t.villaId, t.expenseDate),
     index("expense_lines_project_date_idx").on(t.projectId, t.expenseDate),
     index("expense_lines_scope_idx").on(t.allocationScope),
+    index("expense_lines_cost_bearer_idx").on(t.costBearer),
     index("expense_lines_payroll_run_idx").on(t.payrollRunId),
   ],
 );

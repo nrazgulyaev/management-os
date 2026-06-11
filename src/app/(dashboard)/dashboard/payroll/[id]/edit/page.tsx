@@ -4,7 +4,7 @@ import { DbStatusNotice } from "@/components/admin/db-status";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { updateStaffAction } from "@/features/payroll/actions";
-import { getStaffById } from "@/features/payroll/services";
+import { getStaffById, listStaffAssignments } from "@/features/payroll/services";
 import { StaffForm } from "../../staff-form";
 
 export const metadata = { title: "Edit staff" };
@@ -12,10 +12,11 @@ export const dynamic = "force-dynamic";
 
 export default async function EditStaffPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [member, villas, projects] = await Promise.all([
+  const [member, villas, projects, assignments] = await Promise.all([
     getStaffById(id),
     listVillas(),
     listProjects(),
+    listStaffAssignments(id),
   ]);
   if (!member) notFound();
 
@@ -41,13 +42,19 @@ export default async function EditStaffPage({ params }: { params: Promise<{ id: 
           id: member.id,
           fullName: member.fullName,
           roleLabel: member.roleLabel,
+          compMode: member.compMode as "salaried" | "per_villa_fixed" | "per_service",
+          costBearer: member.costBearer as "owner" | "management" | "shared_pool",
           monthlyRateMinor: member.monthlyRateMinor,
+          perVillaRateMinor: member.perVillaRateMinor,
           currency: member.currency,
           allocationScope: member.allocationScope as "villa" | "project_pool" | "company",
           villaId: member.villaId,
           projectId: member.projectId,
           active: member.active,
           notes: member.notes,
+          assignments: assignments
+            .filter((a) => a.active)
+            .map((a) => ({ villaId: a.villaId, projectId: a.projectId, weight: a.weight })),
         }}
       />
     </div>

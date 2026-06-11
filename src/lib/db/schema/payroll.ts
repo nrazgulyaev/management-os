@@ -6,6 +6,7 @@ import {
   integer,
   boolean,
   date,
+  numeric,
   timestamp,
   index,
   uniqueIndex,
@@ -33,6 +34,30 @@ import { projects, villas } from "./projects";
 export const STAFF_ALLOCATION_SCOPES = ["villa", "project_pool", "company"] as const;
 export type StaffAllocationScope = (typeof STAFF_ALLOCATION_SCOPES)[number];
 
+/**
+ * Axis 1 — COMPENSATION MODE (how the monthly cost is computed). Migration 0171.
+ *   salaried        flat monthly_rate_minor
+ *   per_villa_fixed per_villa_rate_minor × sum(active assignment weights);
+ *                   the run fans out ONE expense line per active assignment
+ *   per_service     ad-hoc — SKIPPED in the monthly run
+ * These exact strings are the phase-2 contract.
+ */
+export const STAFF_COMP_MODES = ["salaried", "per_villa_fixed", "per_service"] as const;
+export type StaffCompMode = (typeof STAFF_COMP_MODES)[number];
+
+/**
+ * Axis 2 — COST BEARER (who actually pays, independent of the geographic
+ * target). Migration 0171. Mirrored on expense_lines.cost_bearer — that is the
+ * column phase 2's statement generator + company-P&L report read to route the
+ * money:
+ *   owner       itemised on the owner statement at cost (reduces net payout)
+ *   management  absorbed by the company P&L (never reduces owner payout)
+ *   shared_pool apportioned across the complex's owners per villa
+ * owner_chargeable = (cost_bearer IN ('owner','shared_pool')).
+ */
+export const STAFF_COST_BEARERS = ["owner", "management", "shared_pool"] as const;
+export type StaffCostBearer = (typeof STAFF_COST_BEARERS)[number];
+
 export const staff = pgTable(
   "staff",
   {
@@ -43,10 +68,23 @@ export const staff = pgTable(
     fullName: text("full_name").notNull(),
     /** e.g. 'Housekeeper' | 'Pool technician' | 'Gardener' | 'Security'. */
     roleLabel: text("role_label").notNull(),
-    /** Monthly rate in minor units of `currency`. */
+    /** Monthly rate in minor units of `currency` — used when comp_mode='salaried'. */
     monthlyRateMinor: bigint("monthly_rate_minor", { mode: "bigint" }).notNull(),
     currency: text("currency").notNull().default("IDR"),
-    /** villa | project_pool | company — where the generated cost lands. */
+    /**
+     * Axis 1 — salaried | per_villa_fixed | per_service. Default 'salaried'.
+     * See STAFF_COMP_MODES. CHECK enforced at DB level (migration 0171).
+     */
+    compMode: text("comp_mode").notNull().default("salaried"),
+    /**
+     * Axis 2 — owner | management | shared_pool. Default 'owner'. Stamped onto
+     * every expense line this staff posts (expense_lines.cost_bearer). See
+     * STAFF_COST_BEARERS. CHECK enforced at DB level (migration 0171).
+     */
+    costBearer: text("cost_bearer").notNull().default("owner"),
+    /** Per-villa rate in minor units — used when comp_mode='per_villa_fixed'. */
+    perVillaRateMinor: bigint("per_villa_rate_minor", { mode: "bigint" }),
+    /** villa | project_pool | company — FALLBACK single-target when no assignments. */
     allocationScope: text("allocation_scope").notNull().default("company"),
     villaId: uuid("villa_id").references(() => villas.id, { onDelete: "set null" }),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
@@ -90,7 +128,43 @@ export const payrollRuns = pgTable(
   ],
 );
 
+/**
+ * staff_assignments — one staff member → N villas/complexes (migration 0171).
+ *
+ * Replaces the single villaId/projectId fallback for multi-target staff. For
+ * comp_mode='per_villa_fixed' the run fans out ONE expense line per active
+ * assignment, attributed to that assignment's villa (or project), at
+ * per_villa_rate_minor × weight. Org-scoped (#199/#200 write-flow).
+ */
+export const staffAssignments = pgTable(
+  "staff_assignments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    staffId: uuid("staff_id")
+      .notNull()
+      .references(() => staff.id, { onDelete: "cascade" }),
+    villaId: uuid("villa_id").references(() => villas.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+    /** Fan-out multiplier for per_villa_fixed cost (default 1). */
+    weight: numeric("weight", { precision: 8, scale: 3 }).notNull().default("1"),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("staff_assignments_org_idx").on(t.organizationId),
+    index("staff_assignments_staff_idx").on(t.staffId),
+    index("staff_assignments_staff_active_idx").on(t.staffId, t.active),
+    index("staff_assignments_villa_idx").on(t.villaId),
+    index("staff_assignments_project_idx").on(t.projectId),
+  ],
+);
+
 export type Staff = typeof staff.$inferSelect;
 export type NewStaff = typeof staff.$inferInsert;
 export type PayrollRun = typeof payrollRuns.$inferSelect;
 export type NewPayrollRun = typeof payrollRuns.$inferInsert;
+export type StaffAssignment = typeof staffAssignments.$inferSelect;
+export type NewStaffAssignment = typeof staffAssignments.$inferInsert;

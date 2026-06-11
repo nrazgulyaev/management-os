@@ -243,6 +243,9 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
           </p>
         </div>
         <div className="actions flex gap-2 items-center">
+          <Link href="/dashboard/finance/management-pnl" className="btn btn-secondary btn-sm">
+            Management P&amp;L
+          </Link>
           <Link href="/dashboard/payroll" className="btn btn-secondary btn-sm">
             Payroll · staff cost
           </Link>
