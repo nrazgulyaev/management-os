@@ -336,21 +336,24 @@ export default async function AiAgentDetailPage({
               for your workspace.
             </p>
             <div className="mt-4">
+              {/* Cross-subdomain in prod — plain <a> (Link prefetch dies on CORS). */}
               {agentKey === "inbox" && (
-                <Link
+                // eslint-disable-next-line @next/next/no-html-link-for-pages -- cross-subdomain target, Link prefetch dies on CORS
+                <a
                   href="/development-os/ai-agents/inbox"
                   className="btn btn-secondary btn-sm"
                 >
                   Open inbox →
-                </Link>
+                </a>
               )}
               {agentKey === "memory" && (
-                <Link
+                // eslint-disable-next-line @next/next/no-html-link-for-pages -- cross-subdomain target, Link prefetch dies on CORS
+                <a
                   href="/development-os/ai-agents/memory"
                   className="btn btn-secondary btn-sm"
                 >
                   Open memory →
-                </Link>
+                </a>
               )}
             </div>
           </div>

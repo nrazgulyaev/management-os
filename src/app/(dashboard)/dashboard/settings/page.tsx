@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { eq } from "drizzle-orm";
 import { Database, ShieldCheck, KeyRound, ToggleRight } from "lucide-react";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { getBootstrapState } from "@/features/auth/bootstrap";
@@ -9,6 +10,49 @@ import {
   isDemoMode,
 } from "@/lib/env";
 import { signOutAction } from "@/features/auth/actions";
+import { getDb } from "@/lib/db/client";
+import { orgSubscriptions, subscriptionPlans } from "@/lib/db/schema/subscriptions";
+
+/** Real subscription summary for the card (no fabricated plan copy). */
+async function getOrgSubscriptionSummary(orgId: string | null | undefined): Promise<{
+  planName: string;
+  status: string;
+  periodLine: string | null;
+} | null> {
+  const db = getDb();
+  if (!db || !orgId) return null;
+  const [row] = await db
+    .select({
+      planCode: orgSubscriptions.planCode,
+      displayName: subscriptionPlans.displayName,
+      status: orgSubscriptions.status,
+      trialEndsAt: orgSubscriptions.trialEndsAt,
+      currentPeriodEndsAt: orgSubscriptions.currentPeriodEndsAt,
+    })
+    .from(orgSubscriptions)
+    .leftJoin(
+      subscriptionPlans,
+      eq(subscriptionPlans.planCode, orgSubscriptions.planCode),
+    )
+    .where(eq(orgSubscriptions.organizationId, orgId))
+    .limit(1);
+  if (!row) return null;
+  const fmt = (d: Date | null) =>
+    d
+      ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+      : null;
+  const periodLine =
+    row.status === "trial" && row.trialEndsAt
+      ? `trial ends ${fmt(row.trialEndsAt)}`
+      : row.currentPeriodEndsAt
+        ? `period ends ${fmt(row.currentPeriodEndsAt)}`
+        : null;
+  return {
+    planName: row.displayName ?? row.planCode,
+    status: row.status,
+    periodLine,
+  };
+}
 
 export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -26,6 +70,14 @@ export default async function SettingsPage() {
   const bootstrap = isDbConfigured()
     ? await getBootstrapState()
     : { stage: "db_missing" as const };
+  const subscription = await getOrgSubscriptionSummary(
+    ctx.appUser?.organizationId,
+  ).catch(() => null);
+  // Same readiness signal the /api/billing/portal route uses — without
+  // these keys the route answers 503, so the button must not render.
+  const stripeConfigured = Boolean(
+    process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLISHABLE_KEY,
+  );
 
   const dbOn = isDbConfigured();
   const authOn = isSupabaseAuthConfigured();
@@ -191,18 +243,36 @@ export default async function SettingsPage() {
           </div>
           <div className="kpi gold mb-3">
             <div className="label">Plan</div>
-            <div className="v !text-[20px]">Pro</div>
-            <div className="sub">renews 1 Jul · Stripe</div>
+            <div className="v !text-[20px]">
+              {subscription?.planName ?? "No plan"}
+            </div>
+            <div className="sub">
+              {subscription
+                ? [subscription.status, subscription.periodLine]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "no subscription on file"}
+            </div>
           </div>
-          <p className="text-[12px] text-ink-3 leading-relaxed mb-3">
-            Update your payment method, view invoices, change billing cycle, or
-            switch plans — all via Stripe&apos;s hosted portal. Changes are
-            prorated at the next cycle.
-          </p>
+          {stripeConfigured ? (
+            <p className="text-[12px] text-ink-3 leading-relaxed mb-3">
+              Update your payment method, view invoices, change billing cycle,
+              or switch plans — all via Stripe&apos;s hosted portal.
+            </p>
+          ) : (
+            <p className="text-[12px] text-ink-3 leading-relaxed mb-3">
+              Online billing portal is not connected yet — plan changes are
+              handled by the Arconique team until payments go live.
+            </p>
+          )}
           <div className="flex gap-2 flex-wrap">
-            <Link href="/api/billing/portal" className="btn btn-secondary btn-sm">
-              Customer portal
-            </Link>
+            {stripeConfigured && (
+              /* API redirect endpoint — must be a plain anchor (a <Link>
+                 prefetches the route and logs a 503/console error). */
+              <a href="/api/billing/portal" className="btn btn-secondary btn-sm">
+                Customer portal
+              </a>
+            )}
             <Link
               href="/dashboard/billing/upgrade"
               className="btn btn-ghost btn-sm"
