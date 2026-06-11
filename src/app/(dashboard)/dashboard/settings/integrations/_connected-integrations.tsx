@@ -305,10 +305,12 @@ function FamilyTable({
           <span className="text-ink-4">{icon}</span>
           {title}
         </h3>
-        <Link href={addHref} className="btn btn-secondary btn-sm">
+        {/* Dev-OS targets are cross-subdomain in prod — plain <a> avoids
+            the Link prefetch → cross-origin redirect → CORS console error. */}
+        <a href={addHref} className="btn btn-secondary btn-sm">
           {addLabel}
           <ArrowUpRight className="ml-1 h-3.5 w-3.5" strokeWidth={1.75} />
-        </Link>
+        </a>
       </div>
       <Card padding="none" overflowHidden>
         <table className="data">

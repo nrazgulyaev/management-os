@@ -255,12 +255,13 @@ export default async function AiAgentSettingsPage() {
               Credentials are stored encrypted.
             </div>
           </div>
-          <Link
+          {/* Cross-subdomain in prod — plain <a> (Link prefetch dies on CORS). */}
+          <a
             href="/development-os/settings/whatsapp"
             className="btn btn-secondary btn-sm shrink-0"
           >
             Open →
-          </Link>
+          </a>
         </li>
         <li className="card card-pad flex items-center justify-between gap-4">
           <div>
@@ -270,12 +271,13 @@ export default async function AiAgentSettingsPage() {
               automatically by agent runs + ingestion (Stage 7.0).
             </div>
           </div>
-          <Link
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- cross-subdomain target, Link prefetch dies on CORS */}
+          <a
             href="/development-os/ai-agents/memory"
             className="btn btn-secondary btn-sm shrink-0"
           >
             Open →
-          </Link>
+          </a>
         </li>
       </ul>
     </>

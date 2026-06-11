@@ -12,12 +12,17 @@
  * ("App switcher — two-button segmented control between Management
  * and Development. State stored in route, not localStorage").
  *
- * Renders as <Link> so middle-click / cmd-click / back-button all
- * keep working.
+ * Renders as plain <a> (NOT next/link): the inactive tab always points
+ * at the OTHER product, which lives on a different subdomain in
+ * production. A <Link> makes the router prefetch the RSC payload, the
+ * middleware answers with a cross-subdomain redirect, and the browser
+ * kills the follow-up fetch on CORS — console errors on every page
+ * where the switcher is visible. A full-document <a> navigation follows
+ * the same redirect without CORS. Middle-click / cmd-click / back all
+ * keep working with anchors.
  */
 
 import * as React from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +53,7 @@ export function AppSwitcher({
       )}
       data-primitive="app-switcher"
     >
-      <Link
+      <a
         href={mgmtHref}
         role="tab"
         aria-selected={onMgmt}
@@ -61,8 +66,8 @@ export function AppSwitcher({
         )}
       >
         Mgmt
-      </Link>
-      <Link
+      </a>
+      <a
         href={devHref}
         role="tab"
         aria-selected={onDev}
@@ -75,7 +80,7 @@ export function AppSwitcher({
         )}
       >
         Dev
-      </Link>
+      </a>
     </div>
   );
 }

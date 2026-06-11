@@ -133,17 +133,31 @@ export function IntegrationStatusCard({
           </p>
         )}
 
-      {configureHref && (
-        <Link
-          href={configureHref}
-          className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-ink hover:text-accent transition-colors"
-        >
-          {status === "needs-config" || status === "broken"
-            ? "Configure"
-            : "Open settings"}
-          <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
-        </Link>
-      )}
+      {configureHref &&
+        // Cross-product targets live on another subdomain in production:
+        // a <Link> prefetch would chase the middleware's cross-subdomain
+        // redirect and die on CORS, so those render as plain anchors.
+        (configureHref.startsWith("/development-os") ? (
+          <a
+            href={configureHref}
+            className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-ink hover:text-accent transition-colors"
+          >
+            {status === "needs-config" || status === "broken"
+              ? "Configure"
+              : "Open settings"}
+            <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
+          </a>
+        ) : (
+          <Link
+            href={configureHref}
+            className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-ink hover:text-accent transition-colors"
+          >
+            {status === "needs-config" || status === "broken"
+              ? "Configure"
+              : "Open settings"}
+            <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
+          </Link>
+        ))}
     </article>
   );
 }

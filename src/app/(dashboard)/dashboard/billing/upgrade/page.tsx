@@ -271,12 +271,15 @@ export default async function UpgradePage({
                         Stripe price not yet provisioned
                       </Badge>
                     ) : isCurrent ? (
-                      <Link
+                      /* API redirect endpoint — plain anchor so the router
+                         never prefetches it (a <Link> logs a 503 in console
+                         while Stripe is unconfigured). */
+                      <a
                         href="/api/billing/portal"
                         className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium hover:bg-muted/40"
                       >
                         Manage subscription →
-                      </Link>
+                      </a>
                     ) : (
                       <UpgradeButton
                         packagingKey={p.packagingKey}
