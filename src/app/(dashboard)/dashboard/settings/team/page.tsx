@@ -7,15 +7,16 @@
  */
 
 import type { Metadata } from "next";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { Badge } from "@/components/ui/badge";
 import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
-import { appUsers } from "@/lib/db/schema/identity";
+import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
 import { appUserRoles } from "@/lib/db/schema/role-cabinets";
 import { teamInvitations } from "@/lib/db/schema/team-invitations";
+import { getCurrentUserContext } from "@/features/auth/permissions";
 import Link from "next/link";
 import { InviteForm } from "./invite-form";
 import { TeamRowActions } from "./row-actions";
@@ -56,7 +57,32 @@ export default async function TeamSettingsPage() {
     );
   }
 
-  // Pull active app_users + their cabinet role grants in two queries.
+  // IDOR fix (defect 1): org-scope every list to the caller's organization.
+  // The previous queries selected ALL app_users / app_user_roles /
+  // team_invitations across every tenant.
+  const ctx = await getCurrentUserContext();
+  const orgId = ctx.appUser?.organizationId ?? null;
+  if (!orgId) {
+    return (
+      <>
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/dashboard/settings">Settings</Link> /{" "}
+              <span>Team</span>
+            </div>
+            <h1>Team</h1>
+          </div>
+        </div>
+        <EmptyState
+          title="No organization context"
+          description="Sign in with a team account to manage members."
+        />
+      </>
+    );
+  }
+
+  // Pull active app_users (org-scoped) + their cabinet role grants.
   const userRows = await db
     .select({
       id: appUsers.id,
@@ -66,17 +92,28 @@ export default async function TeamSettingsPage() {
       createdAt: appUsers.createdAt,
     })
     .from(appUsers)
+    .where(eq(appUsers.organizationId, orgId))
     .orderBy(desc(appUsers.createdAt));
 
-  const activeRoles = await db
-    .select({
-      userId: appUserRoles.userId,
-      roleKey: appUserRoles.roleKey,
-      isPrimary: appUserRoles.isPrimary,
-      grantedAt: appUserRoles.grantedAt,
-    })
-    .from(appUserRoles)
-    .where(eq(appUserRoles.isActive, true));
+  const userIds = userRows.map((u) => u.id);
+
+  const activeRoles =
+    userIds.length === 0
+      ? []
+      : await db
+          .select({
+            userId: appUserRoles.userId,
+            roleKey: appUserRoles.roleKey,
+            isPrimary: appUserRoles.isPrimary,
+            grantedAt: appUserRoles.grantedAt,
+          })
+          .from(appUserRoles)
+          .where(
+            and(
+              eq(appUserRoles.isActive, true),
+              inArray(appUserRoles.userId, userIds),
+            ),
+          );
 
   const rolesByUser = new Map<string, Array<{ roleKey: string; isPrimary: boolean }>>();
   for (const r of activeRoles) {
@@ -85,10 +122,32 @@ export default async function TeamSettingsPage() {
     rolesByUser.set(r.userId, arr);
   }
 
+  // Internal (user_roles) grants — the /dashboard cabinets — scoped to org users.
+  const internalRoleRows =
+    userIds.length === 0
+      ? []
+      : await db
+          .select({ userId: userRoles.userId, key: roles.key })
+          .from(userRoles)
+          .innerJoin(roles, eq(roles.id, userRoles.roleId))
+          .where(inArray(userRoles.userId, userIds));
+
+  const internalRolesByUser = new Map<string, string[]>();
+  for (const r of internalRoleRows) {
+    const arr = internalRolesByUser.get(r.userId) ?? [];
+    if (!arr.includes(r.key)) arr.push(r.key);
+    internalRolesByUser.set(r.userId, arr);
+  }
+
   const pendingInvitations = await db
     .select()
     .from(teamInvitations)
-    .where(eq(teamInvitations.status, "pending"))
+    .where(
+      and(
+        eq(teamInvitations.status, "pending"),
+        eq(teamInvitations.organizationId, orgId),
+      ),
+    )
     .orderBy(desc(teamInvitations.createdAt));
 
   const activeMemberCount = userRows.filter(
@@ -216,7 +275,8 @@ export default async function TeamSettingsPage() {
             <tr>
               <th scope="col">Name</th>
               <th scope="col">Email</th>
-              <th scope="col">Roles</th>
+              <th scope="col">Cabinet roles</th>
+              <th scope="col">Internal roles</th>
               <th scope="col">Status</th>
               <th scope="col">Joined</th>
               <th scope="col" />
@@ -225,6 +285,7 @@ export default async function TeamSettingsPage() {
           <tbody>
             {userRows.map((u) => {
               const userActiveRoles = rolesByUser.get(u.id) ?? [];
+              const userInternalRoles = internalRolesByUser.get(u.id) ?? [];
               return (
                 <tr key={u.id}>
                   <td className="text-ink font-medium">{u.fullName}</td>
@@ -241,6 +302,17 @@ export default async function TeamSettingsPage() {
                         >
                           {r.roleKey.replace(/_/g, " ")}
                           {r.isPrimary ? " ★" : ""}
+                        </Badge>
+                      ))
+                    )}
+                  </td>
+                  <td className="text-xs">
+                    {userInternalRoles.length === 0 ? (
+                      <span className="text-ink-3">—</span>
+                    ) : (
+                      userInternalRoles.map((k) => (
+                        <Badge key={k} tone="info" className="mr-1">
+                          {k.replace(/_/g, " ")}
                         </Badge>
                       ))
                     )}

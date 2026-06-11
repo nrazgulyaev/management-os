@@ -48,6 +48,11 @@ export default async function OwnerStatementDetail({
   const owner = await getCurrentOwnerContext();
   if (!owner || statement.ownerId !== owner.ownerId) notFound();
 
+  // Owner-visibility guard: a director's internal draft (or a voided /
+  // retracted statement) must never be readable by the owner, even via a
+  // direct deep-link. Only issued/approved/paid statements are owner-facing.
+  if (statement.status === "draft" || statement.status === "voided") notFound();
+
   // Owner audience can only see lines flagged owner_visible. RLS restricts
   // access at the DB level; the audience flag is a UI safeguard.
   const lines = await listStatementLines(id, { ownerVisibleOnly: true });

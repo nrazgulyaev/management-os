@@ -20,10 +20,13 @@ import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
-import { appUsers } from "@/lib/db/schema/identity";
+import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
 import { appUserRoles } from "@/lib/db/schema/role-cabinets";
+import { getCurrentUserContext } from "@/features/auth/permissions";
+import { listAssignableInternalRoles } from "@/features/team/actions";
 import { ROLE_DESCRIPTIONS } from "@/features/team/role-descriptions";
 import { ChangeRoleForm } from "./change-role-form";
+import { InternalRolesForm } from "./internal-roles-form";
 
 export const metadata: Metadata = { title: "Team member · Settings" };
 export const dynamic = "force-dynamic";
@@ -63,13 +66,24 @@ export default async function TeamMemberPage({
     );
   }
 
+  // IDOR fix (defect 1): org-scope the user lookup to the caller's org.
+  const ctx = await getCurrentUserContext();
+  const orgId = ctx.appUser?.organizationId ?? null;
+
   const user = await db
     .select()
     .from(appUsers)
-    .where(eq(appUsers.id, userId))
+    .where(
+      orgId
+        ? and(eq(appUsers.id, userId), eq(appUsers.organizationId, orgId))
+        : eq(appUsers.id, userId),
+    )
     .limit(1)
     .then((rows) => rows[0]);
   if (!user) notFound();
+  // Defence in depth: even if the DB row resolved, never render a member who
+  // belongs to a different org.
+  if (orgId && user.organizationId !== orgId) notFound();
 
   const grants = await db
     .select()
@@ -80,6 +94,17 @@ export default async function TeamMemberPage({
   const activeGrants = grants.filter((g) => g.isActive);
   const historyGrants = grants.filter((g) => !g.isActive);
   const currentPrimary = activeGrants.find((g) => g.isPrimary) ?? activeGrants[0];
+
+  // Internal (user_roles) grants — the /dashboard cabinets.
+  const internalRoleRows = await db
+    .select({ key: roles.key })
+    .from(userRoles)
+    .innerJoin(roles, eq(roles.id, userRoles.roleId))
+    .where(eq(userRoles.userId, userId));
+  const currentInternalRoles = internalRoleRows.map((r) => r.key);
+  const assignableInternalRoles = await listAssignableInternalRoles();
+  const canAssignRoles =
+    ctx.mode === "demo" || ctx.isSuperAdmin || ctx.roles.includes("director");
 
   return (
     <>
@@ -210,6 +235,25 @@ export default async function TeamMemberPage({
           userId={user.id}
           userEmail={user.email}
           currentRoleKey={currentPrimary?.roleKey ?? null}
+        />
+      </div>
+
+      <h2 className="display text-[22px] font-normal mt-[18px] mb-1">
+        Internal cabinet roles
+      </h2>
+      <p className="text-[12px] text-ink-3 mb-3.5">
+        Internal roles (user_roles) route this user into the /dashboard
+        cabinets — e.g. housekeeper, accountant, director. Granting one makes
+        the person an internal staff member with the matching access. Reserved
+        roles (super_admin) are not assignable here.
+      </p>
+      <div className="card card-pad mb-[18px]">
+        <InternalRolesForm
+          userId={user.id}
+          userEmail={user.email}
+          currentRoleKeys={currentInternalRoles}
+          assignableRoles={assignableInternalRoles}
+          canManage={canAssignRoles}
         />
       </div>
 

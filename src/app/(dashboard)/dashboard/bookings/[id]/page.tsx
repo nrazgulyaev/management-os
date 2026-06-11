@@ -13,18 +13,22 @@ import { AddGuestButton } from "./_guest-add";
 import { AddChargeButton } from "./_charge-add";
 import { UploadDocButton, DocViewButton, PrintFolioButton } from "./_doc-controls";
 import { BookingActivity } from "./_activity-client";
+import { AddPaymentButton } from "./_payment-add";
+import Link from "next/link";
 import {
   getBookingDetail,
   listBookingAuditTimeline,
   listBookingParty,
   listBookingChargeLines,
   getBookingPayment,
+  getBookingPaymentSummary,
   getBookingMeta,
   type BookingDetail,
   type BookingAuditRow,
   type BookingPartyGuest,
   type BookingChargeLine,
   type BookingPaymentRow,
+  type BookingPaymentSummary,
   type BookingMetaRow,
 } from "@/features/bookings/booking-detail-queries";
 import { listDocuments, type DocumentRow } from "@/features/documents/services";
@@ -319,6 +323,132 @@ function settlementPanel(b: BookingDetail, payment: BookingPaymentRow | null) {
   );
 }
 
+function methodLabel(method: string | null, provider: string): string {
+  if (method === "cash") return "Cash";
+  if (method === "transfer") return "Bank transfer";
+  if (method === "card-manual") return "Card (manual)";
+  if (method === "card") return "Card";
+  if (method === "bank") return "Bank";
+  return method ?? provider;
+}
+
+function paidStatusTone(
+  status: BookingPaymentSummary["status"],
+): "success" | "warning" | "neutral" {
+  if (status === "paid") return "success";
+  if (status === "partially_paid") return "warning";
+  return "neutral";
+}
+
+function paymentsPanel(
+  bookingId: string,
+  summary: BookingPaymentSummary | null,
+  fallbackCurrency: string,
+) {
+  const currency = summary?.currency ?? fallbackCurrency;
+  const m = makeMoney(currency);
+  const gross = summary?.grossAmount ?? 0;
+  const paid = summary?.paidAmount ?? 0;
+  const outstanding = summary?.outstandingAmount ?? gross;
+  const status = summary?.status ?? "unpaid";
+  const lines = summary?.payments ?? [];
+
+  return (
+    <div className="rounded-lg border border-line-soft bg-surface overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-line-soft flex items-center justify-between">
+        <span className="text-label">
+          Payments <span className="text-ink-tertiary">· {lines.length} recorded</span>
+        </span>
+        <div className="flex items-center gap-3">
+          <Badge tone={paidStatusTone(status)}>
+            {status.replace(/_/g, " ").toUpperCase()}
+          </Badge>
+          <AddPaymentButton
+            bookingId={bookingId}
+            currency={currency}
+            outstanding={outstanding}
+          />
+        </div>
+      </div>
+
+      <div className="px-5 py-4 grid grid-cols-3 gap-4 border-b border-line-soft">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary">
+            Gross due
+          </div>
+          <div className="font-mono tabular-nums text-ink mt-1">{m.full(gross)}</div>
+        </div>
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary">
+            Paid
+          </div>
+          <div className="font-mono tabular-nums text-ink mt-1">{m.full(paid)}</div>
+        </div>
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-tertiary">
+            Outstanding
+          </div>
+          <div
+            className={`font-mono tabular-nums mt-1 ${outstanding > 0.005 ? "text-terra font-semibold" : "text-ink-tertiary"}`}
+          >
+            {m.full(outstanding)}
+          </div>
+        </div>
+      </div>
+
+      {lines.length === 0 ? (
+        <p className="px-5 py-4 text-[13px] text-ink-secondary leading-relaxed">
+          No payments recorded yet — use <span className="text-ink font-medium">+ Add payment</span>{" "}
+          to log cash, a transfer, or a manual card receipt.
+        </p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-line-soft text-label">
+              <th className="px-5 py-2 text-left font-normal">Method</th>
+              <th className="px-2 py-2 text-left font-normal">Received</th>
+              <th className="px-2 py-2 text-left font-normal">Note</th>
+              <th className="px-5 py-2 text-right font-normal">Amount ({currency})</th>
+            </tr>
+          </thead>
+          <tbody className="[&_tr]:border-b [&_tr]:border-line-soft">
+            {lines.map((p) => {
+              const refunded = p.status === "refunded" || p.status === "failed";
+              return (
+                <tr key={p.id}>
+                  <td className="px-5 py-3 align-middle">
+                    <span className="inline-flex items-center rounded-md border border-line-soft bg-muted/40 px-2 py-0.5 text-[11px] text-ink-secondary">
+                      {methodLabel(p.method, p.provider)}
+                    </span>
+                    {refunded && (
+                      <span className="ml-2 font-mono text-[10px] uppercase tracking-wide text-ink-tertiary">
+                        {p.status}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-2 py-3 font-mono text-[12px] text-ink-tertiary tabular-nums whitespace-nowrap">
+                    {p.receivedAt
+                      ? dateTimeLabel(p.receivedAt)
+                      : p.capturedAt
+                        ? dateTimeLabel(p.capturedAt)
+                        : "—"}
+                  </td>
+                  <td className="px-2 py-3 text-ink-secondary">{p.captureNote ?? "—"}</td>
+                  <td
+                    className={`px-5 py-3 text-right font-mono tabular-nums whitespace-nowrap ${refunded ? "text-ink-tertiary line-through" : "text-ink"}`}
+                  >
+                    {m.full(p.amount)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 function Row({ k, children }: { k: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline gap-4">
@@ -428,7 +558,7 @@ export default async function BookingDetailPage({
   const b = await getBookingDetail(id);
   if (!b) notFound();
 
-  const [audit, docsRaw, runs, party, chargeLines, payment, meta] =
+  const [audit, docsRaw, runs, party, chargeLines, payment, paymentSummary, meta] =
     await mapPoolAll([
       () => listBookingAuditTimeline(id),
       () => listDocuments({ entityType: "booking", entityId: id }),
@@ -438,6 +568,10 @@ export default async function BookingDetailPage({
       () => listBookingParty(id).catch(() => [] as BookingPartyGuest[]),
       () => listBookingChargeLines(id).catch(() => [] as BookingChargeLine[]),
       () => getBookingPayment(id).catch(() => null as BookingPaymentRow | null),
+      () =>
+        getBookingPaymentSummary(id).catch(
+          () => null as BookingPaymentSummary | null,
+        ),
       () => getBookingMeta(id).catch(() => null as BookingMetaRow | null),
     ] as const, 4);
   const docs = docsRaw.filter((d) => d.status !== "archived");
@@ -614,6 +748,7 @@ export default async function BookingDetailPage({
   const chargesTabPanel = (
     <div className="flex flex-col gap-6 px-7 py-6">
       {chargesPanel(b, chargeLines)}
+      {paymentsPanel(b.id, paymentSummary, b.currency)}
       {settlementPanel(b, payment)}
     </div>
   );
@@ -892,6 +1027,9 @@ export default async function BookingDetailPage({
             )}
             <ExtendStayButton bookingId={b.id} checkIn={b.checkIn} checkOut={b.checkOut} />
             <AddChargeButton bookingId={b.id} currency={b.currency} />
+            <Link className="btn btn-secondary btn-sm" href={`/dashboard/bookings/${b.id}/guest-stay`}>
+              Guest stay →
+            </Link>
           </div>
         }
       />

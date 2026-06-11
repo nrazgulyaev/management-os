@@ -324,6 +324,7 @@ export interface BookingPaymentRow {
   currency: string;
   status: string;
   capturedAt: string | null;
+  receivedAt: string | null;
   captureNote: string | null;
 }
 
@@ -349,7 +350,109 @@ export async function getBookingPayment(
     currency: r.currency,
     status: r.status,
     capturedAt: r.capturedAt ? r.capturedAt.toISOString() : null,
+    receivedAt: r.receivedAt ? r.receivedAt.toISOString() : null,
     captureNote: r.captureNote,
+  };
+}
+
+/* --------------------- payment ledger + paid summary -------------------- */
+
+export interface BookingPaymentLine {
+  id: string;
+  provider: string;
+  method: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  receivedAt: string | null;
+  capturedAt: string | null;
+  captureNote: string | null;
+}
+
+export type BookingPaidStatus = "paid" | "partially_paid" | "unpaid";
+
+export interface BookingPaymentSummary {
+  currency: string;
+  /** Booking gross — the amount due. */
+  grossAmount: number;
+  /** Sum of non-refunded / non-failed payments. */
+  paidAmount: number;
+  /** grossAmount − paidAmount, floored at 0. */
+  outstandingAmount: number;
+  status: BookingPaidStatus;
+  payments: BookingPaymentLine[];
+}
+
+/**
+ * Paid/outstanding summary + the full payment ledger for one booking.
+ *
+ * Org-scoped: the booking row is fetched ANDed with the caller's org, so a
+ * cross-org id 404s (returns null) before any payment row is read. Paid status
+ * is DERIVED (sum of captured/pending payments vs booking gross) — no
+ * denormalized status column, so it can never drift from the ledger.
+ */
+export async function getBookingPaymentSummary(
+  bookingId: string,
+): Promise<BookingPaymentSummary | null> {
+  const db = getDb();
+  if (!db) return null;
+  const organizationId = await requireOrgId();
+
+  const [bk] = await db
+    .select({ currency: bookings.currency, grossAmount: bookings.grossAmount })
+    .from(bookings)
+    .where(
+      and(eq(bookings.id, bookingId), eq(bookings.organizationId, organizationId)),
+    )
+    .limit(1);
+  if (!bk) return null;
+
+  const rows = await db
+    .select()
+    .from(bookingPayments)
+    .where(
+      and(
+        eq(bookingPayments.bookingId, bookingId),
+        eq(bookingPayments.organizationId, organizationId),
+      ),
+    )
+    .orderBy(desc(bookingPayments.receivedAt), desc(bookingPayments.createdAt));
+
+  const payments: BookingPaymentLine[] = rows.map((r) => ({
+    id: r.id,
+    provider: r.provider,
+    method: r.method,
+    amount: r.amount === null ? 0 : Number(r.amount),
+    currency: r.currency,
+    status: r.status,
+    receivedAt: r.receivedAt ? r.receivedAt.toISOString() : null,
+    capturedAt: r.capturedAt ? r.capturedAt.toISOString() : null,
+    captureNote: r.captureNote,
+  }));
+
+  const grossAmount = num(bk.grossAmount);
+  // Only money that actually landed counts toward paid: captured/pending in,
+  // refunded/failed excluded.
+  const paidAmount = payments.reduce(
+    (s, p) =>
+      p.status === "refunded" || p.status === "failed" ? s : s + p.amount,
+    0,
+  );
+  const outstandingAmount = Math.max(0, grossAmount - paidAmount);
+  const status: BookingPaidStatus =
+    paidAmount <= 0
+      ? "unpaid"
+      : outstandingAmount <= 0.005
+        ? "paid"
+        : "partially_paid";
+
+  return {
+    currency: bk.currency,
+    grossAmount,
+    paidAmount,
+    outstandingAmount,
+    status,
+    payments,
   };
 }
 

@@ -230,6 +230,7 @@ export async function cancelMyInvestorPortalRequest(
       and(
         eq(investorPortalRequests.id, parsed.data.requestId),
         eq(investorPortalRequests.investorId, session.investorId),
+        eq(investorPortalRequests.organizationId, current.organizationId),
       ),
     );
 

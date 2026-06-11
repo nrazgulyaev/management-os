@@ -25,9 +25,9 @@ import { InvitePortalModal } from "@/components/owners/invite-portal-modal";
 import { DismissInsightModal } from "@/components/owners/dismiss-insight-modal";
 import {
   recordCommissionChangeAction,
-  recordPortalInviteAction,
   recordInsightDecisionAction,
 } from "@/features/owners/actions";
+import { inviteOwnerToPortalAction } from "@/features/team/actions";
 
 export interface OwnerActionContext {
   ownerId: string;
@@ -38,11 +38,19 @@ export interface OwnerActionContext {
   canManage: boolean;
 }
 
+type InviteOutcome =
+  | { kind: "sent"; email: string }
+  | { kind: "dry_run"; email: string; acceptUrl: string }
+  | { kind: "error"; message: string };
+
 export function OwnerHeaderActions({ ctx }: { ctx: OwnerActionContext }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = React.useState(false);
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const [pending, startTransition] = React.useTransition();
+  const [inviteOutcome, setInviteOutcome] = React.useState<InviteOutcome | null>(
+    null,
+  );
 
   if (!ctx.canManage) return null;
 
@@ -60,7 +68,10 @@ export function OwnerHeaderActions({ ctx }: { ctx: OwnerActionContext }) {
       <Button
         variant="secondary"
         size="sm"
-        onClick={() => setInviteOpen(true)}
+        onClick={() => {
+          setInviteOutcome(null);
+          setInviteOpen(true);
+        }}
         disabled={pending || !ctx.ownerEmail}
         title={ctx.ownerEmail ? undefined : "Add an email before inviting to the portal"}
       >
@@ -87,6 +98,10 @@ export function OwnerHeaderActions({ ctx }: { ctx: OwnerActionContext }) {
           })
         }
       />
+      {/* DOMAIN 2 — real owner-portal invitation (replaces the audit-only
+          stub). Creates a team_invitation for the owner email + returns the
+          accept link. On accept the app_user is provisioned as investor_owner
+          + an app_users_owners grant is created. */}
       <InvitePortalModal
         open={inviteOpen}
         onOpenChange={setInviteOpen}
@@ -95,13 +110,63 @@ export function OwnerHeaderActions({ ctx }: { ctx: OwnerActionContext }) {
         onConfirm={(note) =>
           new Promise<void>((resolve) => {
             startTransition(async () => {
-              await recordPortalInviteAction({ ownerId: ctx.ownerId, note });
+              const r = await inviteOwnerToPortalAction({
+                ownerId: ctx.ownerId,
+                note: note || undefined,
+              });
+              if (!r.ok) {
+                setInviteOutcome({ kind: "error", message: r.error });
+              } else if (r.emailDelivered) {
+                setInviteOutcome({ kind: "sent", email: r.email });
+              } else {
+                setInviteOutcome({
+                  kind: "dry_run",
+                  email: r.email,
+                  acceptUrl: r.acceptUrl,
+                });
+              }
               router.refresh();
               resolve();
             });
           })
         }
       />
+
+      {inviteOutcome && (
+        <div
+          role="status"
+          style={{
+            flexBasis: "100%",
+            marginTop: 8,
+            fontSize: 12,
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid var(--line-soft)",
+            background: "var(--surface)",
+            color:
+              inviteOutcome.kind === "error" ? "var(--danger)" : "var(--ink-2)",
+          }}
+        >
+          {inviteOutcome.kind === "error" && <span>{inviteOutcome.message}</span>}
+          {inviteOutcome.kind === "sent" && (
+            <span>Invitation sent to {inviteOutcome.email}.</span>
+          )}
+          {inviteOutcome.kind === "dry_run" && (
+            <>
+              <div>
+                Invite created for {inviteOutcome.email} — email not sent
+                (dry-run). Share this link:
+              </div>
+              <code
+                className="mono"
+                style={{ fontSize: 11, wordBreak: "break-all", color: "var(--ink-2)" }}
+              >
+                {inviteOutcome.acceptUrl}
+              </code>
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }

@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
-import { Database, ShieldCheck, KeyRound, ToggleRight } from "lucide-react";
+import {
+  Database,
+  ShieldCheck,
+  KeyRound,
+  ToggleRight,
+  Users,
+  Grid3x3,
+  Bot,
+  Plug,
+  ArrowRight,
+} from "lucide-react";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { getBootstrapState } from "@/features/auth/bootstrap";
 import {
@@ -83,6 +93,41 @@ export default async function SettingsPage() {
   const authOn = isSupabaseAuthConfigured();
   const adminOn = isSupabaseAdminConfigured();
   const live = ctx.mode === "live";
+
+  // Administration hub — real, existing routes that were previously only
+  // reachable by typing the URL. Grouped here so the whole workspace
+  // control surface is discoverable from Settings.
+  const adminLinks: Array<{
+    href: string;
+    icon: React.ReactNode;
+    label: string;
+    hint: string;
+  }> = [
+    {
+      href: "/dashboard/settings/team",
+      icon: <Users className="w-4 h-4" strokeWidth={1.7} />,
+      label: "Team",
+      hint: "People in the workspace, their roles and invites.",
+    },
+    {
+      href: "/dashboard/settings/roles/matrix",
+      icon: <Grid3x3 className="w-4 h-4" strokeWidth={1.7} />,
+      label: "Roles & access matrix",
+      hint: "Map roles to permissions across every module.",
+    },
+    {
+      href: "/dashboard/settings/ai-agents",
+      icon: <Bot className="w-4 h-4" strokeWidth={1.7} />,
+      label: "AI agents",
+      hint: "Enable, tune, and review the assistant agents.",
+    },
+    {
+      href: "/dashboard/settings/integrations",
+      icon: <Plug className="w-4 h-4" strokeWidth={1.7} />,
+      label: "Integrations",
+      hint: "Connect, test, and disconnect channels, payments and AI.",
+    },
+  ];
 
   const cfg: Array<{
     icon: React.ReactNode;
@@ -180,6 +225,36 @@ export default async function SettingsPage() {
               <span className="hi">{c.hint}</span>
             </span>
           </div>
+        ))}
+      </div>
+
+      <div className="gs-card-h mt-[18px]">
+        <h3 className="!text-[16px]">Workspace administration</h3>
+        <span className="meta">PEOPLE · ACCESS · AUTOMATION</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+        {adminLinks.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            className="card card-pad flex items-start gap-3.5 hover:border-line-strong transition-colors group"
+          >
+            <span className="shrink-0 w-9 h-9 rounded-full border border-line-soft inline-flex items-center justify-center text-ink-2">
+              {l.icon}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="flex items-center gap-1.5 text-[14.5px] text-ink font-medium">
+                {l.label}
+                <ArrowRight
+                  className="w-3.5 h-3.5 text-ink-3 group-hover:translate-x-0.5 transition-transform"
+                  strokeWidth={1.7}
+                />
+              </span>
+              <span className="block text-[12px] text-ink-3 leading-relaxed mt-0.5">
+                {l.hint}
+              </span>
+            </span>
+          </Link>
         ))}
       </div>
 

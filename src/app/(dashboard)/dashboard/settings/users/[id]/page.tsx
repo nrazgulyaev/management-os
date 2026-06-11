@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Badge } from "@/components/ui/badge";
 import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
@@ -8,6 +8,7 @@ import { DbStatusNotice } from "@/components/admin/db-status";
 import { GrantForm } from "@/components/admin/grant-form";
 import { getDb } from "@/lib/db/client";
 import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
+import { getCurrentUserContext } from "@/features/auth/permissions";
 import { safeList } from "@/features/system/db-health";
 import { listAccessGrantsForAppUser } from "@/features/access-grants/services";
 import { listOwners } from "@/features/owners/services";
@@ -45,11 +46,23 @@ export default async function UserProfilePage({
     );
   }
 
+  // IDOR fix (defect 1): org-scope the user lookup to the caller's org.
+  const ctx = await getCurrentUserContext();
+  const orgId = ctx.appUser?.organizationId ?? null;
   const userResult = await safeList("getUserById", () =>
-    db.select().from(appUsers).where(eq(appUsers.id, id)).limit(1),
+    db
+      .select()
+      .from(appUsers)
+      .where(
+        orgId
+          ? and(eq(appUsers.id, id), eq(appUsers.organizationId, orgId))
+          : eq(appUsers.id, id),
+      )
+      .limit(1),
   );
   const user = userResult.value[0];
   if (!user) notFound();
+  if (orgId && user.organizationId !== orgId) notFound();
 
   const userRoleResult = await safeList("getUserRoles", () =>
     db

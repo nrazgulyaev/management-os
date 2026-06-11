@@ -290,7 +290,12 @@ export async function editTakeoffMeasurement(
               unitRateMinor: nextRate,
               updatedAt: new Date(),
             })
-            .where(eq(boqItems.id, item.id));
+            .where(
+              and(
+                eq(boqItems.id, item.id),
+                eq(boqItems.organizationId, organizationId),
+              ),
+            );
           const [section] = await tx
             .select({ docId: boqSections.boqDocumentId })
             .from(boqSections)
@@ -521,7 +526,12 @@ export async function pushTakeoffToBoq(
             notes: "Source: drawing takeoff (round-trip)",
             updatedAt: new Date(),
           })
-          .where(eq(boqItems.id, liveItemId));
+          .where(
+            and(
+              eq(boqItems.id, liveItemId),
+              eq(boqItems.organizationId, organizationId),
+            ),
+          );
         boqItemId = liveItemId;
         created = false;
       } else {

@@ -2,14 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { owners } from "@/lib/db/schema/ownership";
+import { owners, ownershipShares } from "@/lib/db/schema/ownership";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { recordCrmActivity } from "@/features/crm-activity/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { createOwnerSchema } from "./schema";
 import type { ActionResult } from "@/features/projects/actions";
 
@@ -66,6 +68,152 @@ export async function createOwnerAction(
 
   revalidatePath("/dashboard/owners");
   redirect(`/dashboard/owners/${row.id}`);
+}
+
+/* ------------------------------------------------------------------ *
+ * Onboard-owner wizard — full persistence (defect-3 fix).
+ *
+ * The 3-step OnboardOwnerModal collects identity (step 1), commission %
+ * (step 2) and villa assignment + portal invite (step 3). The old launcher
+ * forwarded ONLY the identity fields to createOwnerAction and silently
+ * dropped commission / villaIds / invitePortal. This single action persists
+ * everything that has a home, in one org-scoped flow, and returns the new
+ * owner id so the client can navigate.
+ *
+ *   - identity     → owners row (status 'onboarding')
+ *   - commissionPct→ owners.commission_pct (fraction; migration 0169)
+ *   - villaIds     → one active ownership_shares row per villa, org-stamped
+ *                    and refused if the villa is not in the caller's org
+ *   - invitePortal → honest audit-only invite record (the real portal grant
+ *                    lands via Domain-2 team_invitations.owner_id, mig 0168)
+ * ------------------------------------------------------------------ */
+
+const onboardOwnerInput = z.object({
+  displayName: z.string().min(2).max(160),
+  legalName: z.string().max(200).optional().default(""),
+  email: z.string().email().optional().or(z.literal("")),
+  taxResidency: z.string().max(80).optional().default(""),
+  commissionPct: z.coerce.number().min(0).max(100),
+  villaIds: z.array(z.string().uuid()).max(200).default([]),
+  invitePortal: z.boolean().default(false),
+});
+
+export async function onboardOwnerAction(
+  input: z.infer<typeof onboardOwnerInput>,
+): Promise<ActionResult & { ownerId?: string }> {
+  if (!(await canManageEntity("owner"))) {
+    return { ok: false, error: "Not authorised." };
+  }
+  const parsed = onboardOwnerInput.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form and correct the highlighted fields.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+
+  const d = parsed.data;
+  const me = await getCurrentAppUser();
+  // TENANCY: the new shares are org-scoped; villas are validated against
+  // this org so a foreign villa can never be assigned to the new owner.
+  const organizationId = await requireOrgId();
+
+  // Validate the chosen villas BEFORE creating the owner — every villa must
+  // exist and belong to the caller's org (via its project). Refuse the whole
+  // submission on any cross-org / unknown villa rather than silently skip it.
+  const villaIds = [...new Set(d.villaIds)];
+  let validVillas: { id: string; projectId: string }[] = [];
+  if (villaIds.length > 0) {
+    validVillas = await db
+      .select({ id: villas.id, projectId: villas.projectId })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(
+        and(
+          inArray(villas.id, villaIds),
+          eq(projects.organizationId, organizationId),
+        ),
+      );
+    if (validVillas.length !== villaIds.length) {
+      return {
+        ok: false,
+        error: "One or more selected villas are not available in your organisation.",
+      };
+    }
+  }
+
+  const commissionFraction = (d.commissionPct / 100).toFixed(4);
+
+  const [ownerRow] = await db
+    .insert(owners)
+    .values({
+      type: "individual",
+      displayName: d.displayName,
+      legalName: d.legalName && d.legalName !== "" ? d.legalName : null,
+      email: d.email && d.email !== "" ? d.email : null,
+      taxResidency: d.taxResidency && d.taxResidency !== "" ? d.taxResidency : null,
+      status: "onboarding",
+      commissionPct: commissionFraction,
+    })
+    .returning({ id: owners.id });
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "owner.create",
+    entityType: "owner",
+    entityId: ownerRow.id,
+    after: {
+      displayName: d.displayName,
+      email: d.email || null,
+      commissionPct: commissionFraction,
+      villaCount: validVillas.length,
+    },
+  });
+
+  // One active villa-direct ownership_share per assigned villa, org-stamped.
+  const today = new Date().toISOString().slice(0, 10);
+  for (const v of validVillas) {
+    const [shareRow] = await db
+      .insert(ownershipShares)
+      .values({
+        ownerId: ownerRow.id,
+        organizationId,
+        villaId: v.id,
+        projectId: v.projectId,
+        sharePercent: "100",
+        model: "individual",
+        startsOn: today,
+        status: "active",
+      })
+      .returning({ id: ownershipShares.id });
+    await recordAuditEvent({
+      actorUserId: me?.id ?? null,
+      action: "share.create",
+      entityType: "ownership_share",
+      entityId: shareRow.id,
+      after: { ownerId: ownerRow.id, villaId: v.id, sharePercent: 100, source: "onboard_wizard" },
+    });
+  }
+
+  // Honest portal-invite intent — recorded as an audit event (same path the
+  // owner-card "Invite to portal" uses). NOT a fake success: the real grant
+  // is issued through the Domain-2 invitation flow.
+  if (d.invitePortal) {
+    await recordAuditEvent({
+      actorUserId: me?.id ?? null,
+      action: "owner.portal_invite",
+      entityType: "owner",
+      entityId: ownerRow.id,
+      after: { email: d.email || null, source: "onboard_wizard" },
+    });
+  }
+
+  revalidatePath("/dashboard/owners");
+  revalidatePath(`/dashboard/owners/${ownerRow.id}`);
+  return { ok: true, ownerId: ownerRow.id };
 }
 
 export async function updateOwnerAction(
@@ -172,14 +320,14 @@ export async function archiveOwnerAction(
 }
 
 /* ------------------------------------------------------------------ *
- * mgmt-03 cabinet wiring — audit-only writes.
+ * mgmt-03 cabinet wiring.
  *
- * The commission/portal-invite/insight UI shells (EditCommissionModal,
- * InvitePortalModal, InsightCard) have no dedicated persistence target
- * in this phase: commission lives at the ownership-share level and the
- * portal magic-link + insight model land in the 2.2 data PR. Until then
- * these directors' decisions are recorded as append-only audit events so
- * the intent is captured and reviewable. No new tables / no migration.
+ * recordCommissionChangeAction now PERSISTS the operator commission on
+ * owners.commission_pct (migration 0169) in addition to the append-only
+ * audit event — the statement engines read this per-owner rate (falling
+ * back to the 20% platform default when NULL). The portal-invite + insight
+ * shells stay audit-only here (the real portal grant lands via the Domain-2
+ * team_invitations.owner_id path, migration 0168).
  * ------------------------------------------------------------------ */
 
 const editCommissionInput = z.object({
@@ -205,14 +353,25 @@ export async function recordCommissionChangeAction(
   const [owner] = await db.select().from(owners).where(eq(owners.id, d.ownerId)).limit(1);
   if (!owner) return { ok: false, error: "Owner not found." };
 
+  // Persist as a FRACTION in [0,1] (0.20 = 20%), shape-compatible with
+  // owner_statements.operator_commission_pct so the statement engines read
+  // it directly. The UI collects a 0-100 percent.
+  const commissionFraction = (d.commissionPct / 100).toFixed(4);
+
   const me = await getCurrentAppUser();
+  await db
+    .update(owners)
+    .set({ commissionPct: commissionFraction })
+    .where(eq(owners.id, d.ownerId));
+
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "owner.commission_change",
     entityType: "owner",
     entityId: d.ownerId,
+    before: { commissionPct: owner.commissionPct },
     after: {
-      commissionPct: d.commissionPct,
+      commissionPct: commissionFraction,
       effectiveDate: d.effectiveDate,
       reason: d.reason,
     },

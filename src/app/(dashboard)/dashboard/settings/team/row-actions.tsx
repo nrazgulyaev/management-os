@@ -38,12 +38,18 @@ export function TeamRowActions(props: Props) {
         <button
           type="button"
           disabled={pending}
-          onClick={() =>
-            handle(async () => {
+          onClick={() => {
+            setFeedback(null);
+            setError(null);
+            startTransition(async () => {
               const r = await resendInvitationAction(props.invitationId);
-              return r.ok ? { ok: true } : { ok: false, error: r.error };
-            })
-          }
+              if (!r.ok) {
+                setError(r.error ?? "Failed.");
+                return;
+              }
+              setFeedback(r.emailDelivered ? "Sent ✓" : "Re-queued (dry-run)");
+            });
+          }}
           className="rounded-full border border-line-soft bg-surface px-3 py-1 text-xs hover:bg-muted/40 disabled:opacity-60"
         >
           {pending ? "…" : "Resend"}

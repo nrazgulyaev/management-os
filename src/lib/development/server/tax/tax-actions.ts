@@ -338,7 +338,12 @@ export async function generateTaxPeriodReport(
           generatedAt: new Date(),
           updatedAt: new Date(),
         })
-        .where(eq(taxPeriodReports.id, existing.id));
+        .where(
+          and(
+            eq(taxPeriodReports.id, existing.id),
+            eq(taxPeriodReports.organizationId, organizationId),
+          ),
+        );
       results.push({
         id: existing.id,
         vatDirection: direction,

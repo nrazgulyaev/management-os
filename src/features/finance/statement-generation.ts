@@ -102,6 +102,12 @@ interface OwnerVillaContext {
   sharePercent: number; // 0-100
   managementModel: string;
   currency: string;
+  /**
+   * Persisted per-owner operator commission as a FRACTION in [0,1], or null
+   * when the owner has no commission set (→ caller falls back to the 20%
+   * platform default). owners.commission_pct, migration 0169.
+   */
+  ownerCommissionPct: number | null;
 }
 
 async function loadContext(
@@ -113,16 +119,23 @@ async function loadContext(
   const rows = await db.execute<{
     share_percent: string;
     management_model: string;
+    commission_pct: string | null;
   }>(sql`
     SELECT os.share_percent::text   AS share_percent,
-           os.model                  AS management_model
+           os.model                  AS management_model,
+           o.commission_pct::text    AS commission_pct
       FROM ownership_shares os
+      JOIN owners o ON o.id = os.owner_id
      WHERE os.owner_id = ${ownerId}::uuid
        AND os.villa_id = ${villaId}::uuid
        AND os.status = 'active'
      LIMIT 1
   `);
-  const r = rowsOf<{ share_percent: string; management_model: string }>(rows)[0];
+  const r = rowsOf<{
+    share_percent: string;
+    management_model: string;
+    commission_pct: string | null;
+  }>(rows)[0];
   if (!r) return null;
   return {
     ownerId,
@@ -130,6 +143,8 @@ async function loadContext(
     sharePercent: Number(r.share_percent),
     managementModel: r.management_model ?? "individual",
     currency: "IDR",
+    ownerCommissionPct:
+      r.commission_pct !== null && r.commission_pct !== "" ? Number(r.commission_pct) : null,
   };
 }
 
@@ -291,9 +306,12 @@ export async function generateStatementForOwnerVilla(
   const db = getDb();
   if (!db) throw new Error("DB not configured");
 
-  const commissionPct = opts.commissionPct ?? DEFAULT_OPERATOR_COMMISSION;
   const ctx = await loadContext(db, orgId, ownerId, villaId);
   if (!ctx) return null;
+  // Commission precedence: explicit caller override → the persisted per-owner
+  // rate (owners.commission_pct, migration 0169) → the 20% platform default.
+  const commissionPct =
+    opts.commissionPct ?? ctx.ownerCommissionPct ?? DEFAULT_OPERATOR_COMMISSION;
   // FX-CALLERS-1: resolve live USD→IDR rate at generation time and
   // snapshot it on the statement row. Falls back to pinned 15,800
   // when ALPHAVANTAGE_API_KEY is missing or the API is rate-limited.

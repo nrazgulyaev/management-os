@@ -89,11 +89,12 @@ export default async function OwnerDetailPage({
     })
     .filter((x): x is NonNullable<typeof x> => x !== null);
 
-  // Lead commission % for the editor — surfaced from the owner's primary
-  // active share (display-only; the editor records an audited change).
-  const leadShare =
-    shares.find((s) => s.status === "active" && s.villaId) ?? shares[0];
-  const commissionPct = leadShare ? Math.round(leadShare.sharePercent) : 0;
+  // Operator commission % for the editor — the persisted per-owner rate
+  // (owners.commission_pct, migration 0169). recordCommissionChangeAction
+  // writes it and the statement engines read it (else the 20% default). It is
+  // a real operator-commission value, NOT the owner's ownership-share percent.
+  const commissionPct =
+    owner.commissionPct !== null ? Math.round(owner.commissionPct) : 0;
 
   // Promote the worst risk signal into the rich AI insight card.
   const topSignal =
@@ -186,7 +187,7 @@ export default async function OwnerDetailPage({
         <Kpi
           label="Commission rate"
           value={commissionPct > 0 ? `${commissionPct}%` : "—"}
-          sub="lead share"
+          sub="operator commission"
         />
         <Kpi
           label="Villas"
@@ -276,7 +277,7 @@ export default async function OwnerDetailPage({
           <ProfileRow label="Tax residency" value={owner.taxResidency ?? "—"} />
           <ProfileRow
             label="Commission"
-            value={commissionPct > 0 ? `${commissionPct}% of net · lead share` : "—"}
+            value={commissionPct > 0 ? `${commissionPct}% operator commission` : "Not set · defaults to 20%"}
           />
           <ProfileRow
             label="Portal access"

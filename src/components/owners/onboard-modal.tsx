@@ -207,9 +207,14 @@ export function OnboardOwnerModal({
             ← Back
           </button>
         )}
-        <button type="button" className="btn btn-secondary btn-sm" onClick={saveDraft}>
-          Save & finish later
-        </button>
+        {/* "Save & finish later" only renders when a real draft-persistence
+            handler is wired. Without it the button was a no-op that silently
+            discarded the wizard — so we hide it rather than fake a save. */}
+        {onSaveDraft && (
+          <button type="button" className="btn btn-secondary btn-sm" onClick={saveDraft}>
+            Save & finish later
+          </button>
+        )}
         {step < STEPS.length - 1 ? (
           <button
             type="button"
