@@ -138,6 +138,8 @@ export async function getGuestStayTokenById(
 
 export interface ResolvedStayBase {
   tokenId: string;
+  /** Org anchor — guest_stay_tokens.organization_id (NOT NULL since 0158). */
+  organizationId: string;
   bookingId: string;
   bookingCode: string;
   villaId: string;
@@ -240,6 +242,7 @@ export async function getStayByToken(
     ok: true,
     stay: {
       tokenId: row.t.id,
+      organizationId: row.t.organizationId,
       bookingId: row.booking.id,
       bookingCode: row.booking.bookingCode,
       villaId: row.villa.id,

@@ -62,6 +62,7 @@ export async function runLowStockScanJob(handle: JobRunHandle): Promise<JobOutco
   for (const role of ALERT_ROLE_RECIPIENTS) {
     const dedupeKey = lowStockDedupeKey(role);
     const result = await queueNotification({
+      // org not derivable: cron scan aggregates low-stock items across ALL orgs into one digest per role (listLowStockItems is unscoped)
       recipientType: "role",
       recipientId: undefined,
       channel: "in_app",

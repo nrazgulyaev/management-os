@@ -302,6 +302,7 @@ export async function runGuestJourneyRuleForBooking(
     const result = await queueNotification({
       recipientType: "guest",
       recipientId: stayToken?.id ?? undefined,
+      organizationId: booking.organizationId,
       channel: rule.channel === "email" ? "email" : "in_app",
       templateKey: rule.templateKey,
       title: labels.title,
@@ -446,6 +447,7 @@ export async function queueJourneyNotificationForSuggestion(
   const result = await queueNotification({
     recipientType: "guest",
     recipientId: s.stayTokenId ?? undefined,
+    organizationId: (await fetchOrgIdForBooking(s.bookingId)) ?? undefined,
     channel: "in_app",
     templateKey: "guest_journey.in_app_suggestion",
     title: s.title ?? labels.title,
@@ -529,6 +531,7 @@ export async function createReviewRequestForBooking(
   const result = await queueNotification({
     recipientType: "guest",
     recipientId: stayToken?.id ?? undefined,
+    organizationId: booking.organizationId,
     channel: "in_app",
     templateKey:
       channel === "internal_survey"
@@ -622,6 +625,20 @@ async function fetchGuestIdForBooking(
     .where(eq(bookings.id, bookingId))
     .limit(1);
   return row?.guestId ?? null;
+}
+
+/** Org anchor for a booking — bookings.organization_id (NOT NULL since 0155). */
+async function fetchOrgIdForBooking(
+  bookingId: string,
+): Promise<string | null> {
+  const db = getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select({ organizationId: bookings.organizationId })
+    .from(bookings)
+    .where(eq(bookings.id, bookingId))
+    .limit(1);
+  return row?.organizationId ?? null;
 }
 
 async function markRunSkipped(runId: string, reason: string): Promise<void> {

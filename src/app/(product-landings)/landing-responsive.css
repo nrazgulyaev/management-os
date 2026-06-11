@@ -1,0 +1,279 @@
+/* =============================================================
+   (product-landings)/landing-responsive.css
+
+   Mobile/tablet overflow fixes for the two product landings
+   (/products/management-os + /products/development-os), scoped to
+   the `.product-landing` wrapper each page renders.
+
+   WHY THIS FILE EXISTS
+   The global src/styles/mobile.css was written against the handoff
+   prototypes' client-side CSSOM serialization of inline styles
+   (`style="padding: 110px 0px"` — note the space after the colon).
+   Next.js SSR serializes the same JSX inline styles WITHOUT that
+   space (`padding:110px 0`), so every mobile.css selector that
+   includes a `property: value` pair with a space never matches the
+   landings. Net effect at capture time: management-os rendered
+   408px wide at a 390px viewport, development-os 401px at 390 and
+   891px at 768.
+
+   Concrete root causes fixed here:
+     1. CabinetPicker grid `380px 1fr` — fixed 380px track blows the
+        390px viewport (the exact 408px scrollWidth on management-os).
+     2. mobile.css's blanket `.display { font-size: clamp(40px, …) }`
+        inflates card-level h3.display headings (inline 20–30px) to
+        40–65px; their min-content then blows the cabinet/spec/pricing
+        grids on development-os at 768 (the 891px scrollWidth).
+     3. Grid items default to min-width:auto, so 1fr tracks can't
+        shrink below content min-content — guarded with min-width:0.
+     4. CTA-band inner boxes keep their desktop 72-80px horizontal
+        padding because the mobile.css padding selectors never match
+        (the 401px scrollWidth on development-os at 390).
+     5. Management hero photo: `aspect-ratio:16/8` + `min-height:420px`
+        resolves width from the height floor → an 840px-wide box.
+
+   Scoping note: the root layout sets data-product on <html>, so
+   `[data-product]` would leak into dashboard routes. The dedicated
+   `.product-landing` class on the page wrapper keeps every rule
+   here confined to the two landing pages. Where a rule must beat an
+   `!important` declaration from mobile.css, the `.product-landing`
+   prefix also wins on specificity.
+   ============================================================= */
+
+/* Belt-and-braces: never let a stray min-content leak widen the page.
+   `clip` (unlike hidden/auto) does not create a scroll container, so
+   the sticky landing nav keeps sticking to the viewport. */
+.product-landing {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+/* Mock parity (`.anchor-target { scroll-margin-top: 88px }` in both
+   handoff prototypes): nav anchor jumps (#cabinets, #ai, #pricing …)
+   must land below the sticky landing header, not underneath it. The
+   live ports dropped the .anchor-target class, so key off section[id]
+   — every anchored section carries an id, and SVG <pattern> ids are
+   not sections. */
+.product-landing section[id] {
+  scroll-margin-top: 88px;
+}
+
+/* -------------------------------------------------------------
+   Management palette fallback for direct/apex loads.
+
+   tokens.css binds the Mgmt palette ONLY at
+   `:root[data-product="management"]` — i.e. it relies on the
+   middleware x-product header stamping <html data-product> on the
+   management subdomain. When /products/management-os is loaded
+   directly (apex domain, localhost, visual-test captures), <html>
+   carries no data-product and the page's own wrapper <div
+   data-product="management"> is the only carrier. The palette vars
+   then resolve empty and every `var(--cream-warm)`-on-`var(--ink)`
+   button degrades to ink-on-ink ("black buttons", invisible label),
+   and the terra/serif accents go black.
+
+   Development doesn't have this problem because tokens.css already
+   declares a nested `[data-product="development"]` block. Mirror the
+   management Layer-B block here, scoped to the landing wrapper only.
+   Values are copied verbatim from tokens.css
+   `:root[data-product="management"]`.
+   ------------------------------------------------------------- */
+.product-landing[data-product="management"] {
+  --cream:        #F4EFE6;
+  --cream-deep:   #ECE5D5;
+  --cream-warm:   #FAF7F1;
+  --paper:        #FFFCF7;
+  --ink:          #14201C;
+  --ink-2:        #2A3934;
+  --ink-3:        #4A5A55;
+  --ink-4:        #7E8A85;
+  --forest:       #1F3A33;
+  --forest-deep:  #122621;
+  --forest-fade:  #2E4F47;
+  --terra:        #C4583C;
+  --terra-soft:   #E48A6E;
+  --gold:         #BC9A5C;
+  --gold-soft:    #DCC691;
+  --sage:         #88A89A;
+  --line:         #DAD2C0;
+  --line-soft:    #E5DECC;
+  --line-strong:  #C2B89E;
+  --ok:           #4F7A5D;
+  --warn:         #C58A2E;
+  --danger:       #B14132;
+
+  --mint:         #D8E8D6;
+  --mint-deep:    #B6D3B2;
+  --peach:        #F6D9CB;
+  --peach-deep:   #EDB89F;
+  --butter:       #F5E9B8;
+  --butter-deep:  #E8D77E;
+  --sky:          #D4E2EC;
+  --sky-deep:     #A8C1D4;
+
+  --shadow-card:  0 1px 0 rgba(255,255,255,0.6) inset, 0 12px 30px -18px rgba(20,32,28,0.18);
+  --shadow-soft:  0 18px 40px -24px rgba(20,32,28,0.22);
+
+  --accent:       var(--terra);
+  --accent-deep:  #A44627;
+  --accent-soft:  var(--terra-soft);
+  --on-accent:    var(--cream-warm);
+  --r-card:       18px;
+  --r-card-lg:    22px;
+  --r-hero:       28px;
+
+  --display-font: var(--font-newsreader);
+  --mono-font:    var(--font-jetbrains);
+
+  background: var(--cream);
+  color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  /* (3) Let 1fr grid tracks shrink below content min-content. */
+  .product-landing [style*="display:grid"] > * {
+    min-width: 0;
+  }
+
+  /* Long single words ("groundbreaking.") in big serif headings must
+     wrap rather than push the section past the viewport. */
+  .product-landing h1,
+  .product-landing h2,
+  .product-landing h3,
+  .product-landing p {
+    overflow-wrap: break-word;
+  }
+
+  /* (2) Card-level serif headings: restore a card-scale size against
+     mobile.css's blanket `.display` clamp (40px floor). */
+  .product-landing h3.display {
+    font-size: clamp(20px, 3.4vw, 30px) !important;
+    line-height: 1.15 !important;
+  }
+
+  /* Same blanket clamp inflates the one non-heading .display on these
+     pages — the dev-os footer wordmark (<span class="display"
+     style="font-size:18px">Arconique</span>) — to 40-65px, wide enough
+     to blow its 2-col footer cell on phones. Pin it back to its inline
+     scale. */
+  .product-landing span.display {
+    font-size: 18px !important;
+    line-height: 1.2 !important;
+  }
+
+  /* (1) Management cabinet picker: stack the 380px rail over the
+     preview pane. */
+  .product-landing [style*="380px 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* (4) Section + CTA-band paddings — SSR-serialization variants of
+     the mock's mobile rules (mobile.css's versions never match). */
+  .product-landing [style*="padding:110px"] {
+    padding: 64px 0 !important;
+  }
+  .product-landing [style*="padding:100px 0"] {
+    padding: 60px 0 !important;
+  }
+  .product-landing [style*="padding:100px 28px"] {
+    padding: 56px 18px !important;
+  }
+  .product-landing [style*="padding:80px 64px"],
+  .product-landing [style*="padding:72px 56px"] {
+    padding: 40px 24px !important;
+  }
+
+  /* Button / stamp rows wrap instead of forcing row min-content
+     (dev-os hero AI panel, agent transcript, hero footer strip, and
+     the gap-12 CTA/button rows that lack an inline flexWrap — e.g.
+     the mgmt AI-hub button row). Wrap only engages on overflow, so
+     rows that fit are untouched. */
+  .product-landing [style*="display:flex"][style*="gap:8px"],
+  .product-landing [style*="display:flex"][style*="gap:12px"],
+  .product-landing [style*="display:flex"][style*="gap:18px"] {
+    flex-wrap: wrap;
+  }
+
+  /* Section headers that pair a headline with a right-aligned blurb
+     (align-items:flex-end + margin/gap 48px) stack vertically. The
+     margin-bottom:48px guard keeps the dev-os waterfall chart (also
+     align-items:flex-end) untouched. */
+  .product-landing [style*="display:flex"][style*="align-items:flex-end"][style*="48px"] {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 18px !important;
+  }
+
+  /* Dev-os footer (1.6fr + 4×1fr) → two readable columns, mirroring
+     the 1.5fr management variant mobile.css already handles. */
+  .product-landing [style*="1.6fr 1fr 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 28px 24px !important;
+  }
+
+  /* Counter mobile.css's image-rail rule: in the dev-os "what is
+     DEV.OS" list the first grid child is a term label, not a photo —
+     don't force it to 140px tall when the row stacks. */
+  .product-landing [style*="180px 1fr"] > *:first-child {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+}
+
+@media (max-width: 760px) {
+  /* (5) Management hero photo: drop the 16/8 ratio so the height
+     floor stops resolving an 840px width. */
+  .product-landing [style*="aspect-ratio:16 / 8"] {
+    aspect-ratio: auto !important;
+    min-height: 220px !important;
+  }
+
+  /* Floating hero tiles stack in flow below the photo (mock-parity:
+     the mobile.css equivalents target "position: absolute" with a
+     space and never match SSR output). */
+  .product-landing [style*="position:absolute"][style*="top:28px"],
+  .product-landing [style*="position:absolute"][style*="bottom:28px"] {
+    position: static !important;
+    max-width: 100% !important;
+    margin: 8px 0 !important;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Phone headline clamp, slightly tighter than mobile.css's 11vw so
+     single long words ("groundbreaking.") stay on one line instead of
+     breaking mid-word; hyphenate as the fallback when one still can't
+     fit. Higher specificity than the mobile.css `.display` blanket. */
+  .product-landing h2.display {
+    font-size: clamp(30px, 9.6vw, 52px) !important;
+    hyphens: auto;
+  }
+
+  /* Container gutters breathe on phones (mock: 28px → 16-18px). */
+  .product-landing [style*="padding:0 28px"],
+  .product-landing [style*="padding:24px 28px"] {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+  /* Dev-os mini-gantt rows: shorten the fixed label track. */
+  .product-landing [style*="170px 1fr"] {
+    grid-template-columns: 110px 1fr !important;
+  }
+
+  /* Dev-os BOQ snapshot rows: compress the fixed numeric tracks. */
+  .product-landing [style*="2fr 60px 80px 60px"] {
+    grid-template-columns: 1.6fr 42px 64px 44px !important;
+    gap: 6px !important;
+  }
+
+  /* Dev-os variance heat-map: 13 tracks need a narrower label rail
+     and tighter gaps to fit a 390px viewport. */
+  .product-landing [style*="100px repeat(12, 1fr)"] {
+    grid-template-columns: 48px repeat(12, 1fr) !important;
+    gap: 2px !important;
+    font-size: 9px !important;
+  }
+  .product-landing [style*="100px repeat(12, 1fr)"] > * {
+    font-size: 9px !important;
+  }
+}

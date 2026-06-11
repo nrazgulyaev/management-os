@@ -217,6 +217,7 @@ export async function issueVerificationCode(
     try {
       await queueNotification({
         recipientType: "guest",
+        organizationId: tokenRow.organizationId,
         channel:
           channel === "email"
             ? "email"

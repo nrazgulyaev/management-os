@@ -130,6 +130,7 @@ export async function expireDeposit(
 
   await queueNotification({
     recipientType: "role",
+    organizationId: deposit.organizationId ?? undefined,
     channel: "in_app",
     templateKey: "direct_booking.deposit_expired",
     title: "Deposit expired",

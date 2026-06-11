@@ -1,5 +1,13 @@
 import Link from "next/link";
 import { RevealOnScroll } from "@/components/motion/reveal-on-scroll";
+import {
+  PRICING_COPY,
+  PRICING_PLANS,
+  type PlanKind,
+  type PricingTier,
+  type TierKey,
+} from "@/lib/marketing/pricing-tiers";
+import { packagingKeyFor } from "@/lib/billing/marketing-mapping";
 
 /**
  * Sprint _handoff/ Task 2 — subscription landing.
@@ -25,6 +33,47 @@ import { RevealOnScroll } from "@/components/motion/reveal-on-scroll";
  * patterns into utility classes once the design lands in production.
  */
 
+// ---- Real-plan lookups (single source of truth: pricing-tiers.ts) ----
+// The prototype's pricing teaser invented plan names + prices
+// ("Operator $390/villa"). The live teaser renders the REAL
+// subscription packaging (same data that drives /pricing and the
+// /signup packaging_key flow) so the landing never quotes a price the
+// checkout can't honor.
+function tierOf(plan: PlanKind, tier: TierKey): PricingTier {
+  const column = PRICING_PLANS.find((p) => p.key === plan);
+  const found = column?.tiers.find((t) => t.key === tier);
+  if (!found) throw new Error(`pricing tier missing: ${plan}/${tier}`);
+  return found;
+}
+
+const MGMT_STARTER = tierOf("management-only", "starter");
+const MGMT_PRO = tierOf("management-only", "pro");
+const DEV_STARTER = tierOf("development-only", "starter");
+const DEV_PRO = tierOf("development-only", "pro");
+const BUNDLE_PRO = tierOf("bundle", "pro");
+
+const BUNDLE_SAVINGS_USD =
+  (MGMT_PRO.monthlyUsd ?? 0) + (DEV_PRO.monthlyUsd ?? 0) - (BUNDLE_PRO.monthlyUsd ?? 0);
+const BUNDLE_SAVINGS_PCT = Math.round(
+  (BUNDLE_SAVINGS_USD /
+    ((MGMT_PRO.monthlyUsd ?? 0) + (DEV_PRO.monthlyUsd ?? 1))) *
+    100,
+);
+
+function signupHref(plan: PlanKind, tier: TierKey): string {
+  // `packaging_key` + `cycle` mirror the /pricing CTA convention;
+  // `product` preselects the SignupForm radio (mgmt | dev | both).
+  const product =
+    plan === "management-only" ? "mgmt" : plan === "development-only" ? "dev" : "both";
+  return `/signup?packaging_key=${packagingKeyFor(plan, tier)}&cycle=monthly&product=${product}`;
+}
+
+const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
 const FOOTER_BRAND_SVG = (
   <svg
     width="22"
@@ -40,6 +89,13 @@ const FOOTER_BRAND_SVG = (
 );
 
 export function SubscriptionLanding() {
+  // Server-rendered (page is force-dynamic): today + trial-end are the
+  // real request date, mirroring the prototype's JS-computed ticker.
+  const now = new Date();
+  const today = DATE_FORMAT.format(now);
+  const trialEnds = DATE_FORMAT.format(
+    new Date(now.getTime() + PRICING_COPY.trialDays * 24 * 60 * 60 * 1000),
+  );
   return (
     <>
       <RevealOnScroll />
@@ -114,16 +170,22 @@ export function SubscriptionLanding() {
             }}
           >
             <Link
-              href="https://management.arconique.com"
+              href="/products/management-os"
               className="btn btn-ghost btn-sm hide-mobile"
             >
               Management OS →
             </Link>
             <Link
-              href="https://development.arconique.com"
+              href="/products/development-os"
               className="btn btn-ghost btn-sm hide-mobile"
             >
               Development OS →
+            </Link>
+            <Link
+              href="/login"
+              style={{ fontSize: 14, color: "var(--ink-2)", padding: "0 6px" }}
+            >
+              Log in
             </Link>
             <Link href="#pricing" className="btn btn-ink btn-sm">
               Start trial
@@ -133,10 +195,45 @@ export function SubscriptionLanding() {
       </header>
 
       {/* HERO */}
-      <section className="sec" id="top" style={{ padding: "56px 0 96px" }}>
-        <div className="container">
+      <section
+        className="sec"
+        id="top"
+        style={{ padding: "56px 0 96px", position: "relative" }}
+      >
+        {/* Liquid blob backdrop (mock .blob-bg) */}
+        <div className="blob-bg" aria-hidden="true">
+          <svg
+            width="640"
+            height="640"
+            viewBox="-100 -100 200 200"
+            style={{ top: -120, right: -100 }}
+          >
+            <path
+              className="blob"
+              fill="var(--gold)"
+              d="M44,-66.2C56.9,-58.2,67,-43.7,69.4,-28.5C71.8,-13.4,66.6,2.4,60.5,17.8C54.3,33.1,47.2,48,35.5,55.3C23.8,62.5,7.5,62.1,-7.7,59.5C-22.8,56.9,-37,52.2,-49.4,42.7C-61.8,33.1,-72.5,18.7,-72.9,4.1C-73.4,-10.6,-63.6,-25.4,-52.6,-37.8C-41.7,-50.1,-29.5,-60,-15.2,-65.3C-0.8,-70.5,15.6,-71.1,31,-66.7Z"
+            />
+          </svg>
+          <svg
+            width="480"
+            height="480"
+            viewBox="-100 -100 200 200"
+            style={{ bottom: -180, left: -120 }}
+          >
+            <path
+              className="blob"
+              fill="var(--terra)"
+              style={{ animationDelay: "-8s" }}
+              d="M44,-66.2C56.9,-58.2,67,-43.7,69.4,-28.5C71.8,-13.4,66.6,2.4,60.5,17.8C54.3,33.1,47.2,48,35.5,55.3C23.8,62.5,7.5,62.1,-7.7,59.5C-22.8,56.9,-37,52.2,-49.4,42.7C-61.8,33.1,-72.5,18.7,-72.9,4.1C-73.4,-10.6,-63.6,-25.4,-52.6,-37.8C-41.7,-50.1,-29.5,-60,-15.2,-65.3C-0.8,-70.5,15.6,-71.1,31,-66.7Z"
+            />
+          </svg>
+        </div>
+        <div
+          className="container"
+          style={{ position: "relative", zIndex: 1 }}
+        >
           <div className="chip chip-dot" data-reveal>
-            Arconique · v9 · 04 May 2026 · Made in Bali
+            Arconique · v9 · {today} · Made in Bali
           </div>
           <h1
             className="display xl"
@@ -179,23 +276,103 @@ export function SubscriptionLanding() {
           </p>
           <div
             data-reveal
-            style={{ display: "flex", gap: 12, flexWrap: "wrap" }}
+            style={{
+              display: "flex",
+              gap: 12,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
           >
             <Link href="#pricing" className="btn btn-ink btn-lg">
               See pricing →
             </Link>
             <Link
-              href="https://management.arconique.com"
+              href="/products/management-os"
               className="btn btn-ghost btn-lg"
             >
               Tour Management OS
             </Link>
             <Link
-              href="https://development.arconique.com"
+              href="/products/development-os"
               className="btn btn-ghost btn-lg"
             >
               Tour Development OS
             </Link>
+            <span className="risk-reversal">
+              No credit card · cancel anytime
+            </span>
+          </div>
+
+          {/* Trial strip — honest version of the prototype's countdown
+              band: the trial-end date is computed from the real request
+              date; the prototype's fabricated seat counter / batch
+              countdown are intentionally omitted. */}
+          <div
+            data-reveal
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 24,
+              alignItems: "center",
+              marginTop: 36,
+              padding: "16px 22px",
+              background: "var(--paper-3)",
+              border: "1px solid var(--line-soft)",
+              borderRadius: 16,
+              maxWidth: 720,
+            }}
+          >
+            <div>
+              <div className="label" style={{ fontSize: 9.5 }}>
+                If you start today, free trial ends
+              </div>
+              <div
+                className="display"
+                style={{ fontSize: 22, marginTop: 4 }}
+              >
+                {trialEnds}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 1,
+                height: 30,
+                background: "var(--line)",
+              }}
+            />
+            <div>
+              <div className="label" style={{ fontSize: 9.5 }}>
+                Trial length
+              </div>
+              <div
+                className="num"
+                style={{
+                  fontSize: 22,
+                  color: "var(--terra)",
+                  marginTop: 4,
+                }}
+              >
+                {PRICING_COPY.trialDays} days · no card
+              </div>
+            </div>
+            <div
+              style={{
+                width: 1,
+                height: 30,
+                background: "var(--line)",
+              }}
+            />
+            <div>
+              <div className="label" style={{ fontSize: 9.5 }}>
+                Annual billing
+              </div>
+              <div
+                className="num"
+                style={{ fontSize: 22, color: "var(--ink)", marginTop: 4 }}
+              >
+                saves {PRICING_COPY.annualDiscountPct}%
+              </div>
+            </div>
           </div>
           <div
             data-reveal
@@ -240,6 +417,85 @@ export function SubscriptionLanding() {
         </div>
       </section>
 
+      {/* PERSPECTIVE MARQUEE */}
+      <section
+        className="perspective-marquee"
+        aria-hidden="true"
+        style={{
+          background: "var(--paper-2)",
+          borderTop: "1px solid var(--line-soft)",
+          borderBottom: "1px solid var(--line-soft)",
+        }}
+      >
+        <div className="pm-track">
+          {[0, 1].map((i) => (
+            <span className="pm-item" key={i}>
+              <span className="accent">Bookings</span> · Owner statements ·{" "}
+              <em>Concierge AI</em> · Direct booking · Dynamic pricing
+            </span>
+          ))}
+          {[0, 1].map((i) => (
+            <span className="pm-item" key={`b${i}`}>
+              <span className="gold">BOQ control</span> · Procurement ·
+              Investor portal · <em>QS Cost Analyst</em> · Daily digest
+            </span>
+          ))}
+        </div>
+        <div className="pm-track pm-track-2">
+          {[0, 1].map((i) => (
+            <span className="pm-item" key={i}>
+              <em>Audit log</em> · 20 internal roles · Bilingual reports ·
+              Multi-currency · Hash-signed PDFs
+            </span>
+          ))}
+          {[0, 1].map((i) => (
+            <span className="pm-item" key={`b${i}`}>
+              Eternal · <span className="accent">Enso</span> · Ahau ·{" "}
+              <em>Pererenan Collection</em> · Tirta Villas
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* MID-CTA — between sections */}
+      <section style={{ padding: "32px 0", background: "var(--paper)" }}>
+        <div className="container">
+          <div
+            data-reveal
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 18,
+              padding: "18px 28px",
+              border: "1px dashed var(--line)",
+              borderRadius: 999,
+              background: "var(--paper-3)",
+            }}
+          >
+            <span
+              className="chip chip-dot"
+              style={{ background: "transparent", border: 0, padding: 0 }}
+            >
+              RUNNING NOW
+            </span>
+            <span
+              style={{ fontSize: 14, color: "var(--ink-2)", flex: 1 }}
+            >
+              <strong>200+ villas</strong> live tonight ·{" "}
+              <strong>14 projects</strong> mid-flight · one audit log behind
+              all of it
+            </span>
+            <Link href="#pricing" className="btn btn-terra btn-sm">
+              Start your trial →
+            </Link>
+            <span className="risk-reversal" style={{ fontSize: 11 }}>
+              No card · {PRICING_COPY.trialDays}-day trial
+            </span>
+          </div>
+        </div>
+      </section>
+
       {/* PRODUCTS */}
       <section
         className="sec"
@@ -270,7 +526,7 @@ export function SubscriptionLanding() {
                   margin: "12px 0 0",
                 }}
               >
-                Pick one. Or <em>let them talk.</em>
+                Pick one. Or <em className="squiggle">let them talk.</em>
               </h2>
               <p
                 style={{
@@ -318,7 +574,7 @@ export function SubscriptionLanding() {
                 "8 specialist AI agents",
                 "Owner intelligence reports",
               ]}
-              landingHref="https://management.arconique.com"
+              landingHref="/products/management-os"
               demoHref="https://management.arconique.com/dashboard"
               subdomainCaption="→ management.arconique.com"
             />
@@ -348,7 +604,7 @@ export function SubscriptionLanding() {
                 "10 specialist AI agents",
                 "Risk radar · executive view",
               ]}
-              landingHref="https://development.arconique.com"
+              landingHref="/products/development-os"
               demoHref="https://development.arconique.com/development-os"
               subdomainCaption="→ development.arconique.com"
             />
@@ -558,6 +814,56 @@ export function SubscriptionLanding() {
         </div>
       </section>
 
+      {/* MID-CTA #2 — dark band (mock's "quarterly batch" banner,
+          rebuilt honestly: the fabricated 3-of-12 seat scarcity is
+          replaced with the real onboarding promise). */}
+      <section style={{ padding: "32px 0" }}>
+        <div className="container">
+          <div
+            data-reveal
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 24,
+              padding: "28px 32px",
+              background: "var(--ink)",
+              color: "var(--paper)",
+              borderRadius: 24,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 280 }}>
+              <div className="label" style={{ color: "var(--gold-soft)" }}>
+                ONBOARDING · INCLUDED ON EVERY PLAN
+              </div>
+              <div
+                className="display"
+                style={{ fontSize: 28, marginTop: 6 }}
+              >
+                <em style={{ color: "var(--gold)" }}>
+                  A dedicated implementation week
+                </em>{" "}
+                with every workspace
+              </div>
+              <div
+                style={{
+                  fontSize: 13.5,
+                  color: "rgba(245,240,226,0.7)",
+                  marginTop: 6,
+                }}
+              >
+                We import your bookings, owners, or BOQ with you — live on a
+                shared Slack channel — so the first statement and the first
+                daily digest go out in week one.
+              </div>
+            </div>
+            <Link href="#pricing" className="btn btn-gold btn-lg">
+              See plans →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* PRICING */}
       <section
         className="sec"
@@ -579,7 +885,7 @@ export function SubscriptionLanding() {
             }}
           >
             <div className="label label-gold">
-              Pricing · annual gets 18% off
+              Pricing · annual saves {PRICING_COPY.annualDiscountPct}%
             </div>
             <h2
               className="display"
@@ -597,9 +903,29 @@ export function SubscriptionLanding() {
                 fontSize: 16,
               }}
             >
-              Per-villa for Management OS. Per-project for Development OS.
-              Bundle saves 20%. No card to start. Cancel any time — full
-              CSV/XLSX export of every row.
+              Management OS, Development OS, or both in one bundle.{" "}
+              <strong style={{ color: "var(--ok)" }}>No card to start.</strong>{" "}
+              Cancel any time — full CSV/XLSX export of every row.
+            </p>
+            <p
+              className="mono"
+              style={{
+                margin: "14px 0 0",
+                fontSize: 12,
+                color: "var(--ink-4)",
+                letterSpacing: "0.06em",
+              }}
+            >
+              PRO TIER SHOWN ·{" "}
+              <Link
+                href="/pricing"
+                style={{
+                  color: "var(--ink-2)",
+                  borderBottom: "1px solid currentColor",
+                }}
+              >
+                Compare all tiers — Starter to Enterprise →
+              </Link>
             </p>
           </div>
 
@@ -613,41 +939,27 @@ export function SubscriptionLanding() {
             <PricingCard
               accent="terra"
               tag="MANAGEMENT OS"
-              name="Operator"
-              audience="For multi-owner companies running 5–25 villas."
-              price="$390"
-              unit="/villa/mo"
-              floor="FROM $190/villa · Starter tier"
-              features={[
-                "All 21 cabinets · unlimited users",
-                "Multi-owner statements · DPA",
-                "Concierge AI · unlimited messages",
-                "Direct-booking website included",
-                "Maintenance intelligence",
-                "Slack-channel support · live",
-              ]}
+              name="Management Pro"
+              audience={MGMT_PRO.pitch}
+              price={`$${MGMT_PRO.monthlyUsd}`}
+              unit="/mo"
+              floor={`FROM $${MGMT_STARTER.monthlyUsd}/MO · STARTER TIER`}
+              features={MGMT_PRO.features}
               ctaLabel="Start Management trial →"
-              ctaHref="https://management.arconique.com"
+              ctaHref={signupHref("management-only", "pro")}
               ctaClass="btn-terra"
             />
             <PricingCard
               accent="amber"
               tag="DEVELOPMENT OS"
-              name="Portfolio"
-              audience="For boutique developers with 2–6 concurrent projects."
-              price="$2,800"
-              unit="/project/mo"
-              floor="FROM $1,200/project · Project tier"
-              features={[
-                "All 20 cabinets · 30 user seats",
-                "BOQ · 30,000 lines",
-                "All 10 AI agents · unlimited",
-                "Bilingual investor portal · 4 langs",
-                "Capital + waterfall engine",
-                "Slack-channel support · live",
-              ]}
+              name="Development Pro"
+              audience={DEV_PRO.pitch}
+              price={`$${DEV_PRO.monthlyUsd}`}
+              unit="/mo"
+              floor={`FROM $${DEV_STARTER.monthlyUsd}/MO · STARTER TIER`}
+              features={DEV_PRO.features}
               ctaLabel="Start Development trial →"
-              ctaHref="https://development.arconique.com"
+              ctaHref={signupHref("development-only", "pro")}
               ctaClass="btn-amber"
               delay={1}
             />
@@ -676,7 +988,7 @@ export function SubscriptionLanding() {
               SPVs · SAML SSO · custom integrations · 99.9% SLA · white-label
               owner/LP portal.
             </span>
-            <Link href="#cta" className="btn btn-ghost btn-sm">
+            <Link href="/contact" className="btn btn-ghost btn-sm">
               Custom quote →
             </Link>
           </div>
@@ -753,13 +1065,21 @@ export function SubscriptionLanding() {
               avatar={
                 <div
                   style={{
-                    width: 40,
-                    height: 40,
+                    width: 72,
+                    height: 72,
                     borderRadius: 999,
                     background:
                       "linear-gradient(135deg, var(--gold), var(--terra))",
+                    color: "var(--paper)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontFamily: "var(--font-fraunces), serif",
+                    fontSize: 24,
                   }}
-                />
+                >
+                  MS
+                </div>
               }
               name="Made Sutrisno"
               role="GM · Eternal Estates · 11 villas · Pererenan"
@@ -771,8 +1091,8 @@ export function SubscriptionLanding() {
               avatar={
                 <div
                   style={{
-                    width: 40,
-                    height: 40,
+                    width: 72,
+                    height: 72,
                     borderRadius: 999,
                     background: "var(--ink)",
                     color: "var(--gold)",
@@ -780,7 +1100,7 @@ export function SubscriptionLanding() {
                     alignItems: "center",
                     justifyContent: "center",
                     fontFamily: "var(--font-fraunces), serif",
-                    fontSize: 16,
+                    fontSize: 24,
                   }}
                 >
                   NR
@@ -790,6 +1110,47 @@ export function SubscriptionLanding() {
               role="Founder · Eternal Developments · 3 projects · $24M GDV"
             />
           </div>
+        </div>
+      </section>
+
+      {/* MID-CTA — minimal line */}
+      <section style={{ padding: "16px 0 32px" }}>
+        <div
+          className="container"
+          style={{ textAlign: "center" }}
+          data-reveal
+        >
+          <p
+            style={{
+              fontFamily: "var(--font-fraunces), serif",
+              fontStyle: "italic",
+              fontSize: 22,
+              color: "var(--ink-2)",
+              margin: 0,
+            }}
+          >
+            Curious? Tour{" "}
+            <Link
+              href="/products/management-os"
+              style={{
+                color: "var(--terra)",
+                borderBottom: "1.5px solid currentColor",
+              }}
+            >
+              Management OS
+            </Link>{" "}
+            · or{" "}
+            <Link
+              href="/products/development-os"
+              style={{
+                color: "var(--amber)",
+                borderBottom: "1.5px solid currentColor",
+              }}
+            >
+              Development OS
+            </Link>{" "}
+            · {PRICING_COPY.trialDays}-day trial, no card.
+          </p>
         </div>
       </section>
 
@@ -997,16 +1358,17 @@ export function SubscriptionLanding() {
                   gap: 12,
                   marginTop: 30,
                   flexWrap: "wrap",
+                  alignItems: "center",
                 }}
               >
                 <Link
-                  href="https://management.arconique.com"
+                  href="/signup?product=mgmt"
                   className="btn btn-gold btn-lg"
                 >
                   Start with Management →
                 </Link>
                 <Link
-                  href="https://development.arconique.com"
+                  href="/signup?product=dev"
                   className="btn btn-ghost btn-lg"
                   style={{
                     background: "transparent",
@@ -1016,6 +1378,12 @@ export function SubscriptionLanding() {
                 >
                   Start with Development
                 </Link>
+                <span
+                  className="risk-reversal"
+                  style={{ color: "var(--gold-soft)" }}
+                >
+                  No card · {PRICING_COPY.trialDays}-day trial · cancel anytime
+                </span>
               </div>
             </div>
             <div
@@ -1075,13 +1443,14 @@ export function SubscriptionLanding() {
       >
         <div className="container">
           <div
+            className="footer-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "1.6fr 1fr 1fr 1fr 1fr",
               gap: 36,
             }}
           >
-            <div>
+            <div className="footer-brand">
               <div
                 className="brand"
                 style={{
@@ -1120,28 +1489,28 @@ export function SubscriptionLanding() {
             <FooterCol
               label="Products"
               items={[
-                ["Management OS", "https://management.arconique.com"],
+                ["Management OS", "/products/management-os"],
                 ["Mgmt demo cabinets", "https://management.arconique.com/dashboard"],
-                ["Development OS", "https://development.arconique.com"],
+                ["Development OS", "/products/development-os"],
                 ["Dev demo cabinets", "https://development.arconique.com/development-os"],
               ]}
             />
             <FooterCol
               label="Pricing"
               items={[
-                ["Operator", "#pricing"],
-                ["Portfolio", "#pricing"],
-                ["Vertical (bundle)", "#pricing"],
-                ["Enterprise", "#cta"],
+                ["Management only", "/pricing#management"],
+                ["Development only", "/pricing#development"],
+                ["Bundle", "/pricing#bundle"],
+                ["Enterprise", "/contact"],
               ]}
             />
             <FooterCol
               label="Company"
               items={[
-                ["About", "#"],
                 ["Customers", "#trust"],
-                ["Careers", "#"],
-                ["Contact", "#cta"],
+                ["Case studies", "/case-studies"],
+                ["Portfolio", "/portfolio"],
+                ["Contact", "/contact"],
               ]}
             />
             <FooterCol
@@ -1150,7 +1519,6 @@ export function SubscriptionLanding() {
                 ["Terms", "/legal/terms"],
                 ["Privacy", "/legal/privacy"],
                 ["DPA", "/legal/privacy"],
-                ["Status", "#"],
               ]}
             />
           </div>
@@ -1216,7 +1584,7 @@ const FAQS = [
   },
   {
     q: "How are AI agents priced?",
-    a: "Each tier includes a monthly token budget (Operator: $150, Portfolio: $180, Vertical: combined $300). Soft overage to 150%, hard cap above. No per-message charges. Every run is auditable in the cabinet.",
+    a: "Each tier includes a monthly AI-invocation budget (Management Pro: 500, Development Pro: 1,000, Bundle Pro: 1,500). Overage bills at $0.05 per invocation, or bring your own model API key and those calls don't count at all. Every run is auditable in the cabinet.",
   },
   {
     q: "Is it just for Bali?",
@@ -1224,7 +1592,7 @@ const FAQS = [
   },
   {
     q: "Do you have an API?",
-    a: "Yes. Per-org API keys, scoped permissions, HMAC-signed webhooks. Documented at developer.arconique.com. Public quote API is free; finance + automation endpoints require Portfolio or Vertical tier.",
+    a: "Yes. Per-org API keys, scoped permissions, HMAC-signed webhooks. Public quote API is included on every tier; finance + automation endpoints require Pro tier or above.",
   },
 ];
 
@@ -1232,15 +1600,104 @@ function SubscriptionStyleOverrides() {
   // Container width + section spacing — these mirror the prototype's
   // global CSS and aren't covered by the product-scoped block in
   // globals.css (which is tied to data-product attributes).
+  //
+  // risk-reversal / perspective-marquee / squiggle are prototype
+  // classes used only by this landing, so they ship scoped here
+  // instead of in the shared stylesheets.
   return (
     <style>{`
+      /* The (public) layout mounts the shared PublicHeader/PublicFooter
+         around every page, but this landing ships the mock's own header
+         (header.site) + footer — the homepage was rendering DOUBLE
+         chrome (two headers, two footers stacked). This style block only
+         exists on this page, so plain selectors hide the shared pair
+         here without touching /pricing, /case-studies, etc. */
+      header.sticky.top-0.z-40 { display: none; }
+      footer.border-t.bg-canvas { display: none; }
+
       .container { max-width: 1360px; margin: 0 auto; padding: 0 32px; }
       @media (max-width: 1000px) {
         .container { padding: 0 24px; }
-        [data-product="subscription"] .display { font-size: 11vw !important; line-height: 1.05 !important; }
+        /* Mock ≤1000 rule scopes the fluid size to the HERO only
+           (.display.xl). The previous build applied 11vw to every
+           .display element, which blew the How-It-Works bento titles
+           past their grid tracks at 768px (167px horizontal
+           overflow). Non-xl display elements keep their inline sizes
+           (plus the shared mobile.css clamp at ≤900px). */
+        [data-product="subscription"] .display.xl { font-size: clamp(48px, 11vw, 96px) !important; line-height: 1.05 !important; }
+        /* Mock ≤1000 rule — section rhythm tightens from 96px to 56px. */
+        [data-product="subscription"] section.sec { padding: 56px 0 !important; }
+      }
+      @media (max-width: 900px) {
+        /* Mock ≤640 footer rule, applied from 900px down to match the
+           sibling product-landing footers (mobile.css collapses their
+           5-col grids to 2-col at ≤900): two columns, brand spans the
+           row. Without this, mobile.css's [style*="1.6fr 1fr"] rule
+           collapses the footer to one long single column. */
+        footer .footer-grid { grid-template-columns: 1fr 1fr !important; gap: 28px 24px !important; }
+        footer .footer-brand { grid-column: 1 / -1 !important; }
+        /* mobile.css forces every .display to clamp(40px, 8.5vw, 72px)
+           at ≤900 — at 768 that's 65px, which pushed "Management Pro" /
+           "Development Pro" past their 351px pricing-card tracks (51px
+           page overflow). The mock keeps card-level display sizes
+           inline (30px tier name / 54px price); restore them here. */
+        [data-product="subscription"] .card h3.display { font-size: 30px !important; }
+        [data-product="subscription"] .card-ink h3.display { font-size: 28px !important; }
+        [data-product="subscription"] .card span.display { font-size: 54px !important; }
       }
       @media (max-width: 640px) {
         .container { padding: 0 18px; }
+        /* Mock ≤640 rule — keeps brand + "Start trial" inside 390px
+           even before next/font swaps in (fallback serif runs wider). */
+        .nav-row { padding: 14px 18px !important; gap: 14px !important; flex-wrap: wrap; }
+        footer .footer-grid { gap: 22px !important; }
+      }
+
+      /* Liquid blob backdrop (mock .blob-bg / .blob) — hero only.
+         The d:path() morph is Chromium-only; other engines render the
+         static blob, which is the resting state the visual suite
+         captures anyway. */
+      .blob-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+      .blob-bg svg { position: absolute; }
+      .blob { animation: blobMorph 24s ease-in-out infinite; filter: blur(40px); opacity: 0.55; transform-origin: center; }
+      @keyframes blobMorph {
+        0%,100% { d: path("M44,-66.2C56.9,-58.2,67,-43.7,69.4,-28.5C71.8,-13.4,66.6,2.4,60.5,17.8C54.3,33.1,47.2,48,35.5,55.3C23.8,62.5,7.5,62.1,-7.7,59.5C-22.8,56.9,-37,52.2,-49.4,42.7C-61.8,33.1,-72.5,18.7,-72.9,4.1C-73.4,-10.6,-63.6,-25.4,-52.6,-37.8C-41.7,-50.1,-29.5,-60,-15.2,-65.3C-0.8,-70.5,15.6,-71.1,31,-66.7Z"); transform: translate(0,0) rotate(0); }
+        33% { d: path("M52,-58.4C66.4,-46.5,76.3,-29.3,78.1,-11.4C79.9,6.5,73.5,25,62.3,38.1C51.2,51.3,35.4,59,18.9,64C2.4,69.1,-14.8,71.5,-29.6,66.4C-44.5,61.4,-57,49,-65.6,33.7C-74.3,18.3,-79.1,0.1,-75.5,-16.3C-71.9,-32.6,-59.9,-47.2,-45.4,-58.5C-30.9,-69.8,-13.9,-77.7,1.5,-79.5C16.9,-81.3,37.6,-70.3,52,-58.4Z"); transform: translate(40px,30px) rotate(40deg); }
+        66% { d: path("M37.6,-49.9C50.5,-39.9,63.8,-30.8,68.1,-18.4C72.5,-6,68,9.7,60.2,22.8C52.4,35.9,41.3,46.4,28.4,53.8C15.4,61.2,0.5,65.5,-13.1,62.1C-26.6,58.6,-38.9,47.4,-49,34.5C-59.1,21.7,-67.1,7.2,-66.4,-6.5C-65.6,-20.1,-56.2,-32.9,-44.3,-43.5C-32.4,-54,-18.1,-62.3,-2.9,-58.8C12.3,-55.4,24.7,-59.9,37.6,-49.9Z"); transform: translate(-30px,50px) rotate(-30deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .blob { animation: none !important; }
+      }
+
+      /* Risk-reversal microcopy (mock .risk-reversal) */
+      .risk-reversal { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; font-size: 12px; color: var(--ok); font-family: var(--font-jetbrains), monospace; letter-spacing: 0.04em; }
+      .risk-reversal::before { content: ""; flex-shrink: 0; width: 14px; height: 14px; border-radius: 999px; background-color: #C8DFC9; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234F7A5D' stroke-width='3'><path d='M4 12l5 5L20 6'/></svg>"); background-size: 10px 10px; background-repeat: no-repeat; background-position: center; }
+
+      /* Perspective marquee (mock .perspective-marquee) */
+      .perspective-marquee { position: relative; overflow: hidden; padding: 56px 0; perspective: 800px; perspective-origin: 50% 50%; }
+      .pm-track { display: flex; gap: 48px; white-space: nowrap; animation: pmScroll 36s linear infinite; transform: rotateX(12deg); transform-style: preserve-3d; will-change: transform; }
+      .pm-track-2 { animation-name: pmScroll2; animation-direction: reverse; animation-duration: 42s; transform: rotateX(-12deg); margin-top: 24px; }
+      @keyframes pmScroll { from { transform: rotateX(12deg) translateX(0); } to { transform: rotateX(12deg) translateX(-50%); } }
+      @keyframes pmScroll2 { from { transform: rotateX(-12deg) translateX(-50%); } to { transform: rotateX(-12deg) translateX(0); } }
+      .pm-item { font-family: var(--font-fraunces), serif; font-style: italic; font-size: clamp(48px, 7vw, 96px); color: var(--ink); letter-spacing: -0.02em; }
+      .pm-item .accent { color: var(--terra); font-style: normal; }
+      .pm-item .gold { color: var(--gold-deep); font-style: normal; }
+
+      /* Squiggle underline (mock .squiggle) */
+      .squiggle { position: relative; display: inline; }
+      .squiggle::after {
+        content: ""; position: absolute; left: -2%; right: -2%; bottom: -8px; height: 8px;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8'><path d='M0 4 Q 15 0 30 4 T 60 4 T 90 4 T 120 4' stroke='%23C4583C' stroke-width='2' fill='none'/></svg>");
+        background-repeat: repeat-x;
+        background-size: 120px 8px;
+      }
+
+      @media (max-width: 1000px) {
+        .perspective-marquee { padding: 28px 0; }
+        .pm-item { font-size: clamp(40px, 9vw, 64px) !important; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .perspective-marquee .pm-track { animation: none; }
       }
     `}</style>
   );
@@ -1572,6 +2029,12 @@ function PricingCard(props: PricingCardProps) {
       >
         {props.ctaLabel}
       </Link>
+      <div
+        className="risk-reversal"
+        style={{ marginLeft: 0, justifyContent: "center", fontSize: 11 }}
+      >
+        No card · cancel anytime · full export
+      </div>
     </div>
   );
 }
@@ -1613,7 +2076,7 @@ function PricingCardBundle() {
           borderColor: "var(--gold)",
         }}
       >
-        BEST VALUE · −20%
+        BEST VALUE · −{BUNDLE_SAVINGS_PCT}%
       </span>
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1648,7 +2111,7 @@ function PricingCardBundle() {
             color: "var(--paper)",
           }}
         >
-          Vertical
+          Bundle Pro
         </h3>
         <p
           style={{
@@ -1657,7 +2120,7 @@ function PricingCardBundle() {
             color: "rgba(245,240,226,0.7)",
           }}
         >
-          For developers who also operate the buildings they sell.
+          {BUNDLE_PRO.pitch}
         </p>
       </div>
       <div>
@@ -1670,7 +2133,7 @@ function PricingCardBundle() {
               color: "var(--paper)",
             }}
           >
-            $5,400
+            ${BUNDLE_PRO.monthlyUsd}
           </span>
           <span
             style={{ color: "rgba(245,240,226,0.6)", fontSize: 14 }}
@@ -1686,7 +2149,7 @@ function PricingCardBundle() {
             marginTop: 4,
           }}
         >
-          SAVE $1,400/MO vs separate
+          SAVE ${BUNDLE_SAVINGS_USD}/MO vs separate Pro plans
         </div>
       </div>
       <ul
@@ -1701,20 +2164,32 @@ function PricingCardBundle() {
           color: "rgba(245,240,226,0.85)",
         }}
       >
-        <li>· Everything in Operator + Portfolio</li>
-        <li>· Unified LP portal · both products</li>
-        <li>· Asset handover · dev → mgmt</li>
-        <li>· 30 villas + 2 projects included</li>
-        <li>· On-island onboarding week</li>
-        <li>· Dedicated success manager</li>
+        {BUNDLE_PRO.features.map((f) => (
+          <li key={f}>· {f}</li>
+        ))}
+        <li>
+          · {BUNDLE_PRO.limits.villas} villas + {BUNDLE_PRO.limits.projects}{" "}
+          projects included
+        </li>
       </ul>
       <Link
-        href="#cta"
+        href={signupHref("bundle", "pro")}
         className="btn btn-gold"
         style={{ marginTop: "auto", justifyContent: "center" }}
       >
-        Talk to sales →
+        Start Bundle trial →
       </Link>
+      <div
+        className="risk-reversal"
+        style={{
+          marginLeft: 0,
+          justifyContent: "center",
+          fontSize: 11,
+          color: "var(--gold-soft)",
+        }}
+      >
+        No card · cancel anytime · full export
+      </div>
     </div>
   );
 }
@@ -1733,48 +2208,62 @@ function Testimonial(props: TestimonialProps) {
       className="card"
       data-reveal
       data-reveal-delay={props.delay}
-      style={{ padding: 32 }}
+      style={{
+        padding: 32,
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
+      }}
     >
-      <p
-        style={{
-          margin: 0,
-          fontFamily: "var(--font-fraunces), serif",
-          fontSize: 22,
-          lineHeight: 1.4,
-          fontStyle: "italic",
-          color: "var(--ink)",
-          letterSpacing: "-0.01em",
-        }}
-      >
-        <span
+      <div style={{ display: "flex", gap: 18, alignItems: "flex-start" }}>
+        <div style={{ flexShrink: 0 }}>{props.avatar}</div>
+        <p
           style={{
-            color: props.quoteColor,
-            fontSize: 40,
-            lineHeight: 0,
-            verticalAlign: -10,
+            flex: 1,
+            margin: 0,
+            fontFamily: "var(--font-fraunces), serif",
+            fontSize: 20,
+            lineHeight: 1.45,
+            fontStyle: "italic",
+            color: "var(--ink)",
+            letterSpacing: "-0.01em",
           }}
         >
-          &ldquo;
-        </span>
-        {props.body}
-      </p>
+          <span
+            style={{
+              color: props.quoteColor,
+              fontSize: 36,
+              lineHeight: 0,
+              verticalAlign: -8,
+            }}
+          >
+            &ldquo;
+          </span>
+          {props.body}
+        </p>
+      </div>
       <div
         style={{
-          marginTop: 24,
+          paddingTop: 14,
+          borderTop: "1px dashed var(--line)",
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          gap: 10,
         }}
       >
-        {props.avatar}
         <div>
-          <div style={{ fontWeight: 500 }}>{props.name}</div>
+          <div style={{ fontWeight: 500, fontSize: 14 }}>{props.name}</div>
           <div
             className="mono"
             style={{ fontSize: 11, color: "var(--ink-3)" }}
           >
             {props.role}
           </div>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 2 }}>
+          <span style={{ color: "var(--gold)" }} aria-label="5 out of 5">
+            ★★★★★
+          </span>
         </div>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import "./landing-responsive.css";
+
 /**
  * HF-18 — Route group for the per-product marketing landings at
  * /products/management-os and /products/development-os.

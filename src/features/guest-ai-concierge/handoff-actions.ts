@@ -8,6 +8,7 @@ import {
   guestAiConciergeSessions,
   guestAiHandoffs,
 } from "@/lib/db/schema/guest-ai-concierge";
+import { guestStayTokens } from "@/lib/db/schema/guest-stays";
 import { serviceRequests } from "@/lib/db/schema/operations";
 
 import { recordAuditEvent } from "@/features/audit/services";
@@ -265,6 +266,7 @@ export async function submitHandoffAction(
     handoffId: handoffRow!.id,
     handoffType,
     priority,
+    organizationId: stay.organizationId,
     villaCode: stay.villaCode,
     bookingCode: stay.bookingCode,
     requestCode,
@@ -285,6 +287,7 @@ async function fanOutNotifications(args: {
   handoffId: string;
   handoffType: HandoffType;
   priority: "low" | "normal" | "high" | "urgent";
+  organizationId: string | null;
   villaCode: string | null;
   bookingCode: string | null;
   requestCode: string;
@@ -301,6 +304,7 @@ async function fanOutNotifications(args: {
     try {
       await queueNotification({
         recipientType: "role",
+        organizationId: args.organizationId ?? undefined,
         channel: "in_app",
         templateKey,
         title: isUrgent
@@ -430,8 +434,20 @@ export async function resolveHandoffAction(
   // notification system can't deliver to a token-bound recipient, this
   // still lands in admin audit). v9J keeps it best-effort.
   try {
+    // Org anchor: handoff row's org (0154 backfill), else the stay token's
+    // org (guest_stay_tokens.organization_id is NOT NULL).
+    let organizationId: string | null = handoff.organizationId;
+    if (!organizationId) {
+      const [tok] = await db
+        .select({ organizationId: guestStayTokens.organizationId })
+        .from(guestStayTokens)
+        .where(eq(guestStayTokens.id, handoff.guestStayTokenId))
+        .limit(1);
+      organizationId = tok?.organizationId ?? null;
+    }
     await queueNotification({
       recipientType: "guest",
+      organizationId: organizationId ?? undefined,
       channel: "in_app",
       templateKey: "guest_ai.handoff_resolved_guest",
       title: "Your concierge request was resolved",

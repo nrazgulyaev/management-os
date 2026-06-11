@@ -55,6 +55,8 @@ export type QuickActionResult =
 interface SessionContext {
   sessionId: string;
   guestStayTokenId: string;
+  /** Org anchor — session row's organization_id, falling back to the booking's. */
+  organizationId: string | null;
   bookingId: string | null;
   villaId: string | null;
   guestId: string | null;
@@ -75,6 +77,7 @@ async function loadSessionContext(
     .select({
       id: guestAiConciergeSessions.id,
       guestStayTokenId: guestAiConciergeSessions.guestStayTokenId,
+      organizationId: guestAiConciergeSessions.organizationId,
       bookingId: guestAiConciergeSessions.bookingId,
       status: guestAiConciergeSessions.status,
     })
@@ -85,18 +88,25 @@ async function loadSessionContext(
 
   let villaId: string | null = null;
   let guestId: string | null = null;
+  let organizationId: string | null = session.organizationId;
   if (session.bookingId) {
     const [booking] = await db
-      .select({ villaId: bookings.villaId, guestId: bookings.guestId })
+      .select({
+        villaId: bookings.villaId,
+        guestId: bookings.guestId,
+        organizationId: bookings.organizationId,
+      })
       .from(bookings)
       .where(eq(bookings.id, session.bookingId))
       .limit(1);
     villaId = booking?.villaId ?? null;
     guestId = booking?.guestId ?? null;
+    organizationId = organizationId ?? booking?.organizationId ?? null;
   }
   return {
     sessionId: session.id,
     guestStayTokenId: session.guestStayTokenId,
+    organizationId,
     bookingId: session.bookingId,
     villaId,
     guestId,
@@ -368,6 +378,7 @@ export async function escalateConciergeToOperatorAction(
   try {
     await queueNotification({
       recipientType: "role",
+      organizationId: ctx.organizationId ?? undefined,
       channel: "in_app",
       templateKey: "guest_ai.handoff_created",
       title: "Concierge escalation · operator follow-up",

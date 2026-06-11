@@ -112,6 +112,7 @@ export async function runNotificationDigestJob(
   for (const role of DIGEST_ROLES) {
     const dedupeKey = digestDedupeKey(role);
     const result = await queueNotification({
+      // platform-wide by design — system-health digest (failed jobs, conflicts) aggregates across all orgs
       recipientType: "role",
       recipientId: undefined,
       channel: "in_app",

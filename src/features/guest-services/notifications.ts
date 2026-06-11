@@ -8,6 +8,8 @@ const TARGET_ROLES = ["concierge", "property_manager"] as const;
 interface OrderForNotification {
   id: string;
   orderCode: string;
+  /** Org anchor — derived from the order's catalog service (guest_services.organization_id). */
+  organizationId: string | null;
   bookingId: string | null;
   villaCode: string | null;
   serviceName: string | null;
@@ -25,6 +27,7 @@ export async function notifyOrderCreated(
     try {
       await queueNotification({
         recipientType: "role",
+        organizationId: order.organizationId ?? undefined,
         channel: "in_app",
         templateKey: "guest_service_order.created",
         title: `New guest service · ${order.villaCode ?? "villa"}`,
@@ -60,6 +63,7 @@ export async function notifyOrderTransitioned(input: {
     try {
       await queueNotification({
         recipientType: "role",
+        organizationId: order.organizationId ?? undefined,
         channel: "in_app",
         templateKey: `guest_service_order.${to}`,
         title: `Service ${to} · ${order.villaCode ?? "villa"}`,

@@ -84,6 +84,7 @@ export async function runDirectBookingExpiry(
       await notifyHoldExpired({
         holdId: hold.id,
         holdCode: hold.holdCode,
+        organizationId: hold.organizationId,
       });
       await syncGuestStatusForChain({ holdId: hold.id });
       await recordAuditEvent({

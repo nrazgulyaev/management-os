@@ -38,7 +38,7 @@ export const metadata = {
 
 export default function DevelopmentOsLandingPage() {
   return (
-    <div data-product="development">
+    <div data-product="development" className="product-landing">
       <RevealOnScroll />
       <DevNav />
       <main>

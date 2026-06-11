@@ -175,6 +175,7 @@ export async function submitConciergeMessageAction(
       try {
         await queueNotification({
           recipientType: "role",
+          organizationId: stay.organizationId,
           channel: "in_app",
           templateKey: "guest_ai.safety_attention",
           title: "Concierge AI flagged a safety-related question",

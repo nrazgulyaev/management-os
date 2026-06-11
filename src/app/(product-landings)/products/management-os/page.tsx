@@ -40,7 +40,7 @@ export const metadata = {
 
 export default function ManagementOsLandingPage() {
   return (
-    <div data-product="management">
+    <div data-product="management" className="product-landing">
       <RevealOnScroll />
       <MgmtNav />
       <main>
