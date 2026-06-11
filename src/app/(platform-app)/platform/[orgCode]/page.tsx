@@ -22,8 +22,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   getSubscriptionOsOrgByCode,
   getOrgLifecycleEvents,
+  listAssignablePlans,
+  type AssignablePlanOption,
 } from "@/lib/subscription-os/queries";
 import { PerOrgActionButtons } from "@/components/subscription-os/per-org-action-buttons";
+import { AssignPlanButton } from "@/components/subscription-os/assign-plan-button";
 import { ImpersonationStartButton } from "@/components/subscription-os/impersonation-start-button";
 import { safeQuery } from "@/lib/development/safe-query";
 import { isImpersonationEnabled } from "@/lib/env";
@@ -85,6 +88,17 @@ export default async function OrgDetailPage({
     4000,
   );
 
+  const assignablePlans = await safeQuery(
+    "subscription-os.assignablePlans",
+    listAssignablePlans(),
+    [] as AssignablePlanOption[],
+    4000,
+  );
+
+  // "no-subscription" status (queries.ts fallback) ⇒ no org_subscriptions
+  // row yet — the case that left Extend / Comp / Cancel inert.
+  const hasSubscription = org.status !== "no-subscription";
+
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
       <DetailPageHero
@@ -110,11 +124,21 @@ export default async function OrgDetailPage({
           </>
         }
         actions={
-          <PerOrgActionButtons
-            organizationCode={org.organizationCode}
-            status={org.status}
-            isInternalComp={org.isInternalComp}
-          />
+          <>
+            <AssignPlanButton
+              organizationCode={org.organizationCode}
+              plans={assignablePlans}
+              hasSubscription={hasSubscription}
+              currentPlanCode={org.planCode}
+            />
+            {hasSubscription && (
+              <PerOrgActionButtons
+                organizationCode={org.organizationCode}
+                status={org.status}
+                isInternalComp={org.isInternalComp}
+              />
+            )}
+          </>
         }
         summaryStrip={[
           {

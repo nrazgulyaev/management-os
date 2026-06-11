@@ -440,6 +440,49 @@ export async function getPlatformConsoleSummary(): Promise<PlatformConsoleSummar
 }
 
 // ============================================================================
+// Assignable-plan picker — drives the "New organization" + "Assign plan" forms
+// ============================================================================
+
+export interface AssignablePlanOption {
+  planCode: string;
+  displayName: string;
+  monthlyPriceMinor: bigint;
+  currency: string;
+  trialPeriodDays: number;
+  isInternal: boolean;
+}
+
+/**
+ * Minimal plan list for the operator-assign dropdowns. Only `isActive`
+ * plans are offered (you can't assign a customer to a retired tier).
+ * Sorted by sortOrder then tierRank to match the Plans editor grid.
+ */
+export async function listAssignablePlans(): Promise<AssignablePlanOption[]> {
+  const db = getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({
+      planCode: subscriptionPlans.planCode,
+      displayName: subscriptionPlans.displayName,
+      monthlyPriceMinor: subscriptionPlans.monthlyPriceMinor,
+      currency: subscriptionPlans.currency,
+      trialPeriodDays: subscriptionPlans.trialPeriodDays,
+      isInternal: subscriptionPlans.isInternal,
+    })
+    .from(subscriptionPlans)
+    .where(eq(subscriptionPlans.isActive, true))
+    .orderBy(subscriptionPlans.sortOrder, subscriptionPlans.tierRank);
+  return rows.map((r) => ({
+    planCode: r.planCode,
+    displayName: r.displayName,
+    monthlyPriceMinor: r.monthlyPriceMinor,
+    currency: r.currency,
+    trialPeriodDays: r.trialPeriodDays,
+    isInternal: r.isInternal,
+  }));
+}
+
+// ============================================================================
 // Plans & pricing editor — grid of plans + limits + live org counts (P1)
 // ============================================================================
 

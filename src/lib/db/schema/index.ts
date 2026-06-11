@@ -138,3 +138,5 @@ export * from "./crm-saved-views";
 export * from "./crm-tasks";
 // Attio-style generic CRM tags + custom fields (migration 0147).
 export * from "./crm-custom-fields";
+// Staff rate card + monthly payroll runs → finance expense pipeline (migration 0170).
+export * from "./payroll";

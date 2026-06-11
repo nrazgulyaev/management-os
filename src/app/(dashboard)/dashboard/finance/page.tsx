@@ -242,7 +242,10 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
               : "Generate statements for any month with bookings, then approve and send via PDF. Automated monthly delivery available once email is configured."}
           </p>
         </div>
-        <div className="actions">
+        <div className="actions flex gap-2 items-center">
+          <Link href="/dashboard/payroll" className="btn btn-secondary btn-sm">
+            Payroll · staff cost
+          </Link>
           <form action={generateForPeriodAction} className="flex gap-2 items-center">
             <select
               name="period"
