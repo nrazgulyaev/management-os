@@ -452,6 +452,7 @@ export async function submitGuestOrderAction(
   await notifyOrderCreated({
     id: row!.id,
     orderCode,
+    organizationId: service.organizationId,
     bookingId: stay.bookingId,
     villaCode: stay.villaCode,
     serviceName: service.name,
@@ -599,7 +600,10 @@ export async function transitionOrderAction(
 
   // Service-name lookup (for the notification body).
   const [serviceRow] = await db
-    .select({ name: guestServices.name })
+    .select({
+      name: guestServices.name,
+      organizationId: guestServices.organizationId,
+    })
     .from(guestServices)
     .where(eq(guestServices.id, order.serviceId))
     .limit(1);
@@ -608,6 +612,7 @@ export async function transitionOrderAction(
     order: {
       id: v.id,
       orderCode: order.orderCode,
+      organizationId: serviceRow?.organizationId ?? null,
       bookingId: order.bookingId,
       villaCode: null,
       serviceName: serviceRow?.name ?? null,

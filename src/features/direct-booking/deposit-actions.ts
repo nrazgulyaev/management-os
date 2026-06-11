@@ -128,6 +128,7 @@ export async function markDepositManuallyPaidAction(
   });
   await queueNotification({
     recipientType: "role",
+    organizationId: deposit.organizationId ?? undefined,
     channel: "in_app",
     templateKey: "direct_booking.deposit_marked_paid",
     title: "Deposit marked paid",
@@ -180,6 +181,7 @@ export async function markDepositFailedAction(
   });
   await queueNotification({
     recipientType: "role",
+    organizationId: deposit.organizationId ?? undefined,
     channel: "in_app",
     templateKey: "direct_booking.deposit_failed",
     title: "Deposit failed",

@@ -112,6 +112,7 @@ async function queueRiskNotifications(input: UpsertRiskInput) {
     try {
       await queueNotification({
         recipientType: "role",
+        organizationId: input.organizationId ?? undefined,
         channel: "in_app",
         templateKey,
         title: input.title,

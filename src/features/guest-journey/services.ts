@@ -278,6 +278,8 @@ export async function listGuestReviewRequests(opts?: {
 
 export interface BookingForJourney {
   id: string;
+  /** Org anchor — bookings.organization_id (NOT NULL since 0155). */
+  organizationId: string;
   villaId: string;
   projectId: string | null;
   channelKey: string | null;
@@ -301,6 +303,7 @@ export async function getBookingForJourney(
   const [row] = await db
     .select({
       id: bookings.id,
+      organizationId: bookings.organizationId,
       villaId: bookings.villaId,
       projectId: villas.projectId,
       channelKey: bookingChannels.key,

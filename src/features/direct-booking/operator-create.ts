@@ -282,6 +282,7 @@ export async function createDirectBookingOnBehalfAction(
         requestId: request.id,
         requestCode,
         villaCode: villa.code,
+        organizationId: request.organizationId ?? organizationId,
       });
       await syncGuestStatusForChain({
         holdId: hold.id,

@@ -287,6 +287,7 @@ export async function createGuestServiceRequestAction(
     for (const role of ["concierge", "property_manager"]) {
       await queueNotification({
         recipientType: "role",
+        organizationId: stay.organizationId,
         channel: "in_app",
         templateKey: "guest_stay.service_request_created",
         title: `Guest service request · ${stay.villaCode ?? "villa"}`,

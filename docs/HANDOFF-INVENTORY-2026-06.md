@@ -201,3 +201,12 @@
 | **Visual-baselines** | **36 PNG лендингов реально сгенерированы и закоммичены** (12 экранов × desktop/tablet/mobile, -darwin, ~11MB): прод-сборка на :3101 без DB, каждый PNG проверен на нетривиальность, стабильность доказана двумя зелёными diff-прогонами; CI-guard исправлен на -linux.png (darwin-сет не роняет ubuntu-runner); кабинетные — после экспорта DB-кредов и PLAYWRIGHT_VISUAL_* (runbook в README) |
 
 **Действия пользователя:** `npm run db:migrate` (0166) · для Xendit: добавить провайдера с ключами на /dashboard/payments/providers + callback-token, URL вебхука на странице провайдера · для кабинетных baseline: README tests/visual.
+
+## 16. Волна 6 выполнена (2026-06-11, PR #216) — лендинги + orgId-продьюсеры
+
+| Блок | Что построено |
+|---|---|
+| **orgId в продьюсеры** | ~20 файлов queueNotification-вызовов: org прокинут из контекста каждого (booking→villa→project, requireOrgId, entity.organization_id); честные исключения помечены комментарием (platform-wide by design / org not derivable); delivery-тесты 17/17 |
+| **Product-лендинги** (management.html / development.html) | Паритет-проход по секциям + **починен mobile/tablet overflow** (408→390, 401→390, 891→768 px — подтверждено новыми baseline'ами) |
+| **Subscription-лендинг** (subscription.html) | Недостающая Mid-CTA-секция; Log in в хедере; кросс-продуктовые ссылки с мёртвых абсолютных доменов на реальные роуты; signup с product-преселектом; **починен pre-existing двойной хедер/футер** + hydration-ошибка; +51px overflow на 768 закрыт; pricing сверен с реальным packaging (фейковая scarcity мока намеренно не воспроизведена) |
+| **Baselines** | 36 лендинг-baseline'ов перегенерированы под новые версии, стабильность 2×36/36 |

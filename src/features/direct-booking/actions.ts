@@ -71,6 +71,7 @@ export async function markDirectBookingUnderReviewAction(
   await notifyRequestUnderReview({
     requestId: parsed.data.id,
     requestCode: updated.requestCode,
+    organizationId: updated.organizationId,
   });
   await syncGuestStatusForChain({ requestId: parsed.data.id });
   await recordAuditEvent({
@@ -109,6 +110,7 @@ export async function approveDirectBookingRequestAction(
   await notifyRequestApproved({
     requestId: parsed.data.id,
     requestCode: updated.requestCode,
+    organizationId: updated.organizationId,
   });
   await syncGuestStatusForChain({ requestId: parsed.data.id });
   await recordAuditEvent({
@@ -153,6 +155,7 @@ export async function rejectDirectBookingRequestAction(
   await notifyRequestRejected({
     requestId: parsed.data.id,
     requestCode: updated.requestCode,
+    organizationId: updated.organizationId,
   });
   await syncGuestStatusForChain({ requestId: parsed.data.id });
   await recordAuditEvent({
@@ -325,10 +328,12 @@ export async function convertDirectBookingRequestToBookingAction(
   await notifyRequestConverted({
     requestId: parsed.data.id,
     bookingCode: bookingRow.bookingCode,
+    organizationId,
   });
   // Notify booking_manager + concierge that the booking is confirmed.
   await queueNotification({
     recipientType: "role",
+    organizationId,
     channel: "in_app",
     templateKey: "direct_booking.booking_confirmed",
     title: `Direct booking confirmed — ${bookingRow.bookingCode}`,

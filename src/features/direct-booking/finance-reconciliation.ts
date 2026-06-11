@@ -438,6 +438,10 @@ export async function postDirectBookingRevenue(
         if (link) await mirrorRequestStatus(db, requestId, "failed", link.id);
         await queueNotification({
           recipientType: "role",
+          organizationId:
+            ctx.request.organizationId ??
+            ctx.hold?.organizationId ??
+            undefined,
           channel: "in_app",
           templateKey: "direct_booking.reconciliation_failed",
           title: "Reconciliation failed",
@@ -578,6 +582,8 @@ export async function postDirectBookingRevenue(
     });
     await queueNotification({
       recipientType: "role",
+      organizationId:
+        ctx.request.organizationId ?? ctx.hold?.organizationId ?? undefined,
       channel: "in_app",
       templateKey: "direct_booking.revenue_posted",
       title: "Direct booking revenue posted",
@@ -614,6 +620,8 @@ export async function postDirectBookingRevenue(
     if (link) await mirrorRequestStatus(db, requestId, "failed", link.id);
     await queueNotification({
       recipientType: "role",
+      organizationId:
+        ctx.request.organizationId ?? ctx.hold?.organizationId ?? undefined,
       channel: "in_app",
       templateKey: "direct_booking.reconciliation_failed",
       title: "Reconciliation failed",

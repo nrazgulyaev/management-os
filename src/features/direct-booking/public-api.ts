@@ -491,6 +491,7 @@ export async function handleSubmitHold(args: {
     requestId: request.id,
     requestCode,
     villaCode,
+    organizationId: request.organizationId ?? hold.organizationId,
   });
 
   // Prompt 106 — create the deposit + provider session.
@@ -510,6 +511,10 @@ export async function handleSubmitHold(args: {
     });
     await queueNotification({
       recipientType: "role",
+      organizationId:
+        depositOutcome.deposit.organizationId ??
+        hold.organizationId ??
+        undefined,
       channel: "in_app",
       templateKey: "direct_booking.deposit_created",
       title: "Deposit created",
@@ -758,6 +763,8 @@ export async function handleNotifyDepositPaid(token: string): Promise<{
   });
   await queueNotification({
     recipientType: "role",
+    organizationId:
+      deposit.organizationId ?? hold.organizationId ?? undefined,
     channel: "in_app",
     templateKey: "direct_booking.deposit_guest_claimed_paid",
     title: "Guest claims deposit paid",
@@ -767,6 +774,8 @@ export async function handleNotifyDepositPaid(token: string): Promise<{
   });
   await queueNotification({
     recipientType: "role",
+    organizationId:
+      deposit.organizationId ?? hold.organizationId ?? undefined,
     channel: "in_app",
     templateKey: "direct_booking.deposit_guest_claimed_paid",
     title: "Guest claims deposit paid",

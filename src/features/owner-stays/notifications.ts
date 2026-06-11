@@ -24,6 +24,8 @@ export { mapStatusTransitionToTemplate };
 
 interface OwnerStayContext {
   ownerId: string;
+  /** Org anchor — owner_stay_requests.organization_id (NOT NULL since 0158). */
+  organizationId: string;
   villaCode: string | null;
   requestedStart: string;
   requestedEnd: string;
@@ -37,6 +39,7 @@ async function loadOwnerStayContext(
   const [row] = await db
     .select({
       ownerId: ownerStayRequests.ownerId,
+      organizationId: ownerStayRequests.organizationId,
       requestedStart: ownerStayRequests.requestedStart,
       requestedEnd: ownerStayRequests.requestedEnd,
       villaCode: villas.unitCode,
@@ -48,6 +51,7 @@ async function loadOwnerStayContext(
   if (!row) return null;
   return {
     ownerId: row.ownerId,
+    organizationId: row.organizationId,
     villaCode: row.villaCode ?? null,
     requestedStart: row.requestedStart as unknown as string,
     requestedEnd: row.requestedEnd as unknown as string,
@@ -83,6 +87,7 @@ export async function queueOwnerStayNotification(
     await queueNotification({
       recipientType: "owner",
       recipientId: ctx.ownerId,
+      organizationId: ctx.organizationId,
       channel: "in_app",
       templateKey,
       title: copy.title,

@@ -178,6 +178,7 @@ export async function createGuestHandoffReplyAction(
     try {
       await queueNotification({
         recipientType: "role",
+        organizationId: handoff.organizationId ?? stay.organizationId,
         channel: "in_app",
         templateKey: "guest_ai.handoff_reply_guest",
         title: `Guest replied · ${stay.villaCode ?? "villa"}`,
