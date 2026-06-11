@@ -122,6 +122,9 @@ const MULTI_TENANT_TABLES = new Set<string>([
   // Stage 5.B — revenue + payroll + capacity
   "revenueStreams",
   "payrollPeriods",
+  // Migration 0172 — payroll statutory (BPJS/PPh21) + payslip breakdown.
+  "orgPayrollSettings",
+  "payrollPayslips",
   "teamCapacityTracking",
   "projectCycleRecommendations",
   "unitCostAllocations",

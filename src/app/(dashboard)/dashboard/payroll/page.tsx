@@ -16,10 +16,16 @@ function fmtMoney(minor: bigint, currency: string): string {
   })}`;
 }
 
-const SCOPE_LABEL: Record<string, string> = {
-  villa: "Villa",
-  project_pool: "Project pool",
-  company: "Company",
+const COMP_MODE_LABEL: Record<string, string> = {
+  salaried: "Salaried",
+  per_villa_fixed: "Per villa",
+  per_service: "Per service",
+};
+
+const BEARER_LABEL: Record<string, string> = {
+  owner: "Owner",
+  management: "Management",
+  shared_pool: "Shared pool",
 };
 
 export default async function PayrollPage() {
@@ -44,13 +50,17 @@ export default async function PayrollPage() {
             Staff <em>cost</em>
           </h1>
           <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
-            Model who costs what (housekeeper, pool technician, gardener…), then run payroll for a
-            month. Each active staff member posts an expense line into finance with their allocation
-            scope — so the cost flows into villa / project costs and owner statements exactly like a
-            manual expense. Idempotent: a month can only be posted once.
+            Model who costs what along two axes — a compensation mode (salaried, per-villa-fixed, or
+            ad-hoc per-service) and a cost bearer (owner, management, or shared pool) — then run
+            payroll for a month. Each active salaried / per-villa-fixed staff member posts expense
+            lines into finance, stamped with their bearer, so the cost flows into owner statements or
+            the company P&L exactly like a manual expense. Idempotent: a month can only be posted once.
           </p>
         </div>
-        <div className="actions">
+        <div className="actions flex items-center gap-2">
+          <Link href="/dashboard/payroll/settings" className="btn btn-ghost btn-sm">
+            Statutory settings
+          </Link>
           <RunPayroll defaultMonth={thisMonth} />
         </div>
       </div>
@@ -100,8 +110,11 @@ export default async function PayrollPage() {
               <tr>
                 <th scope="col">Name</th>
                 <th scope="col">Role</th>
-                <th scope="col" className="num">Monthly rate</th>
-                <th scope="col">Allocation</th>
+                <th scope="col">Comp mode</th>
+                <th scope="col">Bearer</th>
+                <th scope="col">Active window</th>
+                <th scope="col" className="num">Assignments</th>
+                <th scope="col" className="num">Monthly cost</th>
                 <th scope="col">Status</th>
                 <th scope="col"></th>
               </tr>
@@ -111,17 +124,41 @@ export default async function PayrollPage() {
                 <tr key={s.id} className={s.active ? "" : "opacity-60"}>
                   <td className="font-medium">{s.fullName}</td>
                   <td>{s.roleLabel}</td>
-                  <td className="num text-terra font-medium">
-                    {fmtMoney(s.monthlyRateMinor, s.currency)}
+                  <td className="text-[12px]">
+                    <HandoffBadge>{COMP_MODE_LABEL[s.compMode] ?? s.compMode}</HandoffBadge>
                   </td>
                   <td className="text-[12px]">
-                    <HandoffBadge>{SCOPE_LABEL[s.allocationScope] ?? s.allocationScope}</HandoffBadge>
-                    {s.allocationScope === "villa" && s.villaCode ? (
-                      <span className="mono text-ink-4 ml-1.5">{s.villaCode}</span>
-                    ) : null}
-                    {s.allocationScope === "project_pool" && s.projectName ? (
-                      <span className="text-ink-4 ml-1.5">{s.projectName}</span>
-                    ) : null}
+                    <HandoffBadge tone={s.costBearer === "management" ? undefined : "ok"}>
+                      {BEARER_LABEL[s.costBearer] ?? s.costBearer}
+                    </HandoffBadge>
+                    {s.statutoryEnabled && (
+                      <span className="ml-1.5">
+                        <HandoffBadge>BPJS/PPh21</HandoffBadge>
+                      </span>
+                    )}
+                  </td>
+                  <td className="text-[11px] text-ink-3 mono">
+                    {s.hiredOn || s.endedOn ? (
+                      <>
+                        {s.hiredOn ?? "—"} <span className="text-ink-4">→</span> {s.endedOn ?? "open"}
+                      </>
+                    ) : (
+                      <span className="text-ink-4">always</span>
+                    )}
+                  </td>
+                  <td className="num text-[12px]">
+                    {s.compMode === "per_service" ? (
+                      <span className="text-ink-4">—</span>
+                    ) : (
+                      s.assignmentCount
+                    )}
+                  </td>
+                  <td className="num text-terra font-medium">
+                    {s.compMode === "per_service" ? (
+                      <span className="text-ink-4 font-normal">ad-hoc</span>
+                    ) : (
+                      fmtMoney(s.monthlyCostMinor, s.currency)
+                    )}
                   </td>
                   <td>
                     <HandoffBadge tone={s.active ? "ok" : undefined}>
@@ -172,12 +209,12 @@ export default async function PayrollPage() {
                   <td className="mono text-[11px] text-ink-4">
                     {new Date(r.postedAt).toLocaleDateString("en-GB")}
                   </td>
-                  <td>
-                    <Link
-                      href={`/dashboard/finance/expenses`}
-                      className="btn btn-ghost btn-sm"
-                    >
-                      View in finance →
+                  <td className="flex items-center gap-1.5">
+                    <Link href={`/dashboard/payroll/runs/${r.id}`} className="btn btn-ghost btn-sm">
+                      Payslips →
+                    </Link>
+                    <Link href={`/dashboard/finance/expenses`} className="btn btn-ghost btn-sm">
+                      Finance →
                     </Link>
                   </td>
                 </tr>
